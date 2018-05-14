@@ -5,7 +5,9 @@ import re
 import stat
 
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
@@ -13,6 +15,7 @@ from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact_utils
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import notification
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import standard
@@ -67,8 +70,17 @@ class ListDirectory(flow.GRRFlow):
   def Start(self):
     """Issue a request to list the directory."""
     self.state.urn = None
-    self.CallClient(
-        server_stubs.StatFile, pathspec=self.args.pathspec, next_state="Stat")
+
+    # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
+    # This conditional should be removed after that date.
+    if self.client_version >= 3221:
+      stub = server_stubs.GetFileStat
+      request = rdf_client.GetFileStatRequest(pathspec=self.args.pathspec)
+    else:
+      stub = server_stubs.StatFile
+      request = rdf_client.ListDirRequest(pathspec=self.args.pathspec)
+
+    self.CallClient(stub, request, next_state="Stat")
 
     # We use data to pass the path to the callback:
     self.CallClient(
@@ -116,11 +128,27 @@ class ListDirectory(flow.GRRFlow):
         self.SendReply(st)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
-    if self.state.urn:
-      self.Notify("ViewObject", self.state.urn, u"Listed {0}".format(
-          self.args.pathspec))
-    else:
+    if not self.runner.ShouldSendNotifications():
+      return
+
+    if not self.state.urn:
       super(ListDirectory, self).NotifyAboutEnd()
+      return
+
+    components = self.state.urn.Split()
+    file_ref = None
+    if len(components) > 3:
+      file_ref = rdf_objects.VfsFileReference(
+          client_id=components[0],
+          path_type=components[2].upper(),
+          path_components=components[3:])
+    notification.Notify(
+        self.token.username,
+        notification.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED,
+        "Listed {0}".format(utils.SmartStr(self.args.pathspec)),
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+            vfs_file=file_ref))
 
 
 class IteratedListDirectory(ListDirectory):
@@ -194,8 +222,26 @@ class IteratedListDirectory(ListDirectory):
         self.SendReply(st)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
-    self.Notify("ViewObject", self.state.urn, "List of {0} completed.".format(
-        self.args.pathspec))
+    if not self.runner.ShouldSendNotifications():
+      return
+
+    if self.state.urn:
+      components = self.state.urn.Split()
+      file_ref = None
+      if len(components) > 3:
+        file_ref = rdf_objects.VfsFileReference(
+            client_id=components[0],
+            path_type=components[2].upper(),
+            path_components=components[3:])
+      notification.Notify(
+          self.token.username,
+          notification.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED,
+          "List of {0} completed.".format(utils.SmartStr(self.args.pathspec)),
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+              vfs_file=file_ref))
+    else:
+      super(IteratedListDirectory, self).NotifyAboutEnd()
 
 
 class RecursiveListDirectoryArgs(rdf_structs.RDFProtoStruct):
@@ -277,16 +323,34 @@ class RecursiveListDirectory(flow.GRRFlow):
         self.SendReply(st)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
+    if not self.runner.ShouldSendNotifications():
+      return
+
     status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
 
-    urn = None
-    try:
-      urn = self.args.pathspec.AFF4Path(self.client_id)
-    except ValueError:
-      pass
+    urn = self.state.first_directory
+    if not urn:
+      try:
+        urn = self.args.pathspec.AFF4Path(self.client_id)
+      except ValueError:
+        pass
 
-    self.Notify("ViewObject", self.state.first_directory or urn,
-                status_text % (self.state.file_count, self.state.dir_count))
+    if urn:
+      components = urn.Split()
+      file_ref = None
+      if len(components) > 3:
+        file_ref = rdf_objects.VfsFileReference(
+            client_id=components[0],
+            path_type=components[2].upper(),
+            path_components=components[3:])
+
+    notification.Notify(
+        self.token.username, rdf_objects.UserNotification.Type.
+        TYPE_VFS_RECURSIVE_LIST_DIRECTORY_COMPLETED,
+        status_text % (self.state.file_count, self.state.dir_count),
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+            vfs_file=file_ref))
 
   @flow.StateHandler()
   def End(self):
@@ -525,10 +589,16 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient(
-        server_stubs.StatFile,
-        pathspec=self.args.pathspec,
-        next_state="ProcessStat")
+    # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
+    # This conditional should be removed after that date.
+    if self.client_version >= 3221:
+      stub = server_stubs.GetFileStat
+      request = rdf_client.GetFileStatRequest(pathspec=self.args.pathspec)
+    else:
+      stub = server_stubs.StatFile
+      request = rdf_client.ListDirRequest(pathspec=self.args.pathspec)
+
+    self.CallClient(stub, request, next_state="ProcessStat")
 
   @flow.StateHandler()
   def ProcessStat(self, responses):
@@ -589,7 +659,8 @@ class GlobMixin(object):
                    paths,
                    pathtype="OS",
                    root_path=None,
-                   process_non_regular_files=False):
+                   process_non_regular_files=False,
+                   collect_ext_attrs=False):
     """Starts the Glob.
 
     This is the main entry point for this flow mixin.
@@ -604,6 +675,8 @@ class GlobMixin(object):
       root_path: A pathspec where to start searching from.
       process_non_regular_files: Work with all kinds of files - not only with
           regular ones.
+      collect_ext_attrs: Whether to gather information about file extended
+          attributes.
     """
     patterns = []
 
@@ -616,6 +689,7 @@ class GlobMixin(object):
     self.state.pathtype = pathtype
     self.state.root_path = root_path
     self.state.process_non_regular_files = process_non_regular_files
+    self.state.collect_ext_attrs = collect_ext_attrs
 
     # Transform the patterns by substitution of client attributes. When the
     # client has multiple values for an attribute, this generates multiple
@@ -883,8 +957,6 @@ class GlobMixin(object):
 
           if not next_node:
             # Check for the existence of the last node.
-            request = rdf_client.ListDirRequest(pathspec=pathspec)
-
             if (response is None or (response and
                                      (response.st_mode == 0 or
                                       not stat.S_ISREG(response.st_mode)))):
@@ -893,8 +965,20 @@ class GlobMixin(object):
               # here where this pathspec points to a file/directory in the root
               # directory. In this case, response will be None but we still need
               # to stat it.
+
+              # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
+              # This conditional should be removed after that date.
+              if self.client_version >= 3221:
+                stub = server_stubs.GetFileStat
+                request = rdf_client.GetFileStatRequest(
+                    pathspec=pathspec,
+                    collect_ext_attrs=self.state.collect_ext_attrs)
+              else:
+                stub = server_stubs.StatFile
+                request = rdf_client.ListDirRequest(pathspec=pathspec)
+
               self.CallClient(
-                  server_stubs.StatFile,
+                  stub,
                   request,
                   next_state="ProcessEntry",
                   request_data=dict(component_path=next_component))

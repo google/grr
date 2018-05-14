@@ -10,19 +10,17 @@ The audit system consists of a group of event listeners which receive these
 events and act upon them.
 """
 
-from grr.lib import queues
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import events as rdf_events
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import events
-from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import sequential_collection
 
 AUDIT_EVENT = "Audit"
 
 
 class AuditEventCollection(sequential_collection.IndexedSequentialCollection):
-  RDF_TYPE = events.AuditEvent
+  RDF_TYPE = rdf_events.AuditEvent
 
 
 def AllAuditLogs(token=None):
@@ -38,27 +36,25 @@ def AuditLogsForTimespan(start_time, end_time, token=None):
     yield AuditEventCollection(log)
 
 
-class AuditEventListener(flow.EventListener):
+class AuditEventListener(events.EventListener):
   """Receive the audit events."""
-  well_known_session_id = rdfvalue.SessionID(
-      base="aff4:/audit", queue=queues.FLOWS, flow_name="listener")
+
   EVENTS = [AUDIT_EVENT]
 
   created_logs = set()
 
-  def EnsureLogIsIndexed(self, log_urn):
+  def EnsureLogIsIndexed(self, log_urn, token=None):
     if log_urn not in self.created_logs:
       # Just write any type to the aff4 space so we can determine
       # which audit logs exist easily.
       aff4.FACTORY.Create(
-          log_urn, aff4.AFF4Volume, mode="w", token=self.token).Close()
+          log_urn, aff4.AFF4Volume, mode="w", token=token).Close()
       self.created_logs.add(log_urn)
     return log_urn
 
-  @events.EventHandler(auth_required=False)
-  def ProcessMessage(self, message=None, event=None):
-    _ = message
+  def ProcessMessages(self, msgs=None, token=None):
     log_urn = aff4.CurrentAuditLog()
-    self.EnsureLogIsIndexed(log_urn)
+    self.EnsureLogIsIndexed(log_urn, token=token)
     with data_store.DB.GetMutationPool() as pool:
-      AuditEventCollection.StaticAdd(log_urn, event, mutation_pool=pool)
+      for msg in msgs:
+        AuditEventCollection.StaticAdd(log_urn, msg, mutation_pool=pool)

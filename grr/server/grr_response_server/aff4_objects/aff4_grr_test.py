@@ -11,12 +11,10 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import events
-from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
@@ -25,22 +23,13 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class MockChangeEvent(flow.EventListener):
+class MockChangeEvent(events.EventListener):
   EVENTS = ["MockChangeEvent"]
-
-  well_known_session_id = rdfvalue.SessionID(flow_name="MockChangeEventHandler")
 
   CHANGED_URNS = []
 
-  @events.EventHandler(allow_client_access=True)
-  def ProcessMessage(self, message=None, event=None):
-    _ = event
-    if (message.auth_state !=
-        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
-      return
-
-    urn = rdfvalue.RDFURN(message.payload)
-    MockChangeEvent.CHANGED_URNS.append(urn)
+  def ProcessMessages(self, msgs=None, token=None):
+    MockChangeEvent.CHANGED_URNS.extend(msgs)
 
 
 class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
@@ -76,10 +65,10 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
             ntfs_id=2)
 
     urn = pathspec.AFF4Path(rdf_client.ClientURN("C.1234567812345678"))
-    self.assertEqual(urn,
-                     rdfvalue.RDFURN(
-                         r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/"
-                         "Test Directory/notes.txt:ads"))
+    self.assertEqual(
+        urn,
+        rdfvalue.RDFURN(r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/"
+                        "Test Directory/notes.txt:ads"))
 
   def testClientSubfieldGet(self):
     """Test we can get subfields of the client."""
@@ -201,9 +190,8 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
 
     # Finish the flow holding the lock.
     client_mock = action_mocks.ActionMock()
-    for _ in flow_test_lib.TestFlowHelper(
-        flows[0], client_mock, client_id=client_id, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flows[0], client_mock, client_id=client_id, token=self.token)
 
     # The flow holding the lock has finished, so Update() should start a new
     # flow.

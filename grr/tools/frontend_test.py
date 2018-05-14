@@ -88,7 +88,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
                            client_id=None):
     client_id = client_id or self.SetupClient(0)
     with test_lib.ConfigOverrider({"Client.server_urls": [self.base_url]}):
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           file_finder.ClientFileFinder.__name__,
           action_mocks.ClientFileFinderClientMock(
               client_worker=worker_mocks.FakeClientWorker()),
@@ -98,8 +98,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
           action=action,
           process_non_regular_files=True,
           network_bytes_limit=network_bytes_limit,
-          token=self.token):
-        session_id = s
+          token=self.token)
 
       return session_id
 
@@ -264,12 +263,12 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     known_profile = "F8E2A8B5C9B74BF4A6E4A48F180099942"
     unknown_profile = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 
-    req = requests.get(
-        self.base_url + "rekall_profiles/v1.0/nt/GUID/" + unknown_profile)
+    req = requests.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
+                       unknown_profile)
     self.assertEqual(req.status_code, 404)
 
-    req = requests.get(
-        self.base_url + "rekall_profiles/v1.0/nt/GUID/" + known_profile)
+    req = requests.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
+                       known_profile)
     self.assertEqual(req.status_code, 200)
 
     pb = rdf_rekall_types.RekallProfile.protobuf()

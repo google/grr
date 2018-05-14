@@ -240,44 +240,6 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     super(GrrWorkerTest, self).tearDown()
     self.patch_get_notifications.stop()
 
-  def SendResponse(self,
-                   session_id,
-                   data,
-                   client_id=None,
-                   well_known=False,
-                   request_id=None):
-    if not isinstance(data, rdfvalue.RDFValue):
-      data = rdf_protodict.DataBlob(string=data)
-    if well_known:
-      request_id, response_id = 0, 12345
-    else:
-      request_id, response_id = request_id or 1, 1
-    with queue_manager.QueueManager(token=self.token) as flow_manager:
-      flow_manager.QueueResponse(
-          rdf_flows.GrrMessage(
-              source=client_id,
-              session_id=session_id,
-              payload=data,
-              request_id=request_id,
-              response_id=response_id))
-      if not well_known:
-        # For normal flows we have to send a status as well.
-        flow_manager.QueueResponse(
-            rdf_flows.GrrMessage(
-                source=client_id,
-                session_id=session_id,
-                payload=rdf_flows.GrrStatus(
-                    status=rdf_flows.GrrStatus.ReturnedStatus.OK),
-                request_id=request_id,
-                response_id=response_id + 1,
-                type=rdf_flows.GrrMessage.Type.STATUS))
-
-      flow_manager.QueueNotification(
-          session_id=session_id, last_status=request_id)
-      timestamp = flow_manager.frozen_timestamp
-
-    return timestamp
-
   def testProcessMessages(self):
     """Test processing of several inbound messages."""
 

@@ -51,13 +51,12 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
     client_mock = action_mocks.ActionMock()
     for flow_urn in flows:
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           flow_urn,
           client_mock,
           client_id=client_id,
           token=self.token,
-          check_flow_errors=False):
-        pass
+          check_flow_errors=False)
 
   def testRefreshFileStartsFlow(self):
     self.Open("/")
@@ -105,13 +104,12 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
     client_mock = action_mocks.MultiGetFileClientMock()
     for flow_urn in flows:
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           flow_urn,
           client_mock,
           client_id=client_id,
           check_flow_errors=False,
-          token=self.token):
-        pass
+          token=self.token)
 
     time_in_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1h")
     # We have to make sure that the new version will not be within a second

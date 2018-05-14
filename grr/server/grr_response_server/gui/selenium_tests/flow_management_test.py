@@ -164,15 +164,14 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Check that a StatFile client action was issued as part of the GetFile
     # flow.
     self.WaitUntil(self.IsElementPresent,
-                   "css=.tab-content td.proto_value:contains(StatFile)")
+                   "css=.tab-content td.proto_value:contains(GetFileStat)")
 
   def testOverviewIsShownForNestedFlows(self):
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         gui_test_lib.RecursiveTestFlow.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token):
-      pass
+        token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -279,12 +278,11 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
     # RecursiveTestFlow doesn't send any results back.
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneLogStatement.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token):
-      pass
+        token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -295,12 +293,11 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testLogTimestampsArePresentedInUTC(self):
     with test_lib.FakeTime(42):
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           gui_test_lib.FlowWithOneLogStatement.__name__,
           self.action_mock,
           client_id=self.client_id,
-          token=self.token):
-        pass
+          token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -310,12 +307,11 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "1970-01-01 00:00:42 UTC")
 
   def testResultsAreDisplayedInResultsTab(self):
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneStatEntryResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token):
-      pass
+        token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -341,12 +337,11 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "th:contains('Value')")
 
   def testHashesAreDisplayedCorrectly(self):
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneHashEntryResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token):
-      pass
+        token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -362,19 +357,17 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "8b0a15eefe63fd41f8dc9dee01c5cf9a")
 
   def testBrokenFlowsAreShown(self):
-    for s in flow_test_lib.TestFlowHelper(
+    flow_urn = flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneHashEntryResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token):
-      flow_urn = s
+        token=self.token)
 
-    for s in flow_test_lib.TestFlowHelper(
+    broken_flow_urn = flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneHashEntryResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token):
-      broken_flow_urn = s
+        token=self.token)
 
     # Break the flow.
     data_store.DB.DeleteAttributes(broken_flow_urn,

@@ -103,11 +103,10 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
     def ProcessOperation():
       time.sleep(1)
       # We assume that the operation id is the URN of a flow.
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           rdfvalue.RDFURN(operation.operation_id),
           client_id=self.client_urn,
-          token=self.token):
-        pass
+          token=self.token)
 
     threading.Thread(target=ProcessOperation).start()
     result_f = operation.WaitUntilDone().target_file
@@ -129,11 +128,10 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
     def ProcessOperation():
       time.sleep(1)
       # We assume that the operation id is the URN of a flow.
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           rdfvalue.RDFURN(operation.operation_id),
           client_id=self.client_urn,
-          token=self.token):
-        pass
+          token=self.token)
 
     threading.Thread(target=ProcessOperation).start()
     result_f = operation.WaitUntilDone().target_file

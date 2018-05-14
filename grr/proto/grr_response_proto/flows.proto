@@ -77,7 +77,7 @@ message FlowContext {
 
   optional State state = 14;
   optional string status = 15;
-  optional bool user_notified = 16;
+  reserved 16;
 }
 
 // The hunt context.

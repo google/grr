@@ -1269,8 +1269,7 @@
           "nextOutboundId": "2",
           "outstandingRequests": "1",
           "sessionId": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11",
-          "state": "RUNNING",
-          "userNotified": false
+          "state": "RUNNING"
         },
         "creator": "api_test_user",
         "lastActiveAt": "44000000",
@@ -1364,8 +1363,7 @@
           "nextOutboundId": "9",
           "outstandingRequests": "8",
           "sessionId": "aff4:/C.1000000000000000/flows/F:ABCDEF12",
-          "state": "RUNNING",
-          "userNotified": false
+          "state": "RUNNING"
         },
         "creator": "api_test_user",
         "flowId": "F:ABCDEF12",
@@ -1422,8 +1420,7 @@
           "outstandingRequests": "8",
           "sessionId": "aff4:/C.1000000000000000/flows/F:ABCDEF13",
           "state": "ERROR",
-          "status": "Pending termination: Some reason",
-          "userNotified": false
+          "status": "Pending termination: Some reason"
         },
         "creator": "api_test_user",
         "flowId": "F:ABCDEF13",
@@ -5829,7 +5826,7 @@
               ]
             },
             "crashMessage": "Client killed during transaction",
-            "crashType": "aff4:/flows/F:CrashHandler",
+            "crashType": "Client Crash",
             "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
             "timestamp": "45000000"
           }
@@ -5856,7 +5853,7 @@
               ]
             },
             "crashMessage": "Client killed during transaction",
-            "crashType": "aff4:/flows/F:CrashHandler",
+            "crashType": "Client Crash",
             "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
             "timestamp": "45000000"
           }
@@ -6457,7 +6454,7 @@
               ]
             },
             "crashMessage": "Client killed during transaction",
-            "crashType": "aff4:/flows/F:CrashHandler",
+            "crashType": "Client Crash",
             "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
             "timestamp": "45000000"
           }
@@ -6484,7 +6481,7 @@
               ]
             },
             "crashMessage": "Client killed during transaction",
-            "crashType": "aff4:/flows/F:CrashHandler",
+            "crashType": "Client Crash",
             "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
             "timestamp": "45000000"
           }

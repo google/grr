@@ -19,7 +19,7 @@ class DumpFlashImageMock(action_mocks.ActionMock):
 
   def __init__(self, *args, **kwargs):
     super(DumpFlashImageMock, self).__init__(
-        standard.HashBuffer, standard.HashFile, standard.StatFile,
+        standard.HashBuffer, standard.HashFile, standard.GetFileStat,
         standard.TransferBuffer, tempfiles.DeleteGRRTempFiles)
 
   def DumpFlashImage(self, args):
@@ -59,12 +59,11 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
     """Dump Flash Image."""
     client_mock = DumpFlashImageMock()
 
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         hardware.DumpFlashImage.__name__,
         client_mock,
         client_id=self.client_id,
-        token=self.token):
-      pass
+        token=self.token)
 
     fd = aff4.FACTORY.Open(self.client_id.Add("spiflash"), token=self.token)
     self.assertEqual(fd.Read("10"), "\xff" * 10)
@@ -79,9 +78,8 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
         flow_name=hardware.DumpFlashImage.__name__,
         token=self.token)
 
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=self.client_id, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flow_urn, client_mock, client_id=self.client_id, token=self.token)
 
     logs = flow.GRRFlow.LogCollectionForFID(flow_urn)
     self.assertIn("Unknown chipset", [l.log_message for l in logs])
@@ -90,13 +88,12 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
     """Fail to dump flash."""
     client_mock = FailDumpMock()
 
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         hardware.DumpFlashImage.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        check_flow_errors=False):
-      pass
+        check_flow_errors=False)
 
 
 class DumpACPITableMock(action_mocks.ActionMock):
@@ -144,13 +141,12 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
     table_signature_list = ["DSDT", "XSDT", "SSDT"]
     client_id = self.SetupClient(0)
 
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         hardware.DumpACPITable.__name__,
         client_mock,
         table_signature_list=table_signature_list,
         client_id=client_id,
-        token=self.token):
-      pass
+        token=self.token)
 
     fd = aff4_hardware.ACPITableDataCollection(
         client_id.Add("/devices/chipsec/acpi/tables/DSDT"))
@@ -175,13 +171,12 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
     table_signature_list = ["ABC"]
     session_id = None
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         hardware.DumpACPITable.__name__,
         client_mock,
         table_signature_list=table_signature_list,
         client_id=client_id,
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     logs = flow.GRRFlow.LogCollectionForFID(session_id)
     self.assertIn("Unable to retrieve ACPI table with signature ABC",
@@ -194,13 +189,12 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
     table_signature_list = []
 
     with self.assertRaises(ValueError) as err:
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           hardware.DumpACPITable.__name__,
           client_mock,
           table_signature_list=table_signature_list,
           client_id=client_id,
-          token=self.token):
-        pass
+          token=self.token)
 
     self.assertEqual(err.exception.message, "No ACPI table to dump.")
 

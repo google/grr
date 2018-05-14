@@ -52,4 +52,4 @@ def GRRIDToFleetspeakID(grr_id):
 
 def TSToRDFDatetime(ts):
   """Convert a protobuf.Timestamp to an RDFDatetime."""
-  return rdfvalue.RDFDatetime(ts.seconds * 1000 + ts.nanos / 1000000)
+  return rdfvalue.RDFDatetime(ts.seconds * 1000000 + ts.nanos / 1000)

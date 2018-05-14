@@ -360,10 +360,10 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
   def testInTimeRangeRaisesIfAppliedBeforeTakeMethod(self):
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
     query = stats_store.StatsStoreDataQuery(stats_data)
-    self.assertRaises(RuntimeError,
-                      query.In("counter").InTimeRange,
-                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(80),
-                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(120))
+    with self.assertRaises(RuntimeError):
+      query.In("counter").InTimeRange(
+          rdfvalue.RDFDatetime.FromSecondsSinceEpoch(80),
+          rdfvalue.RDFDatetime.FromSecondsSinceEpoch(120))
 
   def testTakeValueUsesPlainValuesToBuildTimeSeries(self):
     # Initialize and write test data.
@@ -399,7 +399,8 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
     query = stats_store.StatsStoreDataQuery(stats_data)
-    self.assertRaises(ValueError, query.In("events").TakeValue)
+    with self.assertRaises(ValueError):
+      query.In("events").TakeValue()
 
   def testTakeDistributionCountUsesDistributionCountsToBuildTimeSeries(self):
     # Initialize and write test data.
@@ -434,7 +435,8 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
     query = stats_store.StatsStoreDataQuery(stats_data)
-    self.assertRaises(ValueError, query.In("counter").TakeDistributionCount)
+    with self.assertRaises(ValueError):
+      query.In("counter").TakeDistributionCount()
 
   def testTakeDistributionSumUsesDistributionSumsToBuildTimeSeries(self):
     # Initialize and write test data.
@@ -469,7 +471,8 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
     query = stats_store.StatsStoreDataQuery(stats_data)
-    self.assertRaises(ValueError, query.In("counter").TakeDistributionSum)
+    with self.assertRaises(ValueError):
+      query.In("counter").TakeDistributionSum()
 
   def testNormalize(self):
     # Initialize and write test data.
@@ -525,7 +528,8 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
   def testNormalizeRaisesIfAppliedBeforeTakeMethod(self):
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
     query = stats_store.StatsStoreDataQuery(stats_data)
-    self.assertRaises(RuntimeError, query.In("counter").Normalize, 15, 0, 60)
+    with self.assertRaises(RuntimeError):
+      query.In("counter").Normalize(15, 0, 60)
 
   def testAggregateViaSumAggregatesMultipleTimeSeriesIntoOne(self):
     # Initialize and write test data.
@@ -689,9 +693,9 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     # 1970-01-01 00:00:20    0.2
     # 1970-01-01 00:00:30    0.3
     # 1970-01-01 00:00:40    0.4
-    self.assertListEqual(ts.data, [[0.1, 0], [0.2, 10 * 1e6],
-                                   [0.30000000000000004,
-                                    20 * 1e6], [0.4, 30 * 1e6]])
+    self.assertListEqual(ts.data,
+                         [[0.1, 0], [0.2, 10 * 1e6],
+                          [0.30000000000000004, 20 * 1e6], [0.4, 30 * 1e6]])
 
   def testScaleAppliesScaleFunctionToSingleTimeSerie(self):
     # Initialize and write test data.
@@ -738,8 +742,8 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
 
     stats_data = self.stats_store.MultiReadStats(process_ids=["pid1", "pid2"])
     query = stats_store.StatsStoreDataQuery(stats_data)
-    self.assertRaises(RuntimeError,
-                      query.In("pid.*").In("counter").TakeValue().Mean)
+    with self.assertRaises(RuntimeError):
+      query.In("pid.*").In("counter").TakeValue().Mean()
 
   def testMeanReducesTimeSerieToSingleNumber(self):
     # Initialize and write test data.

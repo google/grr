@@ -242,10 +242,24 @@ class IteratedListDirectory(ClientActionStub):
   out_rdfvalues = [rdf_client.StatEntry]
 
 
+# DEPRECATED.
+#
+# This action was replaced by newer `GetFileStat` action. This stub is left for
+# compatibility with old clients. After the transition period all clients should
+# support new action and this class should be removed.
+#
+# TODO(hanuszczak): Remove this class after 2021-01-01.
 class StatFile(ClientActionStub):
   """Sends a StatEntry for a single file."""
 
   in_rdfvalue = rdf_client.ListDirRequest
+  out_rdfvalues = [rdf_client.StatEntry]
+
+
+class GetFileStat(ClientActionStub):
+  """A client action that yields stat of a given file."""
+
+  in_rdfvalue = rdf_client.GetFileStatRequest
   out_rdfvalues = [rdf_client.StatEntry]
 
 

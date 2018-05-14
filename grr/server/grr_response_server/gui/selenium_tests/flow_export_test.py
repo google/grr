@@ -27,9 +27,8 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
         client_id=self.client_id,
         token=self.token)
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
 
     self.Open("/#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
@@ -49,12 +48,11 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
 
   def testExportCommandIsNotShownWhenNoResults(self):
     # RecursiveTestFlow doesn't send any results back.
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         gui_test_lib.RecursiveTestFlow.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token):
-      pass
+        token=self.token)
 
     self.Open("/#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('RecursiveTestFlow')")
@@ -64,12 +62,11 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
   def testExportCommandIsNotShownForNonFileResults(self):
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneNetworkConnectionResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token):
-      pass
+        token=self.token)
 
     self.Open("/#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")

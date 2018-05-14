@@ -22,6 +22,11 @@ from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
+# TODO(user): break the dependency cycle described in memory.py and
+# and remove this import.
+# pylint: disable=unused-import
+from grr.server.grr_response_server.flows.general import collectors
+# pylint: enable=unused-import
 from grr.server.grr_response_server.flows.general import filesystem
 from grr.server.grr_response_server.flows.general import memory
 from grr.server.grr_response_server.flows.general import transfer
@@ -75,9 +80,9 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
     with open(self.memory_file, "rb") as f:
       self.memory_dump = f.read()
 
-      super(MemoryCollectorClientMock,
-            self).__init__(file_fingerprint.FingerprintFile, searching.Find,
-                           server_stubs.WmiQuery, standard.ListDirectory)
+      super(MemoryCollectorClientMock, self).__init__(
+          file_fingerprint.FingerprintFile, searching.Find,
+          server_stubs.WmiQuery, standard.ListDirectory)
 
   def DeleteGRRTempFiles(self, request):
     self.delete_request = request
@@ -149,12 +154,11 @@ class TestMemoryCollector(MemoryTest):
           flow_name=memory.MemoryCollector.__name__,
           token=self.token)
 
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           self.flow_urn,
           self.client_mock,
           client_id=self.client_id,
-          token=self.token):
-        pass
+          token=self.token)
 
       return aff4.FACTORY.Open(self.flow_urn, token=self.token)
 
@@ -215,9 +219,9 @@ class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
   """Client with real file actions and mocked-out RekallAction."""
 
   def __init__(self, process_list=None):
-    super(ListVADBinariesActionMock,
-          self).__init__(file_fingerprint.FingerprintFile, searching.Find,
-                         standard.ListDirectory, server_stubs.WmiQuery)
+    super(ListVADBinariesActionMock, self).__init__(
+        file_fingerprint.FingerprintFile, searching.Find,
+        standard.ListDirectory, server_stubs.WmiQuery)
     self.process_list = process_list or []
 
   def RekallAction(self, _):
@@ -287,12 +291,11 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock()
 
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           memory.ListVADBinaries.__name__,
           client_mock,
           client_id=self.client_id,
-          token=self.token):
-        session_id = s
+          token=self.token)
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
@@ -308,13 +311,12 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
 
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           memory.ListVADBinaries.__name__,
           client_mock,
           client_id=self.client_id,
           token=self.token,
-          fetch_binaries=True):
-        session_id = s
+          fetch_binaries=True)
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
@@ -338,13 +340,12 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process, process])
 
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           memory.ListVADBinaries.__name__,
           client_mock,
           client_id=self.client_id,
           fetch_binaries=True,
-          token=self.token):
-        session_id = s
+          token=self.token)
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(fd)
@@ -362,14 +363,13 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
 
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           memory.ListVADBinaries.__name__,
           client_mock,
           client_id=self.client_id,
           token=self.token,
           filename_regex=".*bar\\.exe$",
-          fetch_binaries=True):
-        session_id = s
+          fetch_binaries=True)
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(fd)
@@ -386,14 +386,13 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe])
 
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           memory.ListVADBinaries.__name__,
           client_mock,
           check_flow_errors=False,
           client_id=self.client_id,
           token=self.token,
-          fetch_binaries=True):
-        session_id = s
+          fetch_binaries=True)
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(fd)

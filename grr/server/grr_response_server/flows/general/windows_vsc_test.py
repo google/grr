@@ -89,9 +89,8 @@ class TestListVolumeShadowCopies(flow_test_lib.FlowTestsBaseclass):
     flow_name = windows_vsc.ListVolumeShadowCopies.__name__
 
     # Run the flow in the simulated way
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_name, TestClient(), token=self.token, client_id=client_id):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flow_name, TestClient(), token=self.token, client_id=client_id)
 
     fd = aff4.FACTORY.Open(
         client_id.Add("fs/tsk/\\\\.\\HarddiskVolumeShadowCopy3"),

@@ -13,6 +13,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import objects as rdf_objects
 
 
@@ -504,13 +505,13 @@ class Database(object):
 
     Args:
       client_id: The client of interest.
-      path_type: path_type: The type of paths, indicated by an
-        objects.PathInfo.PathType enum.
-      path_ids: A list of path_ids of interest. A path_id can be computed by
-        db_path_utils.MakePathID.
+      path_type: The type of paths, indicated by an objects.PathInfo.PathType
+        enum.
+      path_ids: A list of `objects.PathID` instances.
 
-    Returns: a map from path_id to rdfvalues.objects.PathInfo records, set only
-      for paths which have been observed on the client.
+    Returns:
+      A map from `objects.PathID` to `rdfvalues.objects.PathInfo` records, set
+        only for paths which have been observed on the client.
     """
 
   @abc.abstractmethod
@@ -539,11 +540,11 @@ class Database(object):
       client_id: The client of interest.
       path_type: The type of path, indicated by an objects.PathInfo.PathType
         enum.
-      path_id: The path_id to find descendents of.
+      path_id: `objects.PathID` to find descendants of.
       max_depth: If set, the maximum number of generations to descend, otherwise
         unlimited.
 
-    Returns: A list of path_id.
+    Returns: A list of `objects.PathID` instances.
     """
 
   def WritePathInfos(self, client_id, path_infos):
@@ -556,14 +557,21 @@ class Database(object):
       client_id: The client of interest.
       path_infos: A list of rdfvalue.objects.PathInfo records.
     """
-    infos_by_id = {info.path_id: info for info in path_infos}
-    for info in path_infos:
-      for path_id, components in rdf_objects.PathInfo.MakeAncestorPathIDs(
-          info.components):
-        if path_id not in infos_by_id:
-          infos_by_id[path_id] = rdf_objects.PathInfo(
-              components=components, path_type=info.path_type, directory=True)
-    self.WritePathInfosRaw(client_id, infos_by_id.values())
+    path_infos_by_type_id = {}
+
+    def Extend(path_info):
+      key = (path_info.path_type, path_info.GetPathID())
+      if key in path_infos_by_type_id:
+        path_infos_by_type_id[key].UpdateFrom(path_info)
+      else:
+        path_infos_by_type_id[key] = path_info
+
+    for path_info in path_infos:
+      Extend(path_info)
+      for ancestor_info in path_info.GetAncestors():
+        Extend(ancestor_info)
+
+    self.WritePathInfosRaw(client_id, path_infos_by_type_id.values())
 
   @abc.abstractmethod
   def WriteUserNotification(self, notification):
@@ -599,6 +607,25 @@ class Database(object):
       timestamps: List of timestamps of the notifications to be updated.
       state: objects.UserNotification.State enum value to be written into
              the notifications objects.
+    """
+
+  @abc.abstractmethod
+  def ReadAllAuditEvents(self):
+    """Reads all audit events stored in the database.
+
+    The event log is sorted according to their timestamp (with the oldest
+    recorded event being first).
+
+    Returns:
+      List of `rdf_events.AuditEvent` instances.
+    """
+
+  @abc.abstractmethod
+  def WriteAuditEvent(self, event):
+    """Writes an audit event to the database.
+
+    Args:
+      event: An `rdf_events.AuditEvent` instance.
     """
 
 
@@ -955,3 +982,13 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.UpdateUserNotifications(
         username, timestamps, state=state)
+
+  def ReadAllAuditEvents(self):
+    return self.delegate.ReadAllAuditEvents()
+
+  def WriteAuditEvent(self, event):
+    if not isinstance(event, rdf_events.AuditEvent):
+      message = "expected `%s` but received `%s`"
+      raise TypeError(message % (rdf_events.AuditEvent, type(event)))
+
+    return self.delegate.WriteAuditEvent(event)

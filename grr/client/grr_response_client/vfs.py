@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """This file implements a VFS abstraction on the client."""
 
+import os
+
 from grr import config
 from grr_response_client import client_utils
 from grr.lib import registry
@@ -69,23 +71,24 @@ class VFSHandler(object):
     self.Close()
     return False
 
-  def Seek(self, offset, whence=0):
+  def Seek(self, offset, whence=os.SEEK_SET):
     """Seek to an offset in the file."""
-    if whence == 0:
+    if whence == os.SEEK_SET:
       self.offset = offset
-    elif whence == 1:
+    elif whence == os.SEEK_CUR:
       self.offset += offset
-    elif whence == 2:
+    elif whence == os.SEEK_END:
       self.offset = self.size + offset
     else:
-      raise RuntimeError("Illegal whence value %s" % whence)
+      raise ValueError("Illegal whence value %s" % whence)
 
   def Read(self, length):
     """Reads some data from the file."""
     raise NotImplementedError
 
-  def Stat(self):
+  def Stat(self, path=None, ext_attrs=None):
     """Returns a StatEntry about this file."""
+    del path, ext_attrs  # Unused.
     raise NotImplementedError
 
   def IsDirectory(self):
@@ -147,14 +150,18 @@ class VFSHandler(object):
 
     return new_pathspec
 
-  def ListFiles(self):
+  def ListFiles(self, ext_attrs=False):
     """An iterator over all VFS files contained in this directory.
 
     Generates a StatEntry for each file or directory.
 
+    Args:
+      ext_attrs: Whether stat entries should contain extended attributes.
+
     Raises:
       IOError: if this fails.
     """
+    del ext_attrs  # Unused.
 
   def ListNames(self):
     """A generator for all names in this directory."""

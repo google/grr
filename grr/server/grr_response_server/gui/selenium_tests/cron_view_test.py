@@ -7,7 +7,9 @@ import unittest
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import notification
 from grr.server.grr_response_server.aff4_objects import cronjobs
 from grr.server.grr_response_server.flows.cron import system as cron_system
 from grr.server.grr_response_server.gui import gui_test_lib
@@ -340,8 +342,13 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
                       "css=tr.danger td:contains('GRRVersionBreakDown')")
 
   def testCronJobNotificationIsShownAndClickable(self):
-    self._SendNotification("ViewObject", "aff4:/cron/OSBreakDown",
-                           "Test CronJob notification")
+    notification.Notify(
+        self.token.username,
+        rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED,
+        "Test CronJob notification",
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.CRON_JOB,
+            cron_job=rdf_objects.CronJobReference(cron_job_id="OSBreakDown")))
 
     self.Open("/")
 

@@ -30,13 +30,12 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   def RecordCrash(self, client_id, timestamp):
     with test_lib.FakeTime(timestamp):
       client = flow_test_lib.CrashClientMock(client_id, self.token)
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           flow_test_lib.FlowWithOneClientRequest.__name__,
           client,
           client_id=client_id,
           token=self.token,
-          check_flow_errors=False):
-        pass
+          check_flow_errors=False)
 
   def CreateClientWithVolumes(self, available=50):
     volume = rdf_client.Volume(

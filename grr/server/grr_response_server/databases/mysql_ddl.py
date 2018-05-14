@@ -91,5 +91,12 @@ CREATE TABLE IF NOT EXISTS user_notification(
     notification MEDIUMBLOB,
     PRIMARY KEY (username, timestamp),
     FOREIGN KEY (username) REFERENCES grr_users (username)
+)""", """
+CREATE TABLE IF NOT EXISTS audit_event(
+    username VARCHAR(128),
+    urn VARCHAR(128),
+    client_id BIGINT UNSIGNED,
+    timestamp DATETIME(6),
+    details MEDIUMBLOB
 )"""
 ]

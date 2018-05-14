@@ -123,8 +123,8 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
             nested_flows_urns, aff4_type=flow.GRRFlow, token=self.token))
     self.assertEqual(len(nested_flows), 1)
 
-    flow_id = flow_plugin.ApiFlowId(
-        client_flows_urns[0].Basename() + "/" + nested_flows[0].urn.Basename())
+    flow_id = flow_plugin.ApiFlowId(client_flows_urns[0].Basename() + "/" +
+                                    nested_flows[0].urn.Basename())
     self.assertEqual(
         flow_id.ResolveClientFlowURN(
             client_plugin.ApiClientId(self.client_urn), token=self.token),
@@ -201,9 +201,8 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
         action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
         token=self.token)
     action_mock = action_mocks.FileFinderClientMock()
-    for _ in flow_test_lib.TestFlowHelper(
-        self.flow_urn, action_mock, client_id=self.client_id, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        self.flow_urn, action_mock, client_id=self.client_id, token=self.token)
 
   def _GetZipManifest(self, result):
     out_fd = StringIO.StringIO()
@@ -337,8 +336,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
           client_id=self.client_id,
           token=self.token)
 
-      for _ in flow_test_lib.TestFlowHelper(flow_urn, token=self.token):
-        pass
+      flow_test_lib.TestFlowHelper(flow_urn, token=self.token)
 
     result = self.handler.Handle(
         flow_plugin.ApiGetExportedFlowResultsArgs(

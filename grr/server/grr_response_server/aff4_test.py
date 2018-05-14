@@ -25,6 +25,11 @@ from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import collects
 from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
 from grr.server.grr_response_server.data_stores import fake_data_store
+# TODO(user): break the dependency cycle described in
+# aff4_objects/standard.py and remove this import.
+# pylint: disable=unused-import
+from grr.server.grr_response_server.flows.general import filesystem
+# pylint: enable=unused-import
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -98,14 +103,15 @@ class DeletionPoolTest(aff4_test_lib.AFF4ObjectTest):
         [rdfvalue.RDFURN("aff4:/a"),
          rdfvalue.RDFURN("aff4:/c")])
 
-    self.assertEqual(self.pool.urns_for_deletion,
-                     set([
-                         rdfvalue.RDFURN("aff4:/a"),
-                         rdfvalue.RDFURN("aff4:/a/b"),
-                         rdfvalue.RDFURN("aff4:/c"),
-                         rdfvalue.RDFURN("aff4:/c/d"),
-                         rdfvalue.RDFURN("aff4:/c/e")
-                     ]))
+    self.assertEqual(
+        self.pool.urns_for_deletion,
+        set([
+            rdfvalue.RDFURN("aff4:/a"),
+            rdfvalue.RDFURN("aff4:/a/b"),
+            rdfvalue.RDFURN("aff4:/c"),
+            rdfvalue.RDFURN("aff4:/c/d"),
+            rdfvalue.RDFURN("aff4:/c/e")
+        ]))
 
   def testReturnsEmptyListOfRootsWhenNoUrnsMarked(self):
     self.assertEqual(self.pool.root_urns_for_deletion, set())
@@ -1935,12 +1941,11 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
           created=int(now), expires=int(expires), description="Test rule")
 
       # Matches Windows boxes
-      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
-          rules=[
-              rdf_foreman.ForemanClientRule(
-                  rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                  os=rdf_foreman.ForemanOsClientRule(os_windows=True))
-          ])
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+          rdf_foreman.ForemanClientRule(
+              rule_type=rdf_foreman.ForemanClientRule.Type.OS,
+              os=rdf_foreman.ForemanOsClientRule(os_windows=True))
+      ])
 
       # Will run Test Flow
       rule.actions.Append(
@@ -2139,13 +2144,12 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
       rule_set = foreman.Schema.RULES()
       for rule in rules:
         # Add some regex that does not match the client.
-        rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
-            rules=[
-                rdf_foreman.ForemanClientRule(
-                    rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-                    regex=rdf_foreman.ForemanRegexClientRule(
-                        field="SYSTEM", attribute_regex="XXX"))
-            ])
+        rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+            rdf_foreman.ForemanClientRule(
+                rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                regex=rdf_foreman.ForemanRegexClientRule(
+                    field="SYSTEM", attribute_regex="XXX"))
+        ])
         rule_set.Append(rule)
       foreman.Set(foreman.Schema.RULES, rule_set)
       foreman.Close()

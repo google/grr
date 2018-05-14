@@ -64,16 +64,15 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import objects as rdf_objects
 # Note: OutputPluginDescriptor is also needed implicitly by FlowRunnerArgs
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import events
 from grr.server.grr_response_server import grr_collections
 from grr.server.grr_response_server import multi_type_collection
-
+from grr.server.grr_response_server import notification as notification_lib
 from grr.server.grr_response_server import output_plugin as output_plugin_lib
-
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server import sequential_collection
 from grr.server.grr_response_server.aff4_objects import users as aff4_users
@@ -236,9 +235,6 @@ class FlowRunner(object):
         current_state="Start",
         output_plugins_states=output_plugins_states,
         state=rdf_flows.FlowContext.State.RUNNING,
-
-        # Have we sent a notification to the user.
-        user_notified=False,
     )
 
     return context
@@ -727,10 +723,6 @@ class FlowRunner(object):
     state.request = msg
     self.QueueRequest(state, timestamp=start_time)
 
-  def Publish(self, event_name, msg, delay=0):
-    """Sends the message to event listeners."""
-    events.Events.PublishEvent(event_name, msg, delay=delay, token=self.token)
-
   def CallFlow(self,
                flow_name=None,
                next_state=None,
@@ -919,8 +911,19 @@ class FlowRunner(object):
     self._SendTerminationMessage(reply)
 
     self.context.state = rdf_flows.FlowContext.State.ERROR
-    self.Notify("FlowStatus", client_id,
-                "Flow (%s) terminated due to error" % self.session_id)
+
+    if self.ShouldSendNotifications():
+      flow_ref = None
+      if client_id:
+        flow_ref = rdf_objects.FlowReference(
+            client_id=client_id.Basename(), flow_id=self.session_id.Basename())
+      notification_lib.Notify(
+          self.token.username,
+          rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_FAILED,
+          "Flow (%s) terminated due to error" % self.session_id,
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.FLOW,
+              flow=flow_ref))
 
     self.flow_obj.Flush()
 
@@ -929,6 +932,10 @@ class FlowRunner(object):
 
   def IsRunning(self):
     return self.context.state == rdf_flows.FlowContext.State.RUNNING
+
+  def ShouldSendNotifications(self):
+    return (self.runner_args.notify_to_user and
+            self.context.creator not in aff4_users.GRRUser.SYSTEM_USERS)
 
   def ProcessRepliesWithOutputPlugins(self, replies):
     if not self.runner_args.output_plugins or not replies:
@@ -1133,56 +1140,3 @@ class FlowRunner(object):
   def Status(self, format_str, *args):
     """Flows can call this method to set a status message visible to users."""
     self.Log(format_str, *args)
-
-  def Notify(self, message_type, subject, msg):
-    """Send a notification to the originating user.
-
-    Args:
-       message_type: The type of the message. This allows the UI to format
-         a link to the original object e.g. "ViewObject" or "HostInformation"
-       subject: The urn of the AFF4 object of interest in this link.
-       msg: A free form textual message.
-    """
-    user = self.context.creator
-    # Don't send notifications to system users.
-    if (self.runner_args.notify_to_user and
-        user not in aff4_users.GRRUser.SYSTEM_USERS):
-
-      # Prefix the message with the hostname of the client we are running
-      # against.
-      if self.runner_args.client_id:
-        client_fd = aff4.FACTORY.Open(
-            self.runner_args.client_id, mode="rw", token=self.token)
-        hostname = client_fd.Get(client_fd.Schema.HOSTNAME) or ""
-        client_msg = "%s: %s" % (hostname, msg)
-      else:
-        client_msg = msg
-
-      # Add notification to the User object.
-      with aff4.FACTORY.Create(
-          aff4.ROOT_URN.Add("users").Add(user),
-          aff4_users.GRRUser,
-          mode="rw",
-          token=self.token) as fd:
-
-        # Queue notifications to the user.
-        fd.Notify(message_type, subject, client_msg, self.session_id)
-
-      # Add notifications to the flow.
-      notification = rdf_flows.Notification(
-          type=message_type,
-          subject=utils.SmartUnicode(subject),
-          message=utils.SmartUnicode(msg),
-          source=self.session_id,
-          timestamp=rdfvalue.RDFDatetime.Now())
-
-      # TODO(amoser): This should go into the DB api.
-      data_store.DB.Set(
-          self.session_id,
-          self.flow_obj.Schema.NOTIFICATION,
-          notification,
-          replace=False,
-          sync=True)
-
-      # Disable further notifications.
-      self.context.user_notified = True

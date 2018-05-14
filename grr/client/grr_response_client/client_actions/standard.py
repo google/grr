@@ -264,19 +264,19 @@ class IteratedListDirectory(actions.IteratedAction):
     client_state["index"] = index + length
 
 
-class StatFile(ListDirectory):
-  """Sends a StatEntry for a single file."""
-  in_rdfvalue = rdf_client.ListDirRequest
+class GetFileStat(actions.ActionPlugin):
+  """A client action that yields stat of a given file."""
+
+  in_rdfvalue = rdf_client.GetFileStatRequest
   out_rdfvalues = [rdf_client.StatEntry]
 
   def Run(self, args):
-    """Sends a StatEntry for a single file."""
     try:
       fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
-      self.SendReply(fd.Stat())
-    except (IOError, OSError), e:
-      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, e)
-      return
+      stat_entry = fd.Stat(ext_attrs=args.collect_ext_attrs)
+      self.SendReply(stat_entry)
+    except (IOError, OSError) as error:
+      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, error)
 
 
 class ExecuteCommand(actions.ActionPlugin):

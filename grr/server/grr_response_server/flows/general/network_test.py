@@ -36,12 +36,11 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testNetstat(self):
     """Test that the Netstat flow works."""
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         network.Netstat.__name__,
         ClientMock(),
         client_id=test_lib.TEST_CLIENT_ID,
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     # Check the results are correct.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -54,13 +53,12 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(conns[1].remote_address.port, 6667)
 
   def testNetstatFilter(self):
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         network.Netstat.__name__,
         ClientMock(),
         client_id=test_lib.TEST_CLIENT_ID,
         listening_only=True,
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     # Check the results are correct.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)

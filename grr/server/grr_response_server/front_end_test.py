@@ -29,6 +29,7 @@ from grr.server.grr_response_server import front_end
 from grr.server.grr_response_server import maintenance_utils
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.flows.general import administrative
 from grr.server.grr_response_server.flows.general import ca_enroller
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
@@ -444,6 +445,40 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
     self.assertEqual(
         map(bool, msgs_recvd),
         [True] * 2 + [False] * (rdf_flows.GrrMessage().task_ttl - 2))
+
+  def testCrashReport(self):
+
+    # Make sure the event handler is present.
+    self.assertTrue(administrative.ClientCrashHandler)
+
+    client_urn = test_lib.TEST_CLIENT_ID
+    client_id = client_urn.Basename()
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    flow_obj = self.FlowSetup(
+        flow_test_lib.FlowOrderTest.__name__, client_id=client_urn)
+
+    session_id = flow_obj.session_id
+    status = rdf_flows.GrrStatus(
+        status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED)
+    messages = [
+        rdf_flows.GrrMessage(
+            request_id=1,
+            response_id=1,
+            session_id=session_id,
+            payload=status,
+            type=rdf_flows.GrrMessage.Type.STATUS)
+    ]
+
+    self.server.ReceiveMessages(client_urn, messages)
+    client = aff4.FACTORY.Open(client_urn)
+    crash_details = client.Get(client.Schema.LAST_CRASH)
+    self.assertTrue(crash_details)
+    self.assertEqual(crash_details.session_id, session_id)
+
+    crash_details_rel = data_store.REL_DB.ReadClientCrashInfo(client_id)
+    self.assertTrue(crash_details_rel)
+    self.assertEqual(crash_details_rel.session_id, session_id)
 
 
 def MakeHTTPException(code=500, msg="Error"):

@@ -132,15 +132,6 @@ class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
     # Notify any parent flows.
     self.SendReply(FingerprintFileResult(file_urn=urn, hash_entry=hash_obj))
 
-  def NotifyAboutEnd(self):
-    try:
-      urn = self.state.urn
-    except AttributeError:
-      self.Notify("FlowStatus", self.client_id,
-                  "Unable to fingerprint %s." % self.args.pathspec.path)
-      return
-    self.Notify("ViewObject", urn, "Fingerprint retrieved.")
-
   @flow.StateHandler()
   def End(self):
     """Finalize the flow."""

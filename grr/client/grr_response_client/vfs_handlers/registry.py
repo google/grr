@@ -372,7 +372,8 @@ class RegistryFile(vfs.VFSHandler):
       except exceptions.WindowsError:
         raise IOError("Unable to open key %s" % self.key_name)
 
-  def Stat(self):
+  def Stat(self, path=None, ext_attrs=None):
+    del path, ext_attrs  # Unused.
     # mtime is only available for keys, not values.
     if self.is_directory and not self.last_modified:
       with OpenKey(self.hive, self.local_path) as key:
@@ -500,8 +501,10 @@ class RegistryFile(vfs.VFSHandler):
     except exceptions.WindowsError as e:
       raise IOError("Unable to list key %s: %s" % (self.key_name, e))
 
-  def ListFiles(self):
+  def ListFiles(self, ext_attrs=None):
     """A generator of all keys and values."""
+    del ext_attrs  # Unused.
+
     if not self.IsDirectory():
       return
 

@@ -13,6 +13,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr.server.grr_response_server import aff4
@@ -234,6 +235,44 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
 
     return aff4.FACTORY.Open(session_id, mode="rw", token=self.token)
 
+  def SendResponse(self,
+                   session_id,
+                   data,
+                   client_id=None,
+                   well_known=False,
+                   request_id=None):
+    if not isinstance(data, rdfvalue.RDFValue):
+      data = rdf_protodict.DataBlob(string=data)
+    if well_known:
+      request_id, response_id = 0, 12345
+    else:
+      request_id, response_id = request_id or 1, 1
+    with queue_manager.QueueManager(token=self.token) as flow_manager:
+      flow_manager.QueueResponse(
+          rdf_flows.GrrMessage(
+              source=client_id,
+              session_id=session_id,
+              payload=data,
+              request_id=request_id,
+              response_id=response_id))
+      if not well_known:
+        # For normal flows we have to send a status as well.
+        flow_manager.QueueResponse(
+            rdf_flows.GrrMessage(
+                source=client_id,
+                session_id=session_id,
+                payload=rdf_flows.GrrStatus(
+                    status=rdf_flows.GrrStatus.ReturnedStatus.OK),
+                request_id=request_id,
+                response_id=response_id + 1,
+                type=rdf_flows.GrrMessage.Type.STATUS))
+
+      flow_manager.QueueNotification(
+          session_id=session_id, last_status=request_id)
+      timestamp = flow_manager.frozen_timestamp
+
+    return timestamp
+
 
 class CrashClientMock(object):
 
@@ -252,15 +291,10 @@ class CrashClientMock(object):
         crash_message="Client killed during transaction",
         timestamp=rdfvalue.RDFDatetime.Now())
 
-    msg = rdf_flows.GrrMessage(
-        payload=crash_details,
-        source=self.client_id,
-        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
-
     self.flow_id = message.session_id
     # This is normally done by the FrontEnd when a CLIENT_KILLED message is
     # received.
-    events.Events.PublishEvent("ClientCrash", msg, token=self.token)
+    events.Events.PublishEvent("ClientCrash", crash_details, token=self.token)
 
 
 class MockClient(object):
@@ -479,9 +513,8 @@ def TestFlowHelper(flow_urn_or_cls_name,
     token: Security token.
     sync: Whether StartFlow call should be synchronous or not.
     **kwargs: Arbitrary args that will be passed to flow.GRRFlow.StartFlow().
-  Yields:
-    The caller should iterate over the generator to get all the flows
-    and subflows executed.
+  Returns:
+    The session id of the flow that was run.
   """
   if client_id or client_mock:
     client_mock = MockClient(client_id, client_mock, token=token)
@@ -518,8 +551,8 @@ def TestFlowHelper(flow_urn_or_cls_name,
     if client_processed == 0 and not flows_run:
       break
 
-    yield session_id
-
   # We should check for flow errors:
   if check_flow_errors:
     CheckFlowErrors(total_flows, token=token)
+
+  return session_id

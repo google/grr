@@ -25,6 +25,7 @@ from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import db
 from grr.server.grr_response_server import email_alerts
 from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import notification as notification_lib
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr.server.grr_response_server.aff4_objects import security as aff4_security
@@ -35,7 +36,6 @@ from grr.server.grr_response_server.gui import api_call_handler_base
 from grr.server.grr_response_server.gui import approval_checks
 
 from grr.server.grr_response_server.gui.api_plugins import client as api_client
-
 from grr.server.grr_response_server.gui.api_plugins import cron as api_cron
 from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
 from grr.server.grr_response_server.gui.api_plugins import hunt as api_hunt
@@ -399,6 +399,16 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
     return aff4.ROOT_URN.Add("ACL").Add(self.legacy_subject_urn.Path()).Add(
         self.requestor).Add(self.id)
 
+  def ObjectReference(self):
+    at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
+    return rdf_objects.ObjectReference(
+        reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
+        approval_request=rdf_objects.ApprovalRequestReference(
+            approval_type=at,
+            approval_id=utils.SmartStr(self.id),
+            subject_id=utils.SmartStr(self.subject.client_id),
+            requestor_username=self.requestor))
+
 
 class ApiHuntApproval(rdf_structs.RDFProtoStruct):
   """API hunt approval object."""
@@ -467,6 +477,16 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
     return aff4.ROOT_URN.Add("ACL").Add(self.legacy_subject_urn.Path()).Add(
         self.requestor).Add(self.id)
 
+  def ObjectReference(self):
+    at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
+    return rdf_objects.ObjectReference(
+        reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
+        approval_request=rdf_objects.ApprovalRequestReference(
+            approval_type=at,
+            approval_id=utils.SmartStr(self.id),
+            subject_id=utils.SmartStr(self.subject.hunt_id),
+            requestor_username=self.requestor))
+
 
 class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
   """API cron job approval object."""
@@ -522,6 +542,16 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
   def legacy_approval_object_urn(self):
     return aff4.ROOT_URN.Add("ACL").Add(self.legacy_subject_urn.Path()).Add(
         self.requestor).Add(self.id)
+
+  def ObjectReference(self):
+    at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
+    return rdf_objects.ObjectReference(
+        reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
+        approval_request=rdf_objects.ApprovalRequestReference(
+            approval_type=at,
+            approval_id=utils.SmartStr(self.id),
+            subject_id=utils.SmartStr(self.subject.cron_job_id),
+            requestor_username=self.requestor))
 
 
 class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
@@ -627,21 +657,12 @@ here
         cc_addresses=",".join(approval.email_cc_addresses),
         message_id=approval.email_message_id)
 
-  # TODO(user): migrate notifications to REL-DB.
   def CreateApprovalNotification(self, approval):
     for user in approval.notified_users:
-      user = user.strip()
-      try:
-        fd = aff4.FACTORY.Open(
-            aff4.ROOT_URN.Add("users").Add(user),
-            aff4_type=aff4_users.GRRUser,
-            mode="rw")
-      except aff4.InstantiationError:
-        continue
-
-      fd.Notify("GrantAccess", approval.legacy_approval_object_urn,
-                "Please grant access to %s" % approval.subject_title, "")
-      fd.Close()
+      notification_lib.Notify(
+          user.strip(), self.__class__.approval_notification_type,
+          "Please grant access to %s" % approval.subject_title,
+          approval.ObjectReference())
 
   def Handle(self, args, token=None):
     if not args.approval.reason:
@@ -904,15 +925,11 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
         headers=headers)
 
   def CreateGrantNotification(self, approval, token=None):
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(approval.requestor),
-        aff4_users.GRRUser,
-        mode="rw",
-        token=token) as fd:
-      fd.Notify(
-          "ViewObject", approval.legacy_subject_urn,
-          "%s has granted you access to %s." % (token.username,
-                                                approval.subject_title), "")
+    notification_lib.Notify(
+        approval.requestor, self.__class__.approval_notification_type,
+        "%s has granted you access to %s." % (token.username,
+                                              approval.subject_title),
+        approval.subject.ObjectReference())
 
   def Handle(self, args, token=None):
     if not args.username:
@@ -958,6 +975,8 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
   result_type = ApiClientApproval
 
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
+  approval_notification_type = (
+      rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED)
 
   approval_aff4_type = aff4_security.ClientApproval
   approval_requestor = aff4_security.ClientApprovalRequestor
@@ -1002,11 +1021,14 @@ class ApiGrantClientApprovalArgs(ApiClientApprovalArgsBase):
 
 
 class ApiGrantClientApprovalHandler(ApiGrantApprovalHandlerBase):
+  """Handle for GrantClientApproval requests."""
 
   args_type = ApiGrantClientApprovalArgs
   result_type = ApiClientApproval
 
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
+  approval_notification_type = (
+      rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED)
 
   approval_aff4_type = aff4_security.ClientApproval
   approval_grantor = aff4_security.ClientApprovalGrantor
@@ -1080,9 +1102,10 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
 
     approvals, subjects_by_urn = self._GetApprovals(
         "client", args.offset, args.count, filter_func=filter_func, token=token)
-    return ApiListClientApprovalsResult(
-        items=self._HandleApprovals(approvals, subjects_by_urn,
-                                    self._ApprovalToApiApproval))
+    items = self._HandleApprovals(approvals, subjects_by_urn,
+                                  self._ApprovalToApiApproval)
+    api_client.UpdateClientsFromFleetspeak([a.subject for a in items])
+    return ApiListClientApprovalsResult(items=items)
 
   def HandleRelationalDB(self, args, token=None):
     subject_id = None
@@ -1105,9 +1128,10 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
       end = None
     else:
       end = args.offset + args.count
-    items = itertools.islice(approvals, args.offset, end)
+    items = list(itertools.islice(approvals, args.offset, end))
+    api_client.UpdateClientsFromFleetspeak([a.subject for a in items])
 
-    return ApiListClientApprovalsResult(items=list(items))
+    return ApiListClientApprovalsResult(items=items)
 
   def Handle(self, args, token=None):
     if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
@@ -1146,6 +1170,8 @@ class ApiCreateHuntApprovalHandler(ApiCreateApprovalHandlerBase):
   result_type = ApiHuntApproval
 
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
+  approval_notification_type = (
+      rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_REQUESTED)
 
   approval_obj_type = aff4_security.HuntApproval
   approval_requestor = aff4_security.HuntApprovalRequestor
@@ -1177,11 +1203,14 @@ class ApiGrantHuntApprovalArgs(ApiHuntApprovalArgsBase):
 
 
 class ApiGrantHuntApprovalHandler(ApiGrantApprovalHandlerBase):
+  """Handle for GrantHuntApproval requests."""
 
   args_type = ApiGrantHuntApprovalArgs
   result_type = ApiHuntApproval
 
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
+  approval_notification_type = (
+      rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_GRANTED)
 
   approval_aff4_type = aff4_security.HuntApproval
   approval_grantor = aff4_security.HuntApprovalGrantor
@@ -1275,6 +1304,8 @@ class ApiCreateCronJobApprovalHandler(ApiCreateApprovalHandlerBase):
 
   approval_type = (
       rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
+  approval_notification_type = (
+      rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_REQUESTED)
 
   approval_aff4_type = aff4_security.CronJobApproval
   approval_requestor = aff4_security.CronJobApprovalRequestor
@@ -1307,12 +1338,15 @@ class ApiGrantCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
 
 
 class ApiGrantCronJobApprovalHandler(ApiGrantApprovalHandlerBase):
+  """Handle for GrantCronJobApproval requests."""
 
   args_type = ApiGrantCronJobApprovalArgs
   result_type = ApiCronJobApproval
 
   approval_type = (
       rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
+  approval_notification_type = (
+      rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED)
 
   approval_aff4_type = aff4_security.CronJobApproval
   approval_grantor = aff4_security.CronJobApprovalGrantor

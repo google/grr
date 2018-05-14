@@ -8,6 +8,7 @@ from grr import config
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import events as rdf_events
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import events
@@ -563,7 +564,7 @@ class ClientApprovalRequestor(ApprovalRequestor):
 
   def BuildApprovalUrn(self, approval_id):
     """Builds approval object urn."""
-    event = events.AuditEvent(
+    event = rdf_events.AuditEvent(
         user=self.token.username,
         action="CLIENT_APPROVAL_REQUEST",
         client=self.subject_urn,
@@ -595,7 +596,7 @@ class ClientApprovalGrantor(ApprovalGrantor):
     """Builds approval object urn."""
     events.Events.PublishEvent(
         "Audit",
-        events.AuditEvent(
+        rdf_events.AuditEvent(
             user=self.token.username,
             action="CLIENT_APPROVAL_GRANT",
             client=self.subject_urn,
@@ -619,7 +620,7 @@ class HuntApprovalRequestor(ApprovalRequestor):
     # In this case subject_urn is hunt's URN.
     events.Events.PublishEvent(
         "Audit",
-        events.AuditEvent(
+        rdf_events.AuditEvent(
             user=self.token.username,
             action="HUNT_APPROVAL_REQUEST",
             urn=self.subject_urn,
@@ -652,7 +653,7 @@ class HuntApprovalGrantor(ApprovalGrantor):
     # In this case subject_urn is hunt's URN.
     events.Events.PublishEvent(
         "Audit",
-        events.AuditEvent(
+        rdf_events.AuditEvent(
             user=self.token.username,
             action="HUNT_APPROVAL_GRANT",
             urn=self.subject_urn,
@@ -676,7 +677,7 @@ class CronJobApprovalRequestor(ApprovalRequestor):
     # In this case subject_urn is a cron job's URN.
     events.Events.PublishEvent(
         "Audit",
-        events.AuditEvent(
+        rdf_events.AuditEvent(
             user=self.token.username,
             action="CRON_APPROVAL_REQUEST",
             urn=self.subject_urn,
@@ -708,7 +709,7 @@ class CronJobApprovalGrantor(ApprovalGrantor):
     """Builds approval object URN."""
     events.Events.PublishEvent(
         "Audit",
-        events.AuditEvent(
+        rdf_events.AuditEvent(
             user=self.token.username,
             action="CRON_APPROVAL_GRANT",
             urn=self.subject_urn,

@@ -11,7 +11,9 @@ from grr import config
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import hunts as rdf_hunts
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import stats as rdf_stats
 
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -21,8 +23,8 @@ from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import foreman
 from grr.server.grr_response_server import instant_output_plugin
+from grr.server.grr_response_server import notification
 from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
 from grr.server.grr_response_server.flows.general import export
 from grr.server.grr_response_server.gui import api_call_handler_base
 from grr.server.grr_response_server.gui import api_call_handler_utils
@@ -81,8 +83,8 @@ class ApiHuntId(rdfvalue.RDFString):
       try:
         rdfvalue.SessionID.ValidateID(self._value)
       except ValueError as e:
-        raise ValueError("Invalid hunt id: %s (%s)" %
-                         (utils.SmartStr(self._value), e))
+        raise ValueError(
+            "Invalid hunt id: %s (%s)" % (utils.SmartStr(self._value), e))
 
   def ToURN(self):
     if not self._value:
@@ -199,6 +201,11 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       self.internal_error = "Error while opening hunt: %s" % str(e)
 
     return self
+
+  def ObjectReference(self):
+    return rdf_objects.ObjectReference(
+        reference_type=rdf_objects.ObjectReference.Type.HUNT,
+        hunt=rdf_objects.HuntReference(hunt_id=utils.SmartStr(self.hunt_id)))
 
 
 class ApiHuntResult(rdf_structs.RDFProtoStruct):
@@ -899,27 +906,27 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetHuntFilesArchiveArgs
 
   def _WrapContentGenerator(self, generator, collection, args, token=None):
-    user = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="rw",
-        token=token)
     try:
+
       for item in generator.Generate(collection, token=token):
         yield item
 
-      user.Notify("ArchiveGenerationFinished", None,
-                  "Downloaded archive of hunt %s results (archived %d "
-                  "out of %d items, archive size is %d)" %
-                  (args.hunt_id, generator.archived_files,
-                   generator.total_files,
-                   generator.output_size), self.__class__.__name__)
+      notification.Notify(
+          token.username,
+          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
+          "Downloaded archive of hunt %s results (archived %d "
+          "out of %d items, archive size is %d)" %
+          (args.hunt_id, generator.archived_files, generator.total_files,
+           generator.output_size), None)
     except Exception as e:
-      user.Notify("Error", None, "Archive generation failed for hunt %s: %s" %
-                  (args.hunt_id, utils.SmartStr(e)), self.__class__.__name__)
+      notification.Notify(
+          token.username,
+          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
+          "Archive generation failed for hunt %s: %s" % (args.hunt_id,
+                                                         utils.SmartStr(e)),
+          None)
+
       raise
-    finally:
-      user.Close()
 
   def Handle(self, args, token=None):
     hunt_urn = args.hunt_id.ToURN()
@@ -927,11 +934,11 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         hunt_urn, aff4_type=implementation.GRRHunt, token=token)
 
     hunt_api_object = ApiHunt().InitFromAff4Object(hunt)
-    description = ("Files downloaded by hunt %s (%s, '%s') created by user %s "
-                   "on %s" % (hunt_api_object.name,
-                              hunt_api_object.urn.Basename(),
-                              hunt_api_object.description,
-                              hunt_api_object.creator, hunt_api_object.created))
+    description = (
+        "Files downloaded by hunt %s (%s, '%s') created by user %s "
+        "on %s" % (hunt_api_object.name, hunt_api_object.urn.Basename(),
+                   hunt_api_object.description, hunt_api_object.creator,
+                   hunt_api_object.created))
 
     collection = implementation.GRRHunt.ResultCollectionForHID(hunt_urn)
 
@@ -1035,12 +1042,11 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
       except aff4.InstantiationError:
         break
 
-    raise HuntFileNotFoundError("File %s with timestamp %s and client %s "
-                                "wasn't found among the results of hunt %s" %
-                                (utils.SmartStr(args.vfs_path),
-                                 utils.SmartStr(args.timestamp),
-                                 utils.SmartStr(args.client_id),
-                                 utils.SmartStr(args.hunt_id)))
+    raise HuntFileNotFoundError(
+        "File %s with timestamp %s and client %s "
+        "wasn't found among the results of hunt %s" %
+        (utils.SmartStr(args.vfs_path), utils.SmartStr(args.timestamp),
+         utils.SmartStr(args.client_id), utils.SmartStr(args.hunt_id)))
 
 
 class ApiGetHuntStatsArgs(rdf_structs.RDFProtoStruct):
@@ -1282,8 +1288,8 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
       runner.runner_args.client_rate = args.client_rate
 
     if args.HasField("expires"):
-      hunt_changes.append("Expires: Old=%s, New=%s" % (runner.context.expires,
-                                                       args.expires))
+      hunt_changes.append(
+          "Expires: Old=%s, New=%s" % (runner.context.expires, args.expires))
       runner.context.expires = args.expires
 
     if hunt_changes and current_state != "PAUSED":
@@ -1314,7 +1320,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
 
     # Publish an audit event.
     # TODO(user): this should be properly tested.
-    event = events.AuditEvent(
+    event = rdf_events.AuditEvent(
         user=token.username,
         action="HUNT_MODIFIED",
         urn=hunt_urn,

@@ -55,9 +55,7 @@ class ApiGetFlowHandlerRegressionTest(
           "GetFlow",
           args=flow_plugin.ApiGetFlowArgs(
               client_id=client_urn.Basename(), flow_id=flow_id.Basename()),
-          replace={
-              flow_id.Basename(): "F:ABCDEF12"
-          })
+          replace={flow_id.Basename(): "F:ABCDEF12"})
 
       with data_store.DB.GetMutationPool() as pool:
         flow.GRRFlow.MarkForTermination(
@@ -69,9 +67,7 @@ class ApiGetFlowHandlerRegressionTest(
           "GetFlow",
           args=flow_plugin.ApiGetFlowArgs(
               client_id=client_urn.Basename(), flow_id=flow_id.Basename()),
-          replace={
-              flow_id.Basename(): "F:ABCDEF13"
-          })
+          replace={flow_id.Basename(): "F:ABCDEF13"})
 
 
 class ApiListFlowsHandlerRegressionTest(
@@ -173,20 +169,17 @@ class ApiListFlowResultsHandlerRegressionTest(
           runner_args=runner_args,
           token=self.token)
 
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           flow_urn,
           client_mock=client_mock,
           client_id=self.client_id,
-          token=self.token):
-        pass
+          token=self.token)
 
     self.Check(
         "ListFlowResults",
         args=flow_plugin.ApiListFlowResultsArgs(
             client_id=self.client_id.Basename(), flow_id=flow_urn.Basename()),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowLogsHandlerRegressionTest(
@@ -258,9 +251,7 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
         "GetFlowResultsExportCommand",
         args=flow_plugin.ApiGetFlowResultsExportCommandArgs(
             client_id=self.client_id.Basename(), flow_id=flow_urn.Basename()),
-        replace={
-            flow_urn.Basename()[2:]: "ABCDEF"
-        })
+        replace={flow_urn.Basename()[2:]: "ABCDEF"})
 
 
 class ApiListFlowOutputPluginsHandlerRegressionTest(
@@ -297,9 +288,7 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
         "ListFlowOutputPlugins",
         args=flow_plugin.ApiListFlowOutputPluginsArgs(
             client_id=self.client_id.Basename(), flow_id=flow_urn.Basename()),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowOutputPluginLogsHandlerRegressionTest(
@@ -333,8 +322,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
           token=self.token)
 
     with test_lib.FakeTime(43):
-      for _ in flow_test_lib.TestFlowHelper(flow_urn, token=self.token):
-        pass
+      flow_test_lib.TestFlowHelper(flow_urn, token=self.token)
 
     self.Check(
         "ListFlowOutputPluginLogs",
@@ -342,9 +330,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
             client_id=self.client_id.Basename(),
             flow_id=flow_urn.Basename(),
             plugin_id="EmailOutputPlugin_0"),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
@@ -376,8 +362,7 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
           token=self.token)
 
     with test_lib.FakeTime(43):
-      for _ in flow_test_lib.TestFlowHelper(flow_urn, token=self.token):
-        pass
+      flow_test_lib.TestFlowHelper(flow_urn, token=self.token)
 
     self.Check(
         "ListFlowOutputPluginErrors",
@@ -385,9 +370,7 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
             client_id=self.client_id.Basename(),
             flow_id=flow_urn.Basename(),
             plugin_id="FailingDummyHuntOutputPlugin_0"),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiCreateFlowHandlerRegressionTest(
@@ -447,9 +430,7 @@ class ApiCancelFlowHandlerRegressionTest(
         "CancelFlow",
         args=flow_plugin.ApiCancelFlowArgs(
             client_id=self.client_id.Basename(), flow_id=flow_urn.Basename()),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowDescriptorsHandlerRegressionTest(

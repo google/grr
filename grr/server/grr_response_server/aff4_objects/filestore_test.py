@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests for grr.server.grr_response_server.aff4_objects.filestore."""
+"""Tests for the filestore."""
 
 import hashlib
 import os
@@ -356,14 +356,13 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
 
     for client_id in client_ids:
       client_mock = action_mocks.FileFinderClientMock()
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           file_finder.FileFinder.__name__,
           client_mock,
           token=self.token,
           client_id=client_id,
           paths=[filename],
-          action=rdf_file_finder.FileFinderAction.Download()):
-        pass
+          action=rdf_file_finder.FileFinderAction.Download())
       # Running worker to make sure FileStore.AddFileToStore event is processed
       # by the worker.
       worker = worker_test_lib.MockWorker(token=self.token)

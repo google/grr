@@ -152,7 +152,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         (psutil, "Process", functools.partial(self.process, procs)),
         (client_utils, "OpenProcessForMemoryAccess",
          lambda pid: FakeMemoryProcess(pid=pid))):
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           yara_flows.YaraProcessScan.__name__,
           client_mock,
           yara_signature=test_yara_signature,
@@ -162,8 +162,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           include_misses_in_results=include_misses_in_results,
           max_results_per_process=max_results_per_process,
           token=self.token,
-          **kw):
-        session_id = s
+          **kw)
 
     flow_obj = aff4.FACTORY.Open(session_id)
     results = flow_obj.TypedResultCollection()
@@ -373,7 +372,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
          lambda pid: FakeMemoryProcess(pid=pid))):
       client_mock = action_mocks.MultiGetFileClientMock(
           yara_actions.YaraProcessDump, tempfiles.DeleteGRRTempFiles)
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           yara_flows.YaraDumpProcessMemory.__name__,
           client_mock,
           pids=pids or [105],
@@ -381,8 +380,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           chunk_size=chunk_size,
           client_id=self.client_id,
           ignore_grr_process=True,
-          token=self.token):
-        session_id = s
+          token=self.token)
     flow_obj = aff4.FACTORY.Open(session_id, flow.GRRFlow)
     return flow_obj.ResultCollection()
 
@@ -462,22 +460,21 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.MultiGetFileClientMock(
         yara_actions.YaraProcessDump, tempfiles.DeleteGRRTempFiles)
     with self.assertRaises(ValueError):
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           yara_flows.YaraDumpProcessMemory.__name__,
           client_mock,
           client_id=self.client_id,
           ignore_grr_process=True,
-          token=self.token):
-        pass
+          token=self.token)
 
   def testDumpTimingInformation(self):
-    with test_lib.FakeTime(100000, 1):
+    with test_lib.FakeTime(100000, 0.1):
       results = self._RunProcessDump()
 
     self.assertGreater(len(results), 1)
     self.assertIsInstance(results[0], rdf_yara.YaraProcessDumpResponse)
     self.assertEqual(len(results[0].dumped_processes), 1)
-    self.assertEqual(results[0].dumped_processes[0].dump_time_us, 1 * 1e6)
+    self.assertEqual(results[0].dumped_processes[0].dump_time_us, 0.1 * 1e6)
 
   def testScanAndDump(self):
     client_mock = action_mocks.MultiGetFileClientMock(
@@ -491,7 +488,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         (psutil, "Process", functools.partial(self.process, procs)),
         (client_utils, "OpenProcessForMemoryAccess",
          lambda pid: FakeMemoryProcess(pid=pid))):
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           yara_flows.YaraProcessScan.__name__,
           client_mock,
           yara_signature=test_yara_signature,
@@ -499,8 +496,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           token=self.token,
           include_errors_in_results=True,
           include_misses_in_results=True,
-          dump_process_on_match=True):
-        session_id = s
+          dump_process_on_match=True)
 
     flow_obj = aff4.FACTORY.Open(session_id)
     results = list(flow_obj.ResultCollection())

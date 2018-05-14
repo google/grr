@@ -64,15 +64,14 @@ class TestWebHistory(WebHistoryFlowTest):
     """Test that downloading the Chrome history works."""
     with self.MockClientRawDevWithImage():
       # Run the flow in the simulated way
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           webhistory.ChromeHistory.__name__,
           self.client_mock,
           check_flow_errors=False,
           client_id=self.client_id,
           username="test",
           token=self.token,
-          pathtype=rdf_paths.PathSpec.PathType.TSK):
-        session_id = s
+          pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.config/google-chrome/Default/History"
@@ -95,15 +94,14 @@ class TestWebHistory(WebHistoryFlowTest):
     """Test that downloading the Firefox history works."""
     with self.MockClientRawDevWithImage():
       # Run the flow in the simulated way
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           webhistory.FirefoxHistory.__name__,
           self.client_mock,
           check_flow_errors=False,
           client_id=self.client_id,
           username="test",
           token=self.token,
-          pathtype=rdf_paths.PathSpec.PathType.TSK):
-        session_id = s
+          pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"
@@ -126,7 +124,7 @@ class TestWebHistory(WebHistoryFlowTest):
     """Test the Cache Grep plugin."""
     with self.MockClientRawDevWithImage():
       # Run the flow in the simulated way
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           webhistory.CacheGrep.__name__,
           self.client_mock,
           check_flow_errors=False,
@@ -134,8 +132,7 @@ class TestWebHistory(WebHistoryFlowTest):
           grep_users=["test"],
           data_regex="ENIAC",
           pathtype=rdf_paths.PathSpec.PathType.TSK,
-          token=self.token):
-        session_id = s
+          token=self.token)
 
     # Check if the collection file was created.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -176,14 +173,13 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
     if client_mock is None:
       client_mock = self.MockClient(client_id=self.client_id)
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock=client_mock,
         client_id=self.client_id,
         artifact_list=artifact_list,
         token=self.token,
-        **kw):
-      session_id = s
+        **kw)
 
     return flow.GRRFlow.ResultCollectionForFID(session_id)
 

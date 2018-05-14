@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests for grr.server.grr_response_server.flows.general.filetypes."""
+"""Tests for grr_response_server.flows.general.filetypes."""
 
 import os
 
@@ -23,13 +23,12 @@ class TestPlistFlows(flow_test_lib.FlowTestsBaseclass):
     request.pathspec.path = os.path.join(self.base_path, "test.plist")
     request.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         flow_name,
         client_mock,
         client_id=test_lib.TEST_CLIENT_ID,
         token=self.token,
-        request=request):
-      session_id = s
+        request=request)
 
     return session_id
 

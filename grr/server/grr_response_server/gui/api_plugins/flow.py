@@ -17,10 +17,10 @@ from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import instant_output_plugin
+from grr.server.grr_response_server import notification
 from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
 from grr.server.grr_response_server.gui import api_call_handler_base
 from grr.server.grr_response_server.gui import api_call_handler_utils
 from grr.server.grr_response_server.gui.api_plugins import client
@@ -507,31 +507,26 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     self.path_globs_whitelist = path_globs_whitelist
 
   def _WrapContentGenerator(self, generator, collection, args, token=None):
-    user = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="rw",
-        token=token)
     try:
       for item in generator.Generate(collection, token=token):
         yield item
 
-      user.Notify(
-          "ArchiveGenerationFinished", None,
+      notification.Notify(
+          token.username,
+          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
           "Downloaded archive of flow %s from client %s (archived %d "
           "out of %d items, archive size is %d)" %
           (args.flow_id, args.client_id, generator.archived_files,
-           generator.total_files, generator.output_size),
-          self.__class__.__name__)
+           generator.total_files, generator.output_size), None)
+
     except Exception as e:
-      user.Notify(
-          "Error", None,
+      notification.Notify(
+          token.username,
+          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
           "Archive generation failed for flow %s on client %s: %s" %
-          (args.flow_id, args.client_id, utils.SmartStr(e)),
-          self.__class__.__name__)
+          (args.flow_id, args.client_id, utils.SmartStr(e)), None)
+
       raise
-    finally:
-      user.Close()
 
   def _BuildPredicate(self, client_id, token=None):
     if self.path_globs_whitelist is None:

@@ -12,18 +12,21 @@ from grr.server.grr_response_server.aff4_objects import users
 from grr.server.grr_response_server.gui.api_plugins import user as api_user
 
 
+def CreateUser(username):
+  """Creates a user."""
+  if data_store.RelationalDBReadEnabled():
+    data_store.REL_DB.WriteGRRUser(username)
+
+  user = aff4.FACTORY.Create("aff4:/users/%s" % username, users.GRRUser)
+  user.Flush()
+  return user
+
+
 class AclTestMixin(object):
   """Mixing providing ACL-related helper methods."""
 
   def CreateUser(self, username):
-    """Creates a user."""
-    if data_store.RelationalDBReadEnabled():
-      data_store.REL_DB.WriteGRRUser(username)
-
-    user = aff4.FACTORY.Create(
-        "aff4:/users/%s" % username, users.GRRUser, token=self.token.SetUID())
-    user.Flush()
-    return user
+    return CreateUser(username)
 
   def CreateAdminUser(self, username):
     """Creates a user and makes it an admin."""

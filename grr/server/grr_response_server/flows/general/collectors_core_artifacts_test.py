@@ -50,28 +50,26 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
 
   def _CheckDriveAndRoot(self):
     client_id = self.SetupClient(0, system="Windows", os_version="6.2")
-    client_mock = action_mocks.ActionMock(standard.StatFile,
+    client_mock = action_mocks.ActionMock(standard.GetFileStat,
                                           standard.ListDirectory)
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WindowsEnvironmentVariableSystemDrive"],
         token=self.token,
-        client_id=client_id):
-      session_id = s
+        client_id=client_id)
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(fd), 1)
     self.assertEqual(str(fd[0]), "C:")
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WindowsEnvironmentVariableSystemRoot"],
         token=self.token,
-        client_id=client_id):
-      session_id = s
+        client_id=client_id)
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(fd), 1)
@@ -91,13 +89,12 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
 
     # No registry, broken filesystem, this should just raise.
     with self.assertRaises(RuntimeError):
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           BrokenClientMock(),
           artifact_list=["WindowsEnvironmentVariableSystemDrive"],
           token=self.token,
-          client_id=client_id):
-        pass
+          client_id=client_id)
 
     # No registry, so this should use the fallback flow
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
@@ -126,15 +123,14 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         ]
 
     client_mock = WMIActionMock()
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMIComputerSystemProduct"],
         token=self.token,
         client_id=client_id,
         dependencies=artifact_utils.ArtifactCollectorFlowArgs.Dependency.
-        IGNORE_DEPS):
-      session_id = s
+        IGNORE_DEPS)
 
     results = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(results), 1)
@@ -152,15 +148,14 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         return client_fixture.WMI_SAMPLE
 
     client_mock = WMIActionMock()
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMILogicalDisks"],
         token=self.token,
         client_id=client_id,
         dependencies=(
-            artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS)):
-      session_id = s
+            artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS))
 
     results = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(results), 2)
@@ -186,15 +181,14 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         return client_fixture.WMI_SAMPLE
 
     client_mock = WMIActionMock()
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMIActiveScriptEventConsumer"],
         token=self.token,
         client_id=client_id,
         dependencies=(
-            artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS)):
-      pass
+            artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS))
 
     # Make sure the artifact's base_object made it into the WmiQuery call.
     artifact_obj = artifact_registry.REGISTRY.GetArtifact(

@@ -23,13 +23,12 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
 
   def SetUpCrashedFlow(self):
     client = flow_test_lib.CrashClientMock(self.client_id, self.token)
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         flow_test_lib.FlowWithOneClientRequest.__name__,
         client,
         client_id=self.client_id,
         token=self.token,
-        check_flow_errors=False):
-      pass
+        check_flow_errors=False)
 
   def testOpeningCrashesOfUnapprovedClientRedirectsToHostInfoPage(self):
     client_id = self.SetupClient(0).Basename()
@@ -131,8 +130,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=a[grrtarget='client.crashes']")
 
     self.WaitUntil(self.AllTextsPresent, [
-        client_ids[0], "Crash type", "aff4:/flows/", "CrashHandler",
-        "Crash message", "Client killed during transaction"
+        client_ids[0], "Crash type", "Client Crash", "Crash message",
+        "Client killed during transaction"
     ])
 
   def testHuntClientCrashesTabShowsDatesInUTC(self):

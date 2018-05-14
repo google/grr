@@ -34,6 +34,7 @@ class InMemoryDB(db.Database):
     # Maps tuples (client_id,path_type) to a dict mapping path_id to a set of
     # direct children of path_id.
     self.path_child_map_by_client_id = {}
+    self.events = []
 
   def ClearTestDB(self):
     self._Init()
@@ -422,14 +423,16 @@ class InMemoryDB(db.Database):
       child_dict = self.path_child_map_by_client_id.setdefault(
           (client_id, info.path_type), {})
 
-      if info.path_id in info_dict:
-        info_dict.UpdateFrom(info)
+      path_id = info.GetPathID()
+      if path_id in info_dict:
+        info_dict[path_id].UpdateFrom(info)
       else:
-        info_dict[info.path_id] = info
-      if len(info.components) > 1:
-        siblings = child_dict.setdefault(
-            objects.PathInfo.MakePathID(info.components[:-1]), set())
-        siblings.add(info.path_id)
+        info_dict[path_id] = info
+
+      parent_info = info.GetParent()
+      if parent_info is not None:
+        siblings = child_dict.setdefault(parent_info.GetPathID(), set())
+        siblings.add(path_id)
 
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):
@@ -478,3 +481,11 @@ class InMemoryDB(db.Database):
     for n in self.notifications_by_username.get(username, []):
       if n.timestamp in timestamps:
         n.state = state
+
+  def ReadAllAuditEvents(self):
+    return sorted(self.events, key=lambda event: event.timestamp)
+
+  def WriteAuditEvent(self, event):
+    event = event.Copy()
+    event.timestamp = rdfvalue.RDFDatetime.Now()
+    self.events.append(event)

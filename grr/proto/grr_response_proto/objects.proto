@@ -191,9 +191,7 @@ message ObjectReference {
     FLOW = 3;
     CRON_JOB = 4;
     VFS_FILE = 5;
-    CLIENT_APPROVAL_REQUEST = 6;
-    HUNT_APPROVAL_REQUEST = 7;
-    CRON_JOB_APPROVAL_REQUEST = 8;
+    APPROVAL_REQUEST = 6;
   }
   optional Type reference_type = 1;
 
@@ -227,15 +225,18 @@ message FlowReference {
     }];
 }
 
+// Next field id: 4
 message VfsFileReference {
   optional string client_id = 1;
-  repeated string vfs_path_components = 2;
+  optional PathInfo.PathType path_type = 3;
+  repeated string path_components = 2;
 }
 
 message ApprovalRequestReference {
   optional ApprovalRequest.ApprovalType approval_type = 1;
   optional string approval_id = 2;
   optional string subject_id = 3;
+  optional string requestor_username = 4;
 }
 
 message UserNotification {

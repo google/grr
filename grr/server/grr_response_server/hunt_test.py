@@ -20,17 +20,14 @@ from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
 
 
-class TestHuntListener(flow.EventListener):
-  well_known_session_id = rdfvalue.SessionID(flow_name="TestHuntDone")
+class TestHuntListener(events.EventListener):
   EVENTS = ["TestHuntDone"]
 
   received_events = []
 
-  @events.EventHandler(auth_required=True)
-  def ProcessMessage(self, message=None, event=None):
-    _ = event
+  def ProcessMessages(self, msgs=None, token=None):
     # Store the results for later inspection.
-    self.__class__.received_events.append(message)
+    self.__class__.received_events.extend(msgs)
 
 
 class BrokenSampleHunt(standard.SampleHunt):

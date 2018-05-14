@@ -18,6 +18,7 @@ import MySQLdb
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import objects
 from grr.server.grr_response_server import db as db_module
 from grr.server.grr_response_server import db_utils
@@ -1096,3 +1097,62 @@ class MysqlDB(db_module.Database):
         username,
     ] + [_RDFDatetimeToMysqlString(t) for t in timestamps]
     cursor.execute(query, args)
+
+  @WithTransaction(readonly=True)
+  def ReadAllAuditEvents(self, cursor=None):
+    cursor.execute("""
+        SELECT username, urn, client_id, timestamp, details
+        FROM audit_event
+        ORDER BY timestamp
+    """)
+
+    result = []
+    for username, urn, client_id, timestamp, details in cursor.fetchall():
+      event = rdf_events.AuditEvent.FromSerializedString(details)
+      event.user = username
+      if urn:
+        event.urn = rdfvalue.RDFURN(urn)
+      if client_id is not None:
+        event.client = rdf_client.ClientURN(_IntToClientID(client_id))
+      event.timestamp = _MysqlToRDFDatetime(timestamp)
+      result.append(event)
+
+    return result
+
+  @WithTransaction()
+  def WriteAuditEvent(self, event, cursor=None):
+    event = event.Copy()
+
+    if event.HasField("user"):
+      username = event.user
+      event.user = None
+    else:
+      username = None
+
+    if event.HasField("urn"):
+      urn = str(event.urn)
+      event.urn = None
+    else:
+      urn = None
+
+    if event.HasField("client"):
+      client_id = _ClientIDToInt(event.client.Basename())
+      event.client = None
+    else:
+      client_id = None
+
+    if event.HasField("timestamp"):
+      timestamp = _RDFDatetimeToMysqlString(event.timestamp)
+      event.timestamp = None
+    else:
+      timestamp = _RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
+
+    details = event.SerializeToString()
+
+    query = """
+    INSERT INTO audit_event (username, urn, client_id, timestamp, details)
+    VALUES (%s, %s, %s, %s, %s)
+    """
+    values = (username, urn, client_id, timestamp, details)
+
+    cursor.execute(query, values)

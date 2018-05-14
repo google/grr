@@ -6,7 +6,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
-from grr.lib.rdfvalues import objects
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -18,6 +18,7 @@ from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import db
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import notification
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import standard
@@ -58,7 +59,7 @@ class Interrogate(flow.GRRFlow):
     self.Load()
 
     client_id = self.client_id.Basename()
-    self.state.client = objects.ClientSnapshot(client_id=client_id)
+    self.state.client = rdf_objects.ClientSnapshot(client_id=client_id)
     self.state.fqdn = None
     self.state.os = None
 
@@ -103,7 +104,7 @@ class Interrogate(flow.GRRFlow):
               cloud.ConvertCloudMetadataResponsesToCloudInstance(
                   metadata_responses)))
 
-    # objects.ClientSnapshot.
+    # rdf_objects.ClientSnapshot.
     client = self.state.client
     client.cloud_instance = cloud.ConvertCloudMetadataResponsesToCloudInstance(
         metadata_responses)
@@ -117,7 +118,7 @@ class Interrogate(flow.GRRFlow):
     with self._CreateClient() as client:
       client.Set(client.Schema.MEMORY_SIZE(responses.First()))
 
-    # objects.ClientSnapshot.
+    # rdf_objects.ClientSnapshot.
     self.state.client.memory_size = responses.First()
 
   @flow.StateHandler()
@@ -151,7 +152,7 @@ class Interrogate(flow.GRRFlow):
         # Update the client index
         client_index.CreateClientIndex(token=self.token).AddClient(client)
 
-      # objects.ClientSnapshot.
+      # rdf_objects.ClientSnapshot.
       client = self.state.client
       client.os_release = response.release
       client.os_version = response.version
@@ -233,7 +234,7 @@ class Interrogate(flow.GRRFlow):
     with self._CreateClient() as client:
       client.Set(client.Schema.INSTALL_DATE(install_date))
 
-    # objects.ClientSnapshot.
+    # rdf_objects.ClientSnapshot.
     self.state.client.install_time = install_date
 
   def CopyOSReleaseFromKnowledgeBase(self, kb, client):
@@ -267,7 +268,7 @@ class Interrogate(flow.GRRFlow):
     self.CopyOSReleaseFromKnowledgeBase(kb, client)
     client.Flush()
 
-    # objects.ClientSnapshot.
+    # rdf_objects.ClientSnapshot.
 
     # Information already present in the knowledge base takes precedence.
     if not kb.os:
@@ -291,7 +292,7 @@ class Interrogate(flow.GRRFlow):
 
     if data_store.RelationalDBWriteEnabled():
       try:
-        # Update the client index for the objects.ClientSnapshot.
+        # Update the client index for the rdf_objects.ClientSnapshot.
         client_index.ClientIndex().AddClient(self.state.client)
       except db.UnknownClientError:
         pass
@@ -310,13 +311,13 @@ class Interrogate(flow.GRRFlow):
           # AFF4 client.
           new_volumes.append(response)
 
-          # objects.ClientSnapshot.
+          # rdf_objects.ClientSnapshot.
           self.state.client.volumes.append(response)
         elif isinstance(response, rdf_client.HardwareInfo):
           # AFF4 client.
           client.Set(client.Schema.HARDWARE_INFO, response)
 
-          # objects.ClientSnapshot.
+          # rdf_objects.ClientSnapshot.
           self.state.client.hardware_info = response
         else:
           raise ValueError("Unexpected response type: %s", type(response))
@@ -357,7 +358,7 @@ class Interrogate(flow.GRRFlow):
       client.Set(client.Schema.HOST_IPS("\n".join(ip_addresses)))
       client.Set(client.Schema.INTERFACES(interface_list))
 
-    # objects.ClientSnapshot.
+    # rdf_objects.ClientSnapshot.
     self.state.client.interfaces = sorted(responses, key=lambda i: i.ifname)
 
   @flow.StateHandler()
@@ -367,7 +368,7 @@ class Interrogate(flow.GRRFlow):
       self.Log("Could not enumerate file systems.")
       return
 
-    # objects.ClientSnapshot.
+    # rdf_objects.ClientSnapshot.
     self.state.client.filesystems = responses
 
     # AFF4 client.
@@ -430,7 +431,7 @@ class Interrogate(flow.GRRFlow):
       client.Set(client.Schema.CLIENT_INFO(response))
       client.AddLabels(response.labels, owner="GRR")
 
-    # objects.ClientSnapshot.
+    # rdf_objects.ClientSnapshot.
     self.state.client.startup_info.client_info = response
 
   @flow.StateHandler()
@@ -445,7 +446,7 @@ class Interrogate(flow.GRRFlow):
     with self._CreateClient() as client:
       client.Set(client.Schema.GRR_CONFIGURATION(response))
 
-    # objects.ClientSnapshot.
+    # rdf_objects.ClientSnapshot.
     for k, v in response.items():
       self.state.client.grr_configuration.Append(key=k, value=utils.SmartStr(v))
 
@@ -460,12 +461,18 @@ class Interrogate(flow.GRRFlow):
     with self._CreateClient() as client:
       client.Set(client.Schema.LIBRARY_VERSIONS(response))
 
-    # objects.ClientSnapshot.
+    # rdf_objects.ClientSnapshot.
     for k, v in response.items():
       self.state.client.library_versions.Append(key=k, value=utils.SmartStr(v))
 
   def NotifyAboutEnd(self):
-    self.Notify("Discovery", self.client_id, "Client Discovery Complete")
+    notification.Notify(
+        self.token.username,
+        rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED, "",
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.CLIENT,
+            client=rdf_objects.ClientReference(
+                client_id=self.client_id.Basename())))
 
   @flow.StateHandler()
   def End(self):
@@ -505,25 +512,14 @@ class Interrogate(flow.GRRFlow):
         pass
 
 
-class EnrolmentInterrogateEvent(flow.EventListener):
+class EnrolmentInterrogateEvent(events.EventListener):
   """An event handler which will schedule interrogation on client enrollment."""
   EVENTS = ["ClientEnrollment"]
-  well_known_session_id = rdfvalue.SessionID(
-      queue=queues.ENROLLMENT, flow_name=Interrogate.__name__)
 
-  def CheckSource(self, source):
-    if not isinstance(source, rdfvalue.SessionID):
-      try:
-        source = rdfvalue.SessionID(source)
-      except rdfvalue.InitializeError:
-        return False
-    return source.Queue() == queues.ENROLLMENT
-
-  @events.EventHandler(source_restriction=True)
-  def ProcessMessage(self, message=None, event=None):
-    _ = message
-    flow.GRRFlow.StartFlow(
-        client_id=event,
-        flow_name=Interrogate.__name__,
-        queue=queues.ENROLLMENT,
-        token=self.token)
+  def ProcessMessages(self, msgs=None, token=None):
+    for msg in msgs:
+      flow.GRRFlow.StartFlow(
+          client_id=msg,
+          flow_name=Interrogate.__name__,
+          queue=queues.ENROLLMENT,
+          token=token)

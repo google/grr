@@ -9,6 +9,7 @@ import sys
 
 from grr import config
 from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import events as rdf_events
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
@@ -170,7 +171,8 @@ def AddUser(username, password=None, labels=None, token=None):
 
   events.Events.PublishEvent(
       "Audit",
-      events.AuditEvent(user=token.username, action="USER_ADD", urn=user_urn),
+      rdf_events.AuditEvent(
+          user=token.username, action="USER_ADD", urn=user_urn),
       token=token)
 
 
@@ -245,7 +247,7 @@ def UpdateUser(username,
 
   events.Events.PublishEvent(
       "Audit",
-      events.AuditEvent(
+      rdf_events.AuditEvent(
           user=token.username, action="USER_UPDATE", urn=user_urn),
       token=token)
 
@@ -268,7 +270,7 @@ def DeleteUser(username, token=None):
 
   events.Events.PublishEvent(
       "Audit",
-      events.AuditEvent(
+      rdf_events.AuditEvent(
           user=token.username, action="USER_DELETE", urn=user_urn),
       token=token)
 

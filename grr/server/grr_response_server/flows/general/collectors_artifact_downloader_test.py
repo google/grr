@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests for grr.server.grr_response_server.flows.general.collectors.
+"""Tests for grr_response_server.flows.general.collectors.
 
 These test cover the artifact downloader functionality which downloads files
 referenced by artifacts.
@@ -72,14 +72,12 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
       artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
       fd.Set(kb)
 
-    urn = flow.GRRFlow.StartFlow(
-        flow_name=collectors.ArtifactFilesDownloaderFlow.__name__,
+    urn = flow_test_lib.TestFlowHelper(
+        collectors.ArtifactFilesDownloaderFlow.__name__,
         client_id=client_id,
         artifact_list=artifact_list,
         use_tsk=use_tsk,
         token=self.token)
-    for _ in flow_test_lib.TestFlowHelper(urn, token=self.token):
-      pass
 
     results_fd = flow.GRRFlow.ResultCollectionForFID(urn)
     return list(results_fd)
@@ -152,9 +150,9 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     results = self.RunFlow(client_id)
 
     self.assertEquals(len(results), 1)
-    self.assertEquals(results[0].found_pathspec,
-                      rdf_paths.PathSpec(
-                          path="C:\\Windows\\bar.exe", pathtype="OS"))
+    self.assertEquals(
+        results[0].found_pathspec,
+        rdf_paths.PathSpec(path="C:\\Windows\\bar.exe", pathtype="OS"))
     self.assertFalse(results[0].HasField("downloaded_file"))
 
   def testIncludesDownloadedFilesIntoReplyIfFetchSucceeds(self):

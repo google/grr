@@ -9,6 +9,7 @@ from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -17,6 +18,7 @@ from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import notification
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import filestore
@@ -70,10 +72,16 @@ class GetFile(flow.GRRFlow):
     self.state.blobs = []
     self.state.stat_entry = None
 
-    self.CallClient(
-        server_stubs.StatFile,
-        rdf_client.ListDirRequest(pathspec=self.args.pathspec),
-        next_state="Stat")
+    # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
+    # This conditional should be removed after that date.
+    if self.client_version >= 3221:
+      stub = server_stubs.GetFileStat
+      request = rdf_client.GetFileStatRequest(pathspec=self.args.pathspec)
+    else:
+      stub = server_stubs.StatFile
+      request = rdf_client.ListDirRequest(pathspec=self.args.pathspec)
+
+    self.CallClient(stub, request, next_state="Stat")
 
   @flow.StateHandler()
   def Stat(self, responses):
@@ -157,12 +165,38 @@ class GetFile(flow.GRRFlow):
   def NotifyAboutEnd(self):
     super(GetFile, self).NotifyAboutEnd()
 
+    if not self.runner.ShouldSendNotifications():
+      return
+
+    stat_entry = self.state.stat_entry
+    if not stat_entry:
+      stat_entry = rdf_client.StatEntry(pathspec=self.args.pathspec)
+
+    urn = stat_entry.AFF4Path(self.client_id)
+    components = urn.Split()
+    file_ref = None
+    if len(components) > 3:
+      file_ref = rdf_objects.VfsFileReference(
+          client_id=components[0],
+          path_type=components[2].upper(),
+          path_components=components[3:])
+
     if not self.state.get("success"):
-      self.Notify("ViewObject", self.urn, "File transfer failed.")
+      notification.Notify(
+          self.token.username,
+          rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTION_FAILED,
+          "File transfer failed.",
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+              vfs_file=file_ref))
     else:
-      stat_entry = self.state.stat_entry
-      self.Notify("ViewObject", stat_entry.AFF4Path(self.client_id),
-                  "File transferred successfully.")
+      notification.Notify(
+          self.token.username,
+          rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
+          "File transferred successfully.",
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+              vfs_file=file_ref))
 
   @flow.StateHandler()
   def End(self):
@@ -272,11 +306,18 @@ class MultiGetFileMixin(object):
     self.state.pending_hashes[index] = {"index": index}
 
     # First state the file, then hash the file.
+
+    # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
+    # This conditional should be removed after that date.
+    if self.client_version >= 3221:
+      stub = server_stubs.GetFileStat
+      request = rdf_client.GetFileStatRequest(pathspec=pathspec)
+    else:
+      stub = server_stubs.StatFile
+      request = rdf_client.ListDirRequest(pathspec=pathspec)
+
     self.CallClient(
-        server_stubs.StatFile,
-        pathspec=pathspec,
-        next_state="StoreStat",
-        request_data=dict(index=index))
+        stub, request, next_state="StoreStat", request_data=dict(index=index))
 
     request = rdf_client.FingerprintRequest(
         pathspec=pathspec, max_filesize=self.state.file_size)
@@ -664,12 +705,8 @@ class MultiGetFileMixin(object):
         self._ReceiveFetchedFile(file_tracker)
 
         # Publish the new file event to cause the file to be added to the
-        # filestore. This is not time critical so do it when we have spare
-        # capacity.
-        self.Publish(
-            "FileStore.AddFileToStore",
-            urn,
-            priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
+        # filestore.
+        self.Publish("FileStore.AddFileToStore", urn)
 
         self.state.files_fetched += 1
 
@@ -727,7 +764,7 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
     self.SendReply(stat_entry)
 
 
-class FileStoreCreateFile(flow.EventListener):
+class FileStoreCreateFile(events.EventListener):
   """Receive an event about a new file and add it to the file store.
 
   The file store is a central place where files are managed in the data
@@ -740,21 +777,18 @@ class FileStoreCreateFile(flow.EventListener):
 
   EVENTS = ["FileStore.AddFileToStore"]
 
-  well_known_session_id = rdfvalue.SessionID(flow_name="FileStoreCreateFile")
-
-  @events.EventHandler()
-  def ProcessMessage(self, message=None, event=None):
+  def ProcessMessages(self, msgs=None, token=None):
     """Process the new file and add to the file store."""
-    _ = event
-    vfs_urn = message.payload
 
-    with aff4.FACTORY.Open(vfs_urn, mode="rw", token=self.token) as vfs_fd:
-      filestore_fd = aff4.FACTORY.Create(
-          filestore.FileStore.PATH,
-          filestore.FileStore,
-          mode="w",
-          token=self.token)
-      filestore_fd.AddFile(vfs_fd)
+    filestore_fd = aff4.FACTORY.Create(
+        filestore.FileStore.PATH, filestore.FileStore, mode="w", token=token)
+
+    for vfs_urn in msgs:
+      with aff4.FACTORY.Open(vfs_urn, mode="rw", token=token) as vfs_fd:
+        try:
+          filestore_fd.AddFile(vfs_fd)
+        except Exception as e:  # pylint: disable=broad-except
+          logging.error("Exception while adding file to filestore: %s", e)
 
 
 class GetMBRArgs(rdf_structs.RDFProtoStruct):

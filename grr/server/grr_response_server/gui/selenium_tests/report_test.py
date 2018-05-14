@@ -3,6 +3,7 @@ import unittest
 from grr.lib import flags
 
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import events as rdf_events
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
@@ -14,9 +15,9 @@ def AddFakeAuditLog(description=None,
                     user=None,
                     token=None,
                     **kwargs):
-  events.Events.PublishEventInline(
+  events.Events.PublishEvent(
       "Audit",
-      events.AuditEvent(
+      rdf_events.AuditEvent(
           description=description, client=client, user=user, **kwargs),
       token=token)
 

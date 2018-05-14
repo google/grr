@@ -116,9 +116,8 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
         client_id=client_urn,
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=client_urn, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flow_urn, client_mock, client_id=client_urn, token=self.token)
 
     result_flow = self.api.Client(client_id=client_urn.Basename()).Flow(
         flow_urn.Basename())
@@ -141,9 +140,8 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
     def ProcessFlow():
       time.sleep(1)
       client_mock = action_mocks.ListProcessesMock([])
-      for _ in flow_test_lib.TestFlowHelper(
-          flow_urn, client_mock, client_id=client_urn, token=self.token):
-        pass
+      flow_test_lib.TestFlowHelper(
+          flow_urn, client_mock, client_id=client_urn, token=self.token)
 
     threading.Thread(target=ProcessFlow).start()
     f = result_flow.WaitUntilDone()

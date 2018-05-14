@@ -4,10 +4,10 @@
 import itertools
 
 from grr.lib import rdfvalue
-
+from grr.lib import utils
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
-
 from grr.lib.rdfvalues import flows
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import cron_pb2
 from grr.server.grr_response_server import aff4
@@ -105,6 +105,12 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
       pass
 
     return api_cron_job
+
+  def ObjectReference(self):
+    return rdf_objects.ObjectReference(
+        reference_type=rdf_objects.ObjectReference.Type.CRON_JOB,
+        cron_job=rdf_objects.CronJobReference(
+            cron_job_id=utils.SmartStr(self.cron_job_id)))
 
 
 class ApiListCronJobsArgs(rdf_structs.RDFProtoStruct):

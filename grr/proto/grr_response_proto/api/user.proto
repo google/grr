@@ -5,7 +5,6 @@ import "grr_response_proto/api/flow.proto";
 import "grr_response_proto/api/hunt.proto";
 import "grr_response_proto/api/client.proto";
 
-import "grr_response_proto/flows.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 import "grr_response_proto/user.proto";

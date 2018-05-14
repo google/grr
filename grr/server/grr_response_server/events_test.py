@@ -7,7 +7,6 @@ from grr.lib import rdfvalue
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import events
-from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import maintenance_utils
 from grr.server.grr_response_server.flows.general import audit
 from grr.test_lib import flow_test_lib
@@ -15,69 +14,21 @@ from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
 
 
-class NoClientListener(flow.EventListener):  # pylint: disable=unused-variable
-  well_known_session_id = rdfvalue.SessionID(flow_name="test2")
+class TestListener(events.EventListener):  # pylint: disable=unused-variable
   EVENTS = ["TestEvent"]
 
   received_events = []
 
-  @events.EventHandler(auth_required=True)
-  def ProcessMessage(self, message=None, event=None):
+  def ProcessMessages(self, msgs=None, token=None):
     # Store the results for later inspection.
-    self.__class__.received_events.append((message, event))
-
-
-class ClientListener(flow.EventListener):
-  well_known_session_id = rdfvalue.SessionID(flow_name="test3")
-  EVENTS = ["TestEvent"]
-
-  received_events = []
-
-  @events.EventHandler(auth_required=True, allow_client_access=True)
-  def ProcessMessage(self, message=None, event=None):
-    # Store the results for later inspection.
-    self.__class__.received_events.append((message, event))
-
-
-class FlowDoneListener(flow.EventListener):
-  well_known_session_id = rdfvalue.SessionID(
-      queue=rdfvalue.RDFURN("EV"), flow_name="FlowDone")
-  EVENTS = ["Not used"]
-  received_events = []
-
-  @events.EventHandler(auth_required=True)
-  def ProcessMessage(self, message=None, event=None):
-    _ = event
-    # Store the results for later inspection.
-    FlowDoneListener.received_events.append(message)
+    self.__class__.received_events.extend(msgs)
 
 
 class EventsTest(flow_test_lib.FlowTestsBaseclass):
 
-  def testClientEventNotification(self):
-    """Make sure that client events handled securely."""
-    ClientListener.received_events = []
-    NoClientListener.received_events = []
-
-    event = rdf_flows.GrrMessage(
-        source="C.1395c448a443c7d9",
-        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
-
-    event.payload = rdf_paths.PathSpec(path="foobar")
-
-    events.Events.PublishEvent("TestEvent", event, token=self.token)
-    worker_test_lib.MockWorker(token=self.token).Simulate()
-
-    # The same event should be sent to both listeners, but only the listener
-    # which accepts client messages should register it.
-    self.assertRDFValuesEqual(ClientListener.received_events[0][0].payload,
-                              event.payload)
-    self.assertEqual(NoClientListener.received_events, [])
-
   def testEventNotification(self):
     """Test that events are sent to listeners."""
-    NoClientListener.received_events = []
-    worker = worker_test_lib.MockWorker(token=self.token)
+    TestListener.received_events = []
 
     event = rdf_flows.GrrMessage(
         session_id=rdfvalue.SessionID(flow_name="SomeFlow"),
@@ -86,56 +37,10 @@ class EventsTest(flow_test_lib.FlowTestsBaseclass):
         source="aff4:/C.0000000000000001",
         auth_state="AUTHENTICATED")
 
-    # Not allowed to publish a message from a client..
     events.Events.PublishEvent("TestEvent", event, token=self.token)
-    worker.Simulate()
-
-    self.assertEqual(NoClientListener.received_events, [])
-
-    event.source = "Source"
-
-    # First make the message unauthenticated.
-    event.auth_state = rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
-
-    # Publish the event.
-    events.Events.PublishEvent("TestEvent", event, token=self.token)
-    worker.Simulate()
-
-    # This should not work - the unauthenticated message is dropped.
-    self.assertEqual(NoClientListener.received_events, [])
-
-    # Now make the message authenticated.
-    event.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
-
-    # Publish the event.
-    events.Events.PublishEvent("TestEvent", event, token=self.token)
-    worker.Simulate()
-
-    # This should now work:
-    self.assertEqual(len(NoClientListener.received_events), 1)
 
     # Make sure the source is correctly propagated.
-    self.assertEqual(NoClientListener.received_events[0][0].source,
-                     "aff4:/Source")
-    self.assertEqual(NoClientListener.received_events[0][1].path, "foobar")
-
-    NoClientListener.received_events = []
-    # Now schedule ten events at the same time.
-    for i in xrange(10):
-      event.source = "Source%d" % i
-      events.Events.PublishEvent("TestEvent", event, token=self.token)
-
-    worker.Simulate()
-
-    self.assertEqual(len(NoClientListener.received_events), 10)
-
-    # Events do not have to be delivered in order so we sort them here for
-    # comparison.
-    NoClientListener.received_events.sort(key=lambda x: x[0].source)
-    for i in range(10):
-      self.assertEqual(NoClientListener.received_events[i][0].source,
-                       "aff4:/Source%d" % i)
-      self.assertEqual(NoClientListener.received_events[i][1].path, "foobar")
+    self.assertEqual(TestListener.received_events[0], event)
 
   def testUserModificationAudit(self):
     worker = worker_test_lib.MockWorker(token=self.token)

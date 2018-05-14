@@ -538,9 +538,8 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
     cron_manager.RunOnce(token=self.token)
     cron_job = aff4.FACTORY.Open(cron_job_urn, token=self.token)
     cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
-    for _ in flow_test_lib.TestFlowHelper(
-        cron_flow_urn, check_flow_errors=False, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        cron_flow_urn, check_flow_errors=False, token=self.token)
     # This RunOnce call should determine that the flow has failed
     cron_manager.RunOnce(token=self.token)
 
@@ -570,9 +569,8 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
       cron_job = aff4.FACTORY.Open(
           cron_job_urn, aff4_type=cronjobs.CronJob, token=self.token)
       cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
-      for _ in flow_test_lib.TestFlowHelper(
-          cron_flow_urn, check_flow_errors=False, token=self.token):
-        pass
+      flow_test_lib.TestFlowHelper(
+          cron_flow_urn, check_flow_errors=False, token=self.token)
 
       # This RunOnce call should determine that the flow has finished
       cron_manager.RunOnce(token=self.token)
@@ -634,9 +632,8 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
         cron_job = aff4.FACTORY.Open(
             cron_job_urn, aff4_type=cronjobs.CronJob, token=self.token)
         cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
-        for _ in flow_test_lib.TestFlowHelper(
-            cron_flow_urn, check_flow_errors=False, token=self.token):
-          pass
+        flow_test_lib.TestFlowHelper(
+            cron_flow_urn, check_flow_errors=False, token=self.token)
         # This RunOnce call should determine that the flow has finished
         cron_manager.RunOnce(token=self.token)
 

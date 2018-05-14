@@ -2,6 +2,21 @@
 
 set -e
 
+readonly GRR_PKGS=(\
+  'grr-response-proto' \
+  'grr-response-core' \
+  'grr-response-client' \
+  'grr-api-client' \
+  'grr-response-server' \
+  'grr-response-test' \
+  'grr-response-templates' \
+)
+
+function fatal() {
+  >&2 echo "Error: ${1}"
+  exit 1
+}
+
 function build_sdists() {
   if [[ -d sdists ]]; then
     echo "Removing existing sdists directory."
@@ -30,18 +45,35 @@ function download_packages() {
     rm -rf local_pypi
   fi
 
-  pip download --find-links=sdists --dest=local_pypi sdists/grr-response-proto-*.zip
-  pip download --find-links=sdists --dest=local_pypi sdists/grr-response-core-*.zip
-  pip download --find-links=sdists --dest=local_pypi sdists/grr-response-client-*.zip
-  pip download --find-links=sdists --dest=local_pypi sdists/grr-api-client-*.zip
-  pip download --find-links=sdists --dest=local_pypi sdists/grr-response-server-*.zip
-  pip download --find-links=sdists --dest=local_pypi sdists/grr-response-test-*.zip
-  pip download --find-links=sdists --dest=local_pypi sdists/grr-response-templates-*.zip
+  for pkg in "${GRR_PKGS[@]}"; do
+    # shellcheck disable=SC2086
+    pip download --find-links=sdists --dest=local_pypi "$(ls sdists/${pkg}-*.zip)"
+  done
+}
+
+function verify_packages() {
+  for pkg in "${GRR_PKGS[@]}"; do
+    # shellcheck disable=SC2086
+    pkg_count="$(ls local_pypi/${pkg}-* 2>/dev/null | wc -l)"
+    if [[ "${pkg_count}" -eq 0 ]]; then
+      fatal "Failed to find sdist for ${pkg} in local_pypi."
+    elif [[ "${pkg_count}" -gt 1 ]]; then
+      fatal "Found multiple versions for ${pkg} in local_pypi."
+    fi
+    # shellcheck disable=SC2086
+    actual_sum=($(md5sum local_pypi/${pkg}-*.zip))
+    # shellcheck disable=SC2086
+    expected_sum=($(md5sum sdists/${pkg}-*.zip))
+    if [[ "${actual_sum[0]}" != "${expected_sum[0]}" ]]; then
+      fatal "sdist for ${pkg} in local_pypi is different from the sdist that has just been built."
+    fi
+  done
 }
 
 source "${HOME}/INSTALL/bin/activate"
 build_sdists
 download_packages
+verify_packages
 
 # Reduce the size of the tarball that gets uploaded to GCS by
 # deleting unnecessary files.

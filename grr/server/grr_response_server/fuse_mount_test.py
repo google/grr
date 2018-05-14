@@ -229,7 +229,7 @@ class GRRFuseTest(GRRFuseTestBase):
         searching.Find,
         standard.HashBuffer,
         standard.ListDirectory,
-        standard.StatFile,
+        standard.GetFileStat,
         standard.TransferBuffer,
     )
 
@@ -251,25 +251,23 @@ class GRRFuseTest(GRRFuseTestBase):
     self.start_flow_stubber.Stop()
 
   def _RunAndWaitForVFSFileUpdate(self, path):
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         aff4_grr.UpdateVFSFile.__name__,
         self.action_mock,
         token=self.token,
         client_id=self.client_id,
-        vfs_file_urn=path):
-      pass
+        vfs_file_urn=path)
 
   def ClientPathToAFF4Path(self, client_side_path):
     return "/%s/fs/os%s" % (self.client_name, client_side_path)
 
   def StartFlowAndWait(self, client_id, token=None, timeout=None, **flow_args):
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         flow_args.pop("flow_name"),
         self.action_mock,
         token=self.token,
         client_id=self.client_id,
-        **flow_args):
-      pass
+        **flow_args)
 
   def ListDirectoryOnClient(self, path):
     # NOTE: Path is a client side path, so does not have a leading
@@ -277,13 +275,12 @@ class GRRFuseTest(GRRFuseTestBase):
 
     pathspec = rdf_paths.PathSpec(path=path, pathtype="OS")
 
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         filesystem.ListDirectory.__name__,
         self.action_mock,
         pathspec=pathspec,
         token=self.token,
-        client_id=self.client_id):
-      pass
+        client_id=self.client_id)
 
   def testReadDoesNotTimeOut(self):
 

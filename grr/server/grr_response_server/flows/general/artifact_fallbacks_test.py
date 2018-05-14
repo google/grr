@@ -18,13 +18,12 @@ class TestSystemRootSystemDriveFallbackFlow(flow_test_lib.FlowTestsBaseclass):
                                    vfs_test_lib.ClientVFSHandlerFixture):
       client_mock = action_mocks.ListDirectoryClientMock()
 
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           artifact_fallbacks.SystemRootSystemDriveFallbackFlow.__name__,
           client_mock,
           client_id=test_lib.TEST_CLIENT_ID,
           token=self.token,
-          artifact_name="WindowsEnvironmentVariableSystemRoot"):
-        session_id = s
+          artifact_name="WindowsEnvironmentVariableSystemRoot")
 
       output_fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 

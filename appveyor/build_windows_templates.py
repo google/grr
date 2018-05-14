@@ -90,6 +90,11 @@ parser.add_argument(
     action="store_false")
 parser.set_defaults(expect_service_running=True)
 
+parser.add_argument(
+    "--config",
+    default="",
+    help="Path to the config file to be used when building templates.")
+
 args = parser.parse_args()
 
 
@@ -246,15 +251,16 @@ class WindowsTemplateBuilder(object):
     We dont need to run special compilers so just enter the virtualenv and
     build. Python will already find its own MSVC for python compilers.
     """
-    subprocess.check_call([
-        self.grr_client_build64, "--verbose", "build", "--output",
-        args.output_dir
-    ])
-    if args.build_32:
-      subprocess.check_call([
-          self.grr_client_build32, "--verbose", "build", "--output",
+    if args.config:
+      build_args = [
+          "--verbose", "--config", args.config, "build", "--output",
           args.output_dir
-      ])
+      ]
+    else:
+      build_args = ["--verbose", "build", "--output", args.output_dir]
+    subprocess.check_call([self.grr_client_build64] + build_args)
+    if args.build_32:
+      subprocess.check_call([self.grr_client_build32] + build_args)
 
   def _RepackTemplates(self):
     """Repack templates with a dummy config."""

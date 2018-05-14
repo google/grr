@@ -29,14 +29,13 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     client_id = self.SetupClient(0)
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         flow_registry.RegistryFinder.__name__,
         client_mock,
         client_id=client_id,
         keys_paths=paths,
         conditions=[],
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     return list(flow.GRRFlow.ResultCollectionForFID(session_id))
 

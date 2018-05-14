@@ -8,6 +8,7 @@ from grr_response_proto import tests_pb2
 # pylint: disable=unused-import
 from grr.server.grr_response_server.gui import api_call_router
 # pylint: enable=unused-import
+from grr.test_lib import acl_test_lib
 from grr.test_lib import test_lib
 
 
@@ -17,6 +18,7 @@ class ApiCallHandlerTest(test_lib.GRRBaseTest):
     super(ApiCallHandlerTest, self).setUp()
     # The user we use for API tests.
     self.token.username = "api_test_user"
+    acl_test_lib.CreateUser(self.token.username)
 
 
 class SampleGetHandlerArgs(rdf_structs.RDFProtoStruct):

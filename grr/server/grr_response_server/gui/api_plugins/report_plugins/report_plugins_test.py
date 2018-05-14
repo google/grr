@@ -8,6 +8,7 @@ import os
 from grr import config
 from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server.aff4_objects import filestore_test_lib
@@ -63,9 +64,9 @@ def AddFakeAuditLog(description=None,
                     user=None,
                     token=None,
                     **kwargs):
-  events.Events.PublishEventInline(
+  events.Events.PublishEvent(
       "Audit",
-      events.AuditEvent(
+      rdf_events.AuditEvent(
           description=description, client=client, user=user, **kwargs),
       token=token)
 
@@ -80,8 +81,7 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
     AddFakeAuditLog("Fake audit description bar.", token=self.token)
 
     audit_events = {
-        ev.description: ev
-        for fd in audit.AuditLogsForTimespan(
+        ev.description: ev for fd in audit.AuditLogsForTimespan(
             rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d"),
             rdfvalue.RDFDatetime.Now(),
             token=self.token) for ev in fd.GenerateItems()
@@ -102,9 +102,8 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.MockClients()
 
     # Scan for activity to be reported.
-    for _ in flow_test_lib.TestFlowHelper(
-        cron_system.GRRVersionBreakDown.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        cron_system.GRRVersionBreakDown.__name__, token=self.token)
 
     report = report_plugins.GetReportByName(
         client_report_plugins.GRRVersion30ReportPlugin.__name__)
@@ -126,9 +125,8 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
 
   def testGRRVersionReportPluginWithNoActivityToReport(self):
     # Scan for activity to be reported.
-    for _ in flow_test_lib.TestFlowHelper(
-        cron_system.GRRVersionBreakDown.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        cron_system.GRRVersionBreakDown.__name__, token=self.token)
 
     report = report_plugins.GetReportByName(
         client_report_plugins.GRRVersion30ReportPlugin.__name__)
@@ -149,9 +147,8 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.MockClients()
 
     # Scan for activity to be reported.
-    for _ in flow_test_lib.TestFlowHelper(
-        cron_system.LastAccessStats.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        cron_system.LastAccessStats.__name__, token=self.token)
 
     report = report_plugins.GetReportByName(
         client_report_plugins.LastActiveReportPlugin.__name__)
@@ -178,9 +175,8 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
 
   def testLastActiveReportPluginWithNoActivityToReport(self):
     # Scan for activity to be reported.
-    for _ in flow_test_lib.TestFlowHelper(
-        cron_system.LastAccessStats.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        cron_system.LastAccessStats.__name__, token=self.token)
 
     report = report_plugins.GetReportByName(
         client_report_plugins.LastActiveReportPlugin.__name__)
@@ -202,9 +198,8 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.SetupClients(1)
 
     # Scan for clients to be reported (the one we just added).
-    for _ in flow_test_lib.TestFlowHelper(
-        cron_system.OSBreakDown.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        cron_system.OSBreakDown.__name__, token=self.token)
 
     report = report_plugins.GetReportByName(
         client_report_plugins.OSBreakdown30ReportPlugin.__name__)
@@ -217,10 +212,9 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual(
         api_report_data,
         rdf_report_plugins.ApiReportData(
-            pie_chart=rdf_report_plugins.ApiPieChartReportData(
-                data=[
-                    rdf_report_plugins.ApiReportDataPoint1D(label="Linux", x=1)
-                ]),
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[
+                rdf_report_plugins.ApiReportDataPoint1D(label="Linux", x=1)
+            ]),
             representation_type=rdf_report_plugins.ApiReportData.
             RepresentationType.PIE_CHART))
 
@@ -245,9 +239,8 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.SetupClients(1)
 
     # Scan for clients to be reported (the one we just added).
-    for _ in flow_test_lib.TestFlowHelper(
-        cron_system.OSBreakDown.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        cron_system.OSBreakDown.__name__, token=self.token)
 
     report = report_plugins.GetReportByName(
         client_report_plugins.OSReleaseBreakdown30ReportPlugin.__name__)
@@ -260,8 +253,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual(
         api_report_data,
         rdf_report_plugins.ApiReportData(
-            pie_chart=rdf_report_plugins.
-            ApiPieChartReportData(data=[
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[
                 rdf_report_plugins.ApiReportDataPoint1D(label="Unknown", x=1)
             ]),
             representation_type=rdf_report_plugins.ApiReportData.
@@ -301,8 +293,7 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
     ]
 
     xs = [0.] + [
-        math.log10(x)
-        for x in [
+        math.log10(x) for x in [
             2, 50, 100, 1e3, 10e3, 100e3, 500e3, 1e6, 5e6, 10e6, 50e6, 100e6,
             500e6, 1e9, 5e9, 10e9
         ]
@@ -340,9 +331,8 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
         token=self.token)
 
     # Scan for files to be reported (the one we just added).
-    for _ in flow_test_lib.TestFlowHelper(
-        filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token)
 
     report = report_plugins.GetReportByName(
         filestore_report_plugins.FileSizeDistributionReportPlugin.__name__)
@@ -361,9 +351,8 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
 
   def testFileSizeDistributionReportPluginWithNothingToReport(self):
     # Scan for files to be reported.
-    for _ in flow_test_lib.TestFlowHelper(
-        filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token)
 
     report = report_plugins.GetReportByName(
         filestore_report_plugins.FileSizeDistributionReportPlugin.__name__)
@@ -384,7 +373,8 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
+          action=rdf_events.AuditEvent.Action.
+          CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
           user="User123",
           description="Approval request description.",
           token=self.token)
@@ -393,13 +383,13 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
       for i in xrange(10):
         AddFakeAuditLog(
-            action=events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST,
+            action=rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST,
             user="User%d" % i,
             description="Approval request.",
             token=self.token)
 
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
+          action=rdf_events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
           user="User456",
           description="Grant.",
           token=self.token)
@@ -424,30 +414,32 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual(api_report_data.audit_chart.used_fields,
                      ["action", "client", "description", "timestamp", "user"])
 
-    self.assertEqual([(row.action, row.client, row.description, row.user)
-                      for row in api_report_data.audit_chart.rows],
-                     [(events.AuditEvent.Action.CLIENT_APPROVAL_GRANT, None,
-                       "Grant.", "User456"),
-                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User9"),
-                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User8"),
-                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User7"),
-                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User6"),
-                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User5"),
-                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User4"),
-                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User3"),
-                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User2"),
-                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User1"),
-                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User0")])  # pyformat: disable
+    rows = api_report_data.audit_chart.rows
+    self.assertEqual(
+        [(row.action, row.client, row.description, row.user) for row in rows],
+        [
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_GRANT, None,
+             "Grant.", "User456"),
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+             "Approval request.", "User9"),
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+             "Approval request.", "User8"),
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+             "Approval request.", "User7"),
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+             "Approval request.", "User6"),
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+             "Approval request.", "User5"),
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+             "Approval request.", "User4"),
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+             "Approval request.", "User3"),
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+             "Approval request.", "User2"),
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+             "Approval request.", "User1"),
+            (rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+             "Approval request.", "User0")])  # pyformat: disable
 
   def testClientApprovalsReportPluginWithNoActivityToReport(self):
     report = report_plugins.GetReportByName(
@@ -463,22 +455,22 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.AUDIT_CHART,
-                         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-                             used_fields=[
-                                 "action", "client", "description", "timestamp",
-                                 "user"
-                             ],
-                             rows=[])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.AUDIT_CHART,
+            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                used_fields=[
+                    "action", "client", "description", "timestamp", "user"
+                ],
+                rows=[])))
 
   def testHuntActionsReportPlugin(self):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.HUNT_CREATED,
+          action=rdf_events.AuditEvent.Action.HUNT_CREATED,
           user="User123",
           flow_name="Flow123",
           token=self.token)
@@ -487,13 +479,13 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
       for i in xrange(10):
         AddFakeAuditLog(
-            action=events.AuditEvent.Action.HUNT_MODIFIED,
+            action=rdf_events.AuditEvent.Action.HUNT_MODIFIED,
             user="User%d" % i,
             flow_name="Flow%d" % i,
             token=self.token)
 
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.HUNT_PAUSED,
+          action=rdf_events.AuditEvent.Action.HUNT_PAUSED,
           user="User456",
           flow_name="Flow456",
           token=self.token)
@@ -522,27 +514,27 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual([(row.action, row.description, row.flow_name,
                        row.timestamp.Format("%Y/%m/%d"), row.urn, row.user)
                       for row in api_report_data.audit_chart.rows],
-                     [(events.AuditEvent.Action.HUNT_PAUSED, "", "Flow456",
+                     [(rdf_events.AuditEvent.Action.HUNT_PAUSED, "", "Flow456",
                        "2012/12/22", None, "User456"),
-                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow9",
+                      (rdf_events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow9",
                        "2012/12/22", None, "User9"),
-                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow8",
+                      (rdf_events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow8",
                        "2012/12/22", None, "User8"),
-                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow7",
+                      (rdf_events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow7",
                        "2012/12/22", None, "User7"),
-                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow6",
+                      (rdf_events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow6",
                        "2012/12/22", None, "User6"),
-                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow5",
+                      (rdf_events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow5",
                        "2012/12/22", None, "User5"),
-                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow4",
+                      (rdf_events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow4",
                        "2012/12/22", None, "User4"),
-                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow3",
+                      (rdf_events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow3",
                        "2012/12/22", None, "User3"),
-                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow2",
+                      (rdf_events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow2",
                        "2012/12/22", None, "User2"),
-                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow1",
+                      (rdf_events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow1",
                        "2012/12/22", None, "User1"),
-                      (events.AuditEvent.Action.HUNT_MODIFIED, "",
+                      (rdf_events.AuditEvent.Action.HUNT_MODIFIED, "",
                        "Flow0", "2012/12/22", None, "User0")
                      ])  # pyformat: disable
 
@@ -560,22 +552,23 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.AUDIT_CHART,
-                         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-                             used_fields=[
-                                 "action", "description", "flow_name",
-                                 "timestamp", "urn", "user"
-                             ],
-                             rows=[])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.AUDIT_CHART,
+            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                used_fields=[
+                    "action", "description", "flow_name", "timestamp", "urn",
+                    "user"
+                ],
+                rows=[])))
 
   def testHuntApprovalsReportPlugin(self):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+          action=rdf_events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
           user="User123",
           description="Approval grant description.",
           token=self.token)
@@ -584,13 +577,13 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
       for i in xrange(10):
         AddFakeAuditLog(
-            action=events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+            action=rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
             user="User%d" % i,
             description="Approval request.",
             token=self.token)
 
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+          action=rdf_events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
           user="User456",
           description="Another grant.",
           token=self.token)
@@ -617,27 +610,27 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual([(row.action, row.description,
                        row.timestamp.Format("%Y/%m/%d"), row.urn, row.user)
                       for row in api_report_data.audit_chart.rows],
-                     [(events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+                     [(rdf_events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
                        "Another grant.", "2012/12/22", None, "User456"),
-                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User9"),
-                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User8"),
-                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User7"),
-                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User6"),
-                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User5"),
-                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User4"),
-                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User3"),
-                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User2"),
-                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User1"),
-                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User0")
                      ])  # pyformat: disable
 
@@ -655,22 +648,22 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.AUDIT_CHART,
-                         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-                             used_fields=[
-                                 "action", "description", "timestamp", "urn",
-                                 "user"
-                             ],
-                             rows=[])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.AUDIT_CHART,
+            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                used_fields=[
+                    "action", "description", "timestamp", "urn", "user"
+                ],
+                rows=[])))
 
   def testCronApprovalsReportPlugin(self):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+          action=rdf_events.AuditEvent.Action.CRON_APPROVAL_GRANT,
           user="User123",
           description="Approval grant description.",
           token=self.token)
@@ -679,13 +672,13 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
       for i in xrange(10):
         AddFakeAuditLog(
-            action=events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+            action=rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
             user="User%d" % i,
             description="Approval request.",
             token=self.token)
 
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+          action=rdf_events.AuditEvent.Action.CRON_APPROVAL_GRANT,
           user="User456",
           description="Another grant.",
           token=self.token)
@@ -713,27 +706,27 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual([(row.action, row.description,
                        row.timestamp.Format("%Y/%m/%d"), row.urn, row.user)
                       for row in api_report_data.audit_chart.rows],
-                     [(events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+                     [(rdf_events.AuditEvent.Action.CRON_APPROVAL_GRANT,
                        "Another grant.", "2012/12/22", None, "User456"),
-                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User9"),
-                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User8"),
-                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User7"),
-                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User6"),
-                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User5"),
-                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User4"),
-                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User3"),
-                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User2"),
-                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User1"),
-                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                      (rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User0")
                      ])  # pyformat: disable
 
@@ -751,16 +744,16 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.AUDIT_CHART,
-                         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-                             used_fields=[
-                                 "action", "description", "timestamp", "urn",
-                                 "user"
-                             ],
-                             rows=[])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.AUDIT_CHART,
+            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                used_fields=[
+                    "action", "description", "timestamp", "urn", "user"
+                ],
+                rows=[])))
 
   def testMostActiveUsersReportPlugin(self):
     with test_lib.FakeTime(
@@ -847,7 +840,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.RUN_FLOW,
+          action=rdf_events.AuditEvent.Action.RUN_FLOW,
           user="GRR",
           flow_name="Flow123",
           token=self.token)
@@ -856,13 +849,13 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
       for _ in xrange(10):
         AddFakeAuditLog(
-            action=events.AuditEvent.Action.RUN_FLOW,
+            action=rdf_events.AuditEvent.Action.RUN_FLOW,
             user="GRR",
             flow_name="Flow123",
             token=self.token)
 
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.RUN_FLOW,
+          action=rdf_events.AuditEvent.Action.RUN_FLOW,
           user="GRR",
           flow_name="Flow456",
           token=self.token)
@@ -1033,7 +1026,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.RUN_FLOW,
+          action=rdf_events.AuditEvent.Action.RUN_FLOW,
           user="User123",
           flow_name="Flow123",
           token=self.token)
@@ -1042,13 +1035,13 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
       for _ in xrange(10):
         AddFakeAuditLog(
-            action=events.AuditEvent.Action.RUN_FLOW,
+            action=rdf_events.AuditEvent.Action.RUN_FLOW,
             user="User123",
             flow_name="Flow123",
             token=self.token)
 
       AddFakeAuditLog(
-          action=events.AuditEvent.Action.RUN_FLOW,
+          action=rdf_events.AuditEvent.Action.RUN_FLOW,
           user="User456",
           flow_name="Flow456",
           token=self.token)

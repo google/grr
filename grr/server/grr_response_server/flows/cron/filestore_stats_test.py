@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests for grr.server.grr_response_server.flows.cron.filestore_stats."""
+"""Tests for the filestore stats."""
 
 from grr.lib import flags
 from grr.server.grr_response_server import aff4
@@ -47,9 +47,8 @@ class FilestoreStatsCronFlowTest(flow_test_lib.FlowTestsBaseclass):
     fs.AddURNToIndex("blobtiny", "aff4:/C.0000000000000001/fs/os/1")
 
   def testFileTypes(self):
-    for _ in flow_test_lib.TestFlowHelper(
-        filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token)
 
     fd = aff4.FACTORY.Open(
         filestore_stats.FilestoreStatsCronFlow.FILESTORE_STATS_URN,

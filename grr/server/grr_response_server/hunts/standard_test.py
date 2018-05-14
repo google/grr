@@ -24,7 +24,6 @@ from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
 from grr.server.grr_response_server.flows.general import administrative
 from grr.server.grr_response_server.flows.general import file_finder
 from grr.server.grr_response_server.flows.general import processes
@@ -35,6 +34,7 @@ from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
+from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
@@ -50,7 +50,8 @@ class InfiniteFlow(flow.GRRFlow):
     self.CallState(next_state="Start")
 
 
-class StandardHuntTest(flow_test_lib.FlowTestsBaseclass,
+class StandardHuntTest(notification_test_lib.NotificationTestMixin,
+                       flow_test_lib.FlowTestsBaseclass,
                        hunt_test_lib.StandardHuntTestMixin):
   """Tests the Hunt."""
 
@@ -58,6 +59,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass,
     super(StandardHuntTest, self).setUp()
     # Set up 10 clients.
     self.client_ids = self.SetupClients(10)
+    self.CreateUser(self.token.username)
 
     hunt_test_lib.DummyHuntOutputPlugin.num_calls = 0
     hunt_test_lib.DummyHuntOutputPlugin.num_responses = 0
@@ -837,12 +839,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass,
     self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STOPPED")
 
   def _CheckHuntStoppedNotification(self, str_match):
-    user_record = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="r",
-        token=self.token)
-    pending = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
+    pending = self.GetUserNotifications(self.token.username)
     self.assertEqual(len(pending), 1)
     self.assertTrue(str_match in pending[0].message)
 
@@ -1045,8 +1042,8 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass,
             flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
-                path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS),
-        ),
+                path="/tmp/evil.txt",
+                pathtype=rdf_paths.PathSpec.PathType.OS),),
         client_rule_set=self._CreateForemanClientRuleSet(),
         client_limit=1,
         client_rate=0,

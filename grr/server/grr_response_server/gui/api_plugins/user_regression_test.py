@@ -9,9 +9,9 @@ from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import notification
 from grr.server.grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr.server.grr_response_server.aff4_objects import users as aff4_users
-
 from grr.server.grr_response_server.flows.general import discovery
 from grr.server.grr_response_server.gui import api_regression_test_lib
 from grr.server.grr_response_server.gui.api_plugins import user as user_plugin
@@ -583,8 +583,30 @@ class ApiGetOwnGrrUserHandlerRegresstionTest(
     self.Check("GetGrrUser")
 
 
+def _SendNotifications(username, client_id):
+  with test_lib.FakeTime(42):
+    notification.Notify(
+        username, rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+        "<some message>",
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.CLIENT,
+            client=rdf_objects.ClientReference(client_id=client_id.Basename())))
+
+  with test_lib.FakeTime(44):
+    notification.Notify(
+        username,
+        rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTION_FAILED,
+        "<some other message>",
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+            vfs_file=rdf_objects.VfsFileReference(
+                client_id=client_id.Basename(),
+                path_type=rdf_objects.PathInfo.PathType.OS,
+                path_components=["foo"])))
+
+
 class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiGetPendingUserNotificationsCountHandler."""
 
   api_method = "GetPendingUserNotificationsCount"
@@ -594,24 +616,16 @@ class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
     super(ApiGetPendingUserNotificationsCountHandlerRegressionTest,
           self).setUp()
     self.client_id = self.SetupClient(0)
+    self.CreateUser(self.token.username)
 
   def Run(self):
-    self._SendNotification(
-        notification_type="Discovery",
-        subject="<some client urn>",
-        message="<some message>",
-        client_id=self.client_id)
-    self._SendNotification(
-        notification_type="ViewObject",
-        subject=str(self.client_id),
-        message="<some other message>",
-        client_id=self.client_id)
+    _SendNotifications(self.token.username, self.client_id)
 
     self.Check("GetPendingUserNotificationsCount")
 
 
 class ApiListPendingUserNotificationsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListPendingUserNotificationsHandler."""
 
   api_method = "ListPendingUserNotifications"
@@ -620,21 +634,10 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
   def setUp(self):
     super(ApiListPendingUserNotificationsHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClient(0)
+    self.CreateUser(self.token.username)
 
   def Run(self):
-    with test_lib.FakeTime(42):
-      self._SendNotification(
-          notification_type="Discovery",
-          subject=str(self.client_id),
-          message="<some message>",
-          client_id=self.client_id)
-
-    with test_lib.FakeTime(44):
-      self._SendNotification(
-          notification_type="ViewObject",
-          subject=str(self.client_id),
-          message="<some other message>",
-          client_id=self.client_id)
+    _SendNotifications(self.token.username, self.client_id)
 
     self.Check(
         "ListPendingUserNotifications",
@@ -646,7 +649,7 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
 
 
 class ApiListAndResetUserNotificationsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListAndResetUserNotificationsHandler."""
 
   api_method = "ListAndResetUserNotifications"
@@ -655,21 +658,10 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
   def setUp(self):
     super(ApiListAndResetUserNotificationsHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClient(0)
+    self.CreateUser(self.token.username)
 
   def Run(self):
-    with test_lib.FakeTime(42):
-      self._SendNotification(
-          notification_type="Discovery",
-          subject=str(self.client_id),
-          message="<some message>",
-          client_id=self.client_id)
-
-    with test_lib.FakeTime(44):
-      self._SendNotification(
-          notification_type="ViewObject",
-          subject=str(self.client_id),
-          message="<some other message>",
-          client_id=self.client_id)
+    _SendNotifications(self.token.username, self.client_id)
 
     # Notifications are pending in this request.
     self.Check(

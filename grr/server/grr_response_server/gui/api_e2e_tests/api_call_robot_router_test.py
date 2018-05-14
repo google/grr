@@ -91,12 +91,11 @@ users:
     # Now run the flow we just started.
     client_id = rdf_client.ClientURN(flow_obj.client_id)
     flow_urn = client_id.Add("flows").Add(flow_obj.flow_id)
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         flow_urn,
         client_id=client_id,
         client_mock=action_mocks.FileFinderClientMock(),
-        token=self.token):
-      pass
+        token=self.token)
 
     # Refresh flow.
     flow_obj = client_ref.Flow(flow_obj.flow_id).Get()

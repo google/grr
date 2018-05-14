@@ -4,9 +4,9 @@
 import operator
 
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import events as rdf_events
 from grr.server.grr_response_server import aff4
 
-from grr.server.grr_response_server import events
 from grr.server.grr_response_server.aff4_objects import users as aff4_users
 from grr.server.grr_response_server.flows.general import audit
 from grr.server.grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
@@ -26,9 +26,9 @@ class ClientApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
 
   USED_FIELDS = ["action", "client", "description", "timestamp", "user"]
   TYPES = [
-      events.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
-      events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
-      events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST
+      rdf_events.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
+      rdf_events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
+      rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST
   ]
 
   def GetReportData(self, get_report_args, token):
@@ -72,8 +72,8 @@ class CronApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
 
   USED_FIELDS = ["action", "description", "timestamp", "urn", "user"]
   TYPES = [
-      events.AuditEvent.Action.CRON_APPROVAL_GRANT,
-      events.AuditEvent.Action.CRON_APPROVAL_REQUEST
+      rdf_events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+      rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST
   ]
 
   def GetReportData(self, get_report_args, token):
@@ -119,11 +119,11 @@ class HuntActionsReportPlugin(report_plugin_base.ReportPluginBase):
       "action", "description", "flow_name", "timestamp", "urn", "user"
   ]
   TYPES = [
-      events.AuditEvent.Action.HUNT_CREATED,
-      events.AuditEvent.Action.HUNT_MODIFIED,
-      events.AuditEvent.Action.HUNT_PAUSED,
-      events.AuditEvent.Action.HUNT_STARTED,
-      events.AuditEvent.Action.HUNT_STOPPED
+      rdf_events.AuditEvent.Action.HUNT_CREATED,
+      rdf_events.AuditEvent.Action.HUNT_MODIFIED,
+      rdf_events.AuditEvent.Action.HUNT_PAUSED,
+      rdf_events.AuditEvent.Action.HUNT_STARTED,
+      rdf_events.AuditEvent.Action.HUNT_STOPPED
   ]
 
   def GetReportData(self, get_report_args, token):
@@ -167,8 +167,8 @@ class HuntApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
 
   USED_FIELDS = ["action", "description", "timestamp", "urn", "user"]
   TYPES = [
-      events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
-      events.AuditEvent.Action.HUNT_APPROVAL_REQUEST
+      rdf_events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+      rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST
   ]
 
   def GetReportData(self, get_report_args, token):
@@ -270,7 +270,7 @@ class SystemFlowsReportPlugin(report_plugin_base.ReportPluginBase):
       try:
         for event in report_utils.GetAuditLogEntries(timerange_offset,
                                                      timerange_end, token):
-          if (event.action == events.AuditEvent.Action.RUN_FLOW and
+          if (event.action == rdf_events.AuditEvent.Action.RUN_FLOW and
               self.UserFilter(event.user)):
             counts.setdefault(event.flow_name, {"total": 0, event.user: 0})
             counts[event.flow_name]["total"] += 1
@@ -382,7 +382,7 @@ class UserFlowsReportPlugin(report_plugin_base.ReportPluginBase):
       try:
         for event in report_utils.GetAuditLogEntries(timerange_offset,
                                                      timerange_end, token):
-          if (event.action == events.AuditEvent.Action.RUN_FLOW and
+          if (event.action == rdf_events.AuditEvent.Action.RUN_FLOW and
               self.UserFilter(event.user)):
             counts.setdefault(event.flow_name, {"total": 0, event.user: 0})
             counts[event.flow_name]["total"] += 1

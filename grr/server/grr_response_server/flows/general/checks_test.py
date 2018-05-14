@@ -54,15 +54,13 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
     client.Flush()
 
   def RunFlow(self):
-    session_id = None
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
       with vfs_test_lib.FakeTestDataVFSOverrider():
-        for session_id in flow_test_lib.TestFlowHelper(
+        session_id = flow_test_lib.TestFlowHelper(
             flow_checks.CheckRunner.__name__,
             client_mock=self.client_mock,
             client_id=self.client_id,
-            token=self.token):
-          pass
+            token=self.token)
     session = aff4.FACTORY.Open(session_id, token=self.token)
     results = {
         r.check_id: r

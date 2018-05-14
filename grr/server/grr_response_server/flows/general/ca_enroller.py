@@ -83,7 +83,6 @@ class CAEnroler(flow.GRRFlow):
       if data_store.RelationalDBWriteEnabled():
         index = client_index.ClientIndex()
         index.AddClient(data_migration.ConvertVFSGRRClient(client))
-
     # Publish the client enrollment message.
     self.Publish("ClientEnrollment", self.client_id)
 

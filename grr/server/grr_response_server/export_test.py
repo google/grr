@@ -33,7 +33,6 @@ from grr.test_lib import export_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
-from grr.test_lib import worker_test_lib
 
 
 class DummyRDFValue(rdfvalue.RDFString):
@@ -238,13 +237,12 @@ class ExportTest(ExportTestBase):
         path="/Ext2IFS_1_10b.exe", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     client_mock = action_mocks.GetFileClientMock()
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
-        pathspec=pathspec):
-      pass
+        pathspec=pathspec)
 
     urn = pathspec.AFF4Path(self.client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
@@ -284,21 +282,15 @@ class ExportTest(ExportTestBase):
     urn = pathspec.AFF4Path(self.client_id)
 
     client_mock = action_mocks.GetFileClientMock()
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
-        pathspec=pathspec):
-      pass
+        pathspec=pathspec)
 
-    auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
     events.Events.PublishEvent(
-        "FileStore.AddFileToStore",
-        rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
-        token=self.token)
-    worker = worker_test_lib.MockWorker(token=self.token)
-    worker.Simulate()
+        "FileStore.AddFileToStore", urn, token=self.token)
 
     fd = aff4.FACTORY.Open(urn, token=self.token)
     hash_value = fd.Get(fd.Schema.HASH)
@@ -349,10 +341,10 @@ class ExportTest(ExportTestBase):
     results = list(converter.Convert(self.metadata, stat, token=self.token))
 
     self.assertEqual(len(results), 1)
-    self.assertEqual(results[0].urn,
-                     self.client_id.Add(
-                         "registry/HKEY_USERS/S-1-5-20/Software/"
-                         "Microsoft/Windows/CurrentVersion/Run/Sidebar"))
+    self.assertEqual(
+        results[0].urn,
+        self.client_id.Add("registry/HKEY_USERS/S-1-5-20/Software/"
+                           "Microsoft/Windows/CurrentVersion/Run/Sidebar"))
     self.assertEqual(results[0].last_modified,
                      rdfvalue.RDFDatetimeSeconds(1247546054))
     self.assertEqual(results[0].type,
@@ -389,11 +381,11 @@ class ExportTest(ExportTestBase):
     results = list(converter.Convert(self.metadata, stat, token=self.token))
 
     self.assertEqual(len(results), 1)
-    self.assertEqual(results[0].urn,
-                     rdfvalue.RDFURN(
-                         self.client_id.Add(
-                             "registry/HKEY_USERS/S-1-5-20/Software/"
-                             "Microsoft/Windows/CurrentVersion/Run/Sidebar")))
+    self.assertEqual(
+        results[0].urn,
+        rdfvalue.RDFURN(
+            self.client_id.Add("registry/HKEY_USERS/S-1-5-20/Software/"
+                               "Microsoft/Windows/CurrentVersion/Run/Sidebar")))
     self.assertEqual(results[0].last_modified,
                      rdfvalue.RDFDatetimeSeconds(1247546054))
     self.assertEqual(results[0].data, "")
@@ -606,8 +598,8 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[2].anomaly.type, checkresults[1].anomaly[1].type)
     self.assertEqual(results[2].anomaly.symptom,
                      checkresults[1].anomaly[1].symptom)
-    self.assertEqual(results[2].anomaly.anomaly_reference_id, "\n".join(
-        checkresults[1].anomaly[1].anomaly_reference_id))
+    self.assertEqual(results[2].anomaly.anomaly_reference_id,
+                     "\n".join(checkresults[1].anomaly[1].anomaly_reference_id))
     self.assertEqual(results[2].anomaly.finding,
                      checkresults[1].anomaly[1].finding[0])
 
@@ -826,9 +818,10 @@ class ExportTest(ExportTestBase):
 
     for export_result in exported_files:
       if export_result.basename == "path":
-        self.assertEqual(export_result.hash_sha256,
-                         "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4"
-                         "f06017acdb5")
+        self.assertEqual(
+            export_result.hash_sha256,
+            "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4"
+            "f06017acdb5")
         self.assertEqual(export_result.hash_sha1,
                          "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
         self.assertEqual(export_result.hash_md5,
@@ -839,9 +832,10 @@ class ExportTest(ExportTestBase):
                          "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
       elif export_result.basename == "path2":
         self.assertEqual(export_result.basename, "path2")
-        self.assertEqual(export_result.hash_sha256,
-                         "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4"
-                         "f06017acdb5")
+        self.assertEqual(
+            export_result.hash_sha256,
+            "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4"
+            "f06017acdb5")
         self.assertEqual(export_result.hash_sha1,
                          "6dd6bee591dfcb6d75eb705405302c3eab65e21a")
         self.assertEqual(export_result.hash_md5,
@@ -888,8 +882,8 @@ class ExportTest(ExportTestBase):
     fixture_test_lib.ClientFixture(msg.source, token=self.token)
 
     metadata = export.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN(
-            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"))
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
+                                   ":000000/Results"))
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(2):
@@ -916,11 +910,11 @@ class ExportTest(ExportTestBase):
     msg2.source = rdf_client.ClientURN("C.0000000000000001")
 
     metadata1 = export.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN(
-            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"))
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
+                                   ":000000/Results"))
     metadata2 = export.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN(
-            "aff4:/hunts/" + str(queues.HUNTS) + ":000001/Results"))
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
+                                   ":000001/Results"))
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):
@@ -949,11 +943,11 @@ class ExportTest(ExportTestBase):
     msg2.source = rdf_client.ClientURN("C.0000000000000000")
 
     metadata1 = export.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN(
-            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"))
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
+                                   ":000000/Results"))
     metadata2 = export.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN(
-            "aff4:/hunts/" + str(queues.HUNTS) + ":000001/Results"))
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
+                                   ":000001/Results"))
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):

@@ -73,13 +73,6 @@ class ListVolumeShadowCopies(flow.GRRFlow):
             stat_entry, self.client_id, pool, token=self.token)
         self.SendReply(stat_entry)
 
-  def NotifyAboutEnd(self):
-    if self.state.shadows:
-      self.Notify("ViewObject", self.state.raw_device,
-                  "Completed listing Volume Shadow Copies.")
-    else:
-      super(ListVolumeShadowCopies, self).NotifyAboutEnd()
-
   @flow.StateHandler()
   def End(self):
     if not self.state.shadows:

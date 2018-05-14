@@ -335,37 +335,38 @@ class TSKFile(vfs.VFSHandler):
       return data
     return ""
 
-  def Stat(self):
+  def Stat(self, path=None, ext_attrs=None):
     """Return a stat of the file."""
+    del path, ext_attrs  # Unused.
     return self.MakeStatResponse(self.fd, tsk_attribute=self.tsk_attribute)
 
-  def ListFiles(self):
+  def ListFiles(self, ext_attrs=None):
     """List all the files in the directory."""
-    if self.IsDirectory():
-      dir_fd = self.fd.as_directory()
-      for f in dir_fd:
-        try:
-          name = f.info.name.name
-          # Drop these useless entries.
-          if name in [".", ".."] or name in self.BLACKLIST_FILES:
-            continue
+    del ext_attrs  # Unused.
 
-          # First we yield a standard response using the default attributes.
-          yield self.MakeStatResponse(f, tsk_attribute=None, append_name=name)
-
-          # Now send back additional named attributes for the ADS.
-          for attribute in f:
-            if attribute.info.type in [
-                pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA,
-                pytsk3.TSK_FS_ATTR_TYPE_DEFAULT
-            ]:
-              if attribute.info.name:
-                yield self.MakeStatResponse(
-                    f, append_name=name, tsk_attribute=attribute)
-        except AttributeError:
-          pass
-    else:
+    if not self.IsDirectory():
       raise IOError("%s is not a directory" % self.pathspec.CollapsePath())
+
+    for f in self.fd.as_directory():
+      try:
+        name = f.info.name.name
+        # Drop these useless entries.
+        if name in [".", ".."] or name in self.BLACKLIST_FILES:
+          continue
+
+        # First we yield a standard response using the default attributes.
+        yield self.MakeStatResponse(f, tsk_attribute=None, append_name=name)
+
+        # Now send back additional named attributes for the ADS.
+        for attribute in f:
+          if attribute.info.type in [
+              pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA, pytsk3.TSK_FS_ATTR_TYPE_DEFAULT
+          ]:
+            if attribute.info.name:
+              yield self.MakeStatResponse(
+                  f, append_name=name, tsk_attribute=attribute)
+      except AttributeError:
+        pass
 
   def IsDirectory(self):
     last = self.pathspec.last

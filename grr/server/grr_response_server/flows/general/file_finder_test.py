@@ -177,7 +177,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   def RunFlow(self, paths=None, conditions=None, action=None):
     send_reply = test_lib.Instrument(flow.GRRFlow, "SendReply")
     with send_reply:
-      for s in flow_test_lib.TestFlowHelper(
+      self.last_session_id = flow_test_lib.TestFlowHelper(
           file_finder.FileFinder.__name__,
           self.client_mock,
           client_id=self.client_id,
@@ -185,8 +185,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
           pathtype=rdf_paths.PathSpec.PathType.OS,
           action=action,
           conditions=conditions,
-          token=self.token):
-        self.last_session_id = s
+          token=self.token)
 
     return send_reply.args
 
@@ -369,15 +368,14 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     paths = [os.path.join(os.path.dirname(self.fixture_path), "hello.exe")]
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         file_finder.FileFinder.__name__,
         self.client_mock,
         client_id=self.client_id,
         paths=paths,
         pathtype=rdf_paths.PathSpec.PathType.OS,
         conditions=[literal_condition],
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     # Check that the results' matches fields are correctly filled. Expecting a
     # match from hello.exe
@@ -693,22 +691,19 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     # No need to setup VFS handlers as we're not actually looking at the files,
     # as there's no condition/action specified.
 
-    # Because this creates a very weird flow with basically nothing to do except
-    # run Start() it only works if the audit subsystem is active, which creates
-    # something for the test worker to do, so it processes normally.
     paths = [
         os.path.join(self.fixture_path, "*.log"),
         os.path.join(self.fixture_path, "auth.log")
     ]
 
-    for s in flow_test_lib.TestFlowHelper(
-        file_finder.FileFinder.__name__,
-        self.client_mock,
+    # This flow doesn't do anything outside of Start() so we don't
+    # simulate flow processing.
+    session_id = flow.GRRFlow.StartFlow(
+        flow_name=file_finder.FileFinder.__name__,
         client_id=self.client_id,
         paths=paths,
         pathtype=rdf_paths.PathSpec.PathType.MEMORY,
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     # Both auth.log and *.log should be present, because we don't apply
     # any conditions and by default FileFinder treats given paths as paths
@@ -735,7 +730,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         # Check this condition with all the actions. This makes sense, as we may
         # download memeory or send it to the socket.
         for action in self.CONDITION_TESTS_ACTIONS:
-          for s in flow_test_lib.TestFlowHelper(
+          session_id = flow_test_lib.TestFlowHelper(
               file_finder.FileFinder.__name__,
               self.client_mock,
               client_id=self.client_id,
@@ -743,8 +738,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
               pathtype=rdf_paths.PathSpec.PathType.MEMORY,
               conditions=[literal_condition],
               action=rdf_file_finder.FileFinderAction(action_type=action),
-              token=self.token):
-            session_id = s
+              token=self.token)
 
           self.CheckFilesInCollection(["auth.log"], session_id=session_id)
 
@@ -768,15 +762,14 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         }):
 
       action = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           file_finder.FileFinder.__name__,
           self.client_mock,
           client_id=self.client_id,
           paths=paths,
           pathtype=rdf_paths.PathSpec.PathType.TSK,
           action=rdf_file_finder.FileFinderAction(action_type=action),
-          token=self.token):
-        pass
+          token=self.token)
 
   def testRecursiveADSHandling(self):
     """This tests some more obscure NTFS features - ADSs on directories."""
@@ -842,7 +835,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.client_id = test_lib.TEST_CLIENT_ID
 
   def _RunCFF(self, paths, action):
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         file_finder.ClientFileFinder.__name__,
         action_mocks.ClientFileFinderClientMock(),
         client_id=self.client_id,
@@ -850,8 +843,8 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         action=rdf_file_finder.FileFinderAction(action_type=action),
         process_non_regular_files=True,
-        token=self.token):
-      session_id = s
+        token=self.token)
+
     collection = flow.GRRFlow.ResultCollectionForFID(session_id)
     results = list(collection)
     return results

@@ -169,7 +169,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
   def testGenFileData(self):
     """Test for the GenFileData() method."""
     # Need a parser
-    self.assertRaises(test_lib.Error, self.GenFileData, "EMPTY", [])
+    self.assertRaises(ValueError, self.GenFileData, "EMPTY", [])
     # Trivial empty case.
     parser = parsers.FileParser()
     result = self.GenFileData("EMPTY", [], parser)

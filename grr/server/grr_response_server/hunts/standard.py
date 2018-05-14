@@ -9,6 +9,7 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -360,7 +361,7 @@ class GenericHunt(implementation.GRRHunt):
   def _CreateAuditEvent(self, event_action):
     flow_name = self.hunt_obj.args.flow_runner_args.flow_name
 
-    event = events.AuditEvent(
+    event = rdf_events.AuditEvent(
         user=self.hunt_obj.token.username,
         action=event_action,
         urn=self.hunt_obj.urn,

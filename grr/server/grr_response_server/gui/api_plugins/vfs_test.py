@@ -14,7 +14,6 @@ from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
 from grr.server.grr_response_server.flows.general import discovery
 from grr.server.grr_response_server.flows.general import filesystem
 from grr.server.grr_response_server.flows.general import transfer
@@ -23,6 +22,7 @@ from grr.server.grr_response_server.gui.api_plugins import vfs as vfs_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
@@ -421,7 +421,9 @@ class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
 
-class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiCreateVfsRefreshOperationHandlerTest(
+    notification_test_lib.NotificationTestMixin,
+    api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateVfsRefreshOperationHandler."""
 
   def setUp(self):
@@ -487,27 +489,19 @@ class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Finish flow and check if there are any new notifications.
     flow_urn = rdfvalue.RDFURN(result.operation_id)
     client_mock = action_mocks.ActionMock()
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         flow_urn,
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        check_flow_errors=False):
-      pass
+        check_flow_errors=False)
 
-    # Get pending notifications and check the newest one.
-    user_record = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="r",
-        token=self.token)
-
-    pending_notifications = user_record.Get(
-        user_record.Schema.PENDING_NOTIFICATIONS)
+    pending_notifications = self.GetUserNotifications(self.token.username)
 
     self.assertIn("Recursive Directory Listing complete",
                   pending_notifications[0].message)
-    self.assertEqual(pending_notifications[0].source, str(flow_urn))
+    self.assertEqual(pending_notifications[0].subject,
+                     self.client_id.Add(self.file_path))
 
 
 class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,

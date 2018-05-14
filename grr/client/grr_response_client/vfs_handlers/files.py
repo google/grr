@@ -255,12 +255,13 @@ class File(vfs.VFSHandler):
 
       return data[pre_padding:]
 
-  def Stat(self, path=None):
+  def Stat(self, path=None, ext_attrs=False):
     """Returns stat information of a specific path.
 
     Args:
       path: a Unicode string containing the path or None.
             If path is None the value in self.path is used.
+      ext_attrs: Whether the call should also collect extended attributes.
 
     Returns:
       a StatResponse proto
@@ -270,7 +271,8 @@ class File(vfs.VFSHandler):
     """
     # Note that the encoding of local path is system specific
     local_path = client_utils.CanonicalPathToLocalPath(path or self.path)
-    result = client_utils.StatEntryFromPath(local_path, self.pathspec)
+    result = client_utils.StatEntryFromPath(
+        local_path, self.pathspec, ext_attrs=ext_attrs)
 
     # Is this a symlink? If so we need to note the real location of the file.
     try:
@@ -280,22 +282,22 @@ class File(vfs.VFSHandler):
 
     return result
 
-  def ListFiles(self):
+  def ListFiles(self, ext_attrs=False):
     """List all files in the dir."""
     if not self.IsDirectory():
       raise IOError("%s is not a directory." % self.path)
 
-    else:
-      for path in self.files:
-        try:
-          response = self.Stat(utils.JoinPath(self.path, path))
-          pathspec = self.pathspec.Copy()
-          pathspec.last.path = utils.JoinPath(pathspec.last.path, path)
-          response.pathspec = pathspec
+    for path in self.files:
+      try:
+        response = self.Stat(
+            path=utils.JoinPath(self.path, path), ext_attrs=ext_attrs)
+        pathspec = self.pathspec.Copy()
+        pathspec.last.path = utils.JoinPath(pathspec.last.path, path)
+        response.pathspec = pathspec
 
-          yield response
-        except OSError:
-          pass
+        yield response
+      except OSError:
+        pass
 
   def IsDirectory(self):
     return self.size is None

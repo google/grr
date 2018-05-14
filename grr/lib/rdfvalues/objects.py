@@ -194,6 +194,44 @@ class ApprovalRequest(structs.RDFProtoStruct):
     return self.expiration_time < rdfvalue.RDFDatetime.Now()
 
 
+class PathID(object):
+  """An unique path identifier corresponding to some path.
+
+  Args:
+    components: A list of path components to construct the identifier from.
+  """
+
+  def __init__(self, components):
+    # TODO(hanuszczak): `SmartStr` is terrible, lets not do that.
+    components = map(utils.SmartStr, components)
+
+    if components:
+      # We need a string to hash, based on components. If we simply concatenated
+      # them, or used a separator that could appear in some component, odd data
+      # could force a hash collision. So we explicitly include the lengths of
+      # the components.
+      string = "{lengths}:{path}".format(
+          lengths=",".join(str(len(component)) for component in components),
+          path="/".join(components))
+      self._bytes = hashlib.sha256(string).digest()
+    else:
+      # For an empty list of components (representing `/`, i.e. the root path),
+      # we use special value: zero represented as a 256-bit number.
+      self._bytes = b"\0" * 32
+
+  def AsBytes(self):
+    return self._bytes
+
+  def __eq__(self, other):
+    return self.AsBytes() == other.AsBytes()
+
+  def __hash__(self):
+    return hash(self.AsBytes())
+
+  def __repr__(self):
+    return "PathID({})".format(repr(self.AsBytes().encode("hex")))
+
+
 class PathInfo(structs.RDFProtoStruct):
   """Basic metadata about a path which has been observed on a client."""
   protobuf = objects_pb2.PathInfo
@@ -201,40 +239,61 @@ class PathInfo(structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  @classmethod
-  def MakePathID(cls, path_components):
-    """Returns the path_id for some path.
-
-    Args:
-      path_components: A list of path components, e.g. ["usr", "sbin", "grr"]
-    Returns:
-      The path_id for the given path components.
-    """
-    # We need a string to hash, based on components. If we simply concatenated
-    # them, or used a separator that could appear in some component, odd data
-    # could force a hash collision. So we explicitly include the lengths of the
-    # components.
-    components = map(utils.SmartStr, path_components)
-    return hashlib.sha256(",".join([str(len(c)) for c in components]) + ":" +
-                          "/".join(components)).digest()
+  def __init__(self, *args, **kwargs):
+    super(PathInfo, self).__init__(*args, **kwargs)
+    if self.root and not self.directory:
+      raise AssertionError("`PathInfo` is both root and not a directory")
 
   @classmethod
-  def MakeAncestorPathIDs(cls, path_components):
-    """Returns the path_ids of a path and all of its ancestors.
+  def OS(cls, *args, **kwargs):
+    return cls(*args, path_type=cls.PathType.OS, **kwargs)
 
-    Args:
-      path_components: A list of path components.
+  @classmethod
+  def TSK(cls, *args, **kwargs):
+    return cls(*args, path_type=cls.PathType.TSK, **kwargs)
 
-    Returns:
-      A list of (path_ids, components) one for every ancestor of the given
-      path.
-    """
-    return [(cls.MakePathID(path_components[:idx + 1]),
-             path_components[:idx + 1]) for idx in range(len(path_components))]
+  @classmethod
+  def Registry(cls, *args, **kwargs):
+    return cls(*args, path_type=cls.PathType.REGISTRY, **kwargs)
 
   @property
-  def path_id(self):
-    return self.MakePathID(self.components)
+  def root(self):
+    return not self.components
+
+  def GetPathID(self):
+    return PathID(self.components)
+
+  def GetParent(self):
+    """Constructs a path info corresponding to the parent of current path.
+
+    The root path (represented by an empty list of components, corresponds to
+    `/` on Unix-like systems) does not have a parent.
+
+    Returns:
+      Instance of `rdf_objects.PathInfo` or `None` if parent does not exist.
+    """
+    if self.root:
+      return None
+
+    return PathInfo(
+        components=self.components[:-1],
+        path_type=self.path_type,
+        directory=True)
+
+  def GetAncestors(self):
+    """Yields all ancestors of a path.
+
+    The ancestors are returned in order from closest to the farthest one.
+
+    Yields:
+      Instances of `rdf_objects.PathInfo`.
+    """
+    current = self
+    while True:
+      current = current.GetParent()
+      if current is None:
+        return
+      yield current
 
   def UpdateFrom(self, src):
     """Merge path info records.
@@ -246,21 +305,18 @@ class PathInfo(structs.RDFProtoStruct):
       ValueError: If src does not represent the same path.
     """
     if not isinstance(src, PathInfo):
-      raise ValueError("src is not a PathInfo")
+      raise TypeError("expected `%s` but got `%s`" % (PathInfo, type(src)))
     if self.path_type != src.path_type:
       raise ValueError(
-          "src [%s] does not represent the same path type as self [%s]" % (str(
-              src.path_type), str(self.path_type)))
+          "src [%s] does not represent the same path type as self [%s]" %
+          (src.path_type, self.path_type))
     if self.components != src.components:
       raise ValueError("src [%s] does not represent the same path as self [%s]"
-                       % (str(src.components), str(self.components)))
+                       % (src.components, self.components))
 
-    if src.last_path_history_timestamp and (
-        not self.last_path_history_timestamp or
-        src.last_path_history_timestamp > self.last_path_history_timestamp):
-      self.last_path_history_timestamp = src.last_path_history_timestamp
-    if src.directory:
-      self.directory = True
+    self.last_path_history_timestamp = max(self.last_path_history_timestamp,
+                                           src.last_path_history_timestamp)
+    self.directory |= src.directory
 
 
 class ClientReference(structs.RDFProtoStruct):

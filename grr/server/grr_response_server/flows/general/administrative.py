@@ -43,8 +43,8 @@ class AdministrativeInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_client_crashes")
 
 
-class ClientCrashEventListener(flow.EventListener):
-  """EventListener with additional helper methods to save crash details."""
+class CrashHandlingMixin(object):
+  """A mixin containing methods to store client crash information."""
 
   def _AppendCrashDetails(self, path, crash_details):
     with data_store.DB.GetMutationPool() as pool:
@@ -60,12 +60,13 @@ class ClientCrashEventListener(flow.EventListener):
                            client_id,
                            crash_details,
                            flow_session_id=None,
-                           hunt_session_id=None):
-    # Update last crash attribute of the client.
+                           hunt_session_id=None,
+                           token=None):
+    """Updates the last crash attribute of the client."""
 
     # AFF4.
     with aff4.FACTORY.Create(
-        client_id, aff4_grr.VFSGRRClient, token=self.token) as client_obj:
+        client_id, aff4_grr.VFSGRRClient, token=token) as client_obj:
       client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
 
     # Relational db.
@@ -87,7 +88,7 @@ class ClientCrashEventListener(flow.EventListener):
           flow.GRRFlow,
           mode="rw",
           age=aff4.NEWEST_TIME,
-          token=self.token) as aff4_flow:
+          token=token) as aff4_flow:
         aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
 
       hunt_session_id = self._ExtractHuntId(flow_session_id)
@@ -96,8 +97,120 @@ class ClientCrashEventListener(flow.EventListener):
             hunt_session_id,
             aff4_type=implementation.GRRHunt,
             mode="rw",
-            token=self.token)
+            token=token)
         hunt_obj.RegisterCrash(crash_details)
+
+
+class ClientCrashHandler(CrashHandlingMixin, events.EventListener):
+  """A listener for client crashes."""
+
+  EVENTS = ["ClientCrash"]
+
+  mail_template = jinja2.Template(
+      """
+<html><body><h1>GRR client crash report.</h1>
+
+Client {{ client_id }} ({{ hostname }}) just crashed while executing an action.
+Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
+
+<p>Thanks,</p>
+<p>{{ signature }}</p>
+<p>
+P.S. The state of the failing flow was:
+<pre>{{ context }}</pre>
+<pre>{{ state }}</pre>
+<pre>{{ args }}</pre>
+<pre>{{ runner_args }}</pre>
+
+{{ nanny_msg }}
+
+</body></html>""",
+      autoescape=True)
+
+  def ProcessMessages(self, msgs=None, token=None):
+    """Processes this event."""
+    nanny_msg = ""
+
+    for crash_details in msgs:
+      client_id = crash_details.client_id
+
+      # The session id of the flow that crashed.
+      session_id = crash_details.session_id
+
+      flow_obj = aff4.FACTORY.Open(session_id, token=token)
+
+      # Log.
+      logging.info("Client crash reported, client %s.", client_id)
+
+      # Export.
+      stats.STATS.IncrementCounter("grr_client_crashes")
+
+      # Write crash data to AFF4.
+      if data_store.RelationalDBReadEnabled():
+        client = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
+        client_info = client.startup_info.client_info
+      else:
+        client = aff4.FACTORY.Open(client_id, token=token)
+        client_info = client.Get(client.Schema.CLIENT_INFO)
+
+      crash_details.client_info = client_info
+      crash_details.crash_type = "Client Crash"
+
+      self.WriteAllCrashDetails(
+          client_id, crash_details, flow_session_id=session_id, token=token)
+
+      # Also send email.
+      to_send = []
+
+      try:
+        hunt_session_id = self._ExtractHuntId(session_id)
+        if hunt_session_id and hunt_session_id != session_id:
+          hunt_obj = aff4.FACTORY.Open(
+              hunt_session_id, aff4_type=implementation.GRRHunt, token=token)
+          email = hunt_obj.runner_args.crash_alert_email
+          if email:
+            to_send.append(email)
+      except aff4.InstantiationError:
+        logging.error("Failed to open hunt %s.", hunt_session_id)
+
+      email = config.CONFIG["Monitoring.alert_email"]
+      if email:
+        to_send.append(email)
+
+      for email_address in to_send:
+        if crash_details.nanny_status:
+          nanny_msg = "Nanny status: %s" % crash_details.nanny_status
+
+        client = aff4.FACTORY.Open(client_id, token=token)
+        hostname = client.Get(client.Schema.HOSTNAME)
+        url = "/clients/%s" % client_id.Basename()
+
+        body = self.__class__.mail_template.render(
+            client_id=client_id,
+            admin_ui=config.CONFIG["AdminUI.url"],
+            hostname=utils.SmartUnicode(hostname),
+            context=utils.SmartUnicode(flow_obj.context),
+            state=utils.SmartUnicode(flow_obj.state),
+            args=utils.SmartUnicode(flow_obj.args),
+            runner_args=utils.SmartUnicode(flow_obj.runner_args),
+            urn=url,
+            nanny_msg=utils.SmartUnicode(nanny_msg),
+            signature=config.CONFIG["Email.signature"])
+        email_alerts.EMAIL_ALERTER.SendEmail(
+            email_address,
+            "GRR server",
+            "Client %s reported a crash." % client_id,
+            utils.SmartStr(body),
+            is_html=True)
+
+      if nanny_msg:
+        msg = "Client crashed, " + nanny_msg
+      else:
+        msg = "Client crashed."
+
+      # Now terminate the flow.
+      flow.GRRFlow.TerminateFlow(
+          session_id, reason=msg, token=token, force=True)
 
 
 class GetClientStatsProcessResponseMixin(object):
@@ -562,9 +675,8 @@ class UpdateClient(flow.GRRFlow):
     self.Log("Client update completed, new version: %s" % info.client_version)
 
 
-class NannyMessageHandler(ClientCrashEventListener):
+class NannyMessageHandler(CrashHandlingMixin, flow.WellKnownFlow):
   """A listener for nanny messages."""
-  EVENTS = ["NannyMessage"]
 
   well_known_session_id = rdfvalue.SessionID(flow_name="NannyMessage")
 
@@ -587,10 +699,8 @@ Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
 
   logline = "Nanny for client %s sent: %s"
 
-  @events.EventHandler(allow_client_access=True)
-  def ProcessMessage(self, message=None, event=None):
+  def ProcessMessage(self, message=None):
     """Processes this event."""
-    _ = event
 
     client_id = message.source
 
@@ -611,9 +721,9 @@ Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
         client_info=client_info,
         crash_message=message,
         timestamp=long(time.time() * 1e6),
-        crash_type=self.well_known_session_id)
+        crash_type="Nanny Message")
 
-    self.WriteAllCrashDetails(client_id, crash_details)
+    self.WriteAllCrashDetails(client_id, crash_details, token=self.token)
 
     # Also send email.
     if config.CONFIG["Monitoring.alert_email"]:
@@ -638,7 +748,6 @@ Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
 
 class ClientAlertHandler(NannyMessageHandler):
   """A listener for client messages."""
-  EVENTS = ["ClientAlert"]
 
   well_known_session_id = rdfvalue.SessionID(flow_name="ClientAlert")
 
@@ -662,139 +771,13 @@ Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
   logline = "Client message from %s: %s"
 
 
-class ClientCrashHandler(ClientCrashEventListener):
-  """A listener for client crashes."""
-  EVENTS = ["ClientCrash"]
-
-  well_known_session_id = rdfvalue.SessionID(flow_name="CrashHandler")
-
-  mail_template = jinja2.Template(
-      """
-<html><body><h1>GRR client crash report.</h1>
-
-Client {{ client_id }} ({{ hostname }}) just crashed while executing an action.
-Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
-
-<p>Thanks,</p>
-<p>{{ signature }}</p>
-<p>
-P.S. The state of the failing flow was:
-<pre>{{ context }}</pre>
-<pre>{{ state }}</pre>
-<pre>{{ args }}</pre>
-<pre>{{ runner_args }}</pre>
-
-{{ nanny_msg }}
-
-</body></html>""",
-      autoescape=True)
-
-  @events.EventHandler(allow_client_access=True)
-  def ProcessMessage(self, message=None, event=None):
-    """Processes this event."""
-    _ = event
-    nanny_msg = ""
-
-    crash_details = message.payload
-    client_id = crash_details.client_id
-
-    # The session id of the flow that crashed.
-    session_id = crash_details.session_id
-
-    flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
-
-    # Log.
-    logging.info("Client crash reported, client %s.", client_id)
-
-    # Only kill the flow if it does not handle its own crashes. Some flows
-    # restart the client and therefore expect to get a crash notification.
-    if flow_obj.handles_crashes:
-      return
-
-    # Export.
-    stats.STATS.IncrementCounter("grr_client_crashes")
-
-    # Write crash data to AFF4.
-    if data_store.RelationalDBReadEnabled():
-      client = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
-      client_info = client.startup_info.client_info
-    else:
-      client = aff4.FACTORY.Open(client_id, token=self.token)
-      client_info = client.Get(client.Schema.CLIENT_INFO)
-
-    crash_details.client_info = client_info
-    crash_details.crash_type = self.well_known_session_id
-
-    self.WriteAllCrashDetails(
-        client_id, crash_details, flow_session_id=session_id)
-
-    # Also send email.
-    to_send = []
-
-    try:
-      hunt_session_id = self._ExtractHuntId(session_id)
-      if hunt_session_id and hunt_session_id != session_id:
-        hunt_obj = aff4.FACTORY.Open(
-            hunt_session_id, aff4_type=implementation.GRRHunt, token=self.token)
-        email = hunt_obj.runner_args.crash_alert_email
-        if email:
-          to_send.append(email)
-    except aff4.InstantiationError:
-      logging.error("Failed to open hunt %s.", hunt_session_id)
-
-    email = config.CONFIG["Monitoring.alert_email"]
-    if email:
-      to_send.append(email)
-
-    for email_address in to_send:
-      if crash_details.nanny_status:
-        nanny_msg = "Nanny status: %s" % crash_details.nanny_status
-
-      client = aff4.FACTORY.Open(client_id, token=self.token)
-      hostname = client.Get(client.Schema.HOSTNAME)
-      url = "/clients/%s" % client_id.Basename()
-
-      body = self.__class__.mail_template.render(
-          client_id=client_id,
-          admin_ui=config.CONFIG["AdminUI.url"],
-          hostname=utils.SmartUnicode(hostname),
-          context=utils.SmartUnicode(flow_obj.context),
-          state=utils.SmartUnicode(flow_obj.state),
-          args=utils.SmartUnicode(flow_obj.args),
-          runner_args=utils.SmartUnicode(flow_obj.runner_args),
-          urn=url,
-          nanny_msg=utils.SmartUnicode(nanny_msg),
-          signature=config.CONFIG["Email.signature"]),
-      email_alerts.EMAIL_ALERTER.SendEmail(
-          email_address,
-          "GRR server",
-          "Client %s reported a crash." % client_id,
-          utils.SmartStr(body),
-          is_html=True)
-
-    if nanny_msg:
-      msg = "Client crashed, " + nanny_msg
-    else:
-      msg = "Client crashed."
-
-    # Now terminate the flow.
-    flow.GRRFlow.TerminateFlow(
-        session_id, reason=msg, token=self.token, force=True)
-
-
-class ClientStartupHandler(flow.EventListener):
+class ClientStartupHandler(flow.WellKnownFlow):
+  """Handles client startup events."""
 
   well_known_session_id = rdfvalue.SessionID(flow_name="Startup")
 
-  @events.EventHandler(allow_client_access=True, auth_required=False)
-  def ProcessMessage(self, message=None, event=None):
+  def ProcessMessage(self, message=None):
     """Handle a startup event."""
-    _ = event
-    # We accept unauthenticated messages so there are no errors but we don't
-    # store the results.
-    if (message.auth_state !=
-        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
-      return
 
     client_id = message.source
     new_si = message.payload
@@ -837,8 +820,6 @@ class ClientStartupHandler(flow.EventListener):
           data_store.REL_DB.WriteClientStartupInfo(client_id.Basename(), new_si)
         except db.UnknownClientError:
           pass
-
-    events.Events.PublishEventInline("ClientStartup", message, token=self.token)
 
 
 class KeepAliveArgs(rdf_structs.RDFProtoStruct):

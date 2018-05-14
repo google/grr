@@ -60,14 +60,13 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
     client_id = client_id or test_lib.TEST_CLIENT_ID
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         registry.RegistryFinder.__name__,
         client_mock,
         client_id=client_id,
         keys_paths=keys_paths,
         conditions=conditions,
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     return session_id
 
@@ -174,12 +173,14 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     self.assertEqual(results[0].matches[0].data,
                      "ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
 
-    self.assertEqual(results[0].stat_entry.AFF4Path(client_id),
-                     "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
-                     "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
-    self.assertEqual(results[0].stat_entry.pathspec.path,
-                     "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
-                     "CurrentVersion/Run/Sidebar")
+    self.assertEqual(
+        results[0].stat_entry.AFF4Path(client_id),
+        "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
+        "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
+    self.assertEqual(
+        results[0].stat_entry.pathspec.path,
+        "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
+        "CurrentVersion/Run/Sidebar")
     self.assertEqual(results[0].stat_entry.pathspec.pathtype,
                      rdf_paths.PathSpec.PathType.REGISTRY)
 
@@ -216,12 +217,14 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     self.assertEqual(results[0].matches[0].data,
                      "ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
 
-    self.assertEqual(results[0].stat_entry.AFF4Path(client_id),
-                     "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
-                     "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
-    self.assertEqual(results[0].stat_entry.pathspec.path,
-                     "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
-                     "CurrentVersion/Run/Sidebar")
+    self.assertEqual(
+        results[0].stat_entry.AFF4Path(client_id),
+        "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
+        "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
+    self.assertEqual(
+        results[0].stat_entry.pathspec.path,
+        "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
+        "CurrentVersion/Run/Sidebar")
     self.assertEqual(results[0].stat_entry.pathspec.pathtype,
                      rdf_paths.PathSpec.PathType.REGISTRY)
 
@@ -287,9 +290,10 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     self.assertEqual(len(results), 1)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
-    self.assertEqual(results[0].stat_entry.AFF4Path(client_id),
-                     "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
-                     "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
+    self.assertEqual(
+        results[0].stat_entry.AFF4Path(client_id),
+        "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
+        "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
 
   def testSizeCondition(self):
     # There are two values, one is 20 bytes, the other 53.
@@ -327,16 +331,15 @@ class TestRegistryFlows(RegistryFlowTest):
       client_mock = action_mocks.ActionMock(
           file_fingerprint.FingerprintFile,
           searching.Find,
-          standard.StatFile,
+          standard.GetFileStat,
       )
 
       # Get KB initialized
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           artifact.KnowledgeBaseInitializationFlow.__name__,
           client_mock,
           client_id=client_id,
-          token=self.token):
-        session_id = s
+          token=self.token)
 
       col = flow.GRRFlow.ResultCollectionForFID(session_id)
       client.Set(client.Schema.KNOWLEDGE_BASE, list(col)[0])
@@ -345,12 +348,11 @@ class TestRegistryFlows(RegistryFlowTest):
       with test_lib.Instrument(transfer.MultiGetFile,
                                "Start") as getfile_instrument:
         # Run the flow in the emulated way.
-        for _ in flow_test_lib.TestFlowHelper(
+        flow_test_lib.TestFlowHelper(
             registry.CollectRunKeyBinaries.__name__,
             client_mock,
             client_id=client_id,
-            token=self.token):
-          pass
+            token=self.token)
 
         # Check MultiGetFile got called for our runkey file
         download_requested = False

@@ -47,6 +47,7 @@ import logging
 import operator
 
 
+from grr import config
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -54,7 +55,9 @@ from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
@@ -65,6 +68,7 @@ from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow_runner
 from grr.server.grr_response_server import grr_collections
 from grr.server.grr_response_server import multi_type_collection
+from grr.server.grr_response_server import notification as notification_lib
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server import sequential_collection
 from grr.server.grr_response_server import server_stubs
@@ -190,10 +194,9 @@ class Responses(object):
             elif args_rdf_name not in [
                 x.__name__ for x in expected_response_classes
             ]:
-              raise RuntimeError(
-                  "Response type was %s but expected %s for %s." %
-                  (args_rdf_name, expected_response_classes,
-                   client_action_name))
+              raise RuntimeError("Response type was %s but expected %s for %s."
+                                 % (args_rdf_name, expected_response_classes,
+                                    client_action_name))
 
         yield self.message.payload
 
@@ -452,8 +455,25 @@ class FlowBase(aff4.AFF4Volume):
 
   def NotifyAboutEnd(self):
     """Send out a final notification about the end of this flow."""
-    self.Notify("FlowStatus", self.urn,
-                "Flow %s completed" % self.__class__.__name__)
+    if not self.runner.ShouldSendNotifications():
+      return
+
+    flow_ref = None
+    if self.runner_args.client_id:
+      flow_ref = rdf_objects.FlowReference(
+          client_id=self.runner_args.client_id.Basename(),
+          flow_id=self.urn.Basename())
+
+    num_results = len(self.ResultCollection())
+    notification_lib.Notify(
+        self.token.username,
+        rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+        "Flow %s completed with %d %s" % (self.__class__.__name__, num_results,
+                                          num_results == 1 and "result" or
+                                          "results"),
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.FLOW,
+            flow=flow_ref))
 
   def Terminate(self, status=None):
     self.NotifyAboutEnd()
@@ -612,7 +632,7 @@ class FlowBase(aff4.AFF4Volume):
     if parent_flow is None:
       events.Events.PublishEvent(
           "Audit",
-          events.AuditEvent(
+          rdf_events.AuditEvent(
               user=token.username,
               action="RUN_FLOW",
               flow_name=runner_args.flow_name,
@@ -626,33 +646,16 @@ class FlowBase(aff4.AFF4Volume):
   def session_id(self):
     return self.context.session_id
 
-  def Publish(self,
-              event_name,
-              message=None,
-              session_id=None,
-              priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY):
+  def Publish(self, event_name, message):
     """Publish a message to an event queue.
 
     Args:
        event_name: The name of the event to publish to.
        message: An RDFValue instance to publish to the event listeners.
-       session_id: The session id to send from, defaults to self.session_id.
-       priority: Controls the priority of this message.
     """
-    result = message
     logging.debug("Publishing %s to %s",
                   utils.SmartUnicode(message)[:100], event_name)
-
-    # Wrap message in a GrrMessage so it can be queued.
-    if not isinstance(message, rdf_flows.GrrMessage):
-      result = rdf_flows.GrrMessage(payload=message)
-
-    result.session_id = session_id or self.session_id
-    result.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
-    result.source = self.session_id
-    result.priority = priority
-
-    self.runner.Publish(event_name, result)
+    events.Events.PublishEvent(event_name, message, token=self.token)
 
   def Log(self, format_str, *args):
     """Logs the message using the flow's standard logging.
@@ -772,9 +775,6 @@ class GRRFlow(FlowBase):
         versioned=False,
         creates_new_object_version=False)
 
-    NOTIFICATION = aff4.Attribute("aff4:notification", rdf_flows.Notification,
-                                  "Notifications for the flow.")
-
     CLIENT_CRASH = aff4.Attribute(
         "aff4:client_crash",
         rdf_client.ClientCrash,
@@ -801,13 +801,10 @@ class GRRFlow(FlowBase):
   # Behaviors set attributes of this flow. See FlowBehavior() above.
   behaviours = FlowBehaviour("ADVANCED")
 
-  # If True we let the flow handle its own client crashes. Otherwise the flow
-  # is killed when the client crashes.
-  handles_crashes = False
-
   def Initialize(self):
     """The initialization method."""
     super(GRRFlow, self).Initialize()
+    self._client_version = None
 
     if "r" in self.mode:
       state = self.Get(self.Schema.FLOW_STATE_DICT)
@@ -874,17 +871,6 @@ class GRRFlow(FlowBase):
     """Flows can call this method to set a status message visible to users."""
     self.GetRunner().Status(format_str, *args)
 
-  def Notify(self, message_type, subject, msg):
-    """Send a notification to the originating user.
-
-    Args:
-       message_type: The type of the message. This allows the UI to format
-         a link to the original object e.g. "ViewObject" or "HostInformation"
-       subject: The urn of the AFF4 object of interest in this link.
-       msg: A free form textual message.
-    """
-    self.GetRunner().Notify(message_type, subject, msg)
-
   def SendReply(self, response):
     return self.runner.SendReply(response)
 
@@ -899,6 +885,28 @@ class GRRFlow(FlowBase):
   @property
   def client_id(self):
     return self.runner_args.client_id
+
+  @property
+  def client_version(self):
+    if self._client_version is not None:
+      return self._client_version
+
+    if data_store.RelationalDBReadEnabled():
+      client_id = self.client_id.Basename()
+      sinfo = data_store.REL_DB.ReadClientStartupInfo(client_id=client_id)
+      if sinfo is not None:
+        self._client_version = sinfo.client_info.client_version
+      else:
+        self._client_version = config.CONFIG["Source.version_numeric"]
+    else:
+      with aff4.FACTORY.Open(self.client_id, token=self.token) as client:
+        cinfo = client.Get(client.Schema.CLIENT_INFO)
+        if cinfo is not None:
+          self._client_version = cinfo.client_version
+        else:
+          self._client_version = config.CONFIG["Source.version_numeric"]
+
+    return self._client_version
 
   def Name(self):
     return self.__class__.__name__
@@ -996,8 +1004,8 @@ class GRRFlow(FlowBase):
     if cls.args_type:
       for type_descriptor in cls.args_type.type_infos:
         if not type_descriptor.hidden:
-          prototypes.append("%s=%s" % (type_descriptor.name,
-                                       type_descriptor.name))
+          prototypes.append(
+              "%s=%s" % (type_descriptor.name, type_descriptor.name))
     output.append(", ".join(prototypes))
     output.append(")")
     return "".join(output)
@@ -1185,37 +1193,6 @@ class WellKnownFlow(GRRFlow):
   def UpdateKillNotification(self):
     # For WellKnownFlows it doesn't make sense to kill them ever.
     pass
-
-
-class EventListener(WellKnownFlow):
-  """Base Class for all Event Listeners.
-
-  Event listeners are simply well known flows which extend the EventListener
-  class. Registration for an event simply means that the event name is specified
-  in the EVENTS constant.
-
-  We will process any messages which are sent to any of the events
-  specified. Events are just string names.
-  """
-  EVENTS = []
-
-  __metaclass__ = registry.EventRegistry
-
-  @events.EventHandler(auth_required=True)
-  def ProcessMessage(self, message=None, event=None):
-    """Handler for the event.
-
-    NOTE: The message could arrive from any source, and could be
-    unauthenticated. Since the EventListener is just a WellKnownFlow, the
-    message could also arrive from a malicious client!
-
-    It is therefore essential to verify the source of the event. This can be a
-    flow session id, or an entity such as the FrontEnd, or the Worker.
-
-    Args:
-      message: A GrrMessage instance which was sent to the event listener.
-      event: The decoded event object.
-    """
 
 
 class FlowInit(registry.InitHook):

@@ -485,8 +485,8 @@ class WindowsClientRepacker(ClientRepacker):
     if orig_fs_config_path.endswith(".in"):
       logging.info("Interpolating %s", orig_fs_config_path)
       logging.warning("Backslashes will be naively re-escaped after "
-                      "interpolation. If this is not desired, use a file "
-                      "without the '.in' extension.")
+                      "interpolation. If this is not desired, use a Fleetspeak "
+                      "config file without the '.in' extension.")
       with utils.TempDirectory() as temp_dir:
         temp_fs_config_path = os.path.join(temp_dir, final_fs_config_fname)
         with open(orig_fs_config_path, "rb") as source:

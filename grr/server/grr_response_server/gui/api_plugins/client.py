@@ -3,6 +3,7 @@
 
 import shlex
 import sys
+import urlparse
 
 import ipaddr
 
@@ -11,6 +12,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import objects
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -36,7 +38,7 @@ from grr.server.grr_response_server.gui import api_call_handler_utils
 from grr.server.grr_response_server.gui.api_plugins import stats as api_stats
 
 
-def _UpdateFromFleetspeak(clients):
+def UpdateClientsFromFleetspeak(clients):
   """Updates ApiClient records to include info from Fleetspeak."""
   if not fleetspeak_connector.CONN or not fleetspeak_connector.CONN.outgoing:
     # FS not configured, or an outgoing connection is otherwise unavailable.
@@ -253,6 +255,12 @@ class ApiClient(rdf_structs.RDFProtoStruct):
 
     return self
 
+  def ObjectReference(self):
+    return objects.ObjectReference(
+        reference_type=objects.ObjectReference.Type.CLIENT,
+        client=objects.ClientReference(
+            client_id=utils.SmartStr(self.client_id)))
+
 
 class ApiClientActionRequest(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiClientActionRequest
@@ -308,7 +316,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
       for child in sorted(result_set):
         api_clients.append(ApiClient().InitFromAff4Object(child))
 
-    _UpdateFromFleetspeak(api_clients)
+    UpdateClientsFromFleetspeak(api_clients)
     return ApiSearchClientsResult(items=api_clients)
 
 
@@ -375,7 +383,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
             api_clients.append(ApiClient().InitFromClientInfo(client_info))
           index += 1
           if index >= end:
-            _UpdateFromFleetspeak(api_clients)
+            UpdateClientsFromFleetspeak(api_clients)
             return ApiSearchClientsResult(items=api_clients)
 
     else:
@@ -399,7 +407,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
         if index >= end:
           break
 
-    _UpdateFromFleetspeak(api_clients)
+    UpdateClientsFromFleetspeak(api_clients)
     return ApiSearchClientsResult(items=api_clients)
 
 
@@ -422,7 +430,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
       age = rdfvalue.RDFDatetime.Now()
     else:
       age = rdfvalue.RDFDatetime(args.timestamp)
-
+    api_client = None
     if data_store.RelationalDBReadEnabled():
       info = data_store.REL_DB.ReadClientFullInfo(str(args.client_id))
       if info is None:
@@ -437,14 +445,16 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
           info.last_snapshot = snapshots[0]
           info.last_startup_info = snapshots[0].startup_info
 
-      return ApiClient().InitFromClientInfo(info)
+      api_client = ApiClient().InitFromClientInfo(info)
     else:
       client = aff4.FACTORY.Open(
           args.client_id.ToClientURN(),
           aff4_type=aff4_grr.VFSGRRClient,
           age=age,
           token=token)
-      return ApiClient().InitFromAff4Object(client)
+      api_client = ApiClient().InitFromAff4Object(client)
+    UpdateClientsFromFleetspeak([api_client])
+    return api_client
 
 
 class ApiGetClientVersionsArgs(rdf_structs.RDFProtoStruct):
@@ -609,6 +619,18 @@ class ApiGetLastClientIPAddressResult(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetLastClientIPAddressResult
 
 
+def _GetAddrFromFleetspeak(client_id):
+  res = fleetspeak_connector.CONN.outgoing.ListClients(
+      admin_pb2.ListClientsRequest(
+          client_ids=[fleetspeak_utils.GRRIDToFleetspeakID(client_id)]))
+  if not res.clients or not res.clients[0].last_contact_address:
+    return "", None
+  # last_contact_address typically includes a port
+  parsed = urlparse.urlparse("//{}".format(res.clients[0].last_contact_address))
+  ip_str = parsed.hostname
+  return ip_str, ipaddr.IPAddress(ip_str)
+
+
 class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the last ip a client used for communication with the server."""
 
@@ -618,22 +640,28 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     if data_store.RelationalDBReadEnabled():
       md = data_store.REL_DB.ReadClientMetadata(str(args.client_id))
-      try:
-        ipaddr_obj = md.ip.AsIPAddr()
-        ip_str = str(ipaddr_obj)
-      except ValueError:
-        ipaddr_obj = None
-        ip_str = ""
+      if md.fleetspeak_enabled:
+        ip_str, ipaddr_obj = _GetAddrFromFleetspeak(args.client_id)
+      else:
+        try:
+          ipaddr_obj = md.ip.AsIPAddr()
+          ip_str = str(ipaddr_obj)
+        except ValueError:
+          ipaddr_obj = None
+          ip_str = ""
     else:
       client = aff4.FACTORY.Open(
           args.client_id.ToClientURN(),
           aff4_type=aff4_grr.VFSGRRClient,
           token=token)
-      ip_str = client.Get(client.Schema.CLIENT_IP)
-      if ip_str:
-        ipaddr_obj = ipaddr.IPAddress(ip_str)
+      if client.Get(client.Schema.FLEETSPEAK_ENABLED):
+        ip_str, ipaddr_obj = _GetAddrFromFleetspeak(args.client_id)
       else:
-        ipaddr_obj = None
+        ip_str = client.Get(client.Schema.CLIENT_IP)
+        if ip_str:
+          ipaddr_obj = ipaddr.IPAddress(ip_str)
+        else:
+          ipaddr_obj = None
 
     status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ipaddr_obj)
 
@@ -712,7 +740,7 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
         client_obj.Close()
 
         audit_events.append(
-            events.AuditEvent(
+            rdf_events.AuditEvent(
                 user=token.username,
                 action="CLIENT_ADD_LABEL",
                 flow_name="handler.ApiAddClientsLabelsHandler",
@@ -779,7 +807,7 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
         client_obj.Close()
 
         audit_events.append(
-            events.AuditEvent(
+            rdf_events.AuditEvent(
                 user=token.username,
                 action="CLIENT_REMOVE_LABEL",
                 flow_name="handler.ApiRemoveClientsLabelsHandler",

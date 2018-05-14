@@ -196,7 +196,9 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         self.paths[dirname] = (aff4_standard.VFSDirectory, rdf_client.StatEntry(
             st_mode=16877, st_size=1, st_dev=1, pathspec=new_pathspec))
 
-  def ListFiles(self):
+  def ListFiles(self, ext_attrs=None):
+    del ext_attrs  # Unused.
+
     # First return exact matches
     for k, (_, stat) in self.paths.items():
       dirname = os.path.dirname(k)
@@ -221,8 +223,9 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
     self.offset += len(data)
     return data
 
-  def Stat(self):
+  def Stat(self, path=None, ext_attrs=None):
     """Get Stat for self.path."""
+    del path, ext_attrs  # Unused.
     stat_data = self.paths.get(self._NormalizeCaseForPath(self.path, None))
     if (not stat_data and
         self.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY):
@@ -296,15 +299,18 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
     self.offset += len(data)
     return data
 
-  def Stat(self):
+  def Stat(self, path=None, ext_attrs=None):
     """Get Stat for self.path."""
-    return client_utils.StatEntryFromPath(self._AbsPath(), self.pathspec)
+    del path  # Unused.
+    return client_utils.StatEntryFromPath(
+        self._AbsPath(), self.pathspec, ext_attrs=ext_attrs)
 
-  def ListFiles(self):
+  def ListFiles(self, ext_attrs=None):
     for f in os.listdir(self._AbsPath()):
       ps = self.pathspec.Copy()
       ps.last.path = os.path.join(ps.last.path, f)
-      yield client_utils.StatEntryFromPath(self._AbsPath(f), self.pathspec)
+      yield client_utils.StatEntryFromPath(
+          self._AbsPath(f), self.pathspec, ext_attrs=ext_attrs)
 
 
 class RegistryFake(FakeRegistryVFSHandler):

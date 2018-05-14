@@ -261,12 +261,6 @@ class AnalyzeClientMemory(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError("Could not delete file: %s" % responses.status)
 
-  def NotifyAboutEnd(self):
-    if self.runner.IsWritingResults():
-      self.Notify("ViewObject", self.urn, "Ran analyze client memory")
-    else:
-      super(AnalyzeClientMemory, self).NotifyAboutEnd()
-
   @flow.StateHandler()
   def End(self):
     if self.state.plugin_errors:

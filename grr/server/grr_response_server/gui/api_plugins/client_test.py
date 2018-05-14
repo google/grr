@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """This modules contains tests for clients API handlers."""
 
+
+import ipaddr
 import mock
 
 from google.protobuf import timestamp_pb2
@@ -8,11 +10,11 @@ from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import test_base as rdf_test_base
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import client_index
 from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import events
 from grr.server.grr_response_server import fleetspeak_connector
 from grr.server.grr_response_server import fleetspeak_utils
 from grr.server.grr_response_server.flows.general import audit
@@ -136,7 +138,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   def _FindAuditEvent(self):
     for fd in audit.AllAuditLogs(token=self.token):
       for event in fd:
-        if event.action == events.AuditEvent.Action.CLIENT_ADD_LABEL:
+        if event.action == rdf_events.AuditEvent.Action.CLIENT_ADD_LABEL:
           for client_id in self.client_ids:
             if event.client == rdf_client.ClientURN(client_id):
               return event
@@ -474,9 +476,15 @@ class ApiGetClientVersionTimesTestAFF4(ApiGetClientVersionTimesTestMixin,
         self.client_id = client_urn.Basename()
 
 
+def TSProtoFromString(string):
+  ts = timestamp_pb2.Timestamp()
+  ts.FromJsonString(string)
+  return ts
+
+
 class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
 
-  def testUpdateFromFleetspeak(self):
+  def testUpdateClientsFromFleetspeak(self):
     client_id_1 = client_plugin.ApiClientId("C." + "1" * 16)
     client_id_2 = client_plugin.ApiClientId("C." + "2" * 16)
     client_id_3 = client_plugin.ApiClientId("C." + "3" * 16)
@@ -491,35 +499,82 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
         clients=[
             admin_pb2.Client(
                 client_id=fleetspeak_utils.GRRIDToFleetspeakID(client_id_1),
-                last_contact_time=timestamp_pb2.Timestamp(
-                    seconds=100000, nanos=50000000),
-                last_clock=timestamp_pb2.Timestamp(
-                    seconds=100000, nanos=60000000),
-            ),
+                last_contact_time=TSProtoFromString("2018-01-01T00:00:01Z"),
+                last_clock=TSProtoFromString("2018-01-01T00:00:02Z")),
             admin_pb2.Client(
                 client_id=fleetspeak_utils.GRRIDToFleetspeakID(client_id_2),
-                last_contact_time=timestamp_pb2.Timestamp(
-                    seconds=200000, nanos=50000000),
-                last_clock=timestamp_pb2.Timestamp(
-                    seconds=200000, nanos=60000000),
-            )
+                last_contact_time=TSProtoFromString("2018-01-02T00:00:01Z"),
+                last_clock=TSProtoFromString("2018-01-02T00:00:02Z"))
         ])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      client_plugin._UpdateFromFleetspeak(clients)
+      client_plugin.UpdateClientsFromFleetspeak(clients)
     self.assertEqual(clients, [
         client_plugin.ApiClient(
             client_id=client_id_1,
             fleetspeak_enabled=True,
-            last_seen_at=rdfvalue.RDFDatetime(100000050),
-            last_clock=rdfvalue.RDFDatetime(100000060)),
+            last_seen_at=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2018-01-01T00:00:01Z"),
+            last_clock=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2018-01-01T00:00:02Z")),
         client_plugin.ApiClient(
             client_id=client_id_2,
             fleetspeak_enabled=True,
-            last_seen_at=rdfvalue.RDFDatetime(200000050),
-            last_clock=rdfvalue.RDFDatetime(200000060)),
+            last_seen_at=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2018-01-02T00:00:01Z"),
+            last_clock=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2018-01-02T00:00:02Z")),
         client_plugin.ApiClient(
             client_id=client_id_3, fleetspeak_enabled=False),
     ])
+
+  def testGetAddrFromFleetspeakIpV4(self):
+    client_id = client_plugin.ApiClientId("C." + "1" * 16)
+    conn = mock.MagicMock()
+    conn.outgoing.ListClients.return_value = admin_pb2.ListClientsResponse(
+        clients=[
+            admin_pb2.Client(
+                client_id=fleetspeak_utils.GRRIDToFleetspeakID(client_id),
+                last_contact_address="100.1.1.100:50000",
+                last_contact_time=TSProtoFromString("2018-01-01T00:00:01Z"),
+                last_clock=TSProtoFromString("2018-01-01T00:00:02Z"))
+        ])
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      ip_str, ipaddr_obj = client_plugin._GetAddrFromFleetspeak(client_id)
+      self.assertEqual(ip_str, "100.1.1.100")
+      self.assertEqual(ipaddr_obj, ipaddr.IPAddress("100.1.1.100"))
+
+  def testGetAddrFromFleetspeakIpV6(self):
+    client_id = client_plugin.ApiClientId("C." + "1" * 16)
+    conn = mock.MagicMock()
+    conn.outgoing.ListClients.return_value = admin_pb2.ListClientsResponse(
+        clients=[
+            admin_pb2.Client(
+                client_id=fleetspeak_utils.GRRIDToFleetspeakID(client_id),
+                last_contact_address="[2001:0db8:85a3::8a2e:0370:7334]:50000",
+                last_contact_time=TSProtoFromString("2018-01-01T00:00:01Z"),
+                last_clock=TSProtoFromString("2018-01-01T00:00:02Z"))
+        ])
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      ip_str, ipaddr_obj = client_plugin._GetAddrFromFleetspeak(client_id)
+      self.assertEqual(ip_str, "2001:0db8:85a3::8a2e:0370:7334")
+      self.assertEqual(
+          ipaddr_obj,
+          ipaddr.IPAddress("2001:0db8:85a3:0000:0000:8a2e:0370:7334"))
+
+  def testGetAddrFromFleetspeakMissing(self):
+    client_id = client_plugin.ApiClientId("C." + "1" * 16)
+    conn = mock.MagicMock()
+    conn.outgoing.ListClients.return_value = admin_pb2.ListClientsResponse(
+        clients=[
+            admin_pb2.Client(
+                client_id=fleetspeak_utils.GRRIDToFleetspeakID(client_id),
+                last_contact_time=TSProtoFromString("2018-01-01T00:00:01Z"),
+                last_clock=TSProtoFromString("2018-01-01T00:00:02Z"))
+        ])
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      ip_str, ipaddr_obj = client_plugin._GetAddrFromFleetspeak(client_id)
+      self.assertEqual(ip_str, "")
+      self.assertIsNone(ipaddr_obj)
 
 
 def main(argv):

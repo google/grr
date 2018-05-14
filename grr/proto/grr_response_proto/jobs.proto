@@ -362,9 +362,7 @@ message ClientCrash {
       type: "RDFDatetime",
       description: "When the client crashed."
     }];
-  optional string crash_type = 5 [(sem_type) = {
-      type: "SessionID"
-    }];
+  optional string crash_type = 5;
   optional string crash_message = 6;
   optional string backtrace = 7;
   optional string nanny_status = 8;
@@ -734,6 +732,11 @@ message PathSpec {
 message ListDirRequest {
   optional PathSpec pathspec = 1;
   optional Iterator iterator = 2;
+};
+
+message GetFileStatRequest {
+  optional PathSpec pathspec = 1;
+  optional bool collect_ext_attrs = 2 [default = false];
 };
 
 // StatFS client action request
@@ -1384,6 +1387,8 @@ message FindSpec {
   optional uint64 gid = 17 [(sem_type) = {
       description: "Group ID to match against a file's GID."
     }];
+
+  optional bool collect_ext_attrs = 18 [default = false];
 }
 
 message PlistRequest {

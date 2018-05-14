@@ -592,12 +592,8 @@ class FrontEndServer(object):
                   crash_message=stat.error_message,
                   nanny_status=stat.nanny_status,
                   timestamp=rdfvalue.RDFDatetime.Now())
-              msg = rdf_flows.GrrMessage(
-                  source=client_id,
-                  payload=crash_details,
-                  auth_state=(
-                      rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED))
-              events.Events.PublishEvent("ClientCrash", msg, token=self.token)
+              events.Events.PublishEvent(
+                  "ClientCrash", crash_details, token=self.token)
 
     logging.debug("Received %s messages from %s in %s sec", len(messages),
                   client_id,

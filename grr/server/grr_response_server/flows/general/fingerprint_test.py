@@ -30,13 +30,12 @@ class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
 
     client_mock = action_mocks.ActionMock(file_fingerprint.FingerprintFile)
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           flows_fingerprint.FingerprintFile.__name__,
           client_mock,
           token=self.token,
           client_id=client_id,
-          pathspec=pathspec):
-        pass
+          pathspec=pathspec)
 
       self.assertEqual(len(send_reply.args), 1)
       for _, reply in send_reply.args:

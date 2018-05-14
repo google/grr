@@ -7,10 +7,12 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import email_alerts
+from grr.server.grr_response_server import notification
 from grr.server.grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr.server.grr_response_server.aff4_objects import users as aff4_users
 from grr.server.grr_response_server.flows.general import administrative
@@ -25,76 +27,119 @@ from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import acl_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import hunt_test_lib
+from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
+class ApiNotificationTest(acl_test_lib.AclTestMixin,
+                          notification_test_lib.NotificationTestMixin,
+                          api_test_lib.ApiCallHandlerTest):
   """Tests for ApiNotification class."""
 
   def setUp(self):
     super(ApiNotificationTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-  def InitFromObj_(self, notification_type, subject, message=None):
-    self._SendNotification(
-        notification_type=notification_type,
-        subject=subject,
-        message=message,
-        client_id=self.client_id)
+  def InitFromObj_(self, notification_type, reference, message=None):
+    self.CreateUser(self.token.username)
+    notification.Notify(self.token.username, notification_type, message or "",
+                        reference)
+    ns = self.GetUserNotifications(self.token.username)
 
-    user_record = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add("users").Add(self.token.username), token=self.token)
-    pending_notifications = user_record.Get(
-        user_record.Schema.PENDING_NOTIFICATIONS)
-
-    result = user_plugin.ApiNotification().InitFromNotification(
-        pending_notifications.Pop())
-    aff4.FACTORY.Delete(
-        aff4.ROOT_URN.Add("users").Add(self.token.username), token=self.token)
-    return result
+    return user_plugin.ApiNotification().InitFromNotification(ns[0])
 
   def testDiscoveryNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_("Discovery", self.client_id)
+    n = self.InitFromObj_(
+        rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.CLIENT,
+            client=rdf_objects.ClientReference(
+                client_id=self.client_id.Basename())))
+
     self.assertEqual(n.reference.type, "DISCOVERY")
     self.assertEqual(n.reference.discovery.client_id, self.client_id)
 
-    n = self.InitFromObj_("ViewObject", self.client_id)
+  def testClientApprovalGrantedNotificationIsParsedCorrectly(self):
+    n = self.InitFromObj_(
+        rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.CLIENT,
+            client=rdf_objects.ClientReference(
+                client_id=self.client_id.Basename())))
+
     self.assertEqual(n.reference.type, "DISCOVERY")
     self.assertEqual(n.reference.discovery.client_id, self.client_id)
 
   def testHuntNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_("ViewObject", "aff4:/hunts/H:123456")
+    n = self.InitFromObj_(
+        rdf_objects.UserNotification.Type.TYPE_HUNT_STOPPED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.HUNT,
+            hunt=rdf_objects.HuntReference(hunt_id="H:123456")))
+
     self.assertEqual(n.reference.type, "HUNT")
     self.assertEqual(n.reference.hunt.hunt_urn, "aff4:/hunts/H:123456")
 
   def testCronNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_("ViewObject", "aff4:/cron/FooBar")
+    n = self.InitFromObj_(
+        rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.CRON_JOB,
+            cron_job=rdf_objects.CronJobReference(cron_job_id="FooBar")))
+
     self.assertEqual(n.reference.type, "CRON")
     self.assertEqual(n.reference.cron.cron_job_urn, "aff4:/cron/FooBar")
 
-  def testFlowNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_("ViewObject", self.client_id.Add("flows/F:123456"))
+  def testFlowSuccessNotificationIsParsedCorrectly(self):
+    n = self.InitFromObj_(
+        rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.FLOW,
+            flow=rdf_objects.FlowReference(
+                client_id=self.client_id.Basename(), flow_id="F:123456")))
+
     self.assertEqual(n.reference.type, "FLOW")
     self.assertEqual(n.reference.flow.client_id, self.client_id)
     self.assertEqual(n.reference.flow.flow_id, "F:123456")
 
-    n = self.InitFromObj_("FlowStatus", self.client_id)
+  def testFlowFailureNotificationIsParsedCorrectly(self):
+    n = self.InitFromObj_(
+        rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_FAILED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.FLOW,
+            flow=rdf_objects.FlowReference(
+                client_id=self.client_id.Basename(), flow_id="F:123456")))
+
     self.assertEqual(n.reference.type, "FLOW")
     self.assertEqual(n.reference.flow.client_id, self.client_id)
-    # Source flow id is autogenerated by self._SendNotification, so we just
-    # check that reference.flow.flow_id is set.
-    self.assertTrue(str(n.reference.flow.flow_id))
+    self.assertEqual(n.reference.flow.flow_id, "F:123456")
 
   def testVfsNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_("ViewObject", self.client_id.Add("fs/os/foo/bar"))
+    n = self.InitFromObj_(
+        rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+            vfs_file=rdf_objects.VfsFileReference(
+                client_id=self.client_id.Basename(),
+                path_type=rdf_objects.PathInfo.PathType.OS,
+                path_components=["foo", "bar"])))
+
     self.assertEqual(n.reference.type, "VFS")
     self.assertEqual(n.reference.vfs.client_id, self.client_id)
     self.assertEqual(n.reference.vfs.vfs_path, "fs/os/foo/bar")
 
   def testClientApprovalNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
-        "GrantAccess", "aff4:/ACL/%s/%s/foo-bar" % (self.client_id.Basename(),
-                                                    self.token.username))
+        rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
+            approval_request=rdf_objects.ApprovalRequestReference(
+                approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+                APPROVAL_TYPE_CLIENT,
+                approval_id="foo-bar",
+                subject_id=self.client_id.Basename(),
+                requestor_username=self.token.username)))
+
     self.assertEqual(n.reference.type, "CLIENT_APPROVAL")
     self.assertEqual(n.reference.client_approval.client_id, self.client_id)
     self.assertEqual(n.reference.client_approval.username, self.token.username)
@@ -102,8 +147,16 @@ class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
 
   def testHuntApprovalNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
-        "GrantAccess",
-        "aff4:/ACL/hunts/H:123456/%s/foo-bar" % self.token.username)
+        rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_REQUESTED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
+            approval_request=rdf_objects.ApprovalRequestReference(
+                approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+                APPROVAL_TYPE_HUNT,
+                approval_id="foo-bar",
+                subject_id="H:123456",
+                requestor_username=self.token.username)))
+
     self.assertEqual(n.reference.type, "HUNT_APPROVAL")
     self.assertEqual(n.reference.hunt_approval.hunt_id, "H:123456")
     self.assertEqual(n.reference.hunt_approval.username, self.token.username)
@@ -111,31 +164,65 @@ class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
 
   def testCronJobApprovalNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
-        "GrantAccess", "aff4:/ACL/cron/FooBar/%s/foo-bar" % self.token.username)
+        rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_REQUESTED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
+            approval_request=rdf_objects.ApprovalRequestReference(
+                approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+                APPROVAL_TYPE_CRON_JOB,
+                approval_id="foo-bar",
+                subject_id="FooBar",
+                requestor_username=self.token.username)))
+
     self.assertEqual(n.reference.type, "CRON_JOB_APPROVAL")
     self.assertEqual(n.reference.cron_job_approval.cron_job_id, "FooBar")
     self.assertEqual(n.reference.cron_job_approval.username,
                      self.token.username)
     self.assertEqual(n.reference.cron_job_approval.approval_id, "foo-bar")
 
+  def testFileArchiveGenerationFailedNotificationIsParsedAsUnknown(self):
+    n = self.InitFromObj_(
+        rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
+        None,
+        message="blah")
+    self.assertEqual(n.reference.type, "UNKNOWN")
+    self.assertEqual(n.message, "blah")
+
+  def testVfsListDirectoryCompletedIsParsedCorrectly(self):
+    n = self.InitFromObj_(
+        rdf_objects.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+            vfs_file=rdf_objects.VfsFileReference(
+                client_id=self.client_id.Basename(),
+                path_type=rdf_objects.PathInfo.PathType.OS,
+                path_components=["foo", "bar"])))
+
+    self.assertEqual(n.reference.type, "VFS")
+    self.assertEqual(n.reference.vfs.client_id, self.client_id)
+    self.assertEqual(n.reference.vfs.vfs_path, "fs/os/foo/bar")
+
   def testUnknownNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_("ViewObject", self.client_id.Add("foo/bar"))
+    n = user_plugin.ApiNotification().InitFromNotification(
+        rdf_flows.Notification(
+            type="ViewObject", subject=self.client_id.Add("foo/bar")))
     self.assertEqual(n.reference.type, "UNKNOWN")
     self.assertEqual(n.reference.unknown.subject_urn,
                      self.client_id.Add("foo/bar"))
 
-    n = self.InitFromObj_("FlowStatus", "foo/bar")
+    n = user_plugin.ApiNotification().InitFromNotification(
+        rdf_flows.Notification(type="FlowStatus", subject="foo/bar"))
     self.assertEqual(n.reference.type, "UNKNOWN")
     self.assertEqual(n.reference.unknown.subject_urn, "foo/bar")
 
   def testNotificationWithoutSubject(self):
-    notification = rdf_flows.Notification(type="ViewObject")
+    n = user_plugin.ApiNotification().InitFromNotification(
+        rdf_flows.Notification(type="ViewObject"))
+    self.assertEqual(n.reference.type, "UNKNOWN")
 
-    result = user_plugin.ApiNotification().InitFromNotification(notification)
-    self.assertEqual(result.reference.type, "UNKNOWN")
 
-
-class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):
+class ApiCreateApprovalHandlerTestMixin(
+    notification_test_lib.NotificationTestMixin, acl_test_lib.AclTestMixin):
   """Base class for tests testing Create*ApprovalHandlers."""
 
   def SetUpApprovalTest(self):
@@ -173,14 +260,10 @@ class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):
     with self.assertRaises(ValueError):
       self.handler.Handle(self.args, token=self.token)
 
-  @db_test_lib.LegacyDataStoreOnly
   def testNotifiesGrrUsers(self):
     self.handler.Handle(self.args, token=self.token)
 
-    fd = aff4.FACTORY.Open(
-        "aff4:/users/approver", aff4_type=aff4_users.GRRUser, token=self.token)
-    notifications = fd.ShowNotifications(reset=False)
-
+    notifications = self.GetUserNotifications("approver")
     self.assertEqual(len(notifications), 1)
 
   def testSendsEmailsToGrrUsersAndCcAddresses(self):
@@ -639,24 +722,33 @@ class ApiDeletePendingUserNotificationHandlerTest(
     self.client_id = self.SetupClient(0)
 
     with test_lib.FakeTime(self.TIME_0):
-      self._SendNotification(
-          notification_type="Discovery",
-          subject=str(self.client_id),
-          message="<some message>",
-          client_id=self.client_id)
+      notification.Notify(
+          self.token.username,
+          rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+          "<some message>",
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.CLIENT,
+              client=rdf_objects.ClientReference(
+                  client_id=self.client_id.Basename())))
 
-      self._SendNotification(
-          notification_type="Discovery",
-          subject=str(self.client_id),
-          message="<some message with identical time>",
-          client_id=self.client_id)
+      notification.Notify(
+          self.token.username,
+          rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+          "<some message with identical time>",
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.CLIENT,
+              client=rdf_objects.ClientReference(
+                  client_id=self.client_id.Basename())))
 
     with test_lib.FakeTime(self.TIME_1):
-      self._SendNotification(
-          notification_type="ViewObject",
-          subject=str(self.client_id),
-          message="<some other message>",
-          client_id=self.client_id)
+      notification.Notify(
+          self.token.username,
+          rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED,
+          "<some other message>",
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.CLIENT,
+              client=rdf_objects.ClientReference(
+                  client_id=self.client_id.Basename())))
 
   def _GetNotifications(self):
     user_record = aff4.FACTORY.Create(

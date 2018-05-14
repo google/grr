@@ -45,13 +45,12 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        findspec=findspec):
-      session_id = s
+        findspec=findspec)
 
     # Check the results collection.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -76,13 +75,12 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        findspec=findspec):
-      session_id = s
+        findspec=findspec)
 
     # Check the results collection.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -108,13 +106,12 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        findspec=findspec):
-      session_id = s
+        findspec=findspec)
 
     # Check the results collection.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -137,15 +134,14 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
         findspec=findspec,
         iteration_count=3,
-        max_results=7):
-      session_id = s
+        max_results=7)
 
     # Check the output file is created
     collection = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -164,13 +160,12 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
     findspec.pathspec.path = "/"
     findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        findspec=findspec):
-      session_id = s
+        findspec=findspec)
 
     # Check the results collection.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -179,14 +174,13 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
 
     # Now find a new result, should overwrite the collection
     findspec.path_regex = "dd"
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
         findspec=findspec,
-        max_results=1):
-      session_id = s
+        max_results=1)
 
     # Check the results collection.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)

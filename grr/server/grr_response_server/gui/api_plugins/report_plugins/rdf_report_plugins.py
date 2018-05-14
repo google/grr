@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """UI reports related rdfvalues."""
 
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import stats_pb2
-from grr.server.grr_response_server import events
 
 
 class ApiReportDescriptor(rdf_structs.RDFProtoStruct):
@@ -54,7 +54,7 @@ class ApiLineChartReportData(rdf_structs.RDFProtoStruct):
 class ApiAuditChartReportData(rdf_structs.RDFProtoStruct):
   protobuf = stats_pb2.ApiAuditChartReportData
   rdf_deps = [
-      events.AuditEvent,
+      rdf_events.AuditEvent,
   ]
 
 

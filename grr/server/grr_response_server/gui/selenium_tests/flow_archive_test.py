@@ -32,12 +32,11 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.action_mock = action_mocks.FileFinderClientMock()
 
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneNetworkConnectionResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token):
-      pass
+        token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -49,12 +48,11 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
                       "Files referenced in this collection can be downloaded")
 
   def testDoesNotShowGenerateArchiveButtonWhenResultCollectionIsEmpty(self):
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         gui_test_lib.RecursiveTestFlow.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token):
-      pass
+        token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -69,13 +67,12 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         flows_transfer.GetFile.__name__,
         self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
-        token=self.token):
-      pass
+        token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -89,13 +86,12 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         flows_transfer.GetFile.__name__,
         self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
-        token=self.token):
-      pass
+        token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -116,9 +112,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
 
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
@@ -168,9 +163,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
 
     self.Open("/#/clients/%s/flows/%s" % (self.client_id, flow_urn.Basename()))
     self.Click("link=Results")
@@ -197,9 +191,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         client_id=self.client_id,
         token=self.token)
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
 
     self.Open("/#/clients/%s/flows/%s" % (self.client_id, flow_urn.Basename()))
     self.Click("link=Results")

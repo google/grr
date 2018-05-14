@@ -1054,6 +1054,14 @@ class ListDirRequest(structs.RDFProtoStruct):
   ]
 
 
+class GetFileStatRequest(structs.RDFProtoStruct):
+
+  protobuf = jobs_pb2.GetFileStatRequest
+  rdf_deps = [
+      paths.PathSpec,
+  ]
+
+
 class FingerprintTuple(structs.RDFProtoStruct):
   protobuf = jobs_pb2.FingerprintTuple
 

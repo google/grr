@@ -62,12 +62,11 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
   def testGetMBR(self):
     """Test that the GetMBR flow works."""
 
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         transfer.GetMBR.__name__,
         ClientMock(self.mbr),
         token=self.token,
-        client_id=self.client_id):
-      pass
+        client_id=self.client_id)
 
     fd = aff4.FACTORY.Open(self.client_id.Add("mbr"), token=self.token)
     self.assertEqual(fd.Read(4096), self.mbr)
@@ -75,13 +74,12 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
   def _RunAndCheck(self, chunk_size, download_length):
 
     with utils.Stubber(constants, "CLIENT_MAX_BUFFER_SIZE", chunk_size):
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           transfer.GetMBR.__name__,
           ClientMock(self.mbr),
           token=self.token,
           client_id=self.client_id,
-          length=download_length):
-        pass
+          length=download_length)
 
       fd = aff4.FACTORY.Open(self.client_id.Add("mbr"), token=self.token)
       self.assertEqual(fd.Read(download_length), self.mbr[:download_length])
@@ -105,13 +103,12 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
 
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
-        pathspec=pathspec):
-      pass
+        pathspec=pathspec)
 
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
@@ -132,13 +129,12 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "TEST_IMG.dd"))
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
-        pathspec=pathspec):
-      session_id = s
+        pathspec=pathspec)
 
     results = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(results), 1)
@@ -187,14 +183,13 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS, path=zero_sized_filename)
 
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         file_size="1MiB",
         client_id=self.client_id,
-        pathspecs=[pathspec]):
-      pass
+        pathspecs=[pathspec])
 
     # Now if we try to fetch a real /proc/ filename this will fail because the
     # filestore already contains the zero length file
@@ -202,14 +197,13 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS, path="/proc/self/environ")
 
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         file_size=1024 * 1024,
         client_id=self.client_id,
-        pathspecs=[pathspec]):
-      pass
+        pathspecs=[pathspec])
 
     data = open(pathspec.last.path, "rb").read()
 
@@ -256,13 +250,12 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
     args = transfer.MultiGetFileArgs(pathspecs=[pathspec, pathspec])
     with test_lib.Instrument(transfer.MultiGetFile,
                              "StoreStat") as storestat_instrument:
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           transfer.MultiGetFile.__name__,
           client_mock,
           token=self.token,
           client_id=self.client_id,
-          args=args):
-        pass
+          args=args)
 
       # We should only have called StoreStat once because the two paths
       # requested were identical.
@@ -344,13 +337,12 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
     # there should only be a single TransferBuffer call.
     args = transfer.MultiGetFileArgs(
         pathspecs=pathspecs, maximum_pending_files=1)
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
-        args=args):
-      pass
+        args=args)
 
     self.assertEqual(client_mock.action_counts["TransferBuffer"], 1)
 
@@ -361,13 +353,12 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
         path=os.path.join(self.base_path, "test_img.dd"))
 
     args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
-        args=args):
-      pass
+        args=args)
 
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
@@ -393,13 +384,12 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
     expected_size = 750 * 1024
     args = transfer.MultiGetFileArgs(
         pathspecs=[pathspec], file_size=expected_size)
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
-        args=args):
-      pass
+        args=args)
 
     urn = pathspec.AFF4Path(self.client_id)
     blobimage = aff4.FACTORY.Open(urn, token=self.token)

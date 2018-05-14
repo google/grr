@@ -70,7 +70,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
     """Generates a full path to the test data."""
     path = os.path.join(config.CONFIG["Test.data_dir"], file_name)
     if not os.path.isfile(path):
-      raise test_lib.Error("Missing test data: %s" % file_name)
+      raise RuntimeError("Missing test data: %s" % file_name)
     return path
 
   @staticmethod
@@ -144,7 +144,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
   def _AddToHostData(self, host_data, artifact, data, parser):
     """Parse raw data collected for an artifact into the host_data table."""
     if type(data) != dict:
-      raise test_lib.Error("Data for %s is not of type dictionary." % artifact)
+      raise TypeError("Data for %s is not of type dictionary." % artifact)
 
     rdfs = []
     stats = []
@@ -191,20 +191,20 @@ class HostCheckTest(test_lib.GRRBaseTest):
       CheckResult containing any findings in sources_list against loaded checks.
 
     Raises:
-      Error: When there are issues with the passed input.
+      TypeError: If input lists are not actually lists.
+      ValueError: If input lists are not of the same length.
     """
     if parser_list is None:
       parser_list = [None] * len(artifact_list)
 
-    # make sure all vars are lists
-    if any(
-        type(lst) != list
-        for lst in [artifact_list, sources_list, parser_list]):
-      raise test_lib.Error("All inputs are not lists.")
-    # make sure all lists are of equal length
-    if any(
-        len(lst) != len(artifact_list) for lst in [sources_list, parser_list]):
-      raise test_lib.Error("All lists are not of the same length.")
+    if not isinstance(artifact_list, list):
+      raise TypeError("Given artifact list is not a list")
+    if not isinstance(sources_list, list):
+      raise TypeError("Given list of sources is not a list")
+    if not isinstance(parser_list, list):
+      raise TypeError("Given parser list is not a list")
+    if not len(artifact_list) == len(sources_list) == len(parser_list):
+      raise ValueError("All lists are not of the same length.")
 
     host_data = self.SetKnowledgeBase()
     for artifact, sources, parser in zip(artifact_list, sources_list,
@@ -277,11 +277,11 @@ class HostCheckTest(test_lib.GRRBaseTest):
       the host_data map populated with a knowledge base and artifact data.
 
     Raises:
-      Error: When the handed parser was not initialized.
+      ValueError: When the handed parser was not initialized.
     """
     host_data = self.SetKnowledgeBase()
     if not parser:
-      raise test_lib.Error("Test method requires an initialized parser.")
+      raise ValueError("Test method requires an initialized parser.")
     if not modes:
       modes = {}
     kb = host_data["KnowledgeBase"]

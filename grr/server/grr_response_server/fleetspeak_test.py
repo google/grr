@@ -297,9 +297,8 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
           client_id=self.client_id,
           flow_name=flow_processes.ListProcesses.__name__,
           token=self.token)
-      for s in flow_test_lib.TestFlowHelper(
-          flow_urn, client_mock, client_id=self.client_id, token=self.token):
-        session_id = s
+      session_id = flow_test_lib.TestFlowHelper(
+          flow_urn, client_mock, client_id=self.client_id, token=self.token)
 
       fleetspeak_connector.CONN.outgoing.InsertMessage.assert_called()
 

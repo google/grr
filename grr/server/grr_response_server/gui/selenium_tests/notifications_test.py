@@ -5,9 +5,10 @@
 import unittest
 from grr.lib import flags
 from grr.lib import utils
-
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import notification
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.flows.general import discovery
 from grr.server.grr_response_server.gui import gui_test_lib
@@ -28,12 +29,26 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
         token=token)
 
     with aff4.FACTORY.Open(session_id, mode="rw", token=token) as flow_obj:
-      # Discovery
-      flow_obj.Notify("Discovery", client_id, "Fake discovery message")
+      notification.Notify(
+          token.username,
+          rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+          "Fake discovery message",
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.CLIENT,
+              client=rdf_objects.ClientReference(
+                  client_id=client_id.Basename())))
 
       # ViewObject: VirtualFileSystem
-      flow_obj.Notify("ViewObject", "%s/fs/os/proc/10/exe" % client_id,
-                      "File fetch completed")
+      notification.Notify(
+          token.username,
+          rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
+          "File fetch completed",
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+              vfs_file=rdf_objects.VfsFileReference(
+                  client_id=client_id.Basename(),
+                  path_type=rdf_objects.PathInfo.PathType.OS,
+                  path_components=["proc", "10", "exe"])))
 
       with aff4.FACTORY.Create(
           client_id.Add("fs/os/proc/10/exe"),
@@ -43,7 +58,15 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
         pass
 
       # ViewObject: Flow
-      flow_obj.Notify("ViewObject", flow_obj.urn, "Fake view flow message")
+      notification.Notify(
+          token.username,
+          rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+          "Fake view flow message",
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.FLOW,
+              flow=rdf_objects.FlowReference(
+                  client_id=client_id.Basename(),
+                  flow_id=flow_obj.urn.Basename())))
 
       # FlowError
       flow_obj.GetRunner().Error("Fake flow error")

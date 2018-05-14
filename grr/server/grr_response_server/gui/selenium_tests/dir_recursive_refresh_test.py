@@ -38,13 +38,12 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
 
     client_mock = action_mocks.ActionMock()
     for flow_urn in flows:
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           flow_urn,
           client_mock,
           client_id=client_id,
           token=self.token,
-          check_flow_errors=False):
-        pass
+          check_flow_errors=False)
 
   def setUp(self):
     super(DirRecursiveRefreshTest, self).setUp()

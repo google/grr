@@ -28,7 +28,7 @@ class Find(actions.IteratedAction):
 
     try:
       fd = vfs.VFSOpen(pathspec, progress_callback=self.Progress)
-      files = fd.ListFiles()
+      files = fd.ListFiles(ext_attrs=self.request.collect_ext_attrs)
     except (IOError, OSError) as e:
       if depth == 0:
         # We failed to open the directory the server asked for because dir

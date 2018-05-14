@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Root-access-level API handlers for user management."""
 
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api.root import user_management_pb2
 from grr.server.grr_response_server import access_control
@@ -29,7 +30,8 @@ class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     events.Events.PublishEvent(
         "Audit",
-        events.AuditEvent(user=token.username, action="USER_ADD", urn=user_urn),
+        rdf_events.AuditEvent(
+            user=token.username, action="USER_ADD", urn=user_urn),
         token=token)
 
     if aff4.FACTORY.ExistsWithType(
@@ -66,7 +68,7 @@ class ApiDeleteGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     events.Events.PublishEvent(
         "Audit",
-        events.AuditEvent(
+        rdf_events.AuditEvent(
             user=token.username, action="USER_DELETE", urn=user_urn),
         token=token)
 
@@ -96,7 +98,7 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     events.Events.PublishEvent(
         "Audit",
-        events.AuditEvent(
+        rdf_events.AuditEvent(
             user=token.username, action="USER_UPDATE", urn=user_urn),
         token=token)
 

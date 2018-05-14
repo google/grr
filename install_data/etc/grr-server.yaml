@@ -44,134 +44,134 @@ Arch:i386:
 Global Install Context:
   Config.directory: /etc/grr/
 
-ClientBuilder Context:
+Client Context:
   Client.foreman_check_frequency: 1800
   Client.poll_max: 600
 
-  Target:Darwin:
-    # The build system generates a build.yaml file with information about the
-    # build. It is placed right next to this file.
-    Config.includes:
-      - build.yaml
+Target:Darwin:
+  # The build system generates a build.yaml file with information about the
+  # build. It is placed right next to this file.
+  Config.includes:
+    - build.yaml
 
-    Client.install_path: |
-      /usr/local/lib/%(Client.name)/%(ClientRepacker.output_basename)
+  Client.install_path: |
+    /usr/local/lib/%(Client.name)/%(ClientRepacker.output_basename)
 
-    Client.rekall_profile_cache_path: |
-      %(Client.install_path)/rekall_profiles
+  Client.rekall_profile_cache_path: |
+    %(Client.install_path)/rekall_profiles
 
-    ClientBuilder.build_dest: "%(Client.name)-build"
+  ClientBuilder.build_dest: "%(Client.name)-build"
 
-    ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
+  ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
 
-    ClientBuilder.install_dir: "/usr/local/lib/%(Client.name)/%(ClientBuilder.output_basename)"
+  ClientBuilder.install_dir: "/usr/local/lib/%(Client.name)/%(ClientBuilder.output_basename)"
 
-    # Needed for package maker. Do not touch.
-    ClientBuilder.mangled_output_basename: |
-        %(Client.name)_%(Source.version_major).%(Source.version_minor).%(Source.version_revision)
+  # Needed for package maker. Do not touch.
+  ClientBuilder.mangled_output_basename: |
+      %(Client.name)_%(Source.version_major).%(Source.version_minor).%(Source.version_revision)
 
-    ClientBuilder.output_extension: .pkg
+  ClientBuilder.output_extension: .pkg
 
-    ClientBuilder.package_dir: "%(ClientBuilder.build_root_dir)/%(Client.name)-pkg"
+  ClientBuilder.package_dir: "%(ClientBuilder.build_root_dir)/%(Client.name)-pkg"
 
-    ClientBuilder.package_maker_organization: com.google.code
+  ClientBuilder.package_maker_organization: com.google.code
 
-    ClientBuilder.template_extension: .xar.zip
+  ClientBuilder.template_extension: .xar.zip
 
-    Logging.path: /var/log
+  Logging.path: /var/log
 
-    PyInstaller.distpath: |
-      /Users/%(USER|env)/mac-dist
+  PyInstaller.distpath: |
+    /Users/%(USER|env)/mac-dist
 
-    Config.writeback: /etc/%(Client.name).local.yaml
+  Config.writeback: /etc/%(Client.name).local.yaml
 
-  Target:Linux:
-    Config.includes:
-      - build.yaml
+Target:Linux:
+  Config.includes:
+    - build.yaml
 
-    Client.binary_name: grrd
+  Client.binary_name: grrd
 
-    Client.install_path: |
-      /usr/lib/%(Client.name)/%(ClientRepacker.output_basename)
+  Client.install_path: |
+    /usr/lib/%(Client.name)/%(ClientRepacker.output_basename)
 
-    Config.writeback: /etc/%(Client.name).local.yaml
+  Config.writeback: /etc/%(Client.name).local.yaml
 
-    Client.rekall_profile_cache_path: |
-      %(Client.install_path)/rekall_profiles
+  Client.rekall_profile_cache_path: |
+    %(Client.install_path)/rekall_profiles
 
-    Client.name: grr
+  Client.name: grr
 
-    ClientBuilder.daemon_link: |
-      /usr/sbin/%(Client.binary_name)
+  ClientBuilder.daemon_link: |
+    /usr/sbin/%(Client.binary_name)
 
-    ClientBuilder.output_extension: .deb
+  ClientBuilder.output_extension: .deb
+
+  ClientBuilder.target_dir: |
+    /usr/lib/%(Client.name)/%(ClientRepacker.output_basename)
+
+  ClientBuilder.template_extension: .deb.zip
+
+  Logging.engines: stderr
+
+  Logging.path: /var/log
+
+  ClientBuilder.build_root_dir: /tmp/grr-build
+
+  PyInstaller.distpath: |
+    %(PyInstaller.dpkg_root)/debian/
+
+  Target:LinuxRpm:
+    ClientBuilder.output_extension: .rpm
 
     ClientBuilder.target_dir: |
-      /usr/lib/%(Client.name)/%(ClientRepacker.output_basename)
+      /usr/lib64/%(Client.name)/%(ClientRepacker.output_basename)
 
-    ClientBuilder.template_extension: .deb.zip
+    ClientBuilder.template_extension: .rpm.zip
 
-    Logging.engines: stderr
+    Client.install_path: |
+      /usr/lib64/%(Client.name)/%(ClientRepacker.output_basename)
 
-    Logging.path: /var/log
+    Client.rekall_profile_cache_path: |
+      %(Client.install_path)/rekall_profiles
 
-    ClientBuilder.build_root_dir: /tmp/grr-build
+Target:Windows:
+  Config.includes:
+    - build.yaml
 
-    PyInstaller.distpath: |
-      %(PyInstaller.dpkg_root)/debian/
+  ClientBuilder.build_root_dir: C:\\grr-build-root
 
-    Target:LinuxRpm:
-      ClientBuilder.output_extension: .rpm
+  PyInstaller.build_dir: |
+    %(ClientBuilder.build_root_dir)\\%(ClientBuilder.build_dest)
 
-      ClientBuilder.target_dir: |
-        /usr/lib64/%(Client.name)/%(ClientRepacker.output_basename)
+  PyInstaller.distpath: |
+    C:\\grr-distpath
 
-      ClientBuilder.template_extension: .rpm.zip
+  PyInstaller.workpath_dir: |
+    %(ClientBuilder.build_root_dir)\\workpath
 
-      Client.install_path: |
-        /usr/lib64/%(Client.name)/%(ClientRepacker.output_basename)
+  ClientBuilder.output_extension: .exe
 
-      Client.rekall_profile_cache_path: |
-        %(Client.install_path)/rekall_profiles
+  ClientBuilder.template_extension: .exe.zip
 
-  Target:Windows:
-    Config.includes:
-      - build.yaml
+  ClientBuilder.vs_dir: |
+    %{C:\Program Files (x86)\Microsoft Visual Studio 12.0}
 
-    ClientBuilder.build_root_dir: C:\\grr-build-root
+# This indicates that we are building a client for debugging.
+DebugClientBuild Context:
 
-    PyInstaller.build_dir: |
-      %(ClientBuilder.build_root_dir)\\%(ClientBuilder.build_dest)
+  Logging.verbose: True
 
-    PyInstaller.distpath: |
-      C:\\grr-distpath
+  ClientBuilder.console: True
 
-    PyInstaller.workpath_dir: |
-      %(ClientBuilder.build_root_dir)\\workpath
+  Client.poll_max: 5
 
-    ClientBuilder.output_extension: .exe
+  Client.foreman_check_frequency: 30
 
-    ClientBuilder.template_extension: .exe.zip
+  Client.rss_max: 4000
 
-    ClientBuilder.vs_dir: |
-      %{C:\Program Files (x86)\Microsoft Visual Studio 12.0}
+  Nanny.unresponsive_kill_period: 3600
 
-  # This indicates that we are building a client for debugging.
-  DebugClientBuild Context:
-
-    Logging.verbose: True
-
-    ClientBuilder.console: True
-
-    Client.poll_max: 5
-
-    Client.foreman_check_frequency: 30
-
-    Client.rss_max: 4000
-
-    Nanny.unresponsive_kill_period: 3600
-
-    Client.prefix: dbg_
+  Client.prefix: dbg_
 
 ConfigUpdater Context:
   ConfigUpdater.old_config: /etc/grr/grr-server.conf

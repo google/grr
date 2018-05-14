@@ -41,23 +41,17 @@ from grr.server.grr_response_server import artifact
 from grr.server.grr_response_server import client_index
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import email_alerts
-from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import filestore
 from grr.server.grr_response_server.aff4_objects import users
 
 from grr.server.grr_response_server.flows.general import audit
-from grr.server.grr_response_server.flows.general import discovery
 from grr.server.grr_response_server.hunts import results as hunts_results
 
 from grr.test_lib import testing_startup
 
 FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
 TEST_CLIENT_ID = rdf_client.ClientURN("C.1000000000000000")
-
-
-class Error(Exception):
-  """Test base error."""
 
 
 class GRRBaseTest(unittest.TestCase):
@@ -465,20 +459,6 @@ class GRRBaseTest(unittest.TestCase):
     communicator = comms.ClientCommunicator(private_key=private_key)
     csr = communicator.GetCSR()
     return rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
-
-  def _SendNotification(self,
-                        notification_type,
-                        subject,
-                        message,
-                        client_id="aff4:/C.0000000000000001"):
-    """Sends a notification to the current user."""
-    session_id = flow.GRRFlow.StartFlow(
-        client_id=client_id,
-        flow_name=discovery.Interrogate.__name__,
-        token=self.token)
-
-    with aff4.FACTORY.Open(session_id, mode="rw", token=self.token) as flow_obj:
-      flow_obj.Notify(notification_type, subject, message)
 
   def GenerateToken(self, username, reason):
     return access_control.ACLToken(username=username, reason=reason)

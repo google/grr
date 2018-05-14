@@ -17,31 +17,14 @@ class OSXClientTests(client_test_lib.OSSpecificClientTests):
 
   def setUp(self):
     super(OSXClientTests, self).setUp()
-    modules = {
-        # Necessary to stop the import of client.osx.installers registering the
-        # actions.ActionPlugin.classes
-        "grr_response_client.osx":
-            mock.MagicMock(),
-        "grr_response_client.osx.objc":
-            mock.MagicMock(),
-        # Necessary to stop the import of client_actions.standard re-populating
-        # actions.ActionPlugin.classes
-        ("grr_response_client.client_actions"
-         ".standard"):
-            mock.MagicMock(),
-    }
-
-    self.module_patcher = mock.patch.dict("sys.modules", modules)
-    self.module_patcher.start()
-
+    # TODO(user): move this import to the top of the file.
+    # At the moment, importing this at the top of the file causes
+    # "Duplicate names for registered classes" metaclass registry
+    # error.
     # pylint: disable=g-import-not-at-top
     from grr_response_client.client_actions.osx import osx
     # pylint: enable=g-import-not-at-top
     self.osx = osx
-
-  def tearDown(self):
-    self.module_patcher.stop()
-    super(OSXClientTests, self).tearDown()
 
 
 class OSXFilesystemTests(OSXClientTests):

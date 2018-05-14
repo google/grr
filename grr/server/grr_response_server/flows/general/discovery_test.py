@@ -18,31 +18,32 @@ from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import client_index
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import events
-from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.flows.general import discovery
+from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-class DiscoveryTestEventListener(flow.EventListener):
+class DiscoveryTestEventListener(events.EventListener):
   """A test listener to receive new client discoveries."""
-  well_known_session_id = rdfvalue.SessionID(flow_name="discoverytest")
+
   EVENTS = ["Discovery"]
 
   # For this test we just write the event as a class attribute.
   event = None
 
-  @events.EventHandler(auth_required=True)
-  def ProcessMessage(self, message=None, event=None):
-    _ = message
-    DiscoveryTestEventListener.event = event
+  def ProcessMessages(self, msgs=None, token=None):
+    DiscoveryTestEventListener.event = msgs[0]
 
 
 @db_test_lib.DualDBTest
-class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
+class TestClientInterrogate(acl_test_lib.AclTestMixin,
+                            notification_test_lib.NotificationTestMixin,
+                            flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
   def _OpenClient(self):
@@ -119,14 +120,16 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(len(index.LookupClients(keywords)), expected_count)
 
   def _CheckNotificationsCreated(self):
-    user_fd = aff4.FACTORY.Open(
-        "aff4:/users/%s" % self.token.username, token=self.token)
-    notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
+    notifications = self.GetUserNotifications(self.token.username)
 
     self.assertEqual(len(notifications), 1)
     notification = notifications[0]
 
-    self.assertEqual(notification.subject, rdfvalue.RDFURN(self.client_id))
+    if data_store.RelationalDBReadEnabled():
+      self.assertEqual(notification.reference.client.client_id,
+                       self.client_id.Basename())
+    else:
+      self.assertEqual(notification.subject, rdfvalue.RDFURN(self.client_id))
 
     # TODO(amoser): Add a check here once relational notifications are a thing.
 
@@ -285,6 +288,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
     super(TestClientInterrogate, self).setUp()
     # This test checks for notifications so we can't use a system user.
     self.token.username = "discovery_test_user"
+    self.CreateUser(self.token.username)
 
   def testInterrogateCloudMetadataLinux(self):
     """Check google cloud metadata on linux."""
@@ -299,12 +303,11 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
       }):
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient()
-        for _ in flow_test_lib.TestFlowHelper(
+        flow_test_lib.TestFlowHelper(
             discovery.Interrogate.__name__,
             client_mock,
             token=self.token,
-            client_id=self.client_id):
-          pass
+            client_id=self.client_id)
 
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
         self._CheckCloudMetadata()
@@ -321,12 +324,11 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
         client_mock.InitializeClient(
             system="Windows", version="6.1.7600", kernel="6.1.7601")
         with mock.patch.object(platform, "system", return_value="Windows"):
-          for _ in flow_test_lib.TestFlowHelper(
+          flow_test_lib.TestFlowHelper(
               discovery.Interrogate.__name__,
               client_mock,
               token=self.token,
-              client_id=self.client_id):
-            pass
+              client_id=self.client_id)
 
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
         self._CheckCloudMetadata()
@@ -347,12 +349,11 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient()
 
-        for _ in flow_test_lib.TestFlowHelper(
+        flow_test_lib.TestFlowHelper(
             discovery.Interrogate.__name__,
             client_mock,
             token=self.token,
-            client_id=self.client_id):
-          pass
+            client_id=self.client_id)
 
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
         self._CheckBasicInfo("test_node.test", "Linux", 100 * 1000000)
@@ -397,12 +398,11 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
             system="Windows", version="6.1.7600", kernel="6.1.7601")
 
         # Run the flow in the simulated way
-        for _ in flow_test_lib.TestFlowHelper(
+        flow_test_lib.TestFlowHelper(
             discovery.Interrogate.__name__,
             client_mock,
             token=self.token,
-            client_id=self.client_id):
-          pass
+            client_id=self.client_id)
 
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
         self._CheckBasicInfo("test_node.test", "Windows", 100 * 1000000)

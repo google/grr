@@ -202,13 +202,13 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         elif type_name == source_type.GRR_CLIENT_ACTION:
           self.RunGrrClientAction(source)
         else:
-          raise RuntimeError("Invalid type %s in %s" % (type_name,
-                                                        artifact_name))
+          raise RuntimeError(
+              "Invalid type %s in %s" % (type_name, artifact_name))
 
       else:
-        logging.debug("Artifact %s no sources run due to all sources "
-                      "having failing conditions on %s", artifact_name,
-                      self.client_id)
+        logging.debug(
+            "Artifact %s no sources run due to all sources "
+            "having failing conditions on %s", artifact_name, self.client_id)
 
   def _AreArtifactsKnowledgeBaseArtifacts(self):
     knowledgebase_list = config.CONFIG["Artifacts.knowledge_base"]
@@ -365,9 +365,19 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       for new_path in new_paths:
         pathspec = paths.PathSpec(
             path=new_path, pathtype=paths.PathSpec.PathType.REGISTRY)
+
+        # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
+        # This conditional should be removed after that date.
+        if self.client_version >= 3221:
+          stub = server_stubs.GetFileStat
+          request = rdf_client.GetFileStatRequest(pathspec=pathspec)
+        else:
+          stub = server_stubs.StatFile
+          request = rdf_client.ListDirRequest(pathspec=pathspec)
+
         self.CallClient(
-            server_stubs.StatFile,
-            pathspec=pathspec,
+            stub,
+            request,
             request_data={
                 "artifact_name": self.current_artifact_name,
                 "source": source.ToPrimitiveDict()
@@ -459,9 +469,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
             self.state.knowledge_base,
             ignore_errors=self.args.ignore_interpolation_errors))
     if len(results) > 1:
-      raise ValueError("Interpolation generated multiple results, use a"
-                       " list for multi-value expansions. %s yielded: %s" %
-                       (value, results))
+      raise ValueError(
+          "Interpolation generated multiple results, use a"
+          " list for multi-value expansions. %s yielded: %s" % (value, results))
     return results[0]
 
   def InterpolateDict(self, input_dict):
@@ -565,8 +575,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     source = responses.request_data.GetItem("source", None)
 
     if responses.success:
-      self.Log("Artifact data collection %s completed successfully in flow %s "
-               "with %d responses", artifact_name, flow_name, len(responses))
+      self.Log(
+          "Artifact data collection %s completed successfully in flow %s "
+          "with %d responses", artifact_name, flow_name, len(responses))
     else:
       self.Log("Artifact %s data collection failed. Status: %s.", artifact_name,
                responses.status)
@@ -785,15 +796,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
       art_obj = artifact_registry.REGISTRY.GetArtifact(name)
     return art_obj
-
-  def NotifyAboutEnd(self):
-    response_count = self.state.get("response_count", 0)
-    failed_count = self.state.get("failed_count", 0)
-
-    self.Notify(
-        "ViewObject", self.urn,
-        "Completed artifact collection of %s. Collected %d. Errors %d." %
-        (self.args.artifact_list, response_count, failed_count))
 
   @flow.StateHandler()
   def End(self):

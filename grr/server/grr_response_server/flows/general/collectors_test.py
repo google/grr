@@ -174,14 +174,13 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
     self.fakeartifact.sources.append(coll1)
 
     artifact_list = ["FakeArtifact"]
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
         use_tsk=False,
         token=self.token,
-        client_id=self.client_id):
-      pass
+        client_id=self.client_id)
 
     # Test the AFF4 file that was created.
     fd1 = aff4.FACTORY.Open(
@@ -202,14 +201,14 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
     client.Flush()
 
     artifact_list = ["FakeArtifact"]
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
         use_tsk=False,
         token=self.token,
-        client_id=self.client_id):
-      session_id = s
+        client_id=self.client_id)
+
     flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
     self.assertEqual(len(flow_obj.state.artifacts_skipped_due_to_condition), 1)
     self.assertEqual(flow_obj.state.artifacts_skipped_due_to_condition[0],
@@ -228,13 +227,12 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
           attributes={"client_action": standard.ListProcesses.__name__})
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
-          client_id=self.client_id):
-        session_id = s
+          client_id=self.client_id)
 
       fd = flow.GRRFlow.ResultCollectionForFID(session_id)
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
@@ -254,14 +252,13 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
       self.fakeartifact.sources.append(coll1)
       self.fakeartifact2.sources.append(coll1)
       artifact_list = ["FakeArtifact", "FakeArtifact2"]
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
           client_id=self.client_id,
-          split_output_by_artifact=True):
-        session_id = s
+          split_output_by_artifact=True)
 
       # Check that we got two separate collections based on artifact name
       fd = collectors.ArtifactCollectorFlow.ResultCollectionForArtifact(
@@ -314,7 +311,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                      vfs_test_lib.FakeFullVFSHandler):
 
-        client_mock = action_mocks.ActionMock(standard.StatFile)
+        client_mock = action_mocks.ActionMock(standard.GetFileStat)
         coll1 = artifact_registry.ArtifactSource(
             type=artifact_registry.ArtifactSource.SourceType.REGISTRY_VALUE,
             attributes={
@@ -327,13 +324,12 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
             })
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
-        for s in flow_test_lib.TestFlowHelper(
+        session_id = flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
-            client_id=self.client_id):
-          session_id = s
+            client_id=self.client_id)
 
     # Test the statentry got stored.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -347,7 +343,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                      vfs_test_lib.FakeFullVFSHandler):
 
-        client_mock = action_mocks.ActionMock(standard.StatFile)
+        client_mock = action_mocks.ActionMock(standard.GetFileStat)
         coll1 = artifact_registry.ArtifactSource(
             type=artifact_registry.ArtifactSource.SourceType.REGISTRY_VALUE,
             attributes={
@@ -358,13 +354,12 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
             })
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
-        for s in flow_test_lib.TestFlowHelper(
+        session_id = flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
-            client_id=self.client_id):
-          session_id = s
+            client_id=self.client_id)
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
@@ -410,13 +405,12 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
     self.output_count += 1
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
         token=self.token,
-        client_id=self.client_id):
-      session_id = s
+        client_id=self.client_id)
 
     return flow.GRRFlow.ResultCollectionForFID(session_id)
 

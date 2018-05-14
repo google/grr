@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 """Search for certain files, filter them by given criteria and do something."""
 
-
 import stat
 
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact_utils
 from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
@@ -114,7 +113,8 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       self.GlobForPaths(
           self.args.paths,
           pathtype=self.args.pathtype,
-          process_non_regular_files=self.args.process_non_regular_files)
+          process_non_regular_files=self.args.process_non_regular_files,
+          collect_ext_attrs=action.stat.collect_ext_attrs)
 
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""
@@ -264,14 +264,16 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
           policy = self.args.action.hash.oversized_file_policy
           options = rdf_file_finder.FileFinderHashActionOptions
           if policy == options.OversizedFilePolicy.SKIP:
-            self.Log("%s too large to hash, skipping according to SKIP "
-                     "policy. Size=%d",
-                     response.stat_entry.pathspec.CollapsePath(), file_size)
+            self.Log(
+                "%s too large to hash, skipping according to SKIP "
+                "policy. Size=%d", response.stat_entry.pathspec.CollapsePath(),
+                file_size)
           elif policy == options.OversizedFilePolicy.HASH_TRUNCATED:
-            self.Log("%s too large to hash, hashing its first %d bytes "
-                     "according to HASH_TRUNCATED policy. Size=%d",
-                     response.stat_entry.pathspec.CollapsePath(),
-                     self.args.action.download.max_size, file_size)
+            self.Log(
+                "%s too large to hash, hashing its first %d bytes "
+                "according to HASH_TRUNCATED policy. Size=%d",
+                response.stat_entry.pathspec.CollapsePath(),
+                self.args.action.download.max_size, file_size)
             hash_file = True
         else:
           hash_file = True
@@ -291,14 +293,16 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
           policy = self.args.action.download.oversized_file_policy
           options = rdf_file_finder.FileFinderDownloadActionOptions
           if policy == options.OversizedFilePolicy.SKIP:
-            self.Log("%s too large to fetch, skipping according to SKIP "
-                     "policy. Size=%d",
-                     response.stat_entry.pathspec.CollapsePath(), file_size)
+            self.Log(
+                "%s too large to fetch, skipping according to SKIP "
+                "policy. Size=%d", response.stat_entry.pathspec.CollapsePath(),
+                file_size)
           elif policy == options.OversizedFilePolicy.HASH_TRUNCATED:
-            self.Log("%s too large to fetch, hashing its first %d bytes "
-                     "according to HASH_TRUNCATED policy. Size=%d",
-                     response.stat_entry.pathspec.CollapsePath(),
-                     self.args.action.download.max_size, file_size)
+            self.Log(
+                "%s too large to fetch, hashing its first %d bytes "
+                "according to HASH_TRUNCATED policy. Size=%d",
+                response.stat_entry.pathspec.CollapsePath(),
+                self.args.action.download.max_size, file_size)
             self.FingerprintFile(
                 response.stat_entry.pathspec,
                 max_filesize=self.args.action.download.max_size,
@@ -332,12 +336,6 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     result = request_data["original_result"]
     result.hash_entry = file_hash
     self.SendReply(result)
-
-  def NotifyAboutEnd(self):
-    files_found = self.state.get("files_found", 0)
-
-    self.Notify("ViewObject", self.urn,
-                "Found and processed %d files." % files_found)
 
   @flow.StateHandler()
   def End(self, responses):
@@ -382,6 +380,7 @@ class ClientFileFinder(flow.GRRFlow):
       raise flow.FlowError(responses.status)
 
     self.state.files_found = len(responses)
+    files_to_publish = []
     with data_store.DB.GetMutationPool() as pool:
       for response in responses:
         if response.HasField("transferred_file"):
@@ -392,13 +391,13 @@ class ClientFileFinder(flow.GRRFlow):
         self.SendReply(response)
 
         if stat.S_ISREG(response.stat_entry.st_mode):
-          # Publish the new file event to cause the file to be added to the
-          # filestore. This is not time critical so do it when we have spare
-          # capacity.
-          self.Publish(
-              "FileStore.AddFileToStore",
-              response.stat_entry.pathspec.AFF4Path(self.client_id),
-              priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
+          files_to_publish.append(
+              response.stat_entry.pathspec.AFF4Path(self.client_id))
+
+    if files_to_publish:
+      events.Events.PublishMultipleEvents({
+          "FileStore.AddFileToStore": files_to_publish
+      })
 
   def _CreateAff4BlobImage(self, response, mutation_pool=None):
     urn = response.stat_entry.pathspec.AFF4Path(self.client_id)

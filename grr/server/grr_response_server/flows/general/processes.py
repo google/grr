@@ -61,8 +61,8 @@ class ListProcesses(flow.GRRFlow):
           paths_to_fetch.add(p.exe)
       paths_to_fetch = sorted(paths_to_fetch)
 
-      self.Log("Got %d processes, fetching binaries for %d...",
-               len(responses), len(paths_to_fetch))
+      self.Log("Got %d processes, fetching binaries for %d...", len(responses),
+               len(paths_to_fetch))
 
       self.CallFlow(
           file_finder.FileFinder.__name__,
@@ -100,7 +100,3 @@ class ListProcesses(flow.GRRFlow):
     else:
       self.Log("Download of file %s failed %s", responses.request_data["path"],
                responses.status)
-
-  def NotifyAboutEnd(self):
-    if self.runner.IsWritingResults():
-      self.Notify("ViewObject", self.urn, "ListProcesses completed.")

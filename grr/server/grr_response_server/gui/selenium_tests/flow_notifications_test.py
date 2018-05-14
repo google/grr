@@ -39,9 +39,8 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
 
     # Clicking on this should show the notifications table.
     self.Click("css=button[id=notification_button]")
@@ -68,9 +67,8 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
 
     def RaisingStub(*unused_args, **unused_kwargs):
       yield "foo"
@@ -104,9 +102,8 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
 

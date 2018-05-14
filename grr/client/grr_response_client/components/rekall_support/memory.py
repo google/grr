@@ -55,7 +55,8 @@ class MemoryVFS(vfs.VFSHandler):
   def IsDirectory(self):
     return False
 
-  def Stat(self):
+  def Stat(self, path=None, ext_attrs=None):
+    del path, ext_attrs  # Unused.
     result = rdf_client.StatEntry(st_size=self.size, pathspec=self.pathspec)
     return result
 

@@ -81,14 +81,13 @@ class RekallTestBase(test_lib.GRRBaseTest):
       self.CreateClient()
 
       # Allow the real RekallAction to run against the image.
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           memory.AnalyzeClientMemory.__name__,
           action_mocks.MemoryClientMock(grr_rekall.RekallAction,
                                         tempfiles.DeleteGRRTempFiles),
           token=self.token,
           client_id=self.client_id,
-          request=request):
-        session_id = s
+          request=request)
 
       # Check that the profiles are also cached locally.
       test_profile_dir = os.path.join(config.CONFIG["Test.data_dir"],

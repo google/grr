@@ -15,8 +15,10 @@ from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import hunts as rdf_hunts
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import stats as rdf_stats
 from grr.server.grr_response_server import access_control
@@ -28,10 +30,10 @@ from grr.server.grr_response_server import flow_runner
 from grr.server.grr_response_server import foreman as rdf_foreman
 from grr.server.grr_response_server import grr_collections
 from grr.server.grr_response_server import multi_type_collection
+from grr.server.grr_response_server import notification as notification_lib
 from grr.server.grr_response_server import output_plugin as output_plugin_lib
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
 from grr.server.grr_response_server.hunts import results as hunts_results
 
 
@@ -630,7 +632,7 @@ class HuntRunner(object):
     return rdfvalue.SessionID(base="aff4:/hunts", queue=self.runner_args.queue)
 
   def _CreateAuditEvent(self, event_action):
-    event = events_lib.AuditEvent(
+    event = rdf_events.AuditEvent(
         user=self.hunt_obj.token.username,
         action=event_action,
         urn=self.hunt_obj.urn,
@@ -723,12 +725,13 @@ class HuntRunner(object):
     self._CreateAuditEvent("HUNT_STOPPED")
 
     if reason:
-      with aff4.FACTORY.Create(
-          aff4.ROOT_URN.Add("users").Add(self.context.creator),
-          aff4_type=aff4_users.GRRUser,
-          mode="rw",
-          token=self.token) as user:
-        user.Notify("ViewObject", self.hunt_obj.urn, reason, self.hunt_obj.urn)
+      notification_lib.Notify(
+          self.token.username,
+          rdf_objects.UserNotification.Type.TYPE_HUNT_STOPPED, reason,
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.HUNT,
+              hunt=rdf_objects.HuntReference(
+                  hunt_id=self.hunt_obj.urn.Basename())))
 
   def IsCompleted(self):
     return self.hunt_obj.Get(self.hunt_obj.Schema.STATE) == "COMPLETED"
@@ -1192,7 +1195,7 @@ class GRRHunt(flow.FlowBase):
     except AttributeError:
       flow_name = ""
 
-    event = events_lib.AuditEvent(
+    event = rdf_events.AuditEvent(
         user=token.username,
         action="HUNT_CREATED",
         urn=hunt_obj.urn,

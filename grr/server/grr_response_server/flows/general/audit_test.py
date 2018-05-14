@@ -4,9 +4,9 @@
 import os
 
 from grr.lib import flags
+from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import events
 from grr.server.grr_response_server.flows.general import audit
 from grr.server.grr_response_server.flows.general import filesystem
 from grr.test_lib import action_mocks
@@ -23,25 +23,23 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
     rollover = aff4.AUDIT_ROLLOVER_TIME.seconds
     # Set time to epoch + 20 intervals
     with test_lib.FakeTime(20 * rollover):
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           filesystem.ListDirectory.__name__,
           client_mock,
           client_id=client_id,
           pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
               pathtype=rdf_paths.PathSpec.PathType.OS),
-          token=self.token):
-        pass
+          token=self.token)
 
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           filesystem.ListDirectory.__name__,
           client_mock,
           client_id=client_id,
           pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
               pathtype=rdf_paths.PathSpec.PathType.OS),
-          token=self.token):
-        pass
+          token=self.token)
 
       parentdir = aff4.FACTORY.Open(
           "aff4:/audit/logs", aff4.AFF4Volume, mode="r", token=self.token)
@@ -53,21 +51,20 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
 
       self.assertEqual(len(stored_events), 2)
       for event in stored_events:
-        self.assertEqual(event.action, events.AuditEvent.Action.RUN_FLOW)
+        self.assertEqual(event.action, rdf_events.AuditEvent.Action.RUN_FLOW)
         self.assertEqual(event.flow_name, filesystem.ListDirectory.__name__)
         self.assertEqual(event.user, self.token.username)
 
     # Set time to epoch + 22 intervals
     with test_lib.FakeTime(22 * rollover):
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           filesystem.ListDirectory.__name__,
           client_mock,
           client_id=client_id,
           pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
               pathtype=rdf_paths.PathSpec.PathType.OS),
-          token=self.token):
-        pass
+          token=self.token)
 
       parentdir = aff4.FACTORY.Open(
           "aff4:/audit/logs", aff4.AFF4Volume, mode="r", token=self.token)

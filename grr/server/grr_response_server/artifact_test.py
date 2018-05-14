@@ -160,7 +160,7 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
         standard.HashBuffer,
         standard.HashFile,
         standard.ListDirectory,
-        standard.StatFile,
+        standard.GetFileStat,
         standard.TransferBuffer,
     )
 
@@ -191,14 +191,13 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
     if client_mock is None:
       client_mock = self.MockClient(client_id=client_id)
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock=client_mock,
         client_id=client_id,
         artifact_list=artifact_list,
         token=self.token,
-        **kw):
-      session_id = s
+        **kw)
 
     return flow.GRRFlow.ResultCollectionForFID(session_id)
 
@@ -373,14 +372,13 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     client_id = test_lib.TEST_CLIENT_ID
     client_mock = self.MockClient(standard.ExecuteCommand, client_id=client_id)
     with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
-      for s in flow_test_lib.TestFlowHelper(
+      session_id = flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           client_id=client_id,
           use_tsk=False,
           artifact_list=["TestCmdArtifact"],
-          token=self.token):
-        session_id = s
+          token=self.token)
 
     results = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(results), 3)
@@ -517,13 +515,12 @@ class ArtifactFlowWindowsTest(ArtifactTest):
 class GrrKbTest(ArtifactTest):
 
   def _RunKBI(self, **kw):
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         artifact.KnowledgeBaseInitializationFlow.__name__,
         self.client_mock,
         client_id=test_lib.TEST_CLIENT_ID,
         token=self.token,
-        **kw):
-      session_id = s
+        **kw)
 
     col = flow.GRRFlow.ResultCollectionForFID(session_id)
     results = list(col)
@@ -595,15 +592,13 @@ class GrrKbWindowsTest(GrrKbTest):
         "\\CurrentVersion\\ProfileList\\AllUsersProfile"
     ]
 
-    for _ in flow_test_lib.TestFlowHelper(
+    flow_test_lib.TestFlowHelper(
         filesystem.Glob.__name__,
         self.client_mock,
         paths=paths,
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         client_id=client_id,
-        token=self.token):
-      pass
-
+        token=self.token)
     path = paths[0].replace("\\", "/")
 
     fd = aff4.FACTORY.Open(
@@ -654,13 +649,12 @@ class GrrKbWindowsTest(GrrKbTest):
     with test_lib.ConfigOverrider({"Artifacts.knowledge_base": artifact_list}):
       logging.disable(logging.CRITICAL)
       try:
-        for s in flow_test_lib.TestFlowHelper(
+        session_id = flow_test_lib.TestFlowHelper(
             artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             client_id=test_lib.TEST_CLIENT_ID,
             check_flow_errors=False,
-            token=self.token):
-          session_id = s
+            token=self.token)
       finally:
         logging.disable(logging.NOTSET)
     return session_id

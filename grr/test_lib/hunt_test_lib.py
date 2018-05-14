@@ -37,12 +37,14 @@ class SampleHuntMock(object):
     self.system_cpu_time = system_cpu_time
     self.network_bytes_sent = network_bytes_sent
 
+  def GetFileStat(self, args):
+    return self.StatFile(args)
+
+  # TODO(hanuszczak): Remove this once `StatFile` is deprecated.
   def StatFile(self, args):
     """StatFile action mock."""
-    req = rdf_client.ListDirRequest(args)
-
     response = rdf_client.StatEntry(
-        pathspec=req.pathspec,
+        pathspec=args.pathspec,
         st_mode=33184,
         st_ino=1063090,
         st_dev=64512L,
@@ -251,8 +253,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
         flow_name=process_results.ProcessHuntResultCollectionsCronFlow.__name__,
         token=self.token,
         **flow_args)
-    for _ in flow_test_lib.TestFlowHelper(flow_urn, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(flow_urn, token=self.token)
     return flow_urn
 
 

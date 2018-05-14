@@ -106,65 +106,107 @@ class ObjectTest(unittest.TestCase):
     self.assertEqual(client.timestamp, summary.timestamp)
 
 
+class PathIDTest(unittest.TestCase):
+
+  def testEquality(self):
+    foo = objects.PathID(["quux", "norf"])
+    bar = objects.PathID(["quux", "norf"])
+
+    self.assertIsNot(foo, bar)
+    self.assertEqual(foo, bar)
+
+  def testInequality(self):
+    foo = objects.PathID(["quux", "foo"])
+    bar = objects.PathID(["quux", "bar"])
+
+    self.assertIsNot(foo, bar)
+    self.assertNotEqual(foo, bar)
+
+  def testHash(self):
+    quuxes = dict()
+    quuxes[objects.PathID(["foo", "bar"])] = 4
+    quuxes[objects.PathID(["foo", "baz"])] = 8
+    quuxes[objects.PathID(["norf"])] = 15
+    quuxes[objects.PathID(["foo", "bar"])] = 16
+    quuxes[objects.PathID(["norf"])] = 23
+    quuxes[objects.PathID(["thud"])] = 42
+
+    self.assertEqual(quuxes[objects.PathID(["foo", "bar"])], 16)
+    self.assertEqual(quuxes[objects.PathID(["foo", "baz"])], 8)
+    self.assertEqual(quuxes[objects.PathID(["norf"])], 23)
+    self.assertEqual(quuxes[objects.PathID(["thud"])], 42)
+
+  def testRepr(self):
+    string = str(objects.PathID(["foo", "bar", "baz"]))
+    self.assertRegexpMatches(string, r"^PathID\(\'[0-9a-f]{64}\'\)$")
+
+  def testReprEmpty(self):
+    string = str(objects.PathID([]))
+    self.assertEqual(string, "PathID('{}')".format("0" * 64))
+
+
 class PathInfoTest(unittest.TestCase):
 
-  def testPathInfoMakePathID(self):
-    # Even if the path components have unlikely/uncommon characters, we
-    # shouldn't have any id collisions.
-    test_paths = [
-        ["usr", "local", "bin", "protoc"],
-        ["usr", "home", "user"],
-        ["usr", "home", "user\n"],
-        ["usr", "home", "user\00"],
-        ["usr", "home", "user", u"⛄࿄"],
-        ["usr", "home", "user", "odd", "path"],
-        ["usr", "home", "user", "odd/path"],
-        ["usr", "home", "user", "odd\\path"],
-    ]
-    hashes_seen = set()
-    for path in test_paths:
-      self.assertNotIn(objects.PathInfo.MakePathID(path), hashes_seen)
-      hashes_seen.add(objects.PathInfo.MakePathID(path))
-      # Check that the result is stable.
-      self.assertIn(objects.PathInfo.MakePathID(path), hashes_seen)
-    self.assertEqual(len(hashes_seen), len(test_paths))
+  def testRootPathDirectoryValidation(self):
+    with self.assertRaises(AssertionError):
+      objects.PathInfo(components=[])
 
-  def testAncestorPathIDs(self):
-    hashes_seen = set()
-    for path_id, _ in objects.PathInfo.MakeAncestorPathIDs(
-        ["usr", "home", "user", "has", "a", "long", "long", "path"]):
-      hashes_seen.add(path_id)
-    self.assertEqual(len(hashes_seen), 8)
+  def testGetParentNonRoot(self):
+    path_info = objects.PathInfo.TSK(components=["foo", "bar"], directory=False)
 
-    self.assertIn(objects.PathInfo.MakePathID(["usr"]), hashes_seen)
-    self.assertIn(
-        objects.PathInfo.MakePathID(["usr", "home", "user", "has"]),
-        hashes_seen)
-    self.assertIn(
-        objects.PathInfo.MakePathID(
-            ["usr", "home", "user", "has", "a", "long", "long"]), hashes_seen)
-    # We consider a path to be an ancestor of itself.
-    self.assertIn(
-        objects.PathInfo.MakePathID(
-            ["usr", "home", "user", "has", "a", "long", "long", "path"]),
-        hashes_seen)
+    parent_path_info = path_info.GetParent()
+    self.assertIsNotNone(parent_path_info)
+    self.assertEqual(parent_path_info.components, ["foo"])
+    self.assertEqual(parent_path_info.path_type, objects.PathInfo.PathType.TSK)
+    self.assertEqual(parent_path_info.directory, True)
 
-  def testUpdateFromValidates(self):
-    # cannot merge from a string
-    with self.assertRaises(ValueError):
+  def testGetParentAlmostRoot(self):
+    path_info = objects.PathInfo.OS(components=["foo"], directory=False)
+
+    parent_path_info = path_info.GetParent()
+    self.assertIsNotNone(parent_path_info)
+    self.assertEqual(parent_path_info.components, [])
+    self.assertEqual(parent_path_info.path_type, objects.PathInfo.PathType.OS)
+    self.assertTrue(parent_path_info.root)
+    self.assertTrue(parent_path_info.directory)
+
+  def testGetParentRoot(self):
+    path_info = objects.PathInfo.Registry(components=[], directory=True)
+
+    self.assertIsNone(path_info.GetParent())
+
+  def testGetAncestorsEmpty(self):
+    path_info = objects.PathInfo(components=[], directory=True)
+    self.assertEqual(list(path_info.GetAncestors()), [])
+
+  def testGetAncestorsRoot(self):
+    path_info = objects.PathInfo(components=["foo"])
+
+    results = list(path_info.GetAncestors())
+    self.assertEqual(len(results), 1)
+    self.assertEqual(results[0].components, [])
+
+  def testGetAncestorsOrder(self):
+    path_info = objects.PathInfo(components=["foo", "bar", "baz", "quux"])
+
+    results = list(path_info.GetAncestors())
+    self.assertEqual(len(results), 4)
+    self.assertEqual(results[0].components, ["foo", "bar", "baz"])
+    self.assertEqual(results[1].components, ["foo", "bar"])
+    self.assertEqual(results[2].components, ["foo"])
+    self.assertEqual(results[3].components, [])
+
+  def testUpdateFromValidatesType(self):
+    with self.assertRaises(TypeError):
       objects.PathInfo(
           components=["usr", "local", "bin"],).UpdateFrom("/usr/local/bin")
-    # both must refer to the same path type
+
+  def testUpdateFromValidatesPathType(self):
     with self.assertRaises(ValueError):
-      objects.PathInfo(
-          components=["usr", "local", "bin"],
-          path_type=objects.PathInfo.PathType.OS,
-      ).UpdateFrom(
-          objects.PathInfo(
-              components=["usr", "local", "bin"],
-              path_type=objects.PathInfo.PathType.TSK,
-          ))
-    # both must refer to the same path
+      objects.PathInfo.OS(components=["usr", "local", "bin"]).UpdateFrom(
+          objects.PathInfo.TSK(components=["usr", "local", "bin"]))
+
+  def testUpdateFromValidatesComponents(self):
     with self.assertRaises(ValueError):
       objects.PathInfo(components=["usr", "local", "bin"]).UpdateFrom(
           objects.PathInfo(components=["usr", "local", "bin", "protoc"]))

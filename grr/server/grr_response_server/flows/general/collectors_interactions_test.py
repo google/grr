@@ -122,12 +122,11 @@ supported_os: [ "Linux" ]
     client_mock = action_mocks.FileFinderClientMock()
 
     # Get KB initialized
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         artifact.KnowledgeBaseInitializationFlow.__name__,
         client_mock,
         client_id=self.client_id,
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     col = flow.GRRFlow.ResultCollectionForFID(session_id)
     with aff4.FACTORY.Open(
@@ -137,14 +136,13 @@ supported_os: [ "Linux" ]
     artifact_list = ["WindowsPersistenceMechanismFiles"]
     with test_lib.Instrument(transfer.MultiGetFile,
                              "Start") as getfile_instrument:
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
           client_id=self.client_id,
-          split_output_by_artifact=True):
-        pass
+          split_output_by_artifact=True)
 
       # Check MultiGetFile got called for our runkey files
       # TODO(user): RunKeys for S-1-5-20 are not found because users.sid only
@@ -156,14 +154,13 @@ supported_os: [ "Linux" ]
     artifact_list = ["BadPathspecArtifact"]
     with test_lib.Instrument(transfer.MultiGetFile,
                              "Start") as getfile_instrument:
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
           client_id=self.client_id,
-          split_output_by_artifact=True):
-        pass
+          split_output_by_artifact=True)
 
       self.assertFalse(getfile_instrument.args)
 

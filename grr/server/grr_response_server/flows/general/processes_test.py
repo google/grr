@@ -32,9 +32,8 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
         flow_name=flow_processes.ListProcesses.__name__,
         token=self.token)
-    for s in flow_test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=client_id, token=self.token):
-      session_id = s
+    session_id = flow_test_lib.TestFlowHelper(
+        flow_urn, client_mock, client_id=client_id, token=self.token)
 
     # Check the output collection
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -77,9 +76,8 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         flow_name=flow_processes.ListProcesses.__name__,
         filename_regex=r".*cmd2.exe",
         token=self.token)
-    for s in flow_test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=client_id, token=self.token):
-      session_id = s
+    session_id = flow_test_lib.TestFlowHelper(
+        flow_urn, client_mock, client_id=client_id, token=self.token)
 
     # Expect one result that matches regex
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -125,9 +123,8 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         flow_name=flow_processes.ListProcesses.__name__,
         connection_states=["ESTABLISHED", "LISTEN"],
         token=self.token)
-    for s in flow_test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=client_id, token=self.token):
-      session_id = s
+    session_id = flow_test_lib.TestFlowHelper(
+        flow_urn, client_mock, client_id=client_id, token=self.token)
 
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(processes), 2)
@@ -155,14 +152,13 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
 
     client_mock = action_mocks.ListProcessesMock([p1, p2])
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
         fetch_binaries=True,
         client_id=client_id,
         connection_states=["LISTEN"],
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     # No output matched.
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -178,13 +174,12 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
 
     client_mock = action_mocks.ListProcessesMock([process])
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=test_lib.TEST_CLIENT_ID,
         fetch_binaries=True,
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     results = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(results)
@@ -209,13 +204,12 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
 
     client_mock = action_mocks.ListProcessesMock([process1, process2])
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=test_lib.TEST_CLIENT_ID,
         fetch_binaries=True,
-        token=self.token):
-      session_id = s
+        token=self.token)
 
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(processes), 1)
@@ -237,14 +231,13 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
 
     client_mock = action_mocks.ListProcessesMock([process1, process2])
 
-    for s in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=test_lib.TEST_CLIENT_ID,
         fetch_binaries=True,
         token=self.token,
-        check_flow_errors=False):
-      session_id = s
+        check_flow_errors=False)
 
     results = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(results)

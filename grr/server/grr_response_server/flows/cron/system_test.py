@@ -70,9 +70,8 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
     Windows machines should be in Label1 and Label2.
     There should be no stats for UserLabel.
     """
-    for _ in flow_test_lib.TestFlowHelper(
-        system.GRRVersionBreakDown.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        system.GRRVersionBreakDown.__name__, token=self.token)
 
     histogram = aff4_stats.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
     self._CheckVersionStats("All", histogram, [0, 0, 20, 20])
@@ -119,9 +118,7 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testOSBreakdown(self):
     """Check that all client stats cron jobs are run."""
-    for _ in flow_test_lib.TestFlowHelper(
-        system.OSBreakDown.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(system.OSBreakDown.__name__, token=self.token)
 
     histogram = aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM
     self._CheckOSStats(
@@ -161,9 +158,8 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testLastAccessStats(self):
     """Check that all client stats cron jobs are run."""
-    for _ in flow_test_lib.TestFlowHelper(
-        system.LastAccessStats.__name__, token=self.token):
-      pass
+    flow_test_lib.TestFlowHelper(
+        system.LastAccessStats.__name__, token=self.token)
 
     # All our clients appeared at the same time (and did not appear since).
     self._CheckAccessStats("All", count=20L)
@@ -195,12 +191,11 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertTrue(max_age in [e.RSS_size for e in stat_entries])
 
     with test_lib.FakeTime(2.5 * max_age):
-      for _ in flow_test_lib.TestFlowHelper(
+      flow_test_lib.TestFlowHelper(
           system.PurgeClientStats.__name__,
           None,
           client_id=client_id,
-          token=self.token):
-        pass
+          token=self.token)
 
     stat_obj = aff4.FACTORY.Open(urn, age=aff4.ALL_TIMES, token=self.token)
     stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))

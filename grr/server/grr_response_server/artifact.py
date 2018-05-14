@@ -284,10 +284,6 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
 
     return provided
 
-  def NotifyAboutEnd(self):
-    client = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
-    self.Notify("ViewObject", client.urn, "Knowledge Base Updated.")
-
   @flow.StateHandler()
   def End(self, unused_responses):
     """Finish up."""
