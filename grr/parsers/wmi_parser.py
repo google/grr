@@ -58,10 +58,10 @@ def BinarySIDtoStringSID(sid):
         break
 
       if len(authority) < 4:
-        raise ValueError("In binary SID '%s', component %d has been truncated. "
-                         "Expected 4 bytes, found %d: (%s)",
-                         ",".join([str(ord(c)) for c in sid]), i,
-                         len(authority), authority)
+        raise ValueError(
+            "In binary SID '%s', component %d has been truncated. "
+            "Expected 4 bytes, found %d: (%s)" % (",".join(
+                [str(ord(c)) for c in sid]), i, len(authority), authority))
       str_sid_components.append(struct.unpack("<L", authority)[0])
       start += 4
 
@@ -80,8 +80,8 @@ class WMIEventConsumerParser(parsers.WMIQueryParser):
     wmi_dict = result.ToDict()
 
     try:
-      wmi_dict["CreatorSID"] = BinarySIDtoStringSID(
-          "".join([chr(i) for i in wmi_dict["CreatorSID"]]))
+      wmi_dict["CreatorSID"] = BinarySIDtoStringSID("".join(
+          [chr(i) for i in wmi_dict["CreatorSID"]]))
     except (ValueError, TypeError) as e:
       # We recover from corrupt SIDs by outputting it raw as a string
       wmi_dict["CreatorSID"] = str(wmi_dict["CreatorSID"])
@@ -110,7 +110,7 @@ class WMIEventConsumerParser(parsers.WMIQueryParser):
 
       # Raise if the parser generated no output but there were fields.
       if wmi_dict and not output:
-        raise ValueError("Non-empty dict %s returned empty output.", wmi_dict)
+        raise ValueError("Non-empty dict %s returned empty output." % wmi_dict)
 
       yield output
 
@@ -319,8 +319,8 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
               rdf_client.NetworkAddress(human_readable_address=ip_address))
       else:
         addresses.append(
-            rdf_client.NetworkAddress(human_readable_address=interface[
-                inputkey]))
+            rdf_client.NetworkAddress(
+                human_readable_address=interface[inputkey]))
       output_dict[outputkey] = addresses
     return output_dict
 
@@ -329,11 +329,11 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
     _ = query, knowledge_base
 
     args = {"ifname": result["Description"]}
-    args["mac_address"] = binascii.unhexlify(
-        result["MACAddress"].replace(":", ""))
+    args["mac_address"] = binascii.unhexlify(result["MACAddress"].replace(
+        ":", ""))
 
-    self._ConvertIPs([("IPAddress", "addresses"), ("DefaultIPGateway",
-                                                   "ip_gateway_list"),
+    self._ConvertIPs([("IPAddress", "addresses"),
+                      ("DefaultIPGateway", "ip_gateway_list"),
                       ("DHCPServer", "dhcp_server_list")], result, args)
 
     if "DHCPLeaseExpires" in result:

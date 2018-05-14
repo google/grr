@@ -94,7 +94,7 @@ class RekallRepositoryProfileServer(ProfileServer):
       handle = urllib2.urlopen(url, timeout=10)
       profile_data = handle.read()
       if profile_data[:3] != "\x1F\x8B\x08":
-        raise ValueError("Downloaded file does not look like gzipped data: %s",
+        raise ValueError("Downloaded file does not look like gzipped data: %s" %
                          profile_data[:100])
       compression = "GZIP"
     except urllib2.HTTPError as e:

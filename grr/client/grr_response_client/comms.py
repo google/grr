@@ -251,8 +251,9 @@ class HTTPManager(object):
       return result
 
     # No connection is possible at all.
-    logging.info("Could not connect to GRR servers %s, directly or through "
-                 "these proxies: %s.", self.base_urls, self.proxies)
+    logging.info(
+        "Could not connect to GRR servers %s, directly or through "
+        "these proxies: %s.", self.base_urls, self.proxies)
 
     return last_error
 
@@ -682,8 +683,8 @@ class GRRClientWorker(threading.Thread):
       logging.info("Queue is full, dropping messages.")
 
   def GetRekallProfile(self, profile_name, version="v1.0"):
-    response = self.http_manager.OpenServerEndpoint(u"/rekall_profiles/%s/%s" %
-                                                    (version, profile_name))
+    response = self.http_manager.OpenServerEndpoint(
+        u"/rekall_profiles/%s/%s" % (version, profile_name))
 
     if response.code != 200:
       return None
@@ -1462,5 +1463,5 @@ class ClientCommunicator(communicator.Communicator):
     if common_name == self.server_name:
       return self.server_public_key
 
-    raise communicator.UnknownClientCert("Client wants to talk to %s, not %s",
-                                         common_name, self.server_name)
+    raise communicator.UnknownClientCert(
+        "Client wants to talk to %s, not %s" % (common_name, self.server_name))

@@ -306,7 +306,7 @@ class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
     elif args.state == "DISABLED":
       aff4_cronjobs.CRON_MANAGER.DisableJob(cron_job_urn, token=token)
     else:
-      raise ValueError("Invalid cron job state: %s", str(args.state))
+      raise ValueError("Invalid cron job state: %s" % str(args.state))
 
     cron_job_obj = aff4.FACTORY.Open(
         cron_job_urn, aff4_type=aff4_cronjobs.CronJob, token=token)

@@ -132,8 +132,8 @@ class HttpApiRegressionTestMixinBase(object):
       request, prepped_request = self._PrepareV2Request(
           method_metadata.name, args=args)
     else:
-      raise ValueError("api_version may be only 1 or 2, not %d",
-                       flags.FLAGS.api_version)
+      raise ValueError(
+          "api_version may be only 1 or 2, not %d" % flags.FLAGS.api_version)
 
     session = requests.Session()
     response = session.send(prepped_request)

@@ -81,8 +81,12 @@ def SetCoreGRRKnowledgeBaseValues(kb, client_obj):
     kb.fqdn = utils.SmartUnicode(client_obj.Get(client_schema.HOSTNAME, ""))
   versions = client_obj.Get(client_schema.OS_VERSION)
   if versions and versions.versions:
-    kb.os_major_version = versions.versions[0]
-    kb.os_minor_version = versions.versions[1]
+    try:
+      kb.os_major_version = versions.versions[0]
+      kb.os_minor_version = versions.versions[1]
+    except IndexError:
+      # Some OSs don't have a minor version.
+      pass
   client_os = client_obj.Get(client_schema.SYSTEM)
   if client_os:
     kb.os = utils.SmartUnicode(client_obj.Get(client_schema.SYSTEM))

@@ -143,8 +143,9 @@ class Responses(object):
       if self.status is None:
         # This is a special case of de-synchronized messages.
         if self._dropped_responses:
-          logging.error("De-synchronized messages detected:\n" + "\n".join(
-              [utils.SmartUnicode(x) for x in self._dropped_responses]))
+          logging.error(
+              "De-synchronized messages detected:\n %s", "\n".join(
+                  [utils.SmartUnicode(x) for x in self._dropped_responses]))
 
         if responses:
           self._LogFlowState(responses)
@@ -1179,7 +1180,7 @@ class WellKnownFlow(GRRFlow):
   def ProcessMessage(self, msg):
     """This is where messages get processed.
 
-    Override in derived classes:
+    Override in derived classes.
 
     Args:
        msg: The GrrMessage sent by the client. Note that this

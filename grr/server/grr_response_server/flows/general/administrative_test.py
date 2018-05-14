@@ -289,7 +289,10 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
   def testStartupHandlerRelational(self):
     client_id = test_lib.TEST_CLIENT_ID
 
-    with utils.Stubber(data_store, "RelationalDBReadEnabled", lambda: True):
+    with test_lib.ConfigOverrider({
+        "Database.useForReads": True,
+        "Database.useForReads.message_handlers": True
+    }):
       rel_client_id = client_id.Basename()
       data_store.REL_DB.WriteClientMetadata(
           rel_client_id, fleetspeak_enabled=False)

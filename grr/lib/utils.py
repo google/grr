@@ -27,6 +27,8 @@ import weakref
 import zipfile
 import zlib
 
+import psutil
+
 
 class Error(Exception):
   pass
@@ -1676,3 +1678,8 @@ class StatCache(object):
         self._cache[self._Key(path=path, follow_symlink=True)] = value
 
       return value
+
+
+def ProcessIdString():
+  return "%s@%s:%d" % (psutil.Process().name(), socket.gethostname(),
+                       os.getpid())

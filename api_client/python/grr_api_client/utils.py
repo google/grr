@@ -126,8 +126,8 @@ def Poll(generator=None, condition=None, interval=None, timeout=None):
       return obj
 
     if timeout and (time.time() - started) > timeout:
-      raise errors.PollTimeoutError("Polling on %s timed out after %ds." %
-                                    (obj, timeout))
+      raise errors.PollTimeoutError(
+          "Polling on %s timed out after %ds." % (obj, timeout))
     time.sleep(interval)
 
 
@@ -150,7 +150,7 @@ def UrnStringToHuntId(urn):
 
   components = urn.split("/")
   if len(components) != 2 or components[0] != "hunts":
-    raise ValueError("Invalid hunt URN: %s", urn)
+    raise ValueError("Invalid hunt URN: %s" % urn)
 
   return components[-1]
 

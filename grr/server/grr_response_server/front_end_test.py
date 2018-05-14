@@ -66,6 +66,7 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
             request_id=1,
             response_id=i,
             session_id=session_id,
+            auth_state="AUTHENTICATED",
             payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
     ]
 
@@ -99,6 +100,7 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
             request_id=1,
             response_id=i,
             session_id=session_id,
+            auth_state="AUTHENTICATED",
             payload=rdfvalue.RDFInteger(i),
             task_id=15) for i in range(1, 10)
     ]
@@ -111,6 +113,7 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
             response_id=len(messages) + 1,
             task_id=15,
             session_id=messages[0].session_id,
+            auth_state="AUTHENTICATED",
             payload=status,
             type=rdf_flows.GrrMessage.Type.STATUS))
 
@@ -146,12 +149,14 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
             response_id=1,
             session_id=session_id,
             payload=rdfvalue.RDFInteger(1),
+            auth_state="AUTHENTICATED",
             task_id=15),
         rdf_flows.GrrMessage(
             request_id=1,
             response_id=2,
             session_id=session_id,
             payload=status,
+            auth_state="AUTHENTICATED",
             type=rdf_flows.GrrMessage.Type.STATUS)
     ]
 
@@ -186,6 +191,33 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
 
   def testWellKnownFlowsRemote(self):
     """Make sure that flows that do not exist on the front end get scheduled."""
+    session_id = self._ReceiveWKFMessages()
+
+    # The well known flow messages should be queued now.
+    responses = data_store.DB.ReadResponsesForRequestId(session_id, 0)
+    self.assertEqual(len(responses), 9)
+
+    relational_requests = data_store.REL_DB.ReadMessageHandlerRequests()
+    self.assertEqual(len(relational_requests), 0)
+
+  def testMessageHandlers(self):
+    """Tests message handlers."""
+    with utils.Stubber(
+        queue_manager, "session_id_map",
+        {flow_test_lib.WellKnownSessionTest.well_known_session_id: "Test"}):
+      with test_lib.ConfigOverrider({
+          "Database.useForReads": True,
+          "Database.useForReads.message_handlers": True
+      }):
+        session_id = self._ReceiveWKFMessages()
+
+    responses = data_store.DB.ReadResponsesForRequestId(session_id, 0)
+    self.assertEqual(len(responses), 0)
+
+    relational_requests = data_store.REL_DB.ReadMessageHandlerRequests()
+    self.assertEqual(len(relational_requests), 9)
+
+  def _ReceiveWKFMessages(self):
     flow_test_lib.WellKnownSessionTest.messages = []
     session_id = flow_test_lib.WellKnownSessionTest.well_known_session_id
 
@@ -194,6 +226,7 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
             request_id=0,
             response_id=0,
             session_id=session_id,
+            auth_state="AUTHENTICATED",
             payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
     ]
 
@@ -206,10 +239,7 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
 
     # None get processed now
     self.assertEqual(flow_test_lib.WellKnownSessionTest.messages, [])
-
-    # The well known flow messages should be queued now.
-    responses = data_store.DB.ReadResponsesForRequestId(session_id, 0)
-    self.assertEqual(len(responses), 9)
+    return session_id
 
   def testWellKnownFlowsNotifications(self):
     flow_test_lib.WellKnownSessionTest.messages = []
@@ -224,12 +254,14 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
               request_id=0,
               response_id=0,
               session_id=session_id1,
+              auth_state="AUTHENTICATED",
               payload=rdfvalue.RDFInteger(i)))
       messages.append(
           rdf_flows.GrrMessage(
               request_id=0,
               response_id=0,
               session_id=session_id2,
+              auth_state="AUTHENTICATED",
               payload=rdfvalue.RDFInteger(i)))
 
     # This test whitelists only one flow.
@@ -467,6 +499,7 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
             response_id=1,
             session_id=session_id,
             payload=status,
+            auth_state="AUTHENTICATED",
             type=rdf_flows.GrrMessage.Type.STATUS)
     ]
 

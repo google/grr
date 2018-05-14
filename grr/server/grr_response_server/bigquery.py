@@ -36,8 +36,8 @@ def GetBigQueryClient(service_account_json=None,
                       project_id=None,
                       dataset_id=None):
   """Create a BigQueryClient."""
-  service_account_data = (service_account_json or
-                          config.CONFIG["BigQuery.service_acct_json"])
+  service_account_data = (
+      service_account_json or config.CONFIG["BigQuery.service_acct_json"])
   project_id = project_id or config.CONFIG["BigQuery.project_id"]
   dataset_id = dataset_id or config.CONFIG["BigQuery.dataset_id"]
 
@@ -151,14 +151,15 @@ class BigQueryClient(object):
             logging.exception("Error with job: %s, will retry in %s", job_id,
                               sleep_interval)
           else:
-            raise BigQueryJobUploadError("Can't retry error code %s. Giving up"
-                                         " on job: %s.", e.resp.status, job_id)
+            raise BigQueryJobUploadError(
+                "Can't retry error code %s. Giving up"
+                " on job: %s." % (e.resp.status, job_id))
     else:
       raise BigQueryJobUploadError("Can't retry error code %s. Giving up on "
-                                   "job: %s.", error.resp.status, job_id)
+                                   "job: %s." % (error.resp.status, job_id))
 
-    raise BigQueryJobUploadError("Giving up on job:%s after %s retries.",
-                                 job_id, retry_count)
+    raise BigQueryJobUploadError(
+        "Giving up on job:%s after %s retries." % (job_id, retry_count))
 
   def InsertData(self, table_id, fd, schema, job_id):
     """Insert data into a bigquery table.

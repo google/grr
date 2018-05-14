@@ -12,13 +12,8 @@ from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
 
 
-class Error(Exception):
-  pass
-
-
 class VFSDirectory(aff4.AFF4Volume):
   """This represents a directory from the client."""
-  default_container = "VFSDirectory"
 
   # We contain other objects within the tree.
   _behaviours = frozenset(["Container"])

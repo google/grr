@@ -65,7 +65,7 @@ class RegistryFinder(flow.GRRFlow):
             rdf_file_finder.FileFinderCondition(
                 condition_type=ff_condition_type_cls.SIZE, size=c.size))
       else:
-        raise ValueError("Unknown condition type: %s", c.condition_type)
+        raise ValueError("Unknown condition type: %s" % c.condition_type)
 
     return result
 

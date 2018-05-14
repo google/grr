@@ -38,13 +38,9 @@ import abc
 import atexit
 import collections
 import logging
-import os
 import random
-import socket
 import sys
 import time
-
-import psutil
 
 from grr import config
 from grr.lib import flags
@@ -426,8 +422,7 @@ class MutationPool(object):
         timestamp=(0, timestamp or rdfvalue.RDFDatetime.Now())):
       task = rdf_flows.GrrMessage.FromSerializedString(task)
       task.eta = timestamp
-      task.last_lease = "%s@%s:%d" % (psutil.Process().name(),
-                                      socket.gethostname(), os.getpid())
+      task.last_lease = utils.ProcessIdString()
       # Decrement the ttl
       task.task_ttl -= 1
       if task.task_ttl <= 0:

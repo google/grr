@@ -880,8 +880,8 @@ class ProtoEmbedded(ProtoType):
       TypeError: If the target class is not of the expected type.
     """
     if not issubclass(target, RDFProtoStruct):
-      raise TypeError("Field %s expects a protobuf, but target is %s" % self,
-                      target)
+      raise TypeError(
+          "Field %s expects a protobuf, but target is %s" % (self, target))
 
     self.late_bound = False
 

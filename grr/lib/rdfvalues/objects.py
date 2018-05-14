@@ -12,6 +12,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs
 from grr_response_proto import objects_pb2
 
@@ -374,4 +375,12 @@ class UserNotification(structs.RDFProtoStruct):
   rdf_deps = [
       rdfvalue.RDFDatetime,
       ObjectReference,
+  ]
+
+
+class MessageHandlerRequest(structs.RDFProtoStruct):
+  protobuf = objects_pb2.MessageHandlerRequest
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+      rdf_protodict.EmbeddedRDFValue,
   ]

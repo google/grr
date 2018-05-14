@@ -602,6 +602,19 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
                      rdf_flows.FlowContext.State.RUNNING)
 
   def testProcessMessagesWellKnown(self):
+    self._testProcessMessagesWellKnown()
+
+  def testMessageHandlers(self):
+    with test_lib.ConfigOverrider({
+        "Database.useForReads": True,
+        "Database.useForReads.message_handlers": True
+    }):
+      self._testProcessMessagesWellKnown()
+
+    # Make sure there are no leftover requests.
+    self.assertEqual(data_store.REL_DB.ReadMessageHandlerRequests(), [])
+
+  def _testProcessMessagesWellKnown(self):
     worker_obj = worker.GRRWorker(token=self.token)
 
     # Send a message to a WellKnownFlow - ClientStatsAuto.
@@ -789,6 +802,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
             session_id=session_id,
             payload=rdf_protodict.DataBlob(string="Response 2"),
             request_id=request_id,
+            auth_state="AUTHENTICATED",
             response_id=response_id))
 
     status = rdf_flows.GrrMessage(
@@ -798,6 +812,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
             status=rdf_flows.GrrStatus.ReturnedStatus.OK),
         request_id=request_id,
         response_id=response_id + 1,
+        auth_state="AUTHENTICATED",
         type=rdf_flows.GrrMessage.Type.STATUS)
 
     # Now we write half the status information.
@@ -897,6 +912,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
             response_id=1,
             session_id=session_id,
             payload=rdf_protodict.DataBlob(string="test%s" % i),
+            auth_state="AUTHENTICATED",
             generate_task_id=True) for i in range(1, 11)
     ]
     status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
@@ -907,6 +923,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
             session_id=session_id,
             payload=status,
             type=rdf_flows.GrrMessage.Type.STATUS,
+            auth_state="AUTHENTICATED",
             generate_task_id=True) for i in range(1, 11)
     ]
 

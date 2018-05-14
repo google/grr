@@ -320,7 +320,7 @@ class Interrogate(flow.GRRFlow):
           # rdf_objects.ClientSnapshot.
           self.state.client.hardware_info = response
         else:
-          raise ValueError("Unexpected response type: %s", type(response))
+          raise ValueError("Unexpected response type: %s" % type(response))
 
       if new_volumes:
         volumes = client.Schema.VOLUMES()

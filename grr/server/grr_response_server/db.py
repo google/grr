@@ -628,6 +628,44 @@ class Database(object):
       event: An `rdf_events.AuditEvent` instance.
     """
 
+  @abc.abstractmethod
+  def WriteMessageHandlerRequests(self, requests):
+    """Writes a list of message handler requests to the database.
+
+    Args:
+      requests: List of requests.
+    """
+
+  @abc.abstractmethod
+  def ReadMessageHandlerRequests(self):
+    """Reads all message handler requests from the database.
+
+    Returns:
+      A list of objects.MessageHandlerRequest, sorted by timestamp,
+      newest first.
+    """
+
+  @abc.abstractmethod
+  def DeleteMessageHandlerRequests(self, requests):
+    """Deletes a list of message handler requests from the database.
+
+    Args:
+      requests: List of requests.
+    """
+
+  @abc.abstractmethod
+  def LeaseMessageHandlerRequests(self, lease_time=None, limit=1000):
+    """Leases a number of message handler requests up to the indicated limit.
+
+    Args:
+      lease_time: rdfvalue.Duration indicating how long the lease should be
+                  valid.
+      limit: Limit for the number of leased requests in one call.
+
+    Returns:
+      A list of objects.MessageHandlerRequest, the leased requests.
+    """
+
 
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
@@ -699,6 +737,10 @@ class DatabaseValidationWrapper(Database):
       if not (i is None or isinstance(i, rdfvalue.RDFDatetime)):
         raise TypeError(
             "Timerange items should be None or rdfvalue.RDFDatetime")
+
+  def _ValidateDuration(self, duration):
+    if not isinstance(duration, rdfvalue.Duration):
+      raise TypeError("Expected an rdfvalue.Duration, got %s." % type(duration))
 
   def WriteClientMetadata(self,
                           client_id,
@@ -992,3 +1034,17 @@ class DatabaseValidationWrapper(Database):
       raise TypeError(message % (rdf_events.AuditEvent, type(event)))
 
     return self.delegate.WriteAuditEvent(event)
+
+  def WriteMessageHandlerRequests(self, requests):
+    return self.delegate.WriteMessageHandlerRequests(requests)
+
+  def DeleteMessageHandlerRequests(self, requests):
+    return self.delegate.DeleteMessageHandlerRequests(requests)
+
+  def ReadMessageHandlerRequests(self):
+    return self.delegate.ReadMessageHandlerRequests()
+
+  def LeaseMessageHandlerRequests(self, lease_time=None, limit=1000):
+    self._ValidateDuration(lease_time)
+    return self.delegate.LeaseMessageHandlerRequests(
+        lease_time=lease_time, limit=limit)

@@ -6,6 +6,7 @@ import abc
 from grr.server.grr_response_server import db
 from grr.server.grr_response_server import db_clients_test
 from grr.server.grr_response_server import db_events_test
+from grr.server.grr_response_server import db_message_handler_test
 from grr.server.grr_response_server import db_paths_test
 from grr.server.grr_response_server import db_users_test
 
@@ -13,6 +14,7 @@ from grr.server.grr_response_server import db_users_test
 class DatabaseTestMixin(
     db_clients_test.DatabaseTestClientsMixin,
     db_events_test.DatabaseEventsTestMixin,
+    db_message_handler_test.DatabaseTestHandlerMixin,
     db_paths_test.DatabaseTestPathsMixin,
     db_users_test.DatabaseTestUsersMixin,
 ):

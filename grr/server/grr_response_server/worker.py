@@ -10,12 +10,15 @@ import traceback
 from grr import config
 from grr.lib import flags
 from grr.lib import queues as queues_config
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import handler_registry
 from grr.server.grr_response_server import master
 from grr.server.grr_response_server import queue_manager as queue_manager_lib
 # pylint: disable=unused-import
@@ -50,7 +53,7 @@ class GRRWorker(object):
   # Duration of a flow lease time in seconds.
   flow_lease_time = 3600
   # Duration of a well known flow lease time in seconds.
-  well_known_flow_lease_time = 600
+  well_known_flow_lease_time = rdfvalue.Duration("600s")
 
   def __init__(self,
                queues=queues_config.WORKER_LIST,
@@ -68,7 +71,7 @@ class GRRWorker(object):
     Raises:
       RuntimeError: If the token is not provided.
     """
-    logging.info("started worker with queues: " + str(queues))
+    logging.info("started worker with queues: %s", str(queues))
     self.queues = queues
 
     # self.queued_flows is a timed cache of locked flows. If this worker
@@ -122,6 +125,33 @@ class GRRWorker(object):
       logging.info("Caught interrupt, exiting.")
       self.__class__.thread_pool.Join()
 
+  def _ProcessMessageHandlerRequests(self):
+    """Processes message handler requests."""
+
+    if not data_store.RelationalDBReadEnabled(category="message_handlers"):
+      return 0
+
+    requests = data_store.REL_DB.LeaseMessageHandlerRequests(
+        lease_time=self.well_known_flow_lease_time, limit=1000)
+    if not requests:
+      return 0
+
+    grouped_requests = utils.GroupBy(requests, lambda r: r.handler_name)
+    for handler_name, requests in grouped_requests.items():
+      handler_cls = handler_registry.handler_name_map.get(handler_name)
+      if not handler_cls:
+        logging.error("Unknown message handler: %s", handler_name)
+        continue
+
+      try:
+        handler_cls(token=self.token).ProcessMessages(requests)
+      except Exception:  # pylint: disable=broad-except
+        logging.exception("Exception while processing message handler %s",
+                          handler_name)
+
+    data_store.REL_DB.DeleteMessageHandlerRequests(requests)
+    return len(requests)
+
   def RunOnce(self):
     """Processes one set of messages from Task Scheduler.
 
@@ -133,6 +163,8 @@ class GRRWorker(object):
     """
     start_time = time.time()
     processed = 0
+
+    processed += self._ProcessMessageHandlerRequests()
 
     queue_manager = queue_manager_lib.QueueManager(token=self.token)
     for queue in self.queues:

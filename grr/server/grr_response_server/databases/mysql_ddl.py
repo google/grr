@@ -98,5 +98,14 @@ CREATE TABLE IF NOT EXISTS audit_event(
     client_id BIGINT UNSIGNED,
     timestamp DATETIME(6),
     details MEDIUMBLOB
+)""", """
+CREATE TABLE IF NOT EXISTS message_handler_requests(
+    handlername VARCHAR(128),
+    timestamp DATETIME(6),
+    request_id INT UNSIGNED,
+    request MEDIUMBLOB,
+    leased_until DATETIME(6),
+    leased_by VARCHAR(128),
+    PRIMARY KEY (handlername, request_id)
 )"""
 ]

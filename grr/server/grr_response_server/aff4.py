@@ -1950,8 +1950,8 @@ class AFF4Object(object):
        AttributeError: When the attribute is not of type Attribute().
     """
     if not isinstance(attribute, Attribute):
-      raise AttributeError("Attribute %s must be of type aff4.Attribute()",
-                           attribute)
+      raise AttributeError(
+          "Attribute %s must be of type aff4.Attribute()" % attribute)
 
     if not isinstance(value, attribute.attribute_type):
       raise ValueError("Value for attribute %s must be of type %s()" %

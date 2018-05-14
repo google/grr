@@ -213,7 +213,7 @@ def GetRawDevice(path):
     mount_point = win32file.GetVolumePathName(path)
   except pywintypes.error as details:
     logging.info("path not found. %s", details)
-    raise IOError("No mountpoint for path: %s", path)
+    raise IOError("No mountpoint for path: %s" % path)
 
   if not path.startswith(mount_point):
     stripped_mp = mount_point.rstrip("\\")

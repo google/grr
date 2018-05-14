@@ -875,7 +875,7 @@ def main(argv):
       aff4_path = python_hack_root_urn.Add(platform.lower()).Add(
           os.path.basename(flags.FLAGS.file))
     if not str(aff4_path).startswith(str(python_hack_root_urn)):
-      raise ValueError("AFF4 path must start with %s.", python_hack_root_urn)
+      raise ValueError("AFF4 path must start with %s." % python_hack_root_urn)
     context = ["Platform:%s" % platform.title(), "Client Context"]
     maintenance_utils.UploadSignedConfigBlob(
         content, aff4_path=aff4_path, client_context=context, token=token)

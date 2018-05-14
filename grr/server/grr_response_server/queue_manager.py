@@ -6,12 +6,14 @@ import logging
 import random
 
 from grr import config
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import fleetspeak_utils
 
@@ -22,6 +24,13 @@ class Error(Exception):
 
 class MoreDataException(Error):
   """Raised when there is more data available."""
+
+
+session_id_map = {
+    rdfvalue.SessionID(queue=queues.ENROLLMENT, flow_name="Enrol"): "Enrol",
+    rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"): "StatsHandler",
+}
+
 
 
 def _GetClientIdFromQueue(q):
@@ -115,11 +124,13 @@ class QueueManager(object):
     self.num_notification_shards = config.CONFIG["Worker.queue_shards"]
 
   def GetNotificationShard(self, queue):
+    """Gets a single shard for a given queue."""
     queue_name = str(queue)
     QueueManager.notification_shard_counters.setdefault(queue_name, 0)
     QueueManager.notification_shard_counters[queue_name] += 1
-    notification_shard_index = (QueueManager.notification_shard_counters[
-        queue_name] % self.num_notification_shards)
+    notification_shard_index = (
+        QueueManager.notification_shard_counters[queue_name] %
+        self.num_notification_shards)
     if notification_shard_index > 0:
       return queue.Add(str(notification_shard_index))
     else:
@@ -289,6 +300,25 @@ class QueueManager(object):
 
   def Flush(self):
     """Writes the changes in this object to the datastore."""
+
+    if data_store.RelationalDBReadEnabled(category="message_handlers"):
+      message_handler_requests = []
+      leftover_responses = []
+
+      for r, timestamp in self.response_queue:
+        if r.request_id == 0 and r.session_id in session_id_map:
+          message_handler_requests.append(
+              rdf_objects.MessageHandlerRequest(
+                  client_id=r.source and r.source.Basename(),
+                  handler_name=session_id_map[r.session_id],
+                  request_id=r.response_id,
+                  request=r.payload))
+        else:
+          leftover_responses.append((r, timestamp))
+
+      if message_handler_requests:
+        data_store.REL_DB.WriteMessageHandlerRequests(message_handler_requests)
+      self.response_queue = leftover_responses
 
     self.data_store.StoreRequestsAndResponses(
         new_requests=self.request_queue,
@@ -550,8 +580,8 @@ class QueueManager(object):
     now = rdfvalue.RDFDatetime.Now()
     for notification in notifications:
       if not notification.first_queued:
-        notification.first_queued = (self.frozen_timestamp or
-                                     rdfvalue.RDFDatetime.Now())
+        notification.first_queued = (
+            self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
       else:
         diff = now - notification.first_queued
         if diff.seconds >= self.notification_expiry_time:

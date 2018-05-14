@@ -276,3 +276,17 @@ message UserNotification {
   optional string message = 5;
   optional ObjectReference reference = 6;
 }
+
+message MessageHandlerRequest {
+  optional string client_id = 1;
+  optional string handler_name = 2;
+  optional uint64 timestamp = 3 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+  optional uint64 request_id = 4;
+  optional uint64 leased_until = 5 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+  optional string leased_by = 6;
+  optional EmbeddedRDFValue request = 7;
+}

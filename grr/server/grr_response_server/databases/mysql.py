@@ -218,8 +218,11 @@ class MysqlDB(db_module.Database):
           charset="utf8")
 
     self.pool = mysql_pool.Pool(Connect)
-    self._MariaDBCompatibility()
-    self._InitializeSchema()
+    with contextlib.closing(self.pool.get()) as connection:
+      with contextlib.closing(connection.cursor()) as cursor:
+        self._MariaDBCompatibility(cursor)
+        self._SetBinlogFormat(cursor)
+        self._InitializeSchema(cursor)
 
   def _CheckForMariaDB(self, cursor):
     """Checks if we are running against MariaDB."""
@@ -230,26 +233,36 @@ class MysqlDB(db_module.Database):
         return True
     return False
 
-  def _MariaDBCompatibility(self):
+  def _SetBinlogFormat(self, cursor):
+    # We use some queries that are deemed unsafe for statement
+    # based logging. MariaDB >= 10.2.4 has MIXED logging as a
+    # default, for earlier versions we set it explicitly but that
+    # requires SUPER privileges.
+
+    cursor.execute("show variables like 'binlog_format'")
+    _, log_format = cursor.fetchone()
+    if log_format == "MIXED":
+      return
+
+    logging.info("Setting mysql server binlog_format to MIXED")
+    cursor.execute("SET binlog_format=MIXED")
+
+  def _MariaDBCompatibility(self, cursor):
     # MariaDB introduced raising warnings when INSERT IGNORE
     # encounters duplicate keys. This flag disables this behavior for
     # consistency.
-    with contextlib.closing(self.pool.get()) as connection:
-      with contextlib.closing(connection.cursor()) as cursor:
-        if self._CheckForMariaDB(cursor):
-          cursor.execute("SET @@OLD_MODE = CONCAT(@@OLD_MODE, "
-                         "',NO_DUP_KEY_WARNINGS_WITH_IGNORE');")
+    if self._CheckForMariaDB(cursor):
+      cursor.execute("SET @@OLD_MODE = CONCAT(@@OLD_MODE, "
+                     "',NO_DUP_KEY_WARNINGS_WITH_IGNORE');")
 
-  def _InitializeSchema(self):
+  def _InitializeSchema(self, cursor):
     """Initialize the database's schema."""
-    with contextlib.closing(self.pool.get()) as connection:
-      with contextlib.closing(connection.cursor()) as cursor:
-        for command in mysql_ddl.SCHEMA_SETUP:
-          try:
-            cursor.execute(command)
-          except Exception:
-            logging.error("Failed to execute DDL: %s", command)
-            raise
+    for command in mysql_ddl.SCHEMA_SETUP:
+      try:
+        cursor.execute(command)
+      except Exception:
+        logging.error("Failed to execute DDL: %s", command)
+        raise
 
   def _RunInTransaction(self, function, readonly=False):
     """Runs function within a transaction.
@@ -1156,3 +1169,86 @@ class MysqlDB(db_module.Database):
     values = (username, urn, client_id, timestamp, details)
 
     cursor.execute(query, values)
+
+  @WithTransaction()
+  def WriteMessageHandlerRequests(self, requests, cursor=None):
+    """Writes a list of message handler requests to the database."""
+    query = ("INSERT IGNORE INTO message_handler_requests "
+             "(handlername, timestamp, request_id, request) VALUES ")
+    now = _RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
+
+    value_templates = []
+    args = []
+    for r in requests:
+      args.extend([r.handler_name, now, r.request_id, r.SerializeToString()])
+      value_templates.append("(%s, %s, %s, %s)")
+
+    query += ",".join(value_templates)
+    cursor.execute(query, args)
+
+  @WithTransaction(readonly=True)
+  def ReadMessageHandlerRequests(self, cursor=None):
+    """Reads all message handler requests from the database."""
+
+    query = ("SELECT timestamp, request, leased_until, leased_by "
+             "FROM message_handler_requests "
+             "ORDER BY timestamp DESC")
+
+    cursor.execute(query)
+
+    res = []
+    for timestamp, request, leased_until, leased_by in cursor.fetchall():
+      req = objects.MessageHandlerRequest.FromSerializedString(request)
+      req.timestamp = _MysqlToRDFDatetime(timestamp)
+      req.leased_by = leased_by
+      req.leased_until = _MysqlToRDFDatetime(leased_until)
+      res.append(req)
+    return res
+
+  @WithTransaction()
+  def DeleteMessageHandlerRequests(self, requests, cursor=None):
+    """Deletes a list of message handler requests from the database."""
+
+    query = "DELETE FROM message_handler_requests WHERE request_id IN ({})"
+    request_ids = set([r.request_id for r in requests])
+    query = query.format(",".join(["%s"] * len(request_ids)))
+    cursor.execute(query, request_ids)
+
+  @WithTransaction()
+  def LeaseMessageHandlerRequests(self,
+                                  lease_time=None,
+                                  limit=1000,
+                                  cursor=None):
+    """Leases a number of message handler requests up to the indicated limit."""
+
+    now = rdfvalue.RDFDatetime.Now()
+    now_str = _RDFDatetimeToMysqlString(now)
+
+    expiry = now + lease_time
+    expiry_str = _RDFDatetimeToMysqlString(expiry)
+
+    query = ("UPDATE message_handler_requests "
+             "SET leased_until=%s, leased_by=%s "
+             "WHERE leased_until IS NULL OR leased_until < %s "
+             "LIMIT %s")
+
+    id_str = utils.ProcessIdString()
+    args = (expiry_str, id_str, now_str, limit)
+    updated = cursor.execute(query, args)
+
+    if updated == 0:
+      return []
+
+    cursor.execute(
+        "SELECT timestamp, request FROM message_handler_requests "
+        "WHERE leased_by=%s AND leased_until=%s LIMIT %s",
+        (id_str, expiry_str, updated))
+    res = []
+    for timestamp, request in cursor.fetchall():
+      req = objects.MessageHandlerRequest.FromSerializedString(request)
+      req.timestamp = _MysqlToRDFDatetime(timestamp)
+      req.leased_until = expiry
+      req.leased_by = id_str
+      res.append(req)
+
+    return res

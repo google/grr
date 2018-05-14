@@ -18,6 +18,7 @@ from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import message_handlers
 from grr.server.grr_response_server import notification
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
@@ -888,7 +889,7 @@ class TransferStore(flow.WellKnownFlow):
             rdf_protodict.DataBlob.CompressionType.UNCOMPRESSED):
         pass
       else:
-        raise RuntimeError("Unsupported compression")
+        raise ValueError("Unsupported compression")
 
       blobs.append(data)
 
@@ -897,6 +898,32 @@ class TransferStore(flow.WellKnownFlow):
   def ProcessMessage(self, message):
     """Write the blob into the AFF4 blob storage area."""
     return self.ProcessMessages([message])
+
+
+class BlobHandler(message_handlers.MessageHandler):
+  """Message handler to store blobs."""
+
+  handler_name = "BlobHandler"
+
+  def ProcessMessages(self, msgs):
+    blobs = []
+    for msg in msgs:
+      blob = msg.request.payload
+      data = blob.data
+      if not data:
+        continue
+
+      ct = rdf_protodict.DataBlob.CompressionType
+      if blob.compression == ct.ZCOMPRESSION:
+        data = zlib.decompress(data)
+      elif blob.compression == ct.UNCOMPRESSED:
+        pass
+      else:
+        raise ValueError("Unsupported compression")
+
+      blobs.append(data)
+
+    data_store.DB.StoreBlobs(blobs, token=self.token)
 
 
 class SendFile(flow.GRRFlow):

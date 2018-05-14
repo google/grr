@@ -10,8 +10,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
-
-from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import output_plugin
@@ -105,8 +103,9 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             fields=[plugin_def.plugin_name])
 
       except Exception as e:  # pylint: disable=broad-except
-        logging.exception("Error processing hunt results: hunt %s, "
-                          "plugin %s", hunt_urn, utils.SmartStr(plugin))
+        logging.exception(
+            "Error processing hunt results: hunt %s, "
+            "plugin %s", hunt_urn, utils.SmartStr(plugin))
         self.Log("Error processing hunt results (hunt %s, "
                  "plugin %s): %s" % (hunt_urn, utils.SmartStr(plugin), e))
         stats.STATS.IncrementCounter(
@@ -172,8 +171,9 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
         metadata_obj.Set(
             metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
     except aff4.LockError:
-      logging.warn("ProcessHuntResultCollectionsCronFlow: "
-                   "Could not get lock on hunt metadata %s.", metadata_urn)
+      logging.warn(
+          "ProcessHuntResultCollectionsCronFlow: "
+          "Could not get lock on hunt metadata %s.", metadata_urn)
       return 0
 
     if exceptions_by_plugin:

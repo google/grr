@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Implementation of a router class that should be used by robot users."""
 
-
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import paths
@@ -249,7 +248,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     elif new_args.action.action_type == new_args.action.Action.STAT:
       pass
     else:
-      raise ValueError("Unknown action type: %s", new_args.action)
+      raise ValueError("Unknown action type: %s" % new_args.action)
 
     return new_args
 

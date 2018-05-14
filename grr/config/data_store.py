@@ -24,6 +24,10 @@ config_lib.DEFINE_bool(
     "Database.useForReads.approvals", False,
     "Use relational database for reading approvals information.")
 
+config_lib.DEFINE_bool(
+    "Database.useForReads.message_handlers", False,
+    "Enable message handlers using the relational database.")
+
 DATASTORE_PATHING = [
     r"%{(?P<path>files/hash/generic/sha256/...).*}",
     r"%{(?P<path>files/hash/generic/sha1/...).*}",
@@ -185,9 +189,9 @@ config_lib.DEFINE_string(
     default="grrbigtable",
     help="The cloud bigtable table name.")
 
-config_lib.DEFINE_integer("CloudBigtable.threadpool_size", 100,
-                          "The threadpool size for making"
-                          "parallel RPC calls.")
+config_lib.DEFINE_integer(
+    "CloudBigtable.threadpool_size", 100, "The threadpool size for making"
+    "parallel RPC calls.")
 
 config_lib.DEFINE_integer(
     "CloudBigtable.serve_nodes", 3, help=("Number of bigtable serve nodes."))

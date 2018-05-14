@@ -325,7 +325,6 @@ class FrontEndServer(object):
       self._communicator = ServerCommunicator(
           certificate=certificate, private_key=private_key, token=self.token)
 
-    self.receive_thread_pool = {}
     self.message_expiry_time = message_expiry_time
     self.max_retransmission_time = max_retransmission_time
     self.max_queue_size = max_queue_size
@@ -335,7 +334,12 @@ class FrontEndServer(object):
         max_threads=config.CONFIG["Threadpool.size"])
     self.thread_pool.Start()
 
-    # Well known flows are run on the front end.
+    # There is only a single session id that we accept unauthenticated
+    # messages for, the one to enroll new clients.
+    self.unauth_allowed_session_id = rdfvalue.SessionID(
+        queue=queues.ENROLLMENT, flow_name="Enrol")
+
+    # Some well known flows are run on the front end.
     available_wkfs = flow.WellKnownFlow.GetAllWellKnownFlows(token=self.token)
     whitelist = set(config.CONFIG["Frontend.well_known_flows"])
 
@@ -552,7 +556,17 @@ class FrontEndServer(object):
           messages, operator.attrgetter("session_id")).iteritems():
 
         # Remove and handle messages to WellKnownFlows
-        unprocessed_msgs = self.HandleWellKnownFlows(msgs)
+        leftover_msgs = self.HandleWellKnownFlows(msgs)
+
+        unprocessed_msgs = []
+        for msg in leftover_msgs:
+          if (msg.auth_state == msg.AuthorizationState.AUTHENTICATED or
+              msg.session_id == self.unauth_allowed_session_id):
+            unprocessed_msgs.append(msg)
+
+        if len(unprocessed_msgs) < len(leftover_msgs):
+          logging.info("Dropped %d unauthenticated messages for %s",
+                       len(leftover_msgs) - len(unprocessed_msgs), client_id)
 
         if not unprocessed_msgs:
           continue

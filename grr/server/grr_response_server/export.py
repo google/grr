@@ -732,7 +732,7 @@ class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):
       elif addr.address_type == addr.Family.INET6:
         ip6_addresses.append(addr.human_readable_address)
       else:
-        raise ValueError("Invalid address type: %s", addr.address_type)
+        raise ValueError("Invalid address type: %s" % addr.address_type)
 
     result = ExportedNetworkInterface(
         metadata=metadata,

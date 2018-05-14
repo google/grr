@@ -42,7 +42,7 @@ class ApiOutputPluginDescriptor(rdf_structs.RDFProtoStruct):
       self.plugin_name = plugin_class.plugin_name
       self.friendly_name = plugin_class.friendly_name
     else:
-      raise ValueError("Unknown plugin type: %s", plugin_class)
+      raise ValueError("Unknown plugin type: %s" % plugin_class)
 
     return self
 

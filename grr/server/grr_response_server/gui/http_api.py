@@ -281,7 +281,7 @@ class HttpRequestHandler(object):
     elif format_mode == JsonMode.GRR_JSON_MODE:
       return api_value_renderers.RenderValue(result)
     else:
-      raise ValueError("Invalid format_mode: %s", format_mode)
+      raise ValueError("Invalid format_mode: %s" % format_mode)
 
   @staticmethod
   def CallApiHandler(handler, args, token=None):
@@ -294,9 +294,9 @@ class HttpRequestHandler(object):
       expected_type = None.__class__
 
     if result.__class__ != expected_type:
-      raise UnexpectedResultTypeError("Expected %s, but got %s." %
-                                      (expected_type.__name__,
-                                       result.__class__.__name__))
+      raise UnexpectedResultTypeError(
+          "Expected %s, but got %s." % (expected_type.__name__,
+                                        result.__class__.__name__))
 
     return result
 
@@ -411,10 +411,8 @@ class HttpRequestHandler(object):
     except Error as e:
       logging.exception("Can't match URL to router/method: %s", e)
 
-      return self._BuildResponse(500,
-                                 dict(
-                                     message=str(e),
-                                     traceBack=traceback.format_exc()))
+      return self._BuildResponse(
+          500, dict(message=str(e), traceBack=traceback.format_exc()))
 
     request.method_metadata = method_metadata
     request.parsed_args = args

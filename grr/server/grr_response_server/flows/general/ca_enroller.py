@@ -15,6 +15,7 @@ from grr.server.grr_response_server import client_index
 from grr.server.grr_response_server import data_migration
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import message_handlers
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 
 
@@ -61,8 +62,8 @@ class CAEnroler(flow.GRRFlow):
     # certificate. We use the ClientURN to ensure this is also of the correct
     # form for a client name.
     if self.cn != self.client_id:
-      raise flow.FlowError("Certificate name %s mismatch for client %s",
-                           self.cn, self.client_id)
+      raise flow.FlowError("Certificate name %s mismatch for client %s" %
+                           (self.cn, self.client_id))
 
     with aff4.FACTORY.Create(
         self.client_id, aff4_grr.VFSGRRClient, mode="rw",
@@ -94,6 +95,7 @@ enrolment_cache = utils.FastStore(5000)
 
 class Enroler(flow.WellKnownFlow):
   """Manage enrolment requests."""
+
   well_known_session_id = rdfvalue.SessionID(
       queue=queues.ENROLLMENT, flow_name="Enrol")
 
@@ -132,3 +134,32 @@ class Enroler(flow.WellKnownFlow):
           csr=cert,
           queue=queue,
           token=self.token)
+
+
+class EnrolmentHandler(message_handlers.MessageHandler):
+  """Message handler to process enrolment requests."""
+
+  handler_name = "Enrol"
+
+  def ProcessMessages(self, msgs):
+    for msg in msgs:
+      client_id = msg.client_id
+
+      # It makes no sense to enrol the same client multiple times, so we
+      # eliminate duplicates. Note, that we can still enroll clients multiple
+      # times due to cache expiration.
+      try:
+        enrolment_cache.Get(client_id)
+        continue
+      except KeyError:
+        enrolment_cache.Put(client_id, 1)
+
+      md = data_store.REL_DB.ReadClientMetadata(client_id)
+      if not md or not md.certificate:
+        # Start the enrollment flow for this client.
+        flow.GRRFlow.StartFlow(
+            client_id=client_id,
+            flow_name=CAEnroler.__name__,
+            csr=msg.request.payload,
+            queue=queues.ENROLLMENT,
+            token=self.token)

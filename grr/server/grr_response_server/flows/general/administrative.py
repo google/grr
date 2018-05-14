@@ -28,6 +28,7 @@ from grr.server.grr_response_server import email_alerts
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import grr_collections
+from grr.server.grr_response_server import message_handlers
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import collects
@@ -264,6 +265,17 @@ class GetClientStatsAuto(flow.WellKnownFlow,
     """Processes a stats response from the client."""
     client_stats = rdf_client.ClientStats(message.payload)
     self.ProcessResponse(message.source, client_stats)
+
+
+class ClientStatsHandler(message_handlers.MessageHandler,
+                         GetClientStatsProcessResponseMixin):
+
+  handler_name = "StatsHandler"
+
+  def ProcessMessages(self, msgs):
+    for msg in msgs:
+      self.ProcessResponse(
+          rdf_client.ClientURN(msg.client_id), msg.request.payload)
 
 
 class DeleteGRRTempFilesArgs(rdf_structs.RDFProtoStruct):
@@ -791,8 +803,12 @@ class ClientStartupHandler(flow.WellKnownFlow):
       if (not current_si or current_si.client_info != new_si.client_info or
           not current_si.boot_time or
           abs(current_si.boot_time - new_si.boot_time) > drift):
-        data_store.REL_DB.WriteClientStartupInfo(client_id.Basename(), new_si)
-
+        try:
+          data_store.REL_DB.WriteClientStartupInfo(client_id.Basename(), new_si)
+        except db.UnknownClientError:
+          # On first contact with a new client, this write will fail.
+          logging.info("Can't write StartupInfo for unknown client %s",
+                       client_id)
     else:
       changes = False
       with aff4.FACTORY.Create(
