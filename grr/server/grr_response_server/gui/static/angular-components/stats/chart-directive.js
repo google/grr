@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.stats.chartDirective');
 goog.module.declareLegacyNamespace();
 

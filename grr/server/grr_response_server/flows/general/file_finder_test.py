@@ -6,9 +6,6 @@ import collections
 import glob
 import hashlib
 import os
-import platform
-import subprocess
-import unittest
 
 from grr_response_client import vfs
 from grr.lib import flags
@@ -29,6 +26,7 @@ from grr.server.grr_response_server.flows.general import audit as _
 # pylint: enable=unused-import
 from grr.server.grr_response_server.flows.general import file_finder
 from grr.test_lib import action_mocks
+from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -231,7 +229,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.client_mock = FileFinderActionMock()
     self.fixture_path = os.path.join(self.base_path, "searching")
     self.path = os.path.join(self.fixture_path, "*.log")
-    self.client_id = test_lib.TEST_CLIENT_ID
+    self.client_id = self.SetupClient(0)
 
   def testFileFinderStatActionWithoutConditions(self):
     self.RunFlowAndCheckResults(
@@ -274,14 +272,9 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   FS_NODUMP_FL = 0x00000040
   FS_UNRM_FL = 0x00000002
 
-  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
   def testFileFinderStatExtFlags(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
-      if subprocess.call(["which", "chattr"]) != 0:
-        raise unittest.SkipTest("`chattr` command is not available")
-      if subprocess.call(["chattr", "+d", temp_filepath]) != 0:
-        reason = "extended attributes not supported by filesystem"
-        raise unittest.SkipTest(reason)
+      client_test_lib.Chattr(temp_filepath, attrs=["+d"])
 
       action = rdf_file_finder.FileFinderAction.Stat()
       results = self.RunFlow(action=action, paths=[temp_filepath])
@@ -291,15 +284,10 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       self.assertTrue(stat_entry.st_flags_linux & self.FS_NODUMP_FL)
       self.assertFalse(stat_entry.st_flags_linux & self.FS_UNRM_FL)
 
-  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
   def testFileFinderStatExtAttrs(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
-      if subprocess.call(["which", "setfattr"]) != 0:
-        raise unittest.SkipTest("`setfattr` command is not available")
-      subprocess.check_call(
-          ["setfattr", temp_filepath, "-n", "user.bar", "-v", "baz"])
-      subprocess.check_call(
-          ["setfattr", temp_filepath, "-n", "user.quux", "-v", "norf"])
+      client_test_lib.SetExtAttr(temp_filepath, name="user.bar", value="baz")
+      client_test_lib.SetExtAttr(temp_filepath, name="user.quux", value="norf")
 
       action = rdf_file_finder.FileFinderAction.Stat()
       results = self.RunFlow(action=action, paths=[temp_filepath])
@@ -832,7 +820,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestClientFileFinderFlow, self).setUp()
-    self.client_id = test_lib.TEST_CLIENT_ID
+    self.client_id = self.SetupClient(0)
 
   def _RunCFF(self, paths, action):
     session_id = flow_test_lib.TestFlowHelper(

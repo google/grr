@@ -37,6 +37,7 @@ class InMemoryDB(db.Database):
     self.message_handler_requests = {}
     self.message_handler_leases = {}
     self.events = []
+    self.foreman_rules = []
 
   def ClearTestDB(self):
     self._Init()
@@ -114,7 +115,7 @@ class InMemoryDB(db.Database):
     client_id = client.client_id
 
     if client_id not in self.metadatas:
-      raise db.UnknownClientError()
+      raise db.UnknownClientError(client_id)
 
     startup_info = client.startup_info
     client.startup_info = None
@@ -198,7 +199,7 @@ class InMemoryDB(db.Database):
 
   def AddClientKeywords(self, client_id, keywords):
     if client_id not in self.metadatas:
-      raise db.UnknownClientError()
+      raise db.UnknownClientError(client_id)
 
     keywords = [utils.SmartStr(k) for k in keywords]
     for k in keywords:
@@ -226,7 +227,7 @@ class InMemoryDB(db.Database):
 
   def AddClientLabels(self, client_id, owner, labels):
     if client_id not in self.metadatas:
-      raise db.UnknownClientError()
+      raise db.UnknownClientError(client_id)
 
     labelset = self.labels.setdefault(client_id, {}).setdefault(owner, set())
     for l in labels:
@@ -256,6 +257,22 @@ class InMemoryDB(db.Database):
           result.add(objects.ClientLabel(owner=owner, name=name))
 
     return list(result)
+
+  def WriteForemanRule(self, rule):
+    self.RemoveForemanRule(rule.hunt_id)
+    self.foreman_rules.append(rule)
+
+  def RemoveForemanRule(self, hunt_id):
+    self.foreman_rules = [r for r in self.foreman_rules if r.hunt_id != hunt_id]
+
+  def ReadAllForemanRules(self):
+    return self.foreman_rules
+
+  def RemoveExpiredForemanRules(self):
+    now = rdfvalue.RDFDatetime.Now()
+    self.foreman_rules = [
+        r for r in self.foreman_rules if r.expiration_time >= now
+    ]
 
   def WriteGRRUser(self,
                    username,
@@ -296,7 +313,7 @@ class InMemoryDB(db.Database):
 
   def WriteClientStartupInfo(self, client_id, startup_info):
     if client_id not in self.metadatas:
-      raise db.UnknownClientError()
+      raise db.UnknownClientError(client_id)
 
     ts = rdfvalue.RDFDatetime.Now()
     self.metadatas[client_id]["startup_info_timestamp"] = ts
@@ -331,7 +348,7 @@ class InMemoryDB(db.Database):
 
   def WriteClientCrashInfo(self, client_id, crash_info):
     if client_id not in self.metadatas:
-      raise db.UnknownClientError()
+      raise db.UnknownClientError(client_id)
 
     ts = rdfvalue.RDFDatetime.Now()
     self.metadatas[client_id]["last_crash_timestamp"] = ts
@@ -415,26 +432,40 @@ class InMemoryDB(db.Database):
     for path_id in path_ids:
       if path_id in info_dict:
         ret[path_id] = info_dict[path_id]
+      else:
+        ret[path_id] = None
     return ret
 
-  def WritePathInfosRaw(self, client_id, path_infos):
-    """Writes a collection of path_info records for a client."""
-    for info in path_infos:
-      info_dict = self.path_info_map_by_client_id.setdefault(
-          (client_id, info.path_type), {})
-      child_dict = self.path_child_map_by_client_id.setdefault(
-          (client_id, info.path_type), {})
+  def _WritePathInfo(self, client_id, path_info, ancestor):
+    """Writes a single path info record for given client."""
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError(client_id)
 
-      path_id = info.GetPathID()
-      if path_id in info_dict:
-        info_dict[path_id].UpdateFrom(info)
-      else:
-        info_dict[path_id] = info
+    idx = (client_id, path_info.path_type)
+    path_infos = self.path_info_map_by_client_id.setdefault(idx, {})
+    path_children = self.path_child_map_by_client_id.setdefault(idx, {})
 
-      parent_info = info.GetParent()
-      if parent_info is not None:
-        siblings = child_dict.setdefault(parent_info.GetPathID(), set())
-        siblings.add(path_id)
+    path_info = path_info.Copy()
+
+    if ancestor:
+      path_info.last_path_history_timestamp = rdfvalue.RDFDatetime.Now()
+
+    path_id = path_info.GetPathID()
+    if path_id in path_infos:
+      path_infos[path_id].UpdateFrom(path_info)
+    else:
+      path_infos[path_id] = path_info
+
+    parent_path_info = path_info.GetParent()
+    if parent_path_info is not None:
+      parent_path_id = parent_path_info.GetPathID()
+      path_children.setdefault(parent_path_id, set()).add(path_id)
+
+  def WritePathInfos(self, client_id, path_infos):
+    for path_info in path_infos:
+      self._WritePathInfo(client_id, path_info, ancestor=True)
+      for ancestor_path_info in path_info.GetAncestors():
+        self._WritePathInfo(client_id, ancestor_path_info, ancestor=False)
 
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):

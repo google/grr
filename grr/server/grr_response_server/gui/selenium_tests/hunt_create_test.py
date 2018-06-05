@@ -3,6 +3,7 @@
 
 import unittest
 from grr.lib import flags
+from grr.lib import rdfvalue
 
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
@@ -11,7 +12,8 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.flows.general import file_finder
@@ -29,15 +31,14 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
   @staticmethod
   def FindForemanRules(hunt, token):
-    fman = aff4.FACTORY.Open(
-        "aff4:/foreman", mode="r", aff4_type=aff4_grr.GRRForeman, token=token)
-    hunt_rules = []
-    rules = fman.Get(fman.Schema.RULES, [])
-    for rule in rules:
-      for action in rule.actions:
-        if action.hunt_id == hunt.urn:
-          hunt_rules.append(rule)
-    return hunt_rules
+    if data_store.RelationalDBReadEnabled(category="foreman"):
+      rules = data_store.REL_DB.ReadAllForemanRules()
+      return [rule for rule in rules if rule.hunt_id == hunt.urn.Basename()]
+    else:
+      fman = aff4.FACTORY.Open(
+          "aff4:/foreman", mode="r", aff4_type=aff4_grr.GRRForeman, token=token)
+      rules = fman.Get(fman.Schema.RULES, [])
+      return [rule for rule in rules if rule.hunt_id == hunt.urn]
 
   @staticmethod
   def CreateHuntFixtureWithTwoClients():
@@ -67,12 +68,13 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   def setUp(self):
     super(TestNewHuntWizard, self).setUp()
 
-    # Create a Foreman with an empty rule set.
-    with aff4.FACTORY.Create(
-        "aff4:/foreman", aff4_grr.GRRForeman, mode="rw",
-        token=self.token) as self.foreman:
-      self.foreman.Set(self.foreman.Schema.RULES())
-      self.foreman.Close()
+    if not data_store.RelationalDBReadEnabled(category="foreman"):
+      # Create a Foreman with an empty rule set.
+      with aff4.FACTORY.Create(
+          "aff4:/foreman", aff4_grr.GRRForeman, mode="rw",
+          token=self.token) as self.foreman:
+        self.foreman.Set(self.foreman.Schema.RULES())
+        self.foreman.Close()
 
   def testNewHuntWizard(self):
     self.CreateHuntFixtureWithTwoClients()
@@ -188,7 +190,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     # to the beginning of a list. So we always use :nth(0) selector.
     self.Click("css=grr-configure-rules-page button[name=Add]")
     self.Select("css=grr-configure-rules-page div.well:nth(0) select", "Regex")
-    rule = rdf_foreman.ForemanRegexClientRule
+    rule = foreman_rules.ForemanRegexClientRule
     label = rule.ForemanStringField.SYSTEM.description
     self.Select(
         "css=grr-configure-rules-page div.well:nth(0) "
@@ -201,7 +203,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Select("css=grr-configure-rules-page div.well:nth(0) select",
                 "Integer")
 
-    rule = rdf_foreman.ForemanIntegerClientRule
+    rule = foreman_rules.ForemanIntegerClientRule
     label = rule.ForemanIntegerField.CLIENT_CLOCK.description
     self.Select(
         "css=grr-configure-rules-page div.well:nth(0) "
@@ -330,31 +332,32 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     hunt_rules = self.FindForemanRules(hunt, token=self.token)
 
     self.assertEqual(len(hunt_rules), 1)
-    f = 14 * 24 * 60 * 60
-    self.assertLessEqual(
-        abs(int(hunt_rules[0].expires - hunt_rules[0].created) - f), 1)
+    lifetime = hunt_rules[0].GetLifetime()
+    lifetime -= rdfvalue.Duration("2w")
+    self.assertLessEqual(lifetime, rdfvalue.Duration("1s"))
 
     r = hunt_rules[0].client_rule_set
 
     self.assertEqual(r.match_mode,
-                     rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ANY)
+                     foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY)
     self.assertEqual(len(r.rules), 3)
 
     self.assertEqual(r.rules[0].rule_type,
-                     rdf_foreman.ForemanClientRule.Type.OS)
+                     foreman_rules.ForemanClientRule.Type.OS)
     self.assertEqual(r.rules[0].os.os_windows, False)
     self.assertEqual(r.rules[0].os.os_linux, False)
     self.assertEqual(r.rules[0].os.os_darwin, True)
 
     self.assertEqual(r.rules[1].rule_type,
-                     rdf_foreman.ForemanClientRule.Type.INTEGER)
+                     foreman_rules.ForemanClientRule.Type.INTEGER)
     self.assertEqual(r.rules[1].integer.field, "CLIENT_CLOCK")
-    self.assertEqual(r.rules[1].integer.operator,
-                     rdf_foreman.ForemanIntegerClientRule.Operator.GREATER_THAN)
+    self.assertEqual(
+        r.rules[1].integer.operator,
+        foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN)
     self.assertEqual(r.rules[1].integer.value, 1336650631137737)
 
     self.assertEqual(r.rules[2].rule_type,
-                     rdf_foreman.ForemanClientRule.Type.REGEX)
+                     foreman_rules.ForemanClientRule.Type.REGEX)
     self.assertEqual(r.rules[2].regex.field, "SYSTEM")
     self.assertEqual(r.rules[2].regex.attribute_regex, "Linux")
 
@@ -584,9 +587,9 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     hunt.Run()  # Run the hunt so that rules are added to the foreman.
 
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    foreman_obj = foreman.GetForeman(token=self.token)
     for client_id in client_ids:
-      tasks_assigned = foreman.AssignTasksToClient(client_id.Basename())
+      tasks_assigned = foreman_obj.AssignTasksToClient(client_id.Basename())
       if client_id in [client_ids[1], client_ids[7]]:
         self.assertTrue(tasks_assigned)
       else:
@@ -674,7 +677,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
         "Regex", self.GetText, "css=grr-new-hunt-wizard-form "
         "label:contains('Rule type') "
         "~ * select option:selected")
-    rule = rdf_foreman.ForemanRegexClientRule
+    rule = foreman_rules.ForemanRegexClientRule
     label = rule.ForemanStringField.CLIENT_NAME.description
     self.WaitUntilEqual(
         label, self.GetText, "css=grr-new-hunt-wizard-form "
@@ -888,9 +891,9 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(runner_args.description, "my personal copy")
     self.assertEqual(
         runner_args.client_rule_set,
-        rdf_foreman.ForemanClientRuleSet(rules=[
-            rdf_foreman.ForemanClientRule(
-                os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
+        foreman_rules.ForemanClientRuleSet(rules=[
+            foreman_rules.ForemanClientRule(
+                os=foreman_rules.ForemanOsClientRule(os_darwin=True))
         ]))
 
   def testCopyHuntHandlesLiteralExpressionCorrectly(self):
@@ -979,10 +982,10 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
                 path="/tmp/evil.txt",
                 pathtype=rdf_paths.PathSpec.PathType.TSK,
             )),
-        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
+        client_rule_set=foreman_rules.ForemanClientRuleSet(rules=[
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(os_darwin=True))
         ]),
         token=self.token)
 
@@ -1045,7 +1048,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Select("css=grr-configure-rules-page div.well:nth(0) select",
                 "Integer")
 
-    rule = rdf_foreman.ForemanIntegerClientRule
+    rule = foreman_rules.ForemanIntegerClientRule
     label = rule.ForemanIntegerField.CLIENT_CLOCK.description
     self.Select(
         "css=grr-configure-rules-page div.well:nth(0) "
@@ -1076,7 +1079,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(len(rules), 1)
     rule = rules[0]
 
-    self.assertEqual(rule.rule_type, rdf_foreman.ForemanClientRule.Type.INTEGER)
+    self.assertEqual(rule.rule_type,
+                     foreman_rules.ForemanClientRule.Type.INTEGER)
     self.assertEqual(rule.integer.field, "CLIENT_CLOCK")
 
     # Assert that the deselected union field is cleared

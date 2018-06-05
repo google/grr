@@ -605,7 +605,7 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
 
     # Only return the object if database reads are enabled, since
     # initializing the approval also requires reading its subject.
-    if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+    if data_store.RelationalDBReadEnabled():
       return self.__class__.result_type().InitFromDatabaseObject(request)
 
   def SendApprovalEmail(self, approval):
@@ -668,7 +668,7 @@ here
     if not args.approval.reason:
       raise ValueError("Approval reason can't be empty.")
 
-    if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+    if data_store.RelationalDBReadEnabled():
       result = self.HandleRelationalDB(args, token=token)
     else:
       result = self.HandleLegacy(args, token=token)
@@ -820,7 +820,7 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
     return self.__class__.result_type().InitFromDatabaseObject(approval_obj)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+    if data_store.RelationalDBReadEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -935,7 +935,7 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
     if not args.username:
       raise ValueError("username can't be empty.")
 
-    if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+    if data_store.RelationalDBReadEnabled():
       result = self.HandleRelationalDB(args, token=token)
     else:
       result = self.HandleLegacy(args, token=token)
@@ -1134,7 +1134,7 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
     return ApiListClientApprovalsResult(items=items)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+    if data_store.RelationalDBReadEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -1267,7 +1267,7 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
     return ApiListHuntApprovalsResult(items=items)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+    if data_store.RelationalDBReadEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -1403,7 +1403,7 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
     return ApiListCronJobApprovalsResult(items=items)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+    if data_store.RelationalDBReadEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)

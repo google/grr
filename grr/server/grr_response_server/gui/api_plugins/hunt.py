@@ -21,7 +21,7 @@ from grr_response_proto.api import hunt_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server import instant_output_plugin
 from grr.server.grr_response_server import notification
 from grr.server.grr_response_server import output_plugin
@@ -133,7 +133,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       ApiHuntId,
       ApiFlowLikeObjectReference,
-      foreman.ForemanClientRuleSet,
+      foreman_rules.ForemanClientRuleSet,
       rdf_hunts.HuntRunnerArgs,
       rdfvalue.RDFDatetime,
       rdfvalue.SessionID,

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.searchBoxDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, stubUiTrait, testsModule} = goog.require('grrUi.tests');
 const {coreModule} = goog.require('grrUi.core.core');

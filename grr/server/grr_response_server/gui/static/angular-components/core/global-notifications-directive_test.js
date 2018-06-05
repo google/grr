@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.globalNotificationsDirectiveTest');
+goog.setTestOnly();
 
 const {GlobalNotificationsDirective} = goog.require('grrUi.core.globalNotificationsDirective');
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');

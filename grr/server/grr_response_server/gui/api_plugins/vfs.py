@@ -369,22 +369,46 @@ class ApiGetFileTextResult(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileTextResult
 
 
-class Aff4FileReaderMixin(object):
-  """A helper to read a buffer from an AFF4 object."""
+def _Aff4Size(aff4_obj):
+  """Retrieves the total size in bytes of an AFF4 object.
 
-  def GetTotalSize(self, aff4_obj):
-    return int(aff4_obj.Get(aff4_obj.Schema.SIZE))
+  Args:
+    aff4_obj: An AFF4 stream instance to retrieve size for.
 
-  def Read(self, aff4_obj, offset, length):
-    if not length:
-      length = self.GetTotalSize(aff4_obj) - offset
+  Returns:
+    An integer representing number of bytes.
 
-    aff4_obj.Seek(offset)
-    return aff4_obj.Read(length)
+  Raises:
+    TypeError: If `aff4_obj` is not an instance of AFF4 stream.
+  """
+  if not isinstance(aff4_obj, aff4.AFF4Stream):
+    message = "Expected an instance of `%s` but received `%s`"
+    raise TypeError(message % (aff4.AFF4Stream, type(aff4_obj)))
+
+  return int(aff4_obj.Get(aff4_obj.Schema.SIZE))
 
 
-class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
-                            Aff4FileReaderMixin):
+def _Aff4Read(aff4_obj, offset, length):
+  """Reads contents of given AFF4 file.
+
+  Args:
+    aff4_obj: An AFF4 stream instance to retrieve contents for.
+    offset: An offset to start the reading from.
+    length: A number of bytes to read. Reads the whole file if 0.
+
+  Returns:
+    Contents of specified AFF4 stream.
+
+  Raises:
+    TypeError: If `aff4_obj` is not an instance of AFF4 stream.
+  """
+  length = length or (_Aff4Size(aff4_obj) - offset)
+
+  aff4_obj.Seek(offset)
+  return aff4_obj.Read(length)
+
+
+class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the text for a given file."""
 
   args_type = ApiGetFileTextArgs
@@ -416,7 +440,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
           (utils.SmartStr(args.file_path), utils.SmartStr(args.timestamp),
            utils.SmartStr(args.client_id)))
 
-    byte_content = self.Read(file_obj, args.offset, args.length)
+    byte_content = _Aff4Read(file_obj, offset=args.offset, length=args.length)
 
     if args.encoding:
       encoding = args.encoding.name.lower()
@@ -426,7 +450,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
     text_content = self._Decode(encoding, byte_content)
 
     return ApiGetFileTextResult(
-        total_size=self.GetTotalSize(file_obj), content=text_content)
+        total_size=_Aff4Size(file_obj), content=text_content)
 
   def _Decode(self, codec_name, data):
     """Decode data with the given codec name."""
@@ -446,8 +470,7 @@ class ApiGetFileBlobArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
-                            Aff4FileReaderMixin):
+class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the byte content for a given file."""
 
   args_type = ApiGetFileBlobArgs
@@ -484,7 +507,7 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
           (utils.SmartStr(args.file_path), utils.SmartStr(args.timestamp),
            utils.SmartStr(args.client_id)))
 
-    total_size = self.GetTotalSize(file_obj)
+    total_size = _Aff4Size(file_obj)
     if not args.length:
       args.length = total_size - args.offset
     else:
@@ -741,21 +764,23 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
         # Add a new event for each MAC time if it exists.
         for c in "mac":
           timestamp = getattr(stat, "st_%stime" % c)
-          if timestamp is not None:
-            item = ApiVfsTimelineItem()
-            item.timestamp = timestamp * 1000000
+          if timestamp is None:
+            continue
 
-            # Remove aff4:/<client_id> to have a more concise path to the
-            # subject.
-            item.file_path = "/".join(str(subject).split("/")[2:])
-            if c == "m":
-              item.action = ApiVfsTimelineItem.FileActionType.MODIFICATION
-            elif c == "a":
-              item.action = ApiVfsTimelineItem.FileActionType.ACCESS
-            elif c == "c":
-              item.action = ApiVfsTimelineItem.FileActionType.METADATA_CHANGED
+          item = ApiVfsTimelineItem()
+          item.timestamp = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(timestamp)
 
-            items.append(item)
+          # Remove aff4:/<client_id> to have a more concise path to the
+          # subject.
+          item.file_path = "/".join(str(subject).split("/")[2:])
+          if c == "m":
+            item.action = ApiVfsTimelineItem.FileActionType.MODIFICATION
+          elif c == "a":
+            item.action = ApiVfsTimelineItem.FileActionType.ACCESS
+          elif c == "c":
+            item.action = ApiVfsTimelineItem.FileActionType.METADATA_CHANGED
+
+          items.append(item)
 
     return sorted(items, key=lambda x: x.timestamp, reverse=True)
 

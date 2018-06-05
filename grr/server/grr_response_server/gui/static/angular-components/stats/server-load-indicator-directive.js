@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.stats.serverLoadIndicatorDirective');
 goog.module.declareLegacyNamespace();
 

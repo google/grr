@@ -189,6 +189,7 @@ class GRRBaseTest(unittest.TestCase):
                        client_nr,
                        index=None,
                        arch="x86_64",
+                       install_time=None,
                        last_boot_time=None,
                        kernel="4.0.0",
                        os_version="buster/sid",
@@ -230,6 +231,8 @@ class GRRBaseTest(unittest.TestCase):
 
       if last_boot_time:
         fd.Set(fd.Schema.LAST_BOOT_TIME(last_boot_time))
+      if install_time:
+        fd.Set(fd.Schema.INSTALL_DATE(install_time))
 
       kb = rdf_client.KnowledgeBase()
       kb.fqdn = "Host-%x.example.com" % client_nr
@@ -257,6 +260,7 @@ class GRRBaseTest(unittest.TestCase):
                   client_nr,
                   arch="x86_64",
                   last_boot_time=None,
+                  install_time=None,
                   kernel="4.0.0",
                   os_version="buster/sid",
                   ping=None,
@@ -270,6 +274,7 @@ class GRRBaseTest(unittest.TestCase):
                      in canonical representation.
       arch: string
       last_boot_time: RDFDatetime
+      install_time: RDFDatetime
       kernel: string
       os_version: string
       ping: RDFDatetime
@@ -285,6 +290,7 @@ class GRRBaseTest(unittest.TestCase):
         client_nr,
         add_cert=add_cert,
         arch=arch,
+        install_time=install_time,
         last_boot_time=last_boot_time,
         kernel=kernel,
         memory_size=memory_size,
@@ -297,6 +303,7 @@ class GRRBaseTest(unittest.TestCase):
           client_nr,
           index=index,
           arch=arch,
+          install_time=install_time,
           last_boot_time=last_boot_time,
           kernel=kernel,
           os_version=os_version,
@@ -310,6 +317,7 @@ class GRRBaseTest(unittest.TestCase):
   def SetupClients(self,
                    nr_clients,
                    arch="x86_64",
+                   install_time=None,
                    last_boot_time=None,
                    kernel="4.0.0",
                    os_version="buster/sid",
@@ -320,6 +328,7 @@ class GRRBaseTest(unittest.TestCase):
         self.SetupClient(
             client_nr,
             arch=arch,
+            install_time=install_time,
             last_boot_time=last_boot_time,
             kernel=kernel,
             os_version=os_version,
@@ -357,6 +366,7 @@ class GRRBaseTest(unittest.TestCase):
                              client_count,
                              add_cert=True,
                              arch="x86_64",
+                             install_time=None,
                              last_boot_time=None,
                              fqdn=None,
                              kernel="4.0.0",
@@ -371,6 +381,7 @@ class GRRBaseTest(unittest.TestCase):
           client_nr,
           add_cert=add_cert,
           arch=arch,
+          install_time=install_time,
           last_boot_time=last_boot_time,
           fqdn=fqdn,
           kernel=kernel,
@@ -386,6 +397,7 @@ class GRRBaseTest(unittest.TestCase):
                             client_nr,
                             add_cert=True,
                             arch="x86_64",
+                            install_time=None,
                             last_boot_time=None,
                             fqdn=None,
                             kernel="4.0.0",
@@ -413,6 +425,7 @@ class GRRBaseTest(unittest.TestCase):
     client.kernel = kernel
 
     client.interfaces = self._TestInterfaces(client_nr)
+    client.install_time = install_time
 
     client.hardware_info = rdf_client.HardwareInfo(
         system_manufacturer="System-Manufacturer-%x" % client_nr,

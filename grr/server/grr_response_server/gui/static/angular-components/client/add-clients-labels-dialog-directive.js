@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.client.addClientsLabelsDialogDirective');
 goog.module.declareLegacyNamespace();
 

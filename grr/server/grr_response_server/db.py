@@ -15,6 +15,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import objects as rdf_objects
+from grr.server.grr_response_server import foreman_rules
 
 
 class Error(Exception):
@@ -26,6 +27,25 @@ class NotFoundError(Error):
 
 
 class UnknownClientError(NotFoundError):
+  """"An exception class representing errors about uninitialized client.
+
+  Attributes:
+    client_id: An id of the non-existing client that was referenced.
+    cause: An (optional) exception instance that triggered the unknown client
+           error.
+  """
+
+  def __init__(self, client_id, cause=None):
+    message = "Client with id '%s' does not exist" % client_id
+    if cause is not None:
+      message += ": %s" % cause
+    super(UnknownClientError, self).__init__(message)
+
+    self.client_id = client_id
+    self.cause = cause
+
+
+class UnknownRuleError(NotFoundError):
   pass
 
 
@@ -369,6 +389,37 @@ class Database(object):
     """
 
   @abc.abstractmethod
+  def WriteForemanRule(self, rule):
+    """Writes a foreman rule to the database.
+
+    Args:
+      rule: A foreman.ForemanRule object.
+    """
+
+  @abc.abstractmethod
+  def RemoveForemanRule(self, hunt_id):
+    """Removes a foreman rule from the database.
+
+    Args:
+      hunt_id: Hunt id of the rule that should be removed.
+
+    Raises:
+      UnknownRuleError: No rule with the given hunt_id exists.
+    """
+
+  @abc.abstractmethod
+  def ReadAllForemanRules(self):
+    """Reads all foreman rules from the database.
+
+    Returns:
+      A list of foreman.ForemanCondition objects.
+    """
+
+  @abc.abstractmethod
+  def RemoveExpiredForemanRules(self):
+    """Removes all expired foreman rules from the database."""
+
+  @abc.abstractmethod
   def WriteGRRUser(self,
                    username,
                    password=None,
@@ -515,23 +566,6 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def WritePathInfosRaw(self, client_id, path_infos):
-    """Writes a collection of path_info records for a client.
-
-    Note that this method should only be used when all ancestors of path_infos
-    are already present in the database (or part of path_infos). In most cases,
-    users of a Database implementation will WritePathInfos, defined below, while
-    this is the method that Database implementations will need to provide.
-
-    If any records are already present in the database, they will be merged -
-    see db_path_utils.MergePathInfo.
-
-    Args:
-      client_id: The client of interest.
-      path_infos: A list of rdfvalue.objects.PathInfo records.
-    """
-
-  @abc.abstractmethod
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):
     """Finds all path_ids seen on a client descendent from path_id.
@@ -547,6 +581,7 @@ class Database(object):
     Returns: A list of `objects.PathID` instances.
     """
 
+  @abc.abstractmethod
   def WritePathInfos(self, client_id, path_infos):
     """Writes a collection of path_info records for a client.
 
@@ -557,21 +592,6 @@ class Database(object):
       client_id: The client of interest.
       path_infos: A list of rdfvalue.objects.PathInfo records.
     """
-    path_infos_by_type_id = {}
-
-    def Extend(path_info):
-      key = (path_info.path_type, path_info.GetPathID())
-      if key in path_infos_by_type_id:
-        path_infos_by_type_id[key].UpdateFrom(path_info)
-      else:
-        path_infos_by_type_id[key] = path_info
-
-    for path_info in path_infos:
-      Extend(path_info)
-      for ancestor_info in path_info.GetAncestors():
-        Extend(ancestor_info)
-
-    self.WritePathInfosRaw(client_id, path_infos_by_type_id.values())
 
   @abc.abstractmethod
   def WriteUserNotification(self, notification):
@@ -918,6 +938,25 @@ class DatabaseValidationWrapper(Database):
   def ReadAllClientLabels(self):
     return self.delegate.ReadAllClientLabels()
 
+  def WriteForemanRule(self, rule):
+    if not isinstance(rule, foreman_rules.ForemanCondition):
+      raise TypeError("Expected ForemanCondition, got %s" % type(rule))
+
+    if not rule.hunt_id:
+      raise ValueError("Foreman rule has no hunt_id: %s" % rule)
+
+    return self.delegate.WriteForemanRule(rule)
+
+  def RemoveForemanRule(self, hunt_id):
+    self._ValidateHuntId(hunt_id)
+    return self.delegate.RemoveForemanRule(hunt_id)
+
+  def ReadAllForemanRules(self):
+    return self.delegate.ReadAllForemanRules()
+
+  def RemoveExpiredForemanRules(self):
+    return self.delegate.RemoveExpiredForemanRules()
+
   def WriteGRRUser(self,
                    username,
                    password=None,
@@ -987,12 +1026,20 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.FindPathInfosByPathIDs(client_id, path_type, path_ids)
 
-  def WritePathInfosRaw(self, client_id, path_infos):
+  def WritePathInfos(self, client_id, path_infos):
     self._ValidateClientId(client_id)
-    for info in path_infos:
-      self._ValidatePathInfo(info)
 
-    return self.delegate.WritePathInfosRaw(client_id, path_infos)
+    validated = set()
+    for path_info in path_infos:
+      self._ValidatePathInfo(path_info)
+
+      path_key = (path_info.path_type, path_info.GetPathID())
+      if path_key in validated:
+        raise ValueError("Conflicting writes for: %s" % (path_key,))
+
+      validated.add(path_key)
+
+    return self.delegate.WritePathInfos(client_id, path_infos)
 
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):

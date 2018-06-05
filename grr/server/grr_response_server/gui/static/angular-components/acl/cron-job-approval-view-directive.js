@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.acl.cronJobApprovalViewDirective');
 goog.module.declareLegacyNamespace();
 

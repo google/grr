@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.flow.flowStatusIconDirectiveTest');
+goog.setTestOnly();
 
 const {flowModule} = goog.require('grrUi.flow.flow');
 const {testsModule} = goog.require('grrUi.tests');

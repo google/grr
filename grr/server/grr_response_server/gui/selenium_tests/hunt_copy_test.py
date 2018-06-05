@@ -8,7 +8,7 @@ from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server.flows.general import file_finder
 from grr.server.grr_response_server.flows.general import transfer
@@ -102,7 +102,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
         "label:contains('Rule type') "
         "~ * select option:selected")
 
-    rule = rdf_foreman.ForemanRegexClientRule
+    rule = foreman_rules.ForemanRegexClientRule
     label = rule.ForemanStringField.CLIENT_NAME.description
     self.WaitUntilEqual(
         label, self.GetText, "css=grr-new-hunt-wizard-form "
@@ -290,9 +290,9 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(runner_args.description, "my personal copy")
     self.assertEqual(
         runner_args.client_rule_set,
-        rdf_foreman.ForemanClientRuleSet(rules=[
-            rdf_foreman.ForemanClientRule(
-                os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
+        foreman_rules.ForemanClientRuleSet(rules=[
+            foreman_rules.ForemanClientRule(
+                os=foreman_rules.ForemanOsClientRule(os_darwin=True))
         ]))
 
   def testCopyHuntHandlesLiteralExpressionCorrectly(self):
@@ -374,10 +374,10 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
                 path="/tmp/evil.txt",
                 pathtype=rdf_paths.PathSpec.PathType.TSK,
             )),
-        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
+        client_rule_set=foreman_rules.ForemanClientRuleSet(rules=[
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(os_darwin=True))
         ]),
         token=self.token)
 
@@ -434,7 +434,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
                "label:contains('Os windows') ~ * input[type=checkbox]")
     self.Select("css=grr-configure-rules-page div.well:nth(0) select",
                 "Integer")
-    rule = rdf_foreman.ForemanIntegerClientRule
+    rule = foreman_rules.ForemanIntegerClientRule
     label = rule.ForemanIntegerField.CLIENT_CLOCK.description
     self.Select(
         "css=grr-configure-rules-page div.well:nth(0) "
@@ -463,7 +463,8 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(len(rules), 1)
     rule = rules[0]
 
-    self.assertEqual(rule.rule_type, rdf_foreman.ForemanClientRule.Type.INTEGER)
+    self.assertEqual(rule.rule_type,
+                     foreman_rules.ForemanClientRule.Type.INTEGER)
     self.assertEqual(rule.integer.field, "CLIENT_CLOCK")
 
     # Assert that the deselected union field is cleared

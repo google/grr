@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.urnDirectiveTest');
+goog.setTestOnly();
 
 const aff4UrnToUrl = goog.require('grrUi.routing.aff4UrnToUrl');
 const {semanticModule} = goog.require('grrUi.semantic.semantic');

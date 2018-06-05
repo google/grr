@@ -107,5 +107,11 @@ CREATE TABLE IF NOT EXISTS message_handler_requests(
     leased_until DATETIME(6),
     leased_by VARCHAR(128),
     PRIMARY KEY (handlername, request_id)
+)""", """
+CREATE TABLE IF NOT EXISTS foreman_rules(
+    hunt_id VARCHAR(128),
+    expiration_time DATETIME(6),
+    rule MEDIUMBLOB,
+    PRIMARY KEY (hunt_id)
 )"""
 ]

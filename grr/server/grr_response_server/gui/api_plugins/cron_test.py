@@ -2,7 +2,6 @@
 """This module contains tests for cron-related API handlers."""
 
 
-
 from grr.lib import flags
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -27,7 +26,7 @@ class CronJobsTestMixin(object):
         periodicity=periodicity, lifetime=lifetime, description=description)
     cron_args.flow_runner_args.flow_name = flow_name
 
-    return cronjobs.CRON_MANAGER.ScheduleFlow(
+    return cronjobs.CRON_MANAGER.CreateJob(
         cron_args, job_name=flow_name, disabled=disabled, token=token)
 
 
@@ -54,16 +53,15 @@ class ApiDeleteCronJobHandlerTest(api_test_lib.ApiCallHandlerTest,
     super(ApiDeleteCronJobHandlerTest, self).setUp()
     self.handler = cron_plugin.ApiDeleteCronJobHandler()
 
-    self.cron_job_urn = self.CreateCronJob(
+    self.cron_job_id = self.CreateCronJob(
         flow_name=cron_system.OSBreakDown.__name__, token=self.token)
 
   def testDeletesCronFromCollection(self):
     jobs = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))
     self.assertEqual(len(jobs), 1)
-    self.assertEqual(jobs[0], self.cron_job_urn)
+    self.assertEqual(jobs[0], self.cron_job_id)
 
-    args = cron_plugin.ApiDeleteCronJobArgs(
-        cron_job_id=self.cron_job_urn.Basename())
+    args = cron_plugin.ApiDeleteCronJobArgs(cron_job_id=self.cron_job_id)
     self.handler.Handle(args, token=self.token)
 
     jobs = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))

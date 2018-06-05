@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.firebaseServiceTest');
+goog.setTestOnly();
 
 const {coreModule} = goog.require('grrUi.core.core');
 

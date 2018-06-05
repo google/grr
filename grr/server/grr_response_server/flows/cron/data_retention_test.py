@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for datastore cleaning cron flows."""
 
-
 import re
 
 from grr import config
@@ -152,15 +151,15 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
       cron_args.flow_runner_args.flow_name = RetentionTestSystemCronJob.__name__
       cron_args.lifetime = RetentionTestSystemCronJob.lifetime
 
-      self.cron_jobs_urns = []
-      self.cron_jobs_urns.append(
-          cronjobs.CRON_MANAGER.ScheduleFlow(
+      self.cron_jobs_names = []
+      self.cron_jobs_names.append(
+          cronjobs.CRON_MANAGER.CreateJob(
               cron_args=cron_args,
               job_name="Foo",
               token=self.token,
               disabled=False))
-      self.cron_jobs_urns.append(
-          cronjobs.CRON_MANAGER.ScheduleFlow(
+      self.cron_jobs_names.append(
+          cronjobs.CRON_MANAGER.CreateJob(
               cron_args=cron_args,
               job_name="Bar",
               token=self.token,
@@ -177,16 +176,15 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
           sync=True,
           token=self.token)
 
-    for cron_urn in self.cron_jobs_urns:
-      fd = aff4.FACTORY.Open(cron_urn, token=self.token)
-      self.assertEqual(len(list(fd.ListChildren())), self.NUM_CRON_RUNS)
+    for name in self.cron_jobs_names:
+      runs = cronjobs.CRON_MANAGER.ReadJobRuns(name, token=self.token)
+      self.assertEqual(len(runs), self.NUM_CRON_RUNS)
 
   def testDeletesFlowsOlderThanGivenAge(self):
     all_children = []
-    for cron_urn in self.cron_jobs_urns:
-      fd = aff4.FACTORY.Open(cron_urn, token=self.token)
-      children = list(fd.ListChildren())
-      all_children.extend(children)
+    for cron_name in self.cron_jobs_names:
+      all_children.extend(
+          cronjobs.CRON_MANAGER.ReadJobRuns(cron_name, token=self.token))
 
     with test_lib.ConfigOverrider({
         "DataRetention.cron_jobs_flows_ttl": rdfvalue.Duration("150s")
@@ -203,15 +201,16 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
 
       remaining_children = []
 
-      for cron_urn in self.cron_jobs_urns:
-        fd = aff4.FACTORY.Open(cron_urn, token=self.token)
-        children = list(fd.ListChildren())
+      for cron_name in self.cron_jobs_names:
+        children = cronjobs.CRON_MANAGER.ReadJobRuns(
+            cron_name, token=self.token)
         self.assertEqual(len(children), 2)
         remaining_children.extend(children)
 
-        for child_urn in children:
-          self.assertLess(child_urn.age, latest_timestamp)
-          self.assertGreater(child_urn.age,
+        for child in children:
+          create_time = child.context.create_time
+          self.assertLess(create_time, latest_timestamp)
+          self.assertGreater(create_time,
                              latest_timestamp - rdfvalue.Duration("150s"))
 
       # Only works with the test data store.

@@ -8,15 +8,16 @@ import platform
 import StringIO
 
 
+# pylint: disable=g-bad-import-order, g-import-not-at-top
 # Import Chipsec configuration first so we can hook onto its internal path
 # resolution.
-from chipsec import file as chipsec_file  # pylint: disable=g-bad-import-order
+from chipsec import file as chipsec_file
 
 chipsec_file.main_is_frozen = lambda: False
 
 
 # Initialize the Chipsec plugins
-from chipsec import chipset  # pylint: disable=g-import-not-at-top
+from chipsec import chipset
 from chipsec import logger
 from chipsec.hal import acpi
 from chipsec.hal import spi
@@ -26,6 +27,8 @@ from grr import config
 from grr_response_client import actions
 from grr_response_client.client_actions import tempfiles
 from grr.lib.rdfvalues import chipsec_types
+
+# pylint: enable=g-bad-import-order, g-import-not-at-top
 
 
 class DumpFlashImage(actions.ActionPlugin):

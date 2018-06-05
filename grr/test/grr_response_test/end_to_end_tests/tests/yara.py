@@ -25,8 +25,7 @@ def GetProcessName(platform):
     ValueError: An unknown platform was passed.
   """
   if platform == test_base.EndToEndTest.Platform.WINDOWS:
-    return config.CONFIG.Get(
-        "Nanny.service_binary_name", context=["Platform:Windows"])
+    return config.CONFIG.Get("Client.binary_name", context=["Platform:Windows"])
   elif platform == test_base.EndToEndTest.Platform.LINUX:
     return config.CONFIG.Get("Client.binary_name", context=["Platform:Linux"])
   elif platform == test_base.EndToEndTest.Platform.DARWIN:
@@ -63,6 +62,7 @@ rule test_rule {
     args.yara_signature = signature
     args.process_regex = GetProcessNameRegex(self.platform)
     args.max_results_per_process = 2
+    args.ignore_grr_process = False
 
     f = self.RunFlowAndWait("YaraProcessScan", args=args)
 
@@ -106,6 +106,7 @@ class TestYaraProcessDump(test_base.AbstractFileTransferTest):
     args = self.grr_api.types.CreateFlowArgs(flow_name="YaraDumpProcessMemory")
     process_name = GetProcessName(self.platform)
     args.process_regex = GetProcessNameRegex(self.platform)
+    args.ignore_grr_process = False
 
     f = self.RunFlowAndWait("YaraDumpProcessMemory", args=args)
 

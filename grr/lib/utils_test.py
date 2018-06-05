@@ -18,6 +18,7 @@ import mock
 import unittest
 from grr.lib import flags
 from grr.lib import utils
+from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 
 # Test method names don't conform with Google style
@@ -605,14 +606,9 @@ class StatTest(unittest.TestCase):
   FS_IMMUTABLE_FL = 0x00000010
   FS_NODUMP_FL = 0x00000040
 
-  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
   def testGetLinuxFlags(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
-      if subprocess.call(["which", "chattr"]) != 0:
-        raise unittest.SkipTest("`chattr` command is not available")
-      if subprocess.call(["chattr", "+c", "+d", temp_filepath]):
-        reason = "extended attributes not supported by filesystem"
-        raise unittest.SkipTest(reason)
+      client_test_lib.Chattr(temp_filepath, attrs=["+c", "+d"])
 
       stat = utils.Stat(temp_filepath, follow_symlink=False)
       self.assertTrue(stat.IsRegular())
@@ -626,10 +622,9 @@ class StatTest(unittest.TestCase):
   UF_IMMUTABLE = 0x00000002
   UF_HIDDEN = 0x00008000
 
-  @unittest.skipIf(platform.system() != "Darwin", "requires macOS")
   def testGetOsxFlags(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
-      subprocess.check_call(["chflags", "nodump hidden", temp_filepath])
+      client_test_lib.Chflags(temp_filepath, flags=["nodump", "hidden"])
 
       stat = utils.Stat(temp_filepath, follow_symlink=False)
       self.assertTrue(stat.IsRegular())

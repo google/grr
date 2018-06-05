@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.statExtFlagsOsxDirective');
 goog.module.declareLegacyNamespace();
 
@@ -41,9 +39,8 @@ const StatExtFlagsOsxController = function(
 };
 
 
-// TODO(hanuszczak): Can we be more strict about the type of `value`?
 /**
- * @param {!Object} value
+ * @param {{type: string, value: number}|undefined} value
  * @export
  */
 StatExtFlagsOsxController.prototype.onValueChange = function(value) {

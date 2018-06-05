@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.reflectionServiceTest');
+goog.setTestOnly();
 
 const {ReflectionService} = goog.require('grrUi.core.reflectionService');
 const {coreModule} = goog.require('grrUi.core.core');

@@ -237,13 +237,14 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
     client_id = self.CreateClientWithVolumes()
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Host-0")
-    self.WaitUntilNot(self.IsTextPresent, "Disk free space")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=img[name='clientDiskWarnings']")
 
   def testDiskWarningIsDisplayed(self):
     client_id = self.CreateClientWithVolumes(available=1)
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Host-0")
-    self.WaitUntil(self.IsTextPresent, "Disk free space")
+    self.WaitUntil(self.IsElementPresent, "css=img[name='clientDiskWarnings']")
 
 
 def main(argv):

@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.routing.routingService');
 goog.module.declareLegacyNamespace();
 

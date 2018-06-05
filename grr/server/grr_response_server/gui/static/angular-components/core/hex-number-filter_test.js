@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.hexNumberFilterTest');
+goog.setTestOnly();
 
 const {HexNumberFilter} = goog.require('grrUi.core.hexNumberFilter');
 const {coreModule} = goog.require('grrUi.core.core');

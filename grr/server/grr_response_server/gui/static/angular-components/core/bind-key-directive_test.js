@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.bindKeyDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerKeyDown, testsModule} = goog.require('grrUi.tests');
 const {coreModule} = goog.require('grrUi.core.core');

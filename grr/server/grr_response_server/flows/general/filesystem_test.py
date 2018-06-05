@@ -35,7 +35,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestFilesystem, self).setUp()
-    self.client_id = test_lib.TEST_CLIENT_ID
+    self.client_id = self.SetupClient(0)
 
   def testListDirectoryOnFile(self):
     """OS ListDirectory on a file will raise."""

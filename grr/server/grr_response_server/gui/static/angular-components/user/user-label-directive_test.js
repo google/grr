@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.user.userLabelDirectiveTest');
+goog.setTestOnly();
 
 const {testsModule} = goog.require('grrUi.tests');
 const {userModule} = goog.require('grrUi.user.user');

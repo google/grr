@@ -4,10 +4,7 @@
 import gzip
 import hashlib
 import os
-import platform
-import subprocess
 import time
-import unittest
 
 
 from grr import config
@@ -275,16 +272,9 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
       self.assertEqual(len(results), 1)
       self.assertEqual(results[0].st_size, 6)
 
-  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
   def testStatExtAttrsEnabled(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
-      # TODO(hanuszczak): This call is repeated in many tests and should be
-      # refactored to some utility method in testing library.
-      if subprocess.call(["which", "setfattr"]) != 0:
-        raise unittest.SkipTest("`setfattr` command is not available")
-      if subprocess.call(
-          ["setfattr", temp_filepath, "-n", "user.foo", "-v", "bar"]) != 0:
-        raise unittest.SkipTest("extended attributes not supported")
+      client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
 
       pathspec = rdf_paths.PathSpec(
           path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -298,15 +288,9 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
       self.assertEqual(results[0].ext_attrs[0].name, "user.foo")
       self.assertEqual(results[0].ext_attrs[0].value, "bar")
 
-  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
   def testStatExtAttrsDisabled(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
-      # TODO(hanuszczak): See a TODO comment above.
-      if subprocess.call(["which", "setfattr"]) != 0:
-        raise unittest.SkipTest("`setfattr` command is not available")
-      if subprocess.call(
-          ["setfattr", temp_filepath, "-n", "user.foo", "-v", "bar"]) != 0:
-        raise unittest.SkipTest("extended attributes not supported")
+      client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
 
       pathspec = rdf_paths.PathSpec(
           path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)

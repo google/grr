@@ -1,7 +1,6 @@
-'use strict';
-
 goog.module('grrUi.forms.extFlagsTrogglingTest');
 goog.module.declareLegacyNamespace();
+goog.setTestOnly();
 
 
 const {TroggableFlags} = goog.require('grrUi.forms.extFlagsTroggling');

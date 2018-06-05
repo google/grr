@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.flow.startFlowFormDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
 const {flowModule} = goog.require('grrUi.flow.flow');

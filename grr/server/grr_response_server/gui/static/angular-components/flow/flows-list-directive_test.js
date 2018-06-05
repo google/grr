@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.flow.flowsListDirectiveTest');
+goog.setTestOnly();
 
 const {flattenFlowsList, toggleFlowExpansion} = goog.require('grrUi.flow.flowsListDirective');
 

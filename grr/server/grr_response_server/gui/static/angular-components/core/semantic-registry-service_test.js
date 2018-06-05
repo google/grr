@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.semanticRegistryServiceTest');
+goog.setTestOnly();
 
 const {SemanticRegistryService} = goog.require('grrUi.core.semanticRegistryService');
 const {coreModule} = goog.require('grrUi.core.core');

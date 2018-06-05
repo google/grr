@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.core.hexNumberFilter');
 goog.module.declareLegacyNamespace();
 

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.user.userDesktopNotificationsDirectiveTest');
+goog.setTestOnly();
 
 const {UserNotificationButtonDirective} = goog.require('grrUi.user.userNotificationButtonDirective');
 const {testsModule} = goog.require('grrUi.tests');

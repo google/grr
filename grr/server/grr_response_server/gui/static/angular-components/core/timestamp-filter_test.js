@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.timestampFilterTest');
+goog.setTestOnly();
 
 const {TimestampFilter} = goog.require('grrUi.core.timestampFilter');
 const {coreModule} = goog.require('grrUi.core.core');

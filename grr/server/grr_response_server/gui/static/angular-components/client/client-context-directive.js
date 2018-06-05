@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.client.clientContextDirective');
 goog.module.declareLegacyNamespace();
 

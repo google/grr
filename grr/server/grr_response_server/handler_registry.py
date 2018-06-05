@@ -3,10 +3,12 @@
 
 from grr.server.grr_response_server.flows.general import administrative
 from grr.server.grr_response_server.flows.general import ca_enroller
+from grr.server.grr_response_server.flows.general import transfer
 
 message_handlers = [
     ca_enroller.EnrolmentHandler,
     administrative.ClientStatsHandler,
+    transfer.BlobHandler,
 ]
 
 handler_name_map = {

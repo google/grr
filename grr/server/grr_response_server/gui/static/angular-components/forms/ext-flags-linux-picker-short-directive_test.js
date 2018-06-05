@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.forms.extFlagsLinuxPickerShortDirectiveTest');
+goog.setTestOnly();
 
 const {ExtFlagsLinuxPickerShortDirective} = goog.require('grrUi.forms.extFlagsLinuxPickerShortDirective');
 const {LINUX_FLAGS, getLinuxFlagMaskByNames} = goog.require('grrUi.client.extFlags');

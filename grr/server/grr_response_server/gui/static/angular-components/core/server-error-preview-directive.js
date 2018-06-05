@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.core.serverErrorPreviewDirective');
 goog.module.declareLegacyNamespace();
 

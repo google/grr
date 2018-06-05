@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.rekall.rekallJsonDirective');
 goog.module.declareLegacyNamespace();
 

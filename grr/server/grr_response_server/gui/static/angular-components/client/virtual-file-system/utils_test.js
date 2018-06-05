@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.client.virtualFileSystem.utilsTest');
+goog.setTestOnly();
 
 const {ensurePathIsFolder, getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
 

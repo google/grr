@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.acl.huntFromHuntCopyReviewDirective');
 goog.module.declareLegacyNamespace();
 

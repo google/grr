@@ -1,24 +1,37 @@
-'use strict';
-
 goog.module('grrUi.client.clientStatusIconsDirective');
 goog.module.declareLegacyNamespace();
 
 
+/**
+ * @typedef {{
+ *   volume: string,
+ *   percent: number,
+ * }}
+ */
+let DiskWarning;
 
 /**
  * Controller for ClientStatusIconsDirective.
  *
  * @param {!angular.Scope} $scope
+ * @param {!angular.Scope} $rootScope
+ * @param {!angularUi.$uibModal} $uibModal
  * @param {!grrUi.core.timeService.TimeService} grrTimeService
  * @constructor
  * @ngInject
  */
 const ClientStatusIconsController = function(
-    $scope, grrTimeService) {
-  /** @private {!angular.Scope} */
+    $scope, $rootScope, $uibModal, grrTimeService) {
+  /** @private @const {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.core.timeService.TimeService} */
+  /** @private @const {!angular.Scope} */
+  this.rootScope_ = $rootScope;
+
+  /** @private @const {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
+
+  /** @private @const {!grrUi.core.timeService.TimeService} */
   this.grrTimeService_ = grrTimeService;
 
   /** @export {?string} */
@@ -27,13 +40,32 @@ const ClientStatusIconsController = function(
   /** @export {?number} */
   this.crashTime;
 
-  /** @export {Array<Object>} */
+  /** @export {!Array<!DiskWarning>} */
   this.diskWarnings = [];
 
   /** @export {?number} */
   this.lastPing;
 
   this.scope_.$watch('::client', this.onClientChange_.bind(this));
+};
+
+
+/**
+ * Opens a modal dialog with details about disk warnings.
+ *
+ * @param {!angular.Scope.Event} event
+ */
+ClientStatusIconsController.prototype.showDiskWarnings = function(event) {
+  const scope = this.rootScope_.$new(true);
+  scope.warnings = this.diskWarnings;
+
+  this.uibModal_.open({
+    templateUrl: '/static/angular-components/client/' +
+        'client-disk-warnings-modal.html',
+    scope: scope,
+  });
+
+  event.stopPropagation();
 };
 
 
@@ -90,7 +122,10 @@ ClientStatusIconsController.prototype.onClientChange_ = function(newValue) {
           if (volume['value']['name']) {
             volumeName = volume['value']['name']['value'];
           }
-          this.diskWarnings.push([volumeName, percent]);
+          this.diskWarnings.push({
+            volume: volumeName,
+            percent: percent,
+          });
         }
       }
     }.bind(this));

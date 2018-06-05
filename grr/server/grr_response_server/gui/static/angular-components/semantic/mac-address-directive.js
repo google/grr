@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.macAddressDirective');
 goog.module.declareLegacyNamespace();
 

@@ -6,12 +6,14 @@ objects defined by objects.proto.
 """
 import hashlib
 import re
+import stat
 
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs
 from grr_response_proto import objects_pb2
@@ -220,6 +222,17 @@ class PathID(object):
       # we use special value: zero represented as a 256-bit number.
       self._bytes = b"\0" * 32
 
+  @classmethod
+  def FromBytes(cls, raw):
+    if not isinstance(raw, bytes):
+      raise TypeError("Expected `%s` but got `%s` instead" % (bytes, type(raw)))
+    if len(raw) != 32:
+      raise ValueError("Expected 32 bytes but got `%s` instead" % len(raw))
+
+    result = cls([])
+    result._bytes = raw  # pylint: disable=protected-access
+    return result
+
   def AsBytes(self):
     return self._bytes
 
@@ -238,12 +251,17 @@ class PathInfo(structs.RDFProtoStruct):
   protobuf = objects_pb2.PathInfo
   rdf_deps = [
       rdfvalue.RDFDatetime,
+      rdf_client.StatEntry,
   ]
 
-  def __init__(self, *args, **kwargs):
-    super(PathInfo, self).__init__(*args, **kwargs)
-    if self.root and not self.directory:
-      raise AssertionError("`PathInfo` is both root and not a directory")
+  # TODO(hanuszczak): Find a reliable way to make sure that noone ends up with
+  # incorrect `PathInfo` (a one that is both root and non-directory). Simple
+  # validation in a constructor has two flaws:
+  #
+  # a) One can still screw it up by setting directory to `False` on already
+  #    constructed value.
+  # b) The `Copy` method temporarily constructs an incorrect object and assigns
+  #    all the fields afterwards.
 
   @classmethod
   def OS(cls, *args, **kwargs):
@@ -257,9 +275,49 @@ class PathInfo(structs.RDFProtoStruct):
   def Registry(cls, *args, **kwargs):
     return cls(*args, path_type=cls.PathType.REGISTRY, **kwargs)
 
+  @classmethod
+  def FromStatEntry(cls, stat_entry):
+    pathspec = stat_entry.pathspec
+
+    if pathspec.pathtype == rdf_paths.PathSpec.PathType.OS:
+      if (len(pathspec) > 1 and
+          pathspec[1].pathtype == rdf_paths.PathSpec.PathType.TSK):
+        path_type = cls.PathType.TSK
+      else:
+        path_type = cls.PathType.OS
+    elif pathspec.pathtype == rdf_paths.PathSpec.PathType.TSK:
+      path_type = cls.PathType.TSK
+    elif pathspec.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+      path_type = cls.PathType.REGISTRY
+    else:
+      raise ValueError("Unexpected path type: %s" % pathspec.pathtype)
+
+    components = []
+    for pathelem in pathspec:
+      path = pathelem.path
+      if pathelem.offset:
+        path += ":%s" % pathelem.offset
+      if pathelem.stream_name:
+        path += ":%s" % pathelem.stream_name
+
+      components.extend(path.split("/"))
+
+    return cls(
+        path_type=path_type,
+        components=components,
+        directory=stat.S_ISDIR(stat_entry.st_mode),
+        stat_entry=stat_entry)
+
   @property
   def root(self):
     return not self.components
+
+  @property
+  def basename(self):
+    if self.root:
+      return ""
+    else:
+      return self.components[-1]
 
   def GetPathID(self):
     return PathID(self.components)

@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.forms.semanticProtoFormDirective');
 goog.module.declareLegacyNamespace();
 

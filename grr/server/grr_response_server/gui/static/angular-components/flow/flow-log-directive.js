@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.flow.flowLogDirective');
 goog.module.declareLegacyNamespace();
 

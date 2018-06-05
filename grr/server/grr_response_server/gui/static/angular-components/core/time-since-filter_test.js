@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.timeSinceFilterTest');
+goog.setTestOnly();
 
 const {TimeSinceFilter} = goog.require('grrUi.core.timeSinceFilter');
 const {clientModule} = goog.require('grrUi.client.client');

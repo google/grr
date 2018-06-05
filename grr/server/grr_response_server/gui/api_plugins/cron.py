@@ -136,20 +136,16 @@ class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
     else:
       stop = args.offset + args.count
 
-    all_jobs_urns = list(aff4_cronjobs.CRON_MANAGER.ListJobs(token=token))
-    cron_jobs_urns = all_jobs_urns[args.offset:stop]
-    cron_jobs = aff4.FACTORY.MultiOpen(
-        cron_jobs_urns,
-        aff4_type=aff4_cronjobs.CronJob,
-        token=token,
-        age=aff4.ALL_TIMES)
+    all_names = list(aff4_cronjobs.CRON_MANAGER.ListJobs(token=token))
+    names = all_names[args.offset:stop]
+    cron_jobs = aff4_cronjobs.CRON_MANAGER.ReadJobs(names, token=token)
 
     items = [
         ApiCronJob().InitFromAff4Object(cron_job) for cron_job in cron_jobs
     ]
     items.sort(key=lambda item: item.urn)
 
-    return ApiListCronJobsResult(items=items, total_count=len(all_jobs_urns))
+    return ApiListCronJobsResult(items=items, total_count=len(all_names))
 
 
 class ApiGetCronJobArgs(rdf_structs.RDFProtoStruct):
@@ -167,10 +163,8 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     try:
-      cron_job = aff4.FACTORY.Open(
-          args.cron_job_id.ToURN(),
-          aff4_type=aff4_cronjobs.CronJob,
-          token=token)
+      cron_job = aff4_cronjobs.CRON_MANAGER.ReadJob(
+          str(args.cron_job_id), token=token)
 
       return ApiCronJob().InitFromAff4Object(cron_job)
     except aff4.InstantiationError:
@@ -259,11 +253,10 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
         flow_args=args.flow_args,
         allow_overruns=args.allow_overruns,
         lifetime=args.lifetime)
-    urn = aff4_cronjobs.CRON_MANAGER.ScheduleFlow(
+    name = aff4_cronjobs.CRON_MANAGER.CreateJob(
         cron_args=cron_args, disabled=True, token=token)
 
-    fd = aff4.FACTORY.Open(
-        urn, aff4_type=aff4_cronjobs.CronJob, token=token, age=aff4.ALL_TIMES)
+    fd = aff4_cronjobs.CRON_MANAGER.ReadJob(name)
 
     return ApiCronJob().InitFromAff4Object(fd)
 
@@ -282,7 +275,7 @@ class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     aff4_cronjobs.CRON_MANAGER.RunOnce(
-        urns=[args.cron_job_id.ToURN()], token=token, force=True)
+        names=[str(args.cron_job_id)], token=token, force=True)
 
 
 class ApiModifyCronJobArgs(rdf_structs.RDFProtoStruct):
@@ -299,17 +292,16 @@ class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiCronJob
 
   def Handle(self, args, token=None):
-    cron_job_urn = args.cron_job_id.ToURN()
 
+    cron_id = str(args.cron_job_id)
     if args.state == "ENABLED":
-      aff4_cronjobs.CRON_MANAGER.EnableJob(cron_job_urn, token=token)
+      aff4_cronjobs.CRON_MANAGER.EnableJob(cron_id, token=token)
     elif args.state == "DISABLED":
-      aff4_cronjobs.CRON_MANAGER.DisableJob(cron_job_urn, token=token)
+      aff4_cronjobs.CRON_MANAGER.DisableJob(cron_id, token=token)
     else:
       raise ValueError("Invalid cron job state: %s" % str(args.state))
 
-    cron_job_obj = aff4.FACTORY.Open(
-        cron_job_urn, aff4_type=aff4_cronjobs.CronJob, token=token)
+    cron_job_obj = aff4_cronjobs.CRON_MANAGER.ReadJob(cron_id, token=token)
     return ApiCronJob().InitFromAff4Object(cron_job_obj)
 
 
@@ -326,4 +318,4 @@ class ApiDeleteCronJobHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiDeleteCronJobArgs
 
   def Handle(self, args, token=None):
-    aff4_cronjobs.CRON_MANAGER.DeleteJob(args.cron_job_id.ToURN(), token=token)
+    aff4_cronjobs.CRON_MANAGER.DeleteJob(str(args.cron_job_id), token=token)

@@ -63,9 +63,13 @@ class UsersMigrator(object):
     else:
       user_type = rdf_objects.GRRUser.UserType.USER_TYPE_STANDARD
 
+    if password:
+      sys.stdout.write(
+          "Warning: Unable to migrate password for user {}\n".format(
+              u.urn.Basename()))
+
     data_store.REL_DB.WriteGRRUser(
         u.urn.Basename(),
-        password=password,
         ui_mode=gui_settings.mode,
         canary_mode=gui_settings.canary_mode,
         user_type=user_type)

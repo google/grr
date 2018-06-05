@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.client.checkClientAccessDirectiveTest');
+goog.setTestOnly();
 
 const {clientModule} = goog.require('grrUi.client.client');
 const {testsModule} = goog.require('grrUi.tests');

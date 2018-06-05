@@ -25,7 +25,6 @@ from grr_response_test.end_to_end_tests import test_base
 from grr_response_test.end_to_end_tests import tests
 # pylint: enable=unused-import
 
-
 flags.DEFINE_string("api_endpoint", "http://localhost:8000",
                     "GRR API endpoint.")
 
@@ -33,17 +32,13 @@ flags.DEFINE_string("api_user", "admin", "Username for GRR API.")
 
 flags.DEFINE_string("api_password", "", "Password for GRR API.")
 
-flags.DEFINE_list("client_ids", [],
-                  "List of client ids to test. If unset we use "
-                  "Test.end_to_end_client_ids from the config.")
+flags.DEFINE_list("client_ids", [], "List of client ids to test.")
 
-flags.DEFINE_list("hostnames", [],
-                  "List of client hostnames to test. If unset we use "
-                  "Test.end_to_end_client_hostnames from the config.")
+flags.DEFINE_list("hostnames", [], "List of client hostnames to test.")
 
-flags.DEFINE_list("testnames", [],
-                  "List of test cases to run. If unset we run all "
-                  "tests for a client's platform.")
+flags.DEFINE_list(
+    "testnames", [], "List of test cases to run. If unset we run all "
+    "tests for a client's platform.")
 
 # We use a logging Filter to exclude noisy unwanted log output.
 flags.DEFINE_list("filenames_excluded_from_log", ["connectionpool.py"],
@@ -114,8 +109,8 @@ def ValidateAllTests():
 
     for p in cls.platforms:
       if p not in test_base.EndToEndTest.Platform.ALL:
-        raise ValueError("Unsupported platform: %s in class %s" %
-                         (p, cls.__name__))
+        raise ValueError(
+            "Unsupported platform: %s in class %s" % (p, cls.__name__))
 
 
 def UploadBinaryIfAbsent(server_paths, bin_name, server_path):

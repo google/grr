@@ -85,7 +85,7 @@ class TestListVolumeShadowCopies(flow_test_lib.FlowTestsBaseclass):
 
   def testListVolumeShadowCopies(self):
     """Test the list Volume Shadow Copies flow."""
-    client_id = test_lib.TEST_CLIENT_ID
+    client_id = self.SetupClient(0)
     flow_name = windows_vsc.ListVolumeShadowCopies.__name__
 
     # Run the flow in the simulated way

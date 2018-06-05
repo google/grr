@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.forms.durationFormDirective');
 goog.module.declareLegacyNamespace();
 

@@ -6,23 +6,23 @@ from grr.lib import rdfvalue
 from grr.lib.rdfvalues import test_base
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
 class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
                                test_lib.GRRBaseTest):
-  rdfvalue_class = rdf_foreman.ForemanClientRuleSet
+  rdfvalue_class = foreman_rules.ForemanClientRuleSet
 
   def GenerateSample(self, number=0):
-    ret = rdf_foreman.ForemanClientRuleSet()
+    ret = foreman_rules.ForemanClientRuleSet()
 
     # Use the number's least significant bit to assign a match mode
     if number % 1:
-      ret.match_mode = rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ALL
+      ret.match_mode = foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL
     else:
-      ret.match_mode = rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ANY
+      ret.match_mode = foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY
 
     # Generate a sequence of rules using all other bits
     ret.rules = [
@@ -34,16 +34,16 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
   def testEvaluatesPositiveInMatchAnyModeIfOneRuleMatches(self):
     # Instantiate a rule set that matches if any of its two
     # operating system rules matches
-    rs = rdf_foreman.ForemanClientRuleSet(
-        match_mode=rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ANY,
+    rs = foreman_rules.ForemanClientRuleSet(
+        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY,
         rules=[
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                os=rdf_foreman.ForemanOsClientRule(
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=False)),
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                os=rdf_foreman.ForemanOsClientRule(
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=True))
         ])
 
@@ -56,16 +56,16 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
   def testEvaluatesNegativeInMatchAnyModeIfNoRuleMatches(self):
     # Instantiate a rule set that matches if any of its two
     # operating system rules matches
-    rs = rdf_foreman.ForemanClientRuleSet(
-        match_mode=rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ANY,
+    rs = foreman_rules.ForemanClientRuleSet(
+        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY,
         rules=[
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                os=rdf_foreman.ForemanOsClientRule(
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=False)),
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                os=rdf_foreman.ForemanOsClientRule(
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=True))
         ])
 
@@ -78,16 +78,16 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
   def testEvaluatesNegativeInMatchAllModeIfOnlyOneRuleMatches(self):
     # Instantiate a rule set that matches if all of its two
     # operating system rules match
-    rs = rdf_foreman.ForemanClientRuleSet(
-        match_mode=rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ALL,
+    rs = foreman_rules.ForemanClientRuleSet(
+        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL,
         rules=[
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                os=rdf_foreman.ForemanOsClientRule(
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=False)),
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                os=rdf_foreman.ForemanOsClientRule(
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=True))
         ])
 
@@ -100,16 +100,16 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
   def testEvaluatesPositiveInMatchAllModeIfAllRuleMatch(self):
     # Instantiate a rule set that matches if all of its two
     # operating system rules match
-    rs = rdf_foreman.ForemanClientRuleSet(
-        match_mode=rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ALL,
+    rs = foreman_rules.ForemanClientRuleSet(
+        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL,
         rules=[
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                os=rdf_foreman.ForemanOsClientRule(
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=False)),
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                os=rdf_foreman.ForemanOsClientRule(
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=True))
         ])
 
@@ -120,8 +120,8 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
 
   def testEvaluatesNegativeInMatchAnyModeWithNoRules(self):
     # Instantiate an empty rule set that matches if any of its rules matches
-    rs = rdf_foreman.ForemanClientRuleSet(
-        match_mode=rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ANY,
+    rs = foreman_rules.ForemanClientRuleSet(
+        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY,
         rules=[])
 
     client_id_lin = self.SetupClient(0, system="Linux")
@@ -131,8 +131,8 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
 
   def testEvaluatesPositiveInMatchAllModeWithNoRules(self):
     # Instantiate an empty rule set that matches if all of its rules match
-    rs = rdf_foreman.ForemanClientRuleSet(
-        match_mode=rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ALL,
+    rs = foreman_rules.ForemanClientRuleSet(
+        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL,
         rules=[])
 
     client_id_lin = self.SetupClient(0, system="Linux")
@@ -142,19 +142,19 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
 
 
 class ForemanClientRuleTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
-  rdfvalue_class = rdf_foreman.ForemanClientRule
+  rdfvalue_class = foreman_rules.ForemanClientRule
 
   @staticmethod
   def GenerateSample(number=0):
     # Wrap the operating system rule sample generator
-    return rdf_foreman.ForemanClientRule(
-        rule_type=rdf_foreman.ForemanClientRule.Type.OS,
+    return foreman_rules.ForemanClientRule(
+        rule_type=foreman_rules.ForemanClientRule.Type.OS,
         os=ForemanOsClientRuleTest.GenerateSample(number))
 
   def testEvaluatesPositiveIfNestedRuleEvaluatesPositive(self):
-    r = rdf_foreman.ForemanClientRule(
-        rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-        os=rdf_foreman.ForemanOsClientRule(
+    r = foreman_rules.ForemanClientRule(
+        rule_type=foreman_rules.ForemanClientRule.Type.OS,
+        os=foreman_rules.ForemanOsClientRule(
             os_windows=True, os_linux=True, os_darwin=False))
 
     client_id_win = self.SetupClient(0, system="Windows")
@@ -163,9 +163,9 @@ class ForemanClientRuleTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         r.Evaluate(aff4.FACTORY.Open(client_id_win, token=self.token)))
 
   def testEvaluatesNegativeIfNestedRuleEvaluatesNegative(self):
-    r = rdf_foreman.ForemanClientRule(
-        rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-        os=rdf_foreman.ForemanOsClientRule(
+    r = foreman_rules.ForemanClientRule(
+        rule_type=foreman_rules.ForemanClientRule.Type.OS,
+        os=foreman_rules.ForemanOsClientRule(
             os_windows=False, os_linux=True, os_darwin=False))
 
     client_id_win = self.SetupClient(0, system="Windows")
@@ -176,25 +176,25 @@ class ForemanClientRuleTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
 class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
                               test_lib.GRRBaseTest):
-  rdfvalue_class = rdf_foreman.ForemanOsClientRule
+  rdfvalue_class = foreman_rules.ForemanOsClientRule
 
   @staticmethod
   def GenerateSample(number=0):
     # Assert that the argument uses at most the three least significant bits
     num_combinations = 2**3
     if number < 0 or number >= num_combinations:
-      raise ValueError("Only %d distinct instances of %s exist, "
-                       "numbered from 0 to %d." %
-                       (num_combinations,
-                        rdf_foreman.ForemanOsClientRule.__name__,
-                        num_combinations - 1))
+      raise ValueError(
+          "Only %d distinct instances of %s exist, "
+          "numbered from 0 to %d." %
+          (num_combinations, foreman_rules.ForemanOsClientRule.__name__,
+           num_combinations - 1))
 
     # Assign the bits to new rule's boolean fields accordingly
-    return rdf_foreman.ForemanOsClientRule(
+    return foreman_rules.ForemanOsClientRule(
         os_windows=number & 1, os_linux=number & 2, os_darwin=number & 4)
 
   def testWindowsClientDoesNotMatchRuleWithNoOsSelected(self):
-    r = rdf_foreman.ForemanOsClientRule(
+    r = foreman_rules.ForemanOsClientRule(
         os_windows=False, os_linux=False, os_darwin=False)
 
     client_id_win = self.SetupClient(0, system="Windows")
@@ -202,10 +202,10 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
         r.Evaluate(aff4.FACTORY.Open(client_id_win, token=self.token)))
 
   def testLinuxClientMatchesIffOsLinuxIsSelected(self):
-    r0 = rdf_foreman.ForemanOsClientRule(
+    r0 = foreman_rules.ForemanOsClientRule(
         os_windows=False, os_linux=False, os_darwin=False)
 
-    r1 = rdf_foreman.ForemanOsClientRule(
+    r1 = foreman_rules.ForemanOsClientRule(
         os_windows=False, os_linux=True, os_darwin=False)
 
     client_id_lin = self.SetupClient(0, system="Linux")
@@ -215,10 +215,10 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
         r1.Evaluate(aff4.FACTORY.Open(client_id_lin, token=self.token)))
 
   def testDarwinClientMatchesIffOsDarwinIsSelected(self):
-    r0 = rdf_foreman.ForemanOsClientRule(
+    r0 = foreman_rules.ForemanOsClientRule(
         os_windows=False, os_linux=True, os_darwin=False)
 
-    r1 = rdf_foreman.ForemanOsClientRule(
+    r1 = foreman_rules.ForemanOsClientRule(
         os_windows=True, os_linux=False, os_darwin=True)
 
     client_id_dar = self.SetupClient(0, system="Darwin")
@@ -232,7 +232,7 @@ class ForemanOsClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
                                         test_lib.GRRBaseTest):
 
   def testWindowsClientDoesNotMatchRuleWithNoOsSelected(self):
-    r = rdf_foreman.ForemanOsClientRule(
+    r = foreman_rules.ForemanOsClientRule(
         os_windows=False, os_linux=False, os_darwin=False)
 
     client = self.SetupTestClientObject(0, system="Windows")
@@ -240,10 +240,10 @@ class ForemanOsClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
     self.assertFalse(r.Evaluate(info))
 
   def testLinuxClientMatchesIffOsLinuxIsSelected(self):
-    r0 = rdf_foreman.ForemanOsClientRule(
+    r0 = foreman_rules.ForemanOsClientRule(
         os_windows=False, os_linux=False, os_darwin=False)
 
-    r1 = rdf_foreman.ForemanOsClientRule(
+    r1 = foreman_rules.ForemanOsClientRule(
         os_windows=False, os_linux=True, os_darwin=False)
 
     client = self.SetupTestClientObject(0, system="Linux")
@@ -252,10 +252,10 @@ class ForemanOsClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
     self.assertTrue(r1.Evaluate(info))
 
   def testDarwinClientMatchesIffOsDarwinIsSelected(self):
-    r0 = rdf_foreman.ForemanOsClientRule(
+    r0 = foreman_rules.ForemanOsClientRule(
         os_windows=False, os_linux=True, os_darwin=False)
 
-    r1 = rdf_foreman.ForemanOsClientRule(
+    r1 = foreman_rules.ForemanOsClientRule(
         os_windows=True, os_linux=False, os_darwin=True)
 
     client = self.SetupTestClientObject(0, system="Darwin")
@@ -266,11 +266,11 @@ class ForemanOsClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
 
 class ForemanLabelClientRuleTest(test_base.RDFValueTestMixin,
                                  test_lib.GRRBaseTest):
-  rdfvalue_class = rdf_foreman.ForemanLabelClientRule
+  rdfvalue_class = foreman_rules.ForemanLabelClientRule
 
   def GenerateSample(self, number=0):
     # Sample rule matches clients labeled str(number)
-    return rdf_foreman.ForemanLabelClientRule(label_names=[str(number)])
+    return foreman_rules.ForemanLabelClientRule(label_names=[str(number)])
 
   def _Evaluate(self, rule):
     client_id = self.SetupClient(0)
@@ -281,52 +281,52 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestMixin,
     return rule.Evaluate(client_obj)
 
   def testEvaluatesToFalseForClientWithoutTheLabel(self):
-    r = rdf_foreman.ForemanLabelClientRule(label_names=["arbitrary text"])
+    r = foreman_rules.ForemanLabelClientRule(label_names=["arbitrary text"])
 
     # The client isn't labeled "arbitrary text"
     self.assertFalse(self._Evaluate(r))
 
   def testEvaluatesToTrueForClientWithTheLabel(self):
-    r = rdf_foreman.ForemanLabelClientRule(label_names=["world"])
+    r = foreman_rules.ForemanLabelClientRule(label_names=["world"])
 
     # The client is labeled "world"
     self.assertTrue(self._Evaluate(r))
 
   def testEvaluatesToTrueInMatchAnyModeIfClientHasOneOfTheLabels(self):
-    r = rdf_foreman.ForemanLabelClientRule(
-        match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.MATCH_ANY,
+    r = foreman_rules.ForemanLabelClientRule(
+        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ANY,
         label_names=["nonexistent", "world"])
 
     # The client is labeled "world"
     self.assertTrue(self._Evaluate(r))
 
   def testEvaluatesToFalseInMatchAnyModeIfClientHasNoneOfTheLabels(self):
-    r = rdf_foreman.ForemanLabelClientRule(
-        match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.MATCH_ANY,
+    r = foreman_rules.ForemanLabelClientRule(
+        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ANY,
         label_names=["nonexistent", "arbitrary"])
 
     # The client isn't labeled "nonexistent", nor "arbitrary"
     self.assertFalse(self._Evaluate(r))
 
   def testEvaluatesToTrueInMatchAllModeIfClientHasAllOfTheLabels(self):
-    r = rdf_foreman.ForemanLabelClientRule(
-        match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.MATCH_ALL,
+    r = foreman_rules.ForemanLabelClientRule(
+        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ALL,
         label_names=["world", "hello"])
 
     # The client is labeled both "world" and "hello"
     self.assertTrue(self._Evaluate(r))
 
   def testEvaluatesToFalseInMatchAllModeIfClientDoesntHaveOneOfTheLabels(self):
-    r = rdf_foreman.ForemanLabelClientRule(
-        match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.MATCH_ALL,
+    r = foreman_rules.ForemanLabelClientRule(
+        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ALL,
         label_names=["world", "random"])
 
     # The client isn't labeled "random"
     self.assertFalse(self._Evaluate(r))
 
   def testEvaluatesToFalseInDoesntMatchAnyModeIfClientHasOneOfTheLabels(self):
-    r = rdf_foreman.ForemanLabelClientRule(
-        match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.
+    r = foreman_rules.ForemanLabelClientRule(
+        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.
         DOES_NOT_MATCH_ANY,
         label_names=["nonexistent", "world"])
 
@@ -334,8 +334,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestMixin,
     self.assertFalse(self._Evaluate(r))
 
   def testEvaluatesToTrueInDoesntMatchAnyModeIfClientHasNoneOfTheLabels(self):
-    r = rdf_foreman.ForemanLabelClientRule(
-        match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.
+    r = foreman_rules.ForemanLabelClientRule(
+        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.
         DOES_NOT_MATCH_ANY,
         label_names=["nonexistent", "arbitrary"])
 
@@ -343,8 +343,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestMixin,
     self.assertTrue(self._Evaluate(r))
 
   def testEvaluatesToFalseInDoesntMatchAllModeIfClientHasAllOfTheLabels(self):
-    r = rdf_foreman.ForemanLabelClientRule(
-        match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.
+    r = foreman_rules.ForemanLabelClientRule(
+        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.
         DOES_NOT_MATCH_ALL,
         label_names=["world", "hello"])
 
@@ -353,8 +353,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestMixin,
 
   def testEvaluatesToTrueInDoesntMatchAllModeIfClientDoesntHaveOneOfTheLabels(
       self):
-    r = rdf_foreman.ForemanLabelClientRule(
-        match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.
+    r = foreman_rules.ForemanLabelClientRule(
+        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.
         DOES_NOT_MATCH_ALL,
         label_names=["world", "random"])
 
@@ -377,22 +377,22 @@ class ForemanLabelClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
 
 class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
                                  test_lib.GRRBaseTest):
-  rdfvalue_class = rdf_foreman.ForemanRegexClientRule
+  rdfvalue_class = foreman_rules.ForemanRegexClientRule
 
   def GenerateSample(self, number=0):
     # Sample rule matches clients that have str(number) in their MAC
-    return rdf_foreman.ForemanRegexClientRule(
+    return foreman_rules.ForemanRegexClientRule(
         field="MAC_ADDRESSES", attribute_regex=str(number))
 
   def testEvaluatesTheWholeAttributeToTrue(self):
-    r = rdf_foreman.ForemanRegexClientRule(
+    r = foreman_rules.ForemanRegexClientRule(
         field="SYSTEM", attribute_regex="^Linux$")
 
     client_id = self.SetupClient(0, system="Linux")
     self.assertTrue(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
 
   def testEvaluatesAttributesSubstringToTrue(self):
-    r = rdf_foreman.ForemanRegexClientRule(
+    r = foreman_rules.ForemanRegexClientRule(
         field="SYSTEM", attribute_regex="inu")
 
     client_id = self.SetupClient(0, system="Linux")
@@ -401,7 +401,7 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
     self.assertTrue(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
 
   def testEvaluatesNonSubstringToFalse(self):
-    r = rdf_foreman.ForemanRegexClientRule(
+    r = foreman_rules.ForemanRegexClientRule(
         field="SYSTEM", attribute_regex="foo")
 
     client_id = self.SetupClient(0, system="Linux")
@@ -413,12 +413,12 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
     client_id = self.SetupClient(0, system="Linux")
     client = aff4.FACTORY.Open(client_id, token=self.token)
 
-    r = rdf_foreman.ForemanRegexClientRule(attribute_regex="foo")
+    r = foreman_rules.ForemanRegexClientRule(attribute_regex="foo")
     with self.assertRaises(ValueError):
       r.Evaluate(client)
 
   def testLabels(self):
-    r = rdf_foreman.ForemanRegexClientRule(
+    r = foreman_rules.ForemanRegexClientRule(
         field="CLIENT_LABELS", attribute_regex="ell")
 
     client_id = self.SetupClient(0, system="Linux")
@@ -437,15 +437,15 @@ class ForemanRegexClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
     client = self.SetupTestClientObject(0, last_boot_time=now)
     info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
-    for f in rdf_foreman.ForemanRegexClientRule.ForemanStringField.enum_dict:
+    for f in foreman_rules.ForemanRegexClientRule.ForemanStringField.enum_dict:
       if f == "UNSET":
         continue
 
-      r = rdf_foreman.ForemanRegexClientRule(field=f, attribute_regex=".")
+      r = foreman_rules.ForemanRegexClientRule(field=f, attribute_regex=".")
       r.Evaluate(info)
 
   def testEvaluatesTheWholeAttributeToTrue(self):
-    r = rdf_foreman.ForemanRegexClientRule(
+    r = foreman_rules.ForemanRegexClientRule(
         field="SYSTEM", attribute_regex="^Linux$")
 
     client = self.SetupTestClientObject(0, system="Linux")
@@ -453,7 +453,7 @@ class ForemanRegexClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
     self.assertTrue(r.Evaluate(info))
 
   def testEvaluatesAttributesSubstringToTrue(self):
-    r = rdf_foreman.ForemanRegexClientRule(
+    r = foreman_rules.ForemanRegexClientRule(
         field="SYSTEM", attribute_regex="inu")
 
     client = self.SetupTestClientObject(0, system="Linux")
@@ -463,7 +463,7 @@ class ForemanRegexClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
     self.assertTrue(r.Evaluate(info))
 
   def testEvaluatesNonSubstringToFalse(self):
-    r = rdf_foreman.ForemanRegexClientRule(
+    r = foreman_rules.ForemanRegexClientRule(
         field="SYSTEM", attribute_regex="foo")
 
     client = self.SetupTestClientObject(0, system="Linux")
@@ -476,7 +476,7 @@ class ForemanRegexClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
     client = self.SetupTestClientObject(0, system="Linux")
     info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
-    r = rdf_foreman.ForemanRegexClientRule(attribute_regex="foo")
+    r = foreman_rules.ForemanRegexClientRule(attribute_regex="foo")
     with self.assertRaises(ValueError):
       r.Evaluate(info)
 
@@ -489,30 +489,30 @@ class ForemanRegexClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
     info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
     # Match a system label.
-    r = rdf_foreman.ForemanRegexClientRule(
+    r = foreman_rules.ForemanRegexClientRule(
         field="CLIENT_LABELS", attribute_regex="label1")
     self.assertTrue(r.Evaluate(info))
 
     # Match a user label.
-    r = rdf_foreman.ForemanRegexClientRule(
+    r = foreman_rules.ForemanRegexClientRule(
         field="CLIENT_LABELS", attribute_regex="ell")
     self.assertTrue(r.Evaluate(info))
 
     # This rule doesn't match any label.
-    r = rdf_foreman.ForemanRegexClientRule(
+    r = foreman_rules.ForemanRegexClientRule(
         field="CLIENT_LABELS", attribute_regex="NonExistentLabel")
     self.assertFalse(r.Evaluate(info))
 
 
 class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
                                    test_lib.GRRBaseTest):
-  rdfvalue_class = rdf_foreman.ForemanIntegerClientRule
+  rdfvalue_class = foreman_rules.ForemanIntegerClientRule
 
   def GenerateSample(self, number=0):
     # Sample rule matches clients with the attribute size equal to number
-    return rdf_foreman.ForemanIntegerClientRule(
+    return foreman_rules.ForemanIntegerClientRule(
         field="LAST_BOOT_TIME",
-        operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL,
+        operator=foreman_rules.ForemanIntegerClientRule.Operator.EQUAL,
         value=number)
 
   def testEvaluatesSizeLessThanEqualValueToFalse(self):
@@ -520,9 +520,9 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
     client_id = self.SetupClient(0, last_boot_time=now)
     client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
 
-    r = rdf_foreman.ForemanIntegerClientRule(
+    r = foreman_rules.ForemanIntegerClientRule(
         field="LAST_BOOT_TIME",
-        operator=rdf_foreman.ForemanIntegerClientRule.Operator.LESS_THAN,
+        operator=foreman_rules.ForemanIntegerClientRule.Operator.LESS_THAN,
         value=now.AsSecondsSinceEpoch())
 
     # The values are the same, less than should not trigger.
@@ -535,16 +535,17 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
 
     before_boot = now - 1
 
-    r = rdf_foreman.ForemanIntegerClientRule(
+    r = foreman_rules.ForemanIntegerClientRule(
         field="LAST_BOOT_TIME",
-        operator=rdf_foreman.ForemanIntegerClientRule.Operator.GREATER_THAN,
+        operator=foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
         value=before_boot.AsSecondsSinceEpoch())
 
     self.assertTrue(r.Evaluate(client))
 
   def testEvaluatesRaisesWithUnsetField(self):
-    r = rdf_foreman.ForemanIntegerClientRule(
-        operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL, value=123)
+    r = foreman_rules.ForemanIntegerClientRule(
+        operator=foreman_rules.ForemanIntegerClientRule.Operator.EQUAL,
+        value=123)
 
     client_id = self.SetupClient(0)
 
@@ -560,13 +561,14 @@ class ForemanIntegerClientRuleTestRelational(
     client = self.SetupTestClientObject(0, last_boot_time=now)
     info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
-    for f in rdf_foreman.ForemanIntegerClientRule.ForemanIntegerField.enum_dict:
+    int_f = foreman_rules.ForemanIntegerClientRule.ForemanIntegerField
+    for f in int_f.enum_dict:
       if f == "UNSET":
         continue
 
-      r = rdf_foreman.ForemanIntegerClientRule(
+      r = foreman_rules.ForemanIntegerClientRule(
           field=f,
-          operator=rdf_foreman.ForemanIntegerClientRule.Operator.LESS_THAN,
+          operator=foreman_rules.ForemanIntegerClientRule.Operator.LESS_THAN,
           value=now.AsSecondsSinceEpoch())
       r.Evaluate(info)
 
@@ -575,9 +577,9 @@ class ForemanIntegerClientRuleTestRelational(
     client = self.SetupTestClientObject(0, last_boot_time=now)
     info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
-    r = rdf_foreman.ForemanIntegerClientRule(
+    r = foreman_rules.ForemanIntegerClientRule(
         field="LAST_BOOT_TIME",
-        operator=rdf_foreman.ForemanIntegerClientRule.Operator.LESS_THAN,
+        operator=foreman_rules.ForemanIntegerClientRule.Operator.LESS_THAN,
         value=now.AsSecondsSinceEpoch())
 
     # The values are the same, less than should not trigger.
@@ -590,16 +592,17 @@ class ForemanIntegerClientRuleTestRelational(
 
     before_boot = now - 1
 
-    r = rdf_foreman.ForemanIntegerClientRule(
+    r = foreman_rules.ForemanIntegerClientRule(
         field="LAST_BOOT_TIME",
-        operator=rdf_foreman.ForemanIntegerClientRule.Operator.GREATER_THAN,
+        operator=foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
         value=before_boot.AsSecondsSinceEpoch())
 
     self.assertTrue(r.Evaluate(info))
 
   def testEvaluatesRaisesWithUnsetField(self):
-    r = rdf_foreman.ForemanIntegerClientRule(
-        operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL, value=123)
+    r = foreman_rules.ForemanIntegerClientRule(
+        operator=foreman_rules.ForemanIntegerClientRule.Operator.EQUAL,
+        value=123)
 
     client = self.SetupTestClientObject(0)
     info = data_store.REL_DB.ReadClientFullInfo(client.client_id)

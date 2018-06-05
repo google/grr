@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.stats.reportListingDirectiveTest');
+goog.setTestOnly();
 
 const {parseStatsReportsApiResponse} = goog.require('grrUi.stats.reportListingDirective');
 

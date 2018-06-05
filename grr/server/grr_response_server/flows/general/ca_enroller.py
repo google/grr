@@ -142,6 +142,9 @@ class EnrolmentHandler(message_handlers.MessageHandler):
   handler_name = "Enrol"
 
   def ProcessMessages(self, msgs):
+    client_ids = set()
+    requests = {}
+
     for msg in msgs:
       client_id = msg.client_id
 
@@ -153,13 +156,19 @@ class EnrolmentHandler(message_handlers.MessageHandler):
         continue
       except KeyError:
         enrolment_cache.Put(client_id, 1)
+      client_ids.add(client_id)
+      requests[client_id] = msg.request.payload
 
-      md = data_store.REL_DB.ReadClientMetadata(client_id)
-      if not md or not md.certificate:
+    if not client_ids:
+      return
+
+    mds = data_store.REL_DB.MultiReadClientMetadata(client_ids)
+    for client_id in client_ids:
+      if client_id not in mds or not mds[client_id].certificate:
         # Start the enrollment flow for this client.
         flow.GRRFlow.StartFlow(
             client_id=client_id,
             flow_name=CAEnroler.__name__,
-            csr=msg.request.payload,
+            csr=requests[client_id],
             queue=queues.ENROLLMENT,
             token=self.token)

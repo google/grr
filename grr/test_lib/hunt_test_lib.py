@@ -8,7 +8,8 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server.flows.general import transfer
 from grr.server.grr_response_server.hunts import implementation
@@ -181,10 +182,10 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
   """Mixin with helper methods for hunt tests."""
 
   def _CreateForemanClientRuleSet(self):
-    return rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    return foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
@@ -229,9 +230,10 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     # Pretend to be the foreman now and dish out hunting jobs to all the
     # clients..
     client_ids = client_ids or self.client_ids
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    foreman_obj = foreman.GetForeman(token=self.token)
     for client_id in client_ids:
-      foreman.AssignTasksToClient(rdf_client.ClientURN(client_id).Basename())
+      foreman_obj.AssignTasksToClient(
+          rdf_client.ClientURN(client_id).Basename())
 
   def RunHunt(self, client_ids=None, iteration_limit=None, **mock_kwargs):
     client_mock = SampleHuntMock(**mock_kwargs)

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirectiveTest');
+goog.setTestOnly();
 
 const {DOWNLOAD_EVERYTHING_REENABLE_DELAY} = goog.require('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective');
 const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');

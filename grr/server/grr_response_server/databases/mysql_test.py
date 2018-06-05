@@ -167,7 +167,13 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testWritePathInfosRawValidates(self):
     pass
 
+  def testWritePathInfosValidatesClient(self):
+    pass
+
   def testWritePathInfosMetadata(self):
+    pass
+
+  def testWritePathInfosStatEntry(self):
     pass
 
   def testWritePathInfosExpansion(self):
@@ -180,6 +186,18 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testWritePathInfosUpdatesAncestors(self):
+    pass
+
+  def testFindPathInfosByPathIDsNonExistent(self):
+    pass
+
+  def testWritePathInfosDuplicatedData(self):
+    pass
+
+  def testFindDescendentPathIDsEmptyResult(self):
+    pass
+
+  def testFindDescendentPathIDsSingleResult(self):
     pass
 
   def testFindDescendentPathIDsSingle(self):

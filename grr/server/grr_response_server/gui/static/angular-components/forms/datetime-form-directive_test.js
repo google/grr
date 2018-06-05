@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.forms.datetimeFormDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 const {formsModule} = goog.require('grrUi.forms.forms');

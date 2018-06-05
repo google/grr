@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.core.downloadCollectionFilesDirective');
 goog.module.declareLegacyNamespace();
 

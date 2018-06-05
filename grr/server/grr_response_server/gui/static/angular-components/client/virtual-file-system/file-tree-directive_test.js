@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.client.virtualFileSystem.fileTreeDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 const {virtualFileSystemModule} = goog.require('grrUi.client.virtualFileSystem.virtualFileSystem');

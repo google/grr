@@ -89,11 +89,10 @@ class Responses(object):
   decorator.
   """
 
-  def __init__(self, request=None, responses=None, auth_required=True):
+  def __init__(self, request=None, responses=None):
     self.status = None  # A GrrStatus rdfvalue object.
     self.success = True
     self.request = request
-    self._auth_required = auth_required
     if request:
       self.request_data = rdf_protodict.Dict(request.data)
     self._responses = []
@@ -111,9 +110,7 @@ class Responses(object):
       # Filter the responses by authorized states
       for msg in responses:
         # Check if the message is authenticated correctly.
-        if msg.auth_state == msg.AuthorizationState.DESYNCHRONIZED or (
-            self._auth_required and
-            msg.auth_state != msg.AuthorizationState.AUTHENTICATED):
+        if msg.auth_state != msg.AuthorizationState.AUTHENTICATED:
           logging.warning("%s: Messages must be authenticated (Auth state %s)",
                           msg.session_id, msg.auth_state)
           self._dropped_responses.append(msg)
@@ -241,12 +238,8 @@ class FakeResponses(Responses):
     return iter(self._responses)
 
 
-def StateHandler(auth_required=True):
+def StateHandler():
   """A convenience decorator for state methods.
-
-  Args:
-    auth_required: Do we require messages to be authenticated? If the
-                message is not authenticated we raise.
 
   Raises:
     RuntimeError: If a next state is not specified.
@@ -288,8 +281,7 @@ def StateHandler(auth_required=True):
 
       if not isinstance(responses, Responses):
         # Prepare a responses object for the state method to use:
-        responses = Responses(
-            request=request, responses=responses, auth_required=auth_required)
+        responses = Responses(request=request, responses=responses)
 
       if responses.status:
         runner.SaveResourceUsage(request, responses)

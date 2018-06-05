@@ -6,6 +6,7 @@ import logging
 import pdb
 import time
 
+import mock
 import requests
 
 from grr import config
@@ -21,9 +22,11 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import fleetspeak_connector
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import front_end
 from grr.server.grr_response_server import maintenance_utils
@@ -512,6 +515,17 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
     crash_details_rel = data_store.REL_DB.ReadClientCrashInfo(client_id)
     self.assertTrue(crash_details_rel)
     self.assertEqual(crash_details_rel.session_id, session_id)
+
+
+class FleetspeakFrontendTests(front_end_test_lib.FrontEndServerTest):
+
+  def testFleetspeakEnrolment(self):
+    client_id = test_lib.TEST_CLIENT_ID.Basename()
+    # An Enrolment flow should start inline and attempt to send at least message
+    # through fleetspeak as part of the resulting interrogate flow.
+    with mock.patch.object(fleetspeak_connector, "CONN") as mock_conn:
+      self.server.EnrolFleetspeakClient(client_id)
+      mock_conn.outgoing.InsertMessage.assert_called()
 
 
 def MakeHTTPException(code=500, msg="Error"):
@@ -1051,6 +1065,34 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.SendToServer()
     status = self.client_communicator.RunOnce()
 
+    self.assertEqual(status.code, 200)
+
+  def testEnrollmentHandler(self):
+    self._ClearClient()
+
+    # First 406 queues an EnrolmentRequest.
+    status = self.client_communicator.RunOnce()
+    self.assertEqual(status.code, 406)
+
+    # Send it to the server.
+    status = self.client_communicator.RunOnce()
+    self.assertEqual(status.code, 406)
+
+    self.assertEqual(len(self.messages), 1)
+    self.assertEqual(self.messages[0].session_id,
+                     ca_enroller.Enroler.well_known_session_id)
+
+    request = rdf_objects.MessageHandlerRequest(
+        client_id=self.messages[0].source.Basename(),
+        handler_name="Enrol",
+        request_id=12345,
+        request=self.messages[0].payload)
+
+    handler = ca_enroller.EnrolmentHandler(token=self.token)
+    handler.ProcessMessages([request])
+
+    # The next client communication should give a 200.
+    status = self.client_communicator.RunOnce()
     self.assertEqual(status.code, 200)
 
   def testReboots(self):

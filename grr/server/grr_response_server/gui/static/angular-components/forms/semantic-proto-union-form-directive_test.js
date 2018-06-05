@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.forms.semanticProtoUnionFormDirectiveTest');
+goog.setTestOnly();
 
 const {formsModule} = goog.require('grrUi.forms.forms');
 const {testsModule} = goog.require('grrUi.tests');

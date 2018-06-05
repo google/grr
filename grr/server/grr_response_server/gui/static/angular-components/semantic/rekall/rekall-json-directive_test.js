@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.rekall.rekallJsonDirectiveTest');
+goog.setTestOnly();
 
 const {rekallModule} = goog.require('grrUi.semantic.rekall.rekall');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');

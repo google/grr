@@ -29,7 +29,8 @@ from grr_response_proto import tests_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
@@ -580,10 +581,10 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
   """Common functionality for hunt gui tests."""
 
   def _CreateForemanClientRuleSet(self):
-    return rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    return foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
@@ -627,10 +628,9 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
       if not stopped:
         hunt.Run()
 
-    with aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=token) as foreman:
-
-      for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id.Basename())
+    foreman_obj = foreman.GetForeman(token=token)
+    for client_id in self.client_ids:
+      foreman_obj.AssignTasksToClient(client_id.Basename())
 
     self.hunt_urn = hunt.urn
     return aff4.FACTORY.Open(
@@ -673,35 +673,6 @@ class SearchClientTestBase(GRRSeleniumTest):
         hunt_name=standard.GenericHunt.__name__,
         description=description,
         token=token)
-
-
-class CanaryModeOverrider(object):
-  """A context to temporarily change the canary mode flag of the user."""
-
-  def __init__(self, token, target_canary_mode=True):
-    self.token = token
-    self.target_canary_mode = target_canary_mode
-
-  def Start(self):
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type=users.GRRUser,
-        mode="rw",
-        token=self.token) as user:
-      # Save original canary mode to reset it later.
-      self.original_canary_mode = user.Get(user.Schema.GUI_SETTINGS).canary_mode
-
-      # Set new canary mode.
-      user.Set(user.Schema.GUI_SETTINGS(canary_mode=self.target_canary_mode))
-
-  def Stop(self):
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type=users.GRRUser,
-        mode="w",
-        token=self.token) as user:
-      # Reset canary mode to original value.
-      user.Set(user.Schema.GUI_SETTINGS(canary_mode=self.original_canary_mode))
 
 
 class RecursiveTestFlowArgs(rdf_structs.RDFProtoStruct):

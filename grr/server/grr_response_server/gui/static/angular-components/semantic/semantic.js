@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.semantic');
 goog.module.declareLegacyNamespace();
 
@@ -11,6 +9,7 @@ const {DataObjectDirective} = goog.require('grrUi.semantic.dataObjectDirective')
 const {DictDirective} = goog.require('grrUi.semantic.dictDirective');
 const {DurationDirective} = goog.require('grrUi.semantic.durationDirective');
 const {EncryptionKeyDirective} = goog.require('grrUi.semantic.encryptionKeyDirective');
+const {ExactDurationDirective} = goog.require('grrUi.semantic.exactDurationDirective');
 const {FlowIdDirective} = goog.require('grrUi.semantic.flowIdDirective');
 const {HashDigestDirective} = goog.require('grrUi.semantic.hashDigestDirective');
 const {HashListDirective} = goog.require('grrUi.semantic.hashListDirective');
@@ -67,6 +66,8 @@ exports.semanticModule.directive(
     DurationDirective.directive_name, DurationDirective);
 exports.semanticModule.directive(
     EncryptionKeyDirective.directive_name, EncryptionKeyDirective);
+exports.semanticModule.directive(
+    ExactDurationDirective.directive_name, ExactDurationDirective);
 exports.semanticModule.directive(
     FlowIdDirective.directive_name, FlowIdDirective);
 exports.semanticModule.directive(

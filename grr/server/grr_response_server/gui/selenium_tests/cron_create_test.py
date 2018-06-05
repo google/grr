@@ -5,7 +5,7 @@
 
 import unittest
 from grr.lib import flags
-from grr.server.grr_response_server import foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
@@ -70,7 +70,7 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     # of a list.
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
     self.Select("css=grr-new-cron-job-wizard-form div.well select", "Regex")
-    rule = foreman.ForemanRegexClientRule
+    rule = foreman_rules.ForemanRegexClientRule
     label = rule.ForemanStringField.SYSTEM.description
     self.Select(
         "css=grr-new-cron-job-wizard-form div.well "
@@ -81,7 +81,7 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
     self.Select("css=grr-new-cron-job-wizard-form div.well select", "Integer")
-    rule = foreman.ForemanIntegerClientRule
+    rule = foreman_rules.ForemanIntegerClientRule
     label = rule.ForemanIntegerField.CLIENT_CLOCK.description
     self.Select(
         "css=grr-new-cron-job-wizard-form div.well "

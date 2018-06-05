@@ -7,12 +7,15 @@ import sys
 import mock
 
 from grr.server.grr_response_server import data_store
+from grr.test_lib import test_lib
 
 
 class RelationalDBEnabledMixin(object):
   """Mixin that enables RELDB in setUp/tearDown methods."""
 
   def setUp(self):  # pylint: disable=invalid-name
+    """The setUp method."""
+
     self._rel_db_read_enabled_patch = mock.patch.object(
         data_store, "RelationalDBReadEnabled", return_value=True)
     self._rel_db_read_enabled_patch.start()
@@ -21,6 +24,18 @@ class RelationalDBEnabledMixin(object):
         data_store, "RelationalDBWriteEnabled", return_value=True)
     self._rel_db_write_enabled_patch.start()
 
+    self._config_overrider = test_lib.ConfigOverrider({
+        "Database.useForReads": True
+    })
+    self._config_overrider.Start()
+
+    # TODO(amoser): Remove once storing the foreman rules in the
+    # relational db works.
+    self._foreman_config_overrider = test_lib.ConfigOverrider({
+        "Database.useForReads.foreman": True
+    })
+    self._foreman_config_overrider.Start()
+
     super(RelationalDBEnabledMixin, self).setUp()
 
   def tearDown(self):  # pylint: disable=invalid-name
@@ -28,6 +43,8 @@ class RelationalDBEnabledMixin(object):
 
     self._rel_db_read_enabled_patch.stop()
     self._rel_db_write_enabled_patch.stop()
+    self._config_overrider.Stop()
+    self._foreman_config_overrider.Stop()
 
 
 def DualDBTest(cls):

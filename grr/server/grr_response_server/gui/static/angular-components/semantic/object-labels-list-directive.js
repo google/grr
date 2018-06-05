@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.objectLabelsListDirective');
 goog.module.declareLegacyNamespace();
 

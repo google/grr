@@ -84,9 +84,7 @@ class GrrBinaryRef(object):
       raise ValueError("private_key can't be empty.")
 
     padding_algorithm = padding.PKCS1v15()
-    signer = private_key.signer(padding_algorithm, hashes.SHA256())
-    signer.update(blob_bytes)
-    return signer.finalize()
+    return private_key.sign(blob_bytes, padding_algorithm, hashes.SHA256())
 
   def DefaultUploadSigner(self, private_key):
     if not private_key:

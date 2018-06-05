@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """These cron flows do the datastore cleanup."""
 
-
 from grr import config
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -61,10 +60,8 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
       return
 
     jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
-    jobs_objs = aff4.FACTORY.MultiOpen(
-        jobs, aff4_type=cronjobs.CronJob, mode="r", token=self.token)
-
-    for obj in jobs_objs:
+    for job in jobs:
+      obj = cronjobs.CRON_MANAGER.ReadJob(job, token=self.token)
       age = rdfvalue.RDFDatetime.Now() - cron_jobs_ttl
       obj.DeleteJobFlows(age)
       self.HeartBeat()

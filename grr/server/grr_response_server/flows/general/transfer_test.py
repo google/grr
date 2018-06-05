@@ -16,6 +16,7 @@ from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -410,6 +411,11 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
     expected_hash = d.hexdigest()
 
     self.assertEqual(hash_obj.sha1, expected_hash)
+
+
+class TestTransferRelational(db_test_lib.RelationalDBEnabledMixin,
+                             TestTransfer):
+  pass
 
 
 def main(argv):

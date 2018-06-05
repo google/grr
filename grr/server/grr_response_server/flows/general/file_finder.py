@@ -418,10 +418,12 @@ class ClientFileFinder(flow.GRRFlow):
 
       filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
+  # TODO(hanuszczak): Change name of this function since now it also writes to
+  # the relational database.
   def _CreateAff4Stat(self, response, mutation_pool=None):
-    filesystem.CreateAFF4Object(
-        response.stat_entry,
-        self.client_id,
+    filesystem.WriteStatEntries(
+        [response.stat_entry],
+        client_id=self.client_id,
         token=self.token,
         mutation_pool=mutation_pool)
 

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.stats.reportDirectiveTest');
+goog.setTestOnly();
 
 const {statsModule} = goog.require('grrUi.stats.stats');
 const {stripTypeInfo} = goog.require('grrUi.core.apiService');

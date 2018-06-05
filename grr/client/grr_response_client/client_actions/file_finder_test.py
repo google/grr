@@ -5,11 +5,8 @@ import collections
 import glob
 import hashlib
 import os
-import platform
 import shutil
 import stat
-import subprocess
-import unittest
 import zlib
 
 import psutil
@@ -485,14 +482,9 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
   EXT2_COMPR_FL = 0x00000004
   EXT2_IMMUTABLE_FL = 0x00000010
 
-  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
   def testStatExtFlags(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
-      if subprocess.call(["which", "chattr"]) != 0:
-        raise unittest.SkipTest("`chattr` command is not available")
-      if subprocess.call(["chattr", "+c", temp_filepath]) != 0:
-        reason = "extended attributes not supported by filesystem"
-        raise unittest.SkipTest(reason)
+      client_test_lib.Chattr(temp_filepath, attrs=["+c"])
 
       action = rdf_file_finder.FileFinderAction.Stat()
       results = self._RunFileFinder([temp_filepath], action)
@@ -504,8 +496,8 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
   def testStatExtAttrs(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
-      self._SetExtAttr(temp_filepath, "user.foo", "bar")
-      self._SetExtAttr(temp_filepath, "user.quux", "norf")
+      client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
+      client_test_lib.SetExtAttr(temp_filepath, name="user.quux", value="norf")
 
       action = rdf_file_finder.FileFinderAction.Stat()
       results = self._RunFileFinder([temp_filepath], action)
@@ -523,27 +515,6 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
       ext_attrs = results[0].stat_entry.ext_attrs
       self.assertFalse(ext_attrs)
-
-  @classmethod
-  def _SetExtAttr(cls, filepath, name, value):
-    if platform.system() == "Linux":
-      cls._SetExtAttrLinux(filepath, name, value)
-    elif platform.system() == "Darwin":
-      cls._SetExtAttrOsx(filepath, name, value)
-    else:
-      raise unittest.SkipTest("unsupported system")
-
-  @classmethod
-  def _SetExtAttrLinux(cls, filepath, name, value):
-    if subprocess.call(["which", "setfattr"]) != 0:
-      raise unittest.SkipTest("`setfattr` command is not available")
-    if subprocess.call(["setfattr", filepath, "-n", name, "-v", value]) != 0:
-      raise unittest.SkipTest("extended attributes not supported by filesystem")
-
-  @classmethod
-  def _SetExtAttrOsx(cls, filepath, name, value):
-    if subprocess.call(["xattr", "-w", name, value, filepath]) != 0:
-      raise unittest.SkipTest("extended attributes not supported")
 
   def testLinkStat(self):
     """Tests resolving symlinks when getting stat entries."""

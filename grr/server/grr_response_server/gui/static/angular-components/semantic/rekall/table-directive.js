@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.rekall.tableDirective');
 goog.module.declareLegacyNamespace();
 

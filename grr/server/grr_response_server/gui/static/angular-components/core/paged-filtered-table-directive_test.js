@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.pagedFilteredTableDirectiveTest');
+goog.setTestOnly();
 
 const {MemoryItemsProviderController} = goog.require('grrUi.core.memoryItemsProviderDirective');
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');

@@ -66,7 +66,6 @@ class HttpApiRegressionTestMixinBase(object):
         self.__class__.read_from_relational_db):
       self.db_config_overrider = test_lib.ConfigOverrider({
           "Database.useForReads": True,
-          "Database.useForReads.%s" % data_store.READ_CATEGORY_APPROVALS: True
       })
       self.db_config_overrider.Start()
     else:

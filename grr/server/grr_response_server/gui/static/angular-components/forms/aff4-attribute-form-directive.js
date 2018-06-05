@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.forms.aff4AttributeFormDirective');
 goog.module.declareLegacyNamespace();
 

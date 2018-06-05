@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.core.searchBoxDirective');
 goog.module.declareLegacyNamespace();
 

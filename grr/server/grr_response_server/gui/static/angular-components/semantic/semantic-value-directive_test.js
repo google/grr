@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.semanticValueDirectiveTest');
+goog.setTestOnly();
 
 const {clearCaches, getCachedSingleValueTemplate} = goog.require('grrUi.semantic.semanticValueDirective');
 const {semanticModule} = goog.require('grrUi.semantic.semantic');

@@ -24,7 +24,7 @@ from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import db
 from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server import grr_collections
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.aff4_objects import standard
@@ -402,11 +402,11 @@ class GRRForeman(aff4.AFF4Object):
     """Attributes specific to VFSDirectory."""
     RULES = aff4.Attribute(
         "aff4:rules",
-        rdf_foreman.ForemanRules,
+        foreman_rules.ForemanRules,
         "The rules the foreman uses.",
         versioned=False,
         creates_new_object_version=False,
-        default=rdf_foreman.ForemanRules())
+        default=foreman_rules.ForemanRules())
 
   def ExpireRules(self):
     """Removes any rules with an expiration date in the past."""
@@ -472,8 +472,9 @@ class GRRForeman(aff4.AFF4Object):
 
         if action.HasField("hunt_id"):
           if self._CheckIfHuntTaskWasAssigned(client_id, action.hunt_id):
-            logging.info("Foreman: ignoring hunt %s on client %s: was started "
-                         "here before", client_id, action.hunt_id)
+            logging.info(
+                "Foreman: ignoring hunt %s on client %s: was started "
+                "here before", client_id, action.hunt_id)
           else:
             logging.info("Foreman: Starting hunt %s on client %s.",
                          action.hunt_id, client_id)
@@ -496,11 +497,11 @@ class GRRForeman(aff4.AFF4Object):
 
     return actions_count
 
-  def _GetLastForemanRunRelational(self, client_id):
+  def _GetLastForemanRunTimeRelational(self, client_id):
     md = data_store.REL_DB.ReadClientMetadata(client_id)
     return md.last_foreman_time or rdfvalue.RDFDatetime(0)
 
-  def _GetLastForemanRun(self, client_id):
+  def _GetLastForemanRunTime(self, client_id):
     client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
     try:
       return (client.Get(client.Schema.LAST_FOREMAN_TIME) or
@@ -508,7 +509,7 @@ class GRRForeman(aff4.AFF4Object):
     except AttributeError:
       return rdfvalue.RDFDatetime(0)
 
-  def _SetLastForemanRun(self, client_id, latest_rule):
+  def _SetLastForemanRunTime(self, client_id, latest_rule):
     with aff4.FACTORY.Create(
         client_id,
         aff4_type=VFSGRRClient,
@@ -517,7 +518,7 @@ class GRRForeman(aff4.AFF4Object):
         force_new_version=False) as client:
       client.Set(client.Schema.LAST_FOREMAN_TIME(latest_rule))
 
-  def _SetLastForemanRunRelational(self, client_id, latest_rule):
+  def _SetLastForemanRunTimeRelational(self, client_id, latest_rule):
     data_store.REL_DB.WriteClientMetadata(client_id, last_foreman=latest_rule)
 
   def AssignTasksToClient(self, client_id):
@@ -534,9 +535,9 @@ class GRRForeman(aff4.AFF4Object):
       return 0
 
     if data_store.RelationalDBReadEnabled():
-      last_foreman_run = self._GetLastForemanRunRelational(client_id)
+      last_foreman_run = self._GetLastForemanRunTimeRelational(client_id)
     else:
-      last_foreman_run = self._GetLastForemanRun(client_id)
+      last_foreman_run = self._GetLastForemanRunTime(client_id)
 
     latest_rule = max(rule.created for rule in rules)
 
@@ -546,14 +547,14 @@ class GRRForeman(aff4.AFF4Object):
     # Update the latest checked rule on the client.
     if data_store.RelationalDBWriteEnabled():
       try:
-        self._SetLastForemanRunRelational(client_id, latest_rule)
+        self._SetLastForemanRunTimeRelational(client_id, latest_rule)
       except db.UnknownClientError:
         pass
 
     # If the relational db is used for reads, we don't have to update the
     # aff4 object.
     if not data_store.RelationalDBReadEnabled():
-      self._SetLastForemanRun(client_id, latest_rule)
+      self._SetLastForemanRunTime(client_id, latest_rule)
 
     relevant_rules = []
     expired_rules = False
@@ -594,6 +595,9 @@ class GRRAFF4Init(registry.InitHook):
   pre = [aff4.AFF4InitHook]
 
   def Run(self):
+    if data_store.RelationalDBReadEnabled(category="foreman"):
+      return
+
     try:
       # Make the foreman
       with aff4.FACTORY.Create(
@@ -851,9 +855,10 @@ class VFSBlobImage(VFSFile):
     HASHES = aff4.Attribute("aff4:hashes", standard.HashList,
                             "List of hashes of each chunk in this file.")
 
-    FINALIZED = aff4.Attribute("aff4:finalized", rdfvalue.RDFBool,
-                               "Once a blobimage is finalized, further writes"
-                               " will raise exceptions.")
+    FINALIZED = aff4.Attribute(
+        "aff4:finalized", rdfvalue.RDFBool,
+        "Once a blobimage is finalized, further writes"
+        " will raise exceptions.")
 
 
 class AFF4RekallProfile(aff4.AFF4Object):

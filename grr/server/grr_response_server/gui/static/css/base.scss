@@ -18,6 +18,7 @@
 @import 'grr/server/grr_response_server/gui/static/angular-components/artifact/artifact-name';
 @import 'grr/server/grr_response_server/gui/static/angular-components/core/download-collection-as';
 @import 'grr/server/grr_response_server/gui/static/angular-components/core/troggle';
+@import 'grr/server/grr_response_server/gui/static/angular-components/client/client-disk-warnings-modal';
 @import 'grr/server/grr_response_server/gui/static/angular-components/client/check-client-access';
 @import 'grr/server/grr_response_server/gui/static/angular-components/client/host-info';
 @import 'grr/server/grr_response_server/gui/static/angular-components/client/virtual-file-system/breadcrumbs';
@@ -349,20 +350,30 @@ div[ui-view] {
   margin-left: 180px;
   margin-right: 1em;
 
-  input,
-  select,
-  div.input-group {
-    width: 206px;
+  input[type=text] {
+    width: 70%;
+    min-width: 230px;
   }
 
-  input {
-    &[type=checkbox],
-    &.hasDatepicker {
-      width: auto;
+  input[type=checkbox] {
+    width: auto;
+  }
+
+  select {
+    width: auto;
+  }
+
+  input[type=number] {
+    width: 190px;
+  }
+
+  grr-form-datetime {
+    .input-group {
+      width: 230px;
     }
 
-    &.pickerIcon {
-      width: 0;
+    input[type=text] {
+      width: 100%;
     }
   }
 

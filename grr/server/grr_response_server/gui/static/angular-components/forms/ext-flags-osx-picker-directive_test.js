@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.forms.extFlagsOsxPickerDirectiveTest');
+goog.setTestOnly();
 
 const {ExtFlagsOsxPickerDirective} = goog.require('grrUi.forms.extFlagsOsxPickerDirective');
 const {OSX_FLAGS, getOsxFlagMaskByNames} = goog.require('grrUi.client.extFlags');

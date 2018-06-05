@@ -1,0 +1,19 @@
+<div class="modal-header">
+  <button type="button" class="close" ng-click="$dismiss()" aria-hidden="true">x</button>
+  <h3>Disk warnings</h3>
+</div>
+<div class="modal-body">
+  <table>
+    <tr>
+      <th>volume</th>
+      <th>available space</th>
+    </tr>
+    <tr ng-repeat="warning in warnings">
+      <td class="disk-warnings-volume">{$ ::warning.volume $}</td>
+      <td class="disk-warnings-space">{$ warning.percent | number:0 $}%</td>
+    </tr>
+  </table>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-primary" ng-click="$dismiss()">Close</button>
+</div>

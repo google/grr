@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.client.virtualFileSystem.breadcrumbsDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 const {clientModule} = goog.require('grrUi.client.client');

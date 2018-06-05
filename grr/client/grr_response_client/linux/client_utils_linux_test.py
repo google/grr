@@ -3,7 +3,6 @@
 
 import os
 import platform
-import subprocess
 import tempfile
 import time
 import unittest
@@ -17,6 +16,7 @@ from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 
 
@@ -110,12 +110,6 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 @unittest.skipIf(platform.system() != "Linux", "only Linux is supported")
 class GetExtAttrsText(unittest.TestCase):
 
-  @classmethod
-  def _SetAttr(cls, filepath, name, value):
-    if subprocess.call(["which", "setfattr"]) != 0:
-      raise unittest.SkipTest("`setfattr` command not available")
-    subprocess.check_call(["setfattr", "-n", name, "-v", value, filepath])
-
   def testEmpty(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
@@ -124,8 +118,8 @@ class GetExtAttrsText(unittest.TestCase):
 
   def testMany(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
-      self._SetAttr(temp_filepath, "user.foo", "bar")
-      self._SetAttr(temp_filepath, "user.quux", "norf")
+      client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
+      client_test_lib.SetExtAttr(temp_filepath, name="user.quux", value="norf")
 
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 
@@ -143,7 +137,7 @@ class GetExtAttrsText(unittest.TestCase):
   @mock.patch("xattr.listxattr", return_value=["user.foo", "user.bar"])
   def testAttrChangeAfterListing(self, listxattr):
     with test_lib.AutoTempFilePath() as temp_filepath:
-      self._SetAttr(temp_filepath, "user.bar", "baz")
+      client_test_lib.SetExtAttr(temp_filepath, name="user.bar", value="baz")
 
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 

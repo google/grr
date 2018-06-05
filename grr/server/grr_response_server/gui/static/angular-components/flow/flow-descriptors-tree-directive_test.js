@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.flow.flowDescriptorsTreeDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 const {flowModule} = goog.require('grrUi.flow.flow');

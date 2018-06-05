@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.forms.semanticPrimitiveFormDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 const {formsModule} = goog.require('grrUi.forms.forms');

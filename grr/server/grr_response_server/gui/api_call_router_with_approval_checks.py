@@ -146,7 +146,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     cls = ApiCallRouterWithApprovalChecks
 
     if cls.access_checker is None:
-      if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+      if data_store.RelationalDBReadEnabled():
         cls.access_checker = RelDBChecker()
       else:
         cls.access_checker = LegacyChecker()

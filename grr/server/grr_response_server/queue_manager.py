@@ -29,6 +29,7 @@ class MoreDataException(Error):
 session_id_map = {
     rdfvalue.SessionID(queue=queues.ENROLLMENT, flow_name="Enrol"): "Enrol",
     rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"): "StatsHandler",
+    rdfvalue.SessionID(flow_name="TransferStore"): "BlobHandler",
 }
 
 

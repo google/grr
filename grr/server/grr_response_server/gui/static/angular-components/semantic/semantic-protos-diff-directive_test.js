@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.semanticProtosDiffDirectiveTest');
+goog.setTestOnly();
 
 const {diffAnnotate} = goog.require('grrUi.semantic.semanticProtosDiffDirective');
 

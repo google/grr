@@ -855,7 +855,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
         items=sorted(label_objects, key=lambda l: l.name))
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+    if data_store.RelationalDBReadEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)

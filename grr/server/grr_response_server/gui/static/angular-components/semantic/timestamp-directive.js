@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.timestampDirective');
 goog.module.declareLegacyNamespace();
 

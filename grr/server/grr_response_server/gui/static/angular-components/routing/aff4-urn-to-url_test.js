@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.routing.aff4UrnToUrlTest');
+goog.setTestOnly();
 
 const {aff4UrnToUrl} = goog.require('grrUi.routing.aff4UrnToUrl');
 

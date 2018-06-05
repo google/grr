@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.timestampSecondsDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 const {semanticModule} = goog.require('grrUi.semantic.semantic');

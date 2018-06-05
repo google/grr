@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.forms.bytesFormDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 const {bytesToHexEncodedString, hexEncodedStringToBytes, isByteString} = goog.require('grrUi.forms.bytesFormDirective');

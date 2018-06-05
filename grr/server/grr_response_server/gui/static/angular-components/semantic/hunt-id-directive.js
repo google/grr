@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.huntIdDirective');
 goog.module.declareLegacyNamespace();
 

@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.artifact.uploadArtifactDialogDirective');
 goog.module.declareLegacyNamespace();
 

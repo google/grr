@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.periodicRefreshDirectiveTest');
+goog.setTestOnly();
 
 const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');

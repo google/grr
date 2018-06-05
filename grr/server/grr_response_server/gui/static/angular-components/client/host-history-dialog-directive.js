@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.client.hostHistoryDialogDirective');
 goog.module.declareLegacyNamespace();
 

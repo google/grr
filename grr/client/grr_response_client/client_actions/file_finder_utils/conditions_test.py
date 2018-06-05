@@ -12,6 +12,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import standard as rdf_standard
+from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 
 
@@ -363,19 +364,11 @@ class ExtFlagsConditionTest(MetadataConditionTestMixin, unittest.TestCase):
 
     self.assertTrue(condition.Check(self.Stat()))
 
-  def _Chattr(self, args):
-    if platform.system() != "Linux":
-      raise unittest.SkipTest("requires Linux")
-    if subprocess.call(["which", "chattr"]) != 0:
-      raise unittest.SkipTest("the `chattr` command is not available")
-    if subprocess.call(["chattr"] + args + [self.temp_filepath]) != 0:
-      reason = "extended attributes are not supported by filesystem"
-      raise unittest.SkipTest(reason)
+  def _Chattr(self, attrs):
+    client_test_lib.Chattr(self.temp_filepath, attrs=attrs)
 
-  def _Chflags(self, args):
-    if platform.system() != "Darwin":
-      raise unittest.SkipTest("requires macOS")
-    subprocess.check_call(["chflags", ",".join(args), self.temp_filepath])
+  def _Chflags(self, flgs):
+    client_test_lib.Chflags(self.temp_filepath, flags=flgs)
 
 
 # TODO(hanuszczak): Write tests for the metadata change condition.

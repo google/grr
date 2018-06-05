@@ -101,7 +101,7 @@ class BasicFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(BasicFlowTest, self).setUp()
-    self.client_id = test_lib.TEST_CLIENT_ID
+    self.client_id = self.SetupClient(0)
 
 
 class FlowWithMultipleResultTypes(flow.GRRFlow):

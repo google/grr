@@ -633,17 +633,17 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return
 
     with data_store.DB.GetMutationPool() as pool:
-      new_responses = []
-      for response in responses:
-        # Create the aff4object and add the aff4path to the response object.
-        filesystem.CreateAFF4Object(
-            response, self.client_id, pool, token=self.token)
-        new_responses.append(response)
+      stat_entries = map(rdf_client.StatEntry, responses)
+      filesystem.WriteStatEntries(
+          stat_entries,
+          client_id=self.client_id,
+          mutation_pool=pool,
+          token=self.token)
 
     self.CallStateInline(
         next_state="ProcessCollected",
         request_data=responses.request_data,
-        messages=new_responses)
+        messages=stat_entries)
 
   @flow.StateHandler()
   def ProcessCollectedArtifactFiles(self, responses):
@@ -830,7 +830,6 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
 
   category = "/Collectors/"
   args_type = ArtifactFilesDownloaderFlowArgs
-  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
   def FindMatchingPathspecs(self, response):
     # If we're dealing with plain file StatEntry, just

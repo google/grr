@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.core.timestampFilter');
 goog.module.declareLegacyNamespace();
 

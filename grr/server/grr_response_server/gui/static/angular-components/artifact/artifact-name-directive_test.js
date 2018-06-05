@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.artifact.artifactNameDirectiveTest');
+goog.setTestOnly();
 
 const {artifactModule} = goog.require('grrUi.artifact.artifact');
 const {testsModule} = goog.require('grrUi.tests');

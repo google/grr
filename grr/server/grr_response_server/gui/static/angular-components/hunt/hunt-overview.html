@@ -74,11 +74,11 @@
       <dt>Results</dt>
       <dd><grr-semantic-value value="::controller.hunt.value.results_count" /></dd>
 
-      <dt>Total CPU Seconds Used</dt>
-      <dd>{$ ::controller.hunt.value.total_cpu_usage.value | number:2 $}s</dd>
+      <dt>Total CPU Time Used</dt>
+      <dd><grr-exact-duration value="::controller.hunt.value.total_cpu_usage" /></dd>
 
       <dt>Total Network Traffic</dt>
-      <dd>{$ ::controller.hunt.value.total_net_usage.value | number:0 $}b</dd>
+      <dd><grr-byte-size value="::controller.hunt.value.total_net_usage" /></dd>
       <br>
     </grr-force-refresh>
 

@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.user.userSettingsButtonDirective');
 goog.module.declareLegacyNamespace();
 

@@ -169,8 +169,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click the Overview Tab and check that the stats are present.
     self.Click("css=li[heading=Overview]")
-    self.WaitUntil(self.IsTextPresent, "5,000.00s")
-    self.WaitUntil(self.IsTextPresent, "1,000,000b")
+    self.WaitUntil(self.IsTextPresent, "1h 23m 20s")
+    self.WaitUntil(self.IsTextPresent, "976.6KiB")
 
   def testHuntOverviewGetsUpdatedWhenHuntChanges(self):
     with self.CreateSampleHunt() as hunt:
@@ -186,15 +186,15 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
 
-    self.WaitUntil(self.IsTextPresent, "5,000.00s")
-    self.WaitUntil(self.IsTextPresent, "1,000,000b")
+    self.WaitUntil(self.IsTextPresent, "1h 23m 20s")
+    self.WaitUntil(self.IsTextPresent, "976.6KiB")
 
     with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as fd:
       fd.context.usage_stats.user_cpu_stats.sum = 6000
       fd.context.usage_stats.network_bytes_sent_stats.sum = 11000000
 
-    self.WaitUntil(self.IsTextPresent, "6,000.00s")
-    self.WaitUntil(self.IsTextPresent, "11,000,000b")
+    self.WaitUntil(self.IsTextPresent, "1h 40m")
+    self.WaitUntil(self.IsTextPresent, "10.5MiB")
 
   def testHuntStatsView(self):
     self.SetupTestHuntView()

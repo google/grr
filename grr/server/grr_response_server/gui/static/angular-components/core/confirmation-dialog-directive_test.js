@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.confirmationDialogDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 const {coreModule} = goog.require('grrUi.core.core');

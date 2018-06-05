@@ -9,7 +9,7 @@ from grr.lib.rdfvalues import stats
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
-from grr.server.grr_response_server import foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server import output_plugin
 
 
@@ -61,7 +61,7 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.HuntRunnerArgs
   rdf_deps = [
       rdfvalue.Duration,
-      foreman.ForemanClientRuleSet,
+      foreman_rules.ForemanClientRuleSet,
       output_plugin.OutputPluginDescriptor,
       rdfvalue.RDFURN,
       FlowLikeObjectReference,

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.semanticProtoDirectiveTest');
+goog.setTestOnly();
 
 const {buildItems, buildNonUnionItems, buildUnionItems, getUnionFieldValue} = goog.require('grrUi.semantic.semanticProtoDirective');
 const {semanticModule} = goog.require('grrUi.semantic.semantic');

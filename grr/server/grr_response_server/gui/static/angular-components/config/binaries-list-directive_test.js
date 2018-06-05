@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.config.binariesListDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 const {configModule} = goog.require('grrUi.config.config');

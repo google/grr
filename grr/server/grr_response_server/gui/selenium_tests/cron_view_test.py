@@ -36,7 +36,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
       cron_args = cronjobs.CreateCronJobFlowArgs(
           periodicity="7d", lifetime="1d")
       cron_args.flow_runner_args.flow_name = flow_name
-      cronjobs.CRON_MANAGER.ScheduleFlow(
+      cronjobs.CRON_MANAGER.CreateJob(
           cron_args, job_name=flow_name, token=self.token)
 
     cronjobs.CRON_MANAGER.RunOnce(token=self.token)
@@ -95,7 +95,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsTextPresent, "Outstanding requests")
 
   def testToolbarStateForDisabledCronJob(self):
-    cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.DisableJob(job_name="OSBreakDown")
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -109,7 +109,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])"))
 
   def testToolbarStateForEnabledCronJob(self):
-    cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.EnableJob(job_name="OSBreakDown")
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -124,7 +124,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])"))
 
   def testEnableCronJob(self):
-    cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.DisableJob(job_name="OSBreakDown")
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -169,7 +169,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
                    "css=tr:contains('OSBreakDown') *[state=ENABLED]")
 
   def testDisableCronJob(self):
-    cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.EnableJob(job_name="OSBreakDown")
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -212,7 +212,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
                    "css=tr:contains('OSBreakDown') *[state=DISABLED]")
 
   def testDeleteCronJob(self):
-    cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.EnableJob(job_name="OSBreakDown")
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -257,7 +257,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
                       "td:contains('OSBreakDown')")
 
   def testForceRunCronJob(self):
-    cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.EnableJob(job_name="OSBreakDown")
 
     with test_lib.FakeTime(
         # 2274264646 corresponds to Sat, 25 Jan 2042 12:10:46 GMT.

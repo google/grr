@@ -53,11 +53,8 @@ class CronManager(object):
 
   CRON_JOBS_PATH = rdfvalue.RDFURN("aff4:/cron")
 
-  def ScheduleFlow(self,
-                   cron_args=None,
-                   job_name=None,
-                   token=None,
-                   disabled=False):
+  def CreateJob(self, cron_args=None, job_name=None, token=None,
+                disabled=False):
     """Creates a cron job that runs given flow with a given frequency.
 
     Args:
@@ -72,7 +69,7 @@ class CronManager(object):
       disabled: If True, the job object will be created, but will be disabled.
 
     Returns:
-      URN of the cron job created.
+      Name of the cron job created.
     """
     if not job_name:
       uid = utils.PRNG.GetUInt16()
@@ -98,42 +95,62 @@ class CronManager(object):
       if disabled != cron_job.Get(cron_job.Schema.DISABLED):
         cron_job.Set(cron_job.Schema.DISABLED(disabled))
 
-    return cron_job_urn
+    return job_name
 
   def ListJobs(self, token=None):
     """Returns a generator of URNs of all currently running cron jobs."""
-    return aff4.FACTORY.Open(self.CRON_JOBS_PATH, token=token).ListChildren()
+    job_root = aff4.FACTORY.Open(self.CRON_JOBS_PATH, token=token)
+    return [urn.Basename() for urn in job_root.ListChildren()]
 
-  def EnableJob(self, job_urn, token=None):
+  def ReadJob(self, job_name, token=None):
+    job_urn = self.CRON_JOBS_PATH.Add(job_name)
+    return aff4.FACTORY.Open(
+        job_urn, aff4_type=CronJob, token=token, age=aff4.ALL_TIMES)
+
+  def ReadJobs(self, job_names, token=None):
+    job_urns = [self.CRON_JOBS_PATH.Add(job_name) for job_name in job_names]
+    return aff4.FACTORY.MultiOpen(
+        job_urns, aff4_type=CronJob, token=token, age=aff4.ALL_TIMES)
+
+  def ReadJobRuns(self, job_name, token=None):
+    job_urn = self.CRON_JOBS_PATH.Add(job_name)
+    fd = aff4.FACTORY.Open(job_urn, token=token)
+    return list(fd.OpenChildren())
+
+  def EnableJob(self, job_name, token=None):
     """Enable cron job with the given URN."""
+    job_urn = self.CRON_JOBS_PATH.Add(job_name)
     cron_job = aff4.FACTORY.Open(
         job_urn, mode="rw", aff4_type=CronJob, token=token)
     cron_job.Set(cron_job.Schema.DISABLED(0))
     cron_job.Close()
 
-  def DisableJob(self, job_urn, token=None):
+  def DisableJob(self, job_name, token=None):
     """Disable cron job with the given URN."""
+    job_urn = self.CRON_JOBS_PATH.Add(job_name)
     cron_job = aff4.FACTORY.Open(
         job_urn, mode="rw", aff4_type=CronJob, token=token)
     cron_job.Set(cron_job.Schema.DISABLED(1))
     cron_job.Close()
 
-  def DeleteJob(self, job_urn, token=None):
+  def DeleteJob(self, job_name, token=None):
     """Deletes cron job with the given URN."""
+    job_urn = self.CRON_JOBS_PATH.Add(job_name)
     aff4.FACTORY.Delete(job_urn, token=token)
 
-  def RunOnce(self, token=None, force=False, urns=None):
+  def RunOnce(self, token=None, force=False, names=None):
     """Tries to lock and run cron jobs.
 
     Args:
       token: security token
       force: If True, force a run
-      urns: List of URNs to run.  If unset, run them all
+      names: List of job names to run.  If unset, run them all
     """
-    urns = urns or self.ListJobs(token=token)
+    names = names or self.ListJobs(token=token)
+    urns = [self.CRON_JOBS_PATH.Add(name) for name in names]
+
     for cron_job_urn in urns:
       try:
-
         with aff4.FACTORY.OpenWithLock(
             cron_job_urn, blocking=False, token=token,
             lease_time=600) as cron_job:
@@ -269,7 +286,7 @@ def ScheduleSystemCronFlows(names=None, token=None):
       else:
         disabled = name in config.CONFIG["Cron.disabled_system_jobs"]
 
-      CRON_MANAGER.ScheduleFlow(
+      CRON_MANAGER.CreateJob(
           cron_args=cron_args, job_name=name, token=token, disabled=disabled)
 
   if errors:

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.forms.utilsTest');
+goog.setTestOnly();
 
 const {valueHasErrors} = goog.require('grrUi.forms.utils');
 

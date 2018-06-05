@@ -177,6 +177,7 @@ message PathInfo {
   optional uint64 last_path_history_timestamp = 3
       [(sem_type) = { type: "RDFDatetime" }];
   optional bool directory = 4;
+  optional StatEntry stat_entry = 5;
 }
 
 message ObjectReference {

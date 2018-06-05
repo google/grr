@@ -17,7 +17,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
 
   def testProcessListingOnly(self):
     """Test that the ListProcesses flow works."""
-    client_id = test_lib.TEST_CLIENT_ID
+    client_id = self.SetupClient(0)
 
     client_mock = action_mocks.ListProcessesMock([
         rdf_client.Process(
@@ -44,7 +44,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
 
   def testProcessListingWithFilter(self):
     """Test that the ListProcesses flow works with filter."""
-    client_id = test_lib.TEST_CLIENT_ID
+    client_id = self.SetupClient(0)
 
     client_mock = action_mocks.ListProcessesMock([
         rdf_client.Process(
@@ -94,7 +94,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     raise RuntimeError("Skipped process not mentioned in logs")
 
   def testProcessListingFilterConnectionState(self):
-    client_id = test_lib.TEST_CLIENT_ID
+    client_id = self.SetupClient(0)
     p1 = rdf_client.Process(
         pid=2,
         ppid=1,
@@ -134,7 +134,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     self.assertItemsEqual(states, ["ESTABLISHED", "LISTEN"])
 
   def testWhenFetchingFiltersOutProcessesWithoutExeAndConnectionState(self):
-    client_id = test_lib.TEST_CLIENT_ID
+    client_id = self.SetupClient(0)
     p1 = rdf_client.Process(
         pid=2,
         ppid=1,
@@ -177,7 +177,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     session_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
-        client_id=test_lib.TEST_CLIENT_ID,
+        client_id=self.SetupClient(0),
         fetch_binaries=True,
         token=self.token)
 
@@ -207,7 +207,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     session_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
-        client_id=test_lib.TEST_CLIENT_ID,
+        client_id=self.SetupClient(0),
         fetch_binaries=True,
         token=self.token)
 
@@ -234,7 +234,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     session_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
-        client_id=test_lib.TEST_CLIENT_ID,
+        client_id=self.SetupClient(0),
         fetch_binaries=True,
         token=self.token,
         check_flow_errors=False)

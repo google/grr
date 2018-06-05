@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.client.clientStatusIconsDirectiveTest');
+goog.setTestOnly();
 
 const {clientModule} = goog.require('grrUi.client.client');
 const {testsModule} = goog.require('grrUi.tests');
@@ -136,16 +135,16 @@ describe('client status icons', () => {
     expect(iconElement[0].title).toBe('1 hours ago');
   });
 
-  it('shows no disk warning if none are present', () => {
+  it('shows no disk warning icon if none are present', () => {
     const element = render({
       type: 'ApiClient',
       value: {},
     });
-    const warningElement = $('span[name=clientDiskWarnings]', element);
+    const warningElement = $('img[name=clientDiskWarnings]', element);
     expect(warningElement.length).toBe(0);
   });
 
-  it('shows two disk warnings correctly', () => {
+  it('shows disk warning icon if some are present', () => {
     const volume1 = {
       name: {
         value: '/Volume/A',
@@ -185,11 +184,10 @@ describe('client status icons', () => {
     };
 
     const element = render(client);
-    const warningElement = $('span[name=clientDiskWarnings]', element);
+    const warningElement = $('img[name=clientDiskWarnings]', element);
 
     expect(warningElement.length).toBe(1);
-    expect(warningElement.text()).toContain('/Volume/A 3% free');
-    expect(warningElement.text()).toContain('C: 4% free');
+    // TODO(hanuszczak): Write tests for the dialog with warning details.
   });
 });
 

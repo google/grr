@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.forms.timerangeFormDirectiveTest');
+goog.setTestOnly();
 
 const {formsModule} = goog.require('grrUi.forms.forms');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');

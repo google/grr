@@ -192,9 +192,6 @@ class CopyToSystemDir(installer.Installer):
             raise e
     os.makedirs(install_path)
 
-    fleetspeak_unsigned_config_path = os.path.join(
-        executable_directory,
-        config.CONFIG["Client.fleetspeak_unsigned_config_fname"])
     # Recursively copy the temp directory to the installation directory.
     for root, dirs, files in os.walk(executable_directory):
       for name in dirs:
@@ -211,10 +208,6 @@ class CopyToSystemDir(installer.Installer):
 
       for name in files:
         src_path = os.path.join(root, name)
-        # The Fleetspeak config will be written to the registry, so
-        # no need to copy it to the installation directory.
-        if src_path == fleetspeak_unsigned_config_path:
-          continue
         relative_path = os.path.relpath(src_path, executable_directory)
         dest_path = os.path.join(install_path, relative_path)
 
@@ -266,14 +259,13 @@ class WindowsInstaller(installer.Installer):
     RemoveService(config.CONFIG["Nanny.service_name"])
 
     # Write the Fleetspeak config to the registry.
+    key_path = config.CONFIG["Client.fleetspeak_unsigned_services_regkey"]
+    regkey = OpenRegkey(key_path)
     fleetspeak_unsigned_config_path = os.path.join(
-        os.path.dirname(sys.executable),
+        config.CONFIG["Client.install_path"],
         config.CONFIG["Client.fleetspeak_unsigned_config_fname"])
-    with open(fleetspeak_unsigned_config_path) as f:
-      key_path = config.CONFIG["Client.fleetspeak_unsigned_services_regkey"]
-      regkey = OpenRegkey(key_path)
-      _winreg.SetValueEx(regkey, config.CONFIG["Client.name"], 0,
-                         _winreg.REG_SZ, f.read())
+    _winreg.SetValueEx(regkey, config.CONFIG["Client.name"], 0, _winreg.REG_SZ,
+                       fleetspeak_unsigned_config_path)
 
     fs_service = config.CONFIG["Client.fleetspeak_service_name"]
     StopService(service_name=fs_service)

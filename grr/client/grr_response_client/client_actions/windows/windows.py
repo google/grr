@@ -77,7 +77,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
     pythoncom.CoInitialize()
     for interface in wmi.WMI().Win32_NetworkAdapterConfiguration():
       addresses = []
-      for ip_address in interface.IPAddress:
+      for ip_address in interface.IPAddress or []:
         addresses.append(
             rdf_client.NetworkAddress(human_readable_address=ip_address))
 

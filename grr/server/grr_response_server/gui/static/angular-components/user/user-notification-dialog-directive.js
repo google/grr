@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.user.userNotificationDialogDirective');
 goog.module.declareLegacyNamespace();
 

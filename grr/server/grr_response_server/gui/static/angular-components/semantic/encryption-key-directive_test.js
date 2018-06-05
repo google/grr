@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.encryptionKeyDirectiveTest');
+goog.setTestOnly();
 
 const {semanticModule} = goog.require('grrUi.semantic.semantic');
 const {stringifyEncryptionKey} = goog.require('grrUi.semantic.encryptionKeyDirective');

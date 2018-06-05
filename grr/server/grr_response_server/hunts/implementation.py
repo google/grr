@@ -27,7 +27,7 @@ from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import events as events_lib
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import flow_runner
-from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server import grr_collections
 from grr.server.grr_response_server import multi_type_collection
 from grr.server.grr_response_server import notification as notification_lib
@@ -663,32 +663,53 @@ class HuntRunner(object):
 
   def _AddForemanRule(self):
     """Adds a foreman rule for this hunt."""
-    foreman_rule = rdf_foreman.ForemanRule(
-        created=rdfvalue.RDFDatetime.Now(),
-        expires=self.context.expires,
-        description="Hunt %s %s" % (self.session_id,
-                                    self.runner_args.hunt_name),
-        client_rule_set=self.runner_args.client_rule_set)
+    if data_store.RelationalDBReadEnabled(category="foreman"):
+      # Relational DB uses ForemanCondition objects.
+      foreman_condition = foreman_rules.ForemanCondition(
+          creation_time=rdfvalue.RDFDatetime.Now(),
+          expiration_time=self.context.expires,
+          description="Hunt %s %s" % (self.session_id,
+                                      self.runner_args.hunt_name),
+          client_rule_set=self.runner_args.client_rule_set,
+          hunt_id=self.session_id.Basename(),
+          hunt_name=self.runner_args.hunt_name)
 
-    foreman_rule.actions.Append(
-        hunt_id=self.session_id,
-        hunt_name=self.runner_args.hunt_name,
-        client_limit=self.runner_args.client_limit)
+      # Make sure the rule makes sense.
+      foreman_condition.Validate()
 
-    # Make sure the rule makes sense.
-    foreman_rule.Validate()
+      data_store.REL_DB.WriteForemanRule(foreman_condition)
+    else:
+      foreman_rule = foreman_rules.ForemanRule(
+          created=rdfvalue.RDFDatetime.Now(),
+          expires=self.context.expires,
+          description="Hunt %s %s" % (self.session_id,
+                                      self.runner_args.hunt_name),
+          client_rule_set=self.runner_args.client_rule_set)
 
-    with aff4.FACTORY.Open(
-        "aff4:/foreman",
-        mode="rw",
-        token=self.token,
-        aff4_type=aff4_grr.GRRForeman) as foreman:
-      foreman_rules = foreman.Get(
-          foreman.Schema.RULES, default=foreman.Schema.RULES())
-      foreman_rules.Append(foreman_rule)
-      foreman.Set(foreman_rules)
+      foreman_rule.actions.Append(
+          hunt_id=self.session_id,
+          hunt_name=self.runner_args.hunt_name,
+          client_limit=self.runner_args.client_limit)
+
+      # Make sure the rule makes sense.
+      foreman_rule.Validate()
+
+      with aff4.FACTORY.Open(
+          "aff4:/foreman",
+          mode="rw",
+          token=self.token,
+          aff4_type=aff4_grr.GRRForeman) as foreman:
+        rules = foreman.Get(
+            foreman.Schema.RULES, default=foreman.Schema.RULES())
+        rules.Append(foreman_rule)
+        foreman.Set(rules)
 
   def _RemoveForemanRule(self):
+    """Removes the foreman rule corresponding to this hunt."""
+    if data_store.RelationalDBReadEnabled(category="foreman"):
+      data_store.REL_DB.RemoveForemanRule(hunt_id=self.session_id.Basename())
+      return
+
     with aff4.FACTORY.Open(
         "aff4:/foreman", mode="rw", token=self.token) as foreman:
       aff4_rules = foreman.Get(foreman.Schema.RULES)

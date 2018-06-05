@@ -8,7 +8,6 @@ import urlparse
 import unittest
 from grr.lib import flags
 
-from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.server.grr_response_server import email_alerts
 from grr.server.grr_response_server.aff4_objects import cronjobs
@@ -163,7 +162,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
   def testEmailCronJobApprovalRequestLinkLeadsToACorrectPage(self):
     cronjobs.ScheduleSystemCronFlows(
         names=[cron_system.OSBreakDown.__name__], token=self.token)
-    cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.DisableJob(job_name="OSBreakDown")
 
     self.RequestCronJobApproval(
         "OSBreakDown",
@@ -193,7 +192,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
   def testEmailCronjobApprovalGrantNotificationLinkLeadsToCorrectPage(self):
     cronjobs.ScheduleSystemCronFlows(
         names=[cron_system.OSBreakDown.__name__], token=self.token)
-    cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.DisableJob(job_name="OSBreakDown")
 
     self.RequestAndGrantCronJobApproval(
         "OSBreakDown",

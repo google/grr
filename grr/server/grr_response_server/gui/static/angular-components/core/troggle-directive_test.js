@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.troggleDirectiveTest');
+goog.setTestOnly();
 
 const {TroggleDirective, TroggleState} = goog.require('grrUi.core.troggleDirective');
 const {coreModule} = goog.require('grrUi.core.core');

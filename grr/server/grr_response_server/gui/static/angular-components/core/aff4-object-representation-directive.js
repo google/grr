@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.core.aff4ObjectRepresentationDirective');
 goog.module.declareLegacyNamespace();
 

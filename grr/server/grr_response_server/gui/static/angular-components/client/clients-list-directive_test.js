@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.client.clientsListDirectiveTest');
+goog.setTestOnly();
 
 const {clientModule} = goog.require('grrUi.client.client');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');

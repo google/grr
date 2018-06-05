@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.client.virtualFileSystem.fileTableDirective');
 goog.module.declareLegacyNamespace();
 

@@ -10,7 +10,7 @@ from grr.lib import utils
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import flow_test_lib
@@ -78,16 +78,16 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     # Make sure there are no rules yet in the foreman.
     self.assertEqual(len(rules), 0)
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="HUNT")),
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
-            integer=rdf_foreman.ForemanIntegerClientRule(
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
+            integer=foreman_rules.ForemanIntegerClientRule(
                 field="CLIENT_CLOCK",
-                operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                operator=foreman_rules.ForemanIntegerClientRule.Operator.
                 GREATER_THAN,
                 value=1336650631137737))
     ])
@@ -144,23 +144,23 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     expires = rdfvalue.Duration("1h").Expiry()
     # Add some rules.
     rules = [
-        rdf_foreman.ForemanRule(
+        foreman_rules.ForemanRule(
             created=now, expires=expires, description="Test rule1"),
-        rdf_foreman.ForemanRule(
+        foreman_rules.ForemanRule(
             created=now, expires=expires, description="Test rule2")
     ]
     self.AddForemanRules(rules)
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="HUNT")),
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
-            integer=rdf_foreman.ForemanIntegerClientRule(
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
+            integer=foreman_rules.ForemanIntegerClientRule(
                 field="CLIENT_CLOCK",
-                operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                operator=foreman_rules.ForemanIntegerClientRule.Operator.
                 GREATER_THAN,
                 value=1336650631137737))
     ])
@@ -177,9 +177,9 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
       # Add some more rules.
       rules = [
-          rdf_foreman.ForemanRule(
+          foreman_rules.ForemanRule(
               created=now, expires=expires, description="Test rule3"),
-          rdf_foreman.ForemanRule(
+          foreman_rules.ForemanRule(
               created=now, expires=expires, description="Test rule4")
       ]
       self.AddForemanRules(rules)
@@ -206,10 +206,10 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
   def testInvalidRules(self):
     """Tests the behavior when the field is left UNSET in a rule."""
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="UNSET", attribute_regex="HUNT"))
     ])
 
@@ -228,10 +228,10 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
   def testCallback(self, client_limit=None):
     """Checks that the foreman uses the callback specified in the action."""
     client_urn = self.SetupClient(0)
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
@@ -292,10 +292,10 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     # Set up 10 clients.
     client_ids = self.SetupClients(10)
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
@@ -331,10 +331,10 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     # Set up 10 clients.
     client_ids = self.SetupClients(10)
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
@@ -368,10 +368,10 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     """This tests if the hunt completes when some clients hang or raise."""
     client_ids = self.SetupClients(10)
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
@@ -414,10 +414,10 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     # Set up 10 clients.
     client_ids = self.SetupClients(10)
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
@@ -451,10 +451,10 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     # Set up 10 clients.
     client_ids = self.SetupClients(10)
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
@@ -485,10 +485,10 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     self.assertEqual(finished, 5)
 
   def _RunRateLimitedHunt(self, client_ids, start_time):
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
+    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
+        foreman_rules.ForemanClientRule(
+            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+            regex=foreman_rules.ForemanRegexClientRule(
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 

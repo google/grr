@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.forms.extFlagsLinuxPickerLongDirective');
 goog.module.declareLegacyNamespace();
 

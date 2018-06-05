@@ -45,7 +45,7 @@ class WorkerSendingTestFlow(flow.GRRFlow):
           data=str(i),
           next_state="Incoming")
 
-  @flow.StateHandler(auth_required=False)
+  @flow.StateHandler()
   def Incoming(self, responses):
     # We push the result into a global array so we can examine it
     # better.
@@ -77,7 +77,7 @@ class WorkerSendingWKTestFlow(flow.WellKnownFlow):
 
 class RaisingTestFlow(WorkerSendingTestFlow):
 
-  @flow.StateHandler(auth_required=False)
+  @flow.StateHandler()
   def Incoming(self, responses):
     raise AttributeError("Some Error.")
 

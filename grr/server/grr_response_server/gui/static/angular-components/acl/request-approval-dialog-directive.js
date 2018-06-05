@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.acl.requestApprovalDialogDirective');
 goog.module.declareLegacyNamespace();
 

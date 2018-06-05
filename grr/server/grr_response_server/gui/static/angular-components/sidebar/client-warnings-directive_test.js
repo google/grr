@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.clientWarningsDirectiveTest');
+goog.setTestOnly();
 
 const {sidebarModule} = goog.require('grrUi.sidebar.sidebar');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');

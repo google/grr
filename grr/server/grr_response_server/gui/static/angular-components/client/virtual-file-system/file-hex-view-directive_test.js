@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.client.virtualFileSystem.fileHexViewDirectiveTest');
+goog.setTestOnly();
 
 const {testsModule} = goog.require('grrUi.tests');
 const {virtualFileSystemModule} = goog.require('grrUi.client.virtualFileSystem.virtualFileSystem');

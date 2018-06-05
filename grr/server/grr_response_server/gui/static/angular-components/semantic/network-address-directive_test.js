@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.networkAddressDirectiveTest');
+goog.setTestOnly();
 
 const {semanticModule} = goog.require('grrUi.semantic.semantic');
 const {testsModule} = goog.require('grrUi.tests');

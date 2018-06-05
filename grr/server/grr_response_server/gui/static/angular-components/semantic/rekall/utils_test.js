@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.rekall.utilsTest');
+goog.setTestOnly();
 
 const {cropRekallJson, stackRekallTables} = goog.require('grrUi.semantic.rekall.utils');
 

@@ -7,12 +7,9 @@
        ng-src="/static/images/skull-icon.png" name="clientCrashIcon"
        title="{$ ::controller.crashTime | grrTimeSince $}" />
 
-  <span ng-if="::controller.diskWarnings.length > 0"
-        name="clientDiskWarnings">
-    <img class="grr-icon" ng-src="/static/images/hdd-bang-icon.png" />
-    <strong>Disk free space low:</strong><br/>
-    <span ng-repeat="warning in ::controller.diskWarnings">
-      {$ ::warning[0] $} {$ warning[1] | number:0 $}% free<br/>
-    </span>
-  </span>
+  <img ng-if="::controller.diskWarnings.length > 0" class="grr-icon"
+       ng-src="/static/images/hdd-bang-icon.png" name="clientDiskWarnings"
+       ng-click="controller.showDiskWarnings($event)"
+       style="cursor: pointer !important;"
+       title="Disk free space is low (click for details)" />
 </div>

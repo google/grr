@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.apiServiceTest');
+goog.setTestOnly();
 
 const {coreModule} = goog.require('grrUi.core.core');
 const {encodeUrlPath, stripTypeInfo, UNAUTHORIZED_API_RESPONSE_EVENT} = goog.require('grrUi.core.apiService');

@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.core.firebaseService');
 goog.module.declareLegacyNamespace();
 

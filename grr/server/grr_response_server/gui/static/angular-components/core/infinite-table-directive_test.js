@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.infiniteTableDirectiveTest');
+goog.setTestOnly();
 
 const {InfiniteTableController} = goog.require('grrUi.core.infiniteTableDirective');
 const {MemoryItemsProviderController} = goog.require('grrUi.core.memoryItemsProviderDirective');

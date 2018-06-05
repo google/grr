@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.hunt.newHuntWizard.reviewPageDirective');
 goog.module.declareLegacyNamespace();
 

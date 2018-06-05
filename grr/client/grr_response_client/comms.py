@@ -518,6 +518,8 @@ class GRRClientWorker(threading.Thread):
 
     self.proc = psutil.Process()
 
+    self.nanny_controller = None
+
     self.transaction_log = client_utils.TransactionLog()
 
     if internal_nanny_monitoring:
@@ -769,7 +771,8 @@ class GRRClientWorker(threading.Thread):
 
   def Sleep(self, timeout):
     """Sleeps the calling thread with heartbeat."""
-    self.nanny_controller.Heartbeat()
+    if self.nanny_controller:
+      self.nanny_controller.Heartbeat()
 
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
     while timeout > 0:
@@ -780,7 +783,8 @@ class GRRClientWorker(threading.Thread):
       if self._out_queue.Full():
         return
 
-      self.nanny_controller.Heartbeat()
+      if self.nanny_controller:
+        self.nanny_controller.Heartbeat()
 
   def OnStartup(self):
     """A handler that is called on client startup."""
@@ -793,9 +797,10 @@ class GRRClientWorker(threading.Thread):
       status = rdf_flows.GrrStatus(
           status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED,
           error_message="Client killed during transaction")
-      nanny_status = self.nanny_controller.GetNannyStatus()
-      if nanny_status:
-        status.nanny_status = nanny_status
+      if self.nanny_controller:
+        nanny_status = self.nanny_controller.GetNannyStatus()
+        if nanny_status:
+          status.nanny_status = nanny_status
 
       self.SendReply(
           status,

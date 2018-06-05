@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.dataObjectDirectiveTest');
+goog.setTestOnly();
 
 const {semanticModule} = goog.require('grrUi.semantic.semantic');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');

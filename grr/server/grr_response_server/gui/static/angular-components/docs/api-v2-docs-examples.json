@@ -7112,6 +7112,7 @@
         "flowRunnerArgs": {
           "flowName": "OSBreakDown"
         },
+        "isFailing": false,
         "lifetime": "604800",
         "periodicity": "86400",
         "state": "ENABLED",
@@ -7137,6 +7138,7 @@
         "flowRunnerArgs": {
           "flowName": "GRRVersionBreakDown"
         },
+        "isFailing": false,
         "lifetime": "604800",
         "periodicity": "86400",
         "state": "DISABLED",

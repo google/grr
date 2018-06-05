@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.user.userNotificationItemDirectiveTest');
+goog.setTestOnly();
 
 const {annotateApiNotification} = goog.require('grrUi.user.userNotificationItemDirective');
 

@@ -4,7 +4,7 @@
 import unittest
 from grr.lib import flags
 
-from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import foreman
 from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
@@ -89,9 +89,9 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
         token=self.token) as hunt:
       hunt.Run()
 
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    foreman_obj = foreman.GetForeman(token=self.token)
     for client_id in client_ids:
-      self.assertTrue(foreman.AssignTasksToClient(client_id.Basename()))
+      self.assertTrue(foreman_obj.AssignTasksToClient(client_id.Basename()))
     hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False,
                                                   self.token)
 

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.serverErrorPreviewDirectiveTest');
+goog.setTestOnly();
 
 const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
 const {coreModule} = goog.require('grrUi.core.core');

@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.semanticDiffAnnotatedProtoDirective');
 goog.module.declareLegacyNamespace();
 

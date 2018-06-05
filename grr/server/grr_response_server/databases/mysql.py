@@ -22,6 +22,7 @@ from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import objects
 from grr.server.grr_response_server import db as db_module
 from grr.server.grr_response_server import db_utils
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server.databases import mysql_ddl
 from grr.server.grr_response_server.databases import mysql_pool
 
@@ -415,7 +416,7 @@ class MysqlDB(db_module.Database):
                      (int_id, timestamp, startup_info.SerializeToString()))
       cursor.execute(update_query, (timestamp, timestamp, int_id))
     except MySQLdb.IntegrityError as e:
-      raise db_module.UnknownClientError(e)
+      raise db_module.UnknownClientError(client.client_id, cause=e)
     finally:
       client.startup_info = startup_info
 
@@ -508,7 +509,7 @@ class MysqlDB(db_module.Database):
             "VALUES (%s, %s, %s)",
             [cid, timestamp, startup_info.SerializeToString()])
       except MySQLdb.IntegrityError as e:
-        raise db_module.UnknownClientError(e)
+        raise db_module.UnknownClientError(clients[0].client_id, cause=e)
       finally:
         client.startup_info = startup_info
 
@@ -540,7 +541,7 @@ class MysqlDB(db_module.Database):
           "UPDATE clients SET last_startup_timestamp = %s WHERE client_id=%s",
           [now, cid])
     except MySQLdb.IntegrityError as e:
-      raise db_module.UnknownClientError(e)
+      raise db_module.UnknownClientError(client_id, cause=e)
 
   @WithTransaction(readonly=True)
   def ReadClientStartupInfo(self, client_id, cursor=None):
@@ -697,7 +698,7 @@ class MysqlDB(db_module.Database):
             "VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE timestamp=%s",
             [cid, utils.SmartUnicode(kw), now, now])
     except MySQLdb.IntegrityError as e:
-      raise db_module.UnknownClientError(e)
+      raise db_module.UnknownClientError(client_id, cause=e)
 
   @WithTransaction()
   def RemoveClientKeyword(self, client_id, keyword, cursor=None):
@@ -740,7 +741,7 @@ class MysqlDB(db_module.Database):
             "VALUES (%s, %s, %s)",
             [cid, owner, utils.SmartUnicode(label)])
     except MySQLdb.IntegrityError as e:
-      raise db_module.UnknownClientError(e)
+      raise db_module.UnknownClientError(client_id, cause=e)
 
   @WithTransaction(readonly=True)
   def MultiReadClientLabels(self, client_ids, cursor=None):
@@ -802,7 +803,7 @@ class MysqlDB(db_module.Database):
           [now, cid])
 
     except MySQLdb.IntegrityError as e:
-      raise db_module.UnknownClientError(e)
+      raise db_module.UnknownClientError(client_id, cause=e)
 
   @WithTransaction(readonly=True)
   def ReadClientCrashInfo(self, client_id, cursor=None):
@@ -1030,7 +1031,7 @@ class MysqlDB(db_module.Database):
     """Returns path info records for a client."""
     raise NotImplementedError()
 
-  def WritePathInfosRaw(self, client_id, path_infos):
+  def WritePathInfos(self, client_id, path_infos):
     """Writes a collection of path_info records for a client."""
     raise NotImplementedError()
 
@@ -1252,3 +1253,32 @@ class MysqlDB(db_module.Database):
       res.append(req)
 
     return res
+
+  @WithTransaction()
+  def WriteForemanRule(self, rule, cursor=None):
+    query = ("INSERT INTO foreman_rules "
+             "(hunt_id, expiration_time, rule) VALUES (%s, %s, %s) "
+             "ON DUPLICATE KEY UPDATE expiration_time=%s, rule=%s")
+
+    exp_str = _RDFDatetimeToMysqlString(rule.expiration_time),
+    rule_str = rule.SerializeToString()
+    cursor.execute(query, [rule.hunt_id, exp_str, rule_str, exp_str, rule_str])
+
+  @WithTransaction()
+  def RemoveForemanRule(self, hunt_id, cursor=None):
+    query = "DELETE FROM foreman_rules WHERE hunt_id=%s"
+    cursor.execute(query, [hunt_id])
+
+  @WithTransaction(readonly=True)
+  def ReadAllForemanRules(self, cursor=None):
+    cursor.execute("SELECT rule FROM foreman_rules")
+    res = []
+    for rule, in cursor.fetchall():
+      res.append(foreman_rules.ForemanCondition.FromSerializedString(rule))
+    return res
+
+  @WithTransaction()
+  def RemoveExpiredForemanRules(self, cursor=None):
+    now = rdfvalue.RDFDatetime.Now()
+    cursor.execute("DELETE FROM foreman_rules WHERE expiration_time < %s",
+                   [_RDFDatetimeToMysqlString(now)])

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.outputPlugins.outputPluginLogsDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
 const {outputPluginsModule} = goog.require('grrUi.outputPlugins.outputPlugins');

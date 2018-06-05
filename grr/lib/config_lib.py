@@ -23,7 +23,6 @@ import pkg_resources
 
 import yaml
 
-
 from grr.lib import flags
 from grr.lib import lexer
 from grr.lib import registry
@@ -45,8 +44,6 @@ flags.DEFINE_list(
 flags.DEFINE_bool("config_help", False, "Print help about the configuration.")
 
 flags.DEFINE_list("context", [], "Use these contexts for the config.")
-
-flags.DEFINE_list("plugins", [], "Load these files as additional plugins.")
 
 flags.DEFINE_bool("disallow_missing_config_definitions", False,
                   "If true, we raise an error on undefined config options.")

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.versionDropdownDirectiveTest');
+goog.setTestOnly();
 
 const {VersionDropdownDirective} = goog.require('grrUi.core.versionDropdownDirective');
 const {coreModule} = goog.require('grrUi.core.core');

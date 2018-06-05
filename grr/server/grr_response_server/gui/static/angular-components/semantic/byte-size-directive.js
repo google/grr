@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.byteSizeDirective');
 goog.module.declareLegacyNamespace();
 
@@ -56,14 +54,17 @@ const ByteSizeController = function($scope) {
 };
 
 
-
 /**
  * Handles changes of scope.value attribute.
  *
- * @param {number} newValue Timestamp value in microseconds.
- * @suppress {missingProperties} as value can be anything.
+ * @param {{type: string, value: number}|undefined} newValue
+ *   An `rdf.ByteSize`-compatible object.
  */
 ByteSizeController.prototype.onValueChange = function(newValue) {
+  if (!angular.isDefined(newValue)) {
+    return;
+  }
+
   var byteSize = newValue.value;
   if (angular.isNumber(byteSize)) {
     var stringified = stringifyByteSize(byteSize);

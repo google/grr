@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.semantic.semanticVersionedProtoDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
 const {semanticModule} = goog.require('grrUi.semantic.semantic');

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.hunt.huntStatsDirectiveTest');
+goog.setTestOnly();
 
 const {huntModule} = goog.require('grrUi.hunt.hunt');
 const {testsModule} = goog.require('grrUi.tests');

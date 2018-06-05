@@ -8,6 +8,14 @@ sources:
   returned_types: [NetworkConnection]
 labels: [Network]
 ---
+name: ListNetworkConnectionsGrr
+doc: List network connections using the ListNetworkConnections client action.
+sources:
+- type: GRR_CLIENT_ACTION
+  attributes: {client_action: ListNetworkConnections}
+  returned_types: [NetworkConnection]
+labels: [Network]
+---
 name: EnumerateFilesystemsGrr
 doc: List mounted file systems using GRR EnumerateFilesystems client action.
 sources:

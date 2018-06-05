@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.config.configBinariesViewDirective');
 goog.module.declareLegacyNamespace();
 

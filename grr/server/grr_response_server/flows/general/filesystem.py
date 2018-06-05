@@ -28,6 +28,7 @@ stat_type_mask = (
     | stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
 
 
+# TODO(hanuszczak): Name of this function is pretty bad. Consider changing it.
 def CreateAFF4Object(stat_response, client_id, mutation_pool, token=None):
   """This creates a File or a Directory from a stat response."""
 
@@ -50,6 +51,27 @@ def CreateAFF4Object(stat_response, client_id, mutation_pool, token=None):
       urn, ftype, mode="w", mutation_pool=mutation_pool, token=token) as fd:
     fd.Set(fd.Schema.STAT(stat_response))
     fd.Set(fd.Schema.PATHSPEC(stat_response.pathspec))
+
+
+def WriteStatEntries(stat_entries, client_id, mutation_pool, token=None):
+  """Persists information about stat entries.
+
+  Args:
+    stat_entries: A list of `StatEntry` instances.
+    client_id: An id of a client the stat entries come from.
+    mutation_pool: A mutation pool used for writing into the AFF4 data store.
+    token: A token used for writing into the AFF4 data store.
+  """
+  for stat_entry in stat_entries:
+    CreateAFF4Object(
+        stat_entry,
+        client_id=client_id,
+        mutation_pool=mutation_pool,
+        token=token)
+
+  path_infos = map(rdf_objects.PathInfo.FromStatEntry, stat_entries)
+  if data_store.RelationalDBWriteEnabled():
+    data_store.REL_DB.WritePathInfos(client_id.Basename(), path_infos)
 
 
 class ListDirectoryArgs(rdf_structs.RDFProtoStruct):
@@ -122,10 +144,15 @@ class ListDirectory(flow.GRRFlow):
         fd.Set(fd.Schema.PATHSPEC(self.state.stat.pathspec))
         fd.Set(fd.Schema.STAT(self.state.stat))
 
-      for st in responses:
-        st = rdf_client.StatEntry(st)
-        CreateAFF4Object(st, self.client_id, pool, token=self.token)
-        self.SendReply(st)  # Send Stats to parent flows.
+      stat_entries = map(rdf_client.StatEntry, responses)
+      WriteStatEntries(
+          stat_entries,
+          client_id=self.client_id,
+          mutation_pool=pool,
+          token=self.token)
+
+      for stat_entry in stat_entries:
+        self.SendReply(stat_entry)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
     if not self.runner.ShouldSendNotifications():
@@ -216,10 +243,15 @@ class IteratedListDirectory(ListDirectory):
           urn, standard.VFSDirectory, mutation_pool=pool, token=self.token):
         pass
 
-      for st in self.state.responses:
-        st = rdf_client.StatEntry(st)
-        CreateAFF4Object(st, self.client_id, pool, token=self.token)
-        self.SendReply(st)  # Send Stats to parent flows.
+      stat_entries = map(rdf_client.StatEntry, self.state.responses)
+      WriteStatEntries(
+          stat_entries,
+          client_id=self.client_id,
+          mutation_pool=pool,
+          token=self.token)
+
+      for stat_entry in stat_entries:
+        self.SendReply(stat_entry)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
     if not self.runner.ShouldSendNotifications():
@@ -317,10 +349,16 @@ class RecursiveListDirectory(flow.GRRFlow):
   def StoreDirectory(self, responses):
     """Stores all stat responses."""
     with data_store.DB.GetMutationPool() as pool:
-      for st in responses:
-        st = rdf_client.StatEntry(st)
-        CreateAFF4Object(st, self.client_id, pool, token=self.token)
-        self.SendReply(st)  # Send Stats to parent flows.
+
+      stat_entries = map(rdf_client.StatEntry, responses)
+      WriteStatEntries(
+          stat_entries,
+          client_id=self.client_id,
+          mutation_pool=pool,
+          token=self.token)
+
+      for stat_entry in stat_entries:
+        self.SendReply(stat_entry)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
     if not self.runner.ShouldSendNotifications():
@@ -739,7 +777,11 @@ class GlobMixin(object):
     """Called when we've found a matching a StatEntry."""
     # By default write the stat_response to the AFF4 VFS.
     with data_store.DB.GetMutationPool() as pool:
-      CreateAFF4Object(stat_response, self.client_id, pool, token=self.token)
+      WriteStatEntries(
+          [stat_response],
+          client_id=self.client_id,
+          mutation_pool=pool,
+          token=self.token)
 
   # A regex indicating if there are shell globs in this path.
   GLOB_MAGIC_CHECK = re.compile("[*?[]")

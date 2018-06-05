@@ -5,7 +5,6 @@
 import unittest
 from grr.lib import flags
 
-from grr.lib import rdfvalue
 from grr.server.grr_response_server.aff4_objects import cronjobs
 from grr.server.grr_response_server.flows.cron import system as cron_system
 from grr.server.grr_response_server.gui import gui_test_lib
@@ -21,7 +20,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
   def testCronJobACLWorkflow(self):
     cronjobs.ScheduleSystemCronFlows(
         names=[cron_system.OSBreakDown.__name__], token=self.token)
-    cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.DisableJob(job_name="OSBreakDown")
 
     # Open up and click on Cron Job Viewer.
     self.Open("/")

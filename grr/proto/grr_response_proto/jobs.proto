@@ -1481,11 +1481,8 @@ message ForemanRegexClientRule {
   // DEPRECATED
   // optional string path = 1;
 
-  optional string deprecated_attribute_name = 2 [(sem_type) = {
-      type: "AFF4Attribute",
-      description: "An AFF4 attribute name",
-      label: HIDDEN,
-    }];
+  // DEPRECATED
+  // optional string attribute_name = 2;
 
   optional string attribute_regex = 3 [(sem_type) = {
       type: "RegularExpression",
@@ -1515,11 +1512,8 @@ message ForemanIntegerClientRule {
   // DEPRECATED
   // optional string path = 1;
 
-  optional string deprecated_attribute_name = 2 [(sem_type) = {
-      type: "AFF4Attribute",
-      description: "An AFF4 attribute name"
-      label: HIDDEN,
-    }];
+  // DEPRECATED
+  // optional string attribute_name = 2;
 
   enum Operator {
     EQUAL = 0;
@@ -1572,6 +1566,29 @@ message ForemanRule {
 
   // A Human readable description of what this is supposed to do
   optional string description = 6;
+}
+
+message ForemanCondition {
+  optional uint64 creation_time = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When this rule was created."
+    }];
+  optional uint64 expiration_time = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When this rule will expire."
+    }];
+
+  // We fire when all these rules match
+  optional ForemanClientRuleSet client_rule_set = 3;
+
+  // A Human readable description of what this is supposed to do
+  optional string description = 4;
+
+  optional string hunt_name = 5;
+
+  optional string hunt_id = 6 [(sem_type) = {
+      description: "The id of the hunt to start."
+    }];
 }
 
 message HuntError {

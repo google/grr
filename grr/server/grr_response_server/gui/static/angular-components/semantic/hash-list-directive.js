@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.semantic.hashListDirective');
 goog.module.declareLegacyNamespace();
 

@@ -590,8 +590,7 @@ class ApiCreateCronJobApprovalHandlerTest(
     cron_manager = aff4_cronjobs.CronManager()
     cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
         periodicity="1d", allow_overruns=False)
-    cron_urn = cron_manager.ScheduleFlow(cron_args=cron_args, token=self.token)
-    cron_id = cron_urn.Basename()
+    cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
     self.handler = user_plugin.ApiCreateCronJobApprovalHandler()
 
@@ -614,11 +613,11 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
     cron_manager = aff4_cronjobs.CronManager()
     cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
         periodicity="1d", allow_overruns=False)
-    cron_job_urn = cron_manager.ScheduleFlow(
+    cron_job_name = cron_manager.CreateJob(
         cron_args=cron_args, token=self.token)
 
     self.RequestCronJobApproval(
-        cron_job_urn.Basename(),
+        cron_job_name,
         reason=self.token.reason,
         approver="approver",
         requestor=self.token.username)

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.stats.auditChartDirectiveTest');
+goog.setTestOnly();
 
 const {statsModule} = goog.require('grrUi.stats.stats');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');

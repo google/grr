@@ -21,12 +21,11 @@ config_lib.DEFINE_bool(
     "Use relational database for reading as well as for writing.")
 
 config_lib.DEFINE_bool(
-    "Database.useForReads.approvals", False,
-    "Use relational database for reading approvals information.")
-
-config_lib.DEFINE_bool(
     "Database.useForReads.message_handlers", False,
     "Enable message handlers using the relational database.")
+
+config_lib.DEFINE_bool("Database.useForReads.foreman", False,
+                       "Enable the foreman using the relational database.")
 
 DATASTORE_PATHING = [
     r"%{(?P<path>files/hash/generic/sha256/...).*}",

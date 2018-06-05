@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """These are flows designed to discover information about the host."""
 
+from grr import config
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -278,13 +279,9 @@ class Interrogate(flow.GRRFlow):
       kb.fqdn = self.state.fqdn
     self.state.client.knowledge_base = kb
 
-    artifact_list = [
-        "WMILogicalDisks", "RootDiskVolumeUsage", "WMIComputerSystemProduct",
-        "LinuxHardwareInfo", "OSXSPHardwareDataType"
-    ]
     self.CallFlow(
         collectors.ArtifactCollectorFlow.__name__,
-        artifact_list=artifact_list,
+        artifact_list=config.CONFIG["Artifacts.non_kb_interrogate_artifacts"],
         next_state="ProcessArtifactResponses")
 
     # Update the client index for the AFF4 client.

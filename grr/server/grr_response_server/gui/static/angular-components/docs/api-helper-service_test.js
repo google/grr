@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.docs.apiHelperServiceTest');
+goog.setTestOnly();
 
 const {docsModule} = goog.require('grrUi.docs.docs');
 

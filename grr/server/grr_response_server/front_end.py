@@ -510,20 +510,8 @@ class FrontEndServer(object):
         index = client_index.ClientIndex()
         index.AddClient(data_migration.ConvertVFSGRRClient(client))
 
-    enrollment_session_id = rdfvalue.SessionID(
-        queue=queues.ENROLLMENT, flow_name="Enrol")
-
-    publish_msg = rdf_flows.GrrMessage(
-        payload=client_urn,
-        session_id=enrollment_session_id,
-        # Fleetspeak ensures authentication.
-        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
-        source=enrollment_session_id,
-        priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
-
     # Publish the client enrollment message.
-    events.Events.PublishEvent(
-        "ClientEnrollment", publish_msg, token=self.token)
+    events.Events.PublishEvent("ClientEnrollment", client_urn, token=self.token)
 
   def RecordFleetspeakClientPing(self, client_id):
     """Records the last client contact in the datastore."""

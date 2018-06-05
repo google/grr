@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.client.virtualFileSystem.fileViewDirectiveTest');
+goog.setTestOnly();
 
 const {getFileId, getFilePathFromId} = goog.require('grrUi.client.virtualFileSystem.fileViewDirective');
 

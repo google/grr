@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.hunt.huntGraphDirective');
 goog.module.declareLegacyNamespace();
 

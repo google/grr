@@ -322,10 +322,8 @@ class RSAPublicKey(rdfvalue.RDFValue):
         padding.PKCS1v15()
     ]:
       try:
-        verifier = self._value.verifier(signature, padding_algorithm,
-                                        hash_algorithm)
-        verifier.update(message)
-        verifier.verify()
+        self._value.verify(signature, message, padding_algorithm,
+                           hash_algorithm)
         return True
 
       except exceptions.InvalidSignature as e:
@@ -364,9 +362,7 @@ class RSAPrivateKey(rdfvalue.RDFValue):
       padding_algorithm = padding.PSS(
           mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH)
 
-    signer = self._value.signer(padding_algorithm, hashes.SHA256())
-    signer.update(message)
-    return signer.finalize()
+    return self._value.sign(message, padding_algorithm, hashes.SHA256())
 
   def Decrypt(self, message):
     if self._value is None:

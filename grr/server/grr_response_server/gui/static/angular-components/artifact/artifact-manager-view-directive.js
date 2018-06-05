@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.artifact.artifactManagerViewDirective');
 goog.module.declareLegacyNamespace();
 

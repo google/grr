@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.forms.semanticProtoRepeatedFieldFormDirectiveTest');
+goog.setTestOnly();
 
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
 const {formsModule} = goog.require('grrUi.forms.forms');

@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.artifact.artifactDescriptorsService');
 goog.module.declareLegacyNamespace();
 

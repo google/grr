@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.artifact.artifactsListFormDirectiveTest');
+goog.setTestOnly();
 
 const {artifactModule} = goog.require('grrUi.artifact.artifact');
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');

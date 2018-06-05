@@ -68,9 +68,6 @@ def RelationalDBWriteEnabled():
   return bool(REL_DB)
 
 
-READ_CATEGORY_APPROVALS = "approvals"
-
-
 def RelationalDBReadEnabled(category=None):
   """Returns True if reads from a relational database are enabled.
 

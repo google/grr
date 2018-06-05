@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.memoryItemsProviderDirectiveTest');
+goog.setTestOnly();
 
 const {MemoryItemsProviderController} = goog.require('grrUi.core.memoryItemsProviderDirective');
 

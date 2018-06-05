@@ -136,19 +136,25 @@ class GRRWorker(object):
     if not requests:
       return 0
 
+    logging.debug("Leased message handler request ids: %s", ",".join(
+        str(r.request_id) for r in requests))
     grouped_requests = utils.GroupBy(requests, lambda r: r.handler_name)
-    for handler_name, requests in grouped_requests.items():
+    for handler_name, requests_for_handler in grouped_requests.items():
       handler_cls = handler_registry.handler_name_map.get(handler_name)
       if not handler_cls:
         logging.error("Unknown message handler: %s", handler_name)
         continue
 
       try:
-        handler_cls(token=self.token).ProcessMessages(requests)
+        logging.debug("Running %d messages for handler %s",
+                      len(requests_for_handler), handler_name)
+        handler_cls(token=self.token).ProcessMessages(requests_for_handler)
       except Exception:  # pylint: disable=broad-except
         logging.exception("Exception while processing message handler %s",
                           handler_name)
 
+    logging.debug("Deleting message handler request ids: %s", ",".join(
+        str(r.request_id) for r in requests))
     data_store.REL_DB.DeleteMessageHandlerRequests(requests)
     return len(requests)
 

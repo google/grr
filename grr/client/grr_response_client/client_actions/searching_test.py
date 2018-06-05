@@ -3,9 +3,6 @@
 """Test client vfs."""
 import functools
 import os
-import platform
-import subprocess
-import unittest
 
 
 from grr_response_client import vfs
@@ -459,17 +456,16 @@ class FindTest(client_test_lib.EmptyActionTest):
 
 class FindExtAttrsTest(client_test_lib.EmptyActionTest):
 
-  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
   def testExtAttrsCollection(self):
     with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       foo_filepath = test_lib.TempFilePath(dir=temp_dirpath)
-      self._Setfattr(foo_filepath, name="user.quux", value="foo")
+      client_test_lib.SetExtAttr(foo_filepath, name="user.quux", value="foo")
 
       bar_filepath = test_lib.TempFilePath(dir=temp_dirpath)
-      self._Setfattr(bar_filepath, name="user.quux", value="bar")
+      client_test_lib.SetExtAttr(bar_filepath, name="user.quux", value="bar")
 
       baz_filepath = test_lib.TempFilePath(dir=temp_dirpath)
-      self._Setfattr(baz_filepath, name="user.quux", value="baz")
+      client_test_lib.SetExtAttr(baz_filepath, name="user.quux", value="baz")
 
       request = rdf_client.FindSpec(
           pathspec=rdf_paths.PathSpec(
@@ -491,14 +487,6 @@ class FindExtAttrsTest(client_test_lib.EmptyActionTest):
         values.append(hit.ext_attrs[0].value)
 
       self.assertItemsEqual(values, ["foo", "bar", "baz"])
-
-  # TODO(hanuszczak): This functionality is re-implemented yet again. It should
-  # be implemented only once in some utility module.
-  def _Setfattr(self, filepath, name, value):
-    if subprocess.call(["which", "setfattr"]) != 0:
-      raise unittest.SkipTest("`setfattr` command is not available")
-    if subprocess.call(["setfattr", filepath, "-n", name, "-v", value]) != 0:
-      raise unittest.SkipTest("extended attributes are not supported")
 
 
 class GrepTest(client_test_lib.EmptyActionTest):

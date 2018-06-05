@@ -18919,6 +18919,10 @@
               }
             }
           },
+          "is_failing": {
+            "type": "RDFBool",
+            "value": false
+          },
           "lifetime": {
             "type": "Duration",
             "value": 604800
@@ -18947,6 +18951,7 @@
         "flow_runner_args": {
           "flow_name": "OSBreakDown"
         },
+        "is_failing": false,
         "lifetime": 604800,
         "periodicity": 86400,
         "state": "ENABLED",
@@ -18992,6 +18997,10 @@
               }
             }
           },
+          "is_failing": {
+            "type": "RDFBool",
+            "value": false
+          },
           "lifetime": {
             "type": "Duration",
             "value": 604800
@@ -19020,6 +19029,7 @@
         "flow_runner_args": {
           "flow_name": "GRRVersionBreakDown"
         },
+        "is_failing": false,
         "lifetime": 604800,
         "periodicity": 86400,
         "state": "DISABLED",

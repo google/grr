@@ -13,12 +13,14 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import handler_registry
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server import server_stubs
 from grr.test_lib import action_mocks
@@ -93,7 +95,7 @@ class FlowOrderTest(flow.GRRFlow):
   def Start(self, unused_message=None):
     self.CallClient(client_test_lib.Test, data="test", next_state="Incoming")
 
-  @flow.StateHandler(auth_required=True)
+  @flow.StateHandler()
   def Incoming(self, responses):
     """Record the message id for testing."""
     self.messages = []
@@ -254,6 +256,7 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
               session_id=session_id,
               payload=data,
               request_id=request_id,
+              auth_state="AUTHENTICATED",
               response_id=response_id))
       if not well_known:
         # For normal flows we have to send a status as well.
@@ -265,6 +268,7 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
                     status=rdf_flows.GrrStatus.ReturnedStatus.OK),
                 request_id=request_id,
                 response_id=response_id + 1,
+                auth_state="AUTHENTICATED",
                 type=rdf_flows.GrrMessage.Type.STATUS))
 
       flow_manager.QueueNotification(
@@ -368,15 +372,27 @@ class MockClient(object):
 
         session_id = message.session_id
         if session_id:
-          logging.info("Running well known flow: %s", session_id)
-          self.well_known_flows[session_id.FlowName()].ProcessMessage(message)
+          handler_name = queue_manager.session_id_map.get(session_id)
+          if handler_name:
+            logging.info("Running message handler: %s", handler_name)
+            handler_cls = handler_registry.handler_name_map.get(handler_name)
+            handler_request = rdf_objects.MessageHandlerRequest(
+                client_id=self.client_id.Basename(),
+                handler_name=handler_name,
+                request_id=message.response_id,
+                request=message.payload)
+
+            handler_cls(token=self.token).ProcessMessages(handler_request)
+          else:
+            logging.info("Running well known flow: %s", session_id)
+            self.well_known_flows[session_id.FlowName()].ProcessMessage(message)
 
       return
 
     manager.QueueResponse(message)
 
   def Next(self):
-    # Grab tasks for us from the server's queue.
+    """Grab tasks for us from the server's queue."""
     with queue_manager.QueueManager(token=self.token) as manager:
       request_tasks = manager.QueryAndOwn(
           self.client_id.Queue(), limit=1, lease_seconds=10000)

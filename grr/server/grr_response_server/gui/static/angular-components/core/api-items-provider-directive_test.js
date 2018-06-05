@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.apiItemsProviderDirectiveTest');
+goog.setTestOnly();
 
 const {ApiItemsProviderController} = goog.require('grrUi.core.apiItemsProviderDirective');
 const {coreModule} = goog.require('grrUi.core.core');

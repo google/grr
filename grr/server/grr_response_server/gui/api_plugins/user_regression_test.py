@@ -441,42 +441,40 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
       cron_manager = aff4_cronjobs.CronManager()
       cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
           periodicity="1d", allow_overruns=False)
-      cron1_urn = cron_manager.ScheduleFlow(
-          cron_args=cron_args, token=self.token)
-      cron2_urn = cron_manager.ScheduleFlow(
-          cron_args=cron_args, token=self.token)
+      cron1_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
+      cron2_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestCronJobApproval(
-          cron1_urn.Basename(), reason="foo", approver="approver")
+          cron1_id, reason="foo", approver="approver")
 
     with test_lib.FakeTime(45):
       approval2_id = self.RequestCronJobApproval(
-          cron2_urn.Basename(), reason="bar", approver="approver")
+          cron2_id, reason="bar", approver="approver")
 
     with test_lib.FakeTime(84):
       self.GrantCronJobApproval(
-          cron2_urn.Basename(), approval_id=approval2_id, approver="approver")
+          cron2_id, approval_id=approval2_id, approver="approver")
 
     with test_lib.FakeTime(126):
       self.Check(
           "GetCronJobApproval",
           args=user_plugin.ApiGetCronJobApprovalArgs(
               username=self.token.username,
-              cron_job_id=cron1_urn.Basename(),
+              cron_job_id=cron1_id,
               approval_id=approval1_id),
           replace={
-              cron1_urn.Basename(): "CronJob_123456",
+              cron1_id: "CronJob_123456",
               approval1_id: "approval:111111"
           })
       self.Check(
           "GetCronJobApproval",
           args=user_plugin.ApiGetCronJobApprovalArgs(
               username=self.token.username,
-              cron_job_id=cron2_urn.Basename(),
+              cron_job_id=cron2_id,
               approval_id=approval2_id),
           replace={
-              cron2_urn.Basename(): "CronJob_567890",
+              cron2_id: "CronJob_567890",
               approval2_id: "approval:222222"
           })
 
@@ -495,12 +493,11 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
       cron_manager = aff4_cronjobs.CronManager()
       cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
           periodicity="1d", allow_overruns=False)
-      cron_urn = cron_manager.ScheduleFlow(
-          cron_args=cron_args, token=self.token)
+      cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestCronJobApproval(
-          cron_urn.Basename(),
+          cron_id,
           approver=self.token.username,
           requestor="requestor",
           reason="foo")
@@ -509,11 +506,11 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
       self.Check(
           "GrantCronJobApproval",
           args=user_plugin.ApiGrantCronJobApprovalArgs(
-              cron_job_id=cron_urn.Basename(),
+              cron_job_id=cron_id,
               approval_id=approval_id,
               username="requestor"),
           replace={
-              cron_urn.Basename(): "CronJob_123456",
+              cron_id: "CronJob_123456",
               approval_id: "approval:111111"
           })
 
@@ -532,8 +529,7 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
     cron_manager = aff4_cronjobs.CronManager()
     cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
         periodicity="1d", allow_overruns=False)
-    cron_urn = cron_manager.ScheduleFlow(cron_args=cron_args, token=self.token)
-    cron_id = cron_urn.Basename()
+    cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
     def ReplaceCronAndApprovalIds():
       approvals = self.ListCronJobApprovals()

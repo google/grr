@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.forms.globExpressionFormDirective');
 goog.module.declareLegacyNamespace();
 

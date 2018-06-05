@@ -2,14 +2,13 @@
 """This module contains regression tests for cron-related API handlers."""
 
 
-
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server.aff4_objects import cronjobs
 from grr.server.grr_response_server.flows.cron import system as cron_system
 from grr.server.grr_response_server.flows.general import file_finder
@@ -50,7 +49,7 @@ class ApiListCronJobsHandlerRegressionTest(
 
     # ...and one failing cron job.
     with test_lib.FakeTime(126):
-      cron_urn = self.CreateCronJob(
+      cron_id = self.CreateCronJob(
           flow_name=cron_system.LastAccessStats.__name__,
           periodicity="7d",
           lifetime="1d",
@@ -58,6 +57,7 @@ class ApiListCronJobsHandlerRegressionTest(
 
       for i in range(4):
         with test_lib.FakeTime(200 + i * 10):
+          cron_urn = cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(cron_id)
           with aff4.FACTORY.OpenWithLock(cron_urn, token=self.token) as job:
             job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime.Now()))
             job.Set(
@@ -83,7 +83,7 @@ class ApiCreateCronJobHandlerRegressionTest(
 
     def ReplaceCronJobUrn():
       jobs = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))
-      return {jobs[0].Basename(): "CreateAndRunGeneicHuntFlow_1234"}
+      return {jobs[0]: "CreateAndRunGeneicHuntFlow_1234"}
 
     flow_args = standard.CreateGenericHuntFlowArgs()
     flow_args.hunt_args.flow_args = rdf_file_finder.FileFinderArgs(
@@ -91,8 +91,8 @@ class ApiCreateCronJobHandlerRegressionTest(
     flow_args.hunt_args.flow_runner_args.flow_name = (
         file_finder.FileFinder.__name__)
     flow_args.hunt_runner_args.client_rule_set.rules = [
-        rdf_foreman.ForemanClientRule(os=rdf_foreman.ForemanOsClientRule(
-            os_windows=True))
+        foreman_rules.ForemanClientRule(
+            os=foreman_rules.ForemanOsClientRule(os_windows=True))
     ]
     flow_args.hunt_runner_args.description = "Foobar! (cron)"
 
@@ -123,18 +123,16 @@ class ApiListCronJobFlowsHandlerRegressionTest(
       cron_args = cronjobs.CreateCronJobFlowArgs(
           periodicity="7d", lifetime="1d")
       cron_args.flow_runner_args.flow_name = self.flow_name
-      cronjobs.CRON_MANAGER.ScheduleFlow(
+      cronjobs.CRON_MANAGER.CreateJob(
           cron_args, job_name=self.flow_name, token=self.token)
 
       cronjobs.CRON_MANAGER.RunOnce(token=self.token)
 
   def _GetFlowId(self):
-    cron_job_urn = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))[0]
-    cron_job = aff4.FACTORY.Open(cron_job_urn, token=self.token)
+    cron_job_id = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))[0]
+    runs = cronjobs.CRON_MANAGER.ReadJobRuns(cron_job_id, token=self.token)
 
-    cron_job_flow_urn = list(cron_job.ListChildren())[0]
-
-    return cron_job_flow_urn.Basename()
+    return runs[0].urn.Basename()
 
   def Run(self):
     flow_id = self._GetFlowId()
@@ -161,18 +159,16 @@ class ApiGetCronJobFlowHandlerRegressionTest(
       cron_args = cronjobs.CreateCronJobFlowArgs(
           periodicity="7d", lifetime="1d")
       cron_args.flow_runner_args.flow_name = self.flow_name
-      cronjobs.CRON_MANAGER.ScheduleFlow(
+      cronjobs.CRON_MANAGER.CreateJob(
           cron_args, job_name=self.flow_name, token=self.token)
 
       cronjobs.CRON_MANAGER.RunOnce(token=self.token)
 
   def _GetFlowId(self):
-    cron_job_urn = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))[0]
-    cron_job = aff4.FACTORY.Open(cron_job_urn, token=self.token)
+    cron_job_id = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))[0]
+    runs = cronjobs.CRON_MANAGER.ReadJobRuns(cron_job_id, token=self.token)
 
-    cron_job_flow_urn = list(cron_job.ListChildren())[0]
-
-    return cron_job_flow_urn.Basename()
+    return runs[0].urn.Basename()
 
   def Run(self):
     flow_id = self._GetFlowId()

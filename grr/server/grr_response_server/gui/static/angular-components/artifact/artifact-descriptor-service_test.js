@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.artifact.artifactDescriptorServiceTest');
+goog.setTestOnly();
 
 const {ArtifactDescriptorsService} = goog.require('grrUi.artifact.artifactDescriptorsService');
 const {artifactModule} = goog.require('grrUi.artifact.artifact');

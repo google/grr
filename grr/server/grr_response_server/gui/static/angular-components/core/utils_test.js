@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.utilsTest');
+goog.setTestOnly();
 
 const {camelCaseToDashDelimited, getLastPathComponent, stringToList} = goog.require('grrUi.core.utils');
 

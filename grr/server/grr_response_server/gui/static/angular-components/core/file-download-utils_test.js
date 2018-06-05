@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.core.fileDownloadUtilsTest');
+goog.setTestOnly();
 
 const {getPathSpecFromValue, makeValueDownloadable, pathSpecToAff4Path} = goog.require('grrUi.core.fileDownloadUtils');
 

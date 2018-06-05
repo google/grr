@@ -1,5 +1,3 @@
-'use strict';
-
 goog.module('grrUi.cron.newCronJobWizard.statusPageDirective');
 goog.module.declareLegacyNamespace();
 

@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.stats.serverLoadDirectiveTest');
+goog.setTestOnly();
 
 const {ServerLoadIndicatorService} = goog.require('grrUi.stats.serverLoadDirective');
 const {statsModule} = goog.require('grrUi.stats.stats');

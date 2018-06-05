@@ -1,6 +1,5 @@
-'use strict';
-
 goog.module('grrUi.forms.semanticValueFormDirectiveTest');
+goog.setTestOnly();
 
 const {clearCaches} = goog.require('grrUi.forms.semanticValueFormDirective');
 const {formsModule} = goog.require('grrUi.forms.forms');

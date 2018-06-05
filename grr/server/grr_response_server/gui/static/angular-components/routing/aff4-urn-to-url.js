@@ -1,17 +1,8 @@
-'use strict';
-
 goog.module('grrUi.routing.aff4UrnToUrl');
 goog.module.declareLegacyNamespace();
 
 const {CLIENT_ID_RE, stripAff4Prefix} = goog.require('grrUi.core.utils');
 const {vfsRoots} = goog.require('grrUi.core.fileDownloadUtils');
-
-
-// TODO(hanuszczak): Delete suppression once ES6 module migration is complete.
-/**
- * @fileoverview
- * @suppress {missingRequire}
- */
 
 
 /**
