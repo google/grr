@@ -1,3 +1,0 @@
-[submodule "git-doc"]
-	path = _grr-doc
-	url = https://github.com/google/grr-doc.git
