@@ -185,7 +185,6 @@ class PathSpec(rdf_structs.RDFProtoStruct):
       0: "/fs/os",  # PathSpec.PathType.OS
       1: "/fs/tsk",  # PathSpec.PathType.TSK
       2: "/registry",  # PathSpec.PathType.REGISTRY
-      3: "/devices/memory",  # PathSpec.PathType.MEMORY
       4: "/temp",  # PathSpec.PathType.TMPFILE
   }
 

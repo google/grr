@@ -29,11 +29,9 @@ from rekall.ui import json_renderer
 
 from grr import config
 from grr_response_client import actions
-from grr_response_client import vfs
 from grr_response_client.client_actions import tempfiles
 from grr.lib import flags
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import rekall_types
 
 
@@ -291,21 +289,3 @@ class RekallAction(actions.ActionPlugin):
     # even though it may cost a second or two of cpu time.
     self.Progress()
     self.ForceGC()
-
-
-class GetMemoryInformation(actions.ActionPlugin):
-  """Loads the driver for memory access and returns a Stat for the device."""
-
-  in_rdfvalue = rdf_paths.PathSpec
-  out_rdfvalues = [rekall_types.MemoryInformation]
-
-  def Run(self, args):
-    """Run."""
-    # This action might crash the box so we need to flush the transaction log.
-    self.SyncTransactionLog()
-
-    if args.pathtype != "MEMORY":
-      raise RuntimeError("Can only GetMemoryInformation on memory devices.")
-
-    with vfs.VFSOpen(args) as fd:
-      self.SendReply(fd.GetMemoryInformation())

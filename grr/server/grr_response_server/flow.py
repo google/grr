@@ -47,7 +47,6 @@ import logging
 import operator
 
 
-from grr import config
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -64,6 +63,7 @@ from grr_response_proto import jobs_pb2
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import data_store_utils
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow_runner
 from grr.server.grr_response_server import grr_collections
@@ -566,7 +566,7 @@ class FlowBase(aff4.AFF4Volume):
     # supports dates up to the year 3000.
     token.expiry = rdfvalue.RDFDatetime.FromHumanReadable("2997-01-01")
 
-    flow_cls = aff4.AFF4Object.classes.get(runner_args.flow_name)
+    flow_cls = GRRFlow.classes.get(runner_args.flow_name)
     if flow_cls.category and not runner_args.client_id:
       raise RuntimeError("Flow with category (user-visible flow) has to be "
                          "started on a client, but runner_args.client_id "
@@ -798,6 +798,7 @@ class GRRFlow(FlowBase):
     """The initialization method."""
     super(GRRFlow, self).Initialize()
     self._client_version = None
+    self._client_os = None
 
     if "r" in self.mode:
       state = self.Get(self.Schema.FLOW_STATE_DICT)
@@ -881,25 +882,19 @@ class GRRFlow(FlowBase):
 
   @property
   def client_version(self):
-    if self._client_version is not None:
-      return self._client_version
-
-    if data_store.RelationalDBReadEnabled():
-      client_id = self.client_id.Basename()
-      sinfo = data_store.REL_DB.ReadClientStartupInfo(client_id=client_id)
-      if sinfo is not None:
-        self._client_version = sinfo.client_info.client_version
-      else:
-        self._client_version = config.CONFIG["Source.version_numeric"]
-    else:
-      with aff4.FACTORY.Open(self.client_id, token=self.token) as client:
-        cinfo = client.Get(client.Schema.CLIENT_INFO)
-        if cinfo is not None:
-          self._client_version = cinfo.client_version
-        else:
-          self._client_version = config.CONFIG["Source.version_numeric"]
+    if self._client_version is None:
+      self._client_version = data_store_utils.GetClientVersion(
+          self.client_id, token=self.token)
 
     return self._client_version
+
+  @property
+  def client_os(self):
+    if self._client_os is None:
+      self._client_os = data_store_utils.GetClientOs(
+          self.client_id, token=self.token)
+
+    return self._client_os
 
   def Name(self):
     return self.__class__.__name__

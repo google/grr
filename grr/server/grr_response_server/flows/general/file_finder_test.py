@@ -29,7 +29,6 @@ from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
-from grr.test_lib import vfs_test_lib
 
 # pylint:mode=test
 
@@ -674,70 +673,6 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
           conditions=[inode_change_time_condition],
           expected_files=expected_files,
           non_expected_files=non_expected_files)
-
-  def testTreatsGlobsAsPathsWhenMemoryPathTypeIsUsed(self):
-    # No need to setup VFS handlers as we're not actually looking at the files,
-    # as there's no condition/action specified.
-
-    paths = [
-        os.path.join(self.fixture_path, "*.log"),
-        os.path.join(self.fixture_path, "auth.log")
-    ]
-
-    # This flow doesn't do anything outside of Start() so we don't
-    # simulate flow processing.
-    session_id = flow.GRRFlow.StartFlow(
-        flow_name=file_finder.FileFinder.__name__,
-        client_id=self.client_id,
-        paths=paths,
-        pathtype=rdf_paths.PathSpec.PathType.MEMORY,
-        token=self.token)
-
-    # Both auth.log and *.log should be present, because we don't apply
-    # any conditions and by default FileFinder treats given paths as paths
-    # to memory devices when using PathType=MEMORY. So checking
-    # files existence doesn't make much sense.
-    self.CheckFilesInCollection(["*.log", "auth.log"], session_id=session_id)
-
-  def testAppliesLiteralConditionWhenMemoryPathTypeIsUsed(self):
-    with vfs_test_lib.FakeTestDataVFSOverrider():
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.MEMORY,
-                                     vfs_test_lib.FakeTestDataVFSHandler):
-        paths = ["/var/log/auth.log", "/etc/ssh/sshd_config"]
-
-        cmlc = rdf_file_finder.FileFinderContentsLiteralMatchCondition
-        literal_condition = rdf_file_finder.FileFinderCondition(
-            condition_type=rdf_file_finder.FileFinderCondition.Type.
-            CONTENTS_LITERAL_MATCH,
-            contents_literal_match=cmlc(
-                mode="ALL_HITS",
-                bytes_before=10,
-                bytes_after=10,
-                literal="session opened for user dearjohn"))
-
-        # Check this condition with all the actions. This makes sense, as we may
-        # download memeory or send it to the socket.
-        for action in self.CONDITION_TESTS_ACTIONS:
-          session_id = flow_test_lib.TestFlowHelper(
-              file_finder.FileFinder.__name__,
-              self.client_mock,
-              client_id=self.client_id,
-              paths=paths,
-              pathtype=rdf_paths.PathSpec.PathType.MEMORY,
-              conditions=[literal_condition],
-              action=rdf_file_finder.FileFinderAction(action_type=action),
-              token=self.token)
-
-          self.CheckFilesInCollection(["auth.log"], session_id=session_id)
-
-          fd = flow.GRRFlow.ResultCollectionForFID(session_id)
-          self.assertEqual(fd[0].stat_entry.pathspec.CollapsePath(), paths[0])
-          self.assertEqual(len(fd), 1)
-          self.assertEqual(len(fd[0].matches), 1)
-          self.assertEqual(fd[0].matches[0].offset, 350)
-          self.assertEqual(
-              fd[0].matches[0].data,
-              "session): session opened for user dearjohn by (uid=0")
 
   def _RunTSKFileFinder(self, paths):
 

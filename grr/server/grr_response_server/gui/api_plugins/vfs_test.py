@@ -9,9 +9,11 @@ from grr.lib import flags
 
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.flows.general import discovery
@@ -662,17 +664,26 @@ class VfsTimelineTestMixin(object):
     fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Choose some directory with pathspec in the ClientFixture.
-    self.folder_path = "fs/os/Users/中国新闻网新闻中/Shared"
+    self.category_path = "fs/os"
+    self.folder_path = self.category_path + "/Users/中国新闻网新闻中/Shared"
     self.file_path = self.folder_path + "/a.txt"
 
     file_urn = self.client_id.Add(self.file_path)
     for i in range(0, 5):
       with test_lib.FakeTime(i):
+        stat_entry = rdf_client.StatEntry()
+        stat_entry.st_mtime = rdfvalue.RDFDatetimeSeconds.Now()
+        stat_entry.pathspec.path = self.folder_path[len(self.category_path):]
+        stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+
         with aff4.FACTORY.Create(
             file_urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
-          stats = rdf_client.StatEntry(
-              st_mtime=rdfvalue.RDFDatetimeSeconds().Now())
-          fd.Set(fd.Schema.STAT, stats)
+          fd.Set(fd.Schema.STAT, stat_entry)
+
+        if data_store.RelationalDBWriteEnabled():
+          client_id = self.client_id.Basename()
+          path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+          data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
 
 class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,

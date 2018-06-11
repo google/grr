@@ -109,7 +109,7 @@ class ExportTestBase(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ExportTestBase, self).setUp()
-    self.client_id = test_lib.TEST_CLIENT_ID
+    self.client_id = self.SetupClient(0)
     self.metadata = export.ExportedMetadata(client_urn=self.client_id)
 
 
@@ -638,13 +638,17 @@ class ExportTest(ExportTestBase):
     self.assertEqual(metadata.system_labels, u"c")
 
   def testGetMetadataMissingKB(self):
+    # We do not want to use `self.client_id` in this test because we need an
+    # uninitialized client.
+    client_id = rdf_client.ClientURN("C.4815162342108108")
+
     newclient = aff4.FACTORY.Create(
-        self.client_id, aff4_grr.VFSGRRClient, token=self.token, mode="rw")
+        client_id, aff4_grr.VFSGRRClient, token=self.token, mode="rw")
     self.assertFalse(newclient.Get(newclient.Schema.KNOWLEDGE_BASE))
     newclient.Flush()
 
     # Expect empty usernames field due to no knowledge base.
-    metadata = export.GetMetadata(self.client_id, token=self.token)
+    metadata = export.GetMetadata(client_id, token=self.token)
     self.assertFalse(metadata.usernames)
 
   def testClientSummaryToExportedClientConverter(self):
@@ -1124,7 +1128,7 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
       self):
     stat = rdf_client.StatEntry(
         pathspec=rdf_paths.PathSpec(
-            path="some/path", pathtype=rdf_paths.PathSpec.PathType.MEMORY))
+            path="some/path", pathtype=rdf_paths.PathSpec.PathType.TMPFILE))
     result = collectors.ArtifactFilesDownloaderResult(original_result=stat)
 
     converter = export.ArtifactFilesDownloaderResultConverter()

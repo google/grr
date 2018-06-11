@@ -4,6 +4,7 @@
 import stat
 
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
@@ -103,6 +104,11 @@ class FindFiles(flow.GRRFlow):
           stat_response = fd.Schema.STAT(response.hit)
           fd.Set(stat_response)
           fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
+
+        if data_store.RelationalDBWriteEnabled():
+          client_id = self.client_id.Basename()
+          path_info = rdf_objects.PathInfo.FromStatEntry(response.hit)
+          data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
         # Send the stat to the parent flow.
         self.SendReply(stat_response)

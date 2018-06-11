@@ -289,6 +289,8 @@ class PathInfo(structs.RDFProtoStruct):
       path_type = cls.PathType.TSK
     elif pathspec.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
       path_type = cls.PathType.REGISTRY
+    elif pathspec.pathtype == rdf_paths.PathSpec.PathType.TMPFILE:
+      path_type = cls.PathType.TEMP
     else:
       raise ValueError("Unexpected path type: %s" % pathspec.pathtype)
 

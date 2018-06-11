@@ -69,8 +69,8 @@ def WriteStatEntries(stat_entries, client_id, mutation_pool, token=None):
         mutation_pool=mutation_pool,
         token=token)
 
-  path_infos = map(rdf_objects.PathInfo.FromStatEntry, stat_entries)
   if data_store.RelationalDBWriteEnabled():
+    path_infos = map(rdf_objects.PathInfo.FromStatEntry, stat_entries)
     data_store.REL_DB.WritePathInfos(client_id.Basename(), path_infos)
 
 
@@ -143,6 +143,10 @@ class ListDirectory(flow.GRRFlow):
           token=self.token) as fd:
         fd.Set(fd.Schema.PATHSPEC(self.state.stat.pathspec))
         fd.Set(fd.Schema.STAT(self.state.stat))
+
+      if data_store.RelationalDBWriteEnabled():
+        path_info = rdf_objects.PathInfo.FromStatEntry(self.state.stat)
+        data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
 
       stat_entries = map(rdf_client.StatEntry, responses)
       WriteStatEntries(
@@ -664,6 +668,10 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
       fd.Set(fd.Schema.PATHSPEC, self.state.pathspec)
       fd.Set(fd.Schema.STAT, client_stat)
       fd.Flush()
+
+      if data_store.RelationalDBWriteEnabled():
+        path_info = rdf_objects.PathInfo.FromStatEntry(client_stat)
+        data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
     else:
       # Otherwise, just get the whole file.
       self.CallFlow(

@@ -161,6 +161,11 @@ class GetFile(flow.GRRFlow):
           # Save some space.
           del self.state.blobs
 
+        if data_store.RelationalDBWriteEnabled():
+          client_id = self.client_id.Basename()
+          path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+          data_store.REL_DB.WritePathInfos(client_id, [path_info])
+
         self.state.success = True
 
   def NotifyAboutEnd(self):
@@ -541,6 +546,11 @@ class MultiGetFileMixin(object):
           if new_fd.size == 0:
             new_fd.size = (file_tracker["bytes_read"] or stat_entry.st_size)
 
+        if data_store.RelationalDBWriteEnabled():
+          client_id = self.client_id.Basename()
+          path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+          data_store.REL_DB.WritePathInfos(client_id, [path_info])
+
         # Add this file to the filestore index.
         filestore_obj.AddURNToIndex(str(hash_obj.sha256), target_urn)
 
@@ -701,6 +711,11 @@ class MultiGetFileMixin(object):
 
           # Save some space.
           del file_tracker["blobs"]
+
+        if data_store.RelationalDBWriteEnabled():
+          client_id = self.client_id.Basename()
+          path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+          data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
         # File done, remove from the store and close it.
         self._ReceiveFetchedFile(file_tracker)

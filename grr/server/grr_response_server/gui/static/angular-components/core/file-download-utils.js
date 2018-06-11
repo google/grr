@@ -7,7 +7,6 @@ var AFF4_PREFIXES = {
   'OS': "fs/os",  // PathSpec.PathType.OS
   'TSK': "fs/tsk",  // PathSpec.PathType.TSK
   'REGISTRY': "registry",  // PathSpec.PathType.REGISTRY
-  'MEMORY': "devices/memory",  // PathSpec.PathType.MEMORY
   'TMPFILE': "temp",  // PathSpec.PathType.TMPFILE
 };
 

@@ -4,9 +4,9 @@
 import stat
 
 from grr.lib import rdfvalue
-from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact_utils
@@ -91,30 +91,15 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     elif action.action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
       self.state.file_size = action.download.max_size
 
-    if self.args.pathtype in (rdf_paths.PathSpec.PathType.MEMORY,
-                              rdf_paths.PathSpec.PathType.REGISTRY):
-      # Memory and Registry StatEntries won't pass the file type check.
+    if self.args.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+      # Registry StatEntries won't pass the file type check.
       self.args.process_non_regular_files = True
 
-    if self.args.pathtype == rdf_paths.PathSpec.PathType.MEMORY:
-      # If pathtype is MEMORY, we're treating provided paths not as globs,
-      # but as paths to memory devices.
-      for path in self.args.paths:
-        pathspec = rdf_paths.PathSpec(
-            path=utils.SmartUnicode(path),
-            pathtype=rdf_paths.PathSpec.PathType.MEMORY)
-
-        stat_entry = rdf_client.StatEntry(pathspec=pathspec)
-        self.ApplyCondition(
-            rdf_file_finder.FileFinderResult(stat_entry=stat_entry),
-            condition_index=0)
-
-    else:
-      self.GlobForPaths(
-          self.args.paths,
-          pathtype=self.args.pathtype,
-          process_non_regular_files=self.args.process_non_regular_files,
-          collect_ext_attrs=action.stat.collect_ext_attrs)
+    self.GlobForPaths(
+        self.args.paths,
+        pathtype=self.args.pathtype,
+        process_non_regular_files=self.args.process_non_regular_files,
+        collect_ext_attrs=action.stat.collect_ext_attrs)
 
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""
@@ -399,6 +384,8 @@ class ClientFileFinder(flow.GRRFlow):
           "FileStore.AddFileToStore": files_to_publish
       })
 
+  # TODO(hanuszczak): Change name of this function since now it also writes to
+  # the relational database.
   def _CreateAff4BlobImage(self, response, mutation_pool=None):
     urn = response.stat_entry.pathspec.AFF4Path(self.client_id)
 
@@ -417,6 +404,10 @@ class ClientFileFinder(flow.GRRFlow):
         filedesc.AddBlob(chunk.digest, chunk.length)
 
       filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+
+    if data_store.RelationalDBReadEnabled():
+      path_info = rdf_objects.PathInfo.FromStatEntry(response.stat_entry)
+      data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
 
   # TODO(hanuszczak): Change name of this function since now it also writes to
   # the relational database.

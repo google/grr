@@ -171,6 +171,7 @@ message PathInfo {
     OS = 1;
     TSK = 2;
     REGISTRY = 3;
+    TEMP = 4;
   }
   optional PathType path_type = 1;
   repeated string components = 2;

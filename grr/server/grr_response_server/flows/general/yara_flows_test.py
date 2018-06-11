@@ -182,7 +182,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestYaraFlows, self).setUp()
-    self.client_id = test_lib.TEST_CLIENT_ID
+    self.client_id = self.SetupClient(0)
     self.procs = [
         client_test_lib.MockWindowsProcess(pid=101, name="proc101.exe"),
         client_test_lib.MockWindowsProcess(

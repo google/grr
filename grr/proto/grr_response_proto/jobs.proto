@@ -638,7 +638,7 @@ message PathSpec {
     OS = 0;
     TSK = 1;
     REGISTRY = 2;
-    MEMORY = 3 [(label) = HIDDEN];
+    // DEPRECATED: MEMORY = 3 [(label) = HIDDEN];
     TMPFILE = 4 [(label) = HIDDEN];
   };
   optional PathType pathtype = 1 [default = UNSET];

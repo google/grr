@@ -208,6 +208,16 @@ class PathInfoTest(unittest.TestCase):
     self.assertEqual(path_info.components, ["foo", "bar"])
     self.assertFalse(path_info.directory)
 
+  def testFromStatEntryTemp(self):
+    stat_entry = rdf_client.StatEntry()
+    stat_entry.pathspec.path = "tmp/quux"
+    stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.TMPFILE
+
+    path_info = objects.PathInfo.FromStatEntry(stat_entry)
+    self.assertEqual(path_info.path_type, objects.PathInfo.PathType.TEMP)
+    self.assertEqual(path_info.components, ["tmp", "quux"])
+    self.assertFalse(path_info.directory)
+
   def testFromStatEntryOffset(self):
     stat_entry = rdf_client.StatEntry()
     stat_entry.pathspec.path = "foo/bar/baz"

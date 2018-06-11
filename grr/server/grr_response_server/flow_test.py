@@ -4,6 +4,7 @@
 import time
 
 
+from grr import config
 from grr_response_client import vfs
 from grr_response_client.client_actions import standard
 from grr.lib import flags
@@ -26,6 +27,7 @@ from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.flows.general import filesystem
 from grr.server.grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -1280,6 +1282,65 @@ class BadArgsFlow1(flow.GRRFlow):
   """A flow that has args that mismatch type info."""
 
   args_type = BadArgsFlow1Args
+
+
+@db_test_lib.DualDBTest
+class FlowPropertiesTest(flow_test_lib.FlowTestsBaseclass):
+
+  # These tests are creating test-local flows. But since test functions can be
+  # (and are because this is a dual-database test case), they may spawn multiple
+  # flows with the same name. Thanks to the metaclass registry flows use this
+  # results in a runtime error. Because these tests do not care for other flows
+  # being registered, we clear the registry and restore it after each test case.
+
+  def setUp(self):
+    self._flow_classes = flow.GRRFlow.classes
+    flow.GRRFlow.classes = {}
+
+  def tearDown(self):
+    flow.GRRFlow.classes = self._flow_classes
+
+  def testClientId(self):
+    test = self
+    client_id = test.SetupClient(0)
+
+    class IdCheckerFlow(flow.GRRFlow):
+
+      @flow.StateHandler()
+      def Start(self):
+        test.assertEqual(self.client_id, client_id)
+
+    flow_test_lib.TestFlowHelper(
+        IdCheckerFlow.__name__, client_id=client_id, token=self.token)
+
+  def testClientVersion(self):
+    test = self
+    client_id = test.SetupClient(0)
+
+    class VersionCheckerFlow(flow.GRRFlow):
+
+      @flow.StateHandler()
+      def Start(self):
+        version = config.CONFIG["Source.version_numeric"]
+        test.assertEqual(self.client_version, version)
+        test.assertEqual(self.client_version, version)  # Force cache usage.
+
+    flow_test_lib.TestFlowHelper(
+        VersionCheckerFlow.__name__, client_id=client_id, token=self.token)
+
+  def testClientOs(self):
+    test = self
+    client_id = test.SetupClient(0, system="Windows")
+
+    class OsCheckerFlow(flow.GRRFlow):
+
+      @flow.StateHandler()
+      def Start(self):
+        test.assertEqual(self.client_os, "Windows")
+        test.assertEqual(self.client_os, "Windows")  # Force cache usage.
+
+    flow_test_lib.TestFlowHelper(
+        OsCheckerFlow.__name__, client_id=client_id, token=self.token)
 
 
 def main(argv):

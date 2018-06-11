@@ -1,13 +1,5 @@
 # GRR client action flow templates.
 
-name: NetstatGrr
-doc: List open network connections using the GRR netstat client action.
-sources:
-- type: GRR_CLIENT_ACTION
-  attributes: {client_action: Netstat}
-  returned_types: [NetworkConnection]
-labels: [Network]
----
 name: ListNetworkConnectionsGrr
 doc: List network connections using the ListNetworkConnections client action.
 sources:

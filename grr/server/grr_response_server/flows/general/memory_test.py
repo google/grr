@@ -66,7 +66,7 @@ class MemoryTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(MemoryTest, self).setUp()
-    self.client_id = test_lib.TEST_CLIENT_ID
+    self.client_id = self.SetupClient(0)
 
 
 class MemoryCollectorClientMock(action_mocks.MemoryClientMock):

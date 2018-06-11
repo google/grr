@@ -23,7 +23,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
     self.vfs_overrider = vfs_test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.OS, vfs_test_lib.ClientVFSHandlerFixture)
     self.vfs_overrider.Start()
-    self.client_id = test_lib.TEST_CLIENT_ID
+    self.client_id = self.SetupClient(0)
 
   def tearDown(self):
     super(TestFindFlow, self).tearDown()

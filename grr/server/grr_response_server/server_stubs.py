@@ -415,13 +415,6 @@ class RekallAction(ClientActionStub):
   out_rdfvalues = [rdf_rekall_types.RekallResponse]
 
 
-class GetMemoryInformation(ClientActionStub):
-  """Loads the driver for memory access and returns a Stat for the device."""
-
-  in_rdfvalue = rdf_paths.PathSpec
-  out_rdfvalues = [rdf_rekall_types.MemoryInformation]
-
-
 # from yara_actions.py
 class YaraProcessScan(ClientActionStub):
   """Scans the memory of a number of processes using Yara."""
