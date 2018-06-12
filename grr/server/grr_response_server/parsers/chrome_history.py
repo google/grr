@@ -13,7 +13,7 @@ import urlparse
 
 from grr.lib import parsers
 from grr.lib.rdfvalues import webhistory as rdf_webhistory
-from grr.parsers import sqlite_file
+from grr.server.grr_response_server.parsers import sqlite_file
 
 
 class ChromeHistoryParser(parsers.FileParser):

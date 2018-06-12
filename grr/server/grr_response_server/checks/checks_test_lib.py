@@ -13,10 +13,10 @@ from grr.lib import type_info
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.parsers import linux_service_parser
 from grr.server.grr_response_server.checks import checks
 from grr.server.grr_response_server.checks import filters
 from grr.server.grr_response_server.checks import hints
+from grr.server.grr_response_server.parsers import linux_service_parser
 from grr.test_lib import test_lib
 
 

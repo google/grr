@@ -3,7 +3,7 @@
 
 from grr.lib import parsers
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.parsers import config_file
+from grr.server.grr_response_server.parsers import config_file
 
 
 class ProcSysParser(parsers.FileParser):

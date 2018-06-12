@@ -13,6 +13,5 @@ modules that have been customized for your deployment.
 # pylint: disable=unused-import
 from grr.lib import stats
 from grr.lib.local import plugins
-from grr.parsers import registry_init
-
 from grr.server.grr_response_server import server_plugins
+from grr.server.grr_response_server.parsers import registry_init

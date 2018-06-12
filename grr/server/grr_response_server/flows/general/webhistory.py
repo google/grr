@@ -11,13 +11,13 @@ from grr.lib import utils
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.parsers import chrome_history
-from grr.parsers import firefox3_history
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import flow_utils
 from grr.server.grr_response_server.flows.general import file_finder
+from grr.server.grr_response_server.parsers import chrome_history
+from grr.server.grr_response_server.parsers import firefox3_history
 
 
 class ChromeHistoryArgs(rdf_structs.RDFProtoStruct):

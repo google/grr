@@ -7,7 +7,7 @@ import os
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.parsers import osx_file_parser
+from grr.server.grr_response_server.parsers import osx_file_parser
 from grr.test_lib import test_lib
 
 

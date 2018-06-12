@@ -7,7 +7,7 @@ import os
 
 from grr.lib import flags
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.parsers import linux_software_parser
+from grr.server.grr_response_server.parsers import linux_software_parser
 from grr.test_lib import test_lib
 
 

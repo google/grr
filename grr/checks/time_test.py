@@ -3,8 +3,8 @@
 """Tests for the time synchronization state checks."""
 
 from grr.lib import flags
-from grr.parsers import config_file
 from grr.server.grr_response_server.checks import checks_test_lib
+from grr.server.grr_response_server.parsers import config_file
 from grr.test_lib import test_lib
 
 

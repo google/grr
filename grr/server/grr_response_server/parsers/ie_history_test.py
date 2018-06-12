@@ -7,7 +7,7 @@ import os
 import StringIO
 
 from grr.lib import flags
-from grr.parsers import ie_history
+from grr.server.grr_response_server.parsers import ie_history
 from grr.test_lib import test_lib
 
 

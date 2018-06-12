@@ -26,7 +26,7 @@ from grr_response_client.osx.objc import ServiceManagement
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.parsers import osx_launchd
+from grr.server.grr_response_server.parsers import osx_launchd
 
 
 class Error(Exception):

@@ -7,7 +7,7 @@ import datetime
 import os
 
 from grr.lib import flags
-from grr.parsers import firefox3_history
+from grr.server.grr_response_server.parsers import firefox3_history
 from grr.test_lib import test_lib
 
 

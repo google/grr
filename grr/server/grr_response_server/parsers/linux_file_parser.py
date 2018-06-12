@@ -11,7 +11,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.parsers import config_file
+from grr.server.grr_response_server.parsers import config_file
 
 
 class PCIDevicesInfoParser(parsers.FileParser):

@@ -13,15 +13,13 @@ from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.lib.rdfvalues import structs as rdf_structs
 # For file collection artifacts. pylint: disable=unused-import
-from grr.parsers import registry_init
-# pylint: enable=unused-import
-from grr.parsers import windows_persistence
 from grr_response_proto import flows_pb2
-# For various parsers use by artifacts. pylint: disable=unused-import
-from grr.server.grr_response_server import aff4
 # pylint: enable=unused-import
+from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact
+# For various parsers use by artifacts. pylint: disable=unused-import
 from grr.server.grr_response_server import artifact_registry
+# pylint: enable=unused-import
 from grr.server.grr_response_server import artifact_utils
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
@@ -31,6 +29,10 @@ from grr.server.grr_response_server.flows.general import file_finder
 from grr.server.grr_response_server.flows.general import filesystem
 from grr.server.grr_response_server.flows.general import memory
 from grr.server.grr_response_server.flows.general import transfer
+# For file collection artifacts. pylint: disable=unused-import
+from grr.server.grr_response_server.parsers import registry_init
+# pylint: enable=unused-import
+from grr.server.grr_response_server.parsers import windows_persistence
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):

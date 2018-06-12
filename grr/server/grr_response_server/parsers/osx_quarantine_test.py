@@ -6,7 +6,7 @@ import datetime
 import os
 
 from grr.lib import flags
-from grr.parsers import osx_quarantine
+from grr.server.grr_response_server.parsers import osx_quarantine
 from grr.test_lib import test_lib
 
 
