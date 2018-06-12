@@ -65,23 +65,33 @@ grrUi.tests.browserTriggerEvent = function(element, eventType) {
     element = element[0];
   }
 
-  if (document.createEvent) {
-    var event = document.createEvent('MouseEvents');
-    // mouseenter and mouseleave must be edited because jqLite doesn't actually
-    // listen on them - it listens on mouseover and mouseout and performs its
-    // own logic to ignore the event if the related target is contained by the
-    // target.
-    if (eventType === 'mouseenter') {
-      eventType = 'mouseover';
+  if (eventType === 'change') {
+    $(element).triggerHandler('change');
+    if (element.type === 'checkbox') {
+      // Angular v1.6 doesn't react on checkboxes' 'change' event and
+      // apparently requires clicking, while Angular v1.7 expects a proper
+      // 'change'.
+      $(element).triggerHandler('click');
     }
-    if (eventType === 'mouseleave') {
-      eventType = 'mouseout';
-    }
-    event.initMouseEvent(eventType, true, true, window, 0, 0, 0, 0, 0, false,
-                         false, false, false, 0, null);
-    element.dispatchEvent(event);
   } else {
-    element.fireEvent('on' + eventType);
+    if (document.createEvent) {
+      var event = document.createEvent('MouseEvents');
+      // mouseenter and mouseleave must be edited because jqLite doesn't actually
+      // listen on them - it listens on mouseover and mouseout and performs its
+      // own logic to ignore the event if the related target is contained by the
+      // target.
+      if (eventType === 'mouseenter') {
+        eventType = 'mouseover';
+      }
+      if (eventType === 'mouseleave') {
+        eventType = 'mouseout';
+      }
+      event.initMouseEvent(eventType, true, true, window, 0, 0, 0, 0, 0, false,
+                           false, false, false, 0, null);
+      element.dispatchEvent(event);
+    } else {
+      element.fireEvent('on' + eventType);
+    }
   }
 
   // True is for 'hideErrors' for cases when no animations are pending.

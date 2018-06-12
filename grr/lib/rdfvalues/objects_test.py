@@ -164,6 +164,18 @@ class PathIDTest(unittest.TestCase):
 
 class PathInfoTest(unittest.TestCase):
 
+  def testValidateEmptyComponent(self):
+    with self.assertRaisesRegexp(ValueError, "Empty"):
+      objects.PathInfo(components=["foo", "", "bar"])
+
+  def testValidateDotComponent(self):
+    with self.assertRaisesRegexp(ValueError, "Incorrect"):
+      objects.PathInfo(components=["foo", "bar", ".", "quux"])
+
+  def testValidateDoubleDotComponent(self):
+    with self.assertRaisesRegexp(ValueError, "Incorrect"):
+      objects.PathInfo(components=["..", "foo", "bar"])
+
   def testFromStatEntrySimple(self):
     stat_entry = rdf_client.StatEntry()
     stat_entry.pathspec.path = "foo/bar/baz"

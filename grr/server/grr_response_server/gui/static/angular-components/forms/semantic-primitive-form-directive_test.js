@@ -129,7 +129,7 @@ describe('semantic primitive form directive', () => {
   it('updates RDFBool model when user changes the input', () => {
     const element = renderTestTemplate(boolValue);
 
-    browserTriggerEvent(element.find('input'), 'click');
+    browserTriggerEvent(element.find('input').prop('checked', false), 'change');
     $rootScope.$apply();
 
     expect(boolValue.value).toBe(false);

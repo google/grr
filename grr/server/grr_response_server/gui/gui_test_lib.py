@@ -165,12 +165,25 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     options = webdriver.ChromeOptions()
     if flags.FLAGS.use_headless_chrome:
       options.add_argument("--headless")
+      options.add_argument("--window-size=1400,1080")
 
     if flags.FLAGS.chrome_driver_path:
       GRRSeleniumTest.driver = webdriver.Chrome(
           flags.FLAGS.chrome_driver_path, chrome_options=options)
     else:
       GRRSeleniumTest.driver = webdriver.Chrome(chrome_options=options)
+
+    # TODO(user): Hack! This is needed to allow downloads in headless mode.
+    # Remove this code when upstream Python ChromeDriver implementation has
+    # send_command implemented.
+    #
+    # See
+    # https://stackoverflow.com/questions/45631715/downloading-with-chrome-headless-and-selenium
+    # and the code in setUp().
+    # pylint: disable=protected-access
+    GRRSeleniumTest.driver.command_executor._commands["send_command"] = (
+        "POST", "/session/$sessionId/chromium/send_command")
+    # pylint: enable=protected-access
     # pylint: enable=unreachable
 
   _selenium_set_up_lock = threading.RLock()
@@ -556,6 +569,18 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
     self._artifact_patcher.start()
 
     self.InstallACLChecks()
+
+    if flags.FLAGS.use_headless_chrome:
+      params = {
+          "cmd": "Page.setDownloadBehavior",
+          "params": {
+              "behavior": "allow",
+              "downloadPath": self.temp_dir
+          }
+      }
+      result = self.driver.execute("send_command", params)
+      if result["status"] != 0:
+        raise RuntimeError("can't set Page.setDownloadBehavior: %s" % result)
 
   def tearDown(self):
     self._artifact_patcher.stop()

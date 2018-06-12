@@ -78,11 +78,15 @@ class ClientVFSHandlerFixtureBase(vfs.VFSHandler):
   def IsDirectory(self):
     return bool(self.ListFiles())
 
-  def _FakeDirStat(self):
+  def _FakeDirStat(self, vfs_type=None):
     # We return some fake data, this makes writing tests easier for some
     # things but we give an error to the tester as it is often not what you
     # want.
     logging.warn("Fake value for %s under %s", self.path, self.prefix)
+
+    for path in self.pathspec:
+      path.path = self._NormalizeCaseForPath(self.path, vfs_type=vfs_type)
+
     return rdf_client.StatEntry(
         pathspec=self.pathspec,
         st_mode=16877,
@@ -237,7 +241,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
     if stat_data:
       return stat_data[1]  # Strip the vfs_type.
     else:
-      return self._FakeDirStat()
+      return self._FakeDirStat(aff4_grr.VFSFile)
 
 
 class FakeRegistryVFSHandler(ClientVFSHandlerFixture):

@@ -3,10 +3,10 @@
   "version": "0.0.1",
   "description": "",
   "dependencies": {
-    "angular": "1.6.9",
-    "angular-animate": "1.6.9",
-    "angular-cookies": "1.6.9",
-    "angular-resource": "1.6.9",
+    "angular": "1.7.1",
+    "angular-animate": "1.7.1",
+    "angular-cookies": "1.7.1",
+    "angular-resource": "1.7.1",
     "jquery": "3.3.1",
     "font-awesome": "4.6.3",
     "jstree": "3.3.2",
@@ -21,7 +21,7 @@
     "firebase": "3.7.2"
   },
   "devDependencies": {
-    "angular-mocks": "^1.6.9",
+    "angular-mocks": "^1.7.1",
     "google-closure-compiler": "20171023.0.1",
     "google-closure-library": "20170910.0.0",
     "gulp": "^3.9.1",

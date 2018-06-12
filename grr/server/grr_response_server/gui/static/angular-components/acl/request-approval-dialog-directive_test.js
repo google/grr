@@ -192,10 +192,12 @@ describe('request approval dialog', () => {
     $('input[name=acl_reason]', element).val('bar');
     browserTriggerEvent($('input[name=acl_reason]', element), 'change');
 
-    $('input[name=cc_approval]', element).prop('checked', false)
-        .triggerHandler('click');
-    $('input[name=keepalive]', element).prop('checked', true)
-        .triggerHandler('click');
+    browserTriggerEvent(
+        $('input[name=cc_approval]', element).prop('checked', false),
+        'change');
+    browserTriggerEvent(
+        $('input[name=keepalive]', element).prop('checked', true),
+        'change');
 
     browserTriggerEvent($('button[name=Proceed]', element), 'click');
 
@@ -221,8 +223,9 @@ describe('request approval dialog', () => {
     $('input[name=acl_reason]', element).val('bar');
     browserTriggerEvent($('input[name=acl_reason]', element), 'change');
 
-    $('input[name=cc_approval]', element).prop('checked', false)
-        .triggerHandler('click');
+    browserTriggerEvent(
+        $('input[name=cc_approval]', element).prop('checked', false),
+        'change');
 
     $('select', element).val('reason2');
     browserTriggerEvent($('select', element), 'change');

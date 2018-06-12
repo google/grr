@@ -205,6 +205,8 @@ class PathID(object):
   """
 
   def __init__(self, components):
+    _ValidatePathComponents(components)
+
     # TODO(hanuszczak): `SmartStr` is terrible, lets not do that.
     components = map(utils.SmartStr, components)
 
@@ -254,6 +256,10 @@ class PathInfo(structs.RDFProtoStruct):
       rdf_client.StatEntry,
   ]
 
+  def __init__(self, *args, **kwargs):
+    super(PathInfo, self).__init__(*args, **kwargs)
+    _ValidatePathComponents(self.components)
+
   # TODO(hanuszczak): Find a reliable way to make sure that noone ends up with
   # incorrect `PathInfo` (a one that is both root and non-directory). Simple
   # validation in a constructor has two flaws:
@@ -302,7 +308,19 @@ class PathInfo(structs.RDFProtoStruct):
       if pathelem.stream_name:
         path += ":%s" % pathelem.stream_name
 
-      components.extend(path.split("/"))
+      # TODO(hanuszczak): Sometimes the paths start with '/', sometimes they do
+      # not (even though they are all supposed to be absolute). If they do start
+      # with `/` we get an empty component at the beginning which needs to be
+      # removed.
+      #
+      # It is also possible that path is simply '/' which, if split, yields two
+      # empty components. To simplify things we just filter out all empty
+      # components. As a side effect we also support pathological cases such as
+      # '//foo//bar////baz'.
+      #
+      # Ideally, pathspec should only allow one format (either with or without
+      # leading slash) sanitizing the input as soon as possible.
+      components.extend(component for component in path.split("/") if component)
 
     return cls(
         path_type=path_type,
@@ -378,6 +396,23 @@ class PathInfo(structs.RDFProtoStruct):
     self.last_path_history_timestamp = max(self.last_path_history_timestamp,
                                            src.last_path_history_timestamp)
     self.directory |= src.directory
+
+
+def _ValidatePathComponent(component):
+  if not component:
+    raise ValueError("Empty path component")
+
+  if component == "." or component == "..":
+    raise ValueError("Incorrect path component: '%s'" % component)
+
+
+def _ValidatePathComponents(components):
+  try:
+    for component in components:
+      _ValidatePathComponent(component)
+  except ValueError as error:
+    message = "Incorrect path component list '%s': %s"
+    raise ValueError(message % (components, error))
 
 
 class ClientReference(structs.RDFProtoStruct):
