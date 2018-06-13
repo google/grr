@@ -8,7 +8,7 @@ import yaml
 
 from grr import config
 from grr.lib import objectfilter
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
@@ -862,9 +862,9 @@ class Artifact(structs.RDFProtoStruct):
       ["users.appdata", "systemroot"]
     """
     deps = set()
-    processors = parsers.Parser.GetClassesByArtifact(self.name)
-    for parser in processors:
-      deps.update(parser.knowledgebase_dependencies)
+    processors = parser.Parser.GetClassesByArtifact(self.name)
+    for p in processors:
+      deps.update(p.knowledgebase_dependencies)
     return deps
 
   def GetArtifactPathDependencies(self):

@@ -44,6 +44,24 @@ def DEFINE_enum(longopt, default, choices, help, type=unicode):
       "--%s" % longopt, default=default, choices=choices, type=type, help=help)
 
 
+_VERSION_SET = None
+
+
+def DEFINE_version(version):
+  """Adds a --version argument that shows the version and exits."""
+
+  global _VERSION_SET
+  # Defining the same version should be a no-op (argparse.PARSER
+  # raises by default if the same argument is redefined).
+  # This allows combining multiple entry points in a single binary
+  # (see tools/grr_server.py).
+  if _VERSION_SET and _VERSION_SET == version:
+    return
+
+  PARSER.add_argument("--version", action="version", version=version)
+  _VERSION_SET = version
+
+
 class ListParser(argparse.Action):
   """Parse input as a comma separated list of strings."""
 

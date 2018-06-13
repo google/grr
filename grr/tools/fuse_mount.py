@@ -11,11 +11,12 @@ import sys
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.server.grr_response_server.flows.general import filesystem
-from grr.lib import server_plugins
+from grr.server.grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr import config
 from grr.config import contexts
+from grr.config import server as config_server
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import type_info
@@ -46,20 +47,22 @@ flags.DEFINE_string("aff4path", "/",
 flags.DEFINE_string("mountpoint", None,
                     "Path to point at which the system should be mounted.")
 
-flags.DEFINE_bool("background", False,
-                  "Whether or not to run the filesystem in the background,"
-                  " not viewing debug information.")
+flags.DEFINE_bool(
+    "background", False,
+    "Whether or not to run the filesystem in the background,"
+    " not viewing debug information.")
 
 flags.DEFINE_float("timeout", 30,
                    "How long to poll a flow for before giving up.")
 
-flags.DEFINE_integer("max_age_before_refresh", 60 * 5,
-                     "Measured in seconds. Do a client-side update if it's"
-                     " been this long since we last did one.")
+flags.DEFINE_integer(
+    "max_age_before_refresh", 60 * 5,
+    "Measured in seconds. Do a client-side update if it's"
+    " been this long since we last did one.")
 
-flags.DEFINE_bool("ignore_cache", False,
-                  "Disables cache completely. Takes priority over"
-                  " refresh_policy.")
+flags.DEFINE_bool(
+    "ignore_cache", False, "Disables cache completely. Takes priority over"
+    " refresh_policy.")
 
 flags.DEFINE_enum(
     "refresh_policy",
@@ -70,20 +73,24 @@ flags.DEFINE_enum(
     " ago).",
     type=str)
 
-flags.DEFINE_bool("force_sparse_image", False,
-                  "Whether to convert existing files bigger than the"
-                  " size threshold to new, empty AFF4SparseImages.")
+flags.DEFINE_bool(
+    "force_sparse_image", False,
+    "Whether to convert existing files bigger than the"
+    " size threshold to new, empty AFF4SparseImages.")
 
-flags.DEFINE_integer("sparse_image_threshold", 1024 * 1024 * 1024,
-                     "If a client side file that's not in the datastore yet"
-                     " is >= than this size, then store it as a sparse image.")
+flags.DEFINE_integer(
+    "sparse_image_threshold", 1024 * 1024 * 1024,
+    "If a client side file that's not in the datastore yet"
+    " is >= than this size, then store it as a sparse image.")
 
 flags.DEFINE_string("username", None,
                     "Username to use for client authorization check.")
 
-flags.DEFINE_string("reason", None,
-                    "Reason to use for client authorization check. This "
-                    "needs to match the string in your approval request.")
+flags.DEFINE_string(
+    "reason", None, "Reason to use for client authorization check. This "
+    "needs to match the string in your approval request.")
+
+flags.DEFINE_version(config_server.VERSION["packageversion"])
 
 # The modes we'll use for aff4 objects that aren't really files.
 # Taken from /etc

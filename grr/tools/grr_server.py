@@ -5,8 +5,10 @@ To use this entry point you must run "grr_config_updater initialize" first.
 """
 
 
+from grr.config import server as config_server
+
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
+from grr.server.grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import flags
@@ -16,6 +18,8 @@ from grr.worker import worker
 
 flags.DEFINE_string("component", None,
                     "Component to start: [frontend|admin_ui|worker].")
+
+flags.DEFINE_version(config_server.VERSION["packageversion"])
 
 
 def main(argv):

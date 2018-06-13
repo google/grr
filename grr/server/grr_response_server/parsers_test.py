@@ -5,7 +5,7 @@ import os
 
 from grr import config
 from grr.lib import flags
-from grr.lib import parsers
+from grr.lib import parser as lib_parser
 from grr.lib import rdfvalue
 # pylint: disable=unused-import
 from grr.server.grr_response_server.parsers import registry_init
@@ -22,19 +22,19 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
     for artifact_to_parse in parser.supported_artifacts:
       art_obj = registry.GetArtifact(artifact_to_parse)
       if art_obj is None:
-        raise parsers.ParserDefinitionError(
+        raise parser.ParserDefinitionError(
             "Artifact parser %s has an invalid artifact"
             " %s. Artifact is undefined" % (parser.__name__, artifact_to_parse))
 
     for out_type in parser.output_types:
       if out_type not in rdfvalue.RDFValue.classes:
-        raise parsers.ParserDefinitionError(
+        raise parser.ParserDefinitionError(
             "Artifact parser %s has an invalid output "
             "type %s." % (parser.__name__, out_type))
 
     if parser.process_together:
       if not hasattr(parser, "ParseMultiple"):
-        raise parsers.ParserDefinitionError(
+        raise lib_parser.ParserDefinitionError(
             "Parser %s has set process_together, but "
             "has not defined a ParseMultiple method." % parser.__name__)
 
@@ -48,8 +48,8 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
                                        "artifacts", "test_artifacts.json")
     registry.AddFileSource(test_artifacts_file)
 
-    for p_cls in parsers.Parser.classes:
-      parser = parsers.Parser.classes[p_cls]
+    for p_cls in lib_parser.Parser.classes:
+      parser = lib_parser.Parser.classes[p_cls]
       self.ValidateParser(parser, registry)
 
 

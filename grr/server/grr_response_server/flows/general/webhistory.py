@@ -8,6 +8,8 @@ import os
 
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.parsers import chrome_history
+from grr.lib.parsers import firefox3_history
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -16,8 +18,6 @@ from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import flow_utils
 from grr.server.grr_response_server.flows.general import file_finder
-from grr.server.grr_response_server.parsers import chrome_history
-from grr.server.grr_response_server.parsers import firefox3_history
 
 
 class ChromeHistoryArgs(rdf_structs.RDFProtoStruct):
@@ -90,9 +90,8 @@ class ChromeHistory(flow.GRRFlow):
         count = 0
         for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse():
           count += 1
-          str_entry = "%s %s %s %s %s %s" % (
-              datetime.datetime.utcfromtimestamp(epoch64 / 1e6), url, dat1,
-              dat2, dat3, dtype)
+          str_entry = "%s %s %s %s %s %s" % (datetime.datetime.utcfromtimestamp(
+              epoch64 / 1e6), url, dat1, dat2, dat3, dtype)
           self.SendReply(rdfvalue.RDFString(utils.SmartStr(str_entry)))
 
         self.Log("Wrote %d Chrome History entries for user %s from %s", count,
@@ -202,9 +201,8 @@ class FirefoxHistory(flow.GRRFlow):
         count = 0
         for epoch64, dtype, url, dat1, in hist.Parse():
           count += 1
-          str_entry = "%s %s %s %s" % (
-              datetime.datetime.utcfromtimestamp(epoch64 / 1e6), url, dat1,
-              dtype)
+          str_entry = "%s %s %s %s" % (datetime.datetime.utcfromtimestamp(
+              epoch64 / 1e6), url, dat1, dtype)
           self.SendReply(rdfvalue.RDFString(utils.SmartStr(str_entry)))
         self.Log("Wrote %d Firefox History entries for user %s from %s", count,
                  self.args.username, response.stat_entry.pathspec.Basename())

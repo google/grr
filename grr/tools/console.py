@@ -18,11 +18,12 @@ import time
 
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
+from grr.server.grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order
 
 from grr import config
 from grr.config import contexts
+from grr.config import server as config_server
 from grr.lib import flags
 from grr.lib import type_info
 from grr.lib import utils
@@ -53,25 +54,30 @@ from grr.server.grr_response_server.console_utils import *
 from grr.server.grr_response_server.flows.general import memory
 # pylint: enable=unused-import
 
-flags.DEFINE_string("client", None,
-                    "Initialise the console with this client id "
-                    "(e.g. C.1234345).")
+flags.DEFINE_string(
+    "client", None, "Initialise the console with this client id "
+    "(e.g. C.1234345).")
 
 flags.DEFINE_string("reason", None,
                     "Create a default token with this access reason ")
 
-flags.DEFINE_string("code_to_execute", None,
-                    "If present, no console is started but the code given in "
-                    "the flag is run instead (comparable to the -c option of "
-                    "IPython).")
+flags.DEFINE_string(
+    "code_to_execute", None,
+    "If present, no console is started but the code given in "
+    "the flag is run instead (comparable to the -c option of "
+    "IPython).")
 
-flags.DEFINE_string("command_file", None,
-                    "If present, no console is started but the code given in "
-                    "command file is supplied as input instead.")
+flags.DEFINE_string(
+    "command_file", None,
+    "If present, no console is started but the code given in "
+    "command file is supplied as input instead.")
 
-flags.DEFINE_bool("exit_on_complete", True,
-                  "If set to False and command_file or code_to_execute is "
-                  "set we keep the console alive after the code completes.")
+flags.DEFINE_bool(
+    "exit_on_complete", True,
+    "If set to False and command_file or code_to_execute is "
+    "set we keep the console alive after the code completes.")
+
+flags.DEFINE_version(config_server.VERSION["packageversion"])
 
 
 def Lister(arg):

@@ -3,12 +3,12 @@
 import re
 from debian import deb822
 
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 
 
-class DebianPackagesStatusParser(parsers.FileParser):
+class DebianPackagesStatusParser(parser.FileParser):
   """Parser for /var/lib/dpkg/status. Yields SoftwarePackage semantic values."""
 
   output_types = ["SoftwarePackage"]

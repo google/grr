@@ -6,7 +6,7 @@ import calendar
 import struct
 import time
 
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
@@ -68,7 +68,7 @@ def BinarySIDtoStringSID(sid):
   return "S-%s" % ("-".join([str(x) for x in str_sid_components]))
 
 
-class WMIEventConsumerParser(parsers.WMIQueryParser):
+class WMIEventConsumerParser(parser.WMIQueryParser):
   """Base class for WMI EventConsumer Parsers."""
 
   __abstract = True  # pylint: disable=invalid-name
@@ -135,7 +135,7 @@ class WMICommandLineEventConsumerParser(WMIEventConsumerParser):
   supported_artifacts = ["WMIEnumerateCLEC"]
 
 
-class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
+class WMIInstalledSoftwareParser(parser.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 
   output_types = [rdf_client.SoftwarePackage.__name__]
@@ -154,7 +154,7 @@ class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
     yield soft
 
 
-class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
+class WMIHotfixesSoftwareParser(parser.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 
   output_types = [rdf_client.SoftwarePackage.__name__]
@@ -185,7 +185,7 @@ class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
     yield soft
 
 
-class WMIUserParser(parsers.WMIQueryParser):
+class WMIUserParser(parser.WMIQueryParser):
   """Parser for WMI Win32_UserAccount and Win32_UserProfile output."""
 
   output_types = [rdf_client.User.__name__]
@@ -219,7 +219,7 @@ class WMIUserParser(parsers.WMIQueryParser):
       yield kb_user
 
 
-class WMILogicalDisksParser(parsers.WMIQueryParser):
+class WMILogicalDisksParser(parser.WMIQueryParser):
   """Parser for LogicalDisk WMI output. Yields Volume rdfvalues."""
 
   output_types = [rdf_client.Volume.__name__]
@@ -256,7 +256,7 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
     yield volume
 
 
-class WMIComputerSystemProductParser(parsers.WMIQueryParser):
+class WMIComputerSystemProductParser(parser.WMIQueryParser):
   """Parser for WMI Output. Yeilds Identifying Number."""
 
   output_types = [rdf_client.HardwareInfo.__name__]
@@ -275,7 +275,7 @@ class WMIComputerSystemProductParser(parsers.WMIQueryParser):
         system_manufacturer=result["Vendor"])
 
 
-class WMIInterfacesParser(parsers.WMIQueryParser):
+class WMIInterfacesParser(parser.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 
   output_types = [

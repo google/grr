@@ -5,7 +5,7 @@
 
 import re
 
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import standard as rdf_standard
@@ -60,7 +60,7 @@ class OSXLaunchdJobDict(object):
     return False
 
 
-class DarwinPersistenceMechanismsParser(parsers.ArtifactFilesParser):
+class DarwinPersistenceMechanismsParser(parser.ArtifactFilesParser):
   """Turn various persistence objects into PersistenceFiles."""
   output_types = ["PersistenceFile"]
   supported_artifacts = ["DarwinPersistenceMechanisms"]

@@ -4,12 +4,12 @@
 
 import crontab
 
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib import utils
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 
-class CronTabParser(parsers.FileParser):
+class CronTabParser(parser.FileParser):
   """Parser for crontab files."""
 
   output_types = ["CronTabFile"]

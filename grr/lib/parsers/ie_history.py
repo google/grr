@@ -20,14 +20,14 @@ import struct
 import sys
 import urlparse
 
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib.rdfvalues import webhistory
 
 # Difference between 1 Jan 1601 and 1 Jan 1970.
 WIN_UNIX_DIFF_MSECS = 11644473600 * 1e6
 
 
-class IEHistoryParser(parsers.FileParser):
+class IEHistoryParser(parser.FileParser):
   """Parse IE index.dat files into BrowserHistoryItem objects."""
 
   output_types = ["BrowserHistoryItem"]

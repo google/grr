@@ -6,7 +6,7 @@ import os
 import StringIO
 
 from grr.lib import flags
-from grr.server.grr_response_server.parsers import sqlite_file
+from grr.lib.parsers import sqlite_file
 from grr.test_lib import test_lib
 
 

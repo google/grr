@@ -12,7 +12,7 @@ from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr.lib import flags
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
@@ -77,7 +77,7 @@ WMI_SAMPLE = [
 # artifact_view_test.py`) and breaks the test class register. This should be
 # fixed when the test class register is gone and new test discovery (`pytest`)
 # is deployed.
-class CmdProcessor(parsers.CommandParser):
+class CmdProcessor(parser.CommandParser):
 
   output_types = ["SoftwarePackage"]
   supported_artifacts = ["TestCmdArtifact"]
@@ -109,7 +109,7 @@ class CmdProcessor(parsers.CommandParser):
         type="PARSER_ANOMALY", symptom="could not parse gremlins.")
 
 
-class MultiProvideParser(parsers.RegistryValueParser):
+class MultiProvideParser(parser.RegistryValueParser):
 
   output_types = ["Dict"]
   supported_artifacts = ["DepsProvidesMultiple"]

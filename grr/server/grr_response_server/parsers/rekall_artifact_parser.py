@@ -4,13 +4,13 @@
 import json
 import ntpath
 
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import artifact_utils
 
 
-class RekallPsListParser(parsers.RekallPluginParser):
+class RekallPsListParser(parser.RekallPluginParser):
   """Parser for Rekall PsList results."""
 
   output_types = ["Process"]
@@ -34,7 +34,9 @@ class RekallPsListParser(parsers.RekallPluginParser):
         yield self.ParseProcess(message[1])
 
 
-class RekallVADParser(parsers.RekallPluginParser):
+class RekallVADParser(parser.RekallPluginParser):
+  """Rekall VAD parser."""
+
   output_types = ["PathSpec"]
   supported_artifacts = ["FullVADBinaryList"]
 

@@ -10,13 +10,13 @@ import yaml
 from grr import config
 from grr.lib import registry
 from grr.lib import type_info
+from grr.lib.parsers import linux_service_parser
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server.checks import checks
 from grr.server.grr_response_server.checks import filters
 from grr.server.grr_response_server.checks import hints
-from grr.server.grr_response_server.parsers import linux_service_parser
 from grr.test_lib import test_lib
 
 
@@ -117,8 +117,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
       An iterator of check results.
     """
     return {
-        r.check_id: r
-        for r in checks.CheckHost(
+        r.check_id: r for r in checks.CheckHost(
             host_data, labels=labels, restrict_checks=restrict_checks)
     }
 
@@ -311,13 +310,11 @@ class HostCheckTest(test_lib.GRRBaseTest):
     """Create some Sys V init host data."""
     return self.GenFileData(
         artifact="LinuxServices",
-        data={x: ""
-              for x in links},
+        data={x: "" for x in links},
         parser=linux_service_parser.LinuxSysVInitParser(),
         modes={x: {
             "st_mode": 41471
-        }
-               for x in links})
+        } for x in links})
 
   # The assert methods
 
@@ -346,9 +343,10 @@ class HostCheckTest(test_lib.GRRBaseTest):
       anoms = rslt2_anoms.setdefault(a.symptom, [])
       anoms.extend(a.finding)
 
-    self.assertItemsEqual(rslt1_anoms, rslt2_anoms,
-                          "Results have different anomaly items.:\n%s\n%s" %
-                          (rslt1_anoms.keys(), rslt2_anoms.keys()))
+    self.assertItemsEqual(
+        rslt1_anoms, rslt2_anoms,
+        "Results have different anomaly items.:\n%s\n%s" % (rslt1_anoms.keys(),
+                                                            rslt2_anoms.keys()))
 
     # Now check that the anomalies are the same, modulo newlines.
     for symptom, findings in rslt1_anoms.iteritems():
@@ -400,9 +398,9 @@ class HostCheckTest(test_lib.GRRBaseTest):
     rslts = {rslt.symptom: rslt for rslt in anomalies}
     rslt = rslts.get(sym)
     # Anomalies evaluate false if there are no finding strings.
-    self.assertTrue(rslt is not None,
-                    "Didn't get expected symptom string '%s' in '%s'" %
-                    (sym, ",".join(rslts)))
+    self.assertTrue(
+        rslt is not None, "Didn't get expected symptom string '%s' in '%s'" %
+        (sym, ",".join(rslts)))
 
   def _GetFindings(self, anomalies, sym):
     """Generate a set of findings from anomalies that match the symptom."""

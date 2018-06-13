@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """Simple parsers for configuration files."""
 
-from grr.lib import parsers
+from grr.lib import parser
+from grr.lib.parsers import config_file
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.server.grr_response_server.parsers import config_file
 
 
-class ProcSysParser(parsers.FileParser):
+class ProcSysParser(parser.FileParser):
   """Parser for /proc/sys entries."""
 
   output_types = ["AttributedDict"]
@@ -30,7 +30,7 @@ class ProcSysParser(parsers.FileParser):
     return [rdf_protodict.AttributedDict(config)]
 
 
-class SysctlCmdParser(parsers.CommandParser):
+class SysctlCmdParser(parser.CommandParser):
   """Parser for sysctl -a output."""
 
   output_types = ["AttributedDict"]

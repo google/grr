@@ -4,12 +4,12 @@ import os
 import re
 
 
-from grr.lib import parsers
+from grr.lib import parser
+from grr.lib.parsers import config_file
 from grr.lib.rdfvalues import config_file as rdf_config_file
-from grr.server.grr_response_server.parsers import config_file
 
 
-class PAMParser(parsers.FileParser, config_file.FieldParser):
+class PAMParser(parser.FileParser, config_file.FieldParser):
   """Parser for PAM configurations."""
 
   output_types = ["PamConfig"]

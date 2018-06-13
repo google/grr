@@ -8,10 +8,10 @@ from grr.lib import objectfilter
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.lib.parsers import config_file
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs
-from grr.server.grr_response_server.parsers import config_file
 
 
 class Error(Exception):

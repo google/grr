@@ -17,11 +17,12 @@ import pkg_resources
 import yaml
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
+from grr.server.grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
 from grr import config as grr_config
 from grr.config import contexts
+from grr.config import server as config_server
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -46,6 +47,10 @@ parser.description = ("Set configuration parameters for the GRR Server."
                       "probably only care about 'initialize'.")
 
 # Generic arguments.
+parser.add_argument(
+    "--version",
+    action="version",
+    version=config_server.VERSION["packageversion"])
 
 parser.add_argument(
     "--share_dir",
@@ -803,6 +808,7 @@ def GetToken():
 def main(argv):
   """Main."""
   del argv  # Unused.
+
   token = GetToken()
   grr_config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
   grr_config.CONFIG.AddContext(contexts.CONFIG_UPDATER_CONTEXT)

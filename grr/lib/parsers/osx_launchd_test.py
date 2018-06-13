@@ -3,9 +3,9 @@
 
 
 from grr.lib import flags
+from grr.lib.parsers import osx_launchd
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server.parsers import osx_launchd
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osx_launchd_testdata
 from grr.test_lib import test_lib

@@ -5,7 +5,7 @@ import logging
 import re
 
 from grr.lib import lexer
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib import utils
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
@@ -302,7 +302,7 @@ class KeyValueParser(FieldParser):
     return result
 
 
-class NfsExportsParser(parsers.FileParser, FieldParser):
+class NfsExportsParser(parser.FileParser, FieldParser):
   """Parser for NFS exports."""
 
   output_types = ["NfsExport"]
@@ -509,7 +509,7 @@ class SshdParserBase(object):
     yield rdf_config_file.SshdConfig(config=self.config, matches=matches)
 
 
-class SshdConfigParser(SshdParserBase, parsers.FileParser):
+class SshdConfigParser(SshdParserBase, parser.FileParser):
   """A parser for sshd_config files."""
 
   supported_artifacts = ["SshdConfigFile"]
@@ -543,7 +543,7 @@ class SshdConfigParser(SshdParserBase, parsers.FileParser):
       yield result
 
 
-class SshdConfigCmdParser(SshdConfigParser, parsers.CommandParser):
+class SshdConfigCmdParser(SshdConfigParser, parser.CommandParser):
   """A command parser for sshd -T output."""
 
   supported_artifacts = ["SshdConfigCmd"]
@@ -560,7 +560,7 @@ class SshdConfigCmdParser(SshdConfigParser, parsers.CommandParser):
       yield result
 
 
-class MtabParser(parsers.FileParser, FieldParser):
+class MtabParser(parser.FileParser, FieldParser):
   """Parser for mounted filesystem data acquired from /proc/mounts."""
   output_types = ["Filesystem"]
   supported_artifacts = ["LinuxProcMounts", "LinuxFstab"]
@@ -582,7 +582,7 @@ class MtabParser(parsers.FileParser, FieldParser):
       yield result
 
 
-class MountCmdParser(parsers.CommandParser, FieldParser):
+class MountCmdParser(parser.CommandParser, FieldParser):
   """Parser for mounted filesystem data acquired from the mount command."""
   output_types = ["Filesystem"]
   supported_artifacts = ["LinuxMountCmd"]
@@ -615,7 +615,7 @@ class MountCmdParser(parsers.CommandParser, FieldParser):
         yield result
 
 
-class RsyslogParser(parsers.FileParser, FieldParser):
+class RsyslogParser(parser.FileParser, FieldParser):
   """Parser for syslog configurations."""
   output_types = ["AttributedDict"]
   supported_artifacts = ["LinuxRsyslogConfigs"]
@@ -677,7 +677,7 @@ class RsyslogParser(parsers.FileParser, FieldParser):
     return [result]
 
 
-class PackageSourceParser(parsers.FileParser):
+class PackageSourceParser(parser.FileParser):
   """Common code for APT and YUM source list parsing."""
   output_types = ["AttributedDict"]
 
@@ -780,7 +780,7 @@ class YumPackageSourceParser(PackageSourceParser):
     return self.ParseURIFromKeyValues(file_obj.read(), "=", "baseurl")
 
 
-class CronAtAllowDenyParser(parsers.FileParser):
+class CronAtAllowDenyParser(parser.FileParser):
   """Parser for /etc/cron.allow /etc/cron.deny /etc/at.allow & /etc/at.deny."""
   output_types = ["AttributedDict"]
   supported_artifacts = ["CronAtAllowDenyFiles"]
@@ -810,7 +810,7 @@ class CronAtAllowDenyParser(parsers.FileParser):
           finding=bad_lines)
 
 
-class NtpdParser(parsers.FileParser, FieldParser):
+class NtpdParser(parser.FileParser, FieldParser):
   """Parser for ntpd.conf file."""
   output_types = ["NtpConfig"]
   supported_artifacts = ["NtpConfFile"]
@@ -951,7 +951,7 @@ class NtpdParser(parsers.FileParser, FieldParser):
         yield rslt
 
 
-class SudoersParser(parsers.FileParser, FieldParser):
+class SudoersParser(parser.FileParser, FieldParser):
   """Parser for privileged configuration files such as sudoers and pam.d/su."""
   output_types = ["SudoersConfig"]
   supported_artifacts = ["UnixSudoersConfiguration"]

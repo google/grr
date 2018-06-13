@@ -6,15 +6,15 @@ import os
 import re
 
 from grr import config
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib import utils
+from grr.lib.parsers import config_file
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.server.grr_response_server.parsers import config_file
 
 
-class PCIDevicesInfoParser(parsers.FileParser):
+class PCIDevicesInfoParser(parser.FileParser):
   """Parser for PCI devices' info files located in /sys/bus/pci/devices/*/*."""
 
   output_types = ["PCIDevice"]
@@ -79,7 +79,7 @@ class PCIDevicesInfoParser(parsers.FileParser):
       yield pci_device
 
 
-class PasswdParser(parsers.FileParser):
+class PasswdParser(parser.FileParser):
   """Parser for passwd files. Yields User semantic values."""
 
   output_types = ["User"]
@@ -102,8 +102,8 @@ class PasswdParser(parsers.FileParser):
       return user
 
     except (IndexError, KeyError):
-      raise parsers.ParseError("Invalid passwd file at line %d. %s" %
-                               ((index + 1), line))
+      raise parser.ParseError(
+          "Invalid passwd file at line %d. %s" % ((index + 1), line))
 
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the passwd file."""
@@ -115,7 +115,7 @@ class PasswdParser(parsers.FileParser):
         yield line
 
 
-class PasswdBufferParser(parsers.GrepParser):
+class PasswdBufferParser(parser.GrepParser):
   """Parser for lines grepped from passwd files."""
 
   output_types = ["User"]
@@ -150,7 +150,7 @@ class UtmpStruct(utils.Struct):
   ]
 
 
-class LinuxWtmpParser(parsers.FileParser):
+class LinuxWtmpParser(parser.FileParser):
   """Simplified parser for linux wtmp files.
 
   Yields User semantic values for USER_PROCESS events.
@@ -191,7 +191,7 @@ class LinuxWtmpParser(parsers.FileParser):
           username=utils.SmartUnicode(user), last_logon=last_login * 1000000)
 
 
-class NetgroupParser(parsers.FileParser):
+class NetgroupParser(parser.FileParser):
   """Parser that extracts users from a netgroup file."""
 
   output_types = ["User"]
@@ -237,8 +237,8 @@ class NetgroupParser(parsers.FileParser):
                 users.add(user)
                 yield rdf_client.User(username=utils.SmartUnicode(user))
           except ValueError:
-            raise parsers.ParseError("Invalid netgroup file at line %d: %s" %
-                                     (index + 1, line))
+            raise parser.ParseError(
+                "Invalid netgroup file at line %d: %s" % (index + 1, line))
 
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the netgroup file and return User objects.
@@ -265,7 +265,7 @@ class NetgroupParser(parsers.FileParser):
     return self.ParseLines(lines)
 
 
-class NetgroupBufferParser(parsers.GrepParser):
+class NetgroupBufferParser(parser.GrepParser):
   """Parser for lines grepped from /etc/netgroup files."""
 
   output_types = ["User"]
@@ -276,7 +276,7 @@ class NetgroupBufferParser(parsers.GrepParser):
         [x.data.strip() for x in filefinderresult.matches])
 
 
-class LinuxBaseShadowParser(parsers.FileParser):
+class LinuxBaseShadowParser(parser.FileParser):
   """Base parser to process user/groups with shadow files."""
 
   # A list of hash types and hash matching expressions.
@@ -355,7 +355,7 @@ class LinuxBaseShadowParser(parsers.FileParser):
         if line:
           line_parser(line)
     except (IndexError, KeyError) as e:
-      raise parsers.ParseError("Invalid file at line %d: %s" % (index + 1, e))
+      raise parser.ParseError("Invalid file at line %d: %s" % (index + 1, e))
 
   def ReconcileShadow(self, store_type):
     """Verify that entries that claim to use shadow files have a shadow entry.
@@ -611,8 +611,8 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
     group_entries = {g.gid for g in self.groups.itervalues()}
     for gid in set(self.gids) - group_entries:
       undefined = ",".join(self.gids.get(gid, []))
-      findings.append("gid %d assigned without /etc/groups entry: %s" %
-                      (gid, undefined))
+      findings.append(
+          "gid %d assigned without /etc/groups entry: %s" % (gid, undefined))
     if findings:
       yield self._Anomaly("Accounts with invalid gid.", findings)
 
@@ -691,7 +691,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
       yield anom
 
 
-class PathParser(parsers.FileParser):
+class PathParser(parser.FileParser):
   """Parser for dotfile entries.
 
   Extracts path attributes from dotfiles to infer effective paths for users.

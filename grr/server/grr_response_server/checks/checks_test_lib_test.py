@@ -3,7 +3,7 @@
 """Tests for checks_test_lib."""
 
 from grr.lib import flags
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server.checks import checks
@@ -171,15 +171,16 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     # Need a parser
     self.assertRaises(ValueError, self.GenFileData, "EMPTY", [])
     # Trivial empty case.
-    parser = parsers.FileParser()
-    result = self.GenFileData("EMPTY", [], parser)
+    file_parser = parser.FileParser()
+    result = self.GenFileData("EMPTY", [], file_parser)
     self.assertTrue("KnowledgeBase" in result)
     self.assertTrue("EMPTY" in result)
     self.assertDictEqual(self.SetArtifactData(), result["EMPTY"])
     # Now with data.
-    result = self.GenFileData("FILES",
-                              {"/tmp/foo": """blah""",
-                               "/tmp/bar": """meh"""}, parser)
+    result = self.GenFileData("FILES", {
+        "/tmp/foo": """blah""",
+        "/tmp/bar": """meh"""
+    }, file_parser)
     self.assertTrue("FILES" in result)
     # No parser information should be generated.
     self.assertEquals([], result["FILES"]["PARSER"])

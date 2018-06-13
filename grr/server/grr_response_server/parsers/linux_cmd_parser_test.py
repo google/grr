@@ -6,7 +6,7 @@ import os
 
 from grr import config
 from grr.lib import flags
-from grr.lib import parsers
+from grr.lib import parser as lib_parser
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import artifact
@@ -241,7 +241,7 @@ supported_os: [Linux]
     artifact.UploadArtifactYamlFile(content_bad2)
     orig = parser.supported_artifacts
     for bad_artifact in ["BadPsArgsDuplicateCmd", "BadPsArgsCmdNotAtEnd"]:
-      with self.assertRaises(parsers.ParserDefinitionError):
+      with self.assertRaises(lib_parser.ParserDefinitionError):
         # Reset and add the new artifacts to the supported ones for the parser.
         parser.supported_artifacts = list(orig)
         parser.supported_artifacts.append(bad_artifact)

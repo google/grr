@@ -36,16 +36,19 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     flows = list(fd.ListChildren())
 
     gui_test_lib.CreateFileVersion(
-        client_id.Add("fs/os/c/a.txt"),
+        client_id,
+        "fs/os/c/a.txt",
         "Hello World",
         timestamp=gui_test_lib.TIME_0,
         token=self.token)
     gui_test_lib.CreateFolder(
-        client_id.Add("fs/os/c/TestFolder"),
+        client_id,
+        "fs/os/c/TestFolder",
         timestamp=gui_test_lib.TIME_0,
         token=self.token)
     gui_test_lib.CreateFolder(
-        client_id.Add("fs/os/c/bin/TestBinFolder"),
+        client_id,
+        "fs/os/c/bin/TestBinFolder",
         timestamp=gui_test_lib.TIME_0,
         token=self.token)
 

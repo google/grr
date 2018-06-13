@@ -5,14 +5,14 @@ import os
 import re
 
 
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import artifact_registry
 
 
 # TODO(user): Extend this to resolve repo/publisher to its baseurl.
-class YumListCmdParser(parsers.CommandParser):
+class YumListCmdParser(parser.CommandParser):
   """Parser for yum list output. Yields SoftwarePackage rdfvalues.
 
   We read the output of yum rather than rpm because it has publishers, and we
@@ -42,7 +42,7 @@ class YumListCmdParser(parsers.CommandParser):
           install_state=status)
 
 
-class YumRepolistCmdParser(parsers.CommandParser):
+class YumRepolistCmdParser(parser.CommandParser):
   """Parser for yum repolist output. Yields PackageRepository.
 
   Parse all enabled repositories as output by yum repolist -q -v.
@@ -87,7 +87,7 @@ class YumRepolistCmdParser(parsers.CommandParser):
         yield repo_info
 
 
-class RpmCmdParser(parsers.CommandParser):
+class RpmCmdParser(parser.CommandParser):
   """Parser for rpm qa output. Yields SoftwarePackage rdfvalues."""
 
   output_types = ["SoftwarePackage"]
@@ -113,7 +113,7 @@ class RpmCmdParser(parsers.CommandParser):
         break
 
 
-class DpkgCmdParser(parsers.CommandParser):
+class DpkgCmdParser(parser.CommandParser):
   """Parser for dpkg output. Yields SoftwarePackage rdfvalues."""
 
   output_types = ["SoftwarePackage"]
@@ -131,8 +131,8 @@ class DpkgCmdParser(parsers.CommandParser):
         # This is a special header line that determines column size.
         for col in line.split("-")[1:]:
           if not re.match("=*", col):
-            raise parsers.ParseError("Invalid header parsing for %s at line "
-                                     "%s" % (cmd, i))
+            raise parser.ParseError("Invalid header parsing for %s at line "
+                                    "%s" % (cmd, i))
           column_lengths.append(len(col))
         break
 
@@ -167,7 +167,7 @@ class DpkgCmdParser(parsers.CommandParser):
             install_state=status)
 
 
-class DmidecodeCmdParser(parsers.CommandParser):
+class DmidecodeCmdParser(parser.CommandParser):
   """Parser for dmidecode output. Yields HardwareInfo rdfvalues."""
 
   output_types = ["HardwareInfo"]
@@ -231,7 +231,7 @@ class DmidecodeCmdParser(parsers.CommandParser):
     return dmi_info
 
 
-class PsCmdParser(parsers.CommandParser):
+class PsCmdParser(parser.CommandParser):
   """Parser for '/bin/ps' output. Yields Process rdfvalues."""
 
   output_types = ["Process"]
@@ -246,7 +246,7 @@ class PsCmdParser(parsers.CommandParser):
       for source in artifact.sources:
         if not cls._FindPsOutputFormat(source.attributes["cmd"],
                                        source.attributes["args"]):
-          raise parsers.ParserDefinitionError(
+          raise parser.ParserDefinitionError(
               "Artifact parser %s can't process artifact %s. 'ps' command has "
               "unacceptable arguments." % (cls.__name__, artifact_name))
 
@@ -268,13 +268,15 @@ class PsCmdParser(parsers.CommandParser):
     for option in ["cmd", "command", "args"]:
       if option in output_format:
         if output_format.count(option) > 1:
-          logging.warn("Multiple commandline outputs expected in '%s %s' "
-                       "output. Skipping parsing.", cmd, " ".join(args))
+          logging.warn(
+              "Multiple commandline outputs expected in '%s %s' "
+              "output. Skipping parsing.", cmd, " ".join(args))
           return []
         if output_format[-1] != option:
-          logging.warn("'ps's output has the commandline not as the last "
-                       "column. We can't safely parse output of '%s %s'."
-                       "Skipping parsing.", cmd, " ".join(args))
+          logging.warn(
+              "'ps's output has the commandline not as the last "
+              "column. We can't safely parse output of '%s %s'."
+              "Skipping parsing.", cmd, " ".join(args))
           return []
 
     # If we made it here, we should be able to parse the output and we have a

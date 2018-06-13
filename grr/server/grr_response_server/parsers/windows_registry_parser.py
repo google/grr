@@ -5,7 +5,7 @@ import logging
 import os
 import re
 
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
@@ -15,7 +15,7 @@ from grr.server.grr_response_server import artifact_utils
 SID_RE = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
 
 
-class CurrentControlSetKBParser(parsers.RegistryValueParser):
+class CurrentControlSetKBParser(parser.RegistryValueParser):
   """Parser for CurrentControlSet value."""
 
   output_types = ["RDFString"]
@@ -29,13 +29,13 @@ class CurrentControlSetKBParser(parsers.RegistryValueParser):
     value = stat.registry_data.GetValue()
 
     if not str(value).isdigit() or int(value) > 999 or int(value) < 0:
-      raise parsers.ParseError(
+      raise parser.ParseError(
           "Invalid value for CurrentControlSet key %s" % value)
     yield rdfvalue.RDFString(
         "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet%03d" % int(value))
 
 
-class WinEnvironmentParser(parsers.RegistryValueParser):
+class WinEnvironmentParser(parser.RegistryValueParser):
   """Parser for registry retrieved environment variables."""
 
   output_types = ["RDFString"]
@@ -52,14 +52,14 @@ class WinEnvironmentParser(parsers.RegistryValueParser):
     """Expand any variables in the value."""
     value = stat.registry_data.GetValue()
     if not value:
-      raise parsers.ParseError("Invalid value for key %s" % stat.pathspec.path)
+      raise parser.ParseError("Invalid value for key %s" % stat.pathspec.path)
     value = artifact_utils.ExpandWindowsEnvironmentVariables(
         value, knowledge_base)
     if value:
       yield rdfvalue.RDFString(value)
 
 
-class WinSystemDriveParser(parsers.RegistryValueParser):
+class WinSystemDriveParser(parser.RegistryValueParser):
   """Parser for SystemDrive environment variable."""
 
   output_types = ["RDFString"]
@@ -72,17 +72,17 @@ class WinSystemDriveParser(parsers.RegistryValueParser):
     elif isinstance(stat, rdfvalue.RDFString):
       value = stat
     if not value:
-      raise parsers.ParseError("Invalid value for key %s" % stat.pathspec.path)
+      raise parser.ParseError("Invalid value for key %s" % stat.pathspec.path)
 
     systemdrive = value[0:2]
     if re.match(r"^[A-Za-z]:$", systemdrive):
       yield rdfvalue.RDFString(systemdrive)
     else:
-      raise parsers.ParseError(
+      raise parser.ParseError(
           "Bad drive letter for key %s" % stat.pathspec.path)
 
 
-class WinSystemRootParser(parsers.RegistryValueParser):
+class WinSystemRootParser(parser.RegistryValueParser):
   """Parser for SystemRoot environment variables."""
 
   output_types = ["RDFString"]
@@ -93,10 +93,10 @@ class WinSystemRootParser(parsers.RegistryValueParser):
     if value:
       yield rdfvalue.RDFString(value)
     else:
-      raise parsers.ParseError("Invalid value for key %s" % stat.pathspec.path)
+      raise parser.ParseError("Invalid value for key %s" % stat.pathspec.path)
 
 
-class CodepageParser(parsers.RegistryValueParser):
+class CodepageParser(parser.RegistryValueParser):
   """Parser for Codepage values."""
 
   output_types = ["RDFString"]
@@ -108,7 +108,7 @@ class CodepageParser(parsers.RegistryValueParser):
     yield rdfvalue.RDFString("cp_%s" % value)
 
 
-class ProfilesDirectoryEnvironmentVariable(parsers.RegistryParser):
+class ProfilesDirectoryEnvironmentVariable(parser.RegistryParser):
   """Parser for the ProfilesDirectory environment variable."""
 
   output_type = ["RDFString"]
@@ -125,7 +125,7 @@ class ProfilesDirectoryEnvironmentVariable(parsers.RegistryParser):
     yield rdfvalue.RDFString(interpolated_value)
 
 
-class AllUsersProfileEnvironmentVariable(parsers.RegistryParser):
+class AllUsersProfileEnvironmentVariable(parser.RegistryParser):
   """Parser for AllUsersProfile variable."""
 
   output_types = ["RDFString"]
@@ -139,7 +139,7 @@ class AllUsersProfileEnvironmentVariable(parsers.RegistryParser):
     yield rdfvalue.RDFString(all_users_dir)
 
 
-class WinUserSids(parsers.RegistryParser):
+class WinUserSids(parser.RegistryParser):
   """Parser for extracting SID for multiple users.
 
   This reads a listing of the profile paths to extract a list of SIDS for
@@ -175,7 +175,7 @@ class WinUserSids(parsers.RegistryParser):
       yield kb_user
 
 
-class WinUserSpecialDirs(parsers.RegistryParser):
+class WinUserSpecialDirs(parser.RegistryParser):
   r"""Parser for extracting special folders from registry.
 
   Keys will come from HKEY_USERS and will list the Shell Folders and user's
@@ -242,7 +242,7 @@ class WinUserSpecialDirs(parsers.RegistryParser):
     return user_dict.itervalues()
 
 
-class WinServicesParser(parsers.RegistryValueParser):
+class WinServicesParser(parser.RegistryValueParser):
   """Parser for Windows services values from the registry.
 
   See service key doco:
@@ -321,14 +321,13 @@ class WinServicesParser(parsers.RegistryValueParser):
             # TODO(user): change this to yield a ParserAnomaly object.
             dest_type = type(services[service_name].Get(field_map[key]))
             logging.debug("Wrong type set for %s:%s, expected %s, got %s",
-                          stat.pathspec.path,
-                          stat.registry_data.GetValue(), dest_type,
-                          type(stat.registry_data.GetValue()))
+                          stat.pathspec.path, stat.registry_data.GetValue(),
+                          dest_type, type(stat.registry_data.GetValue()))
 
     return services.itervalues()
 
 
-class WinTimezoneParser(parsers.RegistryValueParser):
+class WinTimezoneParser(parser.RegistryValueParser):
   """Parser for TimeZoneKeyName value."""
 
   output_types = ["RDFString"]

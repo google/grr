@@ -7,14 +7,14 @@ import yaml
 
 from grr import config
 from grr.lib import flags
+from grr.lib.parsers import config_file as config_file_parsers
+from grr.lib.parsers import wmi_parser
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server.checks import checks
 from grr.server.grr_response_server.checks import checks_test_lib
 from grr.server.grr_response_server.checks import filters
-from grr.server.grr_response_server.parsers import config_file as config_file_parsers
 from grr.server.grr_response_server.parsers import linux_cmd_parser
-from grr.server.grr_response_server.parsers import wmi_parser
 from grr.test_lib import test_lib
 
 CHECKS_DIR = os.path.join(config.CONFIG["Test.data_dir"], "checks")

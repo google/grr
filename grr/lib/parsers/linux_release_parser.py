@@ -4,7 +4,7 @@ import collections
 import itertools
 import re
 
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
@@ -120,7 +120,7 @@ class ReleaseFileParseHandler(ReleaseParseHandler):
     return complete, ParsedRelease(self.name, major, minor)
 
 
-class LinuxReleaseParser(parsers.FileParser):
+class LinuxReleaseParser(parser.FileParser):
   """Parser for Linux distribution information."""
 
   output_types = ['Dict']

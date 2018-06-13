@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """API handlers for accessing artifacts."""
 
-from grr.lib import parsers
+from grr.lib import parser
 
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import artifact_pb2
@@ -38,7 +38,7 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
           error_message=artifact_val.error_message,
           is_custom=artifact_val.loaded_from.startswith("datastore:"))
 
-      for processor in parsers.Parser.GetClassesByArtifact(artifact_val.name):
+      for processor in parser.Parser.GetClassesByArtifact(artifact_val.name):
         descriptor.processors.append(
             artifact_registry.ArtifactProcessorDescriptor(
                 name=processor.__name__,

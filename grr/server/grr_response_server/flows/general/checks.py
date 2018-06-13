@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """A flow to run checks for a host."""
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
@@ -111,7 +111,7 @@ class CheckRunner(flow.GRRFlow):
     source = responses.request_data.GetItem("source", None)
 
     # Find all the parsers that should apply to an artifact.
-    processors = parsers.Parser.GetClassesByArtifact(artifact_name)
+    processors = parser.Parser.GetClassesByArtifact(artifact_name)
     saved_responses = {}
     # For each item of collected host data, identify whether to parse
     # immediately or once all the artifact data is collected.
@@ -130,7 +130,7 @@ class CheckRunner(flow.GRRFlow):
 
     # If we were saving responses, process them now:
     for processor_name, responses_list in saved_responses.items():
-      processor = parsers.Parser.classes[processor_name]()
+      processor = parser.Parser.classes[processor_name]()
       self._ProcessData(processor, responses_list, artifact_name, source)
 
   @flow.StateHandler()

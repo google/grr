@@ -393,6 +393,9 @@ class PathInfo(structs.RDFProtoStruct):
       raise ValueError("src [%s] does not represent the same path as self [%s]"
                        % (src.components, self.components))
 
+    if src.HasField("stat_entry"):
+      self.stat_entry = src.stat_entry
+
     self.last_path_history_timestamp = max(self.last_path_history_timestamp,
                                            src.last_path_history_timestamp)
     self.directory |= src.directory

@@ -5,11 +5,11 @@ import platform
 import unittest
 
 from grr.lib import flags
+from grr.lib.parsers import wmi_parser
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import wmi as rdf_wmi
-from grr.server.grr_response_server.parsers import wmi_parser
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

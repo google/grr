@@ -47,7 +47,8 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
   def testUrlSensitiveCharactersAreShownInTree(self):
     gui_test_lib.CreateFileVersion(
-        "aff4:/C.0000000000000001/fs/os/c/foo?bar&oh/a&=?b.txt",
+        self.client_id,
+        "fs/os/c/foo?bar&oh/a&=?b.txt",
         "Hello World",
         timestamp=gui_test_lib.TIME_1,
         token=self.token)
@@ -74,7 +75,8 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
   def testFolderPathCanContainUrlSensitiveCharacters(self):
     gui_test_lib.CreateFileVersion(
-        "aff4:/C.0000000000000001/fs/os/c/foo?bar&oh/a&=?b.txt",
+        self.client_id,
+        "fs/os/c/foo?bar&oh/a&=?b.txt",
         "Hello World",
         timestamp=gui_test_lib.TIME_1,
         token=self.token)

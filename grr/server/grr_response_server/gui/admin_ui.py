@@ -12,15 +12,18 @@ import ipaddr
 
 from grr import config
 from grr.config import contexts
+from grr.config import server as config_server
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.server.grr_response_server.gui import local
-from grr.lib import server_plugins
+from grr.server.grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import flags
 from grr.server.grr_response_server import server_startup
 from grr.server.grr_response_server.gui import wsgiapp
+
+flags.DEFINE_version(config_server.VERSION["packageversion"])
 
 
 class ThreadedServer(SocketServer.ThreadingMixIn, simple_server.WSGIServer):

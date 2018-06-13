@@ -5,7 +5,7 @@ These flows subclass lib.artifact.ArtifactFallbackCollector.
 """
 
 # pylint: disable=unused-import
-from grr.lib import parsers
+from grr.lib import parser
 # pylint: enable=unused-import
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths

@@ -447,7 +447,7 @@ class InMemoryDB(db.Database):
 
     path_info = path_info.Copy()
 
-    if ancestor:
+    if not ancestor:
       path_info.last_path_history_timestamp = rdfvalue.RDFDatetime.Now()
 
     path_id = path_info.GetPathID()
@@ -463,9 +463,9 @@ class InMemoryDB(db.Database):
 
   def WritePathInfos(self, client_id, path_infos):
     for path_info in path_infos:
-      self._WritePathInfo(client_id, path_info, ancestor=True)
+      self._WritePathInfo(client_id, path_info, ancestor=False)
       for ancestor_path_info in path_info.GetAncestors():
-        self._WritePathInfo(client_id, ancestor_path_info, ancestor=False)
+        self._WritePathInfo(client_id, ancestor_path_info, ancestor=True)
 
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):

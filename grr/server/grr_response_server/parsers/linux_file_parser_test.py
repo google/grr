@@ -8,7 +8,7 @@ import StringIO
 
 
 from grr.lib import flags
-from grr.lib import parsers
+from grr.lib import parser as lib_parser
 from grr.lib import utils
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
@@ -161,7 +161,7 @@ user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user
 """
     parser = linux_file_parser.PasswdParser()
-    self.assertRaises(parsers.ParseError, list,
+    self.assertRaises(lib_parser.ParseError, list,
                       parser.Parse(None, StringIO.StringIO(dat), None))
 
   def testPasswdBufferParser(self):
@@ -229,8 +229,8 @@ super_group3 (-,user5,) (-,user6,) group1 group2
         "Artifacts.netgroup_user_blacklist": ["user2", "user3"]
     }):
       out = list(parser.Parse(ff_result, None))
-      self.assertItemsEqual([x.username
-                             for x in out], [u"user1", u"user5", u"user6"])
+      self.assertItemsEqual([x.username for x in out],
+                            [u"user1", u"user5", u"user6"])
 
   def testNetgroupParserBadInput(self):
     parser = linux_file_parser.NetgroupParser()
@@ -240,7 +240,7 @@ group2 user4 (-user2,)
 super_group (-,,user5,) (-user6,) group1 group2
 super_group2 (-,user7,) super_group
 """
-    self.assertRaises(parsers.ParseError, list,
+    self.assertRaises(lib_parser.ParseError, list,
                       parser.Parse(None, StringIO.StringIO(dat), None))
 
   def testWtmpParser(self):
@@ -490,13 +490,12 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
       setenv PERL5LIB :shouldntbeignored
     """)
     parser = linux_file_parser.PathParser()
-    bashrc_stat = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/home/user1/.bashrc", pathtype="OS"))
-    cshrc_stat = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/home/user1/.cshrc", pathtype="OS"))
+    bashrc_stat = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(path="/home/user1/.bashrc", pathtype="OS"))
+    cshrc_stat = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(path="/home/user1/.cshrc", pathtype="OS"))
     bashrc = {
-        r.name: r.vals
-        for r in parser.Parse(bashrc_stat, bashrc_data, None)
+        r.name: r.vals for r in parser.Parse(bashrc_stat, bashrc_data, None)
     }
     cshrc = {r.name: r.vals for r in parser.Parse(cshrc_stat, cshrc_data, None)}
     expected = {

@@ -4,7 +4,7 @@
 import os
 
 from grr.lib import flags
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -242,15 +242,15 @@ class ArtifactParserTest(test_lib.GRRBaseTest):
 
   def testParsersRetrieval(self):
     """Check the parsers are valid."""
-    for processor in parsers.Parser.classes.values():
+    for processor in parser.Parser.classes.values():
       if (not hasattr(processor, "output_types") or
           not isinstance(processor.output_types, (list, tuple))):
-        raise parsers.ParserDefinitionError(
+        raise parser.ParserDefinitionError(
             "Missing output_types on %s" % processor)
 
       for output_type in processor.output_types:
         if output_type not in rdfvalue.RDFValue.classes:
-          raise parsers.ParserDefinitionError(
+          raise parser.ParserDefinitionError(
               "Parser %s has an output type that is an unknown type %s" %
               (processor, output_type))
 
@@ -374,7 +374,7 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     def MockGetClassesByArtifact(unused_cls, _):
       return [Parser1, Parser2]
 
-    with utils.Stubber(parsers.Parser, "GetClassesByArtifact",
+    with utils.Stubber(parser.Parser, "GetClassesByArtifact",
                        MockGetClassesByArtifact):
       self.assertItemsEqual(artifact.GetArtifactPathDependencies(), [
           "appdata", "sid", "desktop", "current_control_set", "users.sid",

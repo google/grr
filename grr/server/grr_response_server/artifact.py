@@ -4,7 +4,7 @@
 import logging
 
 from grr import config
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
@@ -381,7 +381,7 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
       parse_method = processor_obj.Parse
 
     state = flow_obj.state
-    if isinstance(processor_obj, parsers.CommandParser):
+    if isinstance(processor_obj, parser.CommandParser):
       # Command processor only supports one response at a time.
       response = responses
       result_iterator = parse_method(
@@ -393,11 +393,11 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
           time_taken=response.time_used,
           knowledge_base=state.knowledge_base)
 
-    elif isinstance(processor_obj, parsers.WMIQueryParser):
+    elif isinstance(processor_obj, parser.WMIQueryParser):
       query = source["attributes"]["query"]
       result_iterator = parse_method(query, responses, state.knowledge_base)
 
-    elif isinstance(processor_obj, parsers.FileParser):
+    elif isinstance(processor_obj, parser.FileParser):
       if processor_obj.process_together:
         # TODO(amoser): This is very brittle, one day we should come
         # up with a better API here.
@@ -413,12 +413,12 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
         result_iterator = parse_method(responses, fd, state.knowledge_base)
 
     elif isinstance(processor_obj,
-                    (parsers.RegistryParser, parsers.RekallPluginParser,
-                     parsers.RegistryValueParser, parsers.GenericResponseParser,
-                     parsers.GrepParser)):
+                    (parser.RegistryParser, parser.RekallPluginParser,
+                     parser.RegistryValueParser, parser.GenericResponseParser,
+                     parser.GrepParser)):
       result_iterator = parse_method(responses, state.knowledge_base)
 
-    elif isinstance(processor_obj, (parsers.ArtifactFilesParser)):
+    elif isinstance(processor_obj, (parser.ArtifactFilesParser)):
       result_iterator = parse_method(responses, state.knowledge_base,
                                      flow_obj.GetPathType())
 

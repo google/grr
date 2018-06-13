@@ -11,12 +11,12 @@ import sys
 import urlparse
 
 
-from grr.lib import parsers
+from grr.lib import parser
+from grr.lib.parsers import sqlite_file
 from grr.lib.rdfvalues import webhistory as rdf_webhistory
-from grr.server.grr_response_server.parsers import sqlite_file
 
 
-class FirefoxHistoryParser(parsers.FileParser):
+class FirefoxHistoryParser(parser.FileParser):
   """Parse Chrome history files into BrowserHistoryItem objects."""
 
   output_types = ["BrowserHistoryItem"]

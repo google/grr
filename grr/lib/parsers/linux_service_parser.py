@@ -7,12 +7,12 @@ import re
 import stat
 
 from grr.lib import lexer
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib import utils
+from grr.lib.parsers import config_file
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.server.grr_response_server.parsers import config_file
 
 
 class LSBInitLexer(lexer.Lexer):
@@ -102,7 +102,7 @@ def GetRunlevelsNonLSB(states):
   return set([convert_table[s] for s in states.split() if s in convert_table])
 
 
-class LinuxLSBInitParser(parsers.FileParser):
+class LinuxLSBInitParser(parser.FileParser):
   """Parses LSB style /etc/init.d entries."""
 
   output_types = ["LinuxServiceInformation"]
@@ -162,8 +162,8 @@ class LinuxLSBInitParser(parsers.FileParser):
     Args:
       data: A string of insserv definitions.
     """
-    parser = config_file.FieldParser()
-    entries = parser.ParseEntries(data)
+    p = config_file.FieldParser()
+    entries = p.ParseEntries(data)
     raw = {e[0]: e[1:] for e in entries}
     # Now expand out the facilities to services.
     facilities = {}
@@ -192,7 +192,7 @@ class LinuxLSBInitParser(parsers.FileParser):
       yield rslt
 
 
-class LinuxXinetdParser(parsers.FileParser):
+class LinuxXinetdParser(parser.FileParser):
   """Parses xinetd entries."""
 
   output_types = ["LinuxServiceInformation"]
@@ -200,26 +200,26 @@ class LinuxXinetdParser(parsers.FileParser):
   process_together = True
 
   def _ParseSection(self, section, cfg):
-    parser = config_file.KeyValueParser()
+    p = config_file.KeyValueParser()
     # Skip includedir, we get this from the artifact.
     if section.startswith("includedir"):
       return
     elif section.startswith("default"):
-      for val in parser.ParseEntries(cfg):
+      for val in p.ParseEntries(cfg):
         self.default.update(val)
     elif section.startswith("service"):
       svc = section.replace("service", "").strip()
       if not svc:
         return
       self.entries[svc] = {}
-      for val in parser.ParseEntries(cfg):
+      for val in p.ParseEntries(cfg):
         self.entries[svc].update(val)
 
   def _ProcessEntries(self, fd):
     """Extract entries from the xinetd config files."""
-    parser = config_file.KeyValueParser(kv_sep="{", term="}", sep=None)
+    p = config_file.KeyValueParser(kv_sep="{", term="}", sep=None)
     data = fd.read()
-    entries = parser.ParseEntries(data)
+    entries = p.ParseEntries(data)
     for entry in entries:
       for section, cfg in entry.items():
         # The parser returns a list of configs. There will only be one.
@@ -267,7 +267,7 @@ class LinuxXinetdParser(parsers.FileParser):
       yield self._GenService(name, cfg)
 
 
-class LinuxSysVInitParser(parsers.FileParser):
+class LinuxSysVInitParser(parser.FileParser):
   """Parses SysV runlevel entries.
 
   Reads the stat entries for files under /etc/rc* runlevel scripts.
@@ -309,9 +309,10 @@ class LinuxSysVInitParser(parsers.FileParser):
       runscript = self.runscript_re.match(os.path.basename(path))
       if runlevel and runscript:
         svc = runscript.groupdict()
-        service = services.setdefault(svc["name"],
-                                      rdf_client.LinuxServiceInformation(
-                                          name=svc["name"], start_mode="INIT"))
+        service = services.setdefault(
+            svc["name"],
+            rdf_client.LinuxServiceInformation(
+                name=svc["name"], start_mode="INIT"))
         runlvl = GetRunlevelsNonLSB(runlevel.group(1))
         if svc["action"] == "S" and runlvl:
           service.start_on.append(runlvl.pop())

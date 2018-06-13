@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This is the GRR frontend HTTP Server."""
 
-
 import BaseHTTPServer
 import cgi
 import cStringIO
@@ -17,10 +16,11 @@ import ipaddr
 from google.protobuf import json_format
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
+from grr.server.grr_response_server import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
 
 from grr import config
+from grr.config import server as config_server
 from grr.lib import communicator
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -32,6 +32,8 @@ from grr.server.grr_response_server import front_end
 from grr.server.grr_response_server import master
 from grr.server.grr_response_server import server_logging
 from grr.server.grr_response_server import server_startup
+
+flags.DEFINE_version(config_server.VERSION["packageversion"])
 
 
 class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):

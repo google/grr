@@ -8,12 +8,12 @@ import stat
 
 
 from binplist import binplist
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import plist as rdf_plist
 
 
-class OSXUsersParser(parsers.ArtifactFilesParser):
+class OSXUsersParser(parser.ArtifactFilesParser):
   """Parser for Glob of /Users/*."""
 
   output_types = ["User"]
@@ -32,7 +32,7 @@ class OSXUsersParser(parsers.ArtifactFilesParser):
           yield rdf_client.User(username=username, homedir=homedir)
 
 
-class OSXSPHardwareDataTypeParser(parsers.CommandParser):
+class OSXSPHardwareDataTypeParser(parser.CommandParser):
   """Parser for the Hardware Data from System Profiler."""
   output_types = ["HardwareInfo"]
   supported_artifacts = ["OSXSPHardwareDataType"]
@@ -46,7 +46,7 @@ class OSXSPHardwareDataTypeParser(parsers.CommandParser):
     plist = binplist.readPlist(cStringIO.StringIO(stdout))
 
     if len(plist) > 1:
-      raise parsers.ParseError("SPHardwareDataType plist has too many items.")
+      raise parser.ParseError("SPHardwareDataType plist has too many items.")
 
     hardware_list = plist[0]["_items"][0]
     serial_number = getattr(hardware_list, "serial_number", None)
@@ -59,7 +59,7 @@ class OSXSPHardwareDataTypeParser(parsers.CommandParser):
         system_product_name=system_product_name)
 
 
-class OSXLaunchdPlistParser(parsers.FileParser):
+class OSXLaunchdPlistParser(parser.FileParser):
   """Parse Launchd plist files into LaunchdPlist objects."""
 
   output_types = ["LaunchdPlist"]

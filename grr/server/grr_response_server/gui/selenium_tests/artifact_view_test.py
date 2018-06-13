@@ -7,7 +7,7 @@ import os
 import unittest
 from grr import config
 from grr.lib import flags
-from grr.lib import parsers
+from grr.lib import parser
 from grr.server.grr_response_server import artifact
 from grr.server.grr_response_server import artifact_registry
 from grr.server.grr_response_server.flows.general import collectors
@@ -15,7 +15,7 @@ from grr.server.grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
 
 
-class TestCmdProcessor(parsers.CommandParser):
+class TestCmdProcessor(parser.CommandParser):
 
   output_types = ["SoftwarePackage"]
   supported_artifacts = ["TestCmdArtifact"]

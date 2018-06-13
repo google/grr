@@ -78,31 +78,37 @@ def CreateFileVersions(client_id, token):
   # This file already exists in the fixture at TIME_0, we write a
   # later version.
   CreateFileVersion(
-      "aff4:/%s/fs/os/c/Downloads/a.txt" % client_id,
+      client_id,
+      "fs/os/c/Downloads/a.txt",
       "Hello World",
       timestamp=TIME_1,
       token=token)
   CreateFileVersion(
-      "aff4:/%s/fs/os/c/Downloads/a.txt" % client_id,
+      client_id,
+      "fs/os/c/Downloads/a.txt",
       "Goodbye World",
       timestamp=TIME_2,
       token=token)
 
 
-def CreateFileVersion(path, content, timestamp, token=None):
+def CreateFileVersion(client_id, path, content, timestamp, token=None):
   """Add a new version for a file."""
   with test_lib.FakeTime(timestamp):
     with aff4.FACTORY.Create(
-        path, aff4_type=aff4_grr.VFSFile, mode="w", token=token) as fd:
+        client_id.Add(path), aff4_type=aff4_grr.VFSFile, mode="w",
+        token=token) as fd:
       fd.Write(content)
       fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
 
-def CreateFolder(path, timestamp, token=None):
+def CreateFolder(client_id, path, timestamp, token=None):
   """Creates a VFS folder."""
   with test_lib.FakeTime(timestamp):
     with aff4.FACTORY.Create(
-        path, aff4_type=aff4_standard.VFSDirectory, mode="w", token=token) as _:
+        client_id.Add(path),
+        aff4_type=aff4_standard.VFSDirectory,
+        mode="w",
+        token=token) as _:
       pass
 
 

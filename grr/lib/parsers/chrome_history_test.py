@@ -7,7 +7,7 @@ import datetime
 import os
 
 from grr.lib import flags
-from grr.server.grr_response_server.parsers import chrome_history
+from grr.lib.parsers import chrome_history
 from grr.test_lib import test_lib
 
 

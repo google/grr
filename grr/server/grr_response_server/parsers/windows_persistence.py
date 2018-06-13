@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Parse various Windows persistence mechanisms into PersistenceFiles."""
 
-from grr.lib import parsers
+from grr.lib import parser
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import standard as rdf_standard
@@ -9,7 +9,7 @@ from grr.path_detection import windows as path_detection_windows
 from grr.server.grr_response_server import artifact_utils
 
 
-class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
+class WindowsPersistenceMechanismsParser(parser.ArtifactFilesParser):
   """Turn various persistence objects into PersistenceFiles."""
   output_types = ["PersistenceFile"]
   supported_artifacts = ["WindowsPersistenceMechanisms"]

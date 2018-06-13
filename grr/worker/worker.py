@@ -7,16 +7,19 @@ it specifies.
 
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
+from grr.server.grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr import config
 from grr.config import contexts
+from grr.config import server as config_server
 from grr.lib import flags
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import fleetspeak_connector
 from grr.server.grr_response_server import server_startup
 from grr.server.grr_response_server import worker
+
+flags.DEFINE_version(config_server.VERSION["packageversion"])
 
 
 def main(argv):

@@ -340,6 +340,34 @@ class PathInfoTest(unittest.TestCase):
       objects.PathInfo(components=["usr", "local", "bin"]).UpdateFrom(
           objects.PathInfo(components=["usr", "local", "bin", "protoc"]))
 
+  def testUpdateFromStatEntryUpdate(self):
+    dst = objects.PathInfo(components=["foo", "bar"])
+
+    stat_entry = rdf_client.StatEntry(st_mode=1337)
+    src = objects.PathInfo(components=["foo", "bar"], stat_entry=stat_entry)
+
+    dst.UpdateFrom(src)
+    self.assertEqual(dst.stat_entry.st_mode, 1337)
+
+  def testUpdateFromStatEntryOverride(self):
+    stat_entry = rdf_client.StatEntry(st_mode=707)
+    dst = objects.PathInfo(components=["foo", "bar"], stat_entry=stat_entry)
+
+    stat_entry = rdf_client.StatEntry(st_mode=1337)
+    src = objects.PathInfo(components=["foo", "bar"], stat_entry=stat_entry)
+
+    dst.UpdateFrom(src)
+    self.assertEqual(dst.stat_entry.st_mode, 1337)
+
+  def testUpdateFromStatEntryRetain(self):
+    stat_entry = rdf_client.StatEntry(st_mode=707)
+    dst = objects.PathInfo(components=["foo", "bar"], stat_entry=stat_entry)
+
+    src = objects.PathInfo(components=["foo", "bar"])
+
+    dst.UpdateFrom(src)
+    self.assertEqual(dst.stat_entry.st_mode, 707)
+
   def testUpdateFromDirectory(self):
     dest = objects.PathInfo(components=["usr", "local", "bin"])
     self.assertFalse(dest.directory)

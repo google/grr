@@ -8,7 +8,7 @@ import unittest
 
 # We need to import the server_plugins module before other server init modules.
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
+from grr.server.grr_response_server import server_plugins
 # pylint: disable=unused-import,g-bad-import-order
 
 from grr import config

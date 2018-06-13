@@ -7,6 +7,7 @@ import unittest
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
 
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server.aff4_objects import aff4_grr
@@ -30,7 +31,8 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     ]
 
     fixture_test_lib.ClientFixture(self.client_id, self.token)
-    gui_test_lib.CreateFileVersions(self.client_id, self.token)
+    gui_test_lib.CreateFileVersions(
+        rdf_client.ClientURN(self.client_id), self.token)
     self.RequestAndGrantClientApproval(self.client_id)
 
   def testOpeningVfsOfUnapprovedClientRedirectsToHostInfoPage(self):
