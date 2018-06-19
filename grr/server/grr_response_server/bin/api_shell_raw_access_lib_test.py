@@ -7,7 +7,7 @@ from grr.lib import flags
 from grr_response_proto.api import client_pb2
 from grr_response_proto.api import vfs_pb2
 from grr_response_proto.api.root import user_management_pb2
-from grr.server.grr_response_server.bin import api_shell_raw_access
+from grr.server.grr_response_server.bin import api_shell_raw_access_lib
 from grr.test_lib import acl_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
@@ -17,7 +17,7 @@ class RawConnectorTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(RawConnectorTest, self).setUp()
-    self.connector = api_shell_raw_access.RawConnector(
+    self.connector = api_shell_raw_access_lib.RawConnector(
         token=self.token, page_size=10)
 
   def testCorrectlyCallsGeneralMethod(self):
