@@ -51,6 +51,8 @@ setup_args = dict(
     description="GRR API client library",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr/tree/master/api_client/python",
+    maintainer="GRR Development Team",
+    maintainer_email="grr-dev@googlegroups.com",
     cmdclass={
         "sdist": Sdist,
     },

@@ -56,6 +56,8 @@ setup_args = dict(
     version=VERSION.get("Version", "packageversion"),
     description="The GRR Rapid Response client.",
     license="Apache License, Version 2.0",
+    maintainer="GRR Development Team",
+    maintainer_email="grr-dev@googlegroups.com",
     url="https://github.com/google/grr",
     entry_points={
         "console_scripts": [
