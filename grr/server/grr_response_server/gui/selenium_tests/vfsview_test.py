@@ -117,7 +117,8 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
-      "GetVfsFilesArchive")
+      "GetVfsFilesArchive",
+      return_value=api_vfs.ApiGetVfsFilesArchiveHandler())
   def testClickingOnDownloadCurrentFolderButtonStartsDownload(
       self, mock_method):
     # Open VFS view for client 1 on a specific location.
@@ -126,15 +127,19 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=grr-vfs-files-archive-button")
     self.Click("css=a[name=downloadCurrentFolder]")
-    self.WaitUntilEqual(1, lambda: mock_method.call_count)
-    mock_method.assert_called_once_with(
+
+    # Mock method will be called twice: once for HEAD request (to check
+    # permissions) and once for GET request.
+    self.WaitUntil(lambda: mock_method.call_count)
+    mock_method.assert_called_with(
         api_vfs.ApiGetVfsFilesArchiveArgs(
             client_id="C.0000000000000001", file_path="fs/os/c/proc"),
         token=mock.ANY)
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
-      "GetVfsFilesArchive")
+      "GetVfsFilesArchive",
+      return_value=api_vfs.ApiGetVfsFilesArchiveHandler())
   def testClickingOnDownloadEverythingButtonStartsDownload(self, mock_method):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
@@ -142,8 +147,11 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=grr-vfs-files-archive-button")
     self.Click("css=a[name=downloadEverything]:not([disabled])")
-    self.WaitUntilEqual(1, lambda: mock_method.call_count)
-    mock_method.assert_called_once_with(
+
+    # Mock method will be called twice: once for HEAD request (to check
+    # permissions) and once for GET request.
+    self.WaitUntil(lambda: mock_method.call_count)
+    mock_method.assert_called_with(
         api_vfs.ApiGetVfsFilesArchiveArgs(client_id="C.0000000000000001"),
         token=mock.ANY)
 

@@ -19,13 +19,13 @@ from grr.server.grr_response_server import fleetspeak_connector
 from grr.server.grr_response_server import fleetspeak_utils
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import queue_manager
+from grr.server.grr_response_server.bin import fleetspeak_frontend as fs_frontend_tool
 from grr.server.grr_response_server.flows.general import processes as flow_processes
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import front_end_test_lib
+from grr.test_lib import frontend_test_lib
 from grr.test_lib import test_lib
-from grr.tools import fleetspeak_frontend as fs_frontend_tool
 
 
 class _FakeGRPCServiceClient(fs_client.ServiceClient):
@@ -67,7 +67,7 @@ def SetAFF4FSEnabledFlag(grr_id, token):
 
 
 @db_test_lib.DualDBTest
-class FleetspeakGRRFEServerTest(front_end_test_lib.FrontEndServerTest):
+class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
   """Tests the Fleetspeak based GRRFEServer."""
 
   def testReceiveMessagesFleetspeak(self):

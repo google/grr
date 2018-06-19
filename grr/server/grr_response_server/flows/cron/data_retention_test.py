@@ -152,22 +152,14 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
       cron_args.lifetime = RetentionTestSystemCronJob.lifetime
 
       self.cron_jobs_names = []
-      self.cron_jobs_names.append(
-          cronjobs.CRON_MANAGER.CreateJob(
-              cron_args=cron_args,
-              job_name="Foo",
-              token=self.token,
-              disabled=False))
-      self.cron_jobs_names.append(
-          cronjobs.CRON_MANAGER.CreateJob(
-              cron_args=cron_args,
-              job_name="Bar",
-              token=self.token,
-              disabled=False))
+      self.cron_jobs_names.append(cronjobs.GetCronManager().CreateJob(
+          cron_args=cron_args, job_id="Foo", token=self.token, disabled=False))
+      self.cron_jobs_names.append(cronjobs.GetCronManager().CreateJob(
+          cron_args=cron_args, job_id="Bar", token=self.token, disabled=False))
 
     for i in range(self.NUM_CRON_RUNS):
       with test_lib.FakeTime(40 + 60 * i):
-        cronjobs.CRON_MANAGER.RunOnce(token=self.token, force=True)
+        cronjobs.GetCronManager().RunOnce(token=self.token, force=True)
 
   def testDoesNothingIfAgeLimitNotSetInConfig(self):
     with test_lib.FakeTime(40 + 60 * self.NUM_CRON_RUNS):
@@ -177,14 +169,14 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
           token=self.token)
 
     for name in self.cron_jobs_names:
-      runs = cronjobs.CRON_MANAGER.ReadJobRuns(name, token=self.token)
+      runs = cronjobs.GetCronManager().ReadJobRuns(name, token=self.token)
       self.assertEqual(len(runs), self.NUM_CRON_RUNS)
 
   def testDeletesFlowsOlderThanGivenAge(self):
     all_children = []
     for cron_name in self.cron_jobs_names:
-      all_children.extend(
-          cronjobs.CRON_MANAGER.ReadJobRuns(cron_name, token=self.token))
+      all_children.extend(cronjobs.GetCronManager().ReadJobRuns(
+          cron_name, token=self.token))
 
     with test_lib.ConfigOverrider({
         "DataRetention.cron_jobs_flows_ttl": rdfvalue.Duration("150s")
@@ -202,7 +194,7 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
       remaining_children = []
 
       for cron_name in self.cron_jobs_names:
-        children = cronjobs.CRON_MANAGER.ReadJobRuns(
+        children = cronjobs.GetCronManager().ReadJobRuns(
             cron_name, token=self.token)
         self.assertEqual(len(children), 2)
         remaining_children.extend(children)

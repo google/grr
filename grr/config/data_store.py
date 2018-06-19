@@ -24,8 +24,14 @@ config_lib.DEFINE_bool(
     "Database.useForReads.message_handlers", False,
     "Enable message handlers using the relational database.")
 
+config_lib.DEFINE_bool("Database.useForReads.cronjobs", False,
+                       "Enable storing cronjobs in the relational database.")
+
 config_lib.DEFINE_bool("Database.useForReads.foreman", False,
                        "Enable the foreman using the relational database.")
+
+config_lib.DEFINE_bool("Database.useForReads.vfs", False,
+                       "Use relational database for reading VFS information.")
 
 DATASTORE_PATHING = [
     r"%{(?P<path>files/hash/generic/sha256/...).*}",

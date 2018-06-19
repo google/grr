@@ -7,9 +7,9 @@ import mock
 import unittest
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
-from grr.server.grr_response_server import aff4
+from grr.lib.rdfvalues import paths as rdf_paths
 
-from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.flows.general import filesystem
 from grr.server.grr_response_server.gui import api_call_router_with_approval_checks
 from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.gui.api_plugins import vfs as api_vfs
@@ -29,32 +29,39 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
     # Prepare our fixture.
     fixture_test_lib.ClientFixture("C.0000000000000001", token=self.token)
     self.CreateFileWithTimeline(
-        "aff4:/C.0000000000000001/fs/os/c/proc/changed.txt", self.token)
+        rdf_client.ClientURN("C.0000000000000001"), "c/proc/changed.txt",
+        rdf_paths.PathSpec.PathType.OS, self.token)
     self.CreateFileWithTimeline(
-        "aff4:/C.0000000000000001/fs/os/c/proc/other.txt", self.token)
+        rdf_client.ClientURN("C.0000000000000001"), "c/proc/other.txt",
+        rdf_paths.PathSpec.PathType.OS, self.token)
     self.RequestAndGrantClientApproval("C.0000000000000001")
 
   @staticmethod
-  def CreateFileWithTimeline(file_path, token):
+  def CreateFileWithTimeline(client_id, path, path_type, token):
     """Add a file with timeline."""
 
     # Add a version of the file at gui_test_lib.TIME_0. Since we write all MAC
     # times, this will result in three timeline items.
+    stat_entry = rdf_client.StatEntry()
+    stat_entry.pathspec.path = path
+    stat_entry.pathspec.pathtype = path_type
+    stat_entry.st_atime = gui_test_lib.TIME_0.AsSecondsSinceEpoch() + 1000
+    stat_entry.st_mtime = gui_test_lib.TIME_0.AsSecondsSinceEpoch()
+    stat_entry.st_ctime = gui_test_lib.TIME_0.AsSecondsSinceEpoch() - 1000
+
     with test_lib.FakeTime(gui_test_lib.TIME_0):
-      with aff4.FACTORY.Create(
-          file_path, aff4_grr.VFSFile, mode="w", token=token) as fd:
-        stats = rdf_client.StatEntry(
-            st_atime=gui_test_lib.TIME_0.AsSecondsSinceEpoch() + 1000,
-            st_mtime=gui_test_lib.TIME_0.AsSecondsSinceEpoch(),
-            st_ctime=gui_test_lib.TIME_0.AsSecondsSinceEpoch() - 1000)
-        fd.Set(fd.Schema.STAT, stats)
+      filesystem.WriteStatEntries(
+          [stat_entry], client_id, mutation_pool=None, token=token)
 
     # Add a version with a stat entry, but without timestamps.
+    stat_entry = rdf_client.StatEntry()
+    stat_entry.pathspec.path = path
+    stat_entry.pathspec.pathtype = path_type
+    stat_entry.st_ino = 99
+
     with test_lib.FakeTime(gui_test_lib.TIME_1):
-      with aff4.FACTORY.Create(
-          file_path, aff4_grr.VFSFile, mode="w", token=token) as fd:
-        stats = rdf_client.StatEntry(st_ino=99)
-        fd.Set(fd.Schema.STAT, stats)
+      filesystem.WriteStatEntries(
+          [stat_entry], client_id, mutation_pool=None, token=token)
 
   def testTimelineContainsAllChangesForDirectory(self):
     # Open VFS view for client 1 on a specific location.
@@ -191,8 +198,8 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
     # Add a new file with several versions.
     self.CreateFileWithTimeline(
-        "aff4:/C.0000000000000001/fs/os/c/proc/newly_added.txt",
-        token=self.token)
+        rdf_client.ClientURN("C.0000000000000001"), "c/proc/newly_added.txt",
+        rdf_paths.PathSpec.PathType.OS, self.token)
 
     # Click on tree again.
     self.Click("link=proc")
@@ -205,7 +212,8 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
-      "GetVfsTimelineAsCsv")
+      "GetVfsTimelineAsCsv",
+      return_value=api_vfs.ApiGetVfsTimelineAsCsvHandler())
   def testClickingOnDownloadTimelineButtonInitiatesDownload(self, mock_method):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
@@ -213,8 +221,11 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=button[name=timelineDropdown]:not([disabled])")
     self.Click("css=a[name=downloadTimeline]")
-    self.WaitUntilEqual(1, lambda: mock_method.call_count)
-    mock_method.assert_called_once_with(
+
+    self.WaitUntil(lambda: mock_method.call_count)
+    # Mock method will be called twice: once for HEAD request (to check
+    # permissions) and once for GET request.
+    mock_method.assert_called_with(
         api_vfs.ApiGetVfsTimelineAsCsvArgs(
             client_id="C.0000000000000001", file_path="fs/os/c/proc"),
         token=mock.ANY)

@@ -57,10 +57,16 @@ exports.appControllerModule = angular.module('grrUi.appController', [
 ]);
 
 /**
- * Global list of intercepted errors. Filled by $exceptionHandler.
+ * Global list of intercepted JS errors. Filled by $exceptionHandler.
  * @private
  */
-window.grrInterceptedErrors_ = [];
+window.grrInterceptedJSErrors_ = [];
+
+/**
+ * Global list of intercepted HTTP errors. Filled by HTTP interceptor.
+ * @private
+ */
+window.grrInterceptedHTTPErrors_ = [];
 
 exports.appControllerModule.config(function(
     $httpProvider, $interpolateProvider, $qProvider, $locationProvider,
@@ -75,6 +81,19 @@ exports.appControllerModule.config(function(
   // make-angularjs-and-django-play-nice-together/).
   $httpProvider.defaults.headers.post[
     'Content-Type'] = 'application/x-www-form-urlencoded';
+  $httpProvider.interceptors.push(function($q) {
+    return {
+      responseError: function(rejection) {
+        // Ignore Bad Request, Ignore Not Found and Forbidden errors - they're
+        // rarely sign of an issue.
+        if ([400, 403, 404].indexOf(rejection['status']) === -1) {
+          window.grrInterceptedHTTPErrors_.push(rejection);
+        }
+        return $q.reject(rejection);
+      }
+    };
+  });
+
 
   // Erroring on unhandled rejection is a behavior added in Angular 1.6, our
   // code is written without this check in mind.
@@ -89,11 +108,11 @@ exports.appControllerModule.config(function(
   $rootScopeProvider.digestTtl(50);
 
   // We decorate $exceptionHandler to collect information about errors
-  // in a global list (window._grrInterceptedErrors). This is then used
+  // in a global list (window._grrInterceptedJSErrors). This is then used
   // by Selenium testing code to check for JS errors.
-  $provide.decorator("$exceptionHandler", function($delegate) {
+  $provide.decorator('$exceptionHandler', function($delegate) {
     return function(exception, cause) {
-      window.grrInterceptedErrors_.push(exception.stack || exception.toString());
+      window.grrInterceptedJSErrors_.push(exception.stack || exception.toString());
       $delegate(exception, cause);
     };
   });

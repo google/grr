@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """An in memory database implementation used for testing."""
 
+import copy
 import os
 import sys
 
@@ -37,6 +38,7 @@ class InMemoryDB(db.Database):
     self.message_handler_requests = {}
     self.message_handler_leases = {}
     self.events = []
+    self.cronjobs = {}
     self.foreman_rules = []
 
   def ClearTestDB(self):
@@ -577,3 +579,91 @@ class InMemoryDB(db.Database):
             break
 
     return leased_requests
+
+  def WriteCronJob(self, cronjob):
+    tmp = copy.copy(cronjob)
+    if cronjob.job_id in self.cronjobs:
+      tmp.start_time = self.cronjobs[cronjob.job_id].start_time
+    self.cronjobs[cronjob.job_id] = tmp
+
+  def ReadCronJobs(self, cronjob_ids=None):
+    if cronjob_ids is None:
+      return [copy.copy(job) for job in self.cronjobs.values()]
+
+    res = []
+    for job_id in cronjob_ids:
+      try:
+        res.append(copy.copy(self.cronjobs[job_id]))
+      except KeyError:
+        raise db.UnknownCronjobError("Cron job with id %s not found." % job_id)
+    return res
+
+  def UpdateCronJob(self,
+                    cronjob_id,
+                    last_run_status=db.Database.unchanged,
+                    last_run_time=db.Database.unchanged,
+                    current_run_id=db.Database.unchanged,
+                    cron_state=db.Database.unchanged):
+    job = self.cronjobs.get(cronjob_id)
+    if job is None:
+      raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
+
+    if last_run_status != db.Database.unchanged:
+      job.last_run_status = last_run_status
+    if last_run_time != db.Database.unchanged:
+      job.last_run_time = last_run_time
+    if current_run_id != db.Database.unchanged:
+      job.current_run_id = current_run_id
+    if cron_state != db.Database.unchanged:
+      job.state = copy.copy(cron_state)
+
+  def EnableCronJob(self, cronjob_id):
+    job = self.cronjobs.get(cronjob_id)
+    if job is None:
+      raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
+    job.disabled = False
+
+  def DisableCronJob(self, cronjob_id):
+    job = self.cronjobs.get(cronjob_id)
+    if job is None:
+      raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
+    job.disabled = True
+
+  def DeleteCronJob(self, cronjob_id):
+    if cronjob_id not in self.cronjobs:
+      raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
+    del self.cronjobs[cronjob_id]
+
+  def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):
+    leased_jobs = []
+
+    now = rdfvalue.RDFDatetime.Now()
+    expiration_time = now + lease_time
+
+    for job in self.cronjobs.values():
+      existing_lease = job.leased_until
+      if existing_lease is None or existing_lease < now:
+        job.leased_until = expiration_time
+        job.leased_by = utils.ProcessIdString()
+        leased_jobs.append(job)
+
+    return [copy.copy(job) for job in leased_jobs]
+
+  def ReturnLeasedCronJobs(self, cronjobs):
+    errored_jobs = []
+    by_id = {job.job_id: job for job in cronjobs}
+    for job in self.cronjobs.values():
+      returned_job = by_id.get(job.job_id)
+      if returned_job is None:
+        continue
+
+      if (returned_job.leased_by == job.leased_by and
+          returned_job.leased_until == job.leased_until):
+        job.leased_until = None
+        job.leased_by = None
+      else:
+        errored_jobs.append(returned_job)
+
+    if errored_jobs:
+      raise ValueError("Some jobs could not be returned: %s" % ",".join(
+          job.job_id for job in errored_jobs))

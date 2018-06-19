@@ -23,6 +23,7 @@ from grr.lib.rdfvalues import client as rdf_client
 
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
@@ -100,6 +101,16 @@ def CreateFileVersion(client_id, path, content, timestamp, token=None):
       fd.Write(content)
       fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
+    if data_store.RelationalDBWriteEnabled():
+      path_type, components = rdf_objects.ParseCategorizedPath(path)
+
+      path_info = rdf_objects.PathInfo()
+      path_info.path_type = path_type
+      path_info.components = components
+      path_info.directory = False
+
+      data_store.REL_DB.WritePathInfos(client_id.Basename(), [path_info])
+
 
 def CreateFolder(client_id, path, timestamp, token=None):
   """Creates a VFS folder."""
@@ -110,6 +121,16 @@ def CreateFolder(client_id, path, timestamp, token=None):
         mode="w",
         token=token) as _:
       pass
+
+    if data_store.RelationalDBWriteEnabled():
+      path_type, components = rdf_objects.ParseCategorizedPath(path)
+
+      path_info = rdf_objects.PathInfo()
+      path_info.path_type = path_type
+      path_info.components = components
+      path_info.directory = True
+
+      data_store.REL_DB.WritePathInfos(client_id.Basename(), [path_info])
 
 
 def SeleniumAction(f):
@@ -133,6 +154,20 @@ def SeleniumAction(f):
         time.sleep(delay)
 
   return Decorator
+
+
+class DisabledHttpErrorChecksContextManager(object):
+  """Context manager to be returned by test's DisabledHttpErrorChecks call."""
+
+  def __init__(self, test):
+    self.test = test
+
+  def __enter__(self):
+    return self
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.test.ignore_http_errors = False
+    self.test.driver.execute_script("window.grrInterceptedHTTPErrors_ = []")
 
 
 class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
@@ -239,10 +274,10 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # setting (i.e. without overrides).
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
-  def CheckJavascriptErrors(self):
+  def _CheckJavascriptErrors(self):
     errors = self.driver.execute_script(
-        "return (() => {const e = window.grrInterceptedErrors_ || []; "
-        "window.grrInterceptedErrors_ = []; return e;})();")
+        "return (() => {const e = window.grrInterceptedJSErrors_ || []; "
+        "window.grrInterceptedJSErrors_ = []; return e;})();")
 
     msgs = []
     for e in errors:
@@ -254,8 +289,33 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       self.fail(
           "Javascript error encountered during test: %s" % "\n\t".join(msgs))
 
+  def DisableHttpErrorChecks(self):
+    self.ignore_http_errors = True
+    return DisabledHttpErrorChecksContextManager(self)
+
+  def _CheckHttpErrors(self):
+    if self.ignore_http_errors:
+      return
+
+    errors = self.driver.execute_script(
+        "return (() => {const e = window.grrInterceptedHTTPErrors_ || []; "
+        "window.grrInterceptedHTTPErrors_ = []; return e;})();")
+
+    msgs = []
+    for e in errors:
+      msg = "[http]: %s" % e
+      logging.error(msg)
+      msgs.append(msg)
+
+    if msgs:
+      self.fail("HTTP request failed during test: %s" % "\n\t".join(msgs))
+
+  def CheckBrowserErrors(self):
+    self._CheckJavascriptErrors()
+    self._CheckHttpErrors()
+
   def WaitUntil(self, condition_cb, *args):
-    self.CheckJavascriptErrors()
+    self.CheckBrowserErrors()
 
     for _ in xrange(int(self.duration / self.sleep_time)):
       try:
@@ -271,7 +331,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       except Exception as e:  # pylint: disable=broad-except
         logging.warn("Selenium raised %s", utils.SmartUnicode(e))
 
-      self.CheckJavascriptErrors()
+      self.CheckBrowserErrors()
       time.sleep(self.sleep_time)
 
     self.fail("condition not met, body is: %s" %
@@ -429,14 +489,9 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     return self.driver.execute_script(js_expression)
 
   def _WaitForAjaxCompleted(self):
-    self.driver.execute_script("""
-window._grrHasOutstandingRequests = true;
-$('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() {
-  window._grrHasOutstandingRequests = false;
-});
-""")
-    self.WaitUntilEqual(False, self.GetJavaScriptValue,
-                        "return window._grrHasOutstandingRequests || false")
+    self.WaitUntilEqual(
+        0, self.GetJavaScriptValue,
+        "return $('body').injector().get('$http').pendingRequests.length")
 
   @SeleniumAction
   def Type(self, target, text, end_with_enter=False):
@@ -555,6 +610,8 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
 
     # Used by InstallACLChecks/UninstallACLChecks
     self.config_override = None
+    # Used by CheckHttpErrors
+    self.ignore_http_errors = False
 
     self.token.username = "gui_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
@@ -590,7 +647,7 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
 
   def tearDown(self):
     self._artifact_patcher.stop()
-    self.CheckJavascriptErrors()
+    self.CheckBrowserErrors()
     super(GRRSeleniumTest, self).tearDown()
 
   def WaitForNotification(self, user):

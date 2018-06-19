@@ -4,6 +4,7 @@
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -14,6 +15,7 @@ from grr.server.grr_response_server import client_index
 from grr.server.grr_response_server import data_migration
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
 from grr.test_lib import test_lib
 
 # Make the fixture appear to be 1 week old.
@@ -62,6 +64,24 @@ class LegacyClientFixture(object):
 
         aff4_object = aff4.FACTORY.Create(
             self.client_id.Add(path), aff4_type, mode="rw", token=self.token)
+
+        if data_store.RelationalDBWriteEnabled():
+          data_store.REL_DB.WriteClientMetadata(
+              self.client_id.Basename(), fleetspeak_enabled=False)
+
+          components = [component for component in path.split("/") if component]
+          if components[0:2] == ["fs", "os"]:
+            path_info = rdf_objects.PathInfo()
+            path_info.path_type = rdf_objects.PathInfo.PathType.OS
+            path_info.components = components[2:]
+            if aff4_type in [aff4_grr.VFSFile, aff4_grr.VFSMemoryFile]:
+              path_info.directory = False
+            elif aff4_type == aff4_standard.VFSDirectory:
+              path_info.directory = True
+            else:
+              raise ValueError("Incorrect AFF4 type: %s" % aff4_type)
+            data_store.REL_DB.WritePathInfos(
+                client_id=self.client_id.Basename(), path_infos=[path_info])
 
         for attribute_name, value in attributes.items():
           attribute = aff4.Attribute.PREDICATES[attribute_name]
@@ -112,6 +132,13 @@ class LegacyClientFixture(object):
             aff4_object.Write(rdfvalue_object)
           else:
             aff4_object.AddAttribute(attribute, rdfvalue_object)
+
+          if (isinstance(rdfvalue_object, rdf_client.StatEntry) and
+              rdfvalue_object.pathspec.pathtype != "UNSET"):
+            if data_store.RelationalDBWriteEnabled():
+              client_id = self.client_id.Basename()
+              path_info = rdf_objects.PathInfo.FromStatEntry(rdfvalue_object)
+              data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
         # Populate the KB from the client attributes.
         if aff4_type == aff4_grr.VFSGRRClient:

@@ -15,10 +15,12 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import vfs_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import data_store_utils
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
@@ -199,11 +201,13 @@ class ApiFile(rdf_structs.RDFProtoStruct):
       rdf_client.StatEntry,
   ]
 
-  def InitFromAff4Object(self, file_obj, with_details=False):
+  def InitFromAff4Object(self, file_obj, stat_entry=None, with_details=False):
     """Initializes the current instance from an Aff4Stream.
 
     Args:
       file_obj: An Aff4Stream representing a file.
+      stat_entry: An optional stat entry object to be use. If none is provided,
+        the one stored in the AFF4 data store is used.
       with_details: True if all details of the Aff4Object should be included,
         false otherwise.
 
@@ -215,7 +219,11 @@ class ApiFile(rdf_structs.RDFProtoStruct):
     self.is_directory = "Container" in file_obj.behaviours
     self.hash = file_obj.Get(file_obj.Schema.HASH, None)
 
-    stat = file_obj.Get(file_obj.Schema.STAT)
+    if stat_entry is not None:
+      stat = stat_entry
+    else:
+      stat = file_obj.Get(file_obj.Schema.STAT)
+
     if stat:
       self.stat = stat
 
@@ -280,8 +288,37 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
         age=age,
         token=token)
 
-    return ApiGetFileDetailsResult(
-        file=ApiFile().InitFromAff4Object(file_obj, with_details=True))
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      # These are not really "files" so they cannot be stored in the database
+      # but they still can be queried so we need to return something. Sometimes
+      # they contain a trailing slash so we need to take care of that.
+      #
+      # TODO(hanuszczak): Require VFS paths to be normalized so that trailing
+      # slash is either forbidden or mandatory.
+      if args.file_path.endswith("/"):
+        args.file_path = args.file_path[:-1]
+      if args.file_path in ["fs", "registry", "temp", "fs/os", "fs/tsk"]:
+        api_file = ApiFile()
+        api_file.name = api_file.path = args.file_path
+        api_file.is_directory = True
+        return ApiGetFileDetailsResult(file=api_file)
+
+      path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
+
+      # TODO(hanuszczak): Add support for timestamp-based filtering.
+      path_id = rdf_objects.PathID(components)
+      path_info = data_store.REL_DB.FindPathInfosByPathIDs(
+          str(args.client_id), path_type, [path_id])[path_id]
+
+      if path_info:
+        stat_entry = path_info.stat_entry
+      else:
+        stat_entry = rdf_client.StatEntry()
+    else:
+      stat_entry = None
+
+    return ApiGetFileDetailsResult(file=ApiFile().InitFromAff4Object(
+        file_obj, stat_entry=stat_entry, with_details=True))
 
 
 class ApiListFilesArgs(rdf_structs.RDFProtoStruct):
@@ -305,7 +342,135 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListFilesArgs
   result_type = ApiListFilesResult
 
+  def _GetRootChildren(self, args, token=None):
+    client_id = args.client_id.ToClientURN()
+
+    items = []
+
+    fs_item = ApiFile()
+    fs_item.name = "fs"
+    fs_item.path = "fs"
+    fs_item.is_directory = True
+    items.append(fs_item)
+
+    temp_item = ApiFile()
+    temp_item.name = "temp"
+    temp_item.path = "temp"
+    temp_item.is_directory = True
+    items.append(temp_item)
+
+    if data_store_utils.GetClientOs(client_id, token=token) == "Windows":
+      registry_item = ApiFile()
+      registry_item.name = "registry"
+      registry_item.path = "registry"
+      registry_item.is_directory = True
+      items.append(registry_item)
+
+    if args.count:
+      items = items[args.offset:args.offset + args.count]
+    else:
+      items = items[args.offset:]
+
+    return ApiListFilesResult(items=items)
+
+  def _GetFilesystemChildren(self, args):
+    items = []
+
+    os_item = ApiFile()
+    os_item.name = "os"
+    os_item.path = "fs/os"
+    os_item.is_directory = True
+    items.append(os_item)
+
+    tsk_item = ApiFile()
+    tsk_item.name = "tsk"
+    tsk_item.path = "fs/tsk"
+    tsk_item.is_directory = True
+    items.append(tsk_item)
+
+    if args.count:
+      items = items[args.offset:args.offset + args.count]
+    else:
+      items = items[args.offset:]
+
+    return ApiListFilesResult(items=items)
+
+  def _HandleRelational(self, args, token=None):
+    client_id = args.client_id.ToClientURN()
+
+    if not args.file_path or args.file_path == "/":
+      return self._GetRootChildren(args, token=token)
+
+    if args.file_path == "fs":
+      return self._GetFilesystemChildren(args)
+
+    path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
+    path_id = rdf_objects.PathID(components)
+
+    child_path_ids = data_store.REL_DB.FindDescendentPathIDs(
+        client_id=client_id.Basename(),
+        path_type=path_type,
+        path_id=path_id,
+        max_depth=1)
+
+    child_path_infos = data_store.REL_DB.FindPathInfosByPathIDs(
+        client_id=client_id.Basename(),
+        path_type=path_type,
+        path_ids=child_path_ids).values()
+
+    items = []
+
+    for child_path_info in child_path_infos:
+      if args.directories_only and not child_path_info.directory:
+        continue
+
+      child_item = ApiFile()
+      child_item.name = child_path_info.basename
+
+      if path_type == rdf_objects.PathInfo.PathType.OS:
+        prefix = "fs/os/"
+      elif path_type == rdf_objects.PathInfo.PathType.TSK:
+        prefix = "fs/tsk/"
+      elif path_type == rdf_objects.PathInfo.PathType.REGISTRY:
+        prefix = "registry/"
+      elif path_type == rdf_objects.PathInfo.PathType.TEMP:
+        prefix = "temp/"
+
+      child_item.path = prefix + "/".join(child_path_info.components)
+
+      # TODO(hanuszczak): `PathInfo#directory` tells us whether given path has
+      # ever been observed as a directory. Is this what we want here or should
+      # we use `st_mode` information instead?
+      child_item.is_directory = child_path_info.directory
+      child_item.stat = child_path_info.stat_entry
+
+      # The `age` field collides with RDF `age` pseudo-property so `Set` lets us
+      # set the right thing.
+      child_item.Set("age", child_path_info.last_path_history_timestamp)
+
+      items.append(child_item)
+
+    # TODO(hanuszczak): Instead of getting the whole list from the database and
+    # then filtering the results we should do the filtering directly in the
+    # database query.
+    if args.filter:
+      pattern = re.compile(args.filter, re.IGNORECASE)
+      is_matching = lambda item: pattern.search(item.name)
+      items = filter(is_matching, items)
+
+    items.sort(key=lambda item: item.path)
+
+    if args.count:
+      items = items[args.offset:args.offset + args.count]
+    else:
+      items = items[args.offset:]
+
+    return ApiListFilesResult(items=items)
+
   def Handle(self, args, token=None):
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      return self._HandleRelational(args, token=token)
+
     path = args.file_path
     if not path:
       path = "/"

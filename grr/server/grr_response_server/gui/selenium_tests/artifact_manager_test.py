@@ -61,9 +61,13 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
                              "css=grr-upload-artifact-dialog input[type=file]")
     element.send_keys(self.json_file)
 
-    self.Click("css=grr-upload-artifact-dialog button[name=Proceed]")
-    self.WaitUntil(self.IsTextPresent,
-                   "TestDrivers: system artifact cannot be overwritten")
+    # TODO(user): at the moment trying to overwrite a system artifact
+    # leads to HTTP 500 (Server error). This should be changed to
+    # HTTP 403 (Forbidden).
+    with self.DisableHttpErrorChecks():
+      self.Click("css=grr-upload-artifact-dialog button[name=Proceed]")
+      self.WaitUntil(self.IsTextPresent,
+                     "TestDrivers: system artifact cannot be overwritten")
 
   def testArtifactAvailableImmediatelyAfterUpload(self):
     client_id = self.SetupClient(0).Basename()

@@ -17,7 +17,7 @@ from grr.lib import stats
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import fleetspeak_connector
 from grr.server.grr_response_server import fleetspeak_utils
-from grr.server.grr_response_server import front_end
+from grr.server.grr_response_server import frontend_lib
 from grr.server.grr_response_server import server_startup
 
 
@@ -29,7 +29,7 @@ class GRRFSServer(object):
   """
 
   def __init__(self):
-    self.frontend = front_end.FrontEndServer(
+    self.frontend = frontend_lib.FrontEndServer(
         certificate=config.CONFIG["Frontend.certificate"],
         private_key=config.CONFIG["PrivateKeys.server_key"],
         max_queue_size=config.CONFIG["Frontend.max_queue_size"],

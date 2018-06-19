@@ -42,7 +42,7 @@ from grr.server.grr_response_server import hunts
 from grr.server.grr_response_server import ipshell
 from grr.server.grr_response_server import maintenance_utils
 from grr.server.grr_response_server import server_startup
-from grr.server.grr_response_server import worker
+from grr.server.grr_response_server import worker_lib
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import security
 

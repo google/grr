@@ -498,10 +498,9 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
 
   def _FillInSubject(self, subject_urn, approval_subject_obj=None):
     if not approval_subject_obj:
-      approval_subject_obj = aff4.FACTORY.Open(
-          subject_urn, aff4_type=aff4_cronjobs.CronJob)
-      self.subject = api_cron.ApiCronJob().InitFromAff4Object(
-          approval_subject_obj)
+      job_id = subject_urn.Basename()
+      approval_subject_obj = aff4_cronjobs.GetCronManager().ReadJob(job_id)
+      self.subject = api_cron.ApiCronJob().InitFromObject(approval_subject_obj)
 
   def InitFromAff4Object(self, approval_obj, approval_subject_obj=None):
     _InitApiApprovalFromAff4Object(self, approval_obj)

@@ -12,6 +12,9 @@ from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.gui import api_call_router_with_approval_checks
 from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.gui.api_plugins import hunt as api_hunt
+from grr.server.grr_response_server.output_plugins import csv_plugin
+from grr.server.grr_response_server.output_plugins import sqlite_plugin
+from grr.server.grr_response_server.output_plugins import yaml_plugin
 from grr.test_lib import db_test_lib
 
 
@@ -103,24 +106,31 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
-      "GetExportedHuntResults")
+      "GetExportedHuntResults",
+      return_value=api_hunt.ApiGetExportedHuntResultsHandler())
   def testHuntResultsCanBeDownloadedAsCsv(self, mock_method):
-    self.checkHuntResultsCanBeDownloadedAsType(mock_method, "csv-zip",
-                                               "CSV (Zipped)")
+    self.checkHuntResultsCanBeDownloadedAsType(
+        mock_method, csv_plugin.CSVInstantOutputPlugin.plugin_name,
+        csv_plugin.CSVInstantOutputPlugin.friendly_name)
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
-      "GetExportedHuntResults")
+      "GetExportedHuntResults",
+      return_value=api_hunt.ApiGetExportedHuntResultsHandler())
   def testHuntResultsCanBeDownloadedAsYaml(self, mock_method):
     self.checkHuntResultsCanBeDownloadedAsType(
-        mock_method, "flattened-yaml-zip", "Flattened YAML (Zipped)")
+        mock_method,
+        yaml_plugin.YamlInstantOutputPluginWithExportConversion.plugin_name,
+        yaml_plugin.YamlInstantOutputPluginWithExportConversion.friendly_name)
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
-      "GetExportedHuntResults")
+      "GetExportedHuntResults",
+      return_value=api_hunt.ApiGetExportedHuntResultsHandler())
   def testHuntResultsCanBeDownloadedAsSqlite(self, mock_method):
-    self.checkHuntResultsCanBeDownloadedAsType(mock_method, "sqlite-zip",
-                                               "SQLite Scripts (Zipped)")
+    self.checkHuntResultsCanBeDownloadedAsType(
+        mock_method, sqlite_plugin.SqliteInstantOutputPlugin.plugin_name,
+        sqlite_plugin.SqliteInstantOutputPlugin.friendly_name)
 
   def checkHuntResultsCanBeDownloadedAsType(self, mock_method, plugin,
                                             plugin_display_name):
@@ -132,7 +142,9 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
 
     def MockMethodIsCalled():
       try:
-        mock_method.assert_called_once_with(
+        # Mock should be called twice: once for HEAD (to check permissions)
+        # and once for GET methods.
+        mock_method.assert_called_with(
             api_hunt.ApiGetExportedHuntResultsArgs(
                 hunt_id=hunt_urn.Basename(), plugin_name=plugin),
             token=mock.ANY)

@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Linux specific utils."""
 
+import logging
 import os
 import time
 
@@ -62,6 +63,9 @@ def GetMountpoints(data=None):
   return devices
 
 
+SUPPORTED_FILESYSTEMS = ["ext2", "ext3", "ext4", "vfat", "ntfs"]
+
+
 def GetRawDevice(path):
   """Resolve the raw device that contains the path."""
   device_map = GetMountpoints()
@@ -75,10 +79,13 @@ def GetRawDevice(path):
   while mount_point:
     try:
       result.path, fs_type = device_map[mount_point]
-      if fs_type in ["ext2", "ext3", "ext4", "vfat", "ntfs"]:
+      if fs_type in SUPPORTED_FILESYSTEMS:
         # These are read filesystems
         result.pathtype = rdf_paths.PathSpec.PathType.OS
       else:
+        logging.error(
+            "Filesystem %s is not supported. Supported filesystems "
+            "are %s", fs_type, SUPPORTED_FILESYSTEMS)
         result.pathtype = rdf_paths.PathSpec.PathType.UNSET
 
       # Drop the mount point

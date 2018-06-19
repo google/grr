@@ -17,7 +17,7 @@ from grr.lib import flags
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import fleetspeak_connector
 from grr.server.grr_response_server import server_startup
-from grr.server.grr_response_server import worker
+from grr.server.grr_response_server import worker_lib
 
 flags.DEFINE_version(config_server.VERSION["packageversion"])
 
@@ -34,7 +34,7 @@ def main(argv):
   fleetspeak_connector.Init()
 
   token = access_control.ACLToken(username="GRRWorker").SetUID()
-  worker_obj = worker.GRRWorker(token=token)
+  worker_obj = worker_lib.GRRWorker(token=token)
   worker_obj.Run()
 
 

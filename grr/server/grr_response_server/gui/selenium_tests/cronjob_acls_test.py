@@ -20,7 +20,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
   def testCronJobACLWorkflow(self):
     cronjobs.ScheduleSystemCronFlows(
         names=[cron_system.OSBreakDown.__name__], token=self.token)
-    cronjobs.CRON_MANAGER.DisableJob(job_name="OSBreakDown")
+    cronjobs.GetCronManager().DisableJob(job_id="OSBreakDown")
 
     # Open up and click on Cron Job Viewer.
     self.Open("/")

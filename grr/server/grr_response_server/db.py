@@ -57,9 +57,15 @@ class UnknownApprovalRequestError(NotFoundError):
   pass
 
 
+class UnknownCronjobError(NotFoundError):
+  pass
+
+
 class Database(object):
   """The GRR relational database abstraction."""
   __metaclass__ = abc.ABCMeta
+
+  unchanged = "__unchanged__"
 
   @abc.abstractmethod
   def WriteClientMetadata(self,
@@ -686,6 +692,122 @@ class Database(object):
       A list of objects.MessageHandlerRequest, the leased requests.
     """
 
+  @abc.abstractmethod
+  def WriteCronJob(self, cronjob):
+    """Writes a cronjob to the database.
+
+    Args:
+      cronjob: A cronjobs.CronJob object.
+    """
+
+  def ReadCronJob(self, cronjob_id):
+    """Reads a cronjob from the database.
+
+    Args:
+      cronjob_id: The id of the cron job to read.
+
+    Returns:
+      A list of cronjobs.CronJob objects.
+
+    Raises:
+      UnknownCronjobError: A cron job with the given id does not exist.
+    """
+    return self.ReadCronJobs(cronjob_ids=[cronjob_id])[0]
+
+  @abc.abstractmethod
+  def ReadCronJobs(self, cronjob_ids=None):
+    """Reads all cronjobs from the database.
+
+    Args:
+      cronjob_ids: A list of cronjob ids to read. If not set, returns all
+                   cron jobs in the database.
+
+    Returns:
+      A list of cronjobs.CronJob objects.
+
+    Raises:
+      UnknownCronjobError: A cron job for at least one of the given ids
+                           does not exist.
+    """
+
+  @abc.abstractmethod
+  def EnableCronJob(self, cronjob_id):
+    """Enables a cronjob.
+
+    Args:
+      cronjob_id: The id of the cron job to enable.
+
+    Raises:
+      UnknownCronjobError: A cron job with the given id does not exist.
+    """
+
+  @abc.abstractmethod
+  def DisableCronJob(self, cronjob_id):
+    """Disables a cronjob.
+
+    Args:
+      cronjob_id: The id of the cron job to disable.
+
+    Raises:
+      UnknownCronjobError: A cron job with the given id does not exist.
+    """
+
+  @abc.abstractmethod
+  def DeleteCronJob(self, cronjob_id):
+    """Deletes a cronjob.
+
+    Args:
+      cronjob_id: The id of the cron job to delete.
+
+    Raises:
+      UnknownCronjobError: A cron job with the given id does not exist.
+    """
+
+  @abc.abstractmethod
+  def UpdateCronJob(self,
+                    cronjob_id,
+                    last_run_status=unchanged,
+                    last_run_time=unchanged,
+                    current_run_id=unchanged,
+                    cron_state=unchanged):
+    """Updates run information for an existing cron job.
+
+    Args:
+      cronjob_id: The id of the cron job to update.
+      last_run_status: A CronJobRunStatus object.
+      last_run_time: The last time a run was started for this cron job.
+      current_run_id: The id of the currently active run.
+      cron_state: The state dict for stateful cron jobs.
+
+    Raises:
+      UnknownCronjobError: A cron job with the given id does not exist.
+    """
+
+  @abc.abstractmethod
+  def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):
+    """Leases all available cron jobs.
+
+    Args:
+      cronjob_ids: A list of cronjob ids that should be leased. If None,
+                   all available cronjobs will be leased.
+      lease_time: rdfvalue.Duration indicating how long the lease should be
+                  valid.
+
+    Returns:
+      A list of cronjobs.CronJob objects that were leased.
+    """
+
+  @abc.abstractmethod
+  def ReturnLeasedCronJobs(self, cronjobs):
+    """Makes leased cron jobs available for leasing again.
+
+    Args:
+      cronjobs: A list of leased cronjobs.
+
+    Raises:
+      ValueError: If not all of the cronjobs are leased.
+    """
+
 
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
@@ -1095,3 +1217,41 @@ class DatabaseValidationWrapper(Database):
     self._ValidateDuration(lease_time)
     return self.delegate.LeaseMessageHandlerRequests(
         lease_time=lease_time, limit=limit)
+
+  def WriteCronJob(self, cronjob):
+    return self.delegate.WriteCronJob(cronjob)
+
+  def ReadCronJob(self, cronjob_id):
+    return self.delegate.ReadCronJob(cronjob_id)
+
+  def ReadCronJobs(self):
+    return self.delegate.ReadCronJobs()
+
+  def EnableCronJob(self, cronjob_id):
+    return self.delegate.EnableCronJob(cronjob_id)
+
+  def DisableCronJob(self, cronjob_id):
+    return self.delegate.DisableCronJob(cronjob_id)
+
+  def DeleteCronJob(self, cronjob_id):
+    return self.delegate.DeleteCronJob(cronjob_id)
+
+  def UpdateCronJob(self,
+                    cronjob_id,
+                    last_run_status=Database.unchanged,
+                    last_run_time=Database.unchanged,
+                    current_run_id=Database.unchanged,
+                    cron_state=Database.unchanged):
+    return self.delegate.UpdateCronJob(
+        cronjob_id,
+        last_run_status=last_run_status,
+        last_run_time=last_run_time,
+        current_run_id=current_run_id,
+        cron_state=cron_state)
+
+  def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):
+    return self.delegate.LeaseCronJobs(
+        cronjob_ids=cronjob_ids, lease_time=lease_time)
+
+  def ReturnLeasedCronJobs(self, cronjobs):
+    return self.delegate.ReturnLeasedCronJobs(cronjobs)

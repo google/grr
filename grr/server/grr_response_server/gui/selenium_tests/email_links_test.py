@@ -69,9 +69,9 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(len(self.messages_sent), 1)
     message = self.messages_sent[0]
 
-    self.assertTrue(self.APPROVAL_REASON in message)
-    self.assertTrue(self.token.username in message)
-    self.assertTrue(client_id.Basename() in message)
+    self.assertIn(self.APPROVAL_REASON, message)
+    self.assertIn(self.token.username, message)
+    self.assertIn(client_id.Basename(), message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 
@@ -97,9 +97,9 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
     message = self.messages_sent[1]
 
-    self.assertTrue(self.APPROVAL_REASON in message)
-    self.assertTrue(self.GRANTOR_USERNAME in message)
-    self.assertTrue(client_id.Basename() in message)
+    self.assertIn(self.APPROVAL_REASON, message)
+    self.assertIn(self.GRANTOR_USERNAME, message)
+    self.assertIn(client_id.Basename(), message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 
@@ -123,9 +123,9 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(len(self.messages_sent), 1)
     message = self.messages_sent[0]
 
-    self.assertTrue(self.APPROVAL_REASON in message)
-    self.assertTrue(self.token.username in message)
-    self.assertTrue(hunt_id.Basename() in message)
+    self.assertIn(self.APPROVAL_REASON, message)
+    self.assertIn(self.token.username, message)
+    self.assertIn(hunt_id.Basename(), message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 
@@ -150,9 +150,9 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(len(self.messages_sent), 2)
 
     message = self.messages_sent[1]
-    self.assertTrue(self.APPROVAL_REASON in message)
-    self.assertTrue(self.GRANTOR_USERNAME in message)
-    self.assertTrue(hunt_id.Basename() in message)
+    self.assertIn(self.APPROVAL_REASON, message)
+    self.assertIn(self.GRANTOR_USERNAME, message)
+    self.assertIn(hunt_id.Basename(), message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 
@@ -162,7 +162,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
   def testEmailCronJobApprovalRequestLinkLeadsToACorrectPage(self):
     cronjobs.ScheduleSystemCronFlows(
         names=[cron_system.OSBreakDown.__name__], token=self.token)
-    cronjobs.CRON_MANAGER.DisableJob(job_name="OSBreakDown")
+    cronjobs.GetCronManager().DisableJob(job_id="OSBreakDown")
 
     self.RequestCronJobApproval(
         "OSBreakDown",
@@ -173,9 +173,9 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(len(self.messages_sent), 1)
     message = self.messages_sent[0]
 
-    self.assertTrue(self.APPROVAL_REASON in message)
-    self.assertTrue(self.token.username in message)
-    self.assertTrue("OSBreakDown" in message)
+    self.assertIn(self.APPROVAL_REASON, message)
+    self.assertIn(self.token.username, message)
+    self.assertIn("OSBreakDown", message)
 
     # Extract link from the message text and open it.
     m = re.search(r"href='(.+?)'", message, re.MULTILINE)
@@ -192,7 +192,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
   def testEmailCronjobApprovalGrantNotificationLinkLeadsToCorrectPage(self):
     cronjobs.ScheduleSystemCronFlows(
         names=[cron_system.OSBreakDown.__name__], token=self.token)
-    cronjobs.CRON_MANAGER.DisableJob(job_name="OSBreakDown")
+    cronjobs.GetCronManager().DisableJob(job_id="OSBreakDown")
 
     self.RequestAndGrantCronJobApproval(
         "OSBreakDown",
@@ -204,8 +204,8 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     # for approval grant notification.
     self.assertEqual(len(self.messages_sent), 2)
     message = self.messages_sent[1]
-    self.assertTrue(self.APPROVAL_REASON in message)
-    self.assertTrue(self.GRANTOR_USERNAME in message)
+    self.assertIn(self.APPROVAL_REASON, message)
+    self.assertIn(self.GRANTOR_USERNAME, message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 

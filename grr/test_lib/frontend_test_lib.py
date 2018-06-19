@@ -3,7 +3,7 @@
 
 from grr import config
 from grr.lib import utils
-from grr.server.grr_response_server import front_end
+from grr.server.grr_response_server import frontend_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -36,7 +36,7 @@ class FrontEndServerTest(flow_test_lib.FlowTestsBaseclass):
     self._CONFIG_OVERRIDER.Stop()
 
   def InitTestServer(self):
-    self.server = front_end.FrontEndServer(
+    self.server = frontend_lib.FrontEndServer(
         certificate=config.CONFIG["Frontend.certificate"],
         private_key=config.CONFIG["PrivateKeys.server_key"],
         message_expiry_time=self.MESSAGE_EXPIRY_TIME,

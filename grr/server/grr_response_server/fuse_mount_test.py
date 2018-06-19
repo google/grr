@@ -20,13 +20,13 @@ from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow_utils
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
+from grr.server.grr_response_server.bin import fuse_mount
 from grr.server.grr_response_server.flows.general import filesystem
 from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
-from grr.test_lib import flow_test_lib
 
+from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
-from grr.tools import fuse_mount
 
 # pylint: mode=test
 

@@ -20,16 +20,16 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import front_end
+from grr.server.grr_response_server import frontend_lib
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import filestore
+from grr.server.grr_response_server.bin import frontend
 from grr.server.grr_response_server.flows.general import file_finder
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
-from grr.tools import frontend
 
 
 class GRRHTTPServerTest(test_lib.GRRBaseTest):
@@ -48,7 +48,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     cls.config_overrider.Start()
 
     # Frontend must be initialized to register all the stats counters.
-    front_end.FrontendInit().RunOnce()
+    frontend_lib.FrontendInit().RunOnce()
 
     # Bring up a local server for testing.
     port = portpicker.PickUnusedPort()

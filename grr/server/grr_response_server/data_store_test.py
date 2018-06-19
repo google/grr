@@ -32,7 +32,7 @@ from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server import sequential_collection
 from grr.server.grr_response_server import threadpool
-from grr.server.grr_response_server import worker
+from grr.server.grr_response_server import worker_lib
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import standard
 from grr.server.grr_response_server.flows.general import filesystem
@@ -2227,7 +2227,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
                    (self.nr_clients,
                     self.nr_dirs * self.files_per_dir), time_used, 1)
 
-    my_worker = worker.GRRWorker(queues=[self.queue], token=self.token)
+    my_worker = worker_lib.GRRWorker(queues=[self.queue], token=self.token)
 
     start_time = time.time()
 

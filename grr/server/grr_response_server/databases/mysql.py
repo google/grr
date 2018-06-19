@@ -1282,3 +1282,32 @@ class MysqlDB(db_module.Database):
     now = rdfvalue.RDFDatetime.Now()
     cursor.execute("DELETE FROM foreman_rules WHERE expiration_time < %s",
                    [_RDFDatetimeToMysqlString(now)])
+
+  def WriteCronJob(self, cronjob):
+    pass
+
+  def ReadCronJobs(self, cronjob_ids=None):
+    pass
+
+  def EnableCronJob(self, cronjob):
+    pass
+
+  def DisableCronJob(self, cronjob):
+    pass
+
+  def DeleteCronJob(self, cronjob_id):
+    pass
+
+  def UpdateCronJob(self,
+                    cronjob_id,
+                    last_run_status=db_module.Database.unchanged,
+                    last_run_time=db_module.Database.unchanged,
+                    current_run_id=db_module.Database.unchanged,
+                    cron_state=db_module.Database.unchanged):
+    pass
+
+  def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):
+    pass
+
+  def ReturnLeasedCronJobs(self, cronjobs):
+    pass

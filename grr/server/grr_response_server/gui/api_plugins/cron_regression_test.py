@@ -8,6 +8,7 @@ from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server.aff4_objects import cronjobs
 from grr.server.grr_response_server.flows.cron import system as cron_system
@@ -55,9 +56,14 @@ class ApiListCronJobsHandlerRegressionTest(
           lifetime="1d",
           token=self.token)
 
-      for i in range(4):
-        with test_lib.FakeTime(200 + i * 10):
-          cron_urn = cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(cron_id)
+      with test_lib.FakeTime(230):
+        if data_store.RelationalDBReadEnabled():
+          data_store.REL_DB.UpdateCronJob(
+              cron_id,
+              last_run_time=rdfvalue.RDFDatetime.Now(),
+              last_run_status=rdf_cronjobs.CronJobRunStatus.Status.ERROR)
+        else:
+          cron_urn = cronjobs.GetCronManager().CRON_JOBS_PATH.Add(cron_id)
           with aff4.FACTORY.OpenWithLock(cron_urn, token=self.token) as job:
             job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime.Now()))
             job.Set(
@@ -82,7 +88,7 @@ class ApiCreateCronJobHandlerRegressionTest(
   def Run(self):
 
     def ReplaceCronJobUrn():
-      jobs = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))
+      jobs = list(cronjobs.GetCronManager().ListJobs(token=self.token))
       return {jobs[0]: "CreateAndRunGeneicHuntFlow_1234"}
 
     flow_args = standard.CreateGenericHuntFlowArgs()
@@ -123,14 +129,14 @@ class ApiListCronJobFlowsHandlerRegressionTest(
       cron_args = cronjobs.CreateCronJobFlowArgs(
           periodicity="7d", lifetime="1d")
       cron_args.flow_runner_args.flow_name = self.flow_name
-      cronjobs.CRON_MANAGER.CreateJob(
-          cron_args, job_name=self.flow_name, token=self.token)
+      cronjobs.GetCronManager().CreateJob(
+          cron_args, job_id=self.flow_name, token=self.token)
 
-      cronjobs.CRON_MANAGER.RunOnce(token=self.token)
+      cronjobs.GetCronManager().RunOnce(token=self.token)
 
   def _GetFlowId(self):
-    cron_job_id = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))[0]
-    runs = cronjobs.CRON_MANAGER.ReadJobRuns(cron_job_id, token=self.token)
+    runs = cronjobs.GetCronManager().ReadJobRuns(
+        self.flow_name, token=self.token)
 
     return runs[0].urn.Basename()
 
@@ -159,14 +165,14 @@ class ApiGetCronJobFlowHandlerRegressionTest(
       cron_args = cronjobs.CreateCronJobFlowArgs(
           periodicity="7d", lifetime="1d")
       cron_args.flow_runner_args.flow_name = self.flow_name
-      cronjobs.CRON_MANAGER.CreateJob(
-          cron_args, job_name=self.flow_name, token=self.token)
+      cronjobs.GetCronManager().CreateJob(
+          cron_args, job_id=self.flow_name, token=self.token)
 
-      cronjobs.CRON_MANAGER.RunOnce(token=self.token)
+      cronjobs.GetCronManager().RunOnce(token=self.token)
 
   def _GetFlowId(self):
-    cron_job_id = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))[0]
-    runs = cronjobs.CRON_MANAGER.ReadJobRuns(cron_job_id, token=self.token)
+    runs = cronjobs.GetCronManager().ReadJobRuns(
+        self.flow_name, token=self.token)
 
     return runs[0].urn.Basename()
 

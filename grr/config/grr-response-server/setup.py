@@ -64,6 +64,8 @@ setup_args = dict(
         "console_scripts": [
             "grr_console = "
             "grr.server.grr_response_server.distro_entry:Console",
+            "grr_api_shell_raw_access = "
+            "grr.server.grr_response_server.distro_entry:ApiShellRawAccess",
             "grr_config_updater = "
             "grr.server.grr_response_server.distro_entry:ConfigUpdater",
             "grr_frontend = "
@@ -82,6 +84,7 @@ setup_args = dict(
         "google-api-python-client==1.6.2",
         "google-auth==1.2.1",
         "google-cloud-bigquery==0.22.1",
+        "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "Jinja2==2.9.5",
         "pexpect==4.0.1",

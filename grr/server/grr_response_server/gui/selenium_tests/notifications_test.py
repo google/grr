@@ -9,7 +9,6 @@ from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import notification
-from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.flows.general import discovery
 from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.gui.api_plugins.client import ApiSearchClientsHandler
@@ -50,12 +49,12 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
                   path_type=rdf_objects.PathInfo.PathType.OS,
                   path_components=["proc", "10", "exe"])))
 
-      with aff4.FACTORY.Create(
-          client_id.Add("fs/os/proc/10/exe"),
-          aff4_grr.VFSFile,
-          mode="w",
-          token=token):
-        pass
+      gui_test_lib.CreateFileVersion(
+          client_id,
+          "fs/os/proc/10/exe",
+          "",
+          timestamp=gui_test_lib.TIME_0,
+          token=token)
 
       # ViewObject: Flow
       notification.Notify(
@@ -168,19 +167,20 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
       """Fake render method to force an exception."""
       raise RuntimeError("This is a another forced exception")
 
-    # By mocking out Handle, we can force an exception.
-    with utils.Stubber(ApiSearchClientsHandler, "Handle", MockRender):
-      self.Open("/")
-      self.Click("client_query_submit")
+    with self.DisableHttpErrorChecks():
+      # By mocking out Handle, we can force an exception.
+      with utils.Stubber(ApiSearchClientsHandler, "Handle", MockRender):
+        self.Open("/")
+        self.Click("client_query_submit")
 
-      # Open server error dialog.
-      self.Click("css=button#show_backtrace")
+        # Open server error dialog.
+        self.Click("css=button#show_backtrace")
 
-      # Check if message and traceback are shown.
-      self.WaitUntilContains("This is a another forced exception", self.GetText,
-                             "css=div[name=ServerErrorDialog]")
-      self.WaitUntilContains("Traceback (most recent call last):", self.GetText,
-                             "css=div[name=ServerErrorDialog]")
+        # Check if message and traceback are shown.
+        self.WaitUntilContains("This is a another forced exception",
+                               self.GetText, "css=div[name=ServerErrorDialog]")
+        self.WaitUntilContains("Traceback (most recent call last):",
+                               self.GetText, "css=div[name=ServerErrorDialog]")
 
 
 def main(argv):

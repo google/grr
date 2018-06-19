@@ -23,7 +23,7 @@ from grr.server.grr_response_server import data_migration
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server import worker
+from grr.server.grr_response_server import worker_lib
 from grr.server.grr_response_server.aff4_objects import security
 from grr.server.grr_response_server.aff4_objects import users
 
@@ -118,8 +118,9 @@ def OpenClient(client_id=None, token=None):
         rdfvalue.RDFURN(client_id), mode="r", token=token)
     return client, token
   except access_control.UnauthorizedAccess:
-    logging.warning("Unable to find a valid reason for client %s. You may need "
-                    "to request approval.", client_id)
+    logging.warning(
+        "Unable to find a valid reason for client %s. You may need "
+        "to request approval.", client_id)
     return None, None
 
 
@@ -557,7 +558,8 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
       queue=queue,
       token=token,
       **kwargs)
-  worker_thrd = worker.GRRWorker(queues=[queue], token=token, threadpool_size=1)
+  worker_thrd = worker_lib.GRRWorker(
+      queues=[queue], token=token, threadpool_size=1)
   while True:
     try:
       worker_thrd.RunOnce()

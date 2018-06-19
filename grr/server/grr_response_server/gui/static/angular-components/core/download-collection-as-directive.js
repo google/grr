@@ -30,9 +30,9 @@ const DownloadCollectionAsController = function(
 
   /** @type {Object} */
   this.pluginToDisplayName = {
-    'csv-zip': 'CSV (Zipped)',
-    'flattened-yaml-zip': 'Flattened YAML (Zipped)',
-    'sqlite-zip': 'SQLite Scripts (Zipped)'
+    'csv-zip': 'CSV (zipped)',
+    'flattened-yaml-zip': 'Flattened YAML (zipped)',
+    'sqlite-zip': 'SQLite scripts (zipped)'
   };
 
   /** @type {string} */

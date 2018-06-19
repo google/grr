@@ -452,6 +452,10 @@
                 "type": "FlowRunnerArgs",
                 "value": {}
               },
+              "is_failing": {
+                "type": "RDFBool",
+                "value": false
+              },
               "lifetime": {
                 "type": "Duration",
                 "value": 0
@@ -496,6 +500,7 @@
           "description": "",
           "flow_name": "",
           "flow_runner_args": {},
+          "is_failing": false,
           "lifetime": 0,
           "periodicity": 86400,
           "state": "ENABLED",
@@ -4297,6 +4302,10 @@
                 "type": "FlowRunnerArgs",
                 "value": {}
               },
+              "is_failing": {
+                "type": "RDFBool",
+                "value": false
+              },
               "lifetime": {
                 "type": "Duration",
                 "value": 0
@@ -4338,6 +4347,7 @@
           "description": "",
           "flow_name": "",
           "flow_runner_args": {},
+          "is_failing": false,
           "lifetime": 0,
           "periodicity": 86400,
           "state": "ENABLED",
@@ -4412,6 +4422,10 @@
                 "type": "FlowRunnerArgs",
                 "value": {}
               },
+              "is_failing": {
+                "type": "RDFBool",
+                "value": false
+              },
               "lifetime": {
                 "type": "Duration",
                 "value": 0
@@ -4453,6 +4467,7 @@
           "description": "",
           "flow_name": "",
           "flow_runner_args": {},
+          "is_failing": false,
           "lifetime": 0,
           "periodicity": 86400,
           "state": "ENABLED",
@@ -12353,6 +12368,10 @@
                 "type": "FlowRunnerArgs",
                 "value": {}
               },
+              "is_failing": {
+                "type": "RDFBool",
+                "value": false
+              },
               "lifetime": {
                 "type": "Duration",
                 "value": 0
@@ -12394,6 +12413,7 @@
           "description": "",
           "flow_name": "",
           "flow_runner_args": {},
+          "is_failing": false,
           "lifetime": 0,
           "periodicity": 86400,
           "state": "ENABLED",

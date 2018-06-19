@@ -11,7 +11,7 @@ from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import queue_manager
 
-from grr.server.grr_response_server import worker
+from grr.server.grr_response_server import worker_lib
 
 
 class MockThreadPool(object):
@@ -32,7 +32,7 @@ class MockThreadPool(object):
     pass
 
 
-class MockWorker(worker.GRRWorker):
+class MockWorker(worker_lib.GRRWorker):
   """Mock the worker."""
 
   # Resource accounting off by default, set these arrays to emulate CPU and

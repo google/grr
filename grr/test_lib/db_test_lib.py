@@ -36,6 +36,11 @@ class RelationalDBEnabledMixin(object):
     })
     self._foreman_config_overrider.Start()
 
+    self._vfs_config_overrider = test_lib.ConfigOverrider({
+        "Database.useForReads.vfs": True,
+    })
+    self._foreman_config_overrider.Start()
+
     super(RelationalDBEnabledMixin, self).setUp()
 
   def tearDown(self):  # pylint: disable=invalid-name
@@ -45,6 +50,7 @@ class RelationalDBEnabledMixin(object):
     self._rel_db_write_enabled_patch.stop()
     self._config_overrider.Stop()
     self._foreman_config_overrider.Stop()
+    self._vfs_config_overrider.Stop()
 
 
 def DualDBTest(cls):

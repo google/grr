@@ -83,7 +83,7 @@ class HttpConnector(connector.Connector):
     self.api_methods = {}
     for method in proto.items:
       if not method.http_route.startswith("/api/v2/"):
-        method.http_route = method.http_route.replace("/api/", "/api/v2/")
+        method.http_route = method.http_route.replace("/api/", "/api/v2/", 1)
 
       self.api_methods[method.name] = method
       routing_rules.append(

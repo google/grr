@@ -43,37 +43,43 @@ def SetConfigOptions():
 
 
 def Console():
-  from grr.tools import console
+  from grr.server.grr_response_server.bin import console
   SetConfigOptions()
   flags.StartMain(console.main)
 
 
+def ApiShellRawAccess():
+  from grr.server.grr_response_server.bin import api_shell_raw_access
+  SetConfigOptions()
+  flags.StartMain(api_shell_raw_access.main)
+
+
 def ConfigUpdater():
-  from grr.tools import config_updater
+  from grr.server.grr_response_server.bin import config_updater
   SetConfigOptions()
   flags.StartMain(config_updater.main)
 
 
 def GrrServer():
-  from grr.tools import grr_server
+  from grr.server.grr_response_server.bin import grr_server
   SetConfigOptions()
   flags.StartMain(grr_server.main)
 
 
 def GrrFrontend():
-  from grr.tools import frontend
+  from grr.server.grr_response_server.bin import frontend
   SetConfigOptions()
   flags.StartMain(frontend.main)
 
 
 def Worker():
-  from grr.worker import worker
+  from grr.server.grr_response_server.bin import worker
   SetConfigOptions()
   flags.StartMain(worker.main)
 
 
 def GRRFuse():
-  from grr.tools import fuse_mount
+  from grr.server.grr_response_server.bin import fuse_mount
   SetConfigOptions()
   flags.StartMain(fuse_mount.main)
 

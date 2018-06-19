@@ -76,9 +76,11 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
 
     # Click proceed and check that error message is displayed and that
     # dialog is not going away.
-    self.Click("css=*[name=AddClientsLabelsDialog] button[name=Proceed]")
-    self.WaitUntil(self.IsTextPresent, "Label name can only contain")
-    self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]")
+    # TODO(user): convert to Bad Request (400) status code.
+    with self.DisableHttpErrorChecks():
+      self.Click("css=*[name=AddClientsLabelsDialog] button[name=Proceed]")
+      self.WaitUntil(self.IsTextPresent, "Label name can only contain")
+      self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]")
 
   def testLabelIsAppliedCorrectlyViaAddClientsLabelsDialog(self):
     self.Open("/#/search?q=.")

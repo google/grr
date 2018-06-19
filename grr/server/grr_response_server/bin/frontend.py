@@ -28,7 +28,7 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import front_end
+from grr.server.grr_response_server import frontend_lib
 from grr.server.grr_response_server import master
 from grr.server.grr_response_server import server_logging
 from grr.server.grr_response_server import server_startup
@@ -322,7 +322,7 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     if frontend:
       self.frontend = frontend
     else:
-      self.frontend = front_end.FrontEndServer(
+      self.frontend = frontend_lib.FrontEndServer(
           certificate=config.CONFIG["Frontend.certificate"],
           private_key=config.CONFIG["PrivateKeys.server_key"],
           max_queue_size=config.CONFIG["Frontend.max_queue_size"],

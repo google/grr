@@ -28,7 +28,7 @@ from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import fleetspeak_connector
 from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import front_end
+from grr.server.grr_response_server import frontend_lib
 from grr.server.grr_response_server import maintenance_utils
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.aff4_objects import aff4_grr
@@ -36,7 +36,7 @@ from grr.server.grr_response_server.flows.general import administrative
 from grr.server.grr_response_server.flows.general import ca_enroller
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import front_end_test_lib
+from grr.test_lib import frontend_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
 
@@ -54,7 +54,7 @@ class SendingTestFlow(flow.GRRFlow):
           next_state="Incoming")
 
 
-class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
+class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
   """Tests the GRRFEServer."""
 
   def testReceiveMessages(self):
@@ -517,7 +517,7 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
     self.assertEqual(crash_details_rel.session_id, session_id)
 
 
-class FleetspeakFrontendTests(front_end_test_lib.FrontEndServerTest):
+class FleetspeakFrontendTests(frontend_test_lib.FrontEndServerTest):
 
   def testFleetspeakEnrolment(self):
     client_id = test_lib.TEST_CLIENT_ID.Basename()
@@ -571,7 +571,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self._SetupCommunicator()
 
   def _SetupCommunicator(self):
-    self.server_communicator = front_end.ServerCommunicator(
+    self.server_communicator = frontend_lib.ServerCommunicator(
         certificate=self.server_certificate,
         private_key=self.server_private_key,
         token=self.token)
@@ -804,7 +804,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertNotEqual(server_certificate, self.server_certificate)
     self.assertNotEqual(server_private_key, self.server_private_key)
 
-    self.server_communicator = front_end.ServerCommunicator(
+    self.server_communicator = frontend_lib.ServerCommunicator(
         certificate=server_certificate,
         private_key=server_private_key,
         token=self.token)
@@ -884,7 +884,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def CreateNewServerCommunicator(self):
     self._MakeClient()
-    self.server_communicator = front_end.ServerCommunicator(
+    self.server_communicator = frontend_lib.ServerCommunicator(
         certificate=self.server_certificate,
         private_key=self.server_private_key,
         token=self.token)
@@ -1386,7 +1386,7 @@ class RelationalClientCommsTest(ClientCommsTest):
         self.client_id, fleetspeak_enabled=False, certificate=client_cert)
 
   def _SetupCommunicator(self):
-    self.server_communicator = front_end.RelationalServerCommunicator(
+    self.server_communicator = frontend_lib.RelationalServerCommunicator(
         certificate=self.server_certificate,
         private_key=self.server_private_key)
 
@@ -1433,7 +1433,7 @@ class RelationalHTTPClientTests(HTTPClientTests):
 
   def CreateNewServerCommunicator(self):
     self._MakeClient()
-    self.server_communicator = front_end.RelationalServerCommunicator(
+    self.server_communicator = frontend_lib.RelationalServerCommunicator(
         certificate=self.server_certificate,
         private_key=self.server_private_key)
 

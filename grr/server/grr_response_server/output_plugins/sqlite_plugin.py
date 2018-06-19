@@ -71,7 +71,7 @@ class SqliteInstantOutputPlugin(
   """Instant output plugin that converts results into SQLite db commands."""
 
   plugin_name = "sqlite-zip"
-  friendly_name = "SQLite script"
+  friendly_name = "SQLite scripts (zipped)"
   description = "Output ZIP archive containing SQLite scripts."
   output_file_extension = ".zip"
 

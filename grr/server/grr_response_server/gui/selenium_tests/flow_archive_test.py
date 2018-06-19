@@ -16,6 +16,9 @@ from grr.server.grr_response_server.gui import api_call_handler_utils
 from grr.server.grr_response_server.gui import api_call_router_with_approval_checks
 from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
+from grr.server.grr_response_server.output_plugins import csv_plugin
+from grr.server.grr_response_server.output_plugins import sqlite_plugin
+from grr.server.grr_response_server.output_plugins import yaml_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
@@ -134,24 +137,31 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
-      "GetExportedFlowResults")
+      "GetExportedFlowResults",
+      return_value=api_flow.ApiGetExportedFlowResultsHandler())
   def testClickingOnDownloadAsCsvZipStartsDownload(self, mock_method):
-    self.checkClickingOnDownloadAsStartsDownloadForType(mock_method, "csv-zip",
-                                                        "CSV (Zipped)")
+    self.checkClickingOnDownloadAsStartsDownloadForType(
+        mock_method, csv_plugin.CSVInstantOutputPlugin.plugin_name,
+        csv_plugin.CSVInstantOutputPlugin.friendly_name)
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
-      "GetExportedFlowResults")
+      "GetExportedFlowResults",
+      return_value=api_flow.ApiGetExportedFlowResultsHandler())
   def testClickingOnDownloadAsYamlZipStartsDownload(self, mock_method):
     self.checkClickingOnDownloadAsStartsDownloadForType(
-        mock_method, "flattened-yaml-zip", "Flattened YAML (Zipped)")
+        mock_method,
+        yaml_plugin.YamlInstantOutputPluginWithExportConversion.plugin_name,
+        yaml_plugin.YamlInstantOutputPluginWithExportConversion.friendly_name)
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
-      "GetExportedFlowResults")
+      "GetExportedFlowResults",
+      return_value=api_flow.ApiGetExportedFlowResultsHandler())
   def testClickingOnDownloadAsSqliteZipStartsDownload(self, mock_method):
     self.checkClickingOnDownloadAsStartsDownloadForType(
-        mock_method, "sqlite-zip", "SQLite Scripts (Zipped)")
+        mock_method, sqlite_plugin.SqliteInstantOutputPlugin.plugin_name,
+        sqlite_plugin.SqliteInstantOutputPlugin.friendly_name)
 
   def checkClickingOnDownloadAsStartsDownloadForType(self, mock_method, plugin,
                                                      plugin_display_name):
@@ -173,7 +183,9 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
 
     def MockMethodIsCalled():
       try:
-        mock_method.assert_called_once_with(
+        # Mock should be called twice: once for HEAD (to check permissions)
+        # and once for GET methods.
+        mock_method.assert_called_with(
             api_flow.ApiGetExportedFlowResultsArgs(
                 client_id=self.client_id,
                 flow_id=flow_urn.Basename(),

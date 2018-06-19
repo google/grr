@@ -438,7 +438,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser("approver")
 
-      cron_manager = aff4_cronjobs.CronManager()
+      cron_manager = aff4_cronjobs.GetCronManager()
       cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
           periodicity="1d", allow_overruns=False)
       cron1_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
@@ -490,7 +490,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser("requestor")
 
-      cron_manager = aff4_cronjobs.CronManager()
+      cron_manager = aff4_cronjobs.GetCronManager()
       cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
           periodicity="1d", allow_overruns=False)
       cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
@@ -526,7 +526,7 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateUser("approver")
 
-    cron_manager = aff4_cronjobs.CronManager()
+    cron_manager = aff4_cronjobs.GetCronManager()
     cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
         periodicity="1d", allow_overruns=False)
     cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
@@ -688,9 +688,6 @@ class ApiListPendingGlobalNotificationsHandlerRegressionTest(
   TIME_TOO_EARLY = NOW - rdfvalue.Duration("4w")
   TIME_0 = NOW - rdfvalue.Duration("12h")
   TIME_1 = NOW - rdfvalue.Duration("1h")
-
-  def setUp(self):
-    super(ApiListPendingGlobalNotificationsHandlerRegressionTest, self).setUp()
 
   def Run(self):
     with aff4.FACTORY.Create(
