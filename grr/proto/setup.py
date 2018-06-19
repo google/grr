@@ -77,6 +77,8 @@ setup_args = dict(
     version=VERSION.get("Version", "packageversion"),
     description="GRR API client library",
     license="Apache License, Version 2.0",
+    maintainer="GRR Development Team",
+    maintainer_email="grr-dev@googlegroups.com",
     url="https://github.com/google/grr/tree/master/proto",
     cmdclass={
         "build_py": Build,
