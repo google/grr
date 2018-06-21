@@ -2,7 +2,7 @@ goog.module('grrUi.user.userNotificationItemDirective');
 goog.module.declareLegacyNamespace();
 
 const {encodeUrlPath, stripTypeInfo} = goog.require('grrUi.core.apiService');
-const {getLastPathComponent, stripAff4Prefix} = goog.require('grrUi.core.utils');
+const {stripAff4Prefix} = goog.require('grrUi.core.utils');
 
 
 /**
@@ -61,17 +61,15 @@ var getLink_ = function(notification) {
   var referenceDetails = reference[referenceType.toLowerCase()];
   var urlParameters = {};
 
-  if (referenceType === 'DISCOVERY') {
+  if (referenceType === 'CLIENT') {
     return ['clients',
             stripAff4Prefix(referenceDetails['client_id'])].join('/');
   } else if (referenceType === 'HUNT') {
-    var huntId = getLastPathComponent(referenceDetails['hunt_urn']);
-    return ['hunts',
-            huntId].join('/');
+    var huntId = referenceDetails['hunt_id'];
+    return ['hunts', huntId].join('/');
   } else if (referenceType === 'CRON') {
-    var cronJobName = getLastPathComponent(referenceDetails['cron_job_urn']);
-    return ['crons',
-            cronJobName].join('/');
+    var cronJobName = referenceDetails['cron_job_id'];
+    return ['crons', cronJobName].join('/');
   } else if (referenceType === 'VFS') {
     return ['clients',
             stripAff4Prefix(referenceDetails['client_id']),

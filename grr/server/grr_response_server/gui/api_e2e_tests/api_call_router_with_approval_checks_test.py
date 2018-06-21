@@ -11,8 +11,8 @@ from grr.server.grr_response_server.aff4_objects import user_managers
 
 from grr.server.grr_response_server.gui import api_auth_manager
 from grr.server.grr_response_server.gui import api_call_router_with_approval_checks as api_router
-
 from grr.server.grr_response_server.gui import api_e2e_test_lib
+from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
 
@@ -68,24 +68,26 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   def testSimpleUnauthorizedAccess(self):
     """Tests that simple access requires a token."""
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
+    gui_test_lib.CreateFileVersion(client_id, "fs/os/foo", token=self.token)
 
-    self.assertRaises(grr_api_errors.AccessForbiddenError,
-                      self.api.Client(client_id).File("fs/os/foo").Get)
+    with self.assertRaises(grr_api_errors.AccessForbiddenError):
+      self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
 
   def testApprovalExpiry(self):
     """Tests that approvals expire after the correct time."""
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
+    gui_test_lib.CreateFileVersion(client_id, "fs/os/foo", token=self.token)
 
-    self.assertRaises(grr_api_errors.AccessForbiddenError,
-                      self.api.Client(client_id).File("fs/os/foo").Get)
+    with self.assertRaises(grr_api_errors.AccessForbiddenError):
+      self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
 
     with test_lib.FakeTime(100.0, increment=1e-3):
       self.RequestAndGrantClientApproval(
           client_id, requestor=self.token.username)
 
       # This should work now.
-      self.api.Client(client_id).File("fs/os/foo").Get()
+      self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
 
     token_expiry = config.CONFIG["ACL.token_expiry"]
 
@@ -94,32 +96,33 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
 
     # This is close to expiry but should still work.
     with test_lib.FakeTime(100.0 + token_expiry - 100.0):
-      self.api.Client(client_id).File("fs/os/foo").Get()
+      self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
 
     # Make sure the caches are reset.
     self.ClearCache()
 
     # Past expiry, should fail.
     with test_lib.FakeTime(100.0 + token_expiry + 100.0):
-      self.assertRaises(grr_api_errors.AccessForbiddenError,
-                        self.api.Client(client_id).File("fs/os/foo").Get)
+      with self.assertRaises(grr_api_errors.AccessForbiddenError):
+        self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
 
   def testClientApproval(self):
     """Tests that we can create an approval object to access clients."""
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
+    gui_test_lib.CreateFileVersion(client_id, "fs/os/foo", token=self.token)
 
-    self.assertRaises(grr_api_errors.AccessForbiddenError,
-                      self.api.Client(client_id).File("fs/os/foo").Get)
+    with self.assertRaises(grr_api_errors.AccessForbiddenError):
+      self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
 
     self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
-    self.api.Client(client_id).File("fs/os/foo").Get()
+    self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
 
     # Move the clocks forward to make sure the approval expires.
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.Now() + config.CONFIG["ACL.token_expiry"],
         increment=1e-3):
       with self.assertRaises(grr_api_errors.AccessForbiddenError):
-        self.api.Client(client_id).File("fs/os/foo").Get()
+        self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
 
   def testHuntApproval(self):
     """Tests that we can create an approval object to run hunts."""

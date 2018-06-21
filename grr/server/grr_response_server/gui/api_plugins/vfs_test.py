@@ -38,8 +38,12 @@ class VfsTestMixin(object):
   time_1 = time_0 + rdfvalue.Duration("1d")
   time_2 = time_1 + rdfvalue.Duration("1d")
 
+  # TODO(hanuszczak): This function not only contains a lot of code duplication
+  # but is also a duplication with `gui_test_lib.CreateFileVersion(s)`. This
+  # should be refactored in the near future.
   def CreateFileVersions(self, client_id, file_path):
     """Add a new version for a file."""
+    path_type, components = rdf_objects.ParseCategorizedPath(file_path)
 
     with test_lib.FakeTime(self.time_1):
       token = access_control.ACLToken(username="test")
@@ -51,6 +55,14 @@ class VfsTestMixin(object):
       fd.Write("Hello World")
       fd.Close()
 
+      if data_store.RelationalDBWriteEnabled():
+        path_info = rdf_objects.PathInfo()
+        path_info.path_type = path_type
+        path_info.components = components
+        path_info.directory = False
+
+        data_store.REL_DB.WritePathInfos(client_id.Basename(), [path_info])
+
     with test_lib.FakeTime(self.time_2):
       fd = aff4.FACTORY.Create(
           client_id.Add(file_path),
@@ -59,6 +71,14 @@ class VfsTestMixin(object):
           token=token)
       fd.Write("Goodbye World")
       fd.Close()
+
+      if data_store.RelationalDBWriteEnabled():
+        path_info = rdf_objects.PathInfo()
+        path_info.path_type = path_type
+        path_info.components = components
+        path_info.directory = False
+
+        data_store.REL_DB.WritePathInfos(client_id.Basename(), [path_info])
 
   def CreateRecursiveListFlow(self, client_id, token):
     flow_args = filesystem.RecursiveListDirectoryArgs()

@@ -196,11 +196,13 @@ class GRRUser(aff4.AFF4Object):
     return username.lower() not in GRRUser._SYSTEM_USERS_LOWERCASE
 
   def Notify(self, message_type, subject, msg, source):
-    """Send a notification to the user in the UI.
+    """Send an AFF4-based notification to the user in the UI.
 
     Args:
       message_type: One of aff4_grr.Notification.notification_types e.g.
-        "ViewObject", "HostInformation", "GrantAccess".
+        "ViewObject", "HostInformation", "GrantAccess" or
+        the same with an added ":[new-style notification type] suffix, e.g.
+        "ViewObject:TYPE_CLIENT_INTERROGATED".
       subject: The subject to use, normally a URN.
       msg: The message to display.
       source: The class doing the notification.
@@ -212,7 +214,23 @@ class GRRUser(aff4.AFF4Object):
     if pending is None:
       pending = self.Schema.PENDING_NOTIFICATIONS()
 
-    if message_type not in rdf_flows.Notification.notification_types:
+    # This is a legacy code that should go away after RELDB migration is done.
+    # RELDB notifications have an explicitly stored notification type (that
+    # is then mapped to ApiNotification.notification_type). However, legacy
+    # AFF4-based data model notification types are different from the newly
+    # introduced ones (new types are very concrete, i.e. "vfs file download
+    # completed", legacy ones are very generic, i.e. "ViewObject").
+    #
+    # In order to temporarily keep the legacy code working and keep the tests
+    # passing, we "pack" new-style notification type into an old style
+    # "message_type". I.e. what was ViewObject before, will become
+    # ViewObject:TYPE_CLIENT_INTERROGATED.
+    #
+    # Notifications without the ":[notification type]" suffix are also still
+    # supported for backwards compatibility reasonds. They will be treated
+    # as notifications with an unknown new-style type.
+    if message_type.split(
+        ":", 2)[0] not in rdf_flows.Notification.notification_types:
       raise TypeError("Invalid notification type %s" % message_type)
 
     pending.Append(

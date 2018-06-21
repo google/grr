@@ -22,13 +22,13 @@ describe('User notification item directive', () => {
            },
          }));
 
-    it('annotates DISCOVERY notification correctly', () => {
+    it('annotates CLIENT notification correctly', () => {
       const notification = buildNotification({
         value: {
           type: {
-            value: 'DISCOVERY',
+            value: 'CLIENT',
           },
-          discovery: {
+          client: {
             value: {
               client_id: {
                 value: 'aff4:/C.0000000000000001',
@@ -40,7 +40,7 @@ describe('User notification item directive', () => {
       annotateApiNotification(notification);
 
       expect(notification.link).toEqual('clients/C.0000000000000001');
-      expect(notification.refType).toEqual('DISCOVERY');
+      expect(notification.refType).toEqual('CLIENT');
     });
 
     it('annotates HUNT notification correctly', () => {
@@ -51,8 +51,8 @@ describe('User notification item directive', () => {
           },
           hunt: {
             value: {
-              hunt_urn: {
-                value: 'aff4:/hunts/H:123456',
+              hunt_id: {
+                value: 'H:123456',
               },
             },
           },
@@ -72,8 +72,8 @@ describe('User notification item directive', () => {
           },
           cron: {
             value: {
-              cron_job_urn: {
-                value: 'aff4:/cron/FooBar',
+              cron_job_id: {
+                value: 'FooBar',
               },
             },
           },

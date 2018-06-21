@@ -659,19 +659,23 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
   def Run(self):
     _SendNotifications(self.token.username, self.client_id)
 
-    # Notifications are pending in this request.
-    self.Check(
-        "ListAndResetUserNotifications",
-        args=user_plugin.ApiListAndResetUserNotificationsArgs())
+    # _SendNotifications schedule notifications at timestamp 42 and 44.
+    # REL_DB-based ListAndResetUserNotifications implementation only
+    # reads last 6 months worth of notifications. Hence - using FakeTime.
+    with test_lib.FakeTime(45):
+      # Notifications are pending in this request.
+      self.Check(
+          "ListAndResetUserNotifications",
+          args=user_plugin.ApiListAndResetUserNotificationsArgs())
 
-    # But not anymore in these requests.
-    self.Check(
-        "ListAndResetUserNotifications",
-        args=user_plugin.ApiListAndResetUserNotificationsArgs(
-            offset=1, count=1))
-    self.Check(
-        "ListAndResetUserNotifications",
-        args=user_plugin.ApiListAndResetUserNotificationsArgs(filter="other"))
+      # But not anymore in these requests.
+      self.Check(
+          "ListAndResetUserNotifications",
+          args=user_plugin.ApiListAndResetUserNotificationsArgs(
+              offset=1, count=1))
+      self.Check(
+          "ListAndResetUserNotifications",
+          args=user_plugin.ApiListAndResetUserNotificationsArgs(filter="other"))
 
 
 class ApiListPendingGlobalNotificationsHandlerRegressionTest(

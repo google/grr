@@ -4,7 +4,6 @@
 import email
 import functools
 import itertools
-import os
 
 import jinja2
 
@@ -52,8 +51,8 @@ class ApprovalNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a specific approval object could not be found."""
 
 
-class ApiNotificationDiscoveryReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationDiscoveryReference
+class ApiNotificationClientReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationClientReference
   rdf_deps = [
       api_client.ApiClientId,
   ]
@@ -62,14 +61,14 @@ class ApiNotificationDiscoveryReference(rdf_structs.RDFProtoStruct):
 class ApiNotificationHuntReference(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiNotificationHuntReference
   rdf_deps = [
-      rdfvalue.RDFURN,
+      api_hunt.ApiHuntId,
   ]
 
 
 class ApiNotificationCronReference(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiNotificationCronReference
   rdf_deps = [
-      rdfvalue.RDFURN,
+      api_cron.ApiCronJobId,
   ]
 
 
@@ -85,7 +84,6 @@ class ApiNotificationVfsReference(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiNotificationVfsReference
   rdf_deps = [
       api_client.ApiClientId,
-      rdfvalue.RDFURN,
   ]
 
 
@@ -105,6 +103,9 @@ class ApiNotificationHuntApprovalReference(rdf_structs.RDFProtoStruct):
 
 class ApiNotificationCronJobApprovalReference(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiNotificationCronJobApprovalReference
+  rdf_deps = [
+      api_cron.ApiCronJobId,
+  ]
 
 
 class ApiNotificationUnknownReference(rdf_structs.RDFProtoStruct):
@@ -115,18 +116,80 @@ class ApiNotificationUnknownReference(rdf_structs.RDFProtoStruct):
 
 
 class ApiNotificationReference(rdf_structs.RDFProtoStruct):
+  """Object reference used in ApiNotifications."""
+
   protobuf = user_pb2.ApiNotificationReference
   rdf_deps = [
+      ApiNotificationClientReference,
       ApiNotificationClientApprovalReference,
       ApiNotificationCronJobApprovalReference,
       ApiNotificationCronReference,
-      ApiNotificationDiscoveryReference,
       ApiNotificationFlowReference,
       ApiNotificationHuntApprovalReference,
       ApiNotificationHuntReference,
       ApiNotificationUnknownReference,
       ApiNotificationVfsReference,
   ]
+
+  def InitFromObjectReference(self, ref):
+    if ref.reference_type == ref.Type.UNSET:
+      self.type = self.Type.UNSET
+
+    elif ref.reference_type == ref.Type.CLIENT:
+      self.type = self.Type.CLIENT
+      self.client.client_id = ref.client.client_id
+
+    elif ref.reference_type == ref.Type.HUNT:
+      self.type = self.Type.HUNT
+      self.hunt.hunt_id = ref.hunt.hunt_id
+
+    elif ref.reference_type == ref.Type.FLOW:
+      self.type = self.Type.FLOW
+      self.flow.client_id = ref.flow.client_id
+      self.flow.flow_id = ref.flow.flow_id
+
+    elif ref.reference_type == ref.Type.CRON_JOB:
+      self.type = self.Type.CRON
+      self.cron.cron_job_id = ref.cron_job.cron_job_id
+
+    elif ref.reference_type == ref.Type.VFS_FILE:
+      self.type = self.Type.VFS
+      self.vfs.client_id = ref.vfs_file.client_id
+
+      if ref.vfs_file.path_type == rdf_objects.PathInfo.PathType.UNSET:
+        raise ValueError(
+            "Can't init from VFS_FILE object reference with unset path_type.")
+
+      self.vfs.vfs_path = ref.vfs_file.ToPath()
+
+    elif ref.reference_type == ref.Type.APPROVAL_REQUEST:
+      ref_ar = ref.approval_request
+
+      if ref_ar.approval_type == ref_ar.ApprovalType.APPROVAL_TYPE_NONE:
+        raise ValueError("Can't init from APPROVAL_REQUEST object reference "
+                         "with unset approval_type.")
+      elif ref_ar.approval_type == ref_ar.ApprovalType.APPROVAL_TYPE_CLIENT:
+        self.type = self.Type.CLIENT_APPROVAL
+        self.client_approval.approval_id = ref_ar.approval_id
+        self.client_approval.username = ref_ar.requestor_username
+        self.client_approval.client_id = ref_ar.subject_id
+      elif ref_ar.approval_type == ref_ar.ApprovalType.APPROVAL_TYPE_HUNT:
+        self.type = self.Type.HUNT_APPROVAL
+        self.hunt_approval.approval_id = ref_ar.approval_id
+        self.hunt_approval.username = ref_ar.requestor_username
+        self.hunt_approval.hunt_id = ref_ar.subject_id
+      elif ref_ar.approval_type == ref_ar.ApprovalType.APPROVAL_TYPE_CRON_JOB:
+        self.type = self.Type.CRON_JOB_APPROVAL
+        self.cron_job_approval.approval_id = ref_ar.approval_id
+        self.cron_job_approval.username = ref_ar.requestor_username
+        self.cron_job_approval.cron_job_id = ref_ar.subject_id
+      else:
+        raise ValueError("Unexpected APPROVAL_REQUEST object reference type "
+                         "value: %d" % ref_ar.approval_type)
+    else:
+      raise ValueError("Unexpected reference type: %d" % ref.type)
+
+    return self
 
 
 class ApiNotification(rdf_structs.RDFProtoStruct):
@@ -166,31 +229,41 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
 
     reference_type_enum = ApiNotificationReference.Type
 
+    # Please see the comments to aff4_objects.GRRUser.Notify implementation
+    # for the details of notification.type format. Short summary:
+    # notification.type may be one of legacy values (i.e. "ViewObject") or
+    # have a format of "[legacy value]:[new-style notification type]", i.e.
+    # "ViewObject:TYPE_CLIENT_INTERROGATED".
+    legacy_type = None
+    if ":" in notification.type:
+      legacy_type, new_type = notification.type.split(":", 2)
+      self.notification_type = new_type
+    else:
+      legacy_type = notification.type
+
     # TODO(user): refactor notifications, so that we send a meaningful
     # notification from the start, so that we don't have to do the
     # bridging/conversion/guessing here.
     components = self._GetUrnComponents(notification)
-    if notification.type == "Discovery":
-      self.reference.type = reference_type_enum.DISCOVERY
-      self.reference.discovery = ApiNotificationDiscoveryReference(
+    if legacy_type == "Discovery":
+      self.reference.type = reference_type_enum.CLIENT
+      self.reference.client = ApiNotificationClientReference(
           client_id=components[0])
-    elif notification.type == "ViewObject":
+    elif legacy_type == "ViewObject":
       if len(components) >= 2 and components[0] == "hunts":
         self.reference.type = reference_type_enum.HUNT
-        self.reference.hunt.hunt_urn = rdfvalue.RDFURN(
-            os.path.join(*components[:2]))
+        self.reference.hunt.hunt_id = components[1]
       elif len(components) >= 2 and components[0] == "cron":
         self.reference.type = reference_type_enum.CRON
-        self.reference.cron.cron_job_urn = rdfvalue.RDFURN(
-            os.path.join(*components[:2]))
+        self.reference.cron.cron_job_id = components[1]
       elif len(components) >= 3 and components[1] == "flows":
         self.reference.type = reference_type_enum.FLOW
         self.reference.flow.flow_id = components[2]
         self.reference.flow.client_id = components[0]
       elif len(components) == 1 and rdf_client.ClientURN.Validate(
           components[0]):
-        self.reference.type = reference_type_enum.DISCOVERY
-        self.reference.discovery.client_id = components[0]
+        self.reference.type = reference_type_enum.CLIENT
+        self.reference.client.client_id = components[0]
       else:
         if notification.subject:
           path = notification.subject.Path()
@@ -199,14 +272,15 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
             if path.startswith(part):
               self.reference.type = reference_type_enum.VFS
               self.reference.vfs.client_id = components[0]
-              self.reference.vfs.vfs_path = prefix + path[len(part):]
+              self.reference.vfs.vfs_path = (
+                  prefix + path[len(part):]).lstrip("/")
               break
 
         if self.reference.type != reference_type_enum.VFS:
           self.reference.type = reference_type_enum.UNKNOWN
           self.reference.unknown.subject_urn = notification.subject
 
-    elif notification.type == "FlowStatus":
+    elif legacy_type == "FlowStatus":
       if not components or not rdf_client.ClientURN.Validate(components[0]):
         self.reference.type = reference_type_enum.UNKNOWN
         self.reference.unknown.subject_urn = notification.subject
@@ -217,7 +291,7 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
 
     # TODO(user): refactor GrantAccess notification so that we don't have
     # to infer approval type from the URN.
-    elif notification.type == "GrantAccess":
+    elif legacy_type == "GrantAccess":
       if rdf_client.ClientURN.Validate(components[1]):
         self.reference.type = reference_type_enum.CLIENT_APPROVAL
         self.reference.client_approval.client_id = components[1]
@@ -238,6 +312,16 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
       self.reference.type = reference_type_enum.UNKNOWN
       self.reference.unknown.subject_urn = notification.subject
       self.reference.unknown.source_urn = notification.source
+
+    return self
+
+  def InitFromUserNotification(self, notification):
+    self.timestamp = notification.timestamp
+    self.notification_type = notification.notification_type
+    self.message = notification.message
+    self.is_pending = (notification.state == notification.State.STATE_PENDING)
+    self.reference = ApiNotificationReference().InitFromObjectReference(
+        notification.reference)
 
     return self
 
@@ -1475,9 +1559,7 @@ class ApiGetPendingUserNotificationsCountHandler(
 
   result_type = ApiGetPendingUserNotificationsCountResult
 
-  def Handle(self, args, token=None):
-    """Fetches the pending notification count."""
-
+  def HandleLegacy(self, args, token=None):
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
         aff4_type=aff4_users.GRRUser,
@@ -1485,8 +1567,21 @@ class ApiGetPendingUserNotificationsCountHandler(
         token=token)
 
     notifications = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
-
     return ApiGetPendingUserNotificationsCountResult(count=len(notifications))
+
+  def HandleRelationalDB(self, args, token=None):
+    ns = list(
+        data_store.REL_DB.ReadUserNotifications(
+            token.username,
+            state=rdf_objects.UserNotification.State.STATE_PENDING))
+    return ApiGetPendingUserNotificationsCountResult(count=len(ns))
+
+  def Handle(self, args, token=None):
+    """Fetches the pending notification count."""
+    if data_store.RelationalDBReadEnabled():
+      return self.HandleRelationalDB(args, token=token)
+    else:
+      return self.HandleLegacy(args, token=token)
 
 
 class ApiListPendingUserNotificationsArgs(rdf_structs.RDFProtoStruct):
@@ -1510,9 +1605,7 @@ class ApiListPendingUserNotificationsHandler(
   args_type = ApiListPendingUserNotificationsArgs
   result_type = ApiListPendingUserNotificationsResult
 
-  def Handle(self, args, token=None):
-    """Fetches the pending notifications."""
-
+  def HandleLegacy(self, args, token=None):
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
         aff4_type=aff4_users.GRRUser,
@@ -1529,6 +1622,25 @@ class ApiListPendingUserNotificationsHandler(
 
     return ApiListPendingUserNotificationsResult(items=result)
 
+  def HandleRelationalDB(self, args, token=None):
+    ns = data_store.REL_DB.ReadUserNotifications(
+        token.username,
+        state=rdf_objects.UserNotification.State.STATE_PENDING,
+        timerange=(args.timestamp, None))
+    # TODO(user): after AFF4 migration, remove this, so that the order
+    # is reversed.
+    ns = sorted(ns, key=lambda x: x.timestamp)
+
+    return ApiListPendingUserNotificationsResult(
+        items=[ApiNotification().InitFromUserNotification(n) for n in ns])
+
+  def Handle(self, args, token=None):
+    """Fetches the pending notifications."""
+    if data_store.RelationalDBReadEnabled():
+      return self.HandleRelationalDB(args, token=token)
+    else:
+      return self.HandleLegacy(args, token=token)
+
 
 class ApiDeletePendingUserNotificationArgs(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiDeletePendingUserNotificationArgs
@@ -1543,14 +1655,25 @@ class ApiDeletePendingUserNotificationHandler(
 
   args_type = ApiDeletePendingUserNotificationArgs
 
-  def Handle(self, args, token=None):
-    """Deletes the notification from the pending notifications."""
+  def HandleLegacy(self, args, token=None):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
         aff4_type=aff4_users.GRRUser,
         mode="rw",
         token=token) as user_record:
       user_record.DeletePendingNotification(args.timestamp)
+
+  def HandleRelationalDB(self, args, token=None):
+    data_store.REL_DB.UpdateUserNotifications(
+        token.username, [args.timestamp],
+        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
+
+  def Handle(self, args, token=None):
+    """Deletes the notification from the pending notifications."""
+    if data_store.RelationalDBReadEnabled():
+      self.HandleRelationalDB(args, token=token)
+    else:
+      self.HandleLegacy(args, token=token)
 
 
 class ApiListAndResetUserNotificationsArgs(rdf_structs.RDFProtoStruct):
@@ -1571,9 +1694,7 @@ class ApiListAndResetUserNotificationsHandler(
   args_type = ApiListAndResetUserNotificationsArgs
   result_type = ApiListAndResetUserNotificationsResult
 
-  def Handle(self, args, token=None):
-    """Fetches the user notifications."""
-
+  def HandleLegacy(self, args, token=None):
     user_record = aff4.FACTORY.Open(
         aff4.ROOT_URN.Add("users").Add(token.username),
         aff4_type=aff4_users.GRRUser,
@@ -1609,6 +1730,43 @@ class ApiListAndResetUserNotificationsHandler(
 
     return ApiListAndResetUserNotificationsResult(
         items=result, total_count=total_count)
+
+  def HandleRelationalDB(self, args, token=None):
+    back_timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("180d")
+    ns = data_store.REL_DB.ReadUserNotifications(
+        token.username, timerange=(back_timestamp, None))
+
+    pending_timestamps = [
+        n.timestamp
+        for n in ns
+        if n.state == rdf_objects.UserNotification.State.STATE_PENDING
+    ]
+    data_store.REL_DB.UpdateUserNotifications(
+        token.username,
+        pending_timestamps,
+        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
+
+    total_count = len(ns)
+    if args.filter:
+      ns = [n for n in ns if args.filter.lower() in n.message.lower()]
+
+    if not args.count:
+      args.count = 50
+
+    start = args.offset
+    end = args.offset + args.count
+    return ApiListAndResetUserNotificationsResult(
+        items=[
+            ApiNotification().InitFromUserNotification(n) for n in ns[start:end]
+        ],
+        total_count=total_count)
+
+  def Handle(self, args, token=None):
+    """Fetches the user notifications."""
+    if data_store.RelationalDBReadEnabled():
+      return self.HandleRelationalDB(args, token=token)
+    else:
+      return self.HandleLegacy(args, token=token)
 
 
 class ApiListPendingGlobalNotificationsResult(rdf_structs.RDFProtoStruct):

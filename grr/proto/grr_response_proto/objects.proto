@@ -222,7 +222,6 @@ message FlowReference {
       description: "The session id of the referenced flow."
     }];
   optional string client_id = 2 [(sem_type) = {
-      type: "ClientURN",
       description: "The client id the referenced flow ran on."
     }];
 }

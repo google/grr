@@ -6685,8 +6685,8 @@
                         "type": "FlowReference",
                         "value": {
                           "client_id": {
-                            "type": "ClientURN",
-                            "value": "aff4:/C.1000000000000000"
+                            "type": "unicode",
+                            "value": "C.1000000000000000"
                           },
                           "flow_id": {
                             "type": "unicode",
@@ -6843,7 +6843,7 @@
             "hunt_name": "GenericHunt",
             "original_object": {
               "flow_reference": {
-                "client_id": "aff4:/C.1000000000000000",
+                "client_id": "C.1000000000000000",
                 "flow_id": "F:112233"
               },
               "object_type": "FLOW_REFERENCE"
@@ -7296,8 +7296,8 @@
                     "type": "FlowReference",
                     "value": {
                       "client_id": {
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1111111111111111"
+                        "type": "unicode",
+                        "value": "C.1111111111111111"
                       },
                       "flow_id": {
                         "type": "unicode",
@@ -7422,7 +7422,7 @@
           "hunt_name": "GenericHunt",
           "original_object": {
             "flow_reference": {
-              "client_id": "aff4:/C.1111111111111111",
+              "client_id": "C.1111111111111111",
               "flow_id": "F:332211"
             },
             "object_type": "FLOW_REFERENCE"
@@ -12766,23 +12766,31 @@
               },
               "message": {
                 "type": "unicode",
-                "value": "Host-0: <some other message>"
+                "value": "Host-0.example.com: <some other message>"
+              },
+              "notification_type": {
+                "type": "EnumNamedValue",
+                "value": "TYPE_VFS_FILE_COLLECTION_FAILED"
               },
               "reference": {
                 "type": "ApiNotificationReference",
                 "value": {
-                  "discovery": {
-                    "type": "ApiNotificationDiscoveryReference",
+                  "type": {
+                    "type": "EnumNamedValue",
+                    "value": "VFS"
+                  },
+                  "vfs": {
+                    "type": "ApiNotificationVfsReference",
                     "value": {
                       "client_id": {
                         "type": "ApiClientId",
                         "value": "C.1000000000000000"
+                      },
+                      "vfs_path": {
+                        "type": "unicode",
+                        "value": "fs/os/foo"
                       }
                     }
-                  },
-                  "type": {
-                    "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
                   }
                 }
               },
@@ -12801,13 +12809,17 @@
               },
               "message": {
                 "type": "unicode",
-                "value": "Host-0: <some message>"
+                "value": "Host-0.example.com: <some message>"
+              },
+              "notification_type": {
+                "type": "EnumNamedValue",
+                "value": "TYPE_CLIENT_INTERROGATED"
               },
               "reference": {
                 "type": "ApiNotificationReference",
                 "value": {
-                  "discovery": {
-                    "type": "ApiNotificationDiscoveryReference",
+                  "client": {
+                    "type": "ApiNotificationClientReference",
                     "value": {
                       "client_id": {
                         "type": "ApiClientId",
@@ -12817,7 +12829,7 @@
                   },
                   "type": {
                     "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
+                    "value": "CLIENT"
                   }
                 }
               },
@@ -12835,23 +12847,26 @@
         "items": [
           {
             "is_pending": true,
-            "message": "Host-0: <some other message>",
+            "message": "Host-0.example.com: <some other message>",
+            "notification_type": "TYPE_VFS_FILE_COLLECTION_FAILED",
             "reference": {
-              "discovery": {
-                "client_id": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
+              "type": "VFS",
+              "vfs": {
+                "client_id": "C.1000000000000000",
+                "vfs_path": "fs/os/foo"
+              }
             },
             "timestamp": 44000000
           },
           {
             "is_pending": true,
-            "message": "Host-0: <some message>",
+            "message": "Host-0.example.com: <some message>",
+            "notification_type": "TYPE_CLIENT_INTERROGATED",
             "reference": {
-              "discovery": {
+              "client": {
                 "client_id": "C.1000000000000000"
               },
-              "type": "DISCOVERY"
+              "type": "CLIENT"
             },
             "timestamp": 42000000
           }
@@ -12878,13 +12893,17 @@
               },
               "message": {
                 "type": "unicode",
-                "value": "Host-0: <some message>"
+                "value": "Host-0.example.com: <some message>"
+              },
+              "notification_type": {
+                "type": "EnumNamedValue",
+                "value": "TYPE_CLIENT_INTERROGATED"
               },
               "reference": {
                 "type": "ApiNotificationReference",
                 "value": {
-                  "discovery": {
-                    "type": "ApiNotificationDiscoveryReference",
+                  "client": {
+                    "type": "ApiNotificationClientReference",
                     "value": {
                       "client_id": {
                         "type": "ApiClientId",
@@ -12894,7 +12913,7 @@
                   },
                   "type": {
                     "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
+                    "value": "CLIENT"
                   }
                 }
               },
@@ -12912,12 +12931,13 @@
         "items": [
           {
             "is_pending": false,
-            "message": "Host-0: <some message>",
+            "message": "Host-0.example.com: <some message>",
+            "notification_type": "TYPE_CLIENT_INTERROGATED",
             "reference": {
-              "discovery": {
+              "client": {
                 "client_id": "C.1000000000000000"
               },
-              "type": "DISCOVERY"
+              "type": "CLIENT"
             },
             "timestamp": 42000000
           }
@@ -12943,23 +12963,31 @@
               },
               "message": {
                 "type": "unicode",
-                "value": "Host-0: <some other message>"
+                "value": "Host-0.example.com: <some other message>"
+              },
+              "notification_type": {
+                "type": "EnumNamedValue",
+                "value": "TYPE_VFS_FILE_COLLECTION_FAILED"
               },
               "reference": {
                 "type": "ApiNotificationReference",
                 "value": {
-                  "discovery": {
-                    "type": "ApiNotificationDiscoveryReference",
+                  "type": {
+                    "type": "EnumNamedValue",
+                    "value": "VFS"
+                  },
+                  "vfs": {
+                    "type": "ApiNotificationVfsReference",
                     "value": {
                       "client_id": {
                         "type": "ApiClientId",
                         "value": "C.1000000000000000"
+                      },
+                      "vfs_path": {
+                        "type": "unicode",
+                        "value": "fs/os/foo"
                       }
                     }
-                  },
-                  "type": {
-                    "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
                   }
                 }
               },
@@ -12977,12 +13005,14 @@
         "items": [
           {
             "is_pending": false,
-            "message": "Host-0: <some other message>",
+            "message": "Host-0.example.com: <some other message>",
+            "notification_type": "TYPE_VFS_FILE_COLLECTION_FAILED",
             "reference": {
-              "discovery": {
-                "client_id": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
+              "type": "VFS",
+              "vfs": {
+                "client_id": "C.1000000000000000",
+                "vfs_path": "fs/os/foo"
+              }
             },
             "timestamp": 44000000
           }
@@ -18556,13 +18586,17 @@
               },
               "message": {
                 "type": "unicode",
-                "value": "Host-0: <some message>"
+                "value": "Host-0.example.com: <some message>"
+              },
+              "notification_type": {
+                "type": "EnumNamedValue",
+                "value": "TYPE_CLIENT_INTERROGATED"
               },
               "reference": {
                 "type": "ApiNotificationReference",
                 "value": {
-                  "discovery": {
-                    "type": "ApiNotificationDiscoveryReference",
+                  "client": {
+                    "type": "ApiNotificationClientReference",
                     "value": {
                       "client_id": {
                         "type": "ApiClientId",
@@ -18572,7 +18606,7 @@
                   },
                   "type": {
                     "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
+                    "value": "CLIENT"
                   }
                 }
               },
@@ -18591,23 +18625,31 @@
               },
               "message": {
                 "type": "unicode",
-                "value": "Host-0: <some other message>"
+                "value": "Host-0.example.com: <some other message>"
+              },
+              "notification_type": {
+                "type": "EnumNamedValue",
+                "value": "TYPE_VFS_FILE_COLLECTION_FAILED"
               },
               "reference": {
                 "type": "ApiNotificationReference",
                 "value": {
-                  "discovery": {
-                    "type": "ApiNotificationDiscoveryReference",
+                  "type": {
+                    "type": "EnumNamedValue",
+                    "value": "VFS"
+                  },
+                  "vfs": {
+                    "type": "ApiNotificationVfsReference",
                     "value": {
                       "client_id": {
                         "type": "ApiClientId",
                         "value": "C.1000000000000000"
+                      },
+                      "vfs_path": {
+                        "type": "unicode",
+                        "value": "fs/os/foo"
                       }
                     }
-                  },
-                  "type": {
-                    "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
                   }
                 }
               },
@@ -18624,23 +18666,26 @@
         "items": [
           {
             "is_pending": true,
-            "message": "Host-0: <some message>",
+            "message": "Host-0.example.com: <some message>",
+            "notification_type": "TYPE_CLIENT_INTERROGATED",
             "reference": {
-              "discovery": {
+              "client": {
                 "client_id": "C.1000000000000000"
               },
-              "type": "DISCOVERY"
+              "type": "CLIENT"
             },
             "timestamp": 42000000
           },
           {
             "is_pending": true,
-            "message": "Host-0: <some other message>",
+            "message": "Host-0.example.com: <some other message>",
+            "notification_type": "TYPE_VFS_FILE_COLLECTION_FAILED",
             "reference": {
-              "discovery": {
-                "client_id": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
+              "type": "VFS",
+              "vfs": {
+                "client_id": "C.1000000000000000",
+                "vfs_path": "fs/os/foo"
+              }
             },
             "timestamp": 44000000
           }
@@ -18662,23 +18707,31 @@
               },
               "message": {
                 "type": "unicode",
-                "value": "Host-0: <some other message>"
+                "value": "Host-0.example.com: <some other message>"
+              },
+              "notification_type": {
+                "type": "EnumNamedValue",
+                "value": "TYPE_VFS_FILE_COLLECTION_FAILED"
               },
               "reference": {
                 "type": "ApiNotificationReference",
                 "value": {
-                  "discovery": {
-                    "type": "ApiNotificationDiscoveryReference",
+                  "type": {
+                    "type": "EnumNamedValue",
+                    "value": "VFS"
+                  },
+                  "vfs": {
+                    "type": "ApiNotificationVfsReference",
                     "value": {
                       "client_id": {
                         "type": "ApiClientId",
                         "value": "C.1000000000000000"
+                      },
+                      "vfs_path": {
+                        "type": "unicode",
+                        "value": "fs/os/foo"
                       }
                     }
-                  },
-                  "type": {
-                    "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
                   }
                 }
               },
@@ -18695,12 +18748,14 @@
         "items": [
           {
             "is_pending": true,
-            "message": "Host-0: <some other message>",
+            "message": "Host-0.example.com: <some other message>",
+            "notification_type": "TYPE_VFS_FILE_COLLECTION_FAILED",
             "reference": {
-              "discovery": {
-                "client_id": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
+              "type": "VFS",
+              "vfs": {
+                "client_id": "C.1000000000000000",
+                "vfs_path": "fs/os/foo"
+              }
             },
             "timestamp": 44000000
           }

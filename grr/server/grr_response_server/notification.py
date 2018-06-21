@@ -15,8 +15,14 @@ def _HostPrefix(client_id):
   if not client_id:
     return ""
 
-  client_fd = aff4.FACTORY.Open(client_id, mode="rw")
-  hostname = client_fd.Get(client_fd.Schema.HOSTNAME) or ""
+  hostname = None
+  if data_store.RelationalDBReadEnabled():
+    client_snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
+    if client_snapshot:
+      hostname = client_snapshot.knowledge_base.fqdn
+  else:
+    client_fd = aff4.FACTORY.Open(client_id, mode="rw")
+    hostname = client_fd.Get(client_fd.Schema.FQDN) or ""
 
   if hostname:
     return "%s: " % hostname
@@ -88,16 +94,14 @@ def _MapLegacyArgs(nt, message, ref):
   elif nt == unt.TYPE_VFS_FILE_COLLECTED:
     return [
         "ViewObject",
-        aff4.ROOT_URN.Add(ref.vfs_file.client_id).Add("fs").Add(
-            ref.vfs_file.path_type.name.lower()).Add("/".join(
-                ref.vfs_file.path_components)),
+        ref.vfs_file.ToURN(),
         _HostPrefix(ref.vfs_file.client_id) + message,
         "",
     ]
   elif nt == unt.TYPE_VFS_FILE_COLLECTION_FAILED:
     return [
         "ViewObject",
-        aff4.ROOT_URN.Add(ref.vfs_file.client_id),
+        ref.vfs_file.ToURN(),
         _HostPrefix(ref.vfs_file.client_id) + message,
         "",
     ]
@@ -126,7 +130,7 @@ def _MapLegacyArgs(nt, message, ref):
   elif nt == unt.TYPE_FLOW_RUN_COMPLETED:
     urn = None
     if ref.flow and ref.flow.client_id and ref.flow.flow_id:
-      urn = aff4.ROOT_URN.Add(ref.flow.client_id.Basename()).Add("flows").Add(
+      urn = aff4.ROOT_URN.Add(ref.flow.client_id).Add("flows").Add(
           ref.flow.flow_id)
     return [
         "ViewObject",
@@ -145,8 +149,8 @@ def _MapLegacyArgs(nt, message, ref):
         prefix = _HostPrefix(client_id)
 
         if ref.flow.flow_id:
-          urn = aff4.ROOT_URN.Add(
-              ref.flow.client_id.Basename()).Add("flows").Add(ref.flow.flow_id)
+          urn = aff4.ROOT_URN.Add(ref.flow.client_id).Add("flows").Add(
+              ref.flow.flow_id)
 
     return [
         "FlowStatus",
@@ -157,18 +161,14 @@ def _MapLegacyArgs(nt, message, ref):
   elif nt == unt.TYPE_VFS_LIST_DIRECTORY_COMPLETED:
     return [
         "ViewObject",
-        aff4.ROOT_URN.Add(ref.vfs_file.client_id).Add("fs").Add(
-            ref.vfs_file.path_type.name.lower()).Add("/".join(
-                ref.vfs_file.path_components)),
+        ref.vfs_file.ToURN(),
         message,
         "",
     ]
   elif nt == unt.TYPE_VFS_RECURSIVE_LIST_DIRECTORY_COMPLETED:
     return [
         "ViewObject",
-        aff4.ROOT_URN.Add(ref.vfs_file.client_id).Add("fs").Add(
-            ref.vfs_file.path_type.name.lower()).Add("/".join(
-                ref.vfs_file.path_components)),
+        ref.vfs_file.ToURN(),
         message,
         "",
     ]
@@ -186,6 +186,7 @@ def _NotifyLegacy(username, notification_type, message, object_reference):
         mode="rw") as fd:
 
       args = _MapLegacyArgs(notification_type, message, object_reference)
+      args[0] += ":%s" % notification_type
       fd.Notify(*args)
 
   except aff4.InstantiationError:
@@ -194,6 +195,11 @@ def _NotifyLegacy(username, notification_type, message, object_reference):
 
 def _Notify(username, notification_type, message, object_reference):
   """Schedules a new-style REL_DB user notification."""
+
+  if object_reference:
+    uc = object_reference.UnionCast()
+    if hasattr(uc, "client_id"):
+      message = _HostPrefix(uc.client_id) + message
 
   n = rdf_objects.UserNotification(
       username=username,

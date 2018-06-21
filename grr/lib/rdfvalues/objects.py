@@ -5,6 +5,7 @@ This package contains the rdfvalue wrappers around the top level datastore
 objects defined by objects.proto.
 """
 import hashlib
+import os
 import re
 import stat
 
@@ -473,17 +474,46 @@ class CronJobReference(structs.RDFProtoStruct):
 
 class FlowReference(structs.RDFProtoStruct):
   protobuf = objects_pb2.FlowReference
-  rdf_deps = [
-      rdf_client.ClientURN,
-  ]
+  rdf_deps = []
 
   def ToFlowURN(self):
-    return self.client_id.Add("flows").Add(self.flow_id)
+    return rdfvalue.RDFURN(self.client_id).Add("flows").Add(self.flow_id)
 
 
 class VfsFileReference(structs.RDFProtoStruct):
+  """Object reference pointing to a VFS file."""
+
   protobuf = objects_pb2.VfsFileReference
   rdf_deps = []
+
+  def ToURN(self):
+    """Converts a reference into an URN."""
+
+    if self.path_type in [PathInfo.PathType.OS, PathInfo.PathType.TSK]:
+      return rdfvalue.RDFURN(self.client_id).Add("fs").Add(
+          self.path_type.name.lower()).Add("/".join(self.path_components))
+    elif self.path_type == PathInfo.PathType.REGISTRY:
+      return rdfvalue.RDFURN(self.client_id).Add("registry").Add("/".join(
+          self.path_components))
+    elif self.path_type == PathInfo.PathType.TEMP:
+      return rdfvalue.RDFURN(self.client_id).Add("temp").Add("/".join(
+          self.path_components))
+
+    raise ValueError("Unsupported path type: %s" % self.path_type)
+
+  def ToPath(self):
+    """Converts a reference into a VFS file path."""
+
+    if self.path_type == PathInfo.PathType.OS:
+      return os.path.join("fs", "os", *self.path_components)
+    elif self.path_type == PathInfo.PathType.TSK:
+      return os.path.join("fs", "tsk", *self.path_components)
+    elif self.path_type == PathInfo.PathType.REGISTRY:
+      return os.path.join("registry", *self.path_components)
+    elif self.path_type == PathInfo.PathType.TEMP:
+      return os.path.join("temp", *self.path_components)
+
+    raise ValueError("Unsupported path type: %s" % self.path_type)
 
 
 class ApprovalRequestReference(structs.RDFProtoStruct):

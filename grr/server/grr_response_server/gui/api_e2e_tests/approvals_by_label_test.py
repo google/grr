@@ -7,6 +7,7 @@ import os
 from grr_api_client import errors as grr_api_errors
 from grr.lib import flags
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.aff4_objects import aff4_grr
@@ -14,6 +15,7 @@ from grr.server.grr_response_server.authorization import client_approval_auth
 from grr.server.grr_response_server.gui import api_auth_manager
 from grr.server.grr_response_server.gui import api_call_router_with_approval_checks
 from grr.server.grr_response_server.gui import api_e2e_test_lib
+from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.gui import webauth
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
@@ -52,6 +54,10 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
     self.client_prod_id = self.SetupTestClientObject(
         2, labels=["legal_approval", "prod_admin_approval"]).client_id
 
+  def TouchFile(self, client_id, path):
+    gui_test_lib.CreateFileVersion(
+        client_id=client_id, path=path, token=self.token)
+
   def setUp(self):
     super(ApprovalByLabelE2ETest, self).setUp()
 
@@ -86,6 +92,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
     self.approver.Stop()
 
   def testClientNoLabels(self):
+    self.TouchFile(rdf_client.ClientURN(self.client_nolabel_id), "fs/os/foo")
+
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
         self.api.Client(self.client_nolabel_id).File("fs/os/foo").Get)
@@ -100,6 +108,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   def testClientApprovalSingleLabel(self):
     """Client requires an approval from a member of "legal_approval"."""
+    self.TouchFile(rdf_client.ClientURN(self.client_legal_id), "fs/os/foo")
+
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
         self.api.Client(self.client_legal_id).File("fs/os/foo").Get)
@@ -129,6 +139,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
     This client requires one legal and two prod admin approvals. The requester
     must also be in the prod admin group.
     """
+    self.TouchFile(rdf_client.ClientURN(self.client_prod_id), "fs/os/foo")
+
     self.token.username = "prod1"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
@@ -183,6 +195,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   def testClientApprovalMultiLabelCheckRequester(self):
     """Requester must be listed as prod_admin_approval in approvals.yaml."""
+    self.TouchFile(rdf_client.ClientURN(self.client_prod_id), "fs/os/foo")
+
     # No approvals yet, this should fail.
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,

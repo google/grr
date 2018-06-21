@@ -63,8 +63,8 @@ describe('User desktop notifications directive', () => {
            'reference': {
              'type': 'ApiNotificationReference',
              'value': {
-               'discovery': {
-                 'type': 'ApiNotificationDiscoveryReference',
+               'client': {
+                 'type': 'ApiNotificationClientReference',
                  'value': {
                    'client_id': {
                      'type': 'ClientURN',
@@ -74,7 +74,7 @@ describe('User desktop notifications directive', () => {
                },
                'type': {
                  'type': 'EnumNamedValue',
-                 'value': 'DISCOVERY',
+                 'value': 'CLIENT',
                },
              }
            },
@@ -109,8 +109,8 @@ describe('User desktop notifications directive', () => {
            'reference': {
              'type': 'ApiNotificationReference',
              'value': {
-               'discovery': {
-                 'type': 'ApiNotificationDiscoveryReference',
+               'client': {
+                 'type': 'ApiNotificationClientReference',
                  'value': {
                    'client_id': {
                      'type': 'ClientURN',
@@ -120,7 +120,7 @@ describe('User desktop notifications directive', () => {
                },
                'type': {
                  'type': 'EnumNamedValue',
-                 'value': 'DISCOVERY',
+                 'value': 'CLIENT',
                },
              }
            },
@@ -185,8 +185,8 @@ describe('User desktop notifications directive', () => {
              'reference': {
                'type': 'ApiNotificationReference',
                'value': {
-                 'discovery': {
-                   'type': 'ApiNotificationDiscoveryReference',
+                 'client': {
+                   'type': 'ApiNotificationClientReference',
                    'value': {
                      'client_id': {
                        'type': 'ClientURN',
@@ -196,7 +196,7 @@ describe('User desktop notifications directive', () => {
                  },
                  'type': {
                    'type': 'EnumNamedValue',
-                   'value': 'DISCOVERY',
+                   'value': 'CLIENT',
                  },
                }
              },

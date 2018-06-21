@@ -1027,7 +1027,11 @@ class MysqlDB(db_module.Database):
         ret.append(approval_request)
     return ret
 
-  def FindPathInfosByPathIDs(self, client_id, path_ids):
+  def FindPathInfoByPathID(self, client_id, path_type, path_ids,
+                           timestamp=None):
+    raise NotImplementedError()
+
+  def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
     """Returns path info records for a client."""
     raise NotImplementedError()
 
@@ -1061,7 +1065,11 @@ class MysqlDB(db_module.Database):
     cursor.execute(query, args)
 
   @WithTransaction(readonly=True)
-  def ReadUserNotifications(self, username, timerange=None, cursor=None):
+  def ReadUserNotifications(self,
+                            username,
+                            state=None,
+                            timerange=None,
+                            cursor=None):
     """Reads notifications scheduled for a user within a given timerange."""
 
     query = ("SELECT timestamp, notification_state, notification "
@@ -1069,7 +1077,11 @@ class MysqlDB(db_module.Database):
              "WHERE username=%s ")
     args = [username]
 
-    if timerange:
+    if state is not None:
+      query += "AND notification_state = %s "
+      args.append(int(state))
+
+    if timerange is not None:
       time_from, time_to = timerange  # pylint: disable=unpacking-non-sequence
 
       if time_from is not None:

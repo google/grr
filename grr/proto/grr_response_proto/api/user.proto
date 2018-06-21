@@ -6,6 +6,7 @@ import "grr_response_proto/api/hunt.proto";
 import "grr_response_proto/api/client.proto";
 
 import "grr_response_proto/jobs.proto";
+import "grr_response_proto/objects.proto";
 import "grr_response_proto/semantic.proto";
 import "grr_response_proto/user.proto";
 
@@ -221,7 +222,8 @@ message ApiNotificationReference {
   };
 
   enum Type {
-    DISCOVERY = 0 [(description) = "Discovery"];
+    UNSET = 0;
+    CLIENT = 14 [(description) = "Client"];
     HUNT = 3 [(description) = "Hunt"];
     CRON = 4 [(description) = "Cron job"];
     FLOW = 5 [(description) = "Flow"];
@@ -234,7 +236,7 @@ message ApiNotificationReference {
 
   optional Type type = 1;
 
-  optional ApiNotificationDiscoveryReference discovery = 2;
+  optional ApiNotificationClientReference client = 2;
   optional ApiNotificationHuntReference hunt = 5;
   optional ApiNotificationCronReference cron = 6;
   optional ApiNotificationFlowReference flow = 7;
@@ -245,31 +247,28 @@ message ApiNotificationReference {
   optional ApiNotificationUnknownReference unknown = 14;
 }
 
-message ApiNotificationDiscoveryReference {
+message ApiNotificationClientReference {
   optional string client_id = 1 [(sem_type) = {
       type: "ApiClientId",
       description: "The client this notification is about."
     }];
 }
 
-message ApiNotificationFileDownloadReference {
-  optional string path = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The download path for the file."
-    }];
-}
-
 message ApiNotificationHuntReference {
-  optional string hunt_urn = 1 [(sem_type) = {
-      type: "RDFURN",
+  // DEPRECATED: hunt_urn
+  reserved 1;
+  optional string hunt_id = 2 [(sem_type) = {
+      type: "ApiHuntId",
       description: "The hunt this notification is about."
     }];
 }
 
 message ApiNotificationCronReference {
-  optional string cron_job_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The cron job this notification is about."
+  // DEPRECATED: cron_job_urn
+  reserved 1;
+  optional string cron_job_id = 2 [(sem_type) = {
+      type: "ApiCronJobId",
+      description: "Id of the referenced cron job."
     }];
 }
 
@@ -286,7 +285,6 @@ message ApiNotificationFlowReference {
 
 message ApiNotificationVfsReference {
   optional string vfs_path = 1 [(sem_type) = {
-      type: "RDFURN",
       description: "The cron job this notification is about."
     }];
   optional string client_id = 2 [(sem_type) = {
@@ -312,7 +310,9 @@ message ApiNotificationHuntApprovalReference {
 }
 
 message ApiNotificationCronJobApprovalReference {
-  optional string cron_job_id = 1;
+  optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId"
+    }];
   optional string approval_id = 2;
   optional string username = 3;
 }
@@ -326,16 +326,21 @@ message ApiNotificationUnknownReference {
     }];
 };
 
+// Next id: 6
 message ApiNotification {
   optional uint64 timestamp = 1 [(sem_type) = {
       type: "RDFDatetime",
       description: "Time the notification was added."
     }];
+  optional UserNotification.Type notification_type = 5 [(sem_type) = {
+      description: "Notification type."
+    }];
   optional string message = 2 [(sem_type) = {
       description: "The content message of this notification."
     }];
   optional ApiNotificationReference reference = 3 [(sem_type) = {
-      description: "The reference of the notification."
+      description: "Information about the object that this notification "
+      "references."
     }];
   optional bool is_pending = 4 [(sem_type) = {
       description: "Whether the notification is pending or not."

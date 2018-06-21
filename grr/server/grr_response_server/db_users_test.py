@@ -733,6 +733,39 @@ class DatabaseTestUsersMixin(object):
     self.assertEqual(ns[0].message, "n0")
     self.assertEqual(ns[1].message, "n1")
 
+  def testReadUserNotificationsWithStateFilter(self):
+    d = self.db
+    username = "test"
+
+    self._SetupUserNotificationTimerangeTest()
+
+    ns = d.ReadUserNotifications(
+        username, state=objects.UserNotification.State.STATE_NOT_PENDING)
+    self.assertEqual(len(ns), 0)
+
+    ns = d.ReadUserNotifications(
+        username, state=objects.UserNotification.State.STATE_PENDING)
+    self.assertEqual(len(ns), 2)
+
+  def testReadUserNotificationsWithStateAndTimerange(self):
+    d = self.db
+    username = "test"
+
+    ts = self._SetupUserNotificationTimerangeTest()
+
+    ns = d.ReadUserNotifications(
+        username,
+        timerange=(ts[0], ts[1]),
+        state=objects.UserNotification.State.STATE_NOT_PENDING)
+    self.assertEqual(len(ns), 0)
+
+    ns = d.ReadUserNotifications(
+        username,
+        timerange=(ts[0], ts[1]),
+        state=objects.UserNotification.State.STATE_PENDING)
+    self.assertEqual(len(ns), 1)
+    self.assertEqual(ns[0].message, "n0")
+
   def testUpdateUserNotificationsUpdatesState(self):
     d = self.db
     username = "test"

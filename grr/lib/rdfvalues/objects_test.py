@@ -17,7 +17,9 @@ def MakeClient():
   client = objects.ClientSnapshot(client_id="C.0000000000000000")
 
   base_pb = objects_pb2.ClientSnapshot()
-  text_format.Merge("""
+  # pylint: disable=line-too-long
+  text_format.Merge(
+      """
     os_release: "Ubuntu"
     os_version: "14.4"
     interfaces: {
@@ -60,6 +62,7 @@ def MakeClient():
       }
     }
     """, base_pb)
+  # pylint: enable=line-too-long
 
   client.ParseFromString(base_pb.SerializeToString())
   return client
@@ -482,6 +485,81 @@ class CategorizedPathTest(unittest.TestCase):
   def testSerializeIncorrectType(self):
     with self.assertRaisesRegexp(ValueError, "type"):
       objects.ToCategorizedPath("MEMORY", ["foo", "bar"])
+
+
+class VfsFileReferenceTest(unittest.TestCase):
+
+  def setUp(self):
+    super(VfsFileReferenceTest, self).setUp()
+    self.client_id = "C.0000000000000000"
+
+  def testOsPathIsConvertedToURNCorrectly(self):
+    v = objects.VfsFileReference(
+        client_id=self.client_id,
+        path_type="OS",
+        path_components=["a", "b", "c"])
+    self.assertEqual(v.ToURN(),
+                     rdfvalue.RDFURN("aff4:/%s/fs/os/a/b/c" % self.client_id))
+
+  def testTskPathIsConvertedToURNCorrectly(self):
+    v = objects.VfsFileReference(
+        client_id=self.client_id,
+        path_type="TSK",
+        path_components=["a", "b", "c"])
+    self.assertEqual(v.ToURN(),
+                     rdfvalue.RDFURN("aff4:/%s/fs/tsk/a/b/c" % self.client_id))
+
+  def testRegistryPathIsConvertedToURNCorrectly(self):
+    v = objects.VfsFileReference(
+        client_id=self.client_id,
+        path_type="REGISTRY",
+        path_components=["a", "b", "c"])
+    self.assertEqual(
+        v.ToURN(), rdfvalue.RDFURN("aff4:/%s/registry/a/b/c" % self.client_id))
+
+  def testTempPathIsConvertedToURNCorrectly(self):
+    v = objects.VfsFileReference(
+        client_id=self.client_id,
+        path_type="TEMP",
+        path_components=["a", "b", "c"])
+    self.assertEqual(v.ToURN(),
+                     rdfvalue.RDFURN("aff4:/%s/temp/a/b/c" % self.client_id))
+
+  def testConvertingPathToURNWithUnknownTypeRaises(self):
+    with self.assertRaises(ValueError):
+      objects.VfsFileReference().ToURN()
+
+  def testOsPathIsConvertedVfsPathStringCorrectly(self):
+    v = objects.VfsFileReference(
+        client_id=self.client_id,
+        path_type="OS",
+        path_components=["a", "b", "c"])
+    self.assertEqual(v.ToPath(), "fs/os/a/b/c")
+
+  def testTskPathIsConvertedVfsPathStringCorrectly(self):
+    v = objects.VfsFileReference(
+        client_id=self.client_id,
+        path_type="TSK",
+        path_components=["a", "b", "c"])
+    self.assertEqual(v.ToPath(), "fs/tsk/a/b/c")
+
+  def testRegistryPathIsConvertedVfsPathStringCorrectly(self):
+    v = objects.VfsFileReference(
+        client_id=self.client_id,
+        path_type="REGISTRY",
+        path_components=["a", "b", "c"])
+    self.assertEqual(v.ToPath(), "registry/a/b/c")
+
+  def testTempPathIsConvertedVfsPathStringCorrectly(self):
+    v = objects.VfsFileReference(
+        client_id=self.client_id,
+        path_type="TEMP",
+        path_components=["a", "b", "c"])
+    self.assertEqual(v.ToPath(), "temp/a/b/c")
+
+  def testConvertingPathVfsPathStringWithUnknownTypeRaises(self):
+    with self.assertRaises(ValueError):
+      objects.VfsFileReference().ToPath()
 
 
 if __name__ == "__main__":

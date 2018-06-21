@@ -1924,7 +1924,7 @@
             "huntName": "GenericHunt",
             "originalObject": {
               "flowReference": {
-                "clientId": "aff4:/C.1000000000000000",
+                "clientId": "C.1000000000000000",
                 "flowId": "F:112233"
               },
               "objectType": "FLOW_REFERENCE"
@@ -2262,7 +2262,7 @@
           "huntName": "GenericHunt",
           "originalObject": {
             "flowReference": {
-              "clientId": "aff4:/C.1111111111111111",
+              "clientId": "C.1111111111111111",
               "flowId": "F:332211"
             },
             "objectType": "FLOW_REFERENCE"
@@ -5364,23 +5364,26 @@
         "items": [
           {
             "isPending": true,
-            "message": "Host-0: <some other message>",
+            "message": "Host-0.example.com: <some other message>",
+            "notificationType": "TYPE_VFS_FILE_COLLECTION_FAILED",
             "reference": {
-              "discovery": {
-                "clientId": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
+              "type": "VFS",
+              "vfs": {
+                "clientId": "C.1000000000000000",
+                "vfsPath": "fs/os/foo"
+              }
             },
             "timestamp": "44000000"
           },
           {
             "isPending": true,
-            "message": "Host-0: <some message>",
+            "message": "Host-0.example.com: <some message>",
+            "notificationType": "TYPE_CLIENT_INTERROGATED",
             "reference": {
-              "discovery": {
+              "client": {
                 "clientId": "C.1000000000000000"
               },
-              "type": "DISCOVERY"
+              "type": "CLIENT"
             },
             "timestamp": "42000000"
           }
@@ -5401,12 +5404,13 @@
         "items": [
           {
             "isPending": false,
-            "message": "Host-0: <some message>",
+            "message": "Host-0.example.com: <some message>",
+            "notificationType": "TYPE_CLIENT_INTERROGATED",
             "reference": {
-              "discovery": {
+              "client": {
                 "clientId": "C.1000000000000000"
               },
-              "type": "DISCOVERY"
+              "type": "CLIENT"
             },
             "timestamp": "42000000"
           }
@@ -5426,12 +5430,14 @@
         "items": [
           {
             "isPending": false,
-            "message": "Host-0: <some other message>",
+            "message": "Host-0.example.com: <some other message>",
+            "notificationType": "TYPE_VFS_FILE_COLLECTION_FAILED",
             "reference": {
-              "discovery": {
-                "clientId": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
+              "type": "VFS",
+              "vfs": {
+                "clientId": "C.1000000000000000",
+                "vfsPath": "fs/os/foo"
+              }
             },
             "timestamp": "44000000"
           }
@@ -6991,23 +6997,26 @@
         "items": [
           {
             "isPending": true,
-            "message": "Host-0: <some message>",
+            "message": "Host-0.example.com: <some message>",
+            "notificationType": "TYPE_CLIENT_INTERROGATED",
             "reference": {
-              "discovery": {
+              "client": {
                 "clientId": "C.1000000000000000"
               },
-              "type": "DISCOVERY"
+              "type": "CLIENT"
             },
             "timestamp": "42000000"
           },
           {
             "isPending": true,
-            "message": "Host-0: <some other message>",
+            "message": "Host-0.example.com: <some other message>",
+            "notificationType": "TYPE_VFS_FILE_COLLECTION_FAILED",
             "reference": {
-              "discovery": {
-                "clientId": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
+              "type": "VFS",
+              "vfs": {
+                "clientId": "C.1000000000000000",
+                "vfsPath": "fs/os/foo"
+              }
             },
             "timestamp": "44000000"
           }
@@ -7023,12 +7032,14 @@
         "items": [
           {
             "isPending": true,
-            "message": "Host-0: <some other message>",
+            "message": "Host-0.example.com: <some other message>",
+            "notificationType": "TYPE_VFS_FILE_COLLECTION_FAILED",
             "reference": {
-              "discovery": {
-                "clientId": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
+              "type": "VFS",
+              "vfs": {
+                "clientId": "C.1000000000000000",
+                "vfsPath": "fs/os/foo"
+              }
             },
             "timestamp": "44000000"
           }

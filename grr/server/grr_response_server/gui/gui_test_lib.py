@@ -92,8 +92,11 @@ def CreateFileVersions(client_id, token):
       token=token)
 
 
-def CreateFileVersion(client_id, path, content, timestamp, token=None):
+def CreateFileVersion(client_id, path, content="", timestamp=None, token=None):
   """Add a new version for a file."""
+  if timestamp is None:
+    timestamp = rdfvalue.RDFDatetime.Now()
+
   with test_lib.FakeTime(timestamp):
     with aff4.FACTORY.Create(
         client_id.Add(path), aff4_type=aff4_grr.VFSFile, mode="w",
@@ -490,8 +493,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def _WaitForAjaxCompleted(self):
     self.WaitUntilEqual(
-        0, self.GetJavaScriptValue,
-        "return $('body').injector().get('$http').pendingRequests.length")
+        [], self.GetJavaScriptValue,
+        "return $('body').injector().get('$http').pendingRequests")
 
   @SeleniumAction
   def Type(self, target, text, end_with_enter=False):
@@ -565,9 +568,11 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     return len(self._FindElements(target))
 
   def WaitUntilEqual(self, target, condition_cb, *args):
+    condition_value = None
     for _ in xrange(int(self.duration / self.sleep_time)):
       try:
-        if condition_cb(*args) == target:
+        condition_value = condition_cb(*args)
+        if condition_value == target:
           return True
 
       # Raise in case of a test-related error (i.e. failing assertion).
@@ -580,8 +585,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
       time.sleep(self.sleep_time)
 
-    self.fail("condition not met, body is: %s" %
-              self.driver.find_element_by_tag_name("body").text)
+    self.fail("condition %s(%s) not met (expected=%s, got_last_time=%s)" %
+              (condition_cb, args, target, condition_value))
 
   def WaitUntilContains(self, target, condition_cb, *args):
     data = ""
@@ -726,6 +731,8 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
 
   def CreateGenericHuntWithCollection(self, values=None):
     self.client_ids = self.SetupClients(10)
+
+    CreateFileVersion(self.client_ids[0], "fs/os/c/bin/bash", token=self.token)
 
     if values is None:
       values = [

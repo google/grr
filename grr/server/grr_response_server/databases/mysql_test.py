@@ -191,6 +191,12 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testFindPathInfosByPathIDsNonExistent(self):
     pass
 
+  def testFindPathInfoByPathIDNonExistent(self):
+    pass
+
+  def testFindPathInfoByPathIDTimestamp(self):
+    pass
+
   def testWritePathInfosDuplicatedData(self):
     pass
 

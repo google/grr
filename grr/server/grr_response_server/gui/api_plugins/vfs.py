@@ -305,10 +305,11 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
       path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
 
-      # TODO(hanuszczak): Add support for timestamp-based filtering.
+      # TODO(hanuszczak): The tests passed even without support for timestamp
+      # filtering. The test suite should be probably improved in that regard.
       path_id = rdf_objects.PathID(components)
-      path_info = data_store.REL_DB.FindPathInfosByPathIDs(
-          str(args.client_id), path_type, [path_id])[path_id]
+      path_info = data_store.REL_DB.FindPathInfoByPathID(
+          str(args.client_id), path_type, path_id, timestamp=args.timestamp)
 
       if path_info:
         stat_entry = path_info.stat_entry
