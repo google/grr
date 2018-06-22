@@ -6,6 +6,7 @@ import random
 
 from grr.server.grr_response_server import db
 from grr.server.grr_response_server import db_clients_test
+from grr.server.grr_response_server import db_cronjob_test
 from grr.server.grr_response_server import db_events_test
 from grr.server.grr_response_server import db_foreman_rules_test
 from grr.server.grr_response_server import db_message_handler_test
@@ -15,6 +16,7 @@ from grr.server.grr_response_server import db_users_test
 
 class DatabaseTestMixin(
     db_clients_test.DatabaseTestClientsMixin,
+    db_cronjob_test.DatabaseTestCronjobMixin,
     db_events_test.DatabaseEventsTestMixin,
     db_foreman_rules_test.DatabaseTestForemanRulesMixin,
     db_message_handler_test.DatabaseTestHandlerMixin,

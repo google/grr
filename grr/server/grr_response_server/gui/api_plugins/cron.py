@@ -281,7 +281,7 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
     if not args.flow_runner_args.flow_name:
       args.flow_runner_args.flow_name = args.flow_name
 
-    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+    cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
         description=args.description,
         periodicity=args.periodicity,
         flow_runner_args=args.flow_runner_args,

@@ -56,19 +56,19 @@ class ApiListCronJobsHandlerRegressionTest(
           lifetime="1d",
           token=self.token)
 
-      with test_lib.FakeTime(230):
-        if data_store.RelationalDBReadEnabled():
-          data_store.REL_DB.UpdateCronJob(
-              cron_id,
-              last_run_time=rdfvalue.RDFDatetime.Now(),
-              last_run_status=rdf_cronjobs.CronJobRunStatus.Status.ERROR)
-        else:
-          cron_urn = cronjobs.GetCronManager().CRON_JOBS_PATH.Add(cron_id)
-          with aff4.FACTORY.OpenWithLock(cron_urn, token=self.token) as job:
-            job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime.Now()))
-            job.Set(
-                job.Schema.LAST_RUN_STATUS(
-                    status=rdf_cronjobs.CronJobRunStatus.Status.ERROR))
+    with test_lib.FakeTime(230):
+      if data_store.RelationalDBReadEnabled(category="cronjobs"):
+        data_store.REL_DB.UpdateCronJob(
+            cron_id,
+            last_run_time=rdfvalue.RDFDatetime.Now(),
+            last_run_status=rdf_cronjobs.CronJobRunStatus.Status.ERROR)
+      else:
+        cron_urn = cronjobs.GetCronManager().CRON_JOBS_PATH.Add(cron_id)
+        with aff4.FACTORY.OpenWithLock(cron_urn, token=self.token) as job:
+          job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime.Now()))
+          job.Set(
+              job.Schema.LAST_RUN_STATUS(
+                  status=rdf_cronjobs.CronJobRunStatus.Status.ERROR))
 
     self.Check("ListCronJobs", args=cron_plugin.ApiListCronJobsArgs())
 
@@ -126,7 +126,7 @@ class ApiListCronJobFlowsHandlerRegressionTest(
     super(ApiListCronJobFlowsHandlerRegressionTest, self).setUp()
 
     with test_lib.FakeTime(44):
-      cron_args = cronjobs.CreateCronJobFlowArgs(
+      cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
           periodicity="7d", lifetime="1d")
       cron_args.flow_runner_args.flow_name = self.flow_name
       cronjobs.GetCronManager().CreateJob(
@@ -162,7 +162,7 @@ class ApiGetCronJobFlowHandlerRegressionTest(
     self.flow_name = cron_system.GRRVersionBreakDown.__name__
 
     with test_lib.FakeTime(44):
-      cron_args = cronjobs.CreateCronJobFlowArgs(
+      cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
           periodicity="7d", lifetime="1d")
       cron_args.flow_runner_args.flow_name = self.flow_name
       cronjobs.GetCronManager().CreateJob(

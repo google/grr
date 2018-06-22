@@ -14,8 +14,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto import flows_pb2
 
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
@@ -29,26 +27,6 @@ from grr.server.grr_response_server import queue_manager
 
 class Error(Exception):
   pass
-
-
-class CreateCronJobFlowArgs(rdf_structs.RDFProtoStruct):
-  """Args to create a run for a cron job."""
-  protobuf = flows_pb2.CreateCronJobFlowArgs
-  rdf_deps = [
-      rdfvalue.Duration,
-      rdf_flows.FlowRunnerArgs,
-      rdfvalue.RDFDatetime,
-  ]
-
-  def GetFlowArgsClass(self):
-    if self.flow_runner_args.flow_name:
-      flow_cls = flow.GRRFlow.classes.get(self.flow_runner_args.flow_name)
-      if flow_cls is None:
-        raise ValueError("Flow '%s' not known by this implementation." %
-                         self.flow_runner_args.flow_name)
-
-      # The required protobuf for this class is in args_type.
-      return flow_cls.args_type
 
 
 class CronManager(object):
@@ -167,9 +145,20 @@ class CronManager(object):
       except aff4.LockError:
         pass
 
+  def DeleteRuns(self, job, age=None, token=None):
+    """Deletes flows initiated by the job that are older than specified."""
+    if age is None:
+      raise ValueError("age can't be None")
+
+    child_flows = list(job.ListChildren(age=age))
+    with queue_manager.QueueManager(token=token) as queuemanager:
+      queuemanager.MultiDestroyFlowStates(child_flows)
+
+    aff4.FACTORY.MultiDelete(child_flows, token=token)
+
 
 def GetCronManager():
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBReadEnabled(category="cronjobs"):
     return cronjobs.CronManager()
   return CronManager()
 
@@ -247,7 +236,7 @@ class StatefulSystemCronFlow(SystemCronFlow):
         return flow.AttributedDict()
 
       job_id = runner_args.base_session_id.Basename()
-      data_store.REL_DB.UpdateCronJob(job_id, cron_state=state)
+      data_store.REL_DB.UpdateCronJob(job_id, state=state)
       return
 
     try:
@@ -302,7 +291,7 @@ def ScheduleSystemCronFlows(names=None, token=None):
     cls = flow.GRRFlow.classes[name]
 
     if aff4.issubclass(cls, SystemCronFlow):
-      cron_args = CreateCronJobFlowArgs(periodicity=cls.frequency)
+      cron_args = rdf_cronjobs.CreateCronJobFlowArgs(periodicity=cls.frequency)
       cron_args.flow_runner_args.flow_name = name
       cron_args.lifetime = cls.lifetime
       cron_args.allow_overruns = cls.allow_overruns
@@ -313,8 +302,12 @@ def ScheduleSystemCronFlows(names=None, token=None):
       else:
         disabled = name in config.CONFIG["Cron.disabled_system_jobs"]
 
-      GetCronManager().CreateJob(
-          cron_args=cron_args, job_id=name, token=token, disabled=disabled)
+      manager = GetCronManager()
+      if data_store.RelationalDBReadEnabled():
+        manager.CreateJob(cron_args=cron_args, job_id=name, disabled=disabled)
+      else:
+        manager.CreateJob(
+            cron_args=cron_args, job_id=name, token=token, disabled=disabled)
 
   if errors:
     raise ValueError(
@@ -364,7 +357,8 @@ class CronJob(aff4.AFF4Volume):
 
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
     """Schema for CronJob AFF4 object."""
-    CRON_ARGS = aff4.Attribute("aff4:cron/args", CreateCronJobFlowArgs,
+    CRON_ARGS = aff4.Attribute("aff4:cron/args",
+                               rdf_cronjobs.CreateCronJobFlowArgs,
                                "This cron jobs' arguments.")
 
     DISABLED = aff4.Attribute(
@@ -401,17 +395,6 @@ class CronJob(aff4.AFF4Volume):
         "Cron flow state that is kept between iterations",
         lock_protected=True,
         versioned=False)
-
-  def DeleteRuns(self, age=None):
-    """Deletes flows initiated by the job that are older than specified."""
-    if age is None:
-      raise ValueError("age can't be None")
-
-    child_flows = list(self.ListChildren(age=age))
-    with queue_manager.QueueManager(token=self.token) as queuemanager:
-      queuemanager.MultiDestroyFlowStates(child_flows)
-
-    aff4.FACTORY.MultiDelete(child_flows, token=self.token)
 
   def IsRunning(self):
     """Returns True if there's a currently running iteration of this job."""

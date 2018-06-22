@@ -1052,6 +1052,23 @@ message CreateCronJobFlowArgs {
 
 }
 
+//TODO(amoser): This might be better suited for objects.proto but there is a
+//recursive dependency that is not easily broken.
+message CronJob {
+  optional string job_id = 1;
+  optional CreateCronJobFlowArgs cron_args = 2;
+  optional uint64 create_time = 3 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+  optional uint64 current_run_id = 4;
+  optional bool disabled = 5;
+  optional CronJobRunStatus.Status last_run_status = 6;
+  optional uint64 last_run_time = 7 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+  optional AttributedDict state = 8;
+}
+
 // Next field ID: 2
 message PlistValueFilterArgs {
   optional PlistRequest request = 1 [(sem_type) = {

@@ -288,6 +288,10 @@ class Dict(rdf_structs.RDFProtoStruct):
     self.dat = self._values.values()
     return super(Dict, self).GetRawData()
 
+  def _CopyRawData(self):
+    self.dat = self._values.values()
+    return super(Dict, self)._CopyRawData()
+
   def SetRawData(self, raw_data):
     super(Dict, self).SetRawData(raw_data)
     self._values = {}
@@ -376,9 +380,9 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
           self.Append(item)
       except TypeError:
         if initializer is not None:
-          raise rdfvalue.InitializeError("%s can not be initialized from %s" %
-                                         (self.__class__.__name__,
-                                          type(initializer)))
+          raise rdfvalue.InitializeError(
+              "%s can not be initialized from %s" % (self.__class__.__name__,
+                                                     type(initializer)))
 
   def Append(self, value=None, **kwarg):
     """Add another member to the array.

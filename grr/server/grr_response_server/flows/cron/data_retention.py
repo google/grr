@@ -59,9 +59,10 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
       self.Log("TTL not set - nothing to do...")
       return
 
-    for job in cronjobs.GetCronManager().ReadJobs(token=self.token):
+    manager = cronjobs.GetCronManager()
+    for job in manager.ReadJobs(token=self.token):
       age = rdfvalue.RDFDatetime.Now() - cron_jobs_ttl
-      job.DeleteRuns(age)
+      manager.DeleteRuns(job, age=age, token=self.token)
       self.HeartBeat()
 
 

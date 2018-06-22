@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """An in memory database implementation used for testing."""
 
-import copy
 import os
 import sys
 import threading
@@ -119,6 +118,7 @@ class InMemoryDB(db.Database):
     self.message_handler_leases = {}
     self.events = []
     self.cronjobs = {}
+    self.cronjob_leases = {}
     self.foreman_rules = []
 
   @utils.Synchronized
@@ -716,22 +716,26 @@ class InMemoryDB(db.Database):
 
   @utils.Synchronized
   def WriteCronJob(self, cronjob):
-    tmp = copy.copy(cronjob)
-    if cronjob.job_id in self.cronjobs:
-      tmp.start_time = self.cronjobs[cronjob.job_id].start_time
-    self.cronjobs[cronjob.job_id] = tmp
+    self.cronjobs[cronjob.job_id] = cronjob.Copy()
 
   @utils.Synchronized
   def ReadCronJobs(self, cronjob_ids=None):
     if cronjob_ids is None:
-      return [copy.copy(job) for job in self.cronjobs.values()]
+      res = [job.Copy() for job in self.cronjobs.values()]
 
-    res = []
-    for job_id in cronjob_ids:
-      try:
-        res.append(copy.copy(self.cronjobs[job_id]))
-      except KeyError:
-        raise db.UnknownCronjobError("Cron job with id %s not found." % job_id)
+    else:
+      res = []
+      for job_id in cronjob_ids:
+        try:
+          res.append(self.cronjobs[job_id].Copy())
+        except KeyError:
+          raise db.UnknownCronjobError(
+              "Cron job with id %s not found." % job_id)
+
+    for job in res:
+      lease = self.cronjob_leases.get(job.job_id)
+      if lease:
+        job.leased_until, job.leased_by = lease
     return res
 
   @utils.Synchronized
@@ -740,7 +744,7 @@ class InMemoryDB(db.Database):
                     last_run_status=db.Database.unchanged,
                     last_run_time=db.Database.unchanged,
                     current_run_id=db.Database.unchanged,
-                    cron_state=db.Database.unchanged):
+                    state=db.Database.unchanged):
     job = self.cronjobs.get(cronjob_id)
     if job is None:
       raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
@@ -751,8 +755,8 @@ class InMemoryDB(db.Database):
       job.last_run_time = last_run_time
     if current_run_id != db.Database.unchanged:
       job.current_run_id = current_run_id
-    if cron_state != db.Database.unchanged:
-      job.state = copy.copy(cron_state)
+    if state != db.Database.unchanged:
+      job.state = state
 
   @utils.Synchronized
   def EnableCronJob(self, cronjob_id):
@@ -773,6 +777,10 @@ class InMemoryDB(db.Database):
     if cronjob_id not in self.cronjobs:
       raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
     del self.cronjobs[cronjob_id]
+    try:
+      del self.cronjob_leases[cronjob_id]
+    except KeyError:
+      pass
 
   @utils.Synchronized
   def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):
@@ -782,29 +790,34 @@ class InMemoryDB(db.Database):
     expiration_time = now + lease_time
 
     for job in self.cronjobs.values():
-      existing_lease = job.leased_until
-      if existing_lease is None or existing_lease < now:
-        job.leased_until = expiration_time
-        job.leased_by = utils.ProcessIdString()
+      if cronjob_ids and job.job_id not in cronjob_ids:
+        continue
+      existing_lease = self.cronjob_leases.get(job.job_id)
+      if existing_lease is None or existing_lease[0] < now:
+        self.cronjob_leases[job.job_id] = (expiration_time,
+                                           utils.ProcessIdString())
+        job = job.Copy()
+        job.leased_until, job.leased_by = self.cronjob_leases[job.job_id]
         leased_jobs.append(job)
 
-    return [copy.copy(job) for job in leased_jobs]
+    return leased_jobs
 
   @utils.Synchronized
-  def ReturnLeasedCronJobs(self, cronjobs):
+  def ReturnLeasedCronJobs(self, jobs):
     errored_jobs = []
-    by_id = {job.job_id: job for job in cronjobs}
-    for job in self.cronjobs.values():
-      returned_job = by_id.get(job.job_id)
-      if returned_job is None:
+
+    for returned_job in jobs:
+      existing_lease = self.cronjob_leases.get(returned_job.job_id)
+      if existing_lease is None:
+        errored_jobs.append(returned_job)
         continue
 
-      if (returned_job.leased_by == job.leased_by and
-          returned_job.leased_until == job.leased_until):
-        job.leased_until = None
-        job.leased_by = None
-      else:
+      if (returned_job.leased_until != existing_lease[0] or
+          returned_job.leased_by != existing_lease[1]):
         errored_jobs.append(returned_job)
+        continue
+
+      del self.cronjob_leases[returned_job.job_id]
 
     if errored_jobs:
       raise ValueError("Some jobs could not be returned: %s" % ",".join(

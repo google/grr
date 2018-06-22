@@ -6,6 +6,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
 
+from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import access_control
@@ -594,7 +595,7 @@ class ApiCreateCronJobApprovalHandlerTest(
     self.SetUpApprovalTest()
 
     cron_manager = aff4_cronjobs.GetCronManager()
-    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+    cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
         periodicity="1d", allow_overruns=False)
     cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
@@ -617,7 +618,7 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
 
   def testRendersRequestedCronJobApproval(self):
     cron_manager = aff4_cronjobs.GetCronManager()
-    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+    cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
         periodicity="1d", allow_overruns=False)
     cron_job_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 

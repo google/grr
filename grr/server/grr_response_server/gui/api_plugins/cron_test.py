@@ -3,6 +3,7 @@
 
 
 from grr.lib import flags
+from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import flows as rdf_flows
 
 from grr.server.grr_response_server.aff4_objects import cronjobs
@@ -22,7 +23,7 @@ class CronJobsTestMixin(object):
                     description="",
                     disabled=False,
                     token=None):
-    cron_args = cronjobs.CreateCronJobFlowArgs(
+    cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
         periodicity=periodicity, lifetime=lifetime, description=description)
     cron_args.flow_runner_args.flow_name = flow_name
 

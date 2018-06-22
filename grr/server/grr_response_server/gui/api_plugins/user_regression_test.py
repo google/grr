@@ -4,6 +4,7 @@
 from grr.lib import flags
 from grr.lib import rdfvalue
 
+from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import aff4
@@ -439,7 +440,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
       self.CreateAdminUser("approver")
 
       cron_manager = aff4_cronjobs.GetCronManager()
-      cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+      cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
           periodicity="1d", allow_overruns=False)
       cron1_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
       cron2_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
@@ -491,7 +492,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
       self.CreateAdminUser("requestor")
 
       cron_manager = aff4_cronjobs.GetCronManager()
-      cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+      cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
           periodicity="1d", allow_overruns=False)
       cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
@@ -527,7 +528,7 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
       self.CreateUser("approver")
 
     cron_manager = aff4_cronjobs.GetCronManager()
-    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+    cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
         periodicity="1d", allow_overruns=False)
     cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 

@@ -811,7 +811,7 @@ class Database(object):
                     last_run_status=unchanged,
                     last_run_time=unchanged,
                     current_run_id=unchanged,
-                    cron_state=unchanged):
+                    state=unchanged):
     """Updates run information for an existing cron job.
 
     Args:
@@ -819,7 +819,7 @@ class Database(object):
       last_run_status: A CronJobRunStatus object.
       last_run_time: The last time a run was started for this cron job.
       current_run_id: The id of the currently active run.
-      cron_state: The state dict for stateful cron jobs.
+      state: The state dict for stateful cron jobs.
 
     Raises:
       UnknownCronjobError: A cron job with the given id does not exist.
@@ -840,11 +840,11 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def ReturnLeasedCronJobs(self, cronjobs):
+  def ReturnLeasedCronJobs(self, jobs):
     """Makes leased cron jobs available for leasing again.
 
     Args:
-      cronjobs: A list of leased cronjobs.
+      jobs: A list of leased cronjobs.
 
     Raises:
       ValueError: If not all of the cronjobs are leased.
@@ -1284,8 +1284,8 @@ class DatabaseValidationWrapper(Database):
   def ReadCronJob(self, cronjob_id):
     return self.delegate.ReadCronJob(cronjob_id)
 
-  def ReadCronJobs(self):
-    return self.delegate.ReadCronJobs()
+  def ReadCronJobs(self, cronjob_ids=None):
+    return self.delegate.ReadCronJobs(cronjob_ids=cronjob_ids)
 
   def EnableCronJob(self, cronjob_id):
     return self.delegate.EnableCronJob(cronjob_id)
@@ -1301,17 +1301,17 @@ class DatabaseValidationWrapper(Database):
                     last_run_status=Database.unchanged,
                     last_run_time=Database.unchanged,
                     current_run_id=Database.unchanged,
-                    cron_state=Database.unchanged):
+                    state=Database.unchanged):
     return self.delegate.UpdateCronJob(
         cronjob_id,
         last_run_status=last_run_status,
         last_run_time=last_run_time,
         current_run_id=current_run_id,
-        cron_state=cron_state)
+        state=state)
 
   def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):
     return self.delegate.LeaseCronJobs(
         cronjob_ids=cronjob_ids, lease_time=lease_time)
 
-  def ReturnLeasedCronJobs(self, cronjobs):
-    return self.delegate.ReturnLeasedCronJobs(cronjobs)
+  def ReturnLeasedCronJobs(self, jobs):
+    return self.delegate.ReturnLeasedCronJobs(jobs)

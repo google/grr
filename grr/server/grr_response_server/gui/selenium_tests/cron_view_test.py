@@ -41,7 +41,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         cron_system.GRRVersionBreakDown.__name__,
         cron_system.OSBreakDown.__name__, cron_system.LastAccessStats.__name__
     ]:
-      cron_args = cronjobs.CreateCronJobFlowArgs(
+      cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
           periodicity="7d", lifetime="1d")
       cron_args.flow_runner_args.flow_name = flow_name
       cronjobs.GetCronManager().CreateJob(

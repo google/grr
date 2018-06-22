@@ -44,6 +44,9 @@ class GRRWorker(object):
   SHORT_POLLING_INTERVAL = 0.3
   SHORT_POLL_TIME = 30
 
+  # Time in seconds to wait between trying to lease message handlers.
+  MH_LEASE_INTERVAL = 15
+
   # target maximum time to spend on RunOnce
   RUN_ONCE_MAX_SECONDS = 300
 
@@ -94,6 +97,7 @@ class GRRWorker(object):
 
     self.token = token
     self.last_active = 0
+    self.last_mh_lease_attempt = 0
 
     # Well known flows are just instantiated.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
@@ -106,12 +110,9 @@ class GRRWorker(object):
           processed = self.RunOnce()
         else:
           processed = 0
+          time.sleep(60)
 
         if processed == 0:
-          logger = logging.getLogger()
-          for h in logger.handlers:
-            h.flush()
-
           if time.time() - self.last_active > self.SHORT_POLL_TIME:
             interval = self.POLLING_INTERVAL
           else:
@@ -129,6 +130,9 @@ class GRRWorker(object):
     """Processes message handler requests."""
 
     if not data_store.RelationalDBReadEnabled(category="message_handlers"):
+      return 0
+
+    if time.time() - self.last_mh_lease_attempt < self.MH_LEASE_INTERVAL:
       return 0
 
     requests = data_store.REL_DB.LeaseMessageHandlerRequests(
@@ -168,9 +172,7 @@ class GRRWorker(object):
         Total number of messages processed by this call.
     """
     start_time = time.time()
-    processed = 0
-
-    processed += self._ProcessMessageHandlerRequests()
+    processed = self._ProcessMessageHandlerRequests()
 
     queue_manager = queue_manager_lib.QueueManager(token=self.token)
     for queue in self.queues:

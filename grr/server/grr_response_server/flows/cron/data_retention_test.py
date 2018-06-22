@@ -7,6 +7,7 @@ from grr import config
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
@@ -146,7 +147,7 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
     super(CleanCronJobsTest, self).setUp()
 
     with test_lib.FakeTime(40):
-      cron_args = cronjobs.CreateCronJobFlowArgs(
+      cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
           periodicity=RetentionTestSystemCronJob.frequency)
       cron_args.flow_runner_args.flow_name = RetentionTestSystemCronJob.__name__
       cron_args.lifetime = RetentionTestSystemCronJob.lifetime
