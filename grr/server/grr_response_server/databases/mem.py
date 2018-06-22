@@ -24,14 +24,19 @@ class _PathRecord(object):
     self._path_info = objects.PathInfo(
         path_type=path_type, components=components)
 
-    self._stat_entries = []
+    self._stat_entries = {}
+    self._hash_entries = {}
     self._children = set()
 
   def AddPathHistory(self, path_info):
     """Extends the path record history and updates existing information."""
     self.AddPathInfo(path_info)
-    self._stat_entries.append((rdfvalue.RDFDatetime.Now(),
-                               path_info.stat_entry))
+
+    timestamp = rdfvalue.RDFDatetime.Now()
+    if path_info.HasField("stat_entry"):
+      self._stat_entries[timestamp] = path_info.stat_entry
+    if path_info.HasField("hash_entry"):
+      self._hash_entries[timestamp] = path_info.hash_entry
 
   def AddPathInfo(self, path_info):
     """Updates existing path information of the path record."""
@@ -44,6 +49,7 @@ class _PathRecord(object):
       raise ValueError(
           message % (self._path_info.components, path_info.components))
 
+    self._path_info.timestamp = rdfvalue.RDFDatetime.Now()
     self._path_info.directory |= path_info.directory
 
   def AddChild(self, path_info):
@@ -68,30 +74,44 @@ class _PathRecord(object):
     Returns:
       A `rdf_objects.PathInfo` instance.
     """
-    if timestamp is None:
-      timestamp = rdfvalue.RDFDatetime.Now()
-
-    # We want to find last stat entry that has timestamp greater (or equal) to
-    # the given one.
-    result_stat_entry = None
-    for stat_entry_timestamp, stat_entry in self._stat_entries:
-      if timestamp < stat_entry_timestamp:
-        break
-
-      result_stat_entry = stat_entry
-
-    try:
-      last_path_history_timestamp, _ = self._stat_entries[-1]
-    except IndexError:
-      last_path_history_timestamp = None
-
     result = self._path_info.Copy()
-    result.stat_entry = result_stat_entry
-    result.last_path_history_timestamp = last_path_history_timestamp
+
+    stat_entry_timestamp = self._LastEntryTimestamp(self._stat_entries,
+                                                    timestamp)
+    result.last_stat_entry_timestamp = stat_entry_timestamp
+    result.stat_entry = self._stat_entries.get(stat_entry_timestamp)
+
+    hash_entry_timestamp = self._LastEntryTimestamp(self._hash_entries,
+                                                    timestamp)
+    result.last_hash_entry_timestamp = hash_entry_timestamp
+    result.hash_entry = self._hash_entries.get(hash_entry_timestamp)
+
     return result
 
   def GetChildren(self):
     return set(self._children)
+
+  @staticmethod
+  def _LastEntryTimestamp(collection, upper_bound_timestamp):
+    """Searches for greatest timestamp lower than the specified one.
+
+    Args:
+      collection: A dictionary from timestamps to some items.
+      upper_bound_timestamp: An upper bound for timestamp to be returned.
+
+    Returns:
+      Greatest timestamp that is lower than the specified one. If no such value
+      exists, `None` is returned.
+    """
+    if upper_bound_timestamp is None:
+      upper_bound_timestamp = rdfvalue.RDFDatetime.Now()
+
+    upper_bound = lambda key: key <= upper_bound_timestamp
+
+    try:
+      return max(filter(upper_bound, collection.keys()))
+    except ValueError:  # Thrown if `max` input (result of filtering) is empty.
+      return None
 
 
 class InMemoryDB(db.Database):

@@ -45,10 +45,8 @@ class GenericHuntArgs(rdf_structs.RDFProtoStruct):
 
   def GetFlowArgsClass(self):
     if self.flow_runner_args.flow_name:
-      flow_cls = flow.GRRFlow.classes.get(self.flow_runner_args.flow_name)
-      if flow_cls is None:
-        raise ValueError("Flow '%s' not known by this implementation." %
-                         self.flow_runner_args.flow_name)
+      flow_cls = registry.FlowRegistry.FlowClassByName(
+          self.flow_runner_args.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
@@ -470,10 +468,8 @@ class FlowRequest(rdf_structs.RDFProtoStruct):
 
   def GetFlowArgsClass(self):
     if self.runner_args.flow_name:
-      flow_cls = flow.GRRFlow.classes.get(self.runner_args.flow_name)
-      if flow_cls is None:
-        raise ValueError("Flow %s not known by this implementation." %
-                         self.runner_args.flow_name)
+      flow_cls = registry.FlowRegistry.FlowClassByName(
+          self.runner_args.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type

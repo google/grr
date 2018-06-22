@@ -2,13 +2,13 @@
 """RDFValues for cronjobs."""
 
 from grr.lib import rdfvalue
+from grr.lib import registry
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
-from grr.server.grr_response_server import flow
 
 
 class CronTabEntry(structs.RDFProtoStruct):
@@ -38,10 +38,8 @@ class CreateCronJobFlowArgs(structs.RDFProtoStruct):
 
   def GetFlowArgsClass(self):
     if self.flow_runner_args.flow_name:
-      flow_cls = flow.GRRFlow.classes.get(self.flow_runner_args.flow_name)
-      if flow_cls is None:
-        raise ValueError("Flow '%s' not known by this implementation." %
-                         self.flow_runner_args.flow_name)
+      flow_cls = registry.FlowRegistry.FlowClassByName(
+          self.flow_runner_args.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type

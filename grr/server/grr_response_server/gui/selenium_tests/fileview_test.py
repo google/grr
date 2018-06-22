@@ -153,6 +153,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilContains("a.txt", self.GetText, "css=div#main_bottomPane h1")
     self.WaitUntilContains("HEAD", self.GetText,
                            "css=.version-dropdown > option[selected]")
+
     self.WaitUntilContains(
         gui_test_lib.DateString(gui_test_lib.TIME_2), self.GetText,
         "css=.version-dropdown > option:nth(1)")

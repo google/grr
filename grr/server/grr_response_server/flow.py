@@ -380,6 +380,8 @@ LOGS_SUFFIX = "Logs"
 class FlowBase(aff4.AFF4Volume):
   """The base class for Flows and Hunts."""
 
+  __metaclass__ = registry.FlowRegistry
+
   # Alternatively we can specify a single semantic protobuf that will be used to
   # provide the args.
   args_type = EmptyFlowArgs
@@ -551,7 +553,9 @@ class FlowBase(aff4.AFF4Volume):
       sync = False
 
     # Is the required flow a known flow?
-    if runner_args.flow_name not in GRRFlow.classes:
+    try:
+      flow_cls = registry.FlowRegistry.FlowClassByName(runner_args.flow_name)
+    except ValueError:
       stats.STATS.IncrementCounter("grr_flow_invalid_flow_count")
       raise RuntimeError("Unable to locate flow %s" % runner_args.flow_name)
 
@@ -566,7 +570,6 @@ class FlowBase(aff4.AFF4Volume):
     # supports dates up to the year 3000.
     token.expiry = rdfvalue.RDFDatetime.FromHumanReadable("2997-01-01")
 
-    flow_cls = GRRFlow.classes.get(runner_args.flow_name)
     if flow_cls.category and not runner_args.client_id:
       raise RuntimeError("Flow with category (user-visible flow) has to be "
                          "started on a client, but runner_args.client_id "
@@ -1108,7 +1111,7 @@ class WellKnownFlow(GRRFlow):
   def GetAllWellKnownFlows(cls, token=None):
     """Get instances of all well known flows."""
     well_known_flows = {}
-    for cls in GRRFlow.classes.values():
+    for cls in registry.FlowRegistry.FLOW_REGISTRY.values():
       if aff4.issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
         well_known_flow = cls(cls.well_known_session_id, mode="rw", token=token)
         well_known_flows[cls.well_known_session_id.FlowName()] = well_known_flow

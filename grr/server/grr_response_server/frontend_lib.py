@@ -513,20 +513,6 @@ class FrontEndServer(object):
     # Publish the client enrollment message.
     events.Events.PublishEvent("ClientEnrollment", client_urn, token=self.token)
 
-  def RecordFleetspeakClientPing(self, client_id):
-    """Records the last client contact in the datastore."""
-    ping = rdfvalue.RDFDatetime.Now()
-    with aff4.FACTORY.Create(
-        rdf_client.ClientURN(client_id),
-        aff4_type=aff4_grr.VFSGRRClient,
-        mode="w",
-        token=self.token,
-        force_new_version=False) as client:
-      client.Set(client.Schema.PING, ping)
-
-    if data_store.RelationalDBWriteEnabled():
-      data_store.REL_DB.WriteClientMetadata(client_id, last_ping=ping)
-
   def ReceiveMessages(self, client_id, messages):
     """Receives and processes the messages from the source.
 

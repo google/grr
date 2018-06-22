@@ -165,6 +165,7 @@ message ApprovalGrant {
     }];
 }
 
+// Next field id: 9.
 message PathInfo {
   enum PathType {
     UNSET = 0;
@@ -175,10 +176,15 @@ message PathInfo {
   }
   optional PathType path_type = 1;
   repeated string components = 2;
-  optional uint64 last_path_history_timestamp = 3
+  optional uint64 timestamp = 8 [(sem_type) = { type: "RDFDatetime" }];
+  optional uint64 last_stat_entry_timestamp = 3
       [(sem_type) = { type: "RDFDatetime" }];
+  optional uint64 last_hash_entry_timestamp = 7 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
   optional bool directory = 4;
   optional StatEntry stat_entry = 5;
+  optional Hash hash_entry = 6;
 }
 
 message ObjectReference {

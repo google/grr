@@ -68,7 +68,6 @@ class GRRFSServer(object):
     msg.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
     self.frontend.EnrolFleetspeakClient(client_id=grr_id)
-    self.frontend.RecordFleetspeakClientPing(client_id=grr_id)
     self.frontend.ReceiveMessages(client_id=grr_id, messages=[msg])
 
   def _ProcessMessageList(self, fs_msg):
@@ -84,7 +83,6 @@ class GRRFSServer(object):
       msg.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
     self.frontend.EnrolFleetspeakClient(client_id=grr_id)
-    self.frontend.RecordFleetspeakClientPing(client_id=grr_id)
     self.frontend.ReceiveMessages(client_id=grr_id, messages=msg_list.job)
 
 

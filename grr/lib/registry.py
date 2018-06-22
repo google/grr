@@ -99,6 +99,26 @@ class EventRegistry(MetaclassRegistry):
       EventRegistry.EVENT_NAME_MAP.setdefault(ev, set()).add(cls)
 
 
+class FlowRegistry(MetaclassRegistry):
+  """A dedicated registry that only contains flows."""
+
+  FLOW_REGISTRY = {}
+
+  def __init__(cls, name, bases, env_dict):
+    MetaclassRegistry.__init__(cls, name, bases, env_dict)
+
+    cls.FLOW_REGISTRY[name] = cls
+
+  @classmethod
+  def FlowClassByName(mcs, flow_name):
+    flow_cls = mcs.FLOW_REGISTRY.get(flow_name)
+    if flow_cls is None:
+      raise ValueError(
+          "Flow '%s' not known by this implementation." % flow_name)
+
+    return flow_cls
+
+
 # Utility functions
 class HookRegistry(object):
   """An initializer that can be extended by plugins.

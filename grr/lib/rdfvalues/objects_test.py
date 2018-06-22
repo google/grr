@@ -381,40 +381,40 @@ class PathInfoTest(unittest.TestCase):
   def testMergePathInfoLastUpdate(self):
     components = ["usr", "local", "bin"]
     dest = objects.PathInfo(components=components)
-    self.assertIsNone(dest.last_path_history_timestamp)
+    self.assertIsNone(dest.last_stat_entry_timestamp)
 
     dest.UpdateFrom(
         objects.PathInfo(
             components=components,
-            last_path_history_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
+            last_stat_entry_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
                 "2017-01-01")))
-    self.assertEqual(dest.last_path_history_timestamp,
+    self.assertEqual(dest.last_stat_entry_timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"))
 
-    # Merging in a record without last_path_history_timestamp shouldn't change
+    # Merging in a record without last_stat_entry_timestamp shouldn't change
     # it.
     dest.UpdateFrom(objects.PathInfo(components=components))
-    self.assertEqual(dest.last_path_history_timestamp,
+    self.assertEqual(dest.last_stat_entry_timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"))
 
-    # Merging in a record with an earlier last_path_history_timestamp shouldn't
+    # Merging in a record with an earlier last_stat_entry_timestamp shouldn't
     # change it.
     dest.UpdateFrom(
         objects.PathInfo(
             components=components,
-            last_path_history_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
+            last_stat_entry_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
                 "2016-01-01")))
-    self.assertEqual(dest.last_path_history_timestamp,
+    self.assertEqual(dest.last_stat_entry_timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"))
 
-    # Merging in a record with a later last_path_history_timestamp should change
+    # Merging in a record with a later last_stat_entry_timestamp should change
     # it.
     dest.UpdateFrom(
         objects.PathInfo(
             components=components,
-            last_path_history_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
+            last_stat_entry_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
                 "2018-01-01")))
-    self.assertEqual(dest.last_path_history_timestamp,
+    self.assertEqual(dest.last_stat_entry_timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("2018-01-01"))
 
 

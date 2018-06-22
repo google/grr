@@ -4,6 +4,10 @@
 
 set -e
 
+# API token for account belonging to username 'grr'.
+# See 'https://ci.appveyor.com/api-token'
+readonly APPVEYOR_TOKEN='3nsovp2rs3o7j272awfv'
+
 function delete_gcs_keys() {
   if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     shred -u travis/travis_uploader_service_account.json
@@ -61,4 +65,14 @@ delete_gcs_keys
 
 # Trigger build of a new GRR Docker image (grrdocker/grr)
 # See https://hub.docker.com/r/grrdocker/grr/~/settings/automated-builds/
-curl -H "Content-Type: application/json" --data '{"docker_tag": "latest"}' -X POST https://registry.hub.docker.com/u/grrdocker/grr/trigger/4499c4d4-4a8b-48da-bc95-5dbab39be545/
+curl --header 'Content-Type: application/json' \
+  --data '{"docker_tag": "latest"}' \
+  --request POST \
+  https://registry.hub.docker.com/u/grrdocker/grr/trigger/4499c4d4-4a8b-48da-bc95-5dbab39be545/
+
+# Run end-to-end tests on the server deb.
+curl --header "Authorization: Bearer ${APPVEYOR_TOKEN}" \
+  --header 'Content-Type: application/json' \
+  --data '{"accountName":"grr", "projectSlug": "grr"}' \
+  --request POST \
+  https://ci.appveyor.com/api/builds

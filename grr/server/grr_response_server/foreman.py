@@ -4,9 +4,9 @@
 import logging
 
 from grr.lib import rdfvalue
+from grr.lib import registry
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
 
 
 def GetForeman(token=None):
@@ -53,7 +53,7 @@ class Foreman(object):
         logging.info("Foreman: Starting hunt %s on client %s.", rule.hunt_id,
                      client_id)
 
-        flow_cls = flow.GRRFlow.classes[rule.hunt_name]
+        flow_cls = registry.FlowRegistry.FlowClassByName(rule.hunt_name)
         hunt_urn = rdfvalue.RDFURN("aff4:/hunts/%s" % rule.hunt_id)
         flow_cls.StartClients(hunt_urn, [client_id])
         actions_count += 1

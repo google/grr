@@ -204,52 +204,6 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
       stored_message.timestamp = None
       self.assertRDFValuesEqual(stored_message, want_message)
 
-  def testPingIsRecorded(self):
-    service_name = "GRR"
-    fake_service_client = _FakeGRPCServiceClient(service_name)
-
-    fleetspeak_connector.Reset()
-    fleetspeak_connector.Init(service_client=fake_service_client)
-
-    fsd = fs_frontend_tool.GRRFSServer()
-
-    grr_client_nr = 0xab
-    grr_client = self.SetupTestClientObject(grr_client_nr)
-    self.SetupClient(grr_client_nr)
-
-    messages = [
-        rdf_flows.GrrMessage(
-            request_id=1,
-            response_id=1,
-            session_id="F:123456",
-            payload=rdfvalue.RDFInteger(1))
-    ]
-
-    fs_client_id = "\x10\x00\x00\x00\x00\x00\x00\xab"
-    # fs_client_id should be equivalent to grr_client_id_urn
-    self.assertEqual(fs_client_id,
-                     fleetspeak_utils.GRRIDToFleetspeakID(grr_client.client_id))
-
-    message_list = rdf_flows.PackedMessageList()
-    communicator.Communicator.EncodeMessageList(
-        rdf_flows.MessageList(job=messages), message_list)
-
-    fs_message = fs_common_pb2.Message(
-        message_type="MessageList",
-        source=fs_common_pb2.Address(
-            client_id=fs_client_id, service_name=service_name))
-    fs_message.data.Pack(message_list.AsPrimitiveProto())
-
-    fake_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
-    with test_lib.FakeTime(fake_time):
-      fsd.Process(fs_message, None)
-
-    md = data_store.REL_DB.ReadClientMetadata(grr_client.client_id)
-    self.assertEqual(md.ping, fake_time)
-
-    with aff4.FACTORY.Open(grr_client.client_id) as client:
-      self.assertEqual(client.Get(client.Schema.PING), fake_time)
-
 
 @db_test_lib.DualDBTest
 class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):

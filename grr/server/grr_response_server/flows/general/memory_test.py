@@ -123,11 +123,6 @@ class TestMemoryCollector(MemoryTest):
     # Ensure there is some data in the memory dump.
     self.assertTrue(self.client_mock.memory_dump)
 
-    self.old_diskvolume_flow = flow.GRRFlow.classes[
-        filesystem.DiskVolumeInfo.__name__]
-    flow.GRRFlow.classes[
-        filesystem.DiskVolumeInfo.__name__] = DummyDiskVolumeInfo
-
     self.config_overrider = test_lib.ConfigOverrider({
         "Rekall.profile_server":
             rekall_test_lib.TestRekallRepositoryProfileServer.__name__
@@ -136,8 +131,6 @@ class TestMemoryCollector(MemoryTest):
 
   def tearDown(self):
     super(TestMemoryCollector, self).tearDown()
-    flow.GRRFlow.classes[
-        filesystem.DiskVolumeInfo.__name__] = self.old_diskvolume_flow
     self.config_overrider.Stop()
 
   def testMemoryCollectorIsDisabledByDefault(self):

@@ -8,6 +8,15 @@
 
 set -ex
 
+readonly FLAKY_TESTS_ARR=(\
+  TestClientInterrogate.runTest \
+  TestFileFinderOSHomedir.runTest \
+  TestCheckRunner.runTest \
+  TestRecursiveListDirectoryLinuxDarwin.runTest \
+)
+# Convert array to string (comma-separated).
+readonly FLAKY_TESTS="$(IFS=,;echo "${FLAKY_TESTS_ARR[*]}")"
+
 function fatal() {
   >&2 echo "Error: ${1}"
   exit 1
@@ -25,7 +34,12 @@ echo -e "Logging.engines: stderr,file\nLogging.verbose: True\nClient.poll_max: 5
 
 systemctl restart grr
 
-grr_end_to_end_tests --api_password "${GRR_ADMIN_PASS}" --client_id "${CLIENT_ID}" --flow_timeout_secs 60 --verbose 2>&1 | tee e2e.log
+grr_end_to_end_tests --verbose \
+  --api_password "${GRR_ADMIN_PASS}" \
+  --client_id "${CLIENT_ID}" \
+  --flow_timeout_secs 60 \
+  --blacklisted_tests "${FLAKY_TESTS}" \
+  2>&1 | tee e2e.log
 
 if [[ ! -z "$(cat e2e.log | grep -F '[ FAIL ]')" ]]; then
   fatal 'End-to-end tests failed.'

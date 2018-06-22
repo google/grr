@@ -255,6 +255,7 @@ class PathInfo(structs.RDFProtoStruct):
   rdf_deps = [
       rdfvalue.RDFDatetime,
       rdf_client.StatEntry,
+      rdf_crypto.Hash,
   ]
 
   def __init__(self, *args, **kwargs):
@@ -397,8 +398,8 @@ class PathInfo(structs.RDFProtoStruct):
     if src.HasField("stat_entry"):
       self.stat_entry = src.stat_entry
 
-    self.last_path_history_timestamp = max(self.last_path_history_timestamp,
-                                           src.last_path_history_timestamp)
+    self.last_stat_entry_timestamp = max(self.last_stat_entry_timestamp,
+                                         src.last_stat_entry_timestamp)
     self.directory |= src.directory
 
 

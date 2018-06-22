@@ -447,7 +447,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
       # The `age` field collides with RDF `age` pseudo-property so `Set` lets us
       # set the right thing.
-      child_item.Set("age", child_path_info.last_path_history_timestamp)
+      child_item.Set("age", child_path_info.timestamp)
 
       items.append(child_item)
 

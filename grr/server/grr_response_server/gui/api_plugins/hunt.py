@@ -9,6 +9,7 @@ import re
 
 from grr import config
 from grr.lib import rdfvalue
+from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import events as rdf_events
@@ -20,7 +21,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import hunt_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import events
-from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server import instant_output_plugin
 from grr.server.grr_response_server import notification
@@ -141,10 +141,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
 
   def GetFlowArgsClass(self):
     if self.flow_name:
-      flow_cls = flow.GRRFlow.classes.get(self.flow_name)
-      if flow_cls is None:
-        raise ValueError(
-            "Flow %s not known by this implementation." % self.flow_name)
+      flow_cls = registry.FlowRegistry.FlowClassByName(self.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
@@ -1189,10 +1186,7 @@ class ApiCreateHuntArgs(rdf_structs.RDFProtoStruct):
 
   def GetFlowArgsClass(self):
     if self.flow_name:
-      flow_cls = flow.GRRFlow.classes.get(self.flow_name)
-      if flow_cls is None:
-        raise ValueError(
-            "Flow %s not known by this implementation." % self.flow_name)
+      flow_cls = registry.FlowRegistry.FlowClassByName(self.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type

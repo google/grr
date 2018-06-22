@@ -2,6 +2,7 @@
 """API handlers for dealing with cron jobs."""
 
 from grr.lib import rdfvalue
+from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import flows
@@ -49,10 +50,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
 
   def GetArgsClass(self):
     if self.flow_name:
-      flow_cls = flow.GRRFlow.classes.get(self.flow_name)
-      if flow_cls is None:
-        raise ValueError(
-            "Flow %s not known by this implementation." % self.flow_name)
+      flow_cls = registry.FlowRegistry.FlowClassByName(self.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type

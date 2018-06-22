@@ -131,6 +131,8 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     # option should still be "HEAD".
     self.WaitUntilContains("HEAD", self.GetText,
                            "css=.version-dropdown > option[selected]")
+
+    # The file table should also update and display the new timestamp.
     self.WaitUntilContains(
         gui_test_lib.DateTimeString(time_in_future), self.GetText,
         "css=.version-dropdown > option:nth(1)")

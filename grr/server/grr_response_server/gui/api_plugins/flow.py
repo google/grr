@@ -6,7 +6,7 @@ import re
 
 from grr import config
 from grr.lib import rdfvalue
-
+from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import objects as rdf_objects
@@ -171,10 +171,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       flow_name = self.runner_args.flow_name
 
     if flow_name:
-      flow_cls = flow.GRRFlow.classes.get(flow_name)
-      if flow_cls is None:
-        raise ValueError(
-            "Flow %s not known by this implementation." % flow_name)
+      flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
@@ -934,8 +931,7 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
     """Renders list of descriptors for all the flows."""
 
     result = []
-    for name in sorted(flow.GRRFlow.classes.keys()):
-      cls = flow.GRRFlow.classes[name]
+    for name, cls in sorted(registry.FlowRegistry.FLOW_REGISTRY.items()):
 
       # Flows without a category do not show up in the GUI.
       if not getattr(cls, "category", None):

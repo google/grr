@@ -5,6 +5,7 @@
 import psutil
 
 from grr.lib import flags
+from grr.lib import registry
 from grr.lib import utils
 
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -442,7 +443,7 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
 
   def Run(self):
     with utils.Stubber(
-        flow.GRRFlow, "classes", {
+        registry.FlowRegistry, "FLOW_REGISTRY", {
             processes.ListProcesses.__name__: processes.ListProcesses,
             file_finder.FileFinder.__name__: file_finder.FileFinder,
         }):
