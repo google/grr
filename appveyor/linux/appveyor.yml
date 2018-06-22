@@ -1,0 +1,19 @@
+image: ubuntu
+
+environment:
+  GRR_ADMIN_PASS: 'e2e_tests'
+
+install:
+- lsb_release -a
+- echo "${PATH}"
+- sudo -EH ./appveyor/linux/install_latest_server_deb.sh
+
+# Appveyor will try to build any Visual Studio projects it finds
+# if we do not disable this.
+build: off
+
+test_script:
+- sudo -EH ./appveyor/linux/run_e2e_tests.sh
+
+on_finish:
+- ./appveyor/linux/upload_e2e_artifacts.sh

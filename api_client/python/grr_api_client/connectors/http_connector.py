@@ -40,6 +40,7 @@ class HttpConnector(connector.Connector):
     self._page_size = page_size or self.DEFAULT_PAGE_SIZE
 
     self.csrf_token = None
+    self.api_methods = {}
 
   def _GetCSRFToken(self):
     logger.debug("Fetching CSRF token from %s...", self.api_endpoint)
@@ -101,6 +102,7 @@ class HttpConnector(connector.Connector):
   def _InitializeIfNeeded(self):
     if not self.csrf_token:
       self.csrf_token = self._GetCSRFToken()
+    if not self.api_methods:
       self._FetchRoutingMap()
 
   def _CoerceValueToQueryStringType(self, field, value):

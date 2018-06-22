@@ -9,6 +9,10 @@ import time
 import unittest
 
 from grr_api_client import errors
+from grr.lib import flags
+
+flags.DEFINE_integer("flow_timeout_secs", 650,
+                     "How long to wait for flows to finish.")
 
 
 class Error(Exception):
@@ -72,8 +76,11 @@ class EndToEndTestMetaclass(abc.ABCMeta):
   def __init__(cls, name, bases, env_dict):
     abc.ABCMeta.__init__(cls, name, bases, env_dict)
 
-    if not name.startswith("Abstract") and name != "EndToEndTest":
-      REGISTRY[name] = cls
+    if (name.startswith("Abstract") or name.startswith("FakeE2ETest") or
+        name == "EndToEndTest"):
+      return
+
+    REGISTRY[name] = cls
 
 
 class WaitForNewFileContextManager(object):
@@ -150,7 +157,7 @@ class EndToEndTest(unittest.TestCase):
     ALL = [LINUX, WINDOWS, DARWIN]
 
   RETRY_DELAY = 1
-  RETRY_TOTAL_TIMEOUT = 650
+
   # How long after flow is marked complete we should expect results to be
   # available in the collection. This is essentially how quickly we expect
   # results to be available to users in the UI.
@@ -185,10 +192,10 @@ class EndToEndTest(unittest.TestCase):
 
       time.sleep(self.RETRY_DELAY)
       total_time += self.RETRY_DELAY
-      if total_time >= self.RETRY_TOTAL_TIMEOUT:
+      if total_time >= flags.FLAGS.flow_timeout_secs:
         raise RunFlowAndWaitError(
-            "Flow hasn't finished in %d seconds." % self.RETRY_TOTAL_TIMEOUT,
-            flow)
+            "Flow hasn't finished in %d seconds." %
+            (flags.FLAGS.flow_timeout_secs,), flow)
 
     if flow.data.state == flow.data.State.Value("ERROR"):
       raise RunFlowAndWaitError(
