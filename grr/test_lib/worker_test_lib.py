@@ -6,12 +6,11 @@ import itertools
 import logging
 
 from grr.lib import queues as queue_config
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import queue_manager
-
 from grr.server.grr_response_server import worker_lib
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
 class MockThreadPool(object):
@@ -115,7 +114,8 @@ class MockWorker(worker_lib.GRRWorker):
 
             if (self.check_flow_errors and
                 isinstance(flow_obj, flow.GRRFlow) and
-                runner.context.state == rdf_flows.FlowContext.State.ERROR):
+                runner.context.state == rdf_flow_runner.FlowContext.State.ERROR
+               ):
               logging.exception("Flow terminated in state %s with an error: %s",
                                 runner.context.current_state,
                                 runner.context.backtrace)

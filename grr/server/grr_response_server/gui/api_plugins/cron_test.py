@@ -3,14 +3,14 @@
 
 
 from grr.lib import flags
-from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
-from grr.lib.rdfvalues import flows as rdf_flows
 
 from grr.server.grr_response_server.aff4_objects import cronjobs
 from grr.server.grr_response_server.flows.cron import system as cron_system
 from grr.server.grr_response_server.gui import api_test_lib
 from grr.server.grr_response_server.gui.api_plugins import cron as cron_plugin
 from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import test_lib
 
 
@@ -41,7 +41,8 @@ class ApiCreateCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testBaseSessionIdFlowRunnerArgumentIsNotRespected(self):
     args = cron_plugin.ApiCronJob(
         flow_name=standard.CreateAndRunGenericHuntFlow.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(base_session_id="aff4:/foo"))
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+            base_session_id="aff4:/foo"))
     result = self.handler.Handle(args, token=self.token)
     self.assertFalse(result.flow_runner_args.HasField("base_session_id"))
 

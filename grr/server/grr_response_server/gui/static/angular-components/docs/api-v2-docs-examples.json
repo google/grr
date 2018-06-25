@@ -7047,6 +7047,13 @@
       },
       "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/notifications/pending?timestamp=43000000"
+    },
+    {
+      "api_method": "ListPendingUserNotifications",
+      "method": "GET",
+      "response": {},
+      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/users/me/notifications/pending?timestamp=44000000"
     }
   ],
   "ApiListReportsHandler": [

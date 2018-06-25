@@ -7,8 +7,6 @@ import psutil
 from grr.lib import flags
 from grr.lib import registry
 from grr.lib import utils
-
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
@@ -22,6 +20,7 @@ from grr.server.grr_response_server.flows.general import transfer
 from grr.server.grr_response_server.gui import api_regression_test_lib
 from grr.server.grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr.server.grr_response_server.output_plugins import email_plugin
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import acl_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
@@ -155,7 +154,8 @@ class ApiListFlowResultsHandlerRegressionTest(
     self.client_id = self.SetupClient(0)
 
   def Run(self):
-    runner_args = rdf_flows.FlowRunnerArgs(flow_name=transfer.GetFile.__name__)
+    runner_args = rdf_flow_runner.FlowRunnerArgs(
+        flow_name=transfer.GetFile.__name__)
 
     flow_args = transfer.GetFileArgs(
         pathspec=rdf_paths.PathSpec(
@@ -402,7 +402,7 @@ class ApiCreateFlowHandlerRegressionTest(
                   name=processes.ListProcesses.__name__,
                   args=processes.ListProcessesArgs(
                       filename_regex=".", fetch_binaries=True),
-                  runner_args=rdf_flows.FlowRunnerArgs(
+                  runner_args=rdf_flow_runner.FlowRunnerArgs(
                       output_plugins=[],
                       priority="HIGH_PRIORITY",
                       notify_to_user=False))),

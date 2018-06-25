@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """Parse various Windows persistence mechanisms into PersistenceFiles."""
 
+from grr.lib import artifact_utils
 from grr.lib import parser
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import standard as rdf_standard
 from grr.path_detection import windows as path_detection_windows
-from grr.server.grr_response_server import artifact_utils
 
 
 class WindowsPersistenceMechanismsParser(parser.ArtifactFilesParser):
@@ -42,7 +42,6 @@ class WindowsPersistenceMechanismsParser(parser.ArtifactFilesParser):
       elif persistence.HasField("image_path"):
         pathspecs = self._GetFilePaths(persistence.image_path,
                                        download_pathtype, knowledge_base)
-      # TODO(user): handle empty image_path driver default
 
     if isinstance(
         persistence,

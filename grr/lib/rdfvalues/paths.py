@@ -20,12 +20,12 @@ import itertools
 import posixpath
 import re
 
+from grr.lib import artifact_utils
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import standard as rdf_standard
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
-from grr.server.grr_response_server import artifact_utils
 
 INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")
 

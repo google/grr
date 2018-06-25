@@ -54,6 +54,7 @@ from grr.server.grr_response_server import blob_store
 from grr.server.grr_response_server import db
 from grr.server.grr_response_server import stats_values
 from grr.server.grr_response_server.databases import registry_init
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 flags.DEFINE_bool("list_storage", False, "List all storage subsystems present.")
 
@@ -1056,7 +1057,7 @@ class DataStore(object):
             timestamp=timestamp))
 
     for urn, request_data in sorted(requests.items()):
-      request = rdf_flows.RequestState.FromSerializedString(request_data)
+      request = rdf_flow_runner.RequestState.FromSerializedString(request_data)
       responses = []
       for _, serialized, timestamp in response_data.get(urn, []):
         msg = rdf_flows.GrrMessage.FromSerializedString(serialized)
@@ -1085,7 +1086,7 @@ class DataStore(object):
 
     for request_id, serialized in sorted(requests.items()):
       if request_id in status:
-        yield (rdf_flows.RequestState.FromSerializedString(serialized),
+        yield (rdf_flow_runner.RequestState.FromSerializedString(serialized),
                rdf_flows.GrrMessage.FromSerializedString(status[request_id]))
 
   def ReadResponsesForRequestId(self, session_id, request_id, timestamp=None):
@@ -1099,7 +1100,7 @@ class DataStore(object):
     Yields:
       fetched responses for the request
     """
-    request = rdf_flows.RequestState(id=request_id, session_id=session_id)
+    request = rdf_flow_runner.RequestState(id=request_id, session_id=session_id)
     for _, responses in self.ReadResponses([request], timestamp=timestamp):
       return responses
 
@@ -1241,7 +1242,7 @@ class DataStore(object):
         subjects, self.FLOW_REQUEST_PREFIX, limit=request_limit):
       for _, serialized, _ in values:
 
-        request = rdf_flows.RequestState.FromSerializedString(serialized)
+        request = rdf_flow_runner.RequestState.FromSerializedString(serialized)
         deleted_requests.append(request)
 
         # Drop all responses to this request.

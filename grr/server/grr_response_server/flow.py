@@ -56,7 +56,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
@@ -72,6 +71,8 @@ from grr.server.grr_response_server import notification as notification_lib
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server import sequential_collection
 from grr.server.grr_response_server import server_stubs
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class FlowResultCollection(sequential_collection.GrrMessageCollection):
@@ -543,7 +544,7 @@ class FlowBase(aff4.AFF4Volume):
     """
     # Build the runner args from the keywords.
     if runner_args is None:
-      runner_args = rdf_flows.FlowRunnerArgs()
+      runner_args = rdf_flow_runner.FlowRunnerArgs()
 
     cls.FilterArgsFromSemanticProtobuf(runner_args, kwargs)
 
@@ -757,7 +758,7 @@ class GRRFlow(FlowBase):
 
     FLOW_CONTEXT = aff4.Attribute(
         "aff4:flow_context",
-        rdf_flows.FlowContext,
+        rdf_flow_runner.FlowContext,
         "The metadata for this flow.",
         "FlowContext",
         versioned=False,
@@ -765,7 +766,7 @@ class GRRFlow(FlowBase):
 
     FLOW_RUNNER_ARGS = aff4.Attribute(
         "aff4:flow_runner_args",
-        rdf_flows.FlowRunnerArgs,
+        rdf_flow_runner.FlowRunnerArgs,
         "The runner arguments used for this flow.",
         "FlowRunnerArgs",
         versioned=False,

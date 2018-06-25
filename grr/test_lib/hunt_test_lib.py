@@ -15,6 +15,7 @@ from grr.server.grr_response_server.flows.general import transfer
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import process_results
 from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import acl_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import worker_test_lib
@@ -207,7 +208,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
 
     flow_runner_args = (
         flow_runner_args or
-        rdf_flows.FlowRunnerArgs(flow_name=transfer.GetFile.__name__))
+        rdf_flow_runner.FlowRunnerArgs(flow_name=transfer.GetFile.__name__))
 
     client_rule_set = (client_rule_set or self._CreateForemanClientRuleSet())
     return implementation.GRRHunt.StartHunt(

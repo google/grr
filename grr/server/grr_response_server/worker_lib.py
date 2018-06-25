@@ -25,6 +25,7 @@ from grr.server.grr_response_server import queue_manager as queue_manager_lib
 from grr.server.grr_response_server import server_stubs
 # pylint: enable=unused-import
 from grr.server.grr_response_server import threadpool
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
 class Error(Exception):
@@ -44,8 +45,8 @@ class GRRWorker(object):
   SHORT_POLLING_INTERVAL = 0.3
   SHORT_POLL_TIME = 30
 
-  # Time in seconds to wait between trying to lease message handlers.
-  MH_LEASE_INTERVAL = 15
+  # Time to wait between trying to lease message handlers.
+  MH_LEASE_INTERVAL = rdfvalue.Duration("15s")
 
   # target maximum time to spend on RunOnce
   RUN_ONCE_MAX_SECONDS = 300
@@ -97,7 +98,7 @@ class GRRWorker(object):
 
     self.token = token
     self.last_active = 0
-    self.last_mh_lease_attempt = 0
+    self.last_mh_lease_attempt = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
 
     # Well known flows are just instantiated.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
@@ -132,8 +133,11 @@ class GRRWorker(object):
     if not data_store.RelationalDBReadEnabled(category="message_handlers"):
       return 0
 
-    if time.time() - self.last_mh_lease_attempt < self.MH_LEASE_INTERVAL:
+    now = rdfvalue.RDFDatetime.Now()
+    if now - self.last_mh_lease_attempt < self.MH_LEASE_INTERVAL:
       return 0
+
+    self.last_mh_lease_attempt = now
 
     requests = data_store.REL_DB.LeaseMessageHandlerRequests(
         lease_time=self.well_known_flow_lease_time, limit=1000)
@@ -297,7 +301,7 @@ class GRRWorker(object):
       runner.ProcessCompletedRequests(notification, self.__class__.thread_pool)
     except Exception as e:  # pylint: disable=broad-except
       # Something went wrong - log it in the flow.
-      runner.context.state = rdf_flows.FlowContext.State.ERROR
+      runner.context.state = rdf_flow_runner.FlowContext.State.ERROR
       runner.context.backtrace = traceback.format_exc()
       logging.error("Flow %s: %s", flow_obj, e)
       raise FlowProcessingError(e)

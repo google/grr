@@ -4,9 +4,6 @@
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
-from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
-from grr.lib.rdfvalues import flows
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import cron_pb2
 from grr.server.grr_response_server import aff4
@@ -14,8 +11,10 @@ from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr.server.grr_response_server.gui import api_call_handler_base
 from grr.server.grr_response_server.gui.api_plugins import flow as api_plugins_flow
-
 from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class CronJobNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -43,7 +42,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       ApiCronJobId,
       rdfvalue.Duration,
-      flows.FlowRunnerArgs,
+      rdf_flow_runner.FlowRunnerArgs,
       rdfvalue.RDFDatetime,
       rdfvalue.RDFURN,
   ]

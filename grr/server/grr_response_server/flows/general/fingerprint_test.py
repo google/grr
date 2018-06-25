@@ -20,7 +20,8 @@ class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the Fingerprint flow."""
 
   def testFingerprintPresence(self):
-    client_id = test_lib.TEST_CLIENT_ID
+    client_id = self.SetupClient(0)
+
     path = os.path.join(self.base_path, "winexec_img.dd")
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS, path=path)

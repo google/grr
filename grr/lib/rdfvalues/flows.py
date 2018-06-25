@@ -8,12 +8,9 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
-from grr_response_proto import output_plugin_pb2
 
 
 class GrrMessage(rdf_structs.RDFProtoStruct):
@@ -154,35 +151,6 @@ class GrrNotification(rdf_structs.RDFProtoStruct):
   ]
 
 
-class RequestState(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.RequestState
-  rdf_deps = [
-      client.ClientURN,
-      rdf_protodict.Dict,
-      GrrMessage,
-      GrrStatus,
-      rdfvalue.SessionID,
-  ]
-
-
-class OutputPluginState(rdf_structs.RDFProtoStruct):
-  protobuf = output_plugin_pb2.OutputPluginState
-  rdf_deps = [
-      rdf_protodict.AttributedDict,
-      "OutputPluginDescriptor",  # TODO(user): dependency loop.
-  ]
-
-
-class FlowContext(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FlowContext
-  rdf_deps = [
-      client.ClientResources,
-      OutputPluginState,
-      rdfvalue.RDFDatetime,
-      rdfvalue.SessionID,
-  ]
-
-
 class Notification(rdf_structs.RDFProtoStruct):
   """A notification is used in the GUI to alert users.
 
@@ -293,20 +261,3 @@ class ClientCommunication(rdf_structs.RDFProtoStruct):
   ]
 
   num_messages = 0
-
-
-class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
-  """The argument to the flow runner.
-
-  Note that all flows receive these arguments. This object is stored in the
-  flows state.context.arg attribute.
-  """
-  protobuf = flows_pb2.FlowRunnerArgs
-  rdf_deps = [
-      client.ClientURN,
-      rdf_objects.FlowReference,
-      "OutputPluginDescriptor",  # TODO(user): dependency loop.
-      rdfvalue.RDFDatetime,
-      rdfvalue.RDFURN,
-      RequestState,
-  ]

@@ -7,11 +7,11 @@ from grr.lib import flags
 from grr.lib import ipv6_utils
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import objects
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import client_index
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.rdfvalues import objects
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import test_lib
 

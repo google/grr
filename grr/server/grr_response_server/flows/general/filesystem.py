@@ -4,15 +4,14 @@ import fnmatch
 import re
 import stat
 
+from grr.lib import artifact_utils
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import artifact_utils
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import notification
@@ -20,6 +19,7 @@ from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import standard
 from grr.server.grr_response_server.flows.general import transfer
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 # This is all bits that define the type of the file in the stat mode. Equal to
 # 0b1111000000000000.

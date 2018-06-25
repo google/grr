@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 from grr.lib import rdfvalue
-from grr.lib.rdfvalues import objects
 from grr.server.grr_response_server import db
+from grr.server.grr_response_server.rdfvalues import objects
 
 
 class DatabaseTestUsersMixin(object):

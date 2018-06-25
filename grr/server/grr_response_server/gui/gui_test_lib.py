@@ -23,7 +23,6 @@ from grr.lib.rdfvalues import client as rdf_client
 
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
@@ -44,6 +43,8 @@ from grr.server.grr_response_server.gui import webauth
 from grr.server.grr_response_server.gui import wsgiapp_testlib
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
@@ -706,7 +707,7 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
 
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(

@@ -3,6 +3,7 @@
 
 import os
 
+from grr.lib import artifact_utils
 from grr.lib import flags
 from grr.lib import parser
 from grr.lib import rdfvalue
@@ -10,7 +11,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import test_base as rdf_test_base
 from grr.server.grr_response_server import artifact_registry
-from grr.server.grr_response_server import artifact_utils
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 

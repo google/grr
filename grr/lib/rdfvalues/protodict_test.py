@@ -10,16 +10,15 @@ Dict objects behave generally like a dict (with __getitem__, items() and
 an __iter__) method, but are serializable as an RDFProto.
 """
 
-
 import collections
 
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import test_base
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import test_lib
 
 
@@ -46,9 +45,9 @@ class DictTest(test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
       self.assertEqual(sample[k], v)
 
   def testEmbeddedDict(self):
-    state = rdf_flows.RequestState(data=rdf_protodict.Dict({"a": 1}))
+    state = rdf_flow_runner.RequestState(data=rdf_protodict.Dict({"a": 1}))
     serialized = state.SerializeToString()
-    deserialized = rdf_flows.RequestState.FromSerializedString(serialized)
+    deserialized = rdf_flow_runner.RequestState.FromSerializedString(serialized)
     self.assertEqual(deserialized.data, state.data)
 
   def testIsMapping(self):

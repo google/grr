@@ -4,6 +4,7 @@
 import logging
 from grr import config
 
+from grr.lib import artifact_utils
 from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -11,16 +12,15 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
-from grr.lib.rdfvalues import structs as rdf_structs
 # For file collection artifacts. pylint: disable=unused-import
+from grr.lib.rdfvalues import structs as rdf_structs
+# pylint: enable=unused-import
 from grr_response_proto import flows_pb2
-# pylint: enable=unused-import
 from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import artifact
 # For various parsers use by artifacts. pylint: disable=unused-import
-from grr.server.grr_response_server import artifact_registry
+from grr.server.grr_response_server import artifact
 # pylint: enable=unused-import
-from grr.server.grr_response_server import artifact_utils
+from grr.server.grr_response_server import artifact_registry
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import sequential_collection

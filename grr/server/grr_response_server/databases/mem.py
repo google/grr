@@ -8,8 +8,8 @@ import threading
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import objects
 from grr.server.grr_response_server import db
+from grr.server.grr_response_server.rdfvalues import objects
 
 
 class _PathRecord(object):
@@ -34,9 +34,9 @@ class _PathRecord(object):
 
     timestamp = rdfvalue.RDFDatetime.Now()
     if path_info.HasField("stat_entry"):
-      self._stat_entries[timestamp] = path_info.stat_entry
+      self._stat_entries[timestamp] = path_info.stat_entry.Copy()
     if path_info.HasField("hash_entry"):
-      self._hash_entries[timestamp] = path_info.hash_entry
+      self._hash_entries[timestamp] = path_info.hash_entry.Copy()
 
   def AddPathInfo(self, path_info):
     """Updates existing path information of the path record."""

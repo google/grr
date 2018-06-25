@@ -9,7 +9,6 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import flow_pb2
@@ -24,8 +23,9 @@ from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.gui import api_call_handler_base
 from grr.server.grr_response_server.gui import api_call_handler_utils
 from grr.server.grr_response_server.gui.api_plugins import client
-
 from grr.server.grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -159,8 +159,8 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       "ApiFlow",  # TODO(user): recursive dependency.
       ApiFlowId,
       ApiFlowReference,
-      rdf_flows.FlowContext,
-      rdf_flows.FlowRunnerArgs,
+      rdf_flow_runner.FlowContext,
+      rdf_flow_runner.FlowRunnerArgs,
       rdfvalue.RDFDatetime,
       rdfvalue.SessionID,
   ]
@@ -246,7 +246,7 @@ class ApiFlowRequest(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiFlowRequest
   rdf_deps = [
       rdf_flows.GrrMessage,
-      rdf_flows.RequestState,
+      rdf_flow_runner.RequestState,
   ]
 
 

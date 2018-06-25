@@ -6,14 +6,14 @@
 import unittest
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import notification
 from grr.server.grr_response_server.aff4_objects import cronjobs
 from grr.server.grr_response_server.flows.cron import system as cron_system
 from grr.server.grr_response_server.gui import gui_test_lib
+from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 

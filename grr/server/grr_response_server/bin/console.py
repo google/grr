@@ -24,13 +24,13 @@ from grr.server.grr_response_server import server_plugins
 from grr import config
 from grr.config import contexts
 from grr.config import server as config_server
+from grr.lib import artifact_utils
 from grr.lib import flags
 from grr.lib import type_info
 from grr.lib import utils
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact
-from grr.server.grr_response_server import artifact_utils
 from grr.server.grr_response_server import console_utils
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import export_utils

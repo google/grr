@@ -8,9 +8,9 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.rdfvalues import aff4_rdfvalues
-
 from grr.lib.rdfvalues import test_base
+
+from grr.server.grr_response_server.rdfvalues import aff4_rdfvalues
 from grr.test_lib import test_lib
 
 

@@ -22,7 +22,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
@@ -34,6 +33,7 @@ from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.flows.general import administrative
 from grr.server.grr_response_server.flows.general import ca_enroller
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import frontend_test_lib

@@ -9,7 +9,6 @@ from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -23,6 +22,7 @@ from grr.server.grr_response_server import notification
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import filestore
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class GetFileArgs(rdf_structs.RDFProtoStruct):

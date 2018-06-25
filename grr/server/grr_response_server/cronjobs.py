@@ -6,11 +6,11 @@ import logging
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
-from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import queue_manager
+from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 
 
 class Error(Exception):
@@ -97,7 +97,7 @@ class CronManager(object):
       names: List of cron jobs to run.  If unset, run them all.
     """
     leased_jobs = data_store.REL_DB.LeaseCronJobs(
-        cronjob_ids=names, lease_time=600)
+        cronjob_ids=names, lease_time=rdfvalue.Duration("10m"))
     if not leased_jobs:
       return
 
@@ -106,8 +106,8 @@ class CronManager(object):
       try:
         logging.info("Running cron job: %s", job.job_id)
         self.RunJob(job, force=force, token=token)
-      except Exception:  # pylint: disable=broad-except
-        logging.exception("Error processing cron job %s", job.job_id)
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception("Error processing cron job %s: %s", job.job_id, e)
         stats.STATS.IncrementCounter("cron_internal_error")
 
     data_store.REL_DB.ReturnLeasedCronJobs(leased_jobs)
@@ -142,7 +142,7 @@ class CronManager(object):
           status = rdf_cronjobs.CronJobRunStatus.Status.OK
           elapsed = rdfvalue.RDFDatetime.Now() - job.last_run_time
           stats.STATS.RecordEvent(
-              "cron_job_latency", elapsed, fields=[job.job_id])
+              "cron_job_latency", elapsed.seconds, fields=[job.job_id])
 
         data_store.REL_DB.UpdateCronJob(
             job.job_id, last_run_status=status, current_run_id=None)

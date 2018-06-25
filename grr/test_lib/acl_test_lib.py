@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """Test classes for ACL-related testing."""
 
-from grr.lib.rdfvalues import objects as rdf_objects
-
 from grr.server.grr_response_server import access_control
 
 from grr.server.grr_response_server import aff4
+
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.aff4_objects import users
-
 from grr.server.grr_response_server.gui.api_plugins import user as api_user
+
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def CreateUser(username):

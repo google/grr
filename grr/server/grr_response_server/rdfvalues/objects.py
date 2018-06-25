@@ -284,9 +284,7 @@ class PathInfo(structs.RDFProtoStruct):
     return cls(*args, path_type=cls.PathType.REGISTRY, **kwargs)
 
   @classmethod
-  def FromStatEntry(cls, stat_entry):
-    pathspec = stat_entry.pathspec
-
+  def FromPathSpec(cls, pathspec):
     if pathspec.pathtype == rdf_paths.PathSpec.PathType.OS:
       if (len(pathspec) > 1 and
           pathspec[1].pathtype == rdf_paths.PathSpec.PathType.TSK):
@@ -324,11 +322,14 @@ class PathInfo(structs.RDFProtoStruct):
       # leading slash) sanitizing the input as soon as possible.
       components.extend(component for component in path.split("/") if component)
 
-    return cls(
-        path_type=path_type,
-        components=components,
-        directory=stat.S_ISDIR(stat_entry.st_mode),
-        stat_entry=stat_entry)
+    return cls(path_type=path_type, components=components)
+
+  @classmethod
+  def FromStatEntry(cls, stat_entry):
+    result = cls.FromPathSpec(stat_entry.pathspec)
+    result.directory = stat.S_ISDIR(stat_entry.st_mode)
+    result.stat_entry = stat_entry
+    return result
 
   @property
   def root(self):

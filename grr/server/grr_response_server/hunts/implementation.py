@@ -17,8 +17,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import hunts as rdf_hunts
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import stats as rdf_stats
 from grr.server.grr_response_server import access_control
@@ -35,6 +33,9 @@ from grr.server.grr_response_server import output_plugin as output_plugin_lib
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.hunts import results as hunts_results
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr.server.grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class HuntRunnerError(Exception):
@@ -316,7 +317,7 @@ class HuntRunner(object):
     # and the stated next_state. Note however, that there is no
     # client_id or actual request message here because we directly
     # invoke the child flow rather than queue anything for it.
-    state = rdf_flows.RequestState(
+    state = rdf_flow_runner.RequestState(
         id=self.GetNextOutboundId(),
         session_id=utils.SmartUnicode(self.session_id),
         client_id=client_id,
@@ -828,7 +829,7 @@ class HuntRunner(object):
     # Now we construct a special response which will be sent to the hunt
     # flow. Randomize the request_id so we do not overwrite other messages in
     # the queue.
-    request_state = rdf_flows.RequestState(
+    request_state = rdf_flow_runner.RequestState(
         id=utils.PRNG.GetUInt32(),
         session_id=self.context.session_id,
         client_id=client_id,
@@ -1245,7 +1246,7 @@ class GRRHunt(flow.FlowBase):
         # Now we construct a special response which will be sent to the hunt
         # flow. Randomize the request_id so we do not overwrite other messages
         # in the queue.
-        state = rdf_flows.RequestState(
+        state = rdf_flow_runner.RequestState(
             id=utils.PRNG.GetUInt32(),
             session_id=hunt_id,
             client_id=client_id,

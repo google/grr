@@ -9,7 +9,6 @@ from grr.lib import flags
 
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
@@ -22,6 +21,7 @@ from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
@@ -249,7 +249,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
   def testOverviewIsShownForNestedHuntFlows(self):
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=gui_test_lib.RecursiveTestFlow.__name__),
         client_rate=0,
         token=self.token) as hunt:

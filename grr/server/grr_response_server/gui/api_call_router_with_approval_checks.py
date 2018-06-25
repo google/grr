@@ -3,24 +3,24 @@
 
 from grr.lib import stats
 from grr.lib import utils
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import access_control
-
 from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
 
+from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
+
 from grr.server.grr_response_server.aff4_objects import user_managers
 from grr.server.grr_response_server.gui import api_call_handler_base
-
 from grr.server.grr_response_server.gui import api_call_router
+
 from grr.server.grr_response_server.gui import api_call_router_without_checks
 from grr.server.grr_response_server.gui import approval_checks
 from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
-
 from grr.server.grr_response_server.gui.api_plugins import user as api_user
 
 from grr.server.grr_response_server.hunts import implementation
+
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class LegacyChecker(object):

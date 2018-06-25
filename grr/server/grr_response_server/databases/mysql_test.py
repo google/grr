@@ -206,6 +206,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testWritePathInfosDuplicatedData(self):
     pass
 
+  def testWritePathInfosStoresCopy(self):
+    pass
+
   def testFindDescendentPathIDsEmptyResult(self):
     pass
 

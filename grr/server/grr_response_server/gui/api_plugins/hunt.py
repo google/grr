@@ -13,12 +13,10 @@ from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import events as rdf_events
-from grr.lib.rdfvalues import hunts as rdf_hunts
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import stats as rdf_stats
-
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import hunt_pb2
+
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server import foreman_rules
@@ -32,9 +30,11 @@ from grr.server.grr_response_server.gui.api_plugins import client as api_client
 from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
 from grr.server.grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr.server.grr_response_server.gui.api_plugins import vfs as api_vfs
-
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
+
+from grr.server.grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 

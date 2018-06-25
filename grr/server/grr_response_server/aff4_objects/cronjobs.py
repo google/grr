@@ -11,8 +11,6 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
-from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
 from grr.server.grr_response_server import access_control
@@ -21,8 +19,9 @@ from grr.server.grr_response_server import cronjobs
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import master
-
 from grr.server.grr_response_server import queue_manager
+from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
 class Error(Exception):
@@ -207,7 +206,7 @@ class StatefulSystemCronFlow(SystemCronFlow):
 
   def ReadCronState(self):
     # TODO(amoser): This is pretty bad, there is no locking for state.
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBReadEnabled(category="cronjobs"):
       runner_args = self.Get(self.Schema.FLOW_RUNNER_ARGS)
       if not runner_args:
         return flow.AttributedDict()
@@ -230,7 +229,7 @@ class StatefulSystemCronFlow(SystemCronFlow):
     if not state:
       return
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBReadEnabled(category="cronjobs"):
       runner_args = self.Get(self.Schema.FLOW_RUNNER_ARGS)
       if not runner_args:
         return flow.AttributedDict()
@@ -303,7 +302,7 @@ def ScheduleSystemCronFlows(names=None, token=None):
         disabled = name in config.CONFIG["Cron.disabled_system_jobs"]
 
       manager = GetCronManager()
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBReadEnabled(category="cronjobs"):
         manager.CreateJob(cron_args=cron_args, job_id=name, disabled=disabled)
       else:
         manager.CreateJob(
@@ -505,7 +504,7 @@ class CronJob(aff4.AFF4Volume):
       current_flow = aff4.FACTORY.Open(current_flow_urn, token=self.token)
       runner = current_flow.GetRunner()
       if not runner.IsRunning():
-        if runner.context.state == rdf_flows.FlowContext.State.ERROR:
+        if runner.context.state == rdf_flow_runner.FlowContext.State.ERROR:
           self.Set(
               self.Schema.LAST_RUN_STATUS,
               rdf_cronjobs.CronJobRunStatus(

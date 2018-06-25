@@ -6,11 +6,11 @@ import mock
 import unittest
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.authorization import client_approval_auth
 from grr.server.grr_response_server.gui import approval_checks
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib

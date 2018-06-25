@@ -3,7 +3,7 @@
 
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import objects as rdf_objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 

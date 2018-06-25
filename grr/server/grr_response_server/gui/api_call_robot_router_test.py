@@ -2,12 +2,12 @@
 """Tests for ApiCallRobotRouter."""
 
 
+from grr.lib import artifact_utils
+
 from grr.lib import flags
 
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
-
 from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import artifact_utils
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.flows.general import collectors
 from grr.server.grr_response_server.flows.general import file_finder

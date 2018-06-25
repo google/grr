@@ -10,10 +10,12 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.gui import api_call_handler_base
 from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.gui.api_plugins import vfs as api_vfs
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
@@ -75,6 +77,20 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     with aff4.FACTORY.Open(urn_b, mode="rw") as fd:
       fd.Set(fd.Schema.HASH(sha256="222"))
 
+    if data_store.RelationalDBWriteEnabled():
+      path_info_a = rdf_objects.PathInfo()
+      path_info_a.path_type = rdf_objects.PathInfo.PathType.OS
+      path_info_a.components = ["c", "Downloads", "a.txt"]
+      path_info_a.hash_entry.sha256 = b"111"
+
+      path_info_b = rdf_objects.PathInfo()
+      path_info_b.path_type = rdf_objects.PathInfo.PathType.OS
+      path_info_b.components = ["c", "Downloads", "b.txt"]
+      path_info_b.hash_entry.sha256 = b"222"
+
+      data_store.REL_DB.WritePathInfos(self.client_id,
+                                       [path_info_a, path_info_b])
+
     # Open a URL pointing to file "a".
     self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download" %
               self.client_id)
@@ -90,6 +106,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
 
   def testSwitchingBetweenFileVersionsRefreshesDownloadTab(self):
     urn_a = rdfvalue.RDFURN("%s/fs/os/c/Downloads/a.txt" % self.client_id)
+    path_info = rdf_objects.PathInfo.OS(components=["c", "Downloads", "a.txt"])
 
     # Test files are set up using self.CreateFileVersions call in test's
     # setUp method. Amend created file versions by adding different
@@ -105,6 +122,10 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
           object_exists=True) as fd:
         fd.Set(fd.Schema.HASH(sha256="111"))
 
+      if data_store.RelationalDBWriteEnabled():
+        path_info.hash_entry.sha256 = b"111"
+        data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+
     with test_lib.FakeTime(gui_test_lib.TIME_1):
       with aff4.FACTORY.Create(
           urn_a,
@@ -112,6 +133,10 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
           force_new_version=False,
           object_exists=True) as fd:
         fd.Set(fd.Schema.HASH(sha256="222"))
+
+      if data_store.RelationalDBWriteEnabled():
+        path_info.hash_entry.sha256 = b"222"
+        data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
     # Open a URL corresponding to a HEAD version of the file.
     self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download" %

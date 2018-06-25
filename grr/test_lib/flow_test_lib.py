@@ -13,7 +13,6 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
@@ -23,6 +22,8 @@ from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import handler_registry
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server import server_stubs
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 
@@ -501,7 +502,7 @@ def CheckFlowErrors(total_flows, token=None):
     except IOError:
       continue
 
-    if flow_obj.context.state != rdf_flows.FlowContext.State.TERMINATED:
+    if flow_obj.context.state != rdf_flow_runner.FlowContext.State.TERMINATED:
       if flags.FLAGS.debug:
         pdb.set_trace()
       raise RuntimeError(

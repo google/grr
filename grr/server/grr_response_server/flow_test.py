@@ -26,6 +26,7 @@ from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.flows.general import filesystem
 from grr.server.grr_response_server.flows.general import transfer
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
@@ -237,7 +238,8 @@ class FlowCreationTest(BasicFlowTest):
         token=self.token)
     runner = flow_obj.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
-    self.assertEqual(runner.context.state, rdf_flows.FlowContext.State.ERROR)
+    self.assertEqual(runner.context.state,
+                     rdf_flow_runner.FlowContext.State.ERROR)
 
     reason = "no reason"
     session_id = flow.GRRFlow.StartFlow(
@@ -253,7 +255,8 @@ class FlowCreationTest(BasicFlowTest):
         token=self.token)
     runner = flow_obj.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
-    self.assertEqual(runner.context.state, rdf_flows.FlowContext.State.ERROR)
+    self.assertEqual(runner.context.state,
+                     rdf_flow_runner.FlowContext.State.ERROR)
     self.assertTrue(reason in runner.context.status)
 
   def testChildTermination(self):
@@ -278,7 +281,8 @@ class FlowCreationTest(BasicFlowTest):
 
     runner = flow_obj.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
-    self.assertEqual(runner.context.state, rdf_flows.FlowContext.State.ERROR)
+    self.assertEqual(runner.context.state,
+                     rdf_flow_runner.FlowContext.State.ERROR)
 
     self.assertTrue("user test" in runner.context.status)
     self.assertTrue(reason in runner.context.status)
@@ -287,7 +291,8 @@ class FlowCreationTest(BasicFlowTest):
         children[0].urn, aff4_type=CallClientChildFlow, token=self.token)
     runner = child.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
-    self.assertEqual(runner.context.state, rdf_flows.FlowContext.State.ERROR)
+    self.assertEqual(runner.context.state,
+                     rdf_flow_runner.FlowContext.State.ERROR)
 
     self.assertTrue("user test" in runner.context.status)
     self.assertTrue("Parent flow terminated." in runner.context.status)
@@ -667,7 +672,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
               plugins=None,
               flow_args=None,
               client_mock=None):
-    runner_args = rdf_flows.FlowRunnerArgs(
+    runner_args = rdf_flow_runner.FlowRunnerArgs(
         flow_name=flow_name or transfer.GetFile.__name__,
         output_plugins=plugins)
 

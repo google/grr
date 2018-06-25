@@ -12,8 +12,6 @@ import yaml
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
-
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import test_base as rdf_test_base
 from grr.server.grr_response_server import aff4
@@ -26,6 +24,7 @@ from grr.server.grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
 from grr.server.grr_response_server.output_plugins import test_plugins
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -87,7 +86,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
   def _StartHunt(self):
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__),
         client_rate=0,
         token=self.token) as hunt:
@@ -173,7 +172,8 @@ class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testRunnerArgsBaseSessionIdDoesNotAffectCreatedFlow(self):
     """When multiple clients match, check we run on the latest one."""
-    flow_runner_args = rdf_flows.FlowRunnerArgs(base_session_id="aff4:/foo")
+    flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
+        base_session_id="aff4:/foo")
     args = flow_plugin.ApiCreateFlowArgs(
         client_id=self.client_id.Basename(),
         flow=flow_plugin.ApiFlow(

@@ -14,7 +14,6 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import events as rdf_events
 from grr.lib.rdfvalues import flows
-from grr.lib.rdfvalues import objects
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import client_pb2
 from grr.server.grr_response_server import aff4
@@ -36,6 +35,7 @@ from grr.server.grr_response_server.flows.general import discovery
 from grr.server.grr_response_server.gui import api_call_handler_base
 from grr.server.grr_response_server.gui import api_call_handler_utils
 from grr.server.grr_response_server.gui.api_plugins import stats as api_stats
+from grr.server.grr_response_server.rdfvalues import objects
 
 
 def UpdateClientsFromFleetspeak(clients):

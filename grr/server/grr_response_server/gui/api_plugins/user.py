@@ -13,11 +13,10 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr_response_proto.api import user_pb2
+
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
@@ -31,15 +30,16 @@ from grr.server.grr_response_server.aff4_objects import security as aff4_securit
 from grr.server.grr_response_server.aff4_objects import users as aff4_users
 from grr.server.grr_response_server.flows.general import administrative
 from grr.server.grr_response_server.gui import api_call_handler_base
-
 from grr.server.grr_response_server.gui import approval_checks
 
 from grr.server.grr_response_server.gui.api_plugins import client as api_client
+
 from grr.server.grr_response_server.gui.api_plugins import cron as api_cron
 from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
 from grr.server.grr_response_server.gui.api_plugins import hunt as api_hunt
-
 from grr.server.grr_response_server.hunts import implementation
+
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class GlobalNotificationNotFoundError(
@@ -1627,9 +1627,17 @@ class ApiListPendingUserNotificationsHandler(
         token.username,
         state=rdf_objects.UserNotification.State.STATE_PENDING,
         timerange=(args.timestamp, None))
+
     # TODO(user): after AFF4 migration, remove this, so that the order
     # is reversed.
     ns = sorted(ns, key=lambda x: x.timestamp)
+
+    # Make sure that only notifications with timestamp > args.timestamp
+    # are returned.
+    # Semantics of the API call (strict >) differs slightly from the
+    # semantics of the db.ReadUserNotifications call (inclusive >=).
+    if ns and ns[0].timestamp == args.timestamp:
+      ns.pop(0)
 
     return ApiListPendingUserNotificationsResult(
         items=[ApiNotification().InitFromUserNotification(n) for n in ns])

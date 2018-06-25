@@ -19,12 +19,12 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server.rdfvalues import aff4_rdfvalues
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000

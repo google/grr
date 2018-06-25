@@ -6,9 +6,9 @@ import hashlib
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import db
+from grr.server.grr_response_server.rdfvalues import objects
 
 
 class DatabaseTestPathsMixin(object):
@@ -369,6 +369,39 @@ class DatabaseTestPathsMixin(object):
     result_path_info = results[objects.PathID(["foo", "bar"])]
     self.assertEqual(result_path_info.components, ["foo", "bar"])
     self.assertEqual(result_path_info.directory, False)
+
+  def testWritePathInfosStoresCopy(self):
+    client_id = self.InitializeClient()
+
+    path_info = objects.PathInfo.OS(components=["foo", "bar"])
+
+    path_info.stat_entry.st_size = 1337
+    path_info.hash_entry.sha256 = b"foo"
+    self.db.WritePathInfos(client_id, [path_info])
+
+    timestamp_1 = rdfvalue.RDFDatetime.Now()
+
+    path_info.stat_entry.st_size = 42
+    path_info.hash_entry.sha256 = b"bar"
+    self.db.WritePathInfos(client_id, [path_info])
+
+    timestamp_2 = rdfvalue.RDFDatetime.Now()
+
+    result_1 = self.db.FindPathInfoByPathID(
+        client_id,
+        objects.PathInfo.PathType.OS,
+        objects.PathID(["foo", "bar"]),
+        timestamp=timestamp_1)
+    self.assertEqual(result_1.stat_entry.st_size, 1337)
+    self.assertEqual(result_1.hash_entry.sha256, b"foo")
+
+    result_2 = self.db.FindPathInfoByPathID(
+        client_id,
+        objects.PathInfo.PathType.OS,
+        objects.PathID(["foo", "bar"]),
+        timestamp=timestamp_2)
+    self.assertEqual(result_2.stat_entry.st_size, 42)
+    self.assertEqual(result_2.hash_entry.sha256, b"bar")
 
   def testFindPathInfosByPathIDsNonExistent(self):
     client_id = self.InitializeClient()

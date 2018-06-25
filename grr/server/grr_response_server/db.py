@@ -14,8 +14,9 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import events as rdf_events
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import foreman_rules
+from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class Error(Exception):
@@ -922,9 +923,8 @@ class DatabaseValidationWrapper(Database):
       raise ValueError("Timerange should be a sequence with 2 items.")
 
     for i in timerange:
-      if not (i is None or isinstance(i, rdfvalue.RDFDatetime)):
-        raise TypeError(
-            "Timerange items should be None or rdfvalue.RDFDatetime")
+      if i:
+        self._ValidateTimestamp(i)
 
   def _ValidateDuration(self, duration):
     self._ValidateType(duration, rdfvalue.Duration)
@@ -943,13 +943,11 @@ class DatabaseValidationWrapper(Database):
                           last_foreman=None):
     self._ValidateClientId(client_id)
 
-    if certificate and not isinstance(certificate, rdf_crypto.RDFX509Cert):
-      raise TypeError("certificate must be rdf_crypto.RDFX509Cert, got: %s" %
-                      type(certificate))
+    if certificate:
+      self._ValidateType(certificate, rdf_crypto.RDFX509Cert)
 
-    if last_ip and not isinstance(last_ip, rdf_client.NetworkAddress):
-      raise TypeError(
-          "last_ip must be client.NetworkAddress, got: %s" % type(last_ip))
+    if last_ip:
+      self._ValidateType(last_ip, rdf_client.NetworkAddress)
 
     return self.delegate.WriteClientMetadata(
         client_id,
@@ -968,10 +966,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.MultiReadClientMetadata(client_ids)
 
   def WriteClientSnapshot(self, client):
-    if not isinstance(client, rdf_objects.ClientSnapshot):
-      raise TypeError(
-          "Expected `rdfvalues.objects.ClientSnapshot`, got: %s" % type(client))
-
+    self._ValidateType(client, rdf_objects.ClientSnapshot)
     return self.delegate.WriteClientSnapshot(client)
 
   def MultiReadClientSnapshot(self, client_ids):
@@ -996,9 +991,7 @@ class DatabaseValidationWrapper(Database):
 
     client_id = None
     for client in clients:
-      if not isinstance(client, rdf_objects.ClientSnapshot):
-        message = "Unexpected '%s' instead of client instance"
-        raise TypeError(message % client.__class__)
+      self._ValidateType(client, rdf_objects.ClientSnapshot)
 
       if client.timestamp is None:
         raise AttributeError("Client without a `timestamp` attribute")
@@ -1018,11 +1011,7 @@ class DatabaseValidationWrapper(Database):
         client_id, timerange=timerange)
 
   def WriteClientStartupInfo(self, client_id, startup_info):
-    if not isinstance(startup_info, rdf_client.StartupInfo):
-      raise TypeError(
-          "WriteClientStartupInfo requires rdf_client.StartupInfo, got: %s" %
-          type(startup_info))
-
+    self._ValidateType(startup_info, rdf_client.StartupInfo)
     self._ValidateClientId(client_id)
 
     return self.delegate.WriteClientStartupInfo(client_id, startup_info)
@@ -1040,11 +1029,7 @@ class DatabaseValidationWrapper(Database):
         client_id, timerange=timerange)
 
   def WriteClientCrashInfo(self, client_id, crash_info):
-    if not isinstance(crash_info, rdf_client.ClientCrash):
-      raise TypeError(
-          "WriteClientCrashInfo requires rdf_client.ClientCrash, got: %s" %
-          type(crash_info))
-
+    self._ValidateType(crash_info, rdf_client.ClientCrash)
     self._ValidateClientId(client_id)
 
     return self.delegate.WriteClientCrashInfo(client_id, crash_info)
@@ -1072,9 +1057,8 @@ class DatabaseValidationWrapper(Database):
       raise ValueError("Multiple keywords map to the same string "
                        "representation.")
 
-    if start_time and not isinstance(start_time, rdfvalue.RDFDatetime):
-      raise TypeError(
-          "Time value must be rdfvalue.RDFDatetime, got: %s" % type(start_time))
+    if start_time:
+      self._ValidateTimestamp(start_time)
 
     return self.delegate.ListClientsForKeywords(keywords, start_time=start_time)
 
@@ -1109,8 +1093,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadAllClientLabels()
 
   def WriteForemanRule(self, rule):
-    if not isinstance(rule, foreman_rules.ForemanCondition):
-      raise TypeError("Expected ForemanCondition, got %s" % type(rule))
+    self._ValidateType(rule, foreman_rules.ForemanCondition)
 
     if not rule.hunt_id:
       raise ValueError("Foreman rule has no hunt_id: %s" % rule)
@@ -1151,10 +1134,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadAllGRRUsers()
 
   def WriteApprovalRequest(self, approval_request):
-    if not isinstance(approval_request, rdf_objects.ApprovalRequest):
-      raise TypeError(
-          "ApprovalRequest object expected, got %s" % type(approval_request))
-
+    self._ValidateType(approval_request, rdf_objects.ApprovalRequest)
     self._ValidateUsername(approval_request.requestor_username)
     self._ValidateApprovalType(approval_request.approval_type)
 
@@ -1228,11 +1208,7 @@ class DatabaseValidationWrapper(Database):
         client_id, path_type, path_id, max_depth=max_depth)
 
   def WriteUserNotification(self, notification):
-    if not isinstance(notification, rdf_objects.UserNotification):
-      raise TypeError(
-          "WriteUserNotification requires rdfvalues.objects.UserNotification, "
-          "got: %s" % type(notification))
-
+    self._ValidateType(notification, rdf_objects.UserNotification)
     self._ValidateUsername(notification.username)
     self._ValidateNotificationType(notification.notification_type)
     self._ValidateNotificationState(notification.state)
@@ -1258,10 +1234,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadAllAuditEvents()
 
   def WriteAuditEvent(self, event):
-    if not isinstance(event, rdf_events.AuditEvent):
-      message = "expected `%s` but received `%s`"
-      raise TypeError(message % (rdf_events.AuditEvent, type(event)))
-
+    self._ValidateType(event, rdf_events.AuditEvent)
     return self.delegate.WriteAuditEvent(event)
 
   def WriteMessageHandlerRequests(self, requests):
@@ -1279,21 +1252,29 @@ class DatabaseValidationWrapper(Database):
         lease_time=lease_time, limit=limit)
 
   def WriteCronJob(self, cronjob):
+    self._ValidateType(cronjob, rdf_cronjobs.CronJob)
     return self.delegate.WriteCronJob(cronjob)
 
   def ReadCronJob(self, cronjob_id):
+    self._ValidateCronJobId(cronjob_id)
     return self.delegate.ReadCronJob(cronjob_id)
 
   def ReadCronJobs(self, cronjob_ids=None):
+    if cronjob_ids:
+      for cronjob_id in cronjob_ids:
+        self._ValidateCronJobId(cronjob_id)
     return self.delegate.ReadCronJobs(cronjob_ids=cronjob_ids)
 
   def EnableCronJob(self, cronjob_id):
+    self._ValidateCronJobId(cronjob_id)
     return self.delegate.EnableCronJob(cronjob_id)
 
   def DisableCronJob(self, cronjob_id):
+    self._ValidateCronJobId(cronjob_id)
     return self.delegate.DisableCronJob(cronjob_id)
 
   def DeleteCronJob(self, cronjob_id):
+    self._ValidateCronJobId(cronjob_id)
     return self.delegate.DeleteCronJob(cronjob_id)
 
   def UpdateCronJob(self,
@@ -1302,6 +1283,7 @@ class DatabaseValidationWrapper(Database):
                     last_run_time=Database.unchanged,
                     current_run_id=Database.unchanged,
                     state=Database.unchanged):
+    self._ValidateCronJobId(cronjob_id)
     return self.delegate.UpdateCronJob(
         cronjob_id,
         last_run_status=last_run_status,
@@ -1310,8 +1292,14 @@ class DatabaseValidationWrapper(Database):
         state=state)
 
   def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):
+    if cronjob_ids:
+      for cronjob_id in cronjob_ids:
+        self._ValidateCronJobId(cronjob_id)
+    self._ValidateDuration(lease_time)
     return self.delegate.LeaseCronJobs(
         cronjob_ids=cronjob_ids, lease_time=lease_time)
 
   def ReturnLeasedCronJobs(self, jobs):
+    for job in jobs:
+      self._ValidateType(job, rdf_cronjobs.CronJob)
     return self.delegate.ReturnLeasedCronJobs(jobs)

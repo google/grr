@@ -7,6 +7,7 @@ import os
 import yaml
 
 from grr import config
+from grr.lib import artifact_utils
 from grr.lib import objectfilter
 from grr.lib import parser
 from grr.lib import rdfvalue
@@ -17,7 +18,6 @@ from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs
 from grr_response_proto import artifact_pb2
 from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import artifact_utils
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import sequential_collection
 

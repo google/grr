@@ -6,8 +6,6 @@ import unittest
 from grr.lib import flags
 
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import output_plugin
@@ -15,6 +13,8 @@ from grr.server.grr_response_server.flows.general import file_finder
 from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr.server.grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr.test_lib import db_test_lib
 
 
@@ -341,7 +341,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     flow_args = rdf_file_finder.FileFinderArgs(
         paths=["a/*", "b/*"],
         action=rdf_file_finder.FileFinderAction(action_type="STAT"))
-    flow_runner_args = rdf_flows.FlowRunnerArgs(
+    flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
         flow_name=file_finder.FileFinder.__name__)
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
@@ -401,7 +401,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     flow_args = rdf_file_finder.FileFinderArgs(
         paths=["a/*", "b/*"],
         action=rdf_file_finder.FileFinderAction(action_type="STAT"))
-    flow_runner_args = rdf_flows.FlowRunnerArgs(
+    flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
         flow_name=file_finder.FileFinder.__name__)
     client_rule_set = self._CreateForemanClientRuleSet()
     source_h = self.CreateHunt(

@@ -11,6 +11,7 @@ from grr.lib import stats
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import queue_manager
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -41,7 +42,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     with queue_manager.QueueManager(token=self.token) as manager:
       # Start with request 1 - leave request 1 un-responded to.
       for request_id in range(5):
-        request = rdf_flows.RequestState(
+        request = rdf_flow_runner.RequestState(
             id=request_id,
             client_id=test_lib.TEST_CLIENT_ID,
             next_state="TestState",
@@ -73,7 +74,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     """Check that we can efficiently destroy a single flow request."""
     session_id = rdfvalue.SessionID(flow_name="test3")
 
-    request = rdf_flows.RequestState(
+    request = rdf_flow_runner.RequestState(
         id=1,
         client_id=test_lib.TEST_CLIENT_ID,
         next_state="TestState",
@@ -100,7 +101,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     """Check that we can efficiently destroy the flow's request queues."""
     session_id = rdfvalue.SessionID(flow_name="test2")
 
-    request = rdf_flows.RequestState(
+    request = rdf_flow_runner.RequestState(
         id=1,
         client_id=test_lib.TEST_CLIENT_ID,
         next_state="TestState",
@@ -445,18 +446,21 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertIsNone(
         queue_manager._GetClientIdFromQueue(MockQueue("/C.0123456789abcdef0")))
     # Returns client ID if the queue is a client queue.
-    self.assertEqual("C.abcdefabcdefabcde",
-                     queue_manager._GetClientIdFromQueue(
-                         MockQueue("/C.ABCDefabcdefabcde/tasks")))
+    self.assertEqual(
+        "C.abcdefabcdefabcde",
+        queue_manager._GetClientIdFromQueue(
+            MockQueue("/C.ABCDefabcdefabcde/tasks")))
 
     # Letter case doesn't matter. The return value is always lowercase, except
     # for the capital "C" in the front.
-    self.assertEqual("C.0123456789abcdef0",
-                     queue_manager._GetClientIdFromQueue(
-                         MockQueue("/C.0123456789AbCdEF0/TasKS")))
-    self.assertEqual("C.abcdefabcdefabcde",
-                     queue_manager._GetClientIdFromQueue(
-                         MockQueue("/c.ABCDEFABCDEFABCDE/tasks")))
+    self.assertEqual(
+        "C.0123456789abcdef0",
+        queue_manager._GetClientIdFromQueue(
+            MockQueue("/C.0123456789AbCdEF0/TasKS")))
+    self.assertEqual(
+        "C.abcdefabcdefabcde",
+        queue_manager._GetClientIdFromQueue(
+            MockQueue("/c.ABCDEFABCDEFABCDE/tasks")))
 
 
 class MultiShardedQueueManagerTest(QueueManagerTest):

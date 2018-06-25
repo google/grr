@@ -7,7 +7,6 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -24,6 +23,7 @@ from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import standard
 from grr.server.grr_response_server.flows.general import collectors
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class InterrogateArgs(rdf_structs.RDFProtoStruct):

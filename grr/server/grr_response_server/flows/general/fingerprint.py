@@ -8,9 +8,11 @@ from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class FingerprintFileArgs(rdf_structs.RDFProtoStruct):
@@ -73,18 +75,25 @@ class FingerprintFileMixin(object):
 
     response = responses.First()
     if response.pathspec.path:
-      urn = response.pathspec.AFF4Path(self.client_id)
+      pathspec = response.pathspec
     else:
-      urn = self.args.pathspec.AFF4Path(self.client_id)
-    self.state.urn = urn
+      pathspec = self.args.pathspec
+
+    self.state.urn = pathspec.AFF4Path(self.client_id)
 
     with aff4.FACTORY.Create(
-        urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
+        self.state.urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
       hash_obj = response.hash
       fd.Set(fd.Schema.HASH, hash_obj)
 
+    if data_store.RelationalDBWriteEnabled():
+      path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
+      path_info.hash_entry = response.hash
+
+      data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
+
     self.ReceiveFileFingerprint(
-        urn, hash_obj, request_data=responses.request_data)
+        self.state.urn, hash_obj, request_data=responses.request_data)
 
   def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
     """This method will be called with the new urn and the received hash."""

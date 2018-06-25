@@ -36,6 +36,7 @@ from grr.server.grr_response_server import worker_lib
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import standard
 from grr.server.grr_response_server.flows.general import filesystem
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import benchmark_test_lib
 from grr.test_lib import test_lib
 
@@ -432,9 +433,8 @@ class DataStoreTestMixin(object):
     attributes = set()
     for i in range(5, 10):
       attributes.add(("metadata:%s" % i, "data%d" % i))
-      data_store.DB.MultiSet(unicode_string, {
-          "metadata:%s" % i: ["data%d" % i]
-      })
+      data_store.DB.MultiSet(unicode_string,
+                             {"metadata:%s" % i: ["data%d" % i]})
 
     result = dict(
         data_store.DB.MultiResolvePrefix([unicode_string], ["metadata:"]))
@@ -633,22 +633,19 @@ class DataStoreTestMixin(object):
                      [(2000, "B " + str(i) + " value") for i in range(1, 10)])
 
     values = [
-        r[2]
-        for r in data_store.DB.ScanAttribute(
+        r[2] for r in data_store.DB.ScanAttribute(
             "aff4:/B", "aff4:foo", max_records=2)
     ]
     self.assertEqual(values, ["B " + str(i) + " value" for i in range(1, 3)])
 
     values = [
-        r[2]
-        for r in data_store.DB.ScanAttribute(
+        r[2] for r in data_store.DB.ScanAttribute(
             "aff4:/B", "aff4:foo", after_urn="aff4:/B/2")
     ]
     self.assertEqual(values, ["B " + str(i) + " value" for i in range(3, 10)])
 
     values = [
-        r[2]
-        for r in data_store.DB.ScanAttribute(
+        r[2] for r in data_store.DB.ScanAttribute(
             "aff4:/B",
             u"aff4:foo",
             after_urn=rdfvalue.RDFURN("aff4:/B/2"),
@@ -658,13 +655,13 @@ class DataStoreTestMixin(object):
 
     values = [r[2] for r in data_store.DB.ScanAttribute("aff4:/", "aff4:foo")]
     self.assertEqual(
-        values, ["A value"] + ["B " + str(i) + " value" for i in range(1, 10)] +
-        ["C value"])
+        values, ["A value"] + ["B " + str(i) + " value" for i in range(1, 10)
+                              ] + ["C value"])
 
     values = [r[2] for r in data_store.DB.ScanAttribute("", "aff4:foo")]
     self.assertEqual(
-        values, ["A value"] + ["B " + str(i) + " value" for i in range(1, 10)] +
-        ["C value"])
+        values, ["A value"] + ["B " + str(i) + " value" for i in range(1, 10)
+                              ] + ["C value"])
 
     data_store.DB.Set("aff4:/files/hash/generic/sha1/", "aff4:hash", "h1")
     data_store.DB.Set("aff4:/files/hash/generic/sha1/AAAAA", "aff4:hash", "h2")
@@ -687,8 +684,7 @@ class DataStoreTestMixin(object):
     self.assertEqual(values, ["h1", "h2", "h3", "h4", "h5", "h6", "h7"])
 
     values = [
-        r[2]
-        for r in data_store.DB.ScanAttribute(
+        r[2] for r in data_store.DB.ScanAttribute(
             "aff4:/files/hash", "aff4:hash", relaxed_order=True)
     ]
     self.assertEqual(sorted(values), ["h1", "h2", "h3", "h4", "h5", "h6", "h7"])
@@ -1402,9 +1398,10 @@ class DataStoreTestMixin(object):
     for f in api:
       implementation_spec = inspect.getargspec(getattr(implementation, f))
       reference_spec = inspect.getargspec(getattr(reference, f))
-      self.assertEqual(implementation_spec, reference_spec,
-                       "Signatures for function %s not matching: \n%s !=\n%s" %
-                       (f, implementation_spec, reference_spec))
+      self.assertEqual(
+          implementation_spec, reference_spec,
+          "Signatures for function %s not matching: \n%s !=\n%s" %
+          (f, implementation_spec, reference_spec))
 
     # Check the MutationPool.
     implementation = data_store.DB.GetMutationPool()
@@ -1412,9 +1409,10 @@ class DataStoreTestMixin(object):
     for f in pool_api:
       implementation_spec = inspect.getargspec(getattr(implementation, f))
       reference_spec = inspect.getargspec(getattr(reference, f))
-      self.assertEqual(implementation_spec, reference_spec,
-                       "Signatures for function %s not matching: \n%s !=\n%s" %
-                       (f, implementation_spec, reference_spec))
+      self.assertEqual(
+          implementation_spec, reference_spec,
+          "Signatures for function %s not matching: \n%s !=\n%s" %
+          (f, implementation_spec, reference_spec))
 
   @DeletionTest
   def testPoolDeleteSubjects(self):
@@ -1496,7 +1494,7 @@ class DataStoreTestMixin(object):
     session_id = rdfvalue.SessionID(flow_name="test")
     client_id = test_lib.TEST_CLIENT_ID
 
-    request = rdf_flows.RequestState(
+    request = rdf_flow_runner.RequestState(
         id=1,
         client_id=client_id,
         next_state="TestState",
@@ -1517,7 +1515,7 @@ class DataStoreTestMixin(object):
     with queue_manager.QueueManager() as manager:
       # Start with request 2 - leave request 1 un-responded to.
       for request_id in range(2, 5):
-        request = rdf_flows.RequestState(
+        request = rdf_flow_runner.RequestState(
             id=request_id,
             client_id=client_id,
             next_state="TestState",
@@ -2223,9 +2221,9 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
     time_used = time.time() - start_time
 
-    self.AddResult("Generate Messages (%d clients, %d files)" %
-                   (self.nr_clients,
-                    self.nr_dirs * self.files_per_dir), time_used, 1)
+    self.AddResult(
+        "Generate Messages (%d clients, %d files)" %
+        (self.nr_clients, self.nr_dirs * self.files_per_dir), time_used, 1)
 
     my_worker = worker_lib.GRRWorker(queues=[self.queue], token=self.token)
 

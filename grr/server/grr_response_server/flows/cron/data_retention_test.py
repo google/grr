@@ -7,7 +7,6 @@ from grr import config
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
@@ -17,6 +16,7 @@ from grr.server.grr_response_server.data_stores import fake_data_store
 from grr.server.grr_response_server.flows.cron import data_retention
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

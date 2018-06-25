@@ -13,9 +13,9 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import fleetspeak_utils
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class Error(Exception):

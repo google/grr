@@ -8,9 +8,9 @@ from google.protobuf import text_format
 import unittest
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import objects_pb2
+from grr.server.grr_response_server.rdfvalues import objects
 
 
 def MakeClient():

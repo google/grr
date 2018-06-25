@@ -18,15 +18,15 @@ import MySQLdb
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import events as rdf_events
-from grr.lib.rdfvalues import objects
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import db as db_module
 from grr.server.grr_response_server import db_utils
 from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server.databases import mysql_ddl
 from grr.server.grr_response_server.databases import mysql_pool
+from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr.server.grr_response_server.rdfvalues import objects
 
 
 # GRR Client IDs are strings of the form "C.<16 hex digits>", our MySQL schema
@@ -1330,8 +1330,12 @@ class MysqlDB(db_module.Database):
     query = ("SELECT job, create_time, disabled, "
              "last_run_status, last_run_time, current_run_id, state, "
              "leased_until, leased_by "
-             "FROM cron_jobs WHERE job_id IN (%s)")
-    query %= ", ".join(["%s"] * len(cronjob_ids))
+             "FROM cron_jobs")
+    if cronjob_ids is None:
+      cursor.execute(query)
+      return [self._CronjobFromRow(row) for row in cursor.fetchall()]
+
+    query += " WHERE job_id IN (%s)" % ", ".join(["%s"] * len(cronjob_ids))
     cursor.execute(query, cronjob_ids)
     res = []
     for row in cursor.fetchall():
@@ -1343,21 +1347,21 @@ class MysqlDB(db_module.Database):
           "Cronjob(s) with id(s) %s not found." % missing)
     return res
 
-  @WithTransaction()
-  def EnableCronJob(self, cronjob_id, cursor=None):
-    res = cursor.execute("UPDATE cron_jobs SET disabled=0 WHERE job_id=%s",
-                         [cronjob_id])
+  def _SetCronDisabledBit(self, cronjob_id, disabled, cursor=None):
+    res = cursor.execute(
+        "UPDATE cron_jobs SET disabled=%d WHERE job_id=%%s" % int(disabled),
+        [cronjob_id])
     if res != 1:
       raise db_module.UnknownCronjobError(
           "Cronjob with id %s not found." % cronjob_id)
 
   @WithTransaction()
+  def EnableCronJob(self, cronjob_id, cursor=None):
+    self._SetCronDisabledBit(cronjob_id, False, cursor=cursor)
+
+  @WithTransaction()
   def DisableCronJob(self, cronjob_id, cursor=None):
-    res = cursor.execute("UPDATE cron_jobs SET disabled=1 WHERE job_id=%s",
-                         [cronjob_id])
-    if res != 1:
-      raise db_module.UnknownCronjobError(
-          "Cronjob with id %s not found." % cronjob_id)
+    self._SetCronDisabledBit(cronjob_id, True, cursor=cursor)
 
   @WithTransaction()
   def DeleteCronJob(self, cronjob_id, cursor=None):
@@ -1384,7 +1388,7 @@ class MysqlDB(db_module.Database):
       args.append(_RDFDatetimeToMysqlString(last_run_time))
     if current_run_id != db_module.Database.unchanged:
       updates.append("current_run_id=%s")
-      args.append(current_run_id)
+      args.append(current_run_id or 0)
     if state != db_module.Database.unchanged:
       updates.append("state=%s")
       args.append(state.SerializeToString())

@@ -16,7 +16,6 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
@@ -37,6 +36,7 @@ from grr.server.grr_response_server.flows.general import audit as _
 from grr.server.grr_response_server.flows.general import discovery
 from grr.server.grr_response_server.hunts import implementation as hunts_implementation
 from grr.server.grr_response_server.hunts import standard as hunts_standard
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
@@ -173,7 +173,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     flow_obj = aff4.FACTORY.Open(
         client.flow_id, age=aff4.ALL_TIMES, token=self.token)
-    self.assertEqual(flow_obj.context.state, rdf_flows.FlowContext.State.ERROR)
+    self.assertEqual(flow_obj.context.state,
+                     rdf_flow_runner.FlowContext.State.ERROR)
 
     # Make sure client object is updated with the last crash.
 
@@ -216,7 +217,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     with hunts_implementation.GRRHunt.StartHunt(
         hunt_name=hunts_standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=flow_test_lib.FlowWithOneClientRequest.__name__),
         client_rate=0,
         crash_alert_email="crashes@example.com",

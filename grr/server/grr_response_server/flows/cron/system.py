@@ -7,7 +7,6 @@ import time
 
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import stats as rdf_stats
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
@@ -19,6 +18,7 @@ from grr.server.grr_response_server.aff4_objects import stats as aff4_stats
 from grr.server.grr_response_server.flows.general import discovery as flows_discovery
 from grr.server.grr_response_server.hunts import implementation as hunts_implementation
 from grr.server.grr_response_server.hunts import standard as hunts_standard
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
 class _ActiveCounter(object):
@@ -69,8 +69,8 @@ class _ActiveCounter(object):
     for active_time in self.active_days:
       for label in self.categories[active_time].keys():
         histograms.setdefault(label, self.attribute())
-        graph = rdf_stats.Graph(title="%s day actives for %s label" % (
-            active_time, label))
+        graph = rdf_stats.Graph(title="%s day actives for %s label" %
+                                (active_time, label))
         for k, v in sorted(self.categories[active_time][label].items()):
           graph.Append(label=k, y_value=v)
 
@@ -331,7 +331,7 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
     with hunts_implementation.GRRHunt.StartHunt(
         hunt_name=hunts_standard.GenericHunt.__name__,
         client_limit=0,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=flows_discovery.Interrogate.__name__),
         flow_args=flows_discovery.InterrogateArgs(lightweight=False),
         output_plugins=self.GetOutputPlugins(),

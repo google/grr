@@ -10,8 +10,6 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import events as rdf_events
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
@@ -25,6 +23,8 @@ from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.aff4_objects import cronjobs
 from grr.server.grr_response_server.flows.general import transfer
 from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr.server.grr_response_server.rdfvalues import hunts as rdf_hunts
 
 
 class Error(Exception):
@@ -35,7 +35,7 @@ class GenericHuntArgs(rdf_structs.RDFProtoStruct):
   """Arguments to the generic hunt."""
   protobuf = flows_pb2.GenericHuntArgs
   rdf_deps = [
-      rdf_flows.FlowRunnerArgs,
+      rdf_flow_runner.FlowRunnerArgs,
       output_plugin.OutputPluginDescriptor,
   ]
 
@@ -463,7 +463,7 @@ class FlowRequest(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowRequest
   rdf_deps = [
       rdf_client.ClientURN,
-      rdf_flows.FlowRunnerArgs,
+      rdf_flow_runner.FlowRunnerArgs,
   ]
 
   def GetFlowArgsClass(self):

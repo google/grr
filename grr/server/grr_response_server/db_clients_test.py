@@ -4,8 +4,8 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto
-from grr.lib.rdfvalues import objects
 from grr.server.grr_response_server import db
+from grr.server.grr_response_server.rdfvalues import objects
 
 CERT = crypto.RDFX509Cert("""-----BEGIN CERTIFICATE-----
 MIIF7zCCA9egAwIBAgIBATANBgkqhkiG9w0BAQUFADA+MQswCQYDVQQGEwJVUzEM
@@ -430,7 +430,7 @@ class DatabaseTestClientsMixin(object):
     client.os_version = "16.04"
     client.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2010-04-10")
 
-    with self.assertRaisesRegexp(TypeError, "client instance"):
+    with self.assertRaisesRegexp(TypeError, "Expected"):
       self.db.WriteClientSnapshotHistory([client])
 
   def testWriteClientSnapshotHistoryRaiseValueErrorOnEmpty(self):

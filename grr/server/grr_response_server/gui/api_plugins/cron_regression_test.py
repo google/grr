@@ -4,7 +4,6 @@
 
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.server.grr_response_server import aff4
@@ -17,6 +16,7 @@ from grr.server.grr_response_server.gui import api_regression_test_lib
 from grr.server.grr_response_server.gui.api_plugins import cron as cron_plugin
 from grr.server.grr_response_server.gui.api_plugins import cron_test as cron_plugin_test
 from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr.test_lib import test_lib
 
 

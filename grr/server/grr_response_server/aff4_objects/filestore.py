@@ -17,6 +17,7 @@ from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class FileStore(aff4.AFF4Volume):
@@ -160,9 +161,9 @@ class FileStoreHash(rdfvalue.RDFURN):
   def _ParseUrn(self):
     relative_name = self.RelativeName(HashFileStore.PATH)
     if not relative_name:
-      raise ValueError("URN %s is not a hash file store urn. Hash file store "
-                       "urn should start with %s." % (str(self),
-                                                      str(HashFileStore.PATH)))
+      raise ValueError(
+          "URN %s is not a hash file store urn. Hash file store "
+          "urn should start with %s." % (str(self), str(HashFileStore.PATH)))
     relative_path = relative_name.split("/")
     if (len(relative_path) != 3 or
         relative_path[0] not in HashFileStore.HASH_TYPES or
@@ -269,7 +270,8 @@ class HashFileStore(FileStore):
 
   def _GetHashers(self, hash_types):
     return [
-        getattr(hashlib, hash_type) for hash_type in hash_types
+        getattr(hashlib, hash_type)
+        for hash_type in hash_types
         if hasattr(hashlib, hash_type)
     ]
 
@@ -327,10 +329,6 @@ class HashFileStore(FileStore):
         else:
           logging.error("Unknown fingerprint_type %s.", fingerprint_type)
 
-    try:
-      fd.Set(hashes)
-    except IOError:
-      pass
     return hashes
 
   def AddFile(self, fd):
@@ -376,6 +374,13 @@ class HashFileStore(FileStore):
     # Update the hashes field now that we have calculated them all.
     fd.Set(fd.Schema.HASH, hashes)
     fd.Flush()
+
+    if data_store.RelationalDBWriteEnabled():
+      client_id, vfs_path = fd.urn.Split(2)
+      path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
+      path_info = rdf_objects.PathInfo(
+          path_type=path_type, components=components, hash_entry=hashes)
+      data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
     # sha256 is the canonical location.
     canonical_urn = self.PATH.Add("generic/sha256").Add(str(hashes.sha256))

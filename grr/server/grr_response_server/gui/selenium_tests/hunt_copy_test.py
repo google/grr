@@ -5,7 +5,6 @@ import unittest
 from grr.lib import flags
 
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import foreman_rules
@@ -15,6 +14,7 @@ from grr.server.grr_response_server.flows.general import transfer
 from grr.server.grr_response_server.gui import gui_test_lib
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import db_test_lib
 
 
@@ -26,7 +26,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         description=description,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
@@ -303,7 +303,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         description="model hunt",
-        flow_runner_args=rdf_flows.FlowRunnerArgs(
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(
             conditions=[
@@ -367,7 +367,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         description="model hunt",
-        flow_runner_args=rdf_flows.FlowRunnerArgs(
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(

@@ -4,18 +4,18 @@
 
 from grr.lib import flags
 from grr.lib import utils
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server.flows.general import transfer
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import test_lib
 
 
 class TestOutputPluginWithArgs(output_plugin.OutputPlugin):
 
-  args_type = rdf_flows.FlowRunnerArgs
+  args_type = rdf_flow_runner.FlowRunnerArgs
 
   def ProcessResponses(self, responses):
     pass
@@ -26,7 +26,7 @@ class OutputPluginTest(test_lib.GRRBaseTest):
   def testGetPluginArgsHandlesMissingPluginsCorrectly(self):
     descriptor = output_plugin.OutputPluginDescriptor(
         plugin_name="TestOutputPluginWithArgs",
-        plugin_args=rdf_flows.FlowRunnerArgs(
+        plugin_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__))
     serialized = descriptor.SerializeToString()
 
@@ -71,7 +71,7 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
     ]
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
         output_plugins=output_plugins,
         description=description,
