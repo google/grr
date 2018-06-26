@@ -460,10 +460,15 @@ class ArtifactRegistry(object):
     self._CheckDirty()
     result = self._artifacts.get(name)
     if not result:
-      raise ArtifactNotRegisteredError(
-          "Artifact %s missing from registry. You may need "
-          "to sync the artifact repo by running make in the artifact "
-          "directory." % name)
+      # If we don't have an artifact, things shouldn't have passed validation
+      # so we assume its a new one in the datastore.
+      REGISTRY.ReloadDatastoreArtifacts()
+      result = self._artifacts.get(name)
+      if not result:
+        raise ArtifactNotRegisteredError(
+            "Artifact %s missing from registry. You may need "
+            "to sync the artifact repo by running make in the artifact "
+            "directory." % name)
     return result
 
   def GetArtifactNames(self, *args, **kwargs):

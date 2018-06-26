@@ -76,7 +76,6 @@ supported_os: [ "Linux" ]
     test_registry.AddDatastoreSource(rdfvalue.RDFURN("aff4:/artifact_store"))
     test_registry._dirty = False
     with utils.Stubber(artifact_registry, "REGISTRY", test_registry):
-      collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)
       with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
         artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
 
@@ -99,7 +98,7 @@ supported_os: [ "Linux" ]
 
       # This should succeeded because the artifacts will be reloaded from the
       # datastore.
-      self.assertTrue(collect_flow._GetArtifactFromName("TestCmdArtifact"))
+      self.assertTrue(artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact"))
 
       # We registered this artifact with datastore source but didn't
       # write it into aff4. This simulates an artifact that was

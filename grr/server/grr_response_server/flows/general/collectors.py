@@ -8,18 +8,15 @@ from grr.lib import artifact_utils
 from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import artifact_collector as rdf_artifact_collector
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
-# For file collection artifacts. pylint: disable=unused-import
 from grr.lib.rdfvalues import structs as rdf_structs
-# pylint: enable=unused-import
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
-# For various parsers use by artifacts. pylint: disable=unused-import
 from grr.server.grr_response_server import artifact
-# pylint: enable=unused-import
 from grr.server.grr_response_server import artifact_registry
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
@@ -121,7 +118,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           self.client, allow_uninitialized=True)
 
     for artifact_name in self.args.artifact_list:
-      artifact_obj = self._GetArtifactFromName(artifact_name)
+      artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
 
       # Ensure artifact has been written sanely. Note that this could be
       # removed if it turns out to be expensive. Artifact tests should catch
@@ -130,19 +127,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
       self.Collect(artifact_obj)
 
-  def ConvertSupportedOSToConditions(self, src_object, filter_list):
-    """Turn supported_os into a condition."""
-    if src_object.supported_os:
-      filter_str = " OR ".join(
-          "os == '%s'" % o for o in src_object.supported_os)
-      return filter_list.append(filter_str)
-
   def Collect(self, artifact_obj):
     """Collect the raw data from the client for this artifact."""
     artifact_name = artifact_obj.name
 
     test_conditions = list(artifact_obj.conditions)
-    self.ConvertSupportedOSToConditions(artifact_obj, test_conditions)
+    os_conditions = ConvertSupportedOSToConditions(artifact_obj)
+    if os_conditions:
+      test_conditions.append(os_conditions)
 
     # Check each of the conditions match our target.
     for condition in test_conditions:
@@ -158,12 +150,15 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     for source in artifact_obj.sources:
       # Check conditions on the source.
       source_conditions_met = True
-      self.ConvertSupportedOSToConditions(source, source.conditions)
-      if source.conditions:
-        for condition in source.conditions:
-          if not artifact_utils.CheckCondition(condition,
-                                               self.state.knowledge_base):
-            source_conditions_met = False
+      test_conditions = list(source.conditions)
+      os_conditions = ConvertSupportedOSToConditions(source)
+      if os_conditions:
+        test_conditions.append(os_conditions)
+
+      for condition in test_conditions:
+        if not artifact_utils.CheckCondition(condition,
+                                             self.state.knowledge_base):
+          source_conditions_met = False
 
       if source_conditions_met:
         type_name = source.type
@@ -788,17 +783,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     self.Log("Total collection size: %d", total)
 
-  def _GetArtifactFromName(self, name):
-    """Get an artifact class from the cache in the flow."""
-    try:
-      art_obj = artifact_registry.REGISTRY.GetArtifact(name)
-    except artifact_registry.ArtifactNotRegisteredError:
-      # If we don't have an artifact, things shouldn't have passed validation
-      # so we assume its a new one in the datastore.
-      artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
-      art_obj = artifact_registry.REGISTRY.GetArtifact(name)
-    return art_obj
-
   @flow.StateHandler()
   def End(self):
     # If we got no responses, and user asked for it, we error out.
@@ -920,3 +904,122 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
     if request_type == "StatFile":
       for result in request_data["results"]:
         self.SendReply(result)
+
+
+class ClientArtifactCollector(flow.GRRFlow):
+  """A client side artifact collector."""
+
+  category = "/Collectors/"
+  args_type = artifact_utils.ArtifactCollectorFlowArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
+
+  def GetPathType(self):
+    if self.args.use_tsk:
+      return paths.PathSpec.PathType.TSK
+    return paths.PathSpec.PathType.OS
+
+  def _MeetsConditions(self, source):
+    """Check conditions on the source."""
+    source_conditions_met = True
+    os_conditions = ConvertSupportedOSToConditions(source)
+    if os_conditions:
+      source.conditions.append(os_conditions)
+    for condition in source.conditions:
+      source_conditions_met &= artifact_utils.CheckCondition(
+          condition, self.args.knowledge_base)
+
+    return source_conditions_met
+
+  def _GetArtifactCollectorArgs(self, artifact_list):
+    """Prepare bundle of artifacts and their dependencies for the client.
+
+    Args:
+      artifact_list: list of artifact names to be collected
+
+    Returns:
+      rdf value artifact_bundle containing a list of extended artifacts and the
+      knowledge base
+    """
+    artifact_bundle = rdf_artifact_collector.ArtifactCollectorArgs()
+    artifact_bundle.knowledge_base = self.args.knowledge_base
+    self.processed_artifacts = set()
+    for artifact_name in artifact_list:
+      if artifact_name in self.processed_artifacts:
+        continue
+      artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
+      extended_artifact = self._ExtendArtifact(artifact_obj)
+      artifact_bundle.artifacts.append(extended_artifact)
+    return artifact_bundle
+
+  def _ExtendArtifact(self, art_obj):
+    """Extend artifact by adding information needed for their collection.
+
+    Args:
+      art_obj: rdf value artifact
+
+    Returns:
+      rdf value representation of extended artifact containing the name of the
+      artifact and the extended sources
+    """
+    ext_art = rdf_artifact_collector.ExtendedArtifact()
+    ext_art.name = art_obj.name
+    for source in art_obj.sources:
+      if self._MeetsConditions(source):
+        ext_source = self._ExtendSource(source)
+        ext_art.sources.Extend(ext_source)
+    self.processed_artifacts.add(art_obj.name)
+    return ext_art
+
+  def _ExtendSource(self, source):
+    """Collect the information needed for artifact collection.
+
+    Args:
+      source: rdf value source object
+
+    Returns:
+      rdf value representation of extended source (original source plus
+      additional values)
+    """
+    ext_src = rdf_artifact_collector.ExtendedSource()
+    ext_src.base_source = source
+    type_name = source.type
+    source_type = artifact_registry.ArtifactSource.SourceType
+    if (type_name == source_type.DIRECTORY or
+        type_name == source_type.LIST_FILES):
+      ext_src.path_type = self.GetPathType()
+    elif type_name == source_type.FILE:
+      ext_src.path_type = self.GetPathType()
+      ext_src.max_bytesize = self.args.max_file_size
+    elif type_name == source_type.GREP:
+      ext_src.path_type = self.GetPathType()
+    elif type_name == source_type.REGISTRY_KEY:
+      ext_src.path_type = self.GetPathType()
+    elif (type_name == source_type.ARTIFACT or
+          type_name == source_type.ARTIFACT_GROUP or
+          type_name == source_type.ARTIFACT_FILES):
+      extended_sources = []
+      artifact_list = []
+      if "names" in source.attributes:
+        artifact_list = source.attributes["names"]
+      elif "artifact_list" in source.attributes:
+        artifact_list = source.attributes["artifact_list"]
+      for artifact_name in artifact_list:
+        if artifact_name in self.processed_artifacts:
+          continue
+        artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
+        extended_artifact = self._ExtendArtifact(artifact_obj)
+        extended_sources.extend(extended_artifact.sources)
+      return extended_sources
+    return [ext_src]
+
+  def CollectArtifacts(self, art_bundle):
+    """Start the client side artifact collection."""
+    self.CallClient(
+        server_stubs.ArtifactCollector, request=art_bundle, next_state="")
+
+
+def ConvertSupportedOSToConditions(src_object):
+  """Turn supported_os into a condition."""
+  if src_object.supported_os:
+    conditions = " OR ".join("os == '%s'" % o for o in src_object.supported_os)
+    return conditions

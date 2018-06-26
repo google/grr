@@ -415,6 +415,135 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
     return flow.GRRFlow.ResultCollectionForFID(session_id)
 
 
+class TestClientArtifactCollector(flow_test_lib.FlowTestsBaseclass):
+  """Test the clientside artifact collection test artifacts."""
+
+  def setUp(self):
+    super(TestClientArtifactCollector, self).setUp()
+    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
+                                       "artifacts", "test_artifacts.json")
+    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
+
+    self.client_id = self.SetupClient(0)
+
+    with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
+      fd.Set(fd.Schema.SYSTEM("Linux"))
+      kb = fd.Schema.KNOWLEDGE_BASE()
+      artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
+      fd.Set(kb)
+
+  def testKnowledgeBase(self):
+    """Test that the knowledge base is passed in the bundle."""
+    artifact_collector = collectors.ClientArtifactCollector(None)
+    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+
+    kb = rdf_client.KnowledgeBase()
+    kb.os = "Windows"
+    artifact_collector.args.knowledge_base = kb
+
+    artifact_bundle = artifact_collector._GetArtifactCollectorArgs([])
+
+    self.assertEqual(artifact_bundle.knowledge_base.os, "Windows")
+
+  def testPrepareBasicArtifactBundle(self):
+    """Test we can prepare a basic artifact."""
+    artifact_list = ["TestCmdArtifact"]
+    artifact_collector = collectors.ClientArtifactCollector(None)
+    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+
+    artifact_bundle = artifact_collector._GetArtifactCollectorArgs(
+        artifact_list)
+    artifacts = list(artifact_bundle.artifacts)
+
+    art_obj = artifacts[0]
+    source = list(art_obj.sources)[0]
+
+    self.assertEqual(art_obj.name, "TestCmdArtifact")
+    self.assertEqual(source.base_source.attributes["cmd"], "/usr/bin/dpkg")
+    self.assertEqual(source.base_source.attributes.get("args", []), ["--list"])
+
+  def testSourceMeetsConditions(self):
+    """Test we can get a GRR client artifact with conditions."""
+    artifact_collector = collectors.ClientArtifactCollector(None)
+    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+
+    kb = rdf_client.KnowledgeBase()
+    kb.os = "Windows"
+    artifact_collector.args.knowledge_base = kb
+
+    # Run with false condition.
+    source = artifact_registry.ArtifactSource(
+        type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+        attributes={"client_action": standard.ListProcesses.__name__},
+        conditions=["os == 'Linux'"])
+    self.assertFalse(artifact_collector._MeetsConditions(source))
+
+    # Run with matching or condition.
+    source = artifact_registry.ArtifactSource(
+        type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+        attributes={"client_action": standard.ListProcesses.__name__},
+        conditions=["os == 'Linux' or os == 'Windows'"])
+    self.assertTrue(artifact_collector._MeetsConditions(source))
+
+  def testPrepareAggregatedArtifactBundle(self):
+    """Test we can prepare the source artifacts of an aggregation artifact."""
+    artifact_list = ["TestAggregationArtifact"]
+    artifact_collector = collectors.ClientArtifactCollector(None)
+    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+
+    artifact_bundle = artifact_collector._GetArtifactCollectorArgs(
+        artifact_list)
+    artifacts = list(artifact_bundle.artifacts)
+
+    art_obj = artifacts[0]
+    self.assertEqual(art_obj.name, "TestAggregationArtifact")
+
+    source = list(art_obj.sources)[0]
+    self.assertEqual(source.base_source.type, "GRR_CLIENT_ACTION")
+
+    source = list(art_obj.sources)[1]
+    self.assertEqual(source.base_source.type, "COMMAND")
+
+  def testPrepareMultipleArtifacts(self):
+    """Test we can prepare multiple artifacts of different types."""
+    artifact_list = [
+        "TestFilesArtifact", "DepsWindirRegex", "DepsProvidesMultiple",
+        "WMIActiveScriptEventConsumer"
+    ]
+    artifact_collector = collectors.ClientArtifactCollector(None)
+    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+
+    artifact_bundle = artifact_collector._GetArtifactCollectorArgs(
+        artifact_list)
+    artifacts = list(artifact_bundle.artifacts)
+
+    self.assertEqual(len(artifacts), 4)
+    self.assertEqual(artifacts[0].name, "TestFilesArtifact")
+    self.assertEqual(artifacts[1].name, "DepsWindirRegex")
+    self.assertEqual(artifacts[2].name, "DepsProvidesMultiple")
+    self.assertEqual(artifacts[3].name, "WMIActiveScriptEventConsumer")
+
+    art_obj = artifacts[3]
+    source = list(art_obj.sources)[0]
+    self.assertEqual(source.base_source.attributes["query"],
+                     "SELECT * FROM ActiveScriptEventConsumer")
+
+  def testDuplicationChecks(self):
+    """Test duplicated artifacts are only processed once."""
+    artifact_list = [
+        "TestAggregationArtifact", "TestFilesArtifact", "TestCmdArtifact",
+        "TestFilesArtifact"
+    ]
+    artifact_collector = collectors.ClientArtifactCollector(None)
+    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+
+    artifact_bundle = artifact_collector._GetArtifactCollectorArgs(
+        artifact_list)
+    artifacts = list(artifact_bundle.artifacts)
+
+    self.assertEqual(len(artifacts), 2)
+
+
 def main(argv):
   # Run the full test suite
   test_lib.main(argv)

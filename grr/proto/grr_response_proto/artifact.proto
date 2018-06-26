@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
+import "grr_response_proto/knowledge_base.proto";
 
 
 
@@ -138,4 +139,38 @@ message ArtifactDescriptor {
   optional string error_message = 7 [(sem_type) = {
       description: "The error message for artifacts that failed validation."
     }];
+}
+
+message ArtifactCollectorArgs {
+  repeated ExtendedArtifact artifacts = 1
+      [(sem_type) = { description: "A list of artifacts." }];
+  optional KnowledgeBase knowledge_base = 2;
+}
+
+message ExtendedArtifact {
+  required string name = 1 [(sem_type) = {
+    description: "The name of the artifact.",
+    type: "ArtifactName",
+  }];
+  repeated ExtendedSource sources = 2
+      [(sem_type) = { description: "The sources and what they depend on." }];
+}
+
+message ExtendedSource {
+  required ArtifactSource base_source = 1
+      [(sem_type) = { description: "The base source." }];
+  optional PathSpec.PathType path_type = 6
+      [(sem_type) = { description: "Path Type" }];
+  optional uint64 max_bytesize = 7 [(sem_type) = {
+    type: "ByteSize",
+    description: "File Finder Download Action Option: The maximum byte size of "
+                 "files we will download."
+  }];
+  optional int32 max_number_files = 8 [(sem_type) = {
+    description: "File Finder Action Option: The maximum number of "
+                 "results to get."
+  }];
+}
+
+message ArtifactCollectorResult {
 }
