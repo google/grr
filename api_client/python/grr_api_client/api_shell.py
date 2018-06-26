@@ -27,12 +27,17 @@ class GrrApiShellArgParser(argparse.ArgumentParser):
         "--basic_auth_username",
         type=str,
         help="HTTP basic auth username (HTTP basic auth will be used if this "
-        "flag is set.")
+        "flag is set).")
     self.add_argument(
         "--basic_auth_password",
         type=str,
         help="HTTP basic auth password (will be used if basic_auth_username is "
-        "set.")
+        "set).")
+    self.add_argument(
+        "--no-check-certificate",
+        dest="no_check_certificate",
+        action="store_true",
+        help="If set, don't verify server's SSL certificate.")
     self.add_argument(
         "--debug",
         dest="debug",
@@ -69,8 +74,15 @@ def main(argv=None):
   if flags.basic_auth_username:
     auth = (flags.basic_auth_username, flags.basic_auth_password or "")
 
+  verify = True
+  if flags.no_check_certificate:
+    verify = False
+
   grrapi = api.InitHttp(
-      api_endpoint=flags.api_endpoint, page_size=flags.page_size, auth=auth)
+      api_endpoint=flags.api_endpoint,
+      page_size=flags.page_size,
+      auth=auth,
+      verify=verify)
 
   if flags.exec_code and flags.exec_file:
     print "--exec_code --exec_file flags can't be supplied together"

@@ -3,7 +3,11 @@
 
 import datetime
 import os
+import SimpleHTTPServer
+import socket
+import SocketServer
 import StringIO
+import threading
 
 
 from cryptography import x509
@@ -13,6 +17,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.x509 import oid
 
 import portpicker
+import requests
 
 from grr_api_client import api as grr_api
 from grr.lib import flags
@@ -26,10 +31,10 @@ from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiSSLE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
+class ApiSslServerTestBase(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def setUp(self):
-    super(ApiSSLE2ETest, self).setUp()
+    super(ApiSslServerTestBase, self).setUp()
 
     key = rdf_crypto.RSAPrivateKey.GenerateKey()
     key_path = os.path.join(self.temp_dir, "key.pem")
@@ -44,26 +49,24 @@ class ApiSSLE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         issuer).public_key(key.GetPublicKey().GetRawPublicKey()).serial_number(
             x509.random_serial_number()).not_valid_before(
                 datetime.datetime.utcnow()).not_valid_after(
-                    datetime.datetime.utcnow() + datetime.timedelta(days=1)
-                ).add_extension(
-                    x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
-                    critical=False,
-                ).sign(key.GetRawPrivateKey(), hashes.SHA256(),
-                       backends.default_backend())
+                    datetime.datetime.utcnow() +
+                    datetime.timedelta(days=1)).add_extension(
+                        x509.SubjectAlternativeName(
+                            [x509.DNSName(u"localhost")]),
+                        critical=False,
+                    ).sign(key.GetRawPrivateKey(), hashes.SHA256(),
+                           backends.default_backend())
 
-    cert_path = os.path.join(self.temp_dir, "certificate.pem")
-    with open(cert_path, "wb") as f:
+    self.cert_path = os.path.join(self.temp_dir, "certificate.pem")
+    with open(self.cert_path, "wb") as f:
       f.write(cert.public_bytes(serialization.Encoding.PEM))
 
     self.config_overrider = test_lib.ConfigOverrider({
         "AdminUI.enable_ssl": True,
         "AdminUI.ssl_key_file": key_path,
-        "AdminUI.ssl_cert_file": cert_path,
+        "AdminUI.ssl_cert_file": self.cert_path,
     })
     self.config_overrider.Start()
-
-    self.prev_environ = dict(os.environ)
-    os.environ["REQUESTS_CA_BUNDLE"] = cert_path
 
     self.port = portpicker.PickUnusedPort()
     self.thread = wsgiapp_testlib.ServerThread(self.port)
@@ -74,16 +77,15 @@ class ApiSSLE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
     self.endpoint = "https://localhost:%s" % self.port
-    self.api = grr_api.InitHttp(api_endpoint=self.endpoint)
 
   def tearDown(self):
-    super(ApiSSLE2ETest, self).tearDown()
+    super(ApiSslServerTestBase, self).tearDown()
+
     self.config_overrider.Stop()
-
-    os.environ.clear()
-    os.environ.update(self.prev_environ)
-
     self.thread.keep_running = False
+
+
+class ApiSslE2ETestMixin(object):
 
   def testGetClientWorks(self):
     # By testing GetClient we test a simple GET method.
@@ -115,6 +117,101 @@ class ApiSSLE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         "fs/tsk/c/bin/rbash").GetBlob().WriteToStream(out)
 
     self.assertTrue(out.getvalue())
+
+
+class ApiSslWithoutCABundleTest(ApiSslServerTestBase):
+
+  def testConnectionFails(self):
+    client_urn = self.SetupClient(0)
+
+    api = grr_api.InitHttp(api_endpoint=self.endpoint)
+    with self.assertRaises(requests.exceptions.SSLError):
+      api.Client(client_id=client_urn.Basename()).Get()
+
+
+class ApiSslWithEnvVarWithoutMergingTest(ApiSslServerTestBase):
+
+  def testConnectionFails(self):
+    client_urn = self.SetupClient(0)
+
+    api = grr_api.InitHttp(api_endpoint=self.endpoint, trust_env=False)
+    with self.assertRaises(requests.exceptions.SSLError):
+      api.Client(client_id=client_urn.Basename()).Get()
+
+
+class ApiSslWithConfigurationInEnvVarsE2ETest(ApiSslServerTestBase,
+                                              ApiSslE2ETestMixin):
+
+  def setUp(self):
+    super(ApiSslWithConfigurationInEnvVarsE2ETest, self).setUp()
+
+    self.prev_environ = dict(os.environ)
+    os.environ["REQUESTS_CA_BUNDLE"] = self.cert_path
+    self.api = grr_api.InitHttp(api_endpoint=self.endpoint)
+
+  def tearDown(self):
+    super(ApiSslWithConfigurationInEnvVarsE2ETest, self).tearDown()
+
+    os.environ.clear()
+    os.environ.update(self.prev_environ)
+
+
+class ApiSslWithWithVerifyFalseE2ETest(ApiSslServerTestBase,
+                                       ApiSslE2ETestMixin):
+
+  def setUp(self):
+    super(ApiSslWithWithVerifyFalseE2ETest, self).setUp()
+
+    self.api = grr_api.InitHttp(api_endpoint=self.endpoint, verify=False)
+
+
+class ApiSslWithWithVerifyPointingToCABundleTest(ApiSslServerTestBase,
+                                                 ApiSslE2ETestMixin):
+
+  def setUp(self):
+    super(ApiSslWithWithVerifyPointingToCABundleTest, self).setUp()
+
+    self.api = grr_api.InitHttp(
+        api_endpoint=self.endpoint, verify=self.cert_path)
+
+
+class Proxy(SimpleHTTPServer.SimpleHTTPRequestHandler):
+
+  requests = []
+
+  def do_CONNECT(self):  # pylint: disable=invalid-name
+    self.__class__.requests.append(self.requestline)
+
+
+class TCPServerV6(SocketServer.TCPServer):
+  address_family = socket.AF_INET6
+
+
+class ApiSslProxyTest(ApiSslServerTestBase):
+
+  def setUp(self):
+    super(ApiSslProxyTest, self).setUp()
+    self.proxy_port = portpicker.PickUnusedPort()
+    self.proxy_server = TCPServerV6(("::", self.proxy_port), Proxy)
+    threading.Thread(target=self.proxy_server.serve_forever).start()
+
+  def tearDown(self):
+    super(ApiSslProxyTest, self).tearDown()
+    self.proxy_server.shutdown()
+    self.proxy_server.server_close()
+
+  def testProxyConnection(self):
+    client_urn = self.SetupClient(0)
+
+    api = grr_api.InitHttp(
+        api_endpoint=self.endpoint,
+        proxies={"https": "localhost:%d" % self.proxy_port})
+    with self.assertRaises(requests.exceptions.ConnectionError):
+      api.Client(client_id=client_urn.Basename()).Get()
+
+    # CONNECT request should point to GRR SSL server.
+    self.assertEqual(Proxy.requests,
+                     ["CONNECT localhost:%d HTTP/1.0" % self.port])
 
 
 def main(argv):

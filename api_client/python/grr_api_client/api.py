@@ -54,10 +54,22 @@ class GrrApi(object):
     return self._context.username
 
 
-def InitHttp(api_endpoint=None, page_size=None, auth=None):
+def InitHttp(api_endpoint=None,
+             page_size=None,
+             auth=None,
+             proxies=None,
+             verify=None,
+             cert=None,
+             trust_env=True):
   """Inits an GRR API object with a HTTP connector."""
 
   connector = http_connector.HttpConnector(
-      api_endpoint=api_endpoint, page_size=page_size, auth=auth)
+      api_endpoint=api_endpoint,
+      page_size=page_size,
+      auth=auth,
+      proxies=proxies,
+      verify=verify,
+      cert=cert,
+      trust_env=trust_env)
 
   return GrrApi(connector=connector)

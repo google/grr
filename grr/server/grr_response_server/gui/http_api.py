@@ -135,7 +135,8 @@ class RouterMatcher(object):
           if type_info.name in route_args:
             self._SetField(args, type_info, route_args[type_info.name])
 
-        if request.content_type.startswith("multipart/form-data;"):
+        if request.content_type and request.content_type.startswith(
+            "multipart/form-data;"):
           payload = json.loads(request.form["_params_"])
           args.FromDict(payload)
 

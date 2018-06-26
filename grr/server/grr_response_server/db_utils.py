@@ -12,7 +12,7 @@ from grr.server.grr_response_server import db
 
 
 def CallLoggedAndAccounted(f):
-  """Decorator to log and acoount for a DB call."""
+  """Decorator to log and account for a DB call."""
 
   @functools.wraps(f)
   def Decorator(*args, **kwargs):

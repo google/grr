@@ -32,11 +32,22 @@ class HttpConnector(connector.Connector):
   DEFAULT_PAGE_SIZE = 50
   DEFAULT_BINARY_CHUNK_SIZE = 66560
 
-  def __init__(self, api_endpoint=None, auth=None, page_size=None):
+  def __init__(self,
+               api_endpoint=None,
+               auth=None,
+               proxies=None,
+               verify=True,
+               cert=None,
+               trust_env=True,
+               page_size=None):
     super(HttpConnector, self).__init__()
 
     self.api_endpoint = api_endpoint
     self.auth = auth
+    self.proxies = proxies
+    self.verify = verify
+    self.cert = cert
+    self.trust_env = trust_env
     self._page_size = page_size or self.DEFAULT_PAGE_SIZE
 
     self.csrf_token = None
@@ -45,7 +56,15 @@ class HttpConnector(connector.Connector):
   def _GetCSRFToken(self):
     logger.debug("Fetching CSRF token from %s...", self.api_endpoint)
 
-    index_response = requests.get(self.api_endpoint, auth=self.auth)
+    with requests.Session() as session:
+      session.trust_env = self.trust_env
+      index_response = session.get(
+          self.api_endpoint,
+          auth=self.auth,
+          proxies=self.proxies,
+          verify=self.verify,
+          cert=self.cert)
+
     self._CheckResponseStatus(index_response)
 
     csrf_token = index_response.cookies.get("csrftoken")
@@ -66,8 +85,17 @@ class HttpConnector(connector.Connector):
 
     url = "%s/%s" % (self.api_endpoint.strip("/"),
                      "api/v2/reflection/api-methods")
-    response = requests.get(
-        url, headers=headers, cookies=cookies, auth=self.auth)
+
+    with requests.Session() as session:
+      session.trust_env = self.trust_env
+      response = session.get(
+          url,
+          headers=headers,
+          cookies=cookies,
+          auth=self.auth,
+          proxies=self.proxies,
+          verify=self.verify,
+          cert=self.cert)
     self._CheckResponseStatus(response)
 
     json_str = response.content[len(self.JSON_PREFIX):]
@@ -216,11 +244,12 @@ class HttpConnector(connector.Connector):
     request = self.BuildRequest(method_descriptor.name, args)
     prepped_request = request.prepare()
 
-    session = requests.Session()
+    with requests.Session() as session:
+      session.trust_env = self.trust_env
+      options = session.merge_environment_settings(
+          prepped_request.url, self.proxies or {}, None, self.verify, self.cert)
+      response = session.send(prepped_request, **options)
 
-    options = session.merge_environment_settings(prepped_request.url, {}, None,
-                                                 None, None)
-    response = session.send(prepped_request, **options)
     self._CheckResponseStatus(response)
 
     content = response.content
@@ -240,9 +269,9 @@ class HttpConnector(connector.Connector):
     prepped_request = request.prepare()
 
     session = requests.Session()
-
-    options = session.merge_environment_settings(prepped_request.url, {}, None,
-                                                 None, None)
+    session.trust_env = self.trust_env
+    options = session.merge_environment_settings(
+        prepped_request.url, self.proxies or {}, None, self.verify, self.cert)
     options["stream"] = True
     response = session.send(prepped_request, **options)
     self._CheckResponseStatus(response)
@@ -251,5 +280,8 @@ class HttpConnector(connector.Connector):
       for chunk in response.iter_content(self.DEFAULT_BINARY_CHUNK_SIZE):
         yield chunk
 
-    return utils.BinaryChunkIterator(
-        chunks=GenerateChunks(), on_close=response.close)
+    def Close():
+      response.close()
+      session.close()
+
+    return utils.BinaryChunkIterator(chunks=GenerateChunks(), on_close=Close)
