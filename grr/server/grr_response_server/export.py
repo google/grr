@@ -21,6 +21,7 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import export_pb2
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store_utils
 from grr.server.grr_response_server.aff4_objects import filestore
 from grr.server.grr_response_server.flows.general import collectors as flow_collectors
 
@@ -530,7 +531,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
   def _ExportHash(self, aff4_object, result):
     """Add hashes from aff4_object to result."""
     if self.options.export_files_hashes:
-      hash_obj = aff4_object.Get(aff4_object.Schema.HASH)
+      hash_obj = data_store_utils.GetFileHashEntry(aff4_object)
       if hash_obj:
         self.ParseFileHash(hash_obj, result)
 
@@ -960,7 +961,7 @@ class VFSFileToExportedFileConverter(ExportConverter):
         st_rdev=stat_entry.st_rdev,
         symlink=stat_entry.symlink)
 
-    hash_obj = vfs_file.Get(vfs_file.Schema.HASH)
+    hash_obj = data_store_utils.GetFileHashEntry(vfs_file)
     if hash_obj:
       StatEntryToExportedFileConverter.ParseFileHash(hash_obj, result)
 

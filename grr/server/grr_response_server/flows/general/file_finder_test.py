@@ -15,6 +15,8 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import data_store_utils
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
@@ -25,14 +27,17 @@ from grr.server.grr_response_server.aff4_objects import standard as aff4_standar
 from grr.server.grr_response_server.flows.general import audit as _
 # pylint: enable=unused-import
 from grr.server.grr_response_server.flows.general import file_finder
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 # pylint:mode=test
 
 
+@db_test_lib.DualDBTest
 class FileFinderActionMock(action_mocks.FileFinderClientMock):
 
   def HandleMessage(self, message):
@@ -69,6 +74,10 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     return rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
         os.path.join(self.base_path, "searching", fname))
 
+  def FilenameToPathID(self, fname):
+    path = os.path.join(self.base_path, "searching", fname)
+    return rdf_objects.PathID(components=path.split(os.path.sep))
+
   EXPECTED_HASHES = {
       "auth.log": ("67b8fc07bd4b6efc3b2dce322e8ddf609b540805",
                    "264eb6ff97fc6c37c5dd4b150cb0a797",
@@ -94,17 +103,34 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         raise RuntimeError("Can't check unexpected result for correct "
                            "hashes: %s" % fname)
 
-      fd = aff4.FACTORY.Open(self.FileNameToURN(fname), token=self.token)
+      if data_store.RelationalDBReadEnabled(category="vfs"):
+        path_info = data_store.REL_DB.FindPathInfoByPathID(
+            self.client_id, rdf_objects.PathInfo.PathType.OS,
+            self.FilenameToPathID(fname))
+        hash_obj = path_info.hash_entry
+      else:
+        with aff4.FACTORY.Open(
+            self.FileNameToURN(fname), token=self.token) as fd:
+          hash_obj = fd.Get(fd.Schema.HASH)
 
-      hash_obj = fd.Get(fd.Schema.HASH)
       self.assertEqual(str(hash_obj.sha1), file_hashes[0])
       self.assertEqual(str(hash_obj.md5), file_hashes[1])
       self.assertEqual(str(hash_obj.sha256), file_hashes[2])
 
   def CheckFilesNotHashed(self, fnames):
     for fname in fnames:
-      fd = aff4.FACTORY.Open(self.FileNameToURN(fname), token=self.token)
-      self.assertIsNone(fd.Get(fd.Schema.HASH))
+      if data_store.RelationalDBReadEnabled(category="vfs"):
+        path_info = data_store.REL_DB.FindPathInfoByPathID(
+            self.client_id, rdf_objects.PathInfo.PathType.OS,
+            self.FilenameToPathID(fname))
+
+        hash_entry = path_info.hash_entry
+      else:
+        with aff4.FACTORY.Open(
+            self.FileNameToURN(fname), token=self.token) as fd:
+          hash_entry = fd.Get(fd.Schema.HASH)
+
+      self.assertIsNone(hash_entry)
 
   def CheckFilesDownloaded(self, fnames):
     for fname in fnames:
@@ -543,7 +569,8 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       d.update(expected_data)
       expected_hash = d.hexdigest()
 
-      self.assertEqual(vfs_file.Get(vfs_file.Schema.HASH).sha1, expected_hash)
+      hash_entry = data_store_utils.GetFileHashEntry(vfs_file)
+      self.assertEqual(hash_entry.sha1, expected_hash)
 
       unused_flow, flow_reply = results[0]
       self.assertEqual(flow_reply.hash_entry.sha1, expected_hash)
@@ -569,7 +596,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     expected_data = open(image_path, "rb").read(expected_size)
     self.assertEqual(data, expected_data)
-    hash_obj = blobimage.Get(blobimage.Schema.HASH)
+    hash_obj = data_store_utils.GetFileHashEntry(blobimage)
 
     d = hashlib.sha1()
     d.update(expected_data)

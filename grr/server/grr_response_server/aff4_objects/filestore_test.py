@@ -12,12 +12,14 @@ from grr.lib import utils
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store_utils
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import filestore
 from grr.server.grr_response_server.aff4_objects import filestore_test_lib
 from grr.server.grr_response_server.flows.general import file_finder
 from grr.test_lib import action_mocks
 from grr.test_lib import aff4_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
@@ -42,6 +44,7 @@ class FakeStore(object):
     ACTIVE = "unused"
 
 
+@db_test_lib.DualDBTest
 class FileStoreTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for file store functionality."""
 
@@ -422,11 +425,8 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
     urn1 = self.AddFile("/Ext2IFS_1_10b.exe")
     urn2 = self.AddFile("/idea.dll")
 
-    fd1 = aff4.FACTORY.Open(urn1, token=self.token)
-    self.hashes1 = fd1.Get(fd1.Schema.HASH)
-
-    fd2 = aff4.FACTORY.Open(urn2, token=self.token)
-    self.hashes2 = fd2.Get(fd2.Schema.HASH)
+    self.hashes1 = data_store_utils.GetUrnHashEntry(urn1)
+    self.hashes2 = data_store_utils.GetUrnHashEntry(urn2)
 
     # Pretend this file is part of the NSRL.
     nsrl_fs = aff4.FACTORY.Open("aff4:/files/nsrl", token=self.token)

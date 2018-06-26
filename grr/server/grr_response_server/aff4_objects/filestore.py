@@ -16,6 +16,7 @@ from grr.lib.rdfvalues import nsrl as rdf_nsrl
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import data_store_utils
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -277,7 +278,7 @@ class HashFileStore(FileStore):
 
   def _HashFile(self, fd):
     """Look for the required hashes in the file."""
-    hashes = fd.Get(fd.Schema.HASH)
+    hashes = data_store_utils.GetFileHashEntry(fd)
     if hashes:
       found_all = True
       for fingerprint_type, hash_types in self.HASH_TYPES.iteritems():

@@ -13,7 +13,7 @@ from grr.lib import rdfvalue
 
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import crypto
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import vfs_pb2
@@ -196,17 +196,23 @@ class ApiFile(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiFile
   rdf_deps = [
       ApiAff4ObjectRepresentation,
-      crypto.Hash,
+      rdf_crypto.Hash,
       rdfvalue.RDFDatetime,
       rdf_client.StatEntry,
   ]
 
-  def InitFromAff4Object(self, file_obj, stat_entry=None, with_details=False):
+  def InitFromAff4Object(self,
+                         file_obj,
+                         stat_entry=None,
+                         hash_entry=None,
+                         with_details=False):
     """Initializes the current instance from an Aff4Stream.
 
     Args:
       file_obj: An Aff4Stream representing a file.
-      stat_entry: An optional stat entry object to be use. If none is provided,
+      stat_entry: An optional stat entry object to be used. If none is provided,
+        the one stored in the AFF4 data store is used.
+      hash_entry: An optional hash entry object to be used. If none is provided,
         the one stored in the AFF4 data store is used.
       with_details: True if all details of the Aff4Object should be included,
         false otherwise.
@@ -217,15 +223,9 @@ class ApiFile(rdf_structs.RDFProtoStruct):
     self.name = file_obj.urn.Basename()
     self.path = "/".join(file_obj.urn.Path().split("/")[2:])
     self.is_directory = "Container" in file_obj.behaviours
-    self.hash = file_obj.Get(file_obj.Schema.HASH, None)
 
-    if stat_entry is not None:
-      stat = stat_entry
-    else:
-      stat = file_obj.Get(file_obj.Schema.STAT)
-
-    if stat:
-      self.stat = stat
+    self.stat = stat_entry or file_obj.Get(file_obj.Schema.STAT)
+    self.hash = hash_entry or file_obj.Get(file_obj.Schema.HASH, None)
 
     if not self.is_directory:
       try:
@@ -313,13 +313,19 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
       if path_info:
         stat_entry = path_info.stat_entry
+        hash_entry = path_info.hash_entry
       else:
         stat_entry = rdf_client.StatEntry()
+        hash_entry = rdf_crypto.Hash()
     else:
       stat_entry = None
+      hash_entry = None
 
     return ApiGetFileDetailsResult(file=ApiFile().InitFromAff4Object(
-        file_obj, stat_entry=stat_entry, with_details=True))
+        file_obj,
+        stat_entry=stat_entry,
+        hash_entry=hash_entry,
+        with_details=True))
 
 
 class ApiListFilesArgs(rdf_structs.RDFProtoStruct):

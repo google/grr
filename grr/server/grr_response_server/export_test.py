@@ -28,7 +28,9 @@ from grr.server.grr_response_server.checks import checks
 from grr.server.grr_response_server.flows.general import collectors
 from grr.server.grr_response_server.flows.general import transfer
 from grr.server.grr_response_server.hunts import results as hunts_results
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import export_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -113,6 +115,7 @@ class ExportTestBase(test_lib.GRRBaseTest):
     self.metadata = export.ExportedMetadata(client_urn=self.client_id)
 
 
+@db_test_lib.DualDBTest
 class ExportTest(ExportTestBase):
   """Tests export converters."""
 
@@ -292,8 +295,15 @@ class ExportTest(ExportTestBase):
     events.Events.PublishEvent(
         "FileStore.AddFileToStore", urn, token=self.token)
 
-    fd = aff4.FACTORY.Open(urn, token=self.token)
-    hash_value = fd.Get(fd.Schema.HASH)
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
+      path_info = data_store.REL_DB.FindPathInfoByPathID(
+          self.client_id.Basename(), path_info.path_type, path_info.GetPathID())
+      hash_value = path_info.hash_entry
+    else:
+      fd = aff4.FACTORY.Open(urn, token=self.token)
+      hash_value = fd.Get(fd.Schema.HASH)
+
     self.assertTrue(hash_value)
 
     converter = export.StatEntryToExportedFileConverter(
@@ -480,18 +490,22 @@ class ExportTest(ExportTestBase):
   def testRDFURNConverterWithURNPointingToFile(self):
     urn = self.client_id.Add("fs/os/some/path")
 
-    fd = aff4.FACTORY.Create(urn, aff4_grr.VFSFile, token=self.token)
-    fd.Set(
-        fd.Schema.STAT(
-            rdf_client.StatEntry(
-                pathspec=rdf_paths.PathSpec(
-                    path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS),
-                st_mode=33184,
-                st_ino=1063090,
-                st_atime=1336469177,
-                st_mtime=1336129892,
-                st_ctime=1336129892)))
-    fd.Close()
+    stat_entry = rdf_client.StatEntry()
+    stat_entry.pathspec.path = "/some/path"
+    stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+    stat_entry.st_mode = 33184
+    stat_entry.st_ino = 1063090
+    stat_entry.st_atime = 1336469177
+    stat_entry.st_mtime = 1336129892
+    stat_entry.st_ctime = 1336129892
+
+    with aff4.FACTORY.Create(urn, aff4_grr.VFSFile, token=self.token) as fd:
+      fd.Set(fd.Schema.STAT(stat_entry))
+
+    if data_store.RelationalDBWriteEnabled():
+      path_info = rdf_objects.PathInfo.OS(
+          components=["some", "path"], stat_entry=stat_entry)
+      data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
 
     converter = export.RDFURNConverter()
     results = list(converter.Convert(self.metadata, urn, token=self.token))

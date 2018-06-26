@@ -12,6 +12,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store_utils
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.flows.general import transfer
@@ -39,6 +40,7 @@ class ClientMock(object):
     ]
 
 
+@db_test_lib.DualDBTest
 class TestTransfer(flow_test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
   maxDiff = 65 * 1024
@@ -365,8 +367,7 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
     pathspec.path = pathspec.path.replace("\\", "/")
     # Test the AFF4 file that was created.
     urn = pathspec.AFF4Path(self.client_id)
-    fd = aff4.FACTORY.Open(urn, token=self.token)
-    fd_hash = fd.Get(fd.Schema.HASH)
+    fd_hash = data_store_utils.GetUrnHashEntry(urn)
 
     self.assertTrue(fd_hash)
 
@@ -404,7 +405,7 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
     expected_data = open(image_path, "rb").read(expected_size)
 
     self.assertEqual(data, expected_data)
-    hash_obj = blobimage.Get(blobimage.Schema.HASH)
+    hash_obj = data_store_utils.GetFileHashEntry(blobimage)
 
     d = hashlib.sha1()
     d.update(expected_data)
