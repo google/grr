@@ -351,11 +351,12 @@ class ClientRepacker(BuilderBase):
     elif not key_data.startswith("-----BEGIN PUBLIC"):
       errors.append(
           "Invalid Client.executable_signing_public_key: %s" % key_data)
-    rsa_key = crypto.RSAPublicKey()
-    rsa_key.ParseFromString(key_data)
-    logging.info(
-        "Executable signing key successfully parsed from config (%d-bit)",
-        rsa_key.KeyLen())
+    else:
+      rsa_key = crypto.RSAPublicKey()
+      rsa_key.ParseFromString(key_data)
+      logging.info(
+          "Executable signing key successfully parsed from config (%d-bit)",
+          rsa_key.KeyLen())
 
     if not config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
       certificate = config_obj.GetRaw(

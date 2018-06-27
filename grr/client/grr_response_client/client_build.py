@@ -201,6 +201,7 @@ class TemplateBuilder(object):
     # Platform context has common platform settings, Target has template build
     # specific stuff.
     self.platform = platform.system()
+    context.append("Platform:%s" % self.platform)
     context.append("Target:%s" % self.platform)
     if "Target:Linux" in context:
       context.append(self.GetPackageFormat())
@@ -395,7 +396,6 @@ def main(_):
   # grr_config.CONFIG.context with the running system context.
   context = args.context
   context.append(contexts.CLIENT_BUILD_CONTEXT)
-  context.append("Platform:%s" % platform.system())
   client_startup.ClientInit()
 
   # Use basic console output logging so we can see what is happening.

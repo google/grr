@@ -268,7 +268,7 @@ def FilterCollection(collection, offset, count=0, filter_value=None):
   if count < 0:
     raise ValueError("Count needs to be greater than or equal to zero")
 
-  count = count or sys.maxint
+  count = count or sys.maxsize
   if filter_value:
     index = 0
     items = []

@@ -47,7 +47,7 @@ from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_run
 from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
-from grr.test_lib import artifact_test_lib
+from grr.test_lib import artifact_test_lib as ar_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
@@ -634,7 +634,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       data_store.REL_DB.WriteGRRUser(
           self.token.username, ui_mode=users.GUISettings.UIMode.ADVANCED)
 
-    self._artifact_patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
+    self._artifact_patcher = ar_test_lib.PatchDatastoreOnlyArtifactRegistry()
     self._artifact_patcher.start()
 
     self.InstallACLChecks()

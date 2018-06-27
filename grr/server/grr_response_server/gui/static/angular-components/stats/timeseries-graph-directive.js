@@ -187,7 +187,9 @@ TimeseriesGraphController.prototype.buildGraphIfNeeded_ = function() {
     // Wait until timeseries-graph appears and draw the graph.
     var intervalPromise = this.interval_(function() {
       var graphElement = $(this.element_).find('.timeseries-graph');
-      if (graphElement) {
+      if (graphElement &&
+          graphElement.width() > 0 &&
+          graphElement.height() > 0) {
         $.plot(graphElement, data, config);
         this.interval_.cancel(intervalPromise);
       }

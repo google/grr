@@ -164,7 +164,7 @@ class FakeDataStore(data_store.DataStore):
 
         start = start or 0
         if end is None:
-          end = (2**63) - 1  # sys.maxint
+          end = (2**63) - 1  # sys.maxsize
         new_values = []
         for value, timestamp in values:
           if not start <= timestamp <= end:

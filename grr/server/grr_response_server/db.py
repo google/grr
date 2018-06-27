@@ -1194,7 +1194,11 @@ class DatabaseValidationWrapper(Database):
 
       path_key = (path_info.path_type, path_info.GetPathID())
       if path_key in validated:
-        raise ValueError("Conflicting writes for: %s" % (path_key,))
+        message = "Conflicting writes for path: '{path}' ({path_type})"
+        raise ValueError(
+            message.format(
+                path="/".join(path_info.components),
+                path_type=path_info.path_type))
 
       validated.add(path_key)
 

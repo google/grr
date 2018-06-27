@@ -14,6 +14,10 @@ from grr.lib import flags
 flags.DEFINE_integer("flow_timeout_secs", 650,
                      "How long to wait for flows to finish.")
 
+flags.DEFINE_integer(
+    "flow_results_sla_secs", 60,
+    "How long to wait for flow results to be available after a flow completes.")
+
 
 class Error(Exception):
   """Base class for end-to-end tests exceptions."""
@@ -123,9 +127,9 @@ class WaitForNewFileContextManager(object):
             new_file.data.age > self.prev_file.data.age):
           return
 
-      if time.time() - start_time > EndToEndTest.RESULTS_SLA:
+      if time.time() - start_time > flags.FLAGS.flow_results_sla_secs:
         raise RuntimeError("File couldn't be found after %d seconds of trying."
-                           % EndToEndTest.RESULTS_SLA)
+                           % flags.FLAGS.flow_results_sla_secs)
 
       time.sleep(EndToEndTest.RETRY_DELAY)
 
@@ -157,11 +161,6 @@ class EndToEndTest(unittest.TestCase):
     ALL = [LINUX, WINDOWS, DARWIN]
 
   RETRY_DELAY = 1
-
-  # How long after flow is marked complete we should expect results to be
-  # available in the collection. This is essentially how quickly we expect
-  # results to be available to users in the UI.
-  RESULTS_SLA = 10
 
   platforms = []
 

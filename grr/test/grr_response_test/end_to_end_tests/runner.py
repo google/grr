@@ -54,13 +54,17 @@ class E2ETestRunner(object):
                blacklisted_tests=None,
                upload_test_binaries=True,
                api_retry_period_secs=30.0,
-               api_retry_deadline_secs=500.0):
+               api_retry_deadline_secs=500.0,
+               max_test_attempts=3):
     if not api_endpoint:
       raise ValueError("GRR api_endpoint is required.")
     if isinstance(whitelisted_tests, basestring):
       raise ValueError("whitelisted_tests should be a list.")
     if isinstance(blacklisted_tests, basestring):
       raise ValueError("blacklisted_tests should be a list.")
+    if max_test_attempts < 1:
+      raise ValueError(
+          "max_test_attempts (%d) must be at least 1." % max_test_attempts)
     self._api_endpoint = api_endpoint
     self._api_user = api_user
     self._api_password = api_password
@@ -69,8 +73,10 @@ class E2ETestRunner(object):
     self._upload_test_binaries = upload_test_binaries
     self._api_retry_period_secs = api_retry_period_secs
     self._api_retry_deadline_secs = api_retry_deadline_secs
+    self._max_test_attempts = max_test_attempts
     self._grr_api = None
     self._appveyor_tests_endpoint = ""
+    self._appveyor_messages_endpoint = ""
 
   def Initialize(self):
     """Initializes state in preparation for running end-to-end tests.
@@ -83,6 +89,8 @@ class E2ETestRunner(object):
       # See https://www.appveyor.com/docs/build-worker-api/
       self._appveyor_tests_endpoint = urlparse.urljoin(appveyor_root_url,
                                                        "api/tests")
+      self._appveyor_messages_endpoint = urlparse.urljoin(
+          appveyor_root_url, "api/build/messages")
 
     logging.info("Connecting to GRR API at %s", self._api_endpoint)
     password = self._api_password
@@ -138,9 +146,7 @@ class E2ETestRunner(object):
 
     results = collections.OrderedDict()
     for test_name, test in self._GetApplicableTests(client).iteritems():
-      start_time = time.time()
-      result = unittest_runner.run(test)
-      millis_elapsed = int((time.time() - start_time) * 1000)
+      result, millis_elapsed = self._RetryTest(test_name, test, unittest_runner)
       results[test_name] = result
       if not self._appveyor_tests_endpoint:
         continue
@@ -255,6 +261,42 @@ class E2ETestRunner(object):
         else:
           applicable_tests[test_name] = test
     return collections.OrderedDict(sorted(applicable_tests.iteritems()))
+
+  def _RetryTest(self, test_name, test, unittest_runner):
+    """Runs the given test with the given test runner, retrying on failure."""
+    num_attempts = 0
+    result = None
+    millis_elapsed = None
+    while num_attempts < self._max_test_attempts:
+      start_time = time.time()
+      result = unittest_runner.run(test)
+      millis_elapsed = int((time.time() - start_time) * 1000)
+      num_attempts += 1
+      if result.failures or result.errors:
+        attempts_left = self._max_test_attempts - num_attempts
+        logging.error("Test %s failed. Attempts left: %d", test_name,
+                      attempts_left)
+        if attempts_left > 0:
+          logging.info("Retrying test after %s seconds.",
+                       self._api_retry_period_secs)
+          time.sleep(self._api_retry_period_secs)
+        continue
+
+      if num_attempts > 1 and self._appveyor_messages_endpoint:
+        appveyor_msg = "Flaky test %s passed after %d attempts." % (
+            test_name, num_attempts)
+        resp = requests.post(
+            self._appveyor_messages_endpoint,
+            json={
+                "message": appveyor_msg,
+                "category": "information"
+            })
+        logging.debug("Uploaded info message for %s to Appveyor. Response: %s",
+                      test_name, resp)
+
+      break  # Test passed, no need for retry.
+
+    return result, millis_elapsed
 
   def _GenerateReportLines(self, client_id, results_dict):
     """Summarizes test results for printing to a terminal/log-file."""

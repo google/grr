@@ -289,7 +289,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiSearchClientsResult
 
   def Handle(self, args, token=None):
-    end = args.count or sys.maxint
+    end = args.count or sys.maxsize
 
     keywords = shlex.split(args.query)
 
@@ -354,7 +354,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
       # Read <count> clients ahead in case some of them fail to open / verify.
       batch_size = end + args.count
     else:
-      end = sys.maxint
+      end = sys.maxsize
       batch_size = end
 
     keywords = shlex.split(args.query)

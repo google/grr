@@ -52,6 +52,42 @@ class FakeApi(object):
     return client_ref
 
 
+class FakeUnittestRunner(object):
+  """Stand-in for unittest.TextTestRunner."""
+
+  def __init__(self, tests_to_fail=None, flakiness=1):
+    """FakeUnittestRunner __init__.
+
+    Args:
+      tests_to_fail: Iterable containing test classes to return a failing result
+        for.
+      flakiness: If > 1, allows simulating flaky tests. The reciprocal of this
+        value is the probability that a test will pass.
+    """
+    self._tests_to_fail = set(tests_to_fail or set())
+    self._flakiness = flakiness
+    self._flake_counter = 0
+    self.run = self._Run
+    self.test_counts = {}
+
+  def _Run(self, test):
+    result = unittest.TestResult()
+    self._flake_counter = (self._flake_counter + 1) % self._flakiness
+    if test.__class__ in self._tests_to_fail or self._flake_counter > 0:
+      fake_exc_info = None
+      try:
+        raise runner.E2ETestError("This is a fake error.")
+      except runner.E2ETestError:
+        fake_exc_info = sys.exc_info()
+      result.addError(test, fake_exc_info)
+    else:
+      result.addSuccess(test)
+    test_class = test.__class__.__name__
+    self.test_counts[test_class] = self.test_counts.setdefault(test_class,
+                                                               0) + 1
+    return result
+
+
 FAKE_E2E_TESTS = [
     fake_tests.FakeE2ETestAll, fake_tests.FakeE2ETestDarwinLinux,
     fake_tests.FakeE2ETestLinux, fake_tests.FakeE2ETestDarwin
@@ -63,8 +99,19 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(E2ETestRunnerTest, self).setUp()
     api_init_http_patcher = mock.patch.object(api, "InitHttp")
+    requests_post_patcher = mock.patch.object(requests, "post")
+    unittest_runner_patcher = mock.patch.object(unittest, "TextTestRunner")
+    appveyor_environ_patcher = mock.patch.dict(
+        os.environ,
+        {runner.E2ETestRunner.APPVEYOR_API_VARNAME: "http://appvyr"})
     self.api_init_http = api_init_http_patcher.start()
+    self.requests_post = requests_post_patcher.start()
+    self.unittest_runner = unittest_runner_patcher.start()
+    appveyor_environ_patcher.start()
     self.addCleanup(api_init_http_patcher.stop)
+    self.addCleanup(requests_post_patcher.stop)
+    self.addCleanup(unittest_runner_patcher.stop)
+    self.addCleanup(appveyor_environ_patcher.stop)
 
   def testSanityCheckE2ETests(self):
     """Checks that all E2E tests have valid platforms specified."""
@@ -84,7 +131,7 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
     e2e_runner.Initialize()
     # First request should fail with a connection error. Second request should
     # be successful.
-    self.assertEqual(grr_api.request_count, 2)
+    self.assertEqual(2, grr_api.request_count)
 
   def testRetryDeadline(self):
     """Tests enforcing of connection-retry deadlines."""
@@ -110,20 +157,18 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
     grr_api.client.CreateFlow.assert_called_once_with(
         name="Interrogate", runner_args=mock.ANY)
 
-  @mock.patch.object(requests, "post")
-  @mock.patch.object(unittest, "TextTestRunner")
   @mock.patch.dict(
       test_base.REGISTRY, {tc.__name__: tc for tc in FAKE_E2E_TESTS},
       clear=True)
-  @mock.patch.dict(os.environ,
-                   {runner.E2ETestRunner.APPVEYOR_API_VARNAME: "http://test"})
-  def testRunAllLinuxE2ETests(self, unittest_runner, requests_post):
+  def testRunAllLinuxE2ETests(self):
     api_client = self._CreateApiClient("Linux")
     grr_api = FakeApi(client_data=api_client)
+    unittest_runner = FakeUnittestRunner(
+        tests_to_fail={fake_tests.FakeE2ETestDarwinLinux})
     self.api_init_http.return_value = grr_api
-    unittest_runner.return_value = mock.Mock(run=self._UnittestRunStub)
+    self.unittest_runner.return_value = unittest_runner
     e2e_runner = self._CreateE2ETestRunner(
-        blacklisted_tests=["FakeE2ETestLinux"])
+        blacklisted_tests=["FakeE2ETestLinux"], max_test_attempts=4)
     e2e_runner.Initialize()
     actual_results = e2e_runner.RunTestsAgainstClient(api_client.client_id)
     expected_results = [
@@ -132,14 +177,19 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
         "\tFakeE2ETestDarwinLinux.testCommon:        [ FAIL ]",
         "\tFakeE2ETestDarwinLinux.testDarwinLinux:   [ FAIL ]"
     ]
-    self.assertEqual(actual_results, expected_results)
+    expected_counts = {
+        "FakeE2ETestAll": 1,
+        "FakeE2ETestDarwinLinux": 8  # 4 retries for each failing test.
+    }
+    self.assertEqual(expected_results, actual_results)
+    self.assertEqual(expected_counts, unittest_runner.test_counts)
 
     # Test data sent to the Appveyor API.
-    self.assertEqual(len(requests_post.call_args_list), 3)
-    test0_args, test0_kwargs = requests_post.call_args_list[0]
-    test1_args, test1_kwargs = requests_post.call_args_list[1]
-    self.assertEqual(test0_args, ("http://test/api/tests",))
-    self.assertEqual(test1_args, ("http://test/api/tests",))
+    self.assertEqual(3, len(self.requests_post.call_args_list))
+    test0_args, test0_kwargs = self.requests_post.call_args_list[0]
+    test1_args, test1_kwargs = self.requests_post.call_args_list[1]
+    self.assertEqual(("http://appvyr/api/tests",), test0_args)
+    self.assertEqual(("http://appvyr/api/tests",), test1_args)
     self.assertIn("json", test0_kwargs)
     self.assertIn("json", test1_kwargs)
     expected_test0_json = {
@@ -163,18 +213,15 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
     self.assertIn("This is a fake error.",
                   test1_kwargs["json"]["ErrorStackTrace"])
 
-  @mock.patch.object(requests, "post")
-  @mock.patch.object(unittest, "TextTestRunner")
   @mock.patch.dict(
       test_base.REGISTRY, {tc.__name__: tc for tc in FAKE_E2E_TESTS},
       clear=True)
-  @mock.patch.dict(os.environ,
-                   {runner.E2ETestRunner.APPVEYOR_API_VARNAME: "http://appvyr"})
-  def testWhitelisting(self, unittest_runner, requests_post):
+  def testWhitelisting(self):
     api_client = self._CreateApiClient("Linux")
     grr_api = FakeApi(client_data=api_client)
     self.api_init_http.return_value = grr_api
-    unittest_runner.return_value = mock.Mock(run=self._UnittestRunStub)
+    self.unittest_runner.return_value = FakeUnittestRunner(
+        tests_to_fail={fake_tests.FakeE2ETestDarwinLinux})
     e2e_runner = self._CreateE2ETestRunner(whitelisted_tests=[
         "FakeE2ETestLinux.testLinux", "FakeE2ETestDarwinLinux"
     ])
@@ -186,8 +233,50 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
         "\tFakeE2ETestDarwinLinux.testDarwinLinux:   [ FAIL ]",
         "\tFakeE2ETestLinux.testLinux:               [ PASS ]"
     ]
-    self.assertEqual(actual_results, expected_results)
-    self.assertEqual(len(requests_post.call_args_list), 3)
+    self.assertEqual(expected_results, actual_results)
+    self.assertEqual(3, len(self.requests_post.call_args_list))
+
+  @mock.patch.dict(
+      test_base.REGISTRY, {"FakeE2ETestAll": fake_tests.FakeE2ETestAll},
+      clear=True)
+  def testFlakyTests(self):
+    api_client = self._CreateApiClient("Linux")
+    grr_api = FakeApi(client_data=api_client)
+    self.api_init_http.return_value = grr_api
+    self.unittest_runner.return_value = FakeUnittestRunner(flakiness=2)
+    e2e_runner = self._CreateE2ETestRunner(max_test_attempts=3)
+    e2e_runner.Initialize()
+    actual_results = e2e_runner.RunTestsAgainstClient(api_client.client_id)
+    expected_results = [
+        "Results for %s:" % api_client.client_id,
+        "\tFakeE2ETestAll.testCommon:   [ PASS ]",
+    ]
+    self.assertEqual(expected_results, actual_results)
+
+    # Test data sent to the Appveyor API.
+    self.assertEqual(2, len(self.requests_post.call_args_list))
+    req0_args, req0_kwargs = self.requests_post.call_args_list[0]
+    req1_args, req1_kwargs = self.requests_post.call_args_list[1]
+    self.assertEqual(("http://appvyr/api/build/messages",), req0_args)
+    self.assertEqual(("http://appvyr/api/tests",), req1_args)
+    self.assertIn("json", req0_kwargs)
+    self.assertIn("json", req1_kwargs)
+    expected_req0_json = {
+        "message":
+            "Flaky test FakeE2ETestAll.testCommon passed after 2 attempts.",
+        "category":
+            "information",
+    }
+    expected_req1_json = {
+        "testName": "FakeE2ETestAll.testCommon",
+        "testFramework": "JUnit",
+        "outcome": "Passed",
+        "fileName": "fake_tests.py",
+        "ErrorMessage": "",
+        "ErrorStackTrace": "",
+    }
+    self.assertDictContainsSubset(expected_req0_json, req0_kwargs["json"])
+    self.assertDictContainsSubset(expected_req1_json, req1_kwargs["json"])
 
   def _CreateE2ETestRunner(self,
                            api_retry_period_secs=0.0,
@@ -206,20 +295,6 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
     api_client = plugin_client.ApiClient()
     api_client.InitFromClientObject(client_snapshot)
     return api_client
-
-  def _UnittestRunStub(self, test):
-    result = unittest.TestResult()
-    # Fail the FakeE2ETestDarwinLinux e2e test, and pass all others.
-    if test.__class__ is fake_tests.FakeE2ETestDarwinLinux:
-      fake_exc_info = None
-      try:
-        raise runner.E2ETestError("This is a fake error.")
-      except runner.E2ETestError:
-        fake_exc_info = sys.exc_info()
-      result.addError(test, fake_exc_info)
-    else:
-      result.addSuccess(test)
-    return result
 
 
 def main(argv):

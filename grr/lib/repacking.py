@@ -109,8 +109,15 @@ class TemplateRepacker(object):
       raise RuntimeError(
           "Signing templates is only worthwhile for windows, rpms are signed "
           "at the package level and signing isn't supported for others.")
-    context.append("Target:Windows")
-    signer = self.GetSigner(context)
+    signing_context = []
+    if context:
+      signing_context.extend(context)
+    repack_config = RepackConfig().GetConfigFromTemplate(template_path)
+    build_context = repack_config["Template.build_context"]
+    signing_context.extend(build_context)
+    logging.debug("Signing template %s with context %s.", template_path,
+                  signing_context)
+    signer = self.GetSigner(signing_context)
     z_in = zipfile.ZipFile(open(template_path, "rb"))
     with zipfile.ZipFile(
         output_file, mode="w", compression=zipfile.ZIP_DEFLATED) as z_out:

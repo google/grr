@@ -85,6 +85,18 @@ Target:Darwin:
 
   Config.writeback: /etc/%(Client.name).local.yaml
 
+  # This indicates that we are building a client for debugging. It needs to
+  # be nested deeper than the Client context so it always takes precedence
+  # when both contexts apply.
+  DebugClientBuild Context:
+    Logging.verbose: True
+    ClientBuilder.console: True
+    Client.poll_max: 5
+    Client.foreman_check_frequency: 30
+    Client.rss_max: 4000
+    Nanny.unresponsive_kill_period: 3600
+    Client.prefix: dbg_
+
 Target:Linux:
   Config.includes:
     - build.yaml
@@ -134,6 +146,18 @@ Target:Linux:
     Client.rekall_profile_cache_path: |
       %(Client.install_path)/rekall_profiles
 
+  # This indicates that we are building a client for debugging. It needs to
+  # be nested deeper than the Client context so it always takes precedence
+  # when both contexts apply.
+  DebugClientBuild Context:
+    Logging.verbose: True
+    ClientBuilder.console: True
+    Client.poll_max: 5
+    Client.foreman_check_frequency: 30
+    Client.rss_max: 4000
+    Nanny.unresponsive_kill_period: 3600
+    Client.prefix: dbg_
+
 Target:Windows:
   Config.includes:
     - build.yaml
@@ -156,22 +180,17 @@ Target:Windows:
   ClientBuilder.vs_dir: |
     %{C:\Program Files (x86)\Microsoft Visual Studio 12.0}
 
-# This indicates that we are building a client for debugging.
-DebugClientBuild Context:
-
-  Logging.verbose: True
-
-  ClientBuilder.console: True
-
-  Client.poll_max: 5
-
-  Client.foreman_check_frequency: 30
-
-  Client.rss_max: 4000
-
-  Nanny.unresponsive_kill_period: 3600
-
-  Client.prefix: dbg_
+  # This indicates that we are building a client for debugging. It needs to
+  # be nested deeper than the Client context so it always takes precedence
+  # when both contexts apply.
+  DebugClientBuild Context:
+    Logging.verbose: True
+    ClientBuilder.console: True
+    Client.poll_max: 5
+    Client.foreman_check_frequency: 30
+    Client.rss_max: 4000
+    Nanny.unresponsive_kill_period: 3600
+    Client.prefix: dbg_
 
 ConfigUpdater Context:
   ConfigUpdater.old_config: /etc/grr/grr-server.conf

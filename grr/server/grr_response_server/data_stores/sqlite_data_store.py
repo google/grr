@@ -706,7 +706,7 @@ class SqliteDataStore(data_store.DataStore):
         # This code path is taken when we have a timestamp range.
         start = start or 0
         if end is None:
-          end = (2**63) - 1  # sys.maxint
+          end = (2**63) - 1  # sys.maxsize
         for attribute in list(attributes):
           sqlite_connection.DeleteAttributeRange(subject, attribute, start, end)
 

@@ -1365,7 +1365,7 @@ message FindSpec {
 
   optional uint64 max_file_size = 12 [(sem_type) = {
       description: "Maximum file size in bytes "
-      "(default=sys.maxint)."
+      "(default=sys.maxsize)."
     }, default = 9223372036854775807];
 
   optional uint64 perm_mask = 14 [(sem_type) = {
