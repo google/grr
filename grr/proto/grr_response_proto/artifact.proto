@@ -161,6 +161,7 @@ message ExtendedSource {
       [(sem_type) = { description: "The base source." }];
   optional PathSpec.PathType path_type = 6
       [(sem_type) = { description: "Path Type" }];
+
   optional uint64 max_bytesize = 7 [(sem_type) = {
     type: "ByteSize",
     description: "File Finder Download Action Option: The maximum byte size of "

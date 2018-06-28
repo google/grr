@@ -8,9 +8,10 @@ from grr.lib import flags
 from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import artifacts
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import test_base as rdf_test_base
-from grr.server.grr_response_server import artifact_registry
+from grr.server.grr_response_server import artifact_registry as ar
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
@@ -29,26 +30,25 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     registry.AddFileSource(self.test_artifacts_file)
 
     for artifact in registry.GetArtifacts():
-      artifact.Validate()
+      ar.Validate(artifact)
 
     art_obj = registry.GetArtifact("TestCmdArtifact")
     art_obj.labels.append("BadLabel")
 
-    self.assertRaises(artifact_registry.ArtifactDefinitionError,
-                      art_obj.Validate)
+    self.assertRaises(artifacts.ArtifactDefinitionError, ar.Validate, art_obj)
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testAddFileSource(self, registry):
     registry.AddFileSource(self.test_artifacts_file)
     registry.GetArtifact("TestCmdArtifact")
-    with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
+    with self.assertRaises(artifacts.ArtifactNotRegisteredError):
       registry.GetArtifact("NonExistentArtifact")
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testAddDirSource(self, registry):
     registry.AddDirSource(self.test_artifacts_dir)
     registry.GetArtifact("TestCmdArtifact")
-    with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
+    with self.assertRaises(artifacts.ArtifactNotRegisteredError):
       registry.GetArtifact("NonExistentArtifact")
 
   @artifact_test_lib.PatchDefaultArtifactRegistry
@@ -73,7 +73,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results = registry.GetArtifacts(
         os_name="Windows",
-        source_type=artifact_registry.ArtifactSource.SourceType.REGISTRY_VALUE,
+        source_type=artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
         name_list=["DepsProvidesMultiple"])
     self.assertEqual(results.pop().name, "DepsProvidesMultiple")
 
@@ -85,7 +85,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results = registry.GetArtifacts(os_name="Windows", exclude_dependents=True)
     for result in results:
-      self.assertFalse(result.GetArtifactPathDependencies())
+      self.assertFalse(ar.GetArtifactPathDependencies(result))
 
     # Check provides filtering
     results = registry.GetArtifacts(
@@ -160,10 +160,10 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     registry.AddFileSource(self.test_artifacts_file)
 
     art_obj = registry.GetArtifact("TestAggregationArtifactDeps")
-    deps = art_obj.GetArtifactDependencies()
+    deps = ar.GetArtifactDependencies(art_obj)
     self.assertItemsEqual(list(deps), ["TestAggregationArtifact"])
 
-    deps = art_obj.GetArtifactDependencies(recursive=True)
+    deps = ar.GetArtifactDependencies(art_obj, recursive=True)
     self.assertItemsEqual(
         list(deps),
         ["TestOSAgnostic", "TestCmdArtifact", "TestAggregationArtifact"])
@@ -175,7 +175,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     try:
       source.attributes["names"] = ["TestAggregationArtifactDeps"]
       with self.assertRaises(RuntimeError) as e:
-        deps = art_obj.GetArtifactDependencies(recursive=True)
+        deps = ar.GetArtifactDependencies(art_obj, recursive=True)
       self.assertIn("artifact recursion depth", e.exception.message)
     finally:
       source.attributes["names"] = backup  # Restore old source.
@@ -319,10 +319,10 @@ class UserMergeTest(test_lib.GRRBaseTest):
 class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the Artifact implementation."""
 
-  rdfvalue_class = artifact_registry.Artifact
+  rdfvalue_class = artifacts.Artifact
 
   def GenerateSample(self, number=0):
-    result = artifact_registry.Artifact(
+    result = artifacts.Artifact(
         name="artifact%s" % number,
         doc="Doco",
         provides="environ_windir",
@@ -332,7 +332,7 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testGetArtifactPathDependencies(self):
     sources = [{
-        "type": artifact_registry.ArtifactSource.SourceType.REGISTRY_KEY,
+        "type": artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
         "attributes": {
             "keys": [
                 r"%%current_control_set%%\Control\Session "
@@ -340,19 +340,19 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
             ]
         }
     }, {
-        "type": artifact_registry.ArtifactSource.SourceType.WMI,
+        "type": artifacts.ArtifactSource.SourceType.WMI,
         "attributes": {
             "query": "SELECT * FROM Win32_UserProfile "
                      "WHERE SID='%%users.sid%%'"
         }
     }, {
-        "type": artifact_registry.ArtifactSource.SourceType.GREP,
+        "type": artifacts.ArtifactSource.SourceType.GREP,
         "attributes": {
             "content_regex_list": ["^%%users.username%%:"]
         }
     }]
 
-    artifact = artifact_registry.Artifact(
+    artifact = artifacts.Artifact(
         name="artifact",
         doc="Doco",
         provides=["environ_windir"],
@@ -376,14 +376,15 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     with utils.Stubber(parser.Parser, "GetClassesByArtifact",
                        MockGetClassesByArtifact):
-      self.assertItemsEqual(artifact.GetArtifactPathDependencies(), [
-          "appdata", "sid", "desktop", "current_control_set", "users.sid",
-          "users.username"
-      ])
+      self.assertItemsEqual(
+          ar.GetArtifactPathDependencies(artifact), [
+              "appdata", "sid", "desktop", "current_control_set", "users.sid",
+              "users.username"
+          ])
 
   def testValidateSyntax(self):
     sources = [{
-        "type": artifact_registry.ArtifactSource.SourceType.REGISTRY_KEY,
+        "type": artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
         "attributes": {
             "keys": [
                 r"%%current_control_set%%\Control\Session "
@@ -391,56 +392,56 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
             ]
         }
     }, {
-        "type": artifact_registry.ArtifactSource.SourceType.FILE,
+        "type": artifacts.ArtifactSource.SourceType.FILE,
         "attributes": {
             "paths": [r"%%environ_systemdrive%%\Temp"]
         }
     }]
 
-    artifact = artifact_registry.Artifact(
+    artifact = artifacts.Artifact(
         name="good",
         doc="Doco",
         provides=["environ_windir"],
         supported_os=["Windows"],
         urls=["http://blah"],
         sources=sources)
-    artifact.ValidateSyntax()
+    ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBadProvides(self):
     sources = [{
-        "type": artifact_registry.ArtifactSource.SourceType.FILE,
+        "type": artifacts.ArtifactSource.SourceType.FILE,
         "attributes": {
             "paths": [r"%%environ_systemdrive%%\Temp"]
         }
     }]
 
-    artifact = artifact_registry.Artifact(
+    artifact = artifacts.Artifact(
         name="bad",
         doc="Doco",
         provides=["windir"],
         supported_os=["Windows"],
         urls=["http://blah"],
         sources=sources)
-    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
-      artifact.ValidateSyntax()
+    with self.assertRaises(artifacts.ArtifactDefinitionError):
+      ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBadPathDependency(self):
     sources = [{
-        "type": artifact_registry.ArtifactSource.SourceType.FILE,
+        "type": artifacts.ArtifactSource.SourceType.FILE,
         "attributes": {
             "paths": [r"%%systemdrive%%\Temp"]
         }
     }]
 
-    artifact = artifact_registry.Artifact(
+    artifact = artifacts.Artifact(
         name="bad",
         doc="Doco",
         provides=["environ_windir"],
         supported_os=["Windows"],
         urls=["http://blah"],
         sources=sources)
-    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
-      artifact.ValidateSyntax()
+    with self.assertRaises(artifacts.ArtifactDefinitionError):
+      ar.ValidateSyntax(artifact)
 
 
 class GetWindowsEnvironmentVariablesMapTest(test_lib.GRRBaseTest):

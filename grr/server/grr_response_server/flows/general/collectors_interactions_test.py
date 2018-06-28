@@ -13,6 +13,7 @@ from grr import config
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import artifacts
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact
@@ -76,10 +77,10 @@ supported_os: [ "Linux" ]
     test_registry.AddDatastoreSource(rdfvalue.RDFURN("aff4:/artifact_store"))
     test_registry._dirty = False
     with utils.Stubber(artifact_registry, "REGISTRY", test_registry):
-      with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
+      with self.assertRaises(artifacts.ArtifactNotRegisteredError):
         artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
 
-      with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
+      with self.assertRaises(artifacts.ArtifactNotRegisteredError):
         artifact_registry.REGISTRY.GetArtifact("NotInDatastore")
 
       # Add artifact to datastore but not registry
@@ -104,7 +105,7 @@ supported_os: [ "Linux" ]
       # write it into aff4. This simulates an artifact that was
       # uploaded in the UI then later deleted. We expect it to get
       # cleared when the artifacts are reloaded from the datastore.
-      with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
+      with self.assertRaises(artifacts.ArtifactNotRegisteredError):
         artifact_registry.REGISTRY.GetArtifact("NotInDatastore")
 
   def testProcessCollectedArtifacts(self):

@@ -16,6 +16,7 @@ from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import artifacts
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -241,7 +242,7 @@ sources:
     content_regex_list: ["stuff"]
 supported_os: [Linux]
 """
-    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
+    with self.assertRaises(artifacts.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content)
 
   def testUploadArtifactYamlFileBadList(self):
@@ -254,7 +255,7 @@ sources:
     content_regex_list: ["stuff"]
 supported_os: [Linux]
 """
-    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
+    with self.assertRaises(artifacts.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content)
 
   def testUploadArtifactYamlFileMissingNamesAttribute(self):
@@ -268,7 +269,7 @@ sources:
 supported_os: [Linux]
 """
 
-    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
+    with self.assertRaises(artifacts.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content)
 
   def testCommandArgumentOrderIsPreserved(self):
@@ -289,7 +290,7 @@ supported_os: [Linux]
 
     # Check serialize/deserialize doesn't change order.
     serialized = artifact_obj.SerializeToString()
-    artifact_obj = artifact_registry.Artifact.FromSerializedString(serialized)
+    artifact_obj = artifacts.Artifact.FromSerializedString(serialized)
     arglist = artifact_obj.sources[0].attributes.get("args")
     self.assertEqual(arglist, ["-L", "-v", "-n"])
 
@@ -316,7 +317,7 @@ supported_os: [Linux]
     artifact_registry.REGISTRY.AddDatastoreSources([artifact_store_urn])
 
     # WMIActiveScriptEventConsumer is a system artifact, we can't overwrite it.
-    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
+    with self.assertRaises(artifacts.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content)
 
     # Override the check and upload anyways. This simulates the case
@@ -330,7 +331,7 @@ supported_os: [Linux]
     # be an error that we can't overwrite the system artifact. The
     # artifact should automatically get deleted from the collection to
     # mitigate the problem.
-    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
+    with self.assertRaises(artifacts.ArtifactDefinitionError):
       artifact_registry.REGISTRY._ReloadArtifacts()
 
     # As stated above, now this should work.

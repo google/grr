@@ -3,6 +3,7 @@
 
 from grr.lib import parser
 
+from grr.lib.rdfvalues import artifacts
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import artifact_pb2
 from grr.server.grr_response_server import artifact
@@ -18,7 +19,7 @@ class ApiListArtifactsArgs(rdf_structs.RDFProtoStruct):
 class ApiListArtifactsResult(rdf_structs.RDFProtoStruct):
   protobuf = artifact_pb2.ApiListArtifactsResult
   rdf_deps = [
-      artifact_registry.ArtifactDescriptor,
+      artifacts.ArtifactDescriptor,
   ]
 
 
@@ -28,19 +29,21 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListArtifactsArgs
   result_type = ApiListArtifactsResult
 
-  def BuildArtifactDescriptors(self, artifacts):
+  def BuildArtifactDescriptors(self, artifacts_list):
     result = []
-    for artifact_val in artifacts:
-      descriptor = artifact_registry.ArtifactDescriptor(
+    for artifact_val in artifacts_list:
+      descriptor = artifacts.ArtifactDescriptor(
           artifact=artifact_val,
-          dependencies=sorted(artifact_val.GetArtifactDependencies()),
-          path_dependencies=sorted(artifact_val.GetArtifactPathDependencies()),
+          dependencies=sorted(
+              artifact_registry.GetArtifactDependencies(artifact_val)),
+          path_dependencies=sorted(
+              artifact_registry.GetArtifactPathDependencies(artifact_val)),
           error_message=artifact_val.error_message,
           is_custom=artifact_val.loaded_from.startswith("datastore:"))
 
       for processor in parser.Parser.GetClassesByArtifact(artifact_val.name):
         descriptor.processors.append(
-            artifact_registry.ArtifactProcessorDescriptor(
+            artifacts.ArtifactProcessorDescriptor(
                 name=processor.__name__,
                 output_types=processor.output_types,
                 description=processor.GetDescription()))
@@ -53,19 +56,19 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
     """Get available artifact information for rendering."""
 
     # Get all artifacts that aren't Bootstrap and aren't the base class.
-    artifacts = sorted(
+    artifacts_list = sorted(
         artifact_registry.REGISTRY.GetArtifacts(
             reload_datastore_artifacts=True),
         key=lambda art: art.name)
 
-    total_count = len(artifacts)
+    total_count = len(artifacts_list)
 
     if args.count:
-      artifacts = artifacts[args.offset:args.offset + args.count]
+      artifacts_list = artifacts_list[args.offset:args.offset + args.count]
     else:
-      artifacts = artifacts[args.offset:]
+      artifacts_list = artifacts_list[args.offset:]
 
-    descriptors = self.BuildArtifactDescriptors(artifacts)
+    descriptors = self.BuildArtifactDescriptors(artifacts_list)
     return ApiListArtifactsResult(items=descriptors, total_count=total_count)
 
 

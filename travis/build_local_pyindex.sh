@@ -49,6 +49,14 @@ function download_packages() {
     # shellcheck disable=SC2086
     pip download --find-links=sdists --dest=local_pypi "$(ls sdists/${pkg}-*.zip)"
   done
+
+  # See https://github.com/google/rekall/issues/422
+  #
+  # Installation of the grr-response-test sdist from local_pypi will fail
+  # if the version of sortedcontainers needed by Rekall is not present.
+  #
+  # TODO(user): This won't be necessary once the github issue is fixed.
+  pip download --find-links=local_pypi --dest=local_pypi sortedcontainers==1.5.7
 }
 
 function verify_packages() {

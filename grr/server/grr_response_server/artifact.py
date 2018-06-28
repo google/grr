@@ -10,6 +10,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import anomaly
+from grr.lib.rdfvalues import artifacts
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -152,7 +153,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
     # Schedule any new artifacts for which we have now fulfilled dependencies.
     for artifact_name in self.state.awaiting_deps_artifacts:
       artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
-      deps = artifact_obj.GetArtifactPathDependencies()
+      deps = artifact_registry.GetArtifactPathDependencies(artifact_obj)
       if set(deps).issubset(self.state.fulfilled_deps):
         self.state.in_flight_artifacts.append(artifact_name)
         self.state.awaiting_deps_artifacts.remove(artifact_name)
@@ -443,7 +444,7 @@ def UploadArtifactYamlFile(file_content,
   new_artifact_names = set()
   # A quick syntax check before we upload anything.
   for artifact_value in new_artifacts:
-    artifact_value.ValidateSyntax()
+    artifact_registry.ValidateSyntax(artifact_value)
     new_artifact_names.add(artifact_value.name)
 
   # Iterate through each artifact adding it to the collection.
@@ -476,13 +477,13 @@ def UploadArtifactYamlFile(file_content,
   # not have to perform a syntax validation because it is already done after
   # YAML is parsed.
   for artifact_value in loaded_artifacts:
-    artifact_value.ValidateDependencies()
+    artifact_registry.ValidateDependencies(artifact_value)
 
 
 class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactFallbackCollectorArgs
   rdf_deps = [
-      artifact_registry.ArtifactName,
+      artifacts.ArtifactName,
   ]
 
 

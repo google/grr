@@ -2,7 +2,9 @@
 import mock
 
 import unittest
+
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import artifacts
 from grr.server.grr_response_server import artifact_registry as ar
 from grr.test_lib import test_lib
 
@@ -94,17 +96,17 @@ class ArtifactRegistrySourcesTest(unittest.TestCase):
 class ArtifactTest(unittest.TestCase):
 
   def testValidateSyntaxSimple(self):
-    artifact = ar.Artifact(
+    artifact = artifacts.Artifact(
         name="Foo",
         doc="This is Foo.",
         provides=["fqdn", "domain"],
         supported_os=["Windows"],
         urls=["https://example.com"])
-    artifact.ValidateSyntax()
+    ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxWithSources(self):
     registry_key_source = {
-        "type": ar.ArtifactSource.SourceType.REGISTRY_KEY,
+        "type": artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
         "attributes": {
             "keys": [
                 r"%%current_control_set%%\Control\Session "
@@ -114,81 +116,83 @@ class ArtifactTest(unittest.TestCase):
     }
 
     file_source = {
-        "type": ar.ArtifactSource.SourceType.FILE,
+        "type": artifacts.ArtifactSource.SourceType.FILE,
         "attributes": {
             "paths": [r"%%environ_systemdrive%%\Temp"]
         }
     }
 
-    artifact = ar.Artifact(
+    artifact = artifacts.Artifact(
         name="Bar",
         doc="This is Bar.",
         provides=["environ_windir"],
         supported_os=["Windows"],
         urls=["https://example.com"],
         sources=[registry_key_source, file_source])
-    artifact.ValidateSyntax()
+    ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxMissingDoc(self):
-    artifact = ar.Artifact(name="Baz", provides=["os"], supported_os=["Linux"])
+    artifact = artifacts.Artifact(
+        name="Baz", provides=["os"], supported_os=["Linux"])
 
-    with self.assertRaisesRegexp(ar.ArtifactSyntaxError, "missing doc"):
-      artifact.ValidateSyntax()
+    with self.assertRaisesRegexp(artifacts.ArtifactSyntaxError, "missing doc"):
+      ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxInvalidSupportedOs(self):
-    artifact = ar.Artifact(
+    artifact = artifacts.Artifact(
         name="Quux",
         doc="This is Quux.",
         provides=["os"],
         labels=["Cloud", "Logs"],
         supported_os=["Solaris"])
 
-    with self.assertRaisesRegexp(ar.ArtifactSyntaxError, "'Solaris'"):
-      artifact.ValidateSyntax()
+    with self.assertRaisesRegexp(artifacts.ArtifactSyntaxError, "'Solaris'"):
+      ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxInvalidLabel(self):
-    artifact = ar.Artifact(
+    artifact = artifacts.Artifact(
         name="Norf",
         doc="This is Norf.",
         provides=["domain"],
         labels=["Mail", "Browser", "Reddit"],
         supported_os=["Darwin"])
 
-    with self.assertRaisesRegexp(ar.ArtifactSyntaxError, "'Reddit'"):
-      artifact.ValidateSyntax()
+    with self.assertRaisesRegexp(artifacts.ArtifactSyntaxError, "'Reddit'"):
+      ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBrokenProvides(self):
-    artifact = ar.Artifact(
+    artifact = artifacts.Artifact(
         name="Thud",
         doc="This is Thud.",
         provides=["fqdn", "garbage"],
         labels=["Network"])
 
-    with self.assertRaisesRegexp(ar.ArtifactSyntaxError, "'garbage'"):
-      artifact.ValidateSyntax()
+    with self.assertRaisesRegexp(artifacts.ArtifactSyntaxError, "'garbage'"):
+      ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBadSource(self):
     source = {
-        "type": ar.ArtifactSource.SourceType.ARTIFACT_GROUP,
+        "type": artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP,
         "attributes": {}
     }
 
-    artifact = ar.Artifact(
+    artifact = artifacts.Artifact(
         name="Barf",
         doc="This is Barf.",
         provides=["os"],
         labels=["Logs", "Memory"],
         sources=[source])
 
-    with self.assertRaisesRegexp(ar.ArtifactSyntaxError, "required attributes"):
-      artifact.ValidateSyntax()
+    with self.assertRaisesRegexp(artifacts.ArtifactSyntaxError,
+                                 "required attributes"):
+      ar.ValidateSyntax(artifact)
 
 
 class ArtifactSourceTest(unittest.TestCase):
 
   def testValidateDirectory(self):
-    source = ar.ArtifactSource(
-        type=ar.ArtifactSource.SourceType.DIRECTORY,
+    source = artifacts.ArtifactSource(
+        type=artifacts.ArtifactSource.SourceType.DIRECTORY,
         attributes={
             "paths": ["/home", "/usr"],
         })
@@ -196,8 +200,8 @@ class ArtifactSourceTest(unittest.TestCase):
     source.Validate()
 
   def testValidateRegistrykey(self):
-    source = ar.ArtifactSource(
-        type=ar.ArtifactSource.SourceType.REGISTRY_KEY,
+    source = artifacts.ArtifactSource(
+        type=artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
         attributes={
             "keys": [r"Foo\Bar\Baz"],
         })
@@ -205,8 +209,8 @@ class ArtifactSourceTest(unittest.TestCase):
     source.Validate()
 
   def testValidateCommand(self):
-    source = ar.ArtifactSource(
-        type=ar.ArtifactSource.SourceType.COMMAND,
+    source = artifacts.ArtifactSource(
+        type=artifacts.ArtifactSource.SourceType.COMMAND,
         attributes={
             "cmd": "quux",
             "args": ["-foo", "-bar"],
@@ -215,45 +219,49 @@ class ArtifactSourceTest(unittest.TestCase):
     source.Validate()
 
   def testValidateCommandWithSingleArgumentContainingSpace(self):
-    source = ar.ArtifactSource(
-        type=ar.ArtifactSource.SourceType.COMMAND,
+    source = artifacts.ArtifactSource(
+        type=artifacts.ArtifactSource.SourceType.COMMAND,
         attributes={
             "cmd": "quux",
             "args": ["-foo -bar"],
         })
 
-    with self.assertRaisesRegexp(ar.ArtifactSourceSyntaxError, "'-foo -bar'"):
+    with self.assertRaisesRegexp(artifacts.ArtifactSourceSyntaxError,
+                                 "'-foo -bar'"):
       source.Validate()
 
   def testValidatePathsIsAList(self):
-    source = ar.ArtifactSource(
-        type=ar.ArtifactSource.SourceType.FILE, attributes={
+    source = artifacts.ArtifactSource(
+        type=artifacts.ArtifactSource.SourceType.FILE,
+        attributes={
             "paths": "/bin",
         })
 
-    with self.assertRaisesRegexp(ar.ArtifactSourceSyntaxError, "not a list"):
+    with self.assertRaisesRegexp(artifacts.ArtifactSourceSyntaxError,
+                                 "not a list"):
       source.Validate()
 
   def testValidatePathIsAString(self):
-    source = ar.ArtifactSource(
-        type=ar.ArtifactSource.SourceType.ARTIFACT_GROUP,
+    source = artifacts.ArtifactSource(
+        type=artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP,
         attributes={
             "names": ["Foo", "Bar"],
             "path": ["/tmp", "/var"],
         })
 
-    with self.assertRaisesRegexp(ar.ArtifactSourceSyntaxError, "not a string"):
+    with self.assertRaisesRegexp(artifacts.ArtifactSourceSyntaxError,
+                                 "not a string"):
       source.Validate()
 
   def testValidateMissingRequiredAttributes(self):
-    source = ar.ArtifactSource(
-        type=ar.ArtifactSource.SourceType.GREP,
+    source = artifacts.ArtifactSource(
+        type=artifacts.ArtifactSource.SourceType.GREP,
         attributes={
             "paths": ["/etc", "/dev", "/opt"],
         })
 
     expected = "missing required attributes: 'content_regex_list'"
-    with self.assertRaisesRegexp(ar.ArtifactSourceSyntaxError, expected):
+    with self.assertRaisesRegexp(artifacts.ArtifactSourceSyntaxError, expected):
       source.Validate()
 
 

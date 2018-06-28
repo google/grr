@@ -2,13 +2,13 @@
 """Flows for handling the collection for artifacts."""
 
 import logging
-from grr import config
 
+from grr import config
 from grr.lib import artifact_utils
 from grr.lib import parser
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import artifact_collector as rdf_artifact_collector
+from grr.lib.rdfvalues import artifacts as rdf_artifacts
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths
@@ -123,7 +123,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       # Ensure artifact has been written sanely. Note that this could be
       # removed if it turns out to be expensive. Artifact tests should catch
       # these.
-      artifact_obj.Validate()
+      artifact_registry.Validate(artifact_obj)
 
       self.Collect(artifact_obj)
 
@@ -162,7 +162,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
       if source_conditions_met:
         type_name = source.type
-        source_type = artifact_registry.ArtifactSource.SourceType
+        source_type = rdf_artifacts.ArtifactSource.SourceType
         self.current_artifact_name = artifact_name
         if type_name == source_type.COMMAND:
           self.RunCommand(source)
@@ -794,7 +794,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 class ArtifactFilesDownloaderFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactFilesDownloaderFlowArgs
   rdf_deps = [
-      artifact_registry.ArtifactName,
+      rdf_artifacts.ArtifactName,
       rdfvalue.ByteSize,
   ]
 
@@ -940,7 +940,7 @@ class ClientArtifactCollector(flow.GRRFlow):
       rdf value artifact_bundle containing a list of extended artifacts and the
       knowledge base
     """
-    artifact_bundle = rdf_artifact_collector.ArtifactCollectorArgs()
+    artifact_bundle = rdf_artifacts.ArtifactCollectorArgs()
     artifact_bundle.knowledge_base = self.args.knowledge_base
     self.processed_artifacts = set()
     for artifact_name in artifact_list:
@@ -961,7 +961,7 @@ class ClientArtifactCollector(flow.GRRFlow):
       rdf value representation of extended artifact containing the name of the
       artifact and the extended sources
     """
-    ext_art = rdf_artifact_collector.ExtendedArtifact()
+    ext_art = rdf_artifacts.ExtendedArtifact()
     ext_art.name = art_obj.name
     for source in art_obj.sources:
       if self._MeetsConditions(source):
@@ -980,10 +980,10 @@ class ClientArtifactCollector(flow.GRRFlow):
       rdf value representation of extended source (original source plus
       additional values)
     """
-    ext_src = rdf_artifact_collector.ExtendedSource()
+    ext_src = rdf_artifacts.ExtendedSource()
     ext_src.base_source = source
     type_name = source.type
-    source_type = artifact_registry.ArtifactSource.SourceType
+    source_type = rdf_artifacts.ArtifactSource.SourceType
     if (type_name == source_type.DIRECTORY or
         type_name == source_type.LIST_FILES):
       ext_src.path_type = self.GetPathType()

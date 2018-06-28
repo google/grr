@@ -18,6 +18,7 @@ build: off
 
 test_script:
 - sudo -EH ./appveyor/linux/run_e2e_tests.sh
+- sudo -EH ./appveyor/linux/test_repack.sh
 
 on_finish:
 - ./appveyor/linux/upload_e2e_artifacts.sh

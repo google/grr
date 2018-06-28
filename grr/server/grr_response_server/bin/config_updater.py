@@ -17,6 +17,7 @@ import pkg_resources
 import yaml
 
 # pylint: disable=unused-import,g-bad-import-order
+from grr.lib.rdfvalues import artifacts
 from grr.server.grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
@@ -923,7 +924,7 @@ def main(argv):
       artifact.UploadArtifactYamlFile(
           open(flags.FLAGS.file, "rb").read(),
           overwrite=flags.FLAGS.overwrite_artifact)
-    except artifact_registry.ArtifactDefinitionError as e:
+    except artifacts.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite_artifact." % e
 
   elif flags.FLAGS.subparser_name == "delete_artifacts":

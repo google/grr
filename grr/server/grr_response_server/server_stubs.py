@@ -8,6 +8,7 @@ server parts.
 
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib.rdfvalues import artifacts as rdf_artifact_collector
 from grr.lib.rdfvalues import chipsec_types
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud as rdf_cloud
@@ -27,6 +28,14 @@ class ClientActionStub(object):
 
   in_rdfvalue = None
   out_rdfvalues = [None]
+
+
+# from artifacts.py
+class ArtifactCollector(ClientActionStub):
+  """The client side artifact collector implementation."""
+
+  in_rdfvalue = rdf_artifact_collector.ArtifactCollectorArgs
+  out_rdfvalues = [rdf_artifact_collector.ArtifactCollectorResult]
 
 
 # from windows/windows.py, osx/osx.py and linux/linux.py
