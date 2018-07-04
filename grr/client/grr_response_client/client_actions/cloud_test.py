@@ -11,8 +11,8 @@ import requests
 
 from grr import config
 from grr_response_client.client_actions import cloud
-from grr.lib import flags
-from grr.lib.rdfvalues import cloud as rdf_cloud
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 

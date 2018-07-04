@@ -2,11 +2,11 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the Find flow."""
 from grr_response_client.client_actions import searching
-from grr.lib import flags
-from grr.lib import type_info
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import type_info
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.flows.general import find
 from grr.test_lib import action_mocks

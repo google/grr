@@ -17,19 +17,19 @@ import pkg_resources
 import yaml
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib.rdfvalues import artifacts
+from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr.server.grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
 from grr import config as grr_config
 from grr.config import contexts
 from grr.config import server as config_server
-from grr.lib import config_lib
-from grr.lib import flags
-from grr.lib import rdfvalue
-from grr.lib import repacking
-from grr.lib import utils
-from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import repacking
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact
@@ -924,7 +924,7 @@ def main(argv):
       artifact.UploadArtifactYamlFile(
           open(flags.FLAGS.file, "rb").read(),
           overwrite=flags.FLAGS.overwrite_artifact)
-    except artifacts.ArtifactDefinitionError as e:
+    except rdf_artifacts.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite_artifact." % e
 
   elif flags.FLAGS.subparser_name == "delete_artifacts":

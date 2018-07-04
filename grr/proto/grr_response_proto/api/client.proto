@@ -70,7 +70,7 @@ message ApiClient {
 message ApiClientActionRequest {
   optional uint64 task_id = 1;
 
-  optional uint64 task_eta = 2 [(sem_type) = {
+  optional uint64 leased_until = 2 [(sem_type) = {
       type: "RDFDatetime",
       description: "This task's lease expiration time."
     }];

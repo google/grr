@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Additional (user-specific) UI logic."""
 
-from grr.lib import registry
+from grr.core.grr_response_server.lib import registry
 
 
 class LocalGuiInitHook(registry.InitHook):

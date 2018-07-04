@@ -5,9 +5,9 @@
 import json
 import urllib2
 
-from grr.lib import flags
-from grr.lib import utils
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr.server.grr_response_server import access_control
 

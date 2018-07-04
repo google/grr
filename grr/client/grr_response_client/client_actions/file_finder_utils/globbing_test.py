@@ -4,7 +4,7 @@ import shutil
 
 import unittest
 from grr_response_client.client_actions.file_finder_utils import globbing
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.test_lib import test_lib
 
 # TODO(hanuszczak): Consider refactoring these tests with `pyfakefs`.

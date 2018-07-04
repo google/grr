@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Invoke the fingerprint client action on a file."""
 
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import crypto
-from grr.lib.rdfvalues import paths
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
@@ -18,14 +18,14 @@ from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 class FingerprintFileArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FingerprintFileArgs
   rdf_deps = [
-      paths.PathSpec,
+      rdf_paths.PathSpec,
   ]
 
 
 class FingerprintFileResult(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FingerprintFileResult
   rdf_deps = [
-      crypto.Hash,
+      rdf_crypto.Hash,
       rdfvalue.RDFURN,
   ]
 

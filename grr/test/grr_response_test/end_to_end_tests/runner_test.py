@@ -12,7 +12,7 @@ from grr_api_client import config as api_config
 from grr_api_client import context
 from grr_api_client import types
 from grr_api_client import utils as api_utils
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server.gui.api_plugins import client as plugin_client
 from grr_response_test.end_to_end_tests import fake_tests
 from grr_response_test.end_to_end_tests import runner

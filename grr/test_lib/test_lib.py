@@ -28,11 +28,11 @@ import unittest
 from grr import config
 
 from grr_response_client import comms
-from grr.lib import rdfvalue
-from grr.lib import utils
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
 
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.server.grr_response_server import access_control
 
 from grr.server.grr_response_server import aff4
@@ -46,7 +46,7 @@ from grr.server.grr_response_server.aff4_objects import users
 from grr.server.grr_response_server.flows.general import audit
 
 from grr.server.grr_response_server.hunts import results as hunts_results
-from grr.server.grr_response_server.rdfvalues import objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 from grr.test_lib import testing_startup
 
@@ -409,7 +409,7 @@ class GRRBaseTest(unittest.TestCase):
     """Prepares a test client object."""
     client_id = "C.1%015x" % client_nr
 
-    client = objects.ClientSnapshot(client_id=client_id)
+    client = rdf_objects.ClientSnapshot(client_id=client_id)
     client.startup_info.client_info = self._TestClientInfo()
     if last_boot_time is not None:
       client.startup_info.boot_time = last_boot_time

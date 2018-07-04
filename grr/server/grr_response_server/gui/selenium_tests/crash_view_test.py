@@ -2,7 +2,7 @@
 """Test the flow_management interface."""
 
 import unittest
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 
 from grr.server.grr_response_server import foreman
 from grr.server.grr_response_server.gui import gui_test_lib

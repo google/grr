@@ -41,9 +41,9 @@ import time
 
 
 from grr import config
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import stats
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import stats
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store

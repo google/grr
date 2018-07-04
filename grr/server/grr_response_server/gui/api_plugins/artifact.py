@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """API handlers for accessing artifacts."""
 
-from grr.lib import parser
+from grr.core.grr_response_core.lib import parser
 
-from grr.lib.rdfvalues import artifacts
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import artifact_pb2
 from grr.server.grr_response_server import artifact
 from grr.server.grr_response_server import artifact_registry
@@ -19,7 +19,7 @@ class ApiListArtifactsArgs(rdf_structs.RDFProtoStruct):
 class ApiListArtifactsResult(rdf_structs.RDFProtoStruct):
   protobuf = artifact_pb2.ApiListArtifactsResult
   rdf_deps = [
-      artifacts.ArtifactDescriptor,
+      rdf_artifacts.ArtifactDescriptor,
   ]
 
 
@@ -32,7 +32,7 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
   def BuildArtifactDescriptors(self, artifacts_list):
     result = []
     for artifact_val in artifacts_list:
-      descriptor = artifacts.ArtifactDescriptor(
+      descriptor = rdf_artifacts.ArtifactDescriptor(
           artifact=artifact_val,
           dependencies=sorted(
               artifact_registry.GetArtifactDependencies(artifact_val)),
@@ -43,7 +43,7 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
 
       for processor in parser.Parser.GetClassesByArtifact(artifact_val.name):
         descriptor.processors.append(
-            artifacts.ArtifactProcessorDescriptor(
+            rdf_artifacts.ArtifactProcessorDescriptor(
                 name=processor.__name__,
                 output_types=processor.output_types,
                 description=processor.GetDescription()))

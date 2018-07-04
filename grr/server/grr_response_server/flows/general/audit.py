@@ -10,7 +10,7 @@ The audit system consists of a group of event listeners which receive these
 events and act upon them.
 """
 
-from grr.lib.rdfvalues import events as rdf_events
+from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import events

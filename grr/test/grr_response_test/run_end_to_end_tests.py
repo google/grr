@@ -11,7 +11,7 @@ from grr.server.grr_response_server import server_plugins
 
 from grr import config
 from grr.config import contexts
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import server_startup

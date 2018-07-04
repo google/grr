@@ -19,8 +19,8 @@ from grr_response_client import vfs
 # grr_response_client.components.chipsec_support.actions.grr_chipsec to
 # explicitly resolve the circular dependency.
 from grr_response_client.components.chipsec_support import actions  # pylint: disable=unused-import
-from grr.lib import flags
-from grr.lib.rdfvalues import chipsec_types
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 
@@ -96,14 +96,14 @@ class TestChipsecDumpFlashImage(GRRChipsecTest):
 
   def testDumpFlashImage(self):
     """Test the basic dump."""
-    args = chipsec_types.DumpFlashImageRequest()
+    args = rdf_chipsec_types.DumpFlashImageRequest()
     result = self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)[0]
     with vfs.VFSOpen(result.path) as image:
       self.assertEqual(image.read(0x20000), "\xff" * 0x10000)
 
   def testDumpFlashImageVerbose(self):
     """Test the basic dump with the verbose mode enabled."""
-    args = chipsec_types.DumpFlashImageRequest(log_level=1)
+    args = rdf_chipsec_types.DumpFlashImageRequest(log_level=1)
     result = self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)[0]
     with vfs.VFSOpen(result.path) as image:
       self.assertEqual(image.read(0x20000), "\xff" * 0x10000)
@@ -112,7 +112,7 @@ class TestChipsecDumpFlashImage(GRRChipsecTest):
   def testDumpFlashImageUnknownChipset(self):
     """By default, if the chipset is unknown, no exception is raised."""
     self.chipsec_mock.chipset.cs = UnsupportedChipset
-    args = chipsec_types.DumpFlashImageRequest()
+    args = rdf_chipsec_types.DumpFlashImageRequest()
     self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)
 
   def testDumpFlashImageUnknownChipsetVerbose(self):
@@ -122,7 +122,7 @@ class TestChipsecDumpFlashImage(GRRChipsecTest):
     and at least one response should be returned with non-empty logs.
     """
     self.chipsec_mock.chipset.cs = UnsupportedChipset
-    args = chipsec_types.DumpFlashImageRequest(log_level=1)
+    args = rdf_chipsec_types.DumpFlashImageRequest(log_level=1)
     self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)
     self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
     self.assertGreaterEqual(len(self.results), 1)
@@ -132,7 +132,7 @@ class TestChipsecDumpFlashImage(GRRChipsecTest):
   def testDumpFlashImageOsHelperErrorChipset(self):
     """If an exception is raised by the helper layer, handle it."""
     self.chipsec_mock.chipset.cs = FailingOsHelperChipset
-    args = chipsec_types.DumpFlashImageRequest()
+    args = rdf_chipsec_types.DumpFlashImageRequest()
     self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)
 
 
@@ -187,7 +187,7 @@ class TestDumpACPITable(GRRChipsecTest):
 
   def testDumpValidSingleACPITable(self):
     """Tests basic valid ACPI table dump."""
-    args = chipsec_types.DumpACPITableRequest(table_signature="DSDT")
+    args = rdf_chipsec_types.DumpACPITableRequest(table_signature="DSDT")
     result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
     self.assertEqual(len(result.acpi_tables), 1)
     self.assertEqual(result.acpi_tables[0].table_address, 0xAABBCCDDEEFF0011)
@@ -196,7 +196,7 @@ class TestDumpACPITable(GRRChipsecTest):
 
   def testDumpValidMultipleACPITables(self):
     """Tests valid ACPI table dump that would yield several tables."""
-    args = chipsec_types.DumpACPITableRequest(table_signature="SSDT")
+    args = rdf_chipsec_types.DumpACPITableRequest(table_signature="SSDT")
     result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
     self.assertEqual(len(result.acpi_tables), 3)
     self.assertEqual(result.acpi_tables[0].table_address, 0x1234567890ABCDEF)
@@ -211,7 +211,7 @@ class TestDumpACPITable(GRRChipsecTest):
 
   def testDumpValidSingleACPITableVerbose(self):
     """Tests valid ACPI table dump with verbose mode enabled."""
-    args = chipsec_types.DumpACPITableRequest(
+    args = rdf_chipsec_types.DumpACPITableRequest(
         table_signature="XSDT", logging=True)
     result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
     self.assertEqual(result.acpi_tables[0].table_address, 0x1122334455667788)
@@ -221,14 +221,15 @@ class TestDumpACPITable(GRRChipsecTest):
 
   def testDumpInvalidACPITable(self):
     """Tests dumping invalid ACPI table."""
-    args = chipsec_types.DumpACPITableRequest(table_signature="INVALID_TABLE")
+    args = rdf_chipsec_types.DumpACPITableRequest(
+        table_signature="INVALID_TABLE")
     result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
     self.assertNotEquals(len(result.logs), 0)
 
   def testDumpACPITableUnknownChipset(self):
     """By default, if the chipset is unknown, no exception is raised."""
     self.chipsec_mock.chipset.cs = UnsupportedChipset
-    args = chipsec_types.DumpACPITableRequest(table_signature="FACP")
+    args = rdf_chipsec_types.DumpACPITableRequest(table_signature="FACP")
     self.RunAction(self.grr_chipsec_module.DumpACPITable, args)
 
   def testDumpACPITableUnknownChipsetVerbose(self):
@@ -238,7 +239,7 @@ class TestDumpACPITable(GRRChipsecTest):
     and at least one response should be returned with non-empty logs.
     """
     self.chipsec_mock.chipset.cs = UnsupportedChipset
-    args = chipsec_types.DumpACPITableRequest(
+    args = rdf_chipsec_types.DumpACPITableRequest(
         table_signature="FACP", logging=True)
     self.RunAction(self.grr_chipsec_module.DumpACPITable, args)
     self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
@@ -252,7 +253,7 @@ class TestDumpACPITable(GRRChipsecTest):
     returned.
     """
     self.chipsec_mock.acpi.ACPI = MockACPIReadingRestrictedArea
-    args = chipsec_types.DumpACPITableRequest(table_signature="FACP")
+    args = rdf_chipsec_types.DumpACPITableRequest(table_signature="FACP")
     self.RunAction(self.grr_chipsec_module.DumpACPITable, args)
     self.assertGreaterEqual(len(self.results), 1)
     self.assertNotEquals(len(self.results[0].logs), 0)

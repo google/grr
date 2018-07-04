@@ -3,15 +3,15 @@
 
 import socket
 
-from grr.lib import flags
-from grr.lib import ipv6_utils
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import ipv6_utils
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import client_index
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.rdfvalues import objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import test_lib
 
@@ -279,7 +279,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
   def testAnalyzeClient(self):
     index = client_index.ClientIndex()
 
-    client = objects.ClientSnapshot(client_id="C.0000000000000000")
+    client = rdf_objects.ClientSnapshot(client_id="C.0000000000000000")
     client.knowledge_base.os = "Windows"
     client.startup_info.client_info.client_name = "grr monitor"
     client.startup_info.client_info.labels = ["client-label-23"]
@@ -318,7 +318,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     res = {}
     for i in range(1, n + 1):
       client_id = "C.100000000000000%d" % i
-      client = objects.ClientSnapshot(client_id=client_id)
+      client = rdf_objects.ClientSnapshot(client_id=client_id)
       client.knowledge_base.os = "Windows"
       client.knowledge_base.fqdn = "host-%d.example.com" % i
 

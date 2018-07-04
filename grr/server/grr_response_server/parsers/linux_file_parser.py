@@ -6,12 +6,12 @@ import os
 import re
 
 from grr import config
-from grr.lib import parser
-from grr.lib import utils
-from grr.lib.parsers import config_file
-from grr.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import parser
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.parsers import config_file
+from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 
 class PCIDevicesInfoParser(parser.FileParser):

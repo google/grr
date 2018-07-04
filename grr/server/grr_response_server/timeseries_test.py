@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.lib.timeseries."""
 
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server import timeseries
 from grr.test_lib import test_lib
 

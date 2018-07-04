@@ -20,8 +20,8 @@ import portpicker
 import requests
 
 from grr_api_client import api as grr_api
-from grr.lib import flags
-from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.server.grr_response_server.flows.general import processes
 from grr.server.grr_response_server.gui import api_auth_manager
 from grr.server.grr_response_server.gui import webauth

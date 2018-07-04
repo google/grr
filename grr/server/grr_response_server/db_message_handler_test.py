@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Tests for the message handler database api."""
 
-from grr.lib import rdfvalue
-from grr.lib import utils
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
@@ -10,7 +10,7 @@ from grr.test_lib import test_lib
 class DatabaseTestHandlerMixin(object):
   """An abstract class for testing db.Database implementations.
 
-  This mixin adds methods to test the handling of client data.
+  This mixin adds methods to test the handling of message handler requests.
   """
 
   def testMessageHandlerRequests(self):

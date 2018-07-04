@@ -2,8 +2,8 @@
 """Client label approvals authorization manager."""
 
 from grr import config
-from grr.lib import registry
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import acls_pb2
 
 from grr.server.grr_response_server import access_control

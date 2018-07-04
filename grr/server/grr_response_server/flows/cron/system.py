@@ -5,9 +5,9 @@ import bisect
 import logging
 import time
 
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import stats as rdf_stats
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import export_utils

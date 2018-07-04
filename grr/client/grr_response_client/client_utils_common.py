@@ -12,8 +12,8 @@ import time
 
 from grr import config
 from grr_response_client.local import binary_whitelist
-from grr.lib import constants
-from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib import constants
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 
 
 def HandleAlarm(process):

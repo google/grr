@@ -4,8 +4,8 @@
 
 import mock
 
-from grr.lib import flags
-from grr.lib.rdfvalues import standard as rdf_standard
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr.server.grr_response_server import email_alerts
 from grr.test_lib import test_lib
 

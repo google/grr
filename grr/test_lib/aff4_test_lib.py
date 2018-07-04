@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Classes for AFF4-related testing."""
 
-from grr.lib import registry
-from grr.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 
 from grr.test_lib import test_lib
 

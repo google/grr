@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Configuration parameters for the artifact subsystem."""
 
-from grr.lib import config_lib
+from grr.core.grr_response_core.lib import config_lib
 
 config_lib.DEFINE_list("Artifacts.artifact_dirs", [
     "%(grr/artifacts|resource)", "%(grr/artifacts/flow_templates|resource)",

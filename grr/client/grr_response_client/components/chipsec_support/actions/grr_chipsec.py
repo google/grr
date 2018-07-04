@@ -26,7 +26,7 @@ from chipsec.helper import oshelper
 from grr import config
 from grr_response_client import actions
 from grr_response_client.client_actions import tempfiles
-from grr.lib.rdfvalues import chipsec_types
+from grr.core.grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 
 # pylint: enable=g-bad-import-order, g-import-not-at-top
 
@@ -34,14 +34,14 @@ from grr.lib.rdfvalues import chipsec_types
 class DumpFlashImage(actions.ActionPlugin):
   """A client action to collect the BIOS via SPI using Chipsec."""
 
-  in_rdfvalue = chipsec_types.DumpFlashImageRequest
-  out_rdfvalues = [chipsec_types.DumpFlashImageResponse]
+  in_rdfvalue = rdf_chipsec_types.DumpFlashImageRequest
+  out_rdfvalues = [rdf_chipsec_types.DumpFlashImageResponse]
 
   def LogError(self, err):
     self.logs.append("Error dumping Flash image.")
     self.logs.append("%r: %s" % (err, err))
     self.logs.extend(self.chipsec_log.getvalue().splitlines())
-    self.SendReply(chipsec_types.DumpFlashImageResponse(logs=self.logs))
+    self.SendReply(rdf_chipsec_types.DumpFlashImageResponse(logs=self.logs))
 
   def Run(self, args):
     # Due to talking raw to hardware, this action has some inevitable risk of
@@ -98,7 +98,8 @@ class DumpFlashImage(actions.ActionPlugin):
       if args.log_level:
         self.LogError(err)
       tempfiles.DeleteGRRTempFile(dest_pathspec.path)
-      self.SendReply(chipsec_types.DumpFlashImageResponse(logs=["%s" % err],))
+      self.SendReply(
+          rdf_chipsec_types.DumpFlashImageResponse(logs=["%s" % err],))
       return
     except Exception as err:  # pylint: disable=broad-except
       # In case an exception is raised, if the verbose mode
@@ -116,21 +117,21 @@ class DumpFlashImage(actions.ActionPlugin):
                   config.CONFIG["Client.name"])
 
     self.SendReply(
-        chipsec_types.DumpFlashImageResponse(
+        rdf_chipsec_types.DumpFlashImageResponse(
             path=dest_pathspec, logs=self.logs))
 
 
 class DumpACPITable(actions.ActionPlugin):
   """A client action to collect the ACPI table(s)."""
 
-  in_rdfvalue = chipsec_types.DumpACPITableRequest
-  out_rdfvalues = [chipsec_types.DumpACPITableResponse]
+  in_rdfvalue = rdf_chipsec_types.DumpACPITableRequest
+  out_rdfvalues = [rdf_chipsec_types.DumpACPITableResponse]
 
   def LogError(self, err):
     self.logs.append("Error dumping ACPI table.")
     self.logs.append("%r: %s" % (err, err))
     self.logs.extend(self.chipsec_log.getvalue().splitlines())
-    self.SendReply(chipsec_types.DumpACPITableResponse(logs=self.logs))
+    self.SendReply(rdf_chipsec_types.DumpACPITableResponse(logs=self.logs))
 
   def Run(self, args):
     self.logs = []
@@ -158,7 +159,7 @@ class DumpACPITable(actions.ActionPlugin):
         table_blob = table_header + table_content
 
         acpi_tables.append(
-            chipsec_types.ACPITableData(
+            rdf_chipsec_types.ACPITableData(
                 table_address=table_address, table_blob=table_blob))
     except (chipset.UnknownChipsetError, OSError) as err:
       # Expected errors that might happen on the client
@@ -167,7 +168,8 @@ class DumpACPITable(actions.ActionPlugin):
       # error message.
       if args.logging:
         self.LogError(err)
-      self.SendReply(chipsec_types.DumpACPITableResponse(logs=["%s" % err],))
+      self.SendReply(
+          rdf_chipsec_types.DumpACPITableResponse(logs=["%s" % err],))
       return
     except Exception as err:  # pylint: disable=broad-except
       # In case an exception is raised, if the verbose mode
@@ -188,5 +190,5 @@ class DumpACPITable(actions.ActionPlugin):
       self.logs.extend(self.chipsec_log.getvalue().splitlines())
 
     self.SendReply(
-        chipsec_types.DumpACPITableResponse(
+        rdf_chipsec_types.DumpACPITableResponse(
             acpi_tables=acpi_tables, logs=self.logs))

@@ -19,7 +19,7 @@ from grr.config import server
 from grr.config import test
 # pylint: enable=unused-import
 
-from grr.lib import config_lib
+from grr.core.grr_response_core.lib import config_lib
 
 # By this time it's guaranteed that all configuration options
 # and filters are imported and known to the config system.

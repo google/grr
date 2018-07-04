@@ -2,7 +2,7 @@
 """Utility classes for front-end testing."""
 
 from grr import config
-from grr.lib import utils
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import frontend_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

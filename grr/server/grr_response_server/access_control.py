@@ -15,10 +15,10 @@ import logging
 import time
 
 
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import stats
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 
 

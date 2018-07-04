@@ -4,7 +4,7 @@
 
 import copy
 
-from grr.lib import rdfvalue
+from grr.core.grr_response_core.lib import rdfvalue
 
 NORMALIZE_MODE_GAUGE = 1
 NORMALIZE_MODE_COUNTER = 2

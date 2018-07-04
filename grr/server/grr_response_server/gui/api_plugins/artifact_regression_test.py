@@ -5,7 +5,7 @@ import os
 
 
 from grr import config
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server import artifact_registry
 from grr.server.grr_response_server.gui import api_regression_test_lib
 from grr.server.grr_response_server.gui.api_plugins import artifact as artifact_plugin

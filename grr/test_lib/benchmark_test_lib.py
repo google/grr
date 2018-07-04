@@ -5,7 +5,7 @@ import logging
 import time
 import pytest
 
-from grr.lib import registry
+from grr.core.grr_response_core.lib import registry
 from grr.test_lib import test_lib
 
 

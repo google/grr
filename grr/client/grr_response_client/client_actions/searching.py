@@ -7,9 +7,9 @@ import stat
 
 from grr_response_client import actions
 from grr_response_client import vfs
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 
 
 class Find(actions.IteratedAction):

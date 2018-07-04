@@ -16,11 +16,11 @@ from werkzeug import wrappers as werkzeug_wrappers
 from google.protobuf import json_format
 
 from grr import config
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import stats
-from grr.lib import utils
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.aff4_objects import users as aff4_users

@@ -10,11 +10,11 @@ import os
 
 from grr import config
 from grr_response_client.client_actions import standard
-from grr.lib import artifact_utils
-from grr.lib import flags
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import artifact_utils
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import artifact_registry
 from grr.server.grr_response_server import client_fixture
 from grr.server.grr_response_server import flow

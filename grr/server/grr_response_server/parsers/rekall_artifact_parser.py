@@ -4,10 +4,10 @@
 import json
 import ntpath
 
-from grr.lib import artifact_utils
-from grr.lib import parser
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import artifact_utils
+from grr.core.grr_response_core.lib import parser
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
 class RekallPsListParser(parser.RekallPluginParser):

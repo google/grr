@@ -7,9 +7,9 @@ import unittest
 import mock
 
 from grr_response_client import vfs
-from grr.lib import flags
-from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib

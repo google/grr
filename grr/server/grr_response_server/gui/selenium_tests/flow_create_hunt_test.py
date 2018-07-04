@@ -3,7 +3,7 @@
 
 
 import unittest
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import output_plugin

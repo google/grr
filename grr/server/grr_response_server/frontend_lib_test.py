@@ -13,16 +13,16 @@ from grr import config
 from grr_response_client import comms
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
-from grr.lib import communicator
-from grr.lib import flags
-from grr.lib import queues
-from grr.lib import rdfvalue
-from grr.lib import stats
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import communicator
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import queues
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import fleetspeak_connector
@@ -388,11 +388,11 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
     # The different in eta times reflect the lease that the server took on the
     # client messages.
-    lease_time = (new_tasks[0].eta - tasks[0].eta) / 1e6
+    lease_time = new_tasks[0].leased_until - tasks[0].leased_until
 
     # This lease time must be small, as the HandleMessageBundles() call failed,
     # the pending client messages must be put back on the queue.
-    self.assertLess(lease_time, 1)
+    self.assertLess(lease_time, rdfvalue.Duration("1s"))
 
     # Since the server tried to send it, the ttl must be decremented
     self.assertEqual(tasks[0].task_ttl - new_tasks[0].task_ttl, 1)

@@ -4,11 +4,11 @@
 import time
 import mock
 
-from grr.lib import flags
-from grr.lib import queues
-from grr.lib import rdfvalue
-from grr.lib import stats
-from grr.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import queues
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
@@ -166,8 +166,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     stored_tasks = data_store.DB.QueueQueryTasks(test_queue, limit=100000)
     self.assertEqual(len(stored_tasks), 1)
     stored_task = stored_tasks[0]
-    self.assertGreater(stored_task.eta, 0)
-    stored_task.eta = None
+    self.assertGreater(stored_task.leased_until, 0)
+    stored_task.leased_until = None
 
     self.assertRDFValuesEqual(stored_task, task)
 

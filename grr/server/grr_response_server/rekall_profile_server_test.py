@@ -6,9 +6,9 @@ import zlib
 
 
 from grr import config
-from grr.lib import flags
-from grr.lib import rdfvalue
-from grr.lib import utils
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import rekall_profile_server
 from grr.server.grr_response_server import server_stubs

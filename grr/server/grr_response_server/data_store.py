@@ -43,12 +43,12 @@ import sys
 import time
 
 from grr import config
-from grr.lib import flags
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import stats
-from grr.lib import utils
-from grr.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import blob_store
 from grr.server.grr_response_server import db
@@ -419,8 +419,8 @@ class MutationPool(object):
         DataStore.QUEUE_TASK_PREDICATE_PREFIX,
         timestamp=(0, timestamp or rdfvalue.RDFDatetime.Now())):
       task = rdf_flows.GrrMessage.FromSerializedString(task)
-      task.eta = timestamp
-      task.last_lease = utils.ProcessIdString()
+      task.leased_until = timestamp
+      task.leased_by = utils.ProcessIdString()
       # Decrement the ttl
       task.task_ttl -= 1
       if task.task_ttl <= 0:
@@ -1453,7 +1453,7 @@ class DataStore(object):
     for _, serialized, ts in self.ResolvePrefix(
         queue, prefix, timestamp=DataStore.ALL_TIMESTAMPS):
       task = rdf_flows.GrrMessage.FromSerializedString(serialized)
-      task.eta = ts
+      task.leased_until = ts
       all_tasks.append(task)
 
     # Sort the tasks in order of priority.

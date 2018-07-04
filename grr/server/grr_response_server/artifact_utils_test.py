@@ -3,14 +3,14 @@
 
 import os
 
-from grr.lib import artifact_utils
-from grr.lib import flags
-from grr.lib import parser
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import artifacts
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import test_base as rdf_test_base
+from grr.core.grr_response_core.lib import artifact_utils
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import parser
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr.server.grr_response_server import artifact_registry as ar
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
@@ -35,20 +35,21 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     art_obj = registry.GetArtifact("TestCmdArtifact")
     art_obj.labels.append("BadLabel")
 
-    self.assertRaises(artifacts.ArtifactDefinitionError, ar.Validate, art_obj)
+    self.assertRaises(rdf_artifacts.ArtifactDefinitionError, ar.Validate,
+                      art_obj)
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testAddFileSource(self, registry):
     registry.AddFileSource(self.test_artifacts_file)
     registry.GetArtifact("TestCmdArtifact")
-    with self.assertRaises(artifacts.ArtifactNotRegisteredError):
+    with self.assertRaises(rdf_artifacts.ArtifactNotRegisteredError):
       registry.GetArtifact("NonExistentArtifact")
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testAddDirSource(self, registry):
     registry.AddDirSource(self.test_artifacts_dir)
     registry.GetArtifact("TestCmdArtifact")
-    with self.assertRaises(artifacts.ArtifactNotRegisteredError):
+    with self.assertRaises(rdf_artifacts.ArtifactNotRegisteredError):
       registry.GetArtifact("NonExistentArtifact")
 
   @artifact_test_lib.PatchDefaultArtifactRegistry
@@ -73,7 +74,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results = registry.GetArtifacts(
         os_name="Windows",
-        source_type=artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
+        source_type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
         name_list=["DepsProvidesMultiple"])
     self.assertEqual(results.pop().name, "DepsProvidesMultiple")
 
@@ -319,10 +320,10 @@ class UserMergeTest(test_lib.GRRBaseTest):
 class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the Artifact implementation."""
 
-  rdfvalue_class = artifacts.Artifact
+  rdfvalue_class = rdf_artifacts.Artifact
 
   def GenerateSample(self, number=0):
-    result = artifacts.Artifact(
+    result = rdf_artifacts.Artifact(
         name="artifact%s" % number,
         doc="Doco",
         provides="environ_windir",
@@ -332,7 +333,7 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testGetArtifactPathDependencies(self):
     sources = [{
-        "type": artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
+        "type": rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
         "attributes": {
             "keys": [
                 r"%%current_control_set%%\Control\Session "
@@ -340,19 +341,19 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
             ]
         }
     }, {
-        "type": artifacts.ArtifactSource.SourceType.WMI,
+        "type": rdf_artifacts.ArtifactSource.SourceType.WMI,
         "attributes": {
             "query": "SELECT * FROM Win32_UserProfile "
                      "WHERE SID='%%users.sid%%'"
         }
     }, {
-        "type": artifacts.ArtifactSource.SourceType.GREP,
+        "type": rdf_artifacts.ArtifactSource.SourceType.GREP,
         "attributes": {
             "content_regex_list": ["^%%users.username%%:"]
         }
     }]
 
-    artifact = artifacts.Artifact(
+    artifact = rdf_artifacts.Artifact(
         name="artifact",
         doc="Doco",
         provides=["environ_windir"],
@@ -384,7 +385,7 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testValidateSyntax(self):
     sources = [{
-        "type": artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
+        "type": rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
         "attributes": {
             "keys": [
                 r"%%current_control_set%%\Control\Session "
@@ -392,13 +393,13 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
             ]
         }
     }, {
-        "type": artifacts.ArtifactSource.SourceType.FILE,
+        "type": rdf_artifacts.ArtifactSource.SourceType.FILE,
         "attributes": {
             "paths": [r"%%environ_systemdrive%%\Temp"]
         }
     }]
 
-    artifact = artifacts.Artifact(
+    artifact = rdf_artifacts.Artifact(
         name="good",
         doc="Doco",
         provides=["environ_windir"],
@@ -409,38 +410,38 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testValidateSyntaxBadProvides(self):
     sources = [{
-        "type": artifacts.ArtifactSource.SourceType.FILE,
+        "type": rdf_artifacts.ArtifactSource.SourceType.FILE,
         "attributes": {
             "paths": [r"%%environ_systemdrive%%\Temp"]
         }
     }]
 
-    artifact = artifacts.Artifact(
+    artifact = rdf_artifacts.Artifact(
         name="bad",
         doc="Doco",
         provides=["windir"],
         supported_os=["Windows"],
         urls=["http://blah"],
         sources=sources)
-    with self.assertRaises(artifacts.ArtifactDefinitionError):
+    with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBadPathDependency(self):
     sources = [{
-        "type": artifacts.ArtifactSource.SourceType.FILE,
+        "type": rdf_artifacts.ArtifactSource.SourceType.FILE,
         "attributes": {
             "paths": [r"%%systemdrive%%\Temp"]
         }
     }]
 
-    artifact = artifacts.Artifact(
+    artifact = rdf_artifacts.Artifact(
         name="bad",
         doc="Doco",
         provides=["environ_windir"],
         supported_os=["Windows"],
         urls=["http://blah"],
         sources=sources)
-    with self.assertRaises(artifacts.ArtifactDefinitionError):
+    with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       ar.ValidateSyntax(artifact)
 
 

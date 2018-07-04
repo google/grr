@@ -6,8 +6,8 @@ import logging
 import os
 
 from grr import config
-from grr.lib import config_testing_lib
-from grr.lib import flags
+from grr.core.grr_response_core.lib import config_testing_lib
+from grr.core.grr_response_core.lib import flags
 from grr.test_lib import test_lib
 
 

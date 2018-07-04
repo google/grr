@@ -8,7 +8,7 @@ import subprocess
 import requests
 
 from grr_response_client import actions
-from grr.lib.rdfvalues import cloud
+from grr.core.grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 
 
 class GetCloudVMMetadata(actions.ActionPlugin):
@@ -22,8 +22,8 @@ class GetCloudVMMetadata(actions.ActionPlugin):
   We make the regexes used to check that data customizable from the server side
   so we can adapt to minor changes without updating the client.
   """
-  in_rdfvalue = cloud.CloudMetadataRequests
-  out_rdfvalues = [cloud.CloudMetadataResponses]
+  in_rdfvalue = rdf_cloud.CloudMetadataRequests
+  out_rdfvalues = [rdf_cloud.CloudMetadataResponses]
 
   BIOS_VERSION_COMMAND = ["/usr/sbin/dmidecode", "-s", "bios-version"]
 
@@ -47,7 +47,7 @@ class GetCloudVMMetadata(actions.ActionPlugin):
     Args:
       request: CloudMetadataRequest object
     Returns:
-      cloud.CloudMetadataResponse object
+      rdf_cloud.CloudMetadataResponse object
     Raises:
       ValueError: if request has a timeout of 0. This is a defensive
       check (we pass 1.0) because the requests library just times out and it's
@@ -65,7 +65,7 @@ class GetCloudVMMetadata(actions.ActionPlugin):
     if not result.ok:
       raise requests.RequestException(response=result)
 
-    return cloud.CloudMetadataResponse(
+    return rdf_cloud.CloudMetadataResponse(
         label=request.label or request.url, text=result.text)
 
   def Run(self, args):
@@ -92,5 +92,5 @@ class GetCloudVMMetadata(actions.ActionPlugin):
         result_list.append(self.GetMetaData(request))
     if result_list:
       self.SendReply(
-          cloud.CloudMetadataResponses(
+          rdf_cloud.CloudMetadataResponses(
               responses=result_list, instance_type=instance_type))

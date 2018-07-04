@@ -8,7 +8,7 @@ import socket
 import time
 
 from grr import config
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 
 try:
   # pylint: disable=g-import-not-at-top

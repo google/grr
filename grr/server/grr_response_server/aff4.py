@@ -14,17 +14,17 @@ import zlib
 
 
 from grr import config
-from grr.lib import lexer
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import type_info
-from grr.lib import utils
-from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import lexer
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import type_info
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.rdfvalues import aff4_rdfvalues
+from grr.server.grr_response_server.rdfvalues import aff4 as rdf_aff4
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
@@ -1569,7 +1569,7 @@ class AFF4Object(object):
     # the AddLabels method.
     LABELS = Attribute(
         "aff4:labels_list",
-        aff4_rdfvalues.AFF4ObjectLabelsList,
+        rdf_aff4.AFF4ObjectLabelsList,
         "Any object can have labels applied to it.",
         "Labels",
         creates_new_object_version=False,
@@ -2243,7 +2243,7 @@ class AFF4Object(object):
 
     current_labels = self.Get(self.Schema.LABELS, self.Schema.LABELS())
     for label_name in labels_names:
-      label = aff4_rdfvalues.AFF4ObjectLabel(
+      label = rdf_aff4.AFF4ObjectLabel(
           name=label_name, owner=owner, timestamp=rdfvalue.RDFDatetime.Now())
       current_labels.AddLabel(label)
 
@@ -2264,7 +2264,7 @@ class AFF4Object(object):
 
     current_labels = self.Get(self.Schema.LABELS)
     for label_name in labels_names:
-      label = aff4_rdfvalues.AFF4ObjectLabel(name=label_name, owner=owner)
+      label = rdf_aff4.AFF4ObjectLabel(name=label_name, owner=owner)
       current_labels.RemoveLabel(label)
 
     self.Set(self.Schema.LABELS, current_labels)
@@ -2280,14 +2280,13 @@ class AFF4Object(object):
     return self.SetLabels([label], owner=owner)
 
   def ClearLabels(self):
-    self.Set(self.Schema.LABELS, aff4_rdfvalues.AFF4ObjectLabelsList())
+    self.Set(self.Schema.LABELS, rdf_aff4.AFF4ObjectLabelsList())
 
   def GetLabels(self):
-    return self.Get(self.Schema.LABELS,
-                    aff4_rdfvalues.AFF4ObjectLabelsList()).labels
+    return self.Get(self.Schema.LABELS, rdf_aff4.AFF4ObjectLabelsList()).labels
 
   def GetLabelsNames(self, owner=None):
-    labels = self.Get(self.Schema.LABELS, aff4_rdfvalues.AFF4ObjectLabelsList())
+    labels = self.Get(self.Schema.LABELS, rdf_aff4.AFF4ObjectLabelsList())
     return labels.GetLabelNames(owner=owner)
 
 

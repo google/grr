@@ -4,12 +4,12 @@
 import logging
 
 from grr import config
-from grr.lib import config_lib
+from grr.core.grr_response_core.lib import config_lib
 
-from grr.lib import rdfvalue
-from grr.lib import type_info
-from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import type_info
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import config_pb2
 from grr.server.grr_response_server import aff4
 

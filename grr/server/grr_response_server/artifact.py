@@ -4,16 +4,16 @@
 import logging
 
 from grr import config
-from grr.lib import artifact_utils
-from grr.lib import parser
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import utils
-from grr.lib.rdfvalues import anomaly
-from grr.lib.rdfvalues import artifacts
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import artifact_utils
+from grr.core.grr_response_core.lib import parser
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact_registry
@@ -236,7 +236,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
     provided = set()  # Track which deps have been provided.
 
     for response in responses:
-      if isinstance(response, anomaly.Anomaly):
+      if isinstance(response, rdf_anomaly.Anomaly):
         logging.error("Artifact %s returned an Anomaly: %s", artifact_name,
                       response)
         continue
@@ -483,7 +483,7 @@ def UploadArtifactYamlFile(file_content,
 class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactFallbackCollectorArgs
   rdf_deps = [
-      artifacts.ArtifactName,
+      rdf_artifacts.ArtifactName,
   ]
 
 

@@ -19,7 +19,7 @@ import time
 import sqlite3
 
 from grr import config
-from grr.lib import utils
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.data_stores import common

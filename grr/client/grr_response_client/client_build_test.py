@@ -8,8 +8,8 @@ import unittest
 
 import mock
 
-from grr.lib import builders
-from grr.lib import flags
+from grr.core.grr_response_core.lib import builders
+from grr.core.grr_response_core.lib import flags
 from grr.test_lib import test_lib
 
 

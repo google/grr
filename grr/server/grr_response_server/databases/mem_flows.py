@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """The in memory database methods for flow handling."""
+import sys
 
-from grr.lib import rdfvalue
-from grr.lib import utils
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
 
 
 class InMemoryDBFlowMixin(object):
@@ -66,3 +67,66 @@ class InMemoryDBFlowMixin(object):
             break
 
     return leased_requests
+
+  @utils.Synchronized
+  def ReadClientMessages(self, client_id):
+    """Reads all client messages available for a given client_id."""
+    res = []
+    for msgs_by_id in self.client_messages.values():
+      for orig_msg in msgs_by_id.values():
+        if orig_msg.queue.Split()[0] != client_id:
+          continue
+        msg = orig_msg.Copy()
+        current_lease = self.client_message_leases.get(msg.task_id)
+        if current_lease:
+          msg.leased_until, msg.leased_by = current_lease
+        res.append(msg)
+
+    return res
+
+  @utils.Synchronized
+  def DeleteClientMessages(self, messages):
+    """Deletes a list of client messages from the db."""
+    for m in messages:
+      client_id = m.queue.Split()[0]
+      tasks = self.client_messages.get(client_id)
+      if not tasks or m.task_id not in tasks:
+        # TODO(amoser): Once new flows are in, reevaluate if we can raise on
+        # deletion request for unknown messages.
+        continue
+      del tasks[m.task_id]
+      if m.task_id in self.client_message_leases:
+        del self.client_message_leases[m.task_id]
+
+  @utils.Synchronized
+  def LeaseClientMessages(self, client_id, lease_time=None, limit=sys.maxsize):
+    """Leases available client messages for the client with the given id."""
+    leased_messages = []
+
+    now = rdfvalue.RDFDatetime.Now()
+    expiration_time = now + lease_time
+    process_id_str = utils.ProcessIdString()
+
+    leases = self.client_message_leases
+    for msgs_by_id in self.client_messages.values():
+      for msg in msgs_by_id.values():
+        if msg.queue.Split()[0] != client_id:
+          continue
+
+        existing_lease = leases.get(msg.task_id)
+        if not existing_lease or existing_lease[0] < now:
+          leases[msg.task_id] = (expiration_time, process_id_str)
+          msg.leased_until = expiration_time
+          msg.leased_by = process_id_str
+          leased_messages.append(msg)
+          if len(leased_messages) >= limit:
+            break
+
+    return leased_messages
+
+  @utils.Synchronized
+  def WriteClientMessages(self, messages):
+    """Writes messages that should go to the client to the db."""
+    for m in messages:
+      client_id = m.queue.Split()[0]
+      self.client_messages.setdefault(client_id, {})[m.task_id] = m

@@ -8,7 +8,7 @@ import logging
 import yaml
 
 from grr import config
-from grr.lib import registry
+from grr.core.grr_response_core.lib import registry
 from grr.server.grr_response_server.authorization import auth_manager
 from grr.server.grr_response_server.gui import api_call_router
 

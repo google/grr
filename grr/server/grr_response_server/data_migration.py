@@ -7,10 +7,10 @@ from multiprocessing import pool
 import sys
 import threading
 
-from grr.lib import rdfvalue
-from grr.lib import type_info
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import type_info
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server.aff4_objects import aff4_grr
@@ -276,3 +276,74 @@ def ConvertVFSGRRClient(client):
   snapshot.cloud_instance = client.Get(client.Schema.CLOUD_INSTANCE)
 
   return snapshot
+
+
+def ListVfs(client_urn):
+  """Lists all known paths for a given client.
+
+  Args:
+    client_urn: An instance of `ClientURN`.
+
+  Returns:
+    A list of `RDFURN` instances corresponding to client's VFS paths.
+  """
+  vfs = set()
+
+  cur = [
+      client_urn.Add("fs/os"),
+      client_urn.Add("fs/tsk"),
+      client_urn.Add("temp"),
+      client_urn.Add("registry"),
+  ]
+
+  while cur:
+    nxt = []
+    for _, children in aff4.FACTORY.MultiListChildren(cur):
+      nxt.extend(children)
+
+    vfs.update(nxt)
+    cur = nxt
+
+  return vfs
+
+
+_VFS_GROUP_SIZE = 100000
+
+
+def MigrateClientVfs(client_urn):
+  """Migrates entire VFS of given client to the relational data store."""
+  vfs = ListVfs(client_urn)
+
+  path_infos = []
+
+  for vfs_urn in vfs:
+    _, vfs_path = vfs_urn.Split(2)
+    path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
+
+    path_info = rdf_objects.PathInfo(path_type=path_type, components=components)
+    path_infos.append(path_info)
+
+  data_store.REL_DB.WritePathInfos(client_urn.Basename(), path_infos)
+
+  for vfs_group in utils.Grouper(vfs, _VFS_GROUP_SIZE):
+    stat_entries = dict()
+    hash_entries = dict()
+
+    for fd in aff4.FACTORY.MultiOpen(vfs_group, age=aff4.ALL_TIMES):
+      _, vfs_path = fd.urn.Split(2)
+      path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
+      path_info = rdf_objects.PathInfo(
+          path_type=path_type, components=components)
+
+      for stat_entry in fd.GetValuesForAttribute(fd.Schema.STAT):
+        stat_path_info = path_info.Copy()
+        stat_path_info.timestamp = stat_entry.age
+        stat_entries[stat_path_info] = stat_entry
+
+      for hash_entry in fd.GetValuesForAttribute(fd.Schema.HASH):
+        hash_path_info = path_info.Copy()
+        hash_path_info.timestamp = hash_entry.age
+        hash_entries[hash_path_info] = hash_entry
+
+    data_store.REL_DB.MultiWritePathHistory(client_urn.Basename(), stat_entries,
+                                            hash_entries)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import unittest
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.test_lib import test_lib
 
 # TODO(hanuszczak): Implement basic unit tests for subactions.

@@ -12,7 +12,7 @@ import urlparse
 import requests
 
 from grr_api_client import api
-from grr.lib import config_lib
+from grr.core.grr_response_core.lib import config_lib
 from grr.server.grr_response_server import maintenance_utils
 from grr_response_test.end_to_end_tests import test_base
 

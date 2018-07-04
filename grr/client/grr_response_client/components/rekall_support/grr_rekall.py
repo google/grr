@@ -30,9 +30,9 @@ from rekall.ui import json_renderer
 from grr import config
 from grr_response_client import actions
 from grr_response_client.client_actions import tempfiles
-from grr.lib import flags
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import rekall_types
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class Error(Exception):
@@ -122,7 +122,7 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
     """Prepares a RekallResponse and send to the server."""
     if self.data:
 
-      response_msg = rekall_types.RekallResponse(
+      response_msg = rdf_rekall_types.RekallResponse(
           json_messages=self.robust_encoder.encode(self.data),
           json_context_messages=self.robust_encoder.encode(
               self.context_messages.items()),
@@ -253,8 +253,8 @@ class RekallCachingIOManager(caching_url_manager.CachingManager):
 
 class RekallAction(actions.ActionPlugin):
   """Runs a Rekall command on live memory."""
-  in_rdfvalue = rekall_types.RekallRequest
-  out_rdfvalues = [rekall_types.RekallResponse]
+  in_rdfvalue = rdf_rekall_types.RekallRequest
+  out_rdfvalues = [rdf_rekall_types.RekallResponse]
 
   def Run(self, args):
     """Run a Rekall plugin and return the result."""

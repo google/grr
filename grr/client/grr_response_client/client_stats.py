@@ -8,9 +8,9 @@ import time
 import psutil
 
 from grr_response_client.client_actions import admin
-from grr.lib import rdfvalue
-from grr.lib import stats
-from grr.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 
 
 class ClientStatsCollector(threading.Thread):

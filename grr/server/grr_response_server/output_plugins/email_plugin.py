@@ -5,9 +5,9 @@
 import jinja2
 
 from grr import config
-from grr.lib import utils
-from grr.lib.rdfvalues import standard
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import output_plugin_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import email_alerts
@@ -17,7 +17,7 @@ from grr.server.grr_response_server import output_plugin
 class EmailOutputPluginArgs(rdf_structs.RDFProtoStruct):
   protobuf = output_plugin_pb2.EmailOutputPluginArgs
   rdf_deps = [
-      standard.DomainEmailAddress,
+      rdf_standard.DomainEmailAddress,
   ]
 
 

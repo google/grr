@@ -2,7 +2,7 @@
 """The client artifact collector."""
 
 from grr_response_client import actions
-from grr.lib.rdfvalues import artifacts as rdf_artifacts
+from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 
 
 class ArtifactCollector(actions.ActionPlugin):

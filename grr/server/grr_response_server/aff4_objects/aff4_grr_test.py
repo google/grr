@@ -6,12 +6,12 @@ import time
 
 import mock
 
-from grr.lib import flags
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import cloud
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import events
@@ -219,12 +219,12 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
     user = "testuser"
     userobj = rdf_client.User(username=user)
     interface = rdf_client.Interface(ifname="eth0")
-    google_cloud_instance = cloud.GoogleCloudInstance(
+    google_cloud_instance = rdf_cloud.GoogleCloudInstance(
         instance_id="1771384456894610289",
         zone="projects/123456789733/zones/us-central1-a",
         project_id="myproject",
         unique_id="us-central1-a/myproject/1771384456894610289")
-    cloud_instance = cloud.CloudInstance(
+    cloud_instance = rdf_cloud.CloudInstance(
         cloud_type="GOOGLE", google=google_cloud_instance)
 
     serial_number = "DSD33679FZ"

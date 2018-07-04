@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Gather information from the registry on windows."""
 
-from grr.lib import artifact_utils
-from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import artifact_utils
+from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr.path_detection import windows as path_detection_windows
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4

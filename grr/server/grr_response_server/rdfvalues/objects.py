@@ -9,26 +9,26 @@ import os
 import re
 import stat
 
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import cloud
-from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import objects_pb2
 
 
-class ClientLabel(structs.RDFProtoStruct):
+class ClientLabel(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ClientLabel
 
 
-class StringMapEntry(structs.RDFProtoStruct):
+class StringMapEntry(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.StringMapEntry
 
 
-class ClientSnapshot(structs.RDFProtoStruct):
+class ClientSnapshot(rdf_structs.RDFProtoStruct):
   """The client object.
 
   Attributes:
@@ -41,7 +41,7 @@ class ClientSnapshot(structs.RDFProtoStruct):
 
   rdf_deps = [
       StringMapEntry,
-      cloud.CloudInstance,
+      rdf_cloud.CloudInstance,
       rdf_client.Filesystem,
       rdf_client.HardwareInfo,
       rdf_client.Interface,
@@ -147,7 +147,7 @@ class ClientSnapshot(structs.RDFProtoStruct):
     return summary
 
 
-class ClientMetadata(structs.RDFProtoStruct):
+class ClientMetadata(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ClientMetadata
 
   rdf_deps = [
@@ -157,7 +157,7 @@ class ClientMetadata(structs.RDFProtoStruct):
   ]
 
 
-class ClientFullInfo(structs.RDFProtoStruct):
+class ClientFullInfo(rdf_structs.RDFProtoStruct):
   """ClientFullInfo object."""
   protobuf = objects_pb2.ClientFullInfo
 
@@ -172,21 +172,21 @@ class ClientFullInfo(structs.RDFProtoStruct):
     return set(l.name for l in self.labels if not owner or l.owner == owner)
 
 
-class GRRUser(structs.RDFProtoStruct):
+class GRRUser(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.GRRUser
   rdf_deps = [
       rdf_crypto.Password,
   ]
 
 
-class ApprovalGrant(structs.RDFProtoStruct):
+class ApprovalGrant(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ApprovalGrant
   rdf_deps = [
       rdfvalue.RDFDatetime,
   ]
 
 
-class ApprovalRequest(structs.RDFProtoStruct):
+class ApprovalRequest(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ApprovalRequest
   rdf_deps = [
       rdfvalue.RDFDatetime,
@@ -249,7 +249,7 @@ class PathID(object):
     return "PathID({})".format(repr(self.AsBytes().encode("hex")))
 
 
-class PathInfo(structs.RDFProtoStruct):
+class PathInfo(rdf_structs.RDFProtoStruct):
   """Basic metadata about a path which has been observed on a client."""
   protobuf = objects_pb2.PathInfo
   rdf_deps = [
@@ -456,12 +456,12 @@ def ToCategorizedPath(path_type, components):
   return "/".join(prefix + components)
 
 
-class ClientReference(structs.RDFProtoStruct):
+class ClientReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ClientReference
   rdf_deps = []
 
 
-class HuntReference(structs.RDFProtoStruct):
+class HuntReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.HuntReference
   rdf_deps = []
 
@@ -469,12 +469,12 @@ class HuntReference(structs.RDFProtoStruct):
     return rdfvalue.RDFURN("aff4:/hunts").Add(self.hunt_id)
 
 
-class CronJobReference(structs.RDFProtoStruct):
+class CronJobReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.CronJobReference
   rdf_deps = []
 
 
-class FlowReference(structs.RDFProtoStruct):
+class FlowReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.FlowReference
   rdf_deps = []
 
@@ -482,7 +482,7 @@ class FlowReference(structs.RDFProtoStruct):
     return rdfvalue.RDFURN(self.client_id).Add("flows").Add(self.flow_id)
 
 
-class VfsFileReference(structs.RDFProtoStruct):
+class VfsFileReference(rdf_structs.RDFProtoStruct):
   """Object reference pointing to a VFS file."""
 
   protobuf = objects_pb2.VfsFileReference
@@ -518,12 +518,12 @@ class VfsFileReference(structs.RDFProtoStruct):
     raise ValueError("Unsupported path type: %s" % self.path_type)
 
 
-class ApprovalRequestReference(structs.RDFProtoStruct):
+class ApprovalRequestReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ApprovalRequestReference
   rdf_deps = []
 
 
-class ObjectReference(structs.RDFProtoStruct):
+class ObjectReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ObjectReference
   rdf_deps = [
       ClientReference,
@@ -535,7 +535,7 @@ class ObjectReference(structs.RDFProtoStruct):
   ]
 
 
-class UserNotification(structs.RDFProtoStruct):
+class UserNotification(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.UserNotification
   rdf_deps = [
       rdfvalue.RDFDatetime,
@@ -543,7 +543,7 @@ class UserNotification(structs.RDFProtoStruct):
   ]
 
 
-class MessageHandlerRequest(structs.RDFProtoStruct):
+class MessageHandlerRequest(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.MessageHandlerRequest
   rdf_deps = [
       rdfvalue.RDFDatetime,

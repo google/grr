@@ -3,10 +3,10 @@
 
 import os
 
-from grr.lib import rdfvalue
-from grr.lib import utils
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import db
-from grr.server.grr_response_server.rdfvalues import objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class InMemoryDBUsersMixin(object):
@@ -35,7 +35,7 @@ class InMemoryDBUsersMixin(object):
     """Reads a user object corresponding to a given name."""
     try:
       u = self.users[username]
-      return objects.GRRUser(
+      return rdf_objects.GRRUser(
           username=u["username"],
           password=u.get("password"),
           ui_mode=u.get("ui_mode"),
@@ -48,7 +48,7 @@ class InMemoryDBUsersMixin(object):
   def ReadAllGRRUsers(self):
     """Reads all GRR users."""
     for u in self.users.values():
-      yield objects.GRRUser(
+      yield rdf_objects.GRRUser(
           username=u["username"],
           password=u.get("password"),
           ui_mode=u.get("ui_mode"),
@@ -105,7 +105,7 @@ class InMemoryDBUsersMixin(object):
     try:
       approval = self.approvals_by_username[requestor_username][approval_id]
       approval.grants.append(
-          objects.ApprovalGrant(
+          rdf_objects.ApprovalGrant(
               grantor_username=grantor_username,
               timestamp=rdfvalue.RDFDatetime.Now()))
     except KeyError:

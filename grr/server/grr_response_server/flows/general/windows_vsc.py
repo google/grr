@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Queries a Windows client for Volume Shadow Copy information."""
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import server_stubs

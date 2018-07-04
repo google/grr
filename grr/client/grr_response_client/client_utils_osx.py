@@ -11,8 +11,8 @@ import platform
 from grr_response_client import client_utils_osx_linux
 from grr_response_client.osx import objc
 from grr_response_client.osx import process
-from grr.lib import utils
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 # Shared functions between macOS and Linux.
 # pylint: disable=invalid-name

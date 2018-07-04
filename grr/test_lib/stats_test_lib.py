@@ -3,7 +3,7 @@
 
 import mock
 
-from grr.lib import stats
+from grr.core.grr_response_core.lib import stats
 
 
 class StatsDeltaAssertionContext(object):

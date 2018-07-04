@@ -59,12 +59,12 @@ import threading
 import traceback
 
 
-from grr.lib import rdfvalue
-from grr.lib import stats
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 # Note: OutputPluginDescriptor is also needed implicitly by FlowRunnerArgs
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
@@ -437,8 +437,7 @@ class FlowRunner(object):
         # Requests which are not destined to clients have no embedded request
         # message.
         if request.HasField("request"):
-          manager.DeQueueClientRequest(request.client_id,
-                                       request.request.task_id)
+          manager.DeQueueClientRequest(request.request)
 
     # The flow is dead - remove all outstanding requests and responses.
     if not self.IsRunning():

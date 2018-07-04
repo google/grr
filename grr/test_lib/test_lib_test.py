@@ -3,7 +3,7 @@ import threading
 import time
 
 import unittest
-from grr.lib import rdfvalue
+from grr.core.grr_response_core.lib import rdfvalue
 from grr.test_lib import test_lib
 
 

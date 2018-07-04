@@ -9,7 +9,7 @@ from werkzeug import wrappers as werkzeug_wrappers
 
 from google.oauth2 import id_token
 
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server.gui import webauth
 from grr.server.grr_response_server.gui import wsgiapp
 from grr.test_lib import test_lib

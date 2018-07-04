@@ -19,7 +19,7 @@ from grr.server.grr_response_server.gui import local
 from grr.server.grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server import server_startup
 from grr.server.grr_response_server.gui import wsgiapp
 

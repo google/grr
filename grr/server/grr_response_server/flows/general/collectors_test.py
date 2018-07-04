@@ -12,12 +12,12 @@ import psutil
 
 from grr import config
 from grr_response_client.client_actions import standard
-from grr.lib import artifact_utils
-from grr.lib import flags
-from grr.lib import utils
-from grr.lib.rdfvalues import artifacts
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import artifact_utils
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact
 from grr.server.grr_response_server import artifact_registry
@@ -145,8 +145,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
       collect_flow.state["knowledge_base"] = kb
       collect_flow.current_artifact_name = "blah"
 
-      collector = artifacts.ArtifactSource(
-          type=artifacts.ArtifactSource.SourceType.GREP,
+      collector = rdf_artifacts.ArtifactSource(
+          type=rdf_artifacts.ArtifactSource.SourceType.GREP,
           attributes={
               "paths": ["/etc/passwd"],
               "content_regex_list": [r"^a%%users.username%%b$"]
@@ -169,8 +169,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
     # Dynamically add an ArtifactSource specifying the base path.
     file_path = os.path.join(self.base_path, "test_img.dd")
-    coll1 = artifacts.ArtifactSource(
-        type=artifacts.ArtifactSource.SourceType.FILE,
+    coll1 = rdf_artifacts.ArtifactSource(
+        type=rdf_artifacts.ArtifactSource.SourceType.FILE,
         attributes={"paths": [file_path]})
     self.fakeartifact.sources.append(coll1)
 
@@ -223,8 +223,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
       client.Set(client.Schema.SYSTEM("Linux"))
       client.Flush()
 
-      coll1 = artifacts.ArtifactSource(
-          type=artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+      coll1 = rdf_artifacts.ArtifactSource(
+          type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
           attributes={"client_action": standard.ListProcesses.__name__})
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
@@ -247,8 +247,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
       client.Set(client.Schema.SYSTEM("Linux"))
       client.Flush()
 
-      coll1 = artifacts.ArtifactSource(
-          type=artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+      coll1 = rdf_artifacts.ArtifactSource(
+          type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
           attributes={"client_action": standard.ListProcesses.__name__})
       self.fakeartifact.sources.append(coll1)
       self.fakeartifact2.sources.append(coll1)
@@ -278,8 +278,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
     with utils.Stubber(psutil, "process_iter", ProcessIter):
       # Run with false condition.
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
-      coll1 = artifacts.ArtifactSource(
-          type=artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+      coll1 = rdf_artifacts.ArtifactSource(
+          type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
           attributes={"client_action": standard.ListProcesses.__name__},
           conditions=["os == 'Windows'"])
       self.fakeartifact.sources.append(coll1)
@@ -313,8 +313,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
                                      vfs_test_lib.FakeFullVFSHandler):
 
         client_mock = action_mocks.ActionMock(standard.GetFileStat)
-        coll1 = artifacts.ArtifactSource(
-            type=artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
+        coll1 = rdf_artifacts.ArtifactSource(
+            type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
             attributes={
                 "key_value_pairs": [{
                     "key": (r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet"
@@ -345,8 +345,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
                                      vfs_test_lib.FakeFullVFSHandler):
 
         client_mock = action_mocks.ActionMock(standard.GetFileStat)
-        coll1 = artifacts.ArtifactSource(
-            type=artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
+        coll1 = rdf_artifacts.ArtifactSource(
+            type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
             attributes={
                 "key_value_pairs": [{
                     "key": (r"HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest"),
@@ -371,8 +371,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
     with utils.Stubber(psutil, "process_iter", ProcessIter):
       # Run with false condition.
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
-      coll1 = artifacts.ArtifactSource(
-          type=artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+      coll1 = rdf_artifacts.ArtifactSource(
+          type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
           attributes={"client_action": standard.ListProcesses.__name__},
           supported_os=["Windows"])
       self.fakeartifact.sources.append(coll1)
@@ -473,15 +473,15 @@ class TestClientArtifactCollector(flow_test_lib.FlowTestsBaseclass):
     artifact_collector.args.knowledge_base = kb
 
     # Run with false condition.
-    source = artifacts.ArtifactSource(
-        type=artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+    source = rdf_artifacts.ArtifactSource(
+        type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": standard.ListProcesses.__name__},
         conditions=["os == 'Linux'"])
     self.assertFalse(artifact_collector._MeetsConditions(source))
 
     # Run with matching or condition.
-    source = artifacts.ArtifactSource(
-        type=artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+    source = rdf_artifacts.ArtifactSource(
+        type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": standard.ListProcesses.__name__},
         conditions=["os == 'Linux' or os == 'Windows'"])
     self.assertTrue(artifact_collector._MeetsConditions(source))

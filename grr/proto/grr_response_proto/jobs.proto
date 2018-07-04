@@ -133,14 +133,14 @@ message GrrMessage {
       description: "The scheduler queue this message is in."
     }];
 
-  optional uint64 eta = 18 [(sem_type) = {
+  optional uint64 leased_until = 18 [(sem_type) = {
       type: "RDFDatetime",
-      description: "The time when this message will become available "
-      "for leasing.",
+      description: "The time indicating when this message will become "
+      "available for leasing.",
     }];
 
   // Human readable info about the last process leasing this message.
-  optional string last_lease = 19;
+  optional string leased_by = 19;
 
   optional uint64 network_bytes_limit = 21 [ default = 10737418240,
       (sem_type) = {

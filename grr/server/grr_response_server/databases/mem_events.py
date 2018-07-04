@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """The in memory database methods for event handling."""
 
-from grr.lib import rdfvalue
-from grr.lib import utils
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
 
 
 class InMemoryDBEventMixin(object):

@@ -8,12 +8,12 @@ import StringIO
 import yaml
 
 from grr import config
-from grr.lib import registry
-from grr.lib import type_info
-from grr.lib.parsers import linux_service_parser
-from grr.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import type_info
+from grr.core.grr_response_core.lib.parsers import linux_service_parser
+from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server.checks import checks
 from grr.server.grr_response_server.checks import filters
 from grr.server.grr_response_server.checks import hints

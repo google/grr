@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """UI reports related rdfvalues."""
 
-from grr.lib.rdfvalues import events as rdf_events
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import stats_pb2
 
 

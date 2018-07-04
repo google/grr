@@ -11,8 +11,8 @@ from googleapiclient import errors
 import mock
 
 from grr import config
-from grr.lib import flags
-from grr.lib import rdfvalue
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
 from grr.server.grr_response_server import bigquery
 from grr.test_lib import test_lib
 

@@ -8,7 +8,7 @@ import os
 import unittest
 from grr_response_client import streaming
 from grr_response_client.client_actions.file_finder_utils import conditions
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.test_lib import test_lib
 
 

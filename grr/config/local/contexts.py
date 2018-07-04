@@ -6,4 +6,4 @@ in this file.
 """
 
 # pylint: disable=unused-import
-from grr.lib import config_lib
+from grr.core.grr_response_core.lib import config_lib

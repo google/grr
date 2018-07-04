@@ -5,8 +5,8 @@
 import logging
 
 # These imports populate the Action registry
-from grr.lib import rdfvalue
-from grr.lib import rdfvalues
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import rdfvalues
 from grr_response_client import actions
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import cloud

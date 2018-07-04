@@ -7,9 +7,9 @@ import mock
 import requests
 
 from grr_response_client import comms
-from grr.lib import flags
-from grr.lib import utils
-from grr.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import test_lib
 
 

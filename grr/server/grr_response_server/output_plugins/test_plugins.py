@@ -4,7 +4,7 @@
 import os
 
 
-from grr.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import instant_output_plugin
 from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server.flows.general import processes

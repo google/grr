@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import unittest
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server import db_test_mixin
 from grr.server.grr_response_server.databases import mem
 from grr.test_lib import test_lib

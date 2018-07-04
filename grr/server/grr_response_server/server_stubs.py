@@ -6,19 +6,19 @@ This way we prevent loading effectively the whole client code into ours
 server parts.
 """
 
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib.rdfvalues import artifacts as rdf_artifact_collector
-from grr.lib.rdfvalues import chipsec_types
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import cloud as rdf_cloud
-from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import plist as rdf_plist
-from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rdf_yara
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr.core.grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import plist as rdf_plist
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import rdf_yara
+from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class ClientActionStub(object):
@@ -34,8 +34,8 @@ class ClientActionStub(object):
 class ArtifactCollector(ClientActionStub):
   """The client side artifact collector implementation."""
 
-  in_rdfvalue = rdf_artifact_collector.ArtifactCollectorArgs
-  out_rdfvalues = [rdf_artifact_collector.ArtifactCollectorResult]
+  in_rdfvalue = rdf_artifacts.ArtifactCollectorArgs
+  out_rdfvalues = [rdf_artifacts.ArtifactCollectorResult]
 
 
 # from windows/windows.py, osx/osx.py and linux/linux.py
@@ -399,15 +399,15 @@ class FingerprintFile(ClientActionStub):
 class DumpFlashImage(ClientActionStub):
   """A client action to collect the BIOS via SPI using Chipsec."""
 
-  in_rdfvalue = chipsec_types.DumpFlashImageRequest
-  out_rdfvalues = [chipsec_types.DumpFlashImageResponse]
+  in_rdfvalue = rdf_chipsec_types.DumpFlashImageRequest
+  out_rdfvalues = [rdf_chipsec_types.DumpFlashImageResponse]
 
 
 class DumpACPITable(ClientActionStub):
   """A client action to collect the ACPI table(s)."""
 
-  in_rdfvalue = chipsec_types.DumpACPITableRequest
-  out_rdfvalues = [chipsec_types.DumpACPITableResponse]
+  in_rdfvalue = rdf_chipsec_types.DumpACPITableRequest
+  out_rdfvalues = [rdf_chipsec_types.DumpACPITableResponse]
 
 
 # from components/rekall_support

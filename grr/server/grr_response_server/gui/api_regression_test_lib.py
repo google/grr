@@ -13,9 +13,9 @@ import sys
 import psutil
 import pytest
 
-from grr.lib import flags
-from grr.lib import registry
-from grr.lib import utils
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server.gui import api_auth_manager
 # This import guarantees that all API-related RDF types will get imported
 # (as they're all references by api_call_router).

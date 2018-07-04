@@ -6,18 +6,18 @@ import os
 import socket
 
 from grr_response_client.components.rekall_support import grr_rekall
-from grr.lib import flags
-from grr.lib import queues
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rdf_yara
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import queues
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import rdf_yara
+from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import events

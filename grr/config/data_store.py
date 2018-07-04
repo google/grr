@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Configuration parameters for the data stores."""
 
-from grr.lib import config_lib
-from grr.lib import rdfvalue
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib import rdfvalue
 
 config_lib.DEFINE_integer("Datastore.maximum_blob_size", 512 * 1024,
                           "Maximum blob size we may store in the datastore.")
@@ -26,6 +26,11 @@ config_lib.DEFINE_bool(
 
 config_lib.DEFINE_bool("Database.useForReads.cronjobs", False,
                        "Enable storing cronjobs in the relational database.")
+
+config_lib.DEFINE_bool(
+    "Database.useForReads.client_messages", False,
+    "Enable storing client messages in the relational "
+    "database.")
 
 config_lib.DEFINE_bool("Database.useForReads.foreman", False,
                        "Enable the foreman using the relational database.")

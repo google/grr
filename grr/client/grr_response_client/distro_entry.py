@@ -4,8 +4,8 @@
 # pylint: disable=g-import-not-at-top
 # Argparse runs on import, and maintains static state.
 
-from grr.lib import config_lib
-from grr.lib import flags
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib import flags
 
 
 def SetConfigOptions():

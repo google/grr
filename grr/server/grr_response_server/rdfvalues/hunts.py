@@ -2,21 +2,21 @@
 """RDFValue implementations for hunts."""
 
 from grr import config
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import client
-from grr.lib.rdfvalues import stats
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server.rdfvalues import objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class HuntNotification(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.HuntNotification
   rdf_deps = [
-      client.ClientURN,
+      rdf_client.ClientURN,
       rdfvalue.SessionID,
   ]
 
@@ -24,8 +24,8 @@ class HuntNotification(rdf_structs.RDFProtoStruct):
 class HuntContext(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.HuntContext
   rdf_deps = [
-      client.ClientResources,
-      stats.ClientResourcesStats,
+      rdf_client.ClientResources,
+      rdf_stats.ClientResourcesStats,
       rdfvalue.RDFDatetime,
       rdfvalue.SessionID,
   ]
@@ -35,22 +35,22 @@ class FlowLikeObjectReference(rdf_structs.RDFProtoStruct):
   """A reference to a flow or a hunt."""
   protobuf = flows_pb2.FlowLikeObjectReference
   rdf_deps = [
-      objects.FlowReference,
-      objects.HuntReference,
+      rdf_objects.FlowReference,
+      rdf_objects.HuntReference,
   ]
 
   @classmethod
   def FromHuntId(cls, hunt_id):
     res = FlowLikeObjectReference()
     res.object_type = "HUNT_REFERENCE"
-    res.hunt_reference = objects.HuntReference(hunt_id=hunt_id)
+    res.hunt_reference = rdf_objects.HuntReference(hunt_id=hunt_id)
     return res
 
   @classmethod
   def FromFlowIdAndClientId(cls, flow_id, client_id):
     res = FlowLikeObjectReference()
     res.object_type = "FLOW_REFERENCE"
-    res.flow_reference = objects.FlowReference(
+    res.flow_reference = rdf_objects.FlowReference(
         flow_id=flow_id, client_id=client_id)
     return res
 
@@ -95,5 +95,5 @@ class HuntError(rdf_structs.RDFProtoStruct):
   """An RDFValue class representing a hunt error."""
   protobuf = jobs_pb2.HuntError
   rdf_deps = [
-      client.ClientURN,
+      rdf_client.ClientURN,
   ]

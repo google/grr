@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """This file defines valid configuration contexts."""
 
-from grr.lib import config_lib
+from grr.core.grr_response_core.lib import config_lib
 
 # Different client platforms.
 PLATFORM_DARWIN = config_lib.DEFINE_context("Platform:Darwin")

@@ -7,8 +7,8 @@ import glob
 import os
 
 from grr_response_client.client_actions.linux import linux
-from grr.lib import flags
-from grr.lib import utils
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import utils
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 

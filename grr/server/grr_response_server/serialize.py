@@ -2,7 +2,7 @@
 """This module serializes AFF4 objects in various ways."""
 
 import yaml
-from grr.lib import rdfvalue
+from grr.core.grr_response_core.lib import rdfvalue
 from grr.server.grr_response_server import aff4
 
 

@@ -2,10 +2,10 @@
 """Test the server load view interface."""
 
 import unittest
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 
-from grr.lib import rdfvalue
-from grr.lib import stats
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import stats
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server.aff4_objects import stats_store
 from grr.server.grr_response_server.gui import gui_test_lib

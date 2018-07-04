@@ -9,11 +9,11 @@ from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import cloud
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import client_fixture
 from grr.server.grr_response_server import server_stubs
 from grr.test_lib import client_test_lib
@@ -283,10 +283,10 @@ class InterrogatedClient(ActionMock):
     result_list = []
     for request in args.requests:
       result_list.append(
-          cloud.CloudMetadataResponse(
+          rdf_cloud.CloudMetadataResponse(
               label=request.label or request.url, text=request.label))
     return [
-        cloud.CloudMetadataResponses(
+        rdf_cloud.CloudMetadataResponses(
             responses=result_list, instance_type="GOOGLE")
     ]
 

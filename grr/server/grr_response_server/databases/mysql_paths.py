@@ -17,6 +17,9 @@ class MySQLDBPathMixin(object):
     """Writes a collection of path_info records for a client."""
     raise NotImplementedError()
 
+  def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
+    raise NotImplementedError()
+
   def FindDescendentPathIDs(self, client_id, path_id, max_depth=None):
     """Finds all path_ids seen on a client descent from path_id."""
     raise NotImplementedError()

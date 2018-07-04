@@ -2,7 +2,7 @@
 """This module contains tests for cron-related API handlers."""
 
 
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 
 from grr.server.grr_response_server.aff4_objects import cronjobs
 from grr.server.grr_response_server.flows.cron import system as cron_system

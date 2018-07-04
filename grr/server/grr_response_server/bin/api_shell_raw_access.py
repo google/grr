@@ -15,7 +15,7 @@ from grr_api_client import api
 from grr_api_client import api_shell_lib
 from grr.config import contexts
 from grr.config import server as config_server
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import fleetspeak_connector
 from grr.server.grr_response_server import server_startup

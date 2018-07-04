@@ -7,15 +7,15 @@ import logging
 import numbers
 
 
-from grr.lib import rdfvalue
-from grr.lib import registry
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
 
-from grr.lib import utils
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
-from grr.lib.rdfvalues import stats as rdf_stats
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import reflection_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server.gui.api_plugins import output_plugin as api_output_plugin

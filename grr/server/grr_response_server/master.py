@@ -16,8 +16,8 @@ import logging
 
 
 from grr import config
-from grr.lib import registry
-from grr.lib import stats
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import stats
 
 
 class DefaultMasterWatcher(object):

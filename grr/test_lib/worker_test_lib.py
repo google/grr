@@ -5,7 +5,7 @@ import itertools
 
 import logging
 
-from grr.lib import queues as queue_config
+from grr.core.grr_response_core.lib import queues as queue_config
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import queue_manager

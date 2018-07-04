@@ -9,12 +9,12 @@ import os
 import mock
 
 from grr import config
-from grr.lib import flags
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import bigquery
 from grr.server.grr_response_server.output_plugins import bigquery_plugin

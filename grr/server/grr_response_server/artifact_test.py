@@ -11,16 +11,16 @@ from grr import config
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
-from grr.lib import flags
-from grr.lib import parser
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.lib.rdfvalues import artifacts
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import parser
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact
 from grr.server.grr_response_server import artifact_registry
@@ -242,7 +242,7 @@ sources:
     content_regex_list: ["stuff"]
 supported_os: [Linux]
 """
-    with self.assertRaises(artifacts.ArtifactDefinitionError):
+    with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content)
 
   def testUploadArtifactYamlFileBadList(self):
@@ -255,7 +255,7 @@ sources:
     content_regex_list: ["stuff"]
 supported_os: [Linux]
 """
-    with self.assertRaises(artifacts.ArtifactDefinitionError):
+    with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content)
 
   def testUploadArtifactYamlFileMissingNamesAttribute(self):
@@ -269,7 +269,7 @@ sources:
 supported_os: [Linux]
 """
 
-    with self.assertRaises(artifacts.ArtifactDefinitionError):
+    with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content)
 
   def testCommandArgumentOrderIsPreserved(self):
@@ -290,7 +290,7 @@ supported_os: [Linux]
 
     # Check serialize/deserialize doesn't change order.
     serialized = artifact_obj.SerializeToString()
-    artifact_obj = artifacts.Artifact.FromSerializedString(serialized)
+    artifact_obj = rdf_artifacts.Artifact.FromSerializedString(serialized)
     arglist = artifact_obj.sources[0].attributes.get("args")
     self.assertEqual(arglist, ["-L", "-v", "-n"])
 
@@ -317,7 +317,7 @@ supported_os: [Linux]
     artifact_registry.REGISTRY.AddDatastoreSources([artifact_store_urn])
 
     # WMIActiveScriptEventConsumer is a system artifact, we can't overwrite it.
-    with self.assertRaises(artifacts.ArtifactDefinitionError):
+    with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content)
 
     # Override the check and upload anyways. This simulates the case
@@ -331,7 +331,7 @@ supported_os: [Linux]
     # be an error that we can't overwrite the system artifact. The
     # artifact should automatically get deleted from the collection to
     # mitigate the problem.
-    with self.assertRaises(artifacts.ArtifactDefinitionError):
+    with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       artifact_registry.REGISTRY._ReloadArtifacts()
 
     # As stated above, now this should work.

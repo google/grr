@@ -3,9 +3,9 @@
 """Test the inspect interface."""
 
 import unittest
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 
-from grr.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import queue_manager
 from grr.server.grr_response_server.flows.general import discovery as flow_discovery
@@ -66,7 +66,7 @@ class TestClientLoadView(TestInspectViewBase):
     self.Open("/#/clients/%s/load-stats" % self.client_id)
     self.WaitUntil(self.IsTextPresent, processes.ListProcesses.__name__)
     self.WaitUntil(self.IsTextPresent, "Task id")
-    self.WaitUntil(self.IsTextPresent, "Task eta")
+    self.WaitUntil(self.IsTextPresent, "Leased until")
 
 
 @db_test_lib.DualDBTest

@@ -2,7 +2,7 @@
 """Tests core paths detection logic."""
 
 
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.path_detection import core
 from grr.test_lib import test_lib
 

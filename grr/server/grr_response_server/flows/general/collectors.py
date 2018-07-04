@@ -4,16 +4,16 @@
 import logging
 
 from grr import config
-from grr.lib import artifact_utils
-from grr.lib import parser
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import artifacts as rdf_artifacts
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.lib.rdfvalues import paths
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import artifact_utils
+from grr.core.grr_response_core.lib import parser
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact
@@ -66,8 +66,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def GetPathType(self):
     if self.args.use_tsk:
-      return paths.PathSpec.PathType.TSK
-    return paths.PathSpec.PathType.OS
+      return rdf_paths.PathSpec.PathType.TSK
+    return rdf_paths.PathSpec.PathType.OS
 
   @flow.StateHandler()
   def Start(self):
@@ -314,7 +314,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.CallFlow(
         filesystem.Glob.__name__,
         paths=self.InterpolateList(source.attributes.get("keys", [])),
-        pathtype=paths.PathSpec.PathType.REGISTRY,
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         request_data={
             "artifact_name": self.current_artifact_name,
             "source": source.ToPrimitiveDict()
@@ -326,7 +326,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     new_paths = set()
     has_glob = False
     for kvdict in source.attributes["key_value_pairs"]:
-      if "*" in kvdict["key"] or paths.GROUPING_PATTERN.search(kvdict["key"]):
+      if "*" in kvdict["key"] or rdf_paths.GROUPING_PATTERN.search(
+          kvdict["key"]):
         has_glob = True
 
       if kvdict["value"]:
@@ -349,7 +350,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self.CallFlow(
           filesystem.Glob.__name__,
           paths=new_paths,
-          pathtype=paths.PathSpec.PathType.REGISTRY,
+          pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
           request_data={
               "artifact_name": self.current_artifact_name,
               "source": source.ToPrimitiveDict()
@@ -360,8 +361,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       # is faster and some artifacts rely on getting an IOError to trigger
       # fallback processing.
       for new_path in new_paths:
-        pathspec = paths.PathSpec(
-            path=new_path, pathtype=paths.PathSpec.PathType.REGISTRY)
+        pathspec = rdf_paths.PathSpec(
+            path=new_path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
 
         # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
         # This conditional should be removed after that date.
@@ -668,20 +669,20 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         pathspec = response
 
       # Check the default .pathspec attribute.
-      if not isinstance(pathspec, paths.PathSpec):
+      if not isinstance(pathspec, rdf_paths.PathSpec):
         try:
           pathspec = response.pathspec
         except AttributeError:
           pass
 
       if isinstance(pathspec, basestring):
-        pathspec = paths.PathSpec(path=pathspec)
+        pathspec = rdf_paths.PathSpec(path=pathspec)
         if self.args.use_tsk:
-          pathspec.pathtype = paths.PathSpec.PathType.TSK
+          pathspec.pathtype = rdf_paths.PathSpec.PathType.TSK
         else:
-          pathspec.pathtype = paths.PathSpec.PathType.OS
+          pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
-      if isinstance(pathspec, paths.PathSpec):
+      if isinstance(pathspec, rdf_paths.PathSpec):
         if not pathspec.path:
           self.Log("Skipping empty pathspec.")
           continue
@@ -802,7 +803,7 @@ class ArtifactFilesDownloaderFlowArgs(rdf_structs.RDFProtoStruct):
 class ArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactFilesDownloaderResult
   rdf_deps = [
-      paths.PathSpec,
+      rdf_paths.PathSpec,
       rdf_client.StatEntry,
   ]
 
@@ -823,7 +824,7 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
     # and guess.
     if (isinstance(response, rdf_client.StatEntry) and
         response.pathspec.pathtype in [
-            paths.PathSpec.PathType.TSK, paths.PathSpec.PathType.OS
+            rdf_paths.PathSpec.PathType.TSK, rdf_paths.PathSpec.PathType.OS
         ]):
       return [response.pathspec]
 
@@ -831,9 +832,9 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
     knowledge_base = artifact.GetArtifactKnowledgeBase(client)
 
     if self.args.use_tsk:
-      path_type = paths.PathSpec.PathType.TSK
+      path_type = rdf_paths.PathSpec.PathType.TSK
     else:
-      path_type = paths.PathSpec.PathType.OS
+      path_type = rdf_paths.PathSpec.PathType.OS
 
     p = windows_persistence.WindowsPersistenceMechanismsParser()
     parsed_items = p.Parse(response, knowledge_base, path_type)
@@ -915,8 +916,8 @@ class ClientArtifactCollector(flow.GRRFlow):
 
   def GetPathType(self):
     if self.args.use_tsk:
-      return paths.PathSpec.PathType.TSK
-    return paths.PathSpec.PathType.OS
+      return rdf_paths.PathSpec.PathType.TSK
+    return rdf_paths.PathSpec.PathType.OS
 
   def _MeetsConditions(self, source):
     """Check conditions on the source."""

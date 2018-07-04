@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The blob store abstraction."""
 
-from grr.lib import registry
+from grr.core.grr_response_core.lib import registry
 
 
 class Blobstore(object):

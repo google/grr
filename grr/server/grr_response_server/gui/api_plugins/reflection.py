@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """API handler for rendering descriptors of GRR data structures."""
 
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto.api import reflection_pb2
 from grr.server.grr_response_server import aff4

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The MySQL database methods for foreman rule handling."""
 
-from grr.lib import rdfvalue
+from grr.core.grr_response_core.lib import rdfvalue
 from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server.databases import mysql_utils
 

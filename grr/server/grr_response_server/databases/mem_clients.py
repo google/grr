@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """The in memory database methods for client handling."""
 
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import db
-from grr.server.grr_response_server.rdfvalues import objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class InMemoryDBClientMixin(object):
@@ -55,7 +55,7 @@ class InMemoryDBClientMixin(object):
     res = {}
     for client_id in client_ids:
       md = self.metadatas.get(client_id, {})
-      res[client_id] = objects.ClientMetadata(
+      res[client_id] = rdf_objects.ClientMetadata(
           certificate=md.get("certificate"),
           fleetspeak_enabled=md.get("fleetspeak_enabled"),
           first_seen=md.get("first_seen"),
@@ -99,7 +99,8 @@ class InMemoryDBClientMixin(object):
         continue
       last_timestamp = max(history)
       last_serialized = history[last_timestamp]
-      client_obj = objects.ClientSnapshot.FromSerializedString(last_serialized)
+      client_obj = rdf_objects.ClientSnapshot.FromSerializedString(
+          last_serialized)
       client_obj.timestamp = last_timestamp
       client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
           self.startup_history[client_id][last_timestamp])
@@ -114,7 +115,7 @@ class InMemoryDBClientMixin(object):
       md = self.ReadClientMetadata(client_id)
       if md and min_last_ping and md.ping < min_last_ping:
         continue
-      res[client_id] = objects.ClientFullInfo(
+      res[client_id] = rdf_objects.ClientFullInfo(
           metadata=md,
           labels=self.ReadClientLabels(client_id),
           last_snapshot=self.ReadClientSnapshot(client_id),
@@ -156,7 +157,7 @@ class InMemoryDBClientMixin(object):
       if ts < from_time or ts > to_time:
         continue
 
-      client_obj = objects.ClientSnapshot.FromSerializedString(history[ts])
+      client_obj = rdf_objects.ClientSnapshot.FromSerializedString(history[ts])
       client_obj.timestamp = ts
       client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
           self.startup_history[client_id][ts])
@@ -216,7 +217,7 @@ class InMemoryDBClientMixin(object):
       owner_dict = self.labels.get(client_id, {})
       for owner, labels in owner_dict.items():
         for l in labels:
-          res[client_id].append(objects.ClientLabel(owner=owner, name=l))
+          res[client_id].append(rdf_objects.ClientLabel(owner=owner, name=l))
       res[client_id].sort(key=lambda label: (label.owner, label.name))
     return res
 
@@ -234,7 +235,7 @@ class InMemoryDBClientMixin(object):
     for labels_dict in self.labels.values():
       for owner, names in labels_dict.items():
         for name in names:
-          result.add(objects.ClientLabel(owner=owner, name=name))
+          result.add(rdf_objects.ClientLabel(owner=owner, name=name))
 
     return list(result)
 

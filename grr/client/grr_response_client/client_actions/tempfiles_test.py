@@ -7,9 +7,9 @@ import tempfile
 
 from grr import config
 from grr_response_client.client_actions import tempfiles
-from grr.lib import flags
-from grr.lib import utils
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 

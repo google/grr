@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Configuration parameters for the configuration subsystem."""
 
-from grr.lib import config_lib
+from grr.core.grr_response_core.lib import config_lib
 
 config_lib.DEFINE_string("Config.prefix", "%(grr|resource)",
                          "Prefix directory for general file storage.")

@@ -6,7 +6,7 @@ import os
 
 import mock
 
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.test_lib import client_test_lib
 from grr.test_lib import osx_launchd_testdata
 from grr.test_lib import test_lib

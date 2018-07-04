@@ -4,14 +4,14 @@ import os
 import re
 import stat
 
-from grr.lib import objectfilter
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import utils
-from grr.lib.parsers import config_file
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import structs
+from grr.core.grr_response_core.lib import objectfilter
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.parsers import config_file
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 
 class Error(Exception):
@@ -46,7 +46,7 @@ class BaseHandler(object):
     self.filters = []  # Filters used to process data.
     self.cmp_data = []  # Data that results will be compared against.
     self.results = []  # Residual data following filtering.
-    if isinstance(filters, structs.RepeatedFieldHelper):
+    if isinstance(filters, rdf_structs.RepeatedFieldHelper):
       self.filters = filters
       self.Validate()
 
@@ -209,7 +209,7 @@ class AttrFilter(Filter):
         val = self._GetVal(obj, key)
         if val:
           # Dict won't accept rdfvalue.RepeatedFieldHelper
-          if isinstance(val, structs.RepeatedFieldHelper):
+          if isinstance(val, rdf_structs.RepeatedFieldHelper):
             val = list(val)
           yield rdf_protodict.AttributedDict({"key": key, "value": val})
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Configuration parameters for the admin UI."""
 
-from grr.lib import config_lib
-from grr.lib.rdfvalues import config as rdf_config
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib.rdfvalues import config as rdf_config
 
 # The Admin UI web application.
 config_lib.DEFINE_integer("AdminUI.port", 8000, "port to listen on")

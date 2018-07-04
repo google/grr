@@ -5506,8 +5506,8 @@
         "items": [
           {
             "clientAction": "ListProcesses",
+            "leasedUntil": "10042000000",
             "sessionId": "aff4:/C.1000000000000000/flows/F:123456",
-            "taskEta": "10042000000",
             "taskId": "43"
           }
         ]
@@ -5522,14 +5522,15 @@
         "items": [
           {
             "clientAction": "ListProcesses",
+            "leasedUntil": "10042000000",
             "responses": [
               {
                 "args": "CAo=",
                 "argsRdfName": "GrrStatus",
                 "authState": "AUTHENTICATED",
                 "cpuLimit": 7200.0,
-                "eta": "42000000",
-                "lastLease": "test_process@test.host:42",
+                "leasedBy": "test_process@test.host:42",
+                "leasedUntil": "42000000",
                 "name": "ListProcesses",
                 "priority": "MEDIUM_PRIORITY",
                 "queue": "aff4:/C.1000000000000000/tasks",
@@ -5544,7 +5545,6 @@
               }
             ],
             "sessionId": "aff4:/C.1000000000000000/flows/F:123456",
-            "taskEta": "10042000000",
             "taskId": "43"
           }
         ]
@@ -6181,8 +6181,8 @@
                 "argsRdfName": "GrrStatus",
                 "authState": "AUTHENTICATED",
                 "cpuLimit": 7200.0,
-                "eta": "42000000",
-                "lastLease": "test_process@test.host:42",
+                "leasedBy": "test_process@test.host:42",
+                "leasedUntil": "42000000",
                 "name": "ListProcesses",
                 "priority": "MEDIUM_PRIORITY",
                 "queue": "aff4:/C.1000000000000000/tasks",

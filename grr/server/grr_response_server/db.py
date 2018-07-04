@@ -9,18 +9,26 @@ WIP, will eventually replace datastore.py.
 """
 import abc
 
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import events as rdf_events
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import foreman_rules
 from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class Error(Exception):
-  pass
+
+  def __init__(self, message="", cause=None):
+    if cause is not None:
+      message += ": %s" % cause
+
+    super(Error, self).__init__(message)
+
+    self.cause = cause
 
 
 class NotFoundError(Error):
@@ -38,12 +46,9 @@ class UnknownClientError(NotFoundError):
 
   def __init__(self, client_id, cause=None):
     message = "Client with id '%s' does not exist" % client_id
-    if cause is not None:
-      message += ": %s" % cause
-    super(UnknownClientError, self).__init__(message)
+    super(UnknownClientError, self).__init__(message, cause=cause)
 
     self.client_id = client_id
-    self.cause = cause
 
 
 class UnknownPathError(NotFoundError):
@@ -58,14 +63,11 @@ class UnknownPathError(NotFoundError):
   def __init__(self, client_id, path_type, path_id, cause=None):
     message = "Path of type '%s' with id '%s' on client '%s' does not exist"
     message %= (path_type, path_id, client_id)
-    if cause is not None:
-      message += ": %s" % cause
-    super(UnknownPathError, self).__init__(message)
+    super(UnknownPathError, self).__init__(message, cause=cause)
 
     self.client_id = client_id
     self.path_type = path_type
     self.path_id = path_id
-    self.cause = cause
 
 
 class UnknownRuleError(NotFoundError):
@@ -641,6 +643,56 @@ class Database(object):
       path_infos: A list of rdfvalue.objects.PathInfo records.
     """
 
+  # TODO(hanuszczak): Having a dictionary with mutable key as an argument is not
+  # a good idea. The signature should be changed to something saner.
+  @abc.abstractmethod
+  def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
+    """Writes a collection of hash and stat entries observed for given paths.
+
+    Args:
+      client_id: A client for which we want to write the history.
+      stat_entries: An dictionary mapping path info to stat entries.
+      hash_entries: An dictionary mapping path info to hash entries.
+    """
+
+  def WritePathStatHistory(self, client_id, path_info, stat_entries):
+    """Writes a collection of `StatEntry` observed for particular path.
+
+    Args:
+      client_id: A client for which we want to write stat entries.
+      path_info: Information about the path to write stat entries for. Note that
+                 if `path_info` has some associated stat entry, it is simply
+                 ignored.
+      stat_entries: A dictionary with timestamps as keys and `StatEntry`
+                    instances as values.
+    """
+    rstat_entries = {}
+    for timestamp, stat_entry in stat_entries.iteritems():
+      rpath_info = path_info.Copy()
+      rpath_info.timestamp = timestamp
+      rstat_entries[rpath_info] = stat_entry
+
+    self.MultiWritePathHistory(client_id, rstat_entries, {})
+
+  def WritePathHashHistory(self, client_id, path_info, hash_entries):
+    """Writes a collection of `Hash` observed for particular path.
+
+    Args:
+      client_id: A client for which we want to write hash entries.
+      path_info: Information about the path to write stat entries for. Note that
+                 if `path_info` has some associated hash entry, it is simply
+                 ignored.
+      hash_entries: A dictionary with timestamps as keys and `Hash` instances
+                    as values.
+    """
+    rhash_entries = {}
+    for timestamp, hash_entry in hash_entries.iteritems():
+      rpath_info = path_info.Copy()
+      rpath_info.timestamp = timestamp
+      rhash_entries[rpath_info] = hash_entry
+
+    self.MultiWritePathHistory(client_id, {}, rhash_entries)
+
   @abc.abstractmethod
   def WriteUserNotification(self, notification):
     """Writes a notification for a given user.
@@ -849,6 +901,46 @@ class Database(object):
 
     Raises:
       ValueError: If not all of the cronjobs are leased.
+    """
+
+  @abc.abstractmethod
+  def WriteClientMessages(self, messages):
+    """Writes messages that should go to the client to the db.
+
+    Args:
+      messages: A list of GrrMessage objects to write.
+    """
+
+  @abc.abstractmethod
+  def LeaseClientMessages(self, client_id, lease_time=None, limit=None):
+    """Leases available client messages for the client with the given id.
+
+    Args:
+      client_id: The client for which the messages should be leased.
+      lease_time: rdfvalue.Duration indicating how long the lease should be
+                  valid.
+      limit: Lease at most <limit> messages.
+    Returns:
+      A list of GrrMessage objects.
+    """
+
+  @abc.abstractmethod
+  def ReadClientMessages(self, client_id):
+    """Reads all client messages available for a given client_id.
+
+    Args:
+      client_id: The client for which the messages should be read.
+
+    Returns:
+      A list of GrrMessage objects.
+    """
+
+  @abc.abstractmethod
+  def DeleteClientMessages(self, messages):
+    """Deletes a list of client messages from the db.
+
+    Args:
+      messages: A list of GrrMessage objects to delete.
     """
 
 
@@ -1204,6 +1296,19 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.WritePathInfos(client_id, path_infos)
 
+  def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
+    self._ValidateClientId(client_id)
+
+    for path_info, stat_entry in stat_entries.iteritems():
+      self._ValidateType(path_info, rdf_objects.PathInfo)
+      self._ValidateType(stat_entry, rdf_client.StatEntry)
+
+    for path_info, hash_entry in hash_entries.iteritems():
+      self._ValidateType(path_info, rdf_objects.PathInfo)
+      self._ValidateType(hash_entry, rdf_crypto.Hash)
+
+    self.delegate.MultiWritePathHistory(client_id, stat_entries, hash_entries)
+
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):
     self._ValidateClientId(client_id)
@@ -1307,3 +1412,23 @@ class DatabaseValidationWrapper(Database):
     for job in jobs:
       self._ValidateType(job, rdf_cronjobs.CronJob)
     return self.delegate.ReturnLeasedCronJobs(jobs)
+
+  def WriteClientMessages(self, messages):
+    for message in messages:
+      self._ValidateType(message, rdf_flows.GrrMessage)
+    return self.delegate.WriteClientMessages(messages)
+
+  def LeaseClientMessages(self, client_id, lease_time=None, limit=1000000):
+    self._ValidateClientId(client_id)
+    self._ValidateDuration(lease_time)
+    return self.delegate.LeaseClientMessages(
+        client_id, lease_time=lease_time, limit=limit)
+
+  def ReadClientMessages(self, client_id):
+    self._ValidateClientId(client_id)
+    return self.delegate.ReadClientMessages(client_id)
+
+  def DeleteClientMessages(self, messages):
+    for message in messages:
+      self._ValidateType(message, rdf_flows.GrrMessage)
+    return self.delegate.DeleteClientMessages(messages)

@@ -2,8 +2,8 @@
 """Tests for grr.lib.output_plugin."""
 
 
-from grr.lib import flags
-from grr.lib import utils
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server.flows.general import transfer

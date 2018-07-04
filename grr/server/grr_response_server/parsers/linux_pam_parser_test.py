@@ -3,8 +3,8 @@
 """Unit test for the linux pam config parser."""
 
 
-from grr.lib import flags
-from grr.lib.rdfvalues import config_file as rdf_config
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import config_file as rdf_config_file
 from grr.server.grr_response_server.checks import checks_test_lib
 from grr.server.grr_response_server.parsers import linux_pam_parser
 from grr.test_lib import test_lib
@@ -142,7 +142,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
         TELNET_ONLY_CONFIG)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertEqual(len(out), 1)
-    self.assertTrue(isinstance(out[0], rdf_config.PamConfig))
+    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
     self.assertItemsEqual(TELNET_ONLY_CONFIG_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -154,7 +154,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
         TELNET_WITH_PAMCONF)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertEqual(len(out), 1)
-    self.assertTrue(isinstance(out[0], rdf_config.PamConfig))
+    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
     entry = out[0].entries[0]
     self.assertEqual(
         ('telnet', 'auth',
@@ -169,7 +169,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
         PAM_CONF_SIMPLE)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertEqual(len(out), 1)
-    self.assertTrue(isinstance(out[0], rdf_config.PamConfig))
+    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
     self.assertItemsEqual(PAM_CONF_SIMPLE_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -180,7 +180,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
         PAM_CONF_OVERRIDE)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertEqual(len(out), 1)
-    self.assertTrue(isinstance(out[0], rdf_config.PamConfig))
+    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
     self.assertItemsEqual(PAM_CONF_OVERRIDE_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -192,7 +192,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
         PAM_CONF_OVERRIDE_COMPLEX)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertEqual(len(out), 1)
-    self.assertTrue(isinstance(out[0], rdf_config.PamConfig))
+    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
     self.assertItemsEqual(PAM_CONF_OVERRIDE_COMPLEX_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -204,7 +204,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
         PAM_CONF_TYPICAL)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertEqual(len(out), 1)
-    self.assertTrue(isinstance(out[0], rdf_config.PamConfig))
+    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
     self.assertItemsEqual(PAM_CONF_TYPICAL_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -214,7 +214,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
         PAM_CONF_EXTERNAL_REF)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertEqual(len(out), 1)
-    self.assertTrue(isinstance(out[0], rdf_config.PamConfig))
+    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
     self.assertItemsEqual(PAM_CONF_EXTERNAL_REF_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertItemsEqual(PAM_CONF_EXTERNAL_REF_ERRORS,

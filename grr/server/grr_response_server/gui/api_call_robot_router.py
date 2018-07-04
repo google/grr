@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Implementation of a router class that should be used by robot users."""
 
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import paths
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import api_call_router_pb2
 from grr.server.grr_response_server import access_control
 
@@ -52,7 +52,7 @@ class RobotRouterListFlowResultsParams(rdf_structs.RDFProtoStruct):
 class RobotRouterGetFlowFilesArchiveParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.RobotRouterGetFlowFilesArchiveParams
   rdf_deps = [
-      paths.GlobExpression,
+      rdf_paths.GlobExpression,
   ]
 
 

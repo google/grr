@@ -14,14 +14,14 @@ import sys
 from grr import config as grr_config
 from grr_response_client import client_startup
 from grr.config import contexts
-from grr.lib import build
-from grr.lib import builders
-from grr.lib import config_lib
-from grr.lib import flags
-from grr.lib import repacking
+from grr.core.grr_response_core.lib import build
+from grr.core.grr_response_core.lib import builders
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import repacking
 # pylint: disable=unused-import
 # Required for google_config_validator
-from grr.lib.local import plugins
+from grr.core.grr_response_core.lib.local import plugins
 
 # pylint: enable=unused-import
 

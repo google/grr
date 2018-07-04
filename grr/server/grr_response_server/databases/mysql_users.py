@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """The MySQL database methods for GRR users and approval handling."""
 
-from grr.lib import rdfvalue
-from grr.lib import utils
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import db
 from grr.server.grr_response_server.databases import mysql_utils
-from grr.server.grr_response_server.rdfvalues import objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def _IntToApprovalID(approval_id):
@@ -32,12 +32,12 @@ def _ResponseToApprovalsWithGrants(response):
         yield cur_approval_request
 
       cur_approval_request = mysql_utils.StringToRDFProto(
-          objects.ApprovalRequest, approval_request_bytes)
+          rdf_objects.ApprovalRequest, approval_request_bytes)
       cur_approval_request.approval_id = _IntToApprovalID(approval_id_int)
 
     if grantor_username and grant_timestamp:
       cur_approval_request.grants.append(
-          objects.ApprovalGrant(
+          rdf_objects.ApprovalGrant(
               grantor_username=grantor_username,
               timestamp=mysql_utils.MysqlToRDFDatetime(grant_timestamp)))
 
@@ -89,7 +89,7 @@ class MySQLDBUsersMixin(object):
   def _RowToGRRUser(self, row):
     """Creates a GRR user object from a database result row."""
     username, password, ui_mode, canary_mode, user_type = row
-    result = objects.GRRUser(
+    result = rdf_objects.GRRUser(
         username=username,
         ui_mode=ui_mode,
         canary_mode=canary_mode,
@@ -194,7 +194,7 @@ class MySQLDBUsersMixin(object):
 
     approval_id_int, timestamp, approval_request_bytes, _, _ = res[0]
 
-    approval_request = mysql_utils.StringToRDFProto(objects.ApprovalRequest,
+    approval_request = mysql_utils.StringToRDFProto(rdf_objects.ApprovalRequest,
                                                     approval_request_bytes)
     approval_request.approval_id = _IntToApprovalID(approval_id_int)
     approval_request.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
@@ -206,7 +206,7 @@ class MySQLDBUsersMixin(object):
       # Note: serialized approval_request objects are guaranteed to not
       # have any grants.
       approval_request.grants.append(
-          objects.ApprovalGrant(
+          rdf_objects.ApprovalGrant(
               grantor_username=grantor_username,
               timestamp=mysql_utils.MysqlToRDFDatetime(timestamp)))
 
@@ -298,7 +298,7 @@ class MySQLDBUsersMixin(object):
     cursor.execute(query, args)
 
     for timestamp, state, notification_ser in cursor.fetchall():
-      n = objects.UserNotification.FromSerializedString(notification_ser)
+      n = rdf_objects.UserNotification.FromSerializedString(notification_ser)
       n.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
       n.state = state
       ret.append(n)

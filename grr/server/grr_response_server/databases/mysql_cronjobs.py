@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 """The MySQL database methods for cron job handling."""
 
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import db
 from grr.server.grr_response_server.databases import mysql_utils
 from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 
 
 class MySQLDBCronjobMixin(object):
-  """MySQLDBC mixin for cronjob related functions."""
+  """MySQLDB mixin for cronjob related functions."""
 
   @mysql_utils.WithTransaction()
   def WriteCronJob(self, cronjob, cursor=None):

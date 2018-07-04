@@ -191,6 +191,24 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testWritePathInfosUpdatesAncestors(self):
     pass
 
+  def testWriteStatHistory(self):
+    pass
+
+  def testWriteHashHistory(self):
+    pass
+
+  def testMultiWriteHistoryEmpty(self):
+    pass
+
+  def testMultiWriteHistoryStatAndHash(self):
+    pass
+
+  def testMultiWriteHistoryTwoPathTypes(self):
+    pass
+
+  def testMultiWriteHistoryTwoPaths(self):
+    pass
+
   def testFindPathInfosByPathIDsNonExistent(self):
     pass
 
@@ -246,6 +264,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testFindPathInfoByPathIDTimestampStatAndHashEntry(self):
+    pass
+
+  def testFindPathInfoByPathIDOlder(self):
     pass
 
 

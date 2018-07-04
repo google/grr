@@ -8,8 +8,8 @@ import time
 import zipfile
 
 
-from grr.lib import flags
-from grr.lib import rdfvalue
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
 from grr_response_proto.api import vfs_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server.gui import api_e2e_test_lib

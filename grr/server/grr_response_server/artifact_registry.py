@@ -6,14 +6,14 @@ import os
 import yaml
 
 from grr import config
-from grr.lib import artifact_utils
-from grr.lib import objectfilter
-from grr.lib import parser
-from grr.lib import rdfvalue
-from grr.lib import type_info
-from grr.lib import utils
-from grr.lib.rdfvalues import artifacts
-from grr.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib import artifact_utils
+from grr.core.grr_response_core.lib import objectfilter
+from grr.core.grr_response_core.lib import parser
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import type_info
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import sequential_collection
@@ -144,7 +144,7 @@ class ArtifactRegistry(object):
           loaded_artifacts.append(artifact_value)
           logging.debug("Loaded artifact %s from %s", artifact_value.name,
                         artifact_coll_urn)
-        except artifacts.ArtifactDefinitionError as e:
+        except rdf_artifacts.ArtifactDefinitionError as e:
           # TODO(hanuszczak): String matching on exception message is rarely
           # a good idea. Instead this should be refectored to some exception
           # class and then handled separately.
@@ -161,7 +161,7 @@ class ArtifactRegistry(object):
       # do we throw exception at this point? Why do we delete something and then
       # abort the whole upload procedure by throwing an exception?
       detail = "system artifacts were shadowed and had to be deleted"
-      raise artifacts.ArtifactDefinitionError(to_delete, detail)
+      raise rdf_artifacts.ArtifactDefinitionError(to_delete, detail)
 
     # Once all artifacts are loaded we can validate.
     revalidate = True
@@ -170,7 +170,7 @@ class ArtifactRegistry(object):
       for artifact_obj in loaded_artifacts[:]:
         try:
           Validate(artifact_obj)
-        except artifacts.ArtifactDefinitionError as e:
+        except rdf_artifacts.ArtifactDefinitionError as e:
           logging.error("Artifact %s did not validate: %s", artifact_obj.name,
                         e)
           artifact_obj.error_message = utils.SmartStr(e)
@@ -198,11 +198,11 @@ class ArtifactRegistry(object):
       # deserialization involved, and we are passing these into protobuf
       # primitive types.
       try:
-        artifact_value = artifacts.Artifact(**artifact_dict)
+        artifact_value = rdf_artifacts.Artifact(**artifact_dict)
         valid_artifacts.append(artifact_value)
       except (TypeError, AttributeError, type_info.TypeValueError) as e:
         name = artifact_dict.get("name")
-        raise artifacts.ArtifactDefinitionError(
+        raise rdf_artifacts.ArtifactDefinitionError(
             name, "invalid definition", cause=e)
 
     return valid_artifacts
@@ -227,7 +227,7 @@ class ArtifactRegistry(object):
         loaded_files.append(file_path)
       except (IOError, OSError) as e:
         logging.error("Failed to open artifact file %s. %s", file_path, e)
-      except artifacts.ArtifactDefinitionError as e:
+      except rdf_artifacts.ArtifactDefinitionError as e:
         logging.error("Invalid artifact found in file %s with error: %s",
                       file_path, e)
         raise
@@ -273,14 +273,14 @@ class ArtifactRegistry(object):
     if artifact_name in self._artifacts:
       if not overwrite_if_exists:
         details = "artifact already exists and `overwrite_if_exists` is unset"
-        raise artifacts.ArtifactDefinitionError(artifact_name, details)
+        raise rdf_artifacts.ArtifactDefinitionError(artifact_name, details)
       elif not overwrite_system_artifacts:
         artifact_obj = self._artifacts[artifact_name]
         if not artifact_obj.loaded_from.startswith("datastore:"):
           # This artifact was not uploaded to the datastore but came from a
           # file, refuse to overwrite.
           details = "system artifact cannot be overwritten"
-          raise artifacts.ArtifactDefinitionError(artifact_name, details)
+          raise rdf_artifacts.ArtifactDefinitionError(artifact_name, details)
 
     # Preserve where the artifact was loaded from to help debugging.
     artifact_rdfvalue.loaded_from = source
@@ -400,7 +400,7 @@ class ArtifactRegistry(object):
       REGISTRY.ReloadDatastoreArtifacts()
       result = self._artifacts.get(name)
       if not result:
-        raise artifacts.ArtifactNotRegisteredError(
+        raise rdf_artifacts.ArtifactNotRegisteredError(
             "Artifact %s missing from registry. You may need "
             "to sync the artifact repo by running make in the artifact "
             "directory." % name)
@@ -466,7 +466,7 @@ class ArtifactRegistry(object):
       # Sort so its easier to split these if necessary.
       yaml_list = []
       done_set = set()
-      for os_name in artifacts.Artifact.SUPPORTED_OS_LIST:
+      for os_name in rdf_artifacts.Artifact.SUPPORTED_OS_LIST:
         done_set = set(a for a in artifact_list if a.supported_os == [os_name])
         # Separate into knowledge_base and non-kb for easier sorting.
         done_set = sorted(done_set, key=lambda x: x.name)
@@ -484,7 +484,7 @@ REGISTRY = ArtifactRegistry()
 
 
 class ArtifactCollection(sequential_collection.IndexedSequentialCollection):
-  RDF_TYPE = artifacts.Artifact
+  RDF_TYPE = rdf_artifacts.Artifact
 
 
 def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
@@ -549,13 +549,13 @@ def ValidateSyntax(rdf_artifact):
     ArtifactSyntaxError: If artifact syntax is invalid.
   """
   if not rdf_artifact.doc:
-    raise artifacts.ArtifactSyntaxError(rdf_artifact, "missing doc")
+    raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, "missing doc")
 
   for supp_os in rdf_artifact.supported_os:
     valid_os = rdf_artifact.SUPPORTED_OS_LIST
     if supp_os not in valid_os:
       detail = "invalid `supported_os` ('%s' not in %s)" % (supp_os, valid_os)
-      raise artifacts.ArtifactSyntaxError(rdf_artifact, detail)
+      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail)
 
   for condition in rdf_artifact.conditions:
     # FIXME(hanuszczak): It does not look like the code below can throw
@@ -563,34 +563,34 @@ def ValidateSyntax(rdf_artifact):
     try:
       of = objectfilter.Parser(condition).Parse()
       of.Compile(objectfilter.BaseFilterImplementation)
-    except artifacts.ConditionError as e:
+    except rdf_artifacts.ConditionError as e:
       detail = "invalid condition '%s'" % condition
-      raise artifacts.ArtifactSyntaxError(rdf_artifact, detail, e)
+      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail, e)
 
   for label in rdf_artifact.labels:
     if label not in rdf_artifact.ARTIFACT_LABELS:
-      raise artifacts.ArtifactSyntaxError(rdf_artifact,
-                                          "invalid label '%s'" % label)
+      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact,
+                                              "invalid label '%s'" % label)
 
   # Anything listed in provides must be defined in the KnowledgeBase
   valid_provides = rdf_client.KnowledgeBase().GetKbFieldNames()
   for kb_var in rdf_artifact.provides:
     if kb_var not in valid_provides:
       detail = "broken `provides` ('%s' not in %s)" % (kb_var, valid_provides)
-      raise artifacts.ArtifactSyntaxError(rdf_artifact, detail)
+      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail)
 
   # Any %%blah%% path dependencies must be defined in the KnowledgeBase
   for dep in GetArtifactPathDependencies(rdf_artifact):
     if dep not in valid_provides:
       detail = "broken path dependencies ('%s' not in %s)" % (dep,
                                                               valid_provides)
-      raise artifacts.ArtifactSyntaxError(rdf_artifact, detail)
+      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail)
 
   for source in rdf_artifact.sources:
     try:
       source.Validate()
-    except artifacts.ArtifactSourceSyntaxError as e:
-      raise artifacts.ArtifactSyntaxError(rdf_artifact, "bad source", e)
+    except rdf_artifacts.ArtifactSourceSyntaxError as e:
+      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, "bad source", e)
 
 
 def ValidateDependencies(rdf_artifact):
@@ -610,13 +610,13 @@ def ValidateDependencies(rdf_artifact):
   for dependency in GetArtifactDependencies(rdf_artifact):
     try:
       dependency_obj = REGISTRY.GetArtifact(dependency)
-    except artifacts.ArtifactNotRegisteredError as e:
-      raise artifacts.ArtifactDependencyError(
+    except rdf_artifacts.ArtifactNotRegisteredError as e:
+      raise rdf_artifacts.ArtifactDependencyError(
           rdf_artifact, "missing dependency", cause=e)
 
     message = dependency_obj.error_message
     if message:
-      raise artifacts.ArtifactDependencyError(
+      raise rdf_artifacts.ArtifactDependencyError(
           rdf_artifact, "dependency error", cause=message)
 
 
@@ -655,8 +655,8 @@ def GetArtifactDependencies(rdf_artifact, recursive=False, depth=1):
     # ARTIFACT is the legacy name for ARTIFACT_GROUP
     # per: https://github.com/ForensicArtifacts/artifacts/pull/143
     # TODO(user): remove legacy support after migration.
-    if source.type in (artifacts.ArtifactSource.SourceType.ARTIFACT,
-                       artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP):
+    if source.type in (rdf_artifacts.ArtifactSource.SourceType.ARTIFACT,
+                       rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP):
       if source.attributes.GetItem("names"):
         deps.update(source.attributes.GetItem("names"))
 

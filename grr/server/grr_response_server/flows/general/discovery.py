@@ -2,14 +2,14 @@
 """These are flows designed to discover information about the host."""
 
 from grr import config
-from grr.lib import queues
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import cloud
-from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import queues
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact
@@ -98,17 +98,15 @@ class Interrogate(flow.GRRFlow):
     if not metadata_responses:
       return
 
+    convert = rdf_cloud.ConvertCloudMetadataResponsesToCloudInstance
+
     # AFF4 client.
     with self._CreateClient() as client:
-      client.Set(
-          client.Schema.CLOUD_INSTANCE(
-              cloud.ConvertCloudMetadataResponsesToCloudInstance(
-                  metadata_responses)))
+      client.Set(client.Schema.CLOUD_INSTANCE(convert(metadata_responses)))
 
     # rdf_objects.ClientSnapshot.
     client = self.state.client
-    client.cloud_instance = cloud.ConvertCloudMetadataResponsesToCloudInstance(
-        metadata_responses)
+    client.cloud_instance = convert(metadata_responses)
 
   @flow.StateHandler()
   def StoreMemorySize(self, responses):
@@ -185,7 +183,7 @@ class Interrogate(flow.GRRFlow):
       if response.system in ["Linux", "Windows"]:
         self.CallClient(
             server_stubs.GetCloudVMMetadata,
-            cloud.BuildCloudMetadataRequests(),
+            rdf_cloud.BuildCloudMetadataRequests(),
             next_state="CloudMetadata")
 
       known_system_type = True

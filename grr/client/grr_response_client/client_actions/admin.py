@@ -19,14 +19,14 @@ import pytsk3
 from grr import config
 from grr_response_client import actions
 from grr_response_client.client_actions import tempfiles
-from grr.lib import config_lib
-from grr.lib import queues
-from grr.lib import rdfvalue
-from grr.lib import stats
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib import queues
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 
 class Echo(actions.ActionPlugin):

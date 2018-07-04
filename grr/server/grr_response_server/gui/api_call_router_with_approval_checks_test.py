@@ -4,7 +4,7 @@
 
 import mock
 
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server import access_control
 
 from grr.server.grr_response_server.gui import api_call_handler_base

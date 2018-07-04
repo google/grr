@@ -5,12 +5,12 @@ import logging
 import os
 import re
 
-from grr.lib import artifact_utils
-from grr.lib import parser
-from grr.lib import rdfvalue
-from grr.lib import type_info
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib import artifact_utils
+from grr.core.grr_response_core.lib import parser
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import type_info
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 
 SID_RE = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
 

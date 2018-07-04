@@ -5,8 +5,8 @@ import __builtin__
 
 import mock
 
-from grr.lib import flags
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr.server.grr_response_server.authorization import groups
 from grr.server.grr_response_server.gui import api_auth_manager

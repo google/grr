@@ -8,13 +8,13 @@ import operator
 import re
 
 from grr import config
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import events as rdf_events
-from grr.lib.rdfvalues import stats as rdf_stats
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
+from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import hunt_pb2
 
 from grr.server.grr_response_server import aff4

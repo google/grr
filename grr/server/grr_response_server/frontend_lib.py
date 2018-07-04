@@ -6,14 +6,14 @@ import operator
 import time
 
 from grr import config
-from grr.lib import communicator
-from grr.lib import queues
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import stats
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib import communicator
+from grr.core.grr_response_core.lib import queues
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import client_index
@@ -464,7 +464,7 @@ class FrontEndServer(object):
           if task not in status_found:
             result.append(task)
           else:
-            manager.DeQueueClientRequest(client, task.task_id)
+            manager.DeQueueClientRequest(task)
 
     stats.STATS.IncrementCounter("grr_messages_sent", len(result))
     if result:
@@ -563,7 +563,7 @@ class FrontEndServer(object):
             # not set (message originated at the client, there was no request on
             # the server), so we have to check .HasTaskID() first.
             if msg.HasTaskID():
-              manager.DeQueueClientRequest(client_id, msg.task_id)
+              manager.DeQueueClientRequest(msg)
 
             manager.QueueNotification(
                 session_id=msg.session_id,

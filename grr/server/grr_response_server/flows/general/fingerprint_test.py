@@ -5,8 +5,8 @@
 import os
 
 from grr_response_client.client_actions import file_fingerprint
-from grr.lib import flags
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow

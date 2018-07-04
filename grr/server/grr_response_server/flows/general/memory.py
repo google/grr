@@ -9,13 +9,13 @@ import json
 import logging
 
 from grr import config
-from grr.lib import registry
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import rekall_types
-from grr.lib.rdfvalues import standard
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto import flows_pb2
 from grr_response_proto import rekall_pb2
@@ -82,9 +82,9 @@ class MemoryCollector(flow.GRRFlow):
     self.RunRekallPlugin()
 
   def RunRekallPlugin(self):
-    plugin = rekall_types.PluginRequest(plugin="aff4acquire")
+    plugin = rdf_rekall_types.PluginRequest(plugin="aff4acquire")
     plugin.args["destination"] = "GRR"
-    request = rekall_types.RekallRequest(plugins=[plugin])
+    request = rdf_rekall_types.RekallRequest(plugins=[plugin])
 
     # Note that this will actually also retrieve the memory image.
     self.CallFlow(
@@ -111,7 +111,7 @@ class MemoryCollector(flow.GRRFlow):
 class AnalyzeClientMemoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = rekall_pb2.AnalyzeClientMemoryArgs
   rdf_deps = [
-      rekall_types.RekallRequest,
+      rdf_rekall_types.RekallRequest,
   ]
 
 
@@ -252,7 +252,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
 
     # Let calling flows know where files ended up in AFF4 space.
     self.SendReply(
-        rekall_types.RekallResponse(
+        rdf_rekall_types.RekallResponse(
             downloaded_files=[x.AFF4Path(self.client_id) for x in responses]))
 
   @flow.StateHandler()
@@ -281,7 +281,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
 class ListVADBinariesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ListVADBinariesArgs
   rdf_deps = [
-      standard.RegularExpression,
+      rdf_standard.RegularExpression,
   ]
 
 

@@ -8,13 +8,13 @@ import urlparse
 import ipaddr
 
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import cloud
-from grr.lib.rdfvalues import events as rdf_events
-from grr.lib.rdfvalues import flows
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import client_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import client_index
@@ -35,7 +35,7 @@ from grr.server.grr_response_server.flows.general import discovery
 from grr.server.grr_response_server.gui import api_call_handler_base
 from grr.server.grr_response_server.gui import api_call_handler_utils
 from grr.server.grr_response_server.gui.api_plugins import stats as api_stats
-from grr.server.grr_response_server.rdfvalues import objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def UpdateClientsFromFleetspeak(clients):
@@ -91,12 +91,12 @@ class ApiClient(rdf_structs.RDFProtoStruct):
 
   protobuf = client_pb2.ApiClient
   rdf_deps = [
-      objects.ClientLabel,
+      rdf_objects.ClientLabel,
       ApiClientId,
       rdfvalue.ByteSize,
       rdf_client.ClientInformation,
       rdf_client.ClientURN,
-      cloud.CloudInstance,
+      rdf_cloud.CloudInstance,
       rdf_client.HardwareInfo,
       rdf_client.Interface,
       rdf_client.KnowledgeBase,
@@ -153,7 +153,7 @@ class ApiClient(rdf_structs.RDFProtoStruct):
           client_obj.Get(client_obj.Schema.FLEETSPEAK_ENABLED))
 
     self.labels = [
-        objects.ClientLabel(name=l.name, owner=l.owner)
+        rdf_objects.ClientLabel(name=l.name, owner=l.owner)
         for l in client_obj.GetLabels()
     ]
     self.interfaces = client_obj.Get(client_obj.Schema.INTERFACES)
@@ -256,16 +256,16 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     return self
 
   def ObjectReference(self):
-    return objects.ObjectReference(
-        reference_type=objects.ObjectReference.Type.CLIENT,
-        client=objects.ClientReference(
+    return rdf_objects.ObjectReference(
+        reference_type=rdf_objects.ObjectReference.Type.CLIENT,
+        client=rdf_objects.ClientReference(
             client_id=utils.SmartStr(self.client_id)))
 
 
 class ApiClientActionRequest(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiClientActionRequest
   rdf_deps = [
-      flows.GrrMessage,
+      rdf_flows.GrrMessage,
       rdfvalue.RDFDatetime,
       rdfvalue.RDFURN,
   ]
@@ -823,7 +823,7 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiListClientsLabelsResult
   rdf_deps = [
-      objects.ClientLabel,
+      rdf_objects.ClientLabel,
   ]
 
 
@@ -840,7 +840,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
         token=token)
     label_objects = []
     for label in labels_index.ListLabels():
-      label_objects.append(objects.ClientLabel(name=label))
+      label_objects.append(rdf_objects.ClientLabel(name=label))
 
     return ApiListClientsLabelsResult(items=label_objects)
 
@@ -849,7 +849,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
     label_objects = []
     for name in set(l.name for l in labels):
-      label_objects.append(objects.ClientLabel(name=name))
+      label_objects.append(rdf_objects.ClientLabel(name=name))
 
     return ApiListClientsLabelsResult(
         items=sorted(label_objects, key=lambda l: l.name))
@@ -907,7 +907,7 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
         args.client_id.ToClientURN(), limit=self.__class__.REQUESTS_NUM_LIMIT):
       request = ApiClientActionRequest(
           task_id=task.task_id,
-          task_eta=task.eta,
+          leased_until=task.leased_until,
           session_id=task.session_id,
           client_action=task.name)
 

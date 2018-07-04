@@ -2,8 +2,8 @@
 """This module contains regression tests for output plugins API handlers."""
 
 
-from grr.lib import flags
-from grr.lib import utils
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import instant_output_plugin
 from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server.gui import api_regression_test_lib

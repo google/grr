@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Root-access-level API handlers for user management."""
 
-from grr.lib.rdfvalues import events as rdf_events
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api.root import user_management_pb2
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4

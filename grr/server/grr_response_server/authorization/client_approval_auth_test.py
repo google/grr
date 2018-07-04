@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """Tests for grr.server.authorization.client_approval_auth."""
 
-from grr.lib import flags
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import test_base
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server.authorization import client_approval_auth
 from grr.test_lib import test_lib
 
 
-class ClientApprovalAuthorizationTest(test_base.RDFValueTestMixin,
+class ClientApprovalAuthorizationTest(rdf_test_base.RDFValueTestMixin,
                                       test_lib.GRRBaseTest):
   rdfvalue_class = client_approval_auth.ClientApprovalAuthorization
 

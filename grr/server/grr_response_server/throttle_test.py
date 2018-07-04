@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Tests for grr.lib.throttle."""
 
-from grr.lib import flags
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import throttle

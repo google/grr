@@ -13,8 +13,8 @@ import requests
 from google.protobuf import json_format
 
 from grr_api_client.connectors import http_connector
-from grr.lib import flags
-from grr.lib import utils
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import gui
 from grr.server.grr_response_server.gui import api_auth_manager

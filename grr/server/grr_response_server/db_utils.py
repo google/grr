@@ -5,9 +5,9 @@ import functools
 import logging
 import time
 
-from grr.lib import registry
-from grr.lib import stats
-from grr.lib import utils
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import db
 
 

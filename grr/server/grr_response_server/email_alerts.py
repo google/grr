@@ -13,8 +13,8 @@ import smtplib
 import socket
 
 from grr import config
-from grr.lib import registry
-from grr.lib.rdfvalues import standard as rdf_standard
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
 
 
 class EmailAlerterBase(object):

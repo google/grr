@@ -5,8 +5,8 @@ import binascii
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import fleetspeak_connector

@@ -4,7 +4,7 @@
 
 """This is a test fixture for client objects.."""
 
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 
 from grr.server.grr_response_server.aff4_objects import standard as aff4_standard

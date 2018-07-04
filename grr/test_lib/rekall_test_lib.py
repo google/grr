@@ -9,8 +9,8 @@ from grr import config
 from grr_response_client import comms
 from grr_response_client.client_actions import tempfiles
 from grr_response_client.components.rekall_support import grr_rekall
-from grr.lib import utils
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import rekall_profile_server
 from grr.server.grr_response_server.aff4_objects import aff4_grr

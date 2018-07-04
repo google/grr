@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """These are process related flows."""
 
-from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.lib.rdfvalues import standard
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import server_stubs
@@ -13,7 +13,7 @@ from grr.server.grr_response_server.flows.general import file_finder
 class ListProcessesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ListProcessesArgs
   rdf_deps = [
-      standard.RegularExpression,
+      rdf_standard.RegularExpression,
   ]
 
 

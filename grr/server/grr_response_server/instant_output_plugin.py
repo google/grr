@@ -4,9 +4,9 @@
 import itertools
 import re
 
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import utils
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import export
 

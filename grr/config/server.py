@@ -2,9 +2,9 @@
 """Configuration parameters for the server side subsystems."""
 
 import grr
-from grr.lib import config_lib
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 
 VERSION = grr.version()
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """The in memory database methods for path handling."""
 
-from grr.lib import rdfvalue
-from grr.lib import utils
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import db
-from grr.server.grr_response_server.rdfvalues import objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class _PathRecord(object):
@@ -16,12 +16,18 @@ class _PathRecord(object):
   """
 
   def __init__(self, path_type, components):
-    self._path_info = objects.PathInfo(
+    self._path_info = rdf_objects.PathInfo(
         path_type=path_type, components=components)
 
     self._stat_entries = {}
     self._hash_entries = {}
     self._children = set()
+
+  def AddStatEntry(self, stat_entry, timestamp):
+    self._stat_entries[timestamp] = stat_entry.Copy()
+
+  def AddHashEntry(self, hash_entry, timestamp):
+    self._hash_entries[timestamp] = hash_entry.Copy()
 
   def AddPathHistory(self, path_info):
     """Extends the path record history and updates existing information."""
@@ -29,9 +35,9 @@ class _PathRecord(object):
 
     timestamp = rdfvalue.RDFDatetime.Now()
     if path_info.HasField("stat_entry"):
-      self._stat_entries[timestamp] = path_info.stat_entry.Copy()
+      self.AddStatEntry(path_info.stat_entry, timestamp)
     if path_info.HasField("hash_entry"):
-      self._hash_entries[timestamp] = path_info.hash_entry.Copy()
+      self.AddHashEntry(path_info.hash_entry, timestamp)
 
   def AddPathInfo(self, path_info):
     """Updates existing path information of the path record."""
@@ -162,6 +168,20 @@ class InMemoryDBPathMixin(object):
       self._WritePathInfo(client_id, path_info, ancestor=False)
       for ancestor_path_info in path_info.GetAncestors():
         self._WritePathInfo(client_id, ancestor_path_info, ancestor=True)
+
+  @utils.Synchronized
+  def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
+    """Writes a collection of hash and stat entries observed for given paths."""
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError(client_id)
+
+    for path_info, stat_entry in stat_entries.iteritems():
+      path_record = self._GetPathRecord(client_id, path_info)
+      path_record.AddStatEntry(stat_entry, path_info.timestamp)
+
+    for path_info, hash_entry in hash_entries.iteritems():
+      path_record = self._GetPathRecord(client_id, path_info)
+      path_record.AddHashEntry(hash_entry, path_info.timestamp)
 
   @utils.Synchronized
   def FindDescendentPathIDs(self, client_id, path_type, path_id,

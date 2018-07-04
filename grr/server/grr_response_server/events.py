@@ -2,8 +2,8 @@
 """The GRR event publishing classes."""
 
 
-from grr.lib import rdfvalue
-from grr.lib import registry
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
 
 
 class EventListener(object):

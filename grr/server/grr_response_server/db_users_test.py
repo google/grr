@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-from grr.lib import rdfvalue
+from grr.core.grr_response_core.lib import rdfvalue
 from grr.server.grr_response_server import db
-from grr.server.grr_response_server.rdfvalues import objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class DatabaseTestUsersMixin(object):
@@ -15,11 +15,11 @@ class DatabaseTestUsersMixin(object):
   def testFilledGRRUserReadWrite(self):
     d = self.db
 
-    u_expected = objects.GRRUser(
+    u_expected = rdf_objects.GRRUser(
         username="foo",
         ui_mode="ADVANCED",
         canary_mode=True,
-        user_type=objects.GRRUser.UserType.USER_TYPE_ADMIN)
+        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
     u_expected.password.SetPassword("blah")
     d.WriteGRRUser(
         "foo",
@@ -36,7 +36,7 @@ class DatabaseTestUsersMixin(object):
 
     d.WriteGRRUser("foo")
     u = d.ReadGRRUser("foo")
-    u_expected = objects.GRRUser(username="foo")
+    u_expected = rdf_objects.GRRUser(username="foo")
 
     self.assertEqual(u_expected, u)
 
@@ -49,17 +49,17 @@ class DatabaseTestUsersMixin(object):
   def testReadingMultipleGRRUsersEntriesWorks(self):
     d = self.db
 
-    u_foo = objects.GRRUser(
+    u_foo = rdf_objects.GRRUser(
         username="foo",
         ui_mode="ADVANCED",
         canary_mode=True,
-        user_type=objects.GRRUser.UserType.USER_TYPE_ADMIN)
+        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
     d.WriteGRRUser(
         u_foo.username,
         ui_mode=u_foo.ui_mode,
         canary_mode=u_foo.canary_mode,
         user_type=u_foo.user_type)
-    u_bar = objects.GRRUser(username="bar")
+    u_bar = rdf_objects.GRRUser(username="bar")
     d.WriteGRRUser(u_bar.username)
 
     users = sorted(d.ReadAllGRRUsers(), key=lambda x: x.username)
@@ -73,8 +73,9 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     client_id = "C.0000000050000001"
-    approval_request = objects.ApprovalRequest(
-        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+    approval_request = rdf_objects.ApprovalRequest(
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+        APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -98,8 +99,9 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     client_id = "C.0000000050000001"
-    approval_request = objects.ApprovalRequest(
-        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+    approval_request = rdf_objects.ApprovalRequest(
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+        APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -107,8 +109,8 @@ class DatabaseTestUsersMixin(object):
         notified_users=["user1", "user2", "user3"],
         email_cc_addresses=["a@b.com", "c@d.com"],
         grants=[
-            objects.ApprovalGrant(grantor_username="user_foo"),
-            objects.ApprovalGrant(grantor_username="user_bar")
+            rdf_objects.ApprovalGrant(grantor_username="user_foo"),
+            rdf_objects.ApprovalGrant(grantor_username="user_bar")
         ])
 
     approval_id = d.WriteApprovalRequest(approval_request)
@@ -132,8 +134,9 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     client_id = "C.0000000050000001"
-    approval_request = objects.ApprovalRequest(
-        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+    approval_request = rdf_objects.ApprovalRequest(
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+        APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -155,8 +158,9 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     client_id = "C.0000000050000001"
-    approval_request = objects.ApprovalRequest(
-        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+    approval_request = rdf_objects.ApprovalRequest(
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+        APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -180,7 +184,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
     self.assertFalse(approvals)
 
   def testReadApprovalRequestsReturnsSingleApproval(self):
@@ -190,8 +194,9 @@ class DatabaseTestUsersMixin(object):
     # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
-    approval_request = objects.ApprovalRequest(
-        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+    approval_request = rdf_objects.ApprovalRequest(
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+        APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -201,7 +206,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
 
     self.assertEqual(len(approvals), 1)
     self.assertEqual(approvals[0].approval_id, approval_id)
@@ -222,8 +227,8 @@ class DatabaseTestUsersMixin(object):
 
     approval_ids = set()
     for i in range(10):
-      approval_request = objects.ApprovalRequest(
-          approval_type=objects.ApprovalRequest.ApprovalType.
+      approval_request = rdf_objects.ApprovalRequest(
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
           APPROVAL_TYPE_CLIENT,
           subject_id="C.000000005000000%d" % i,
           requestor_username="requestor",
@@ -234,7 +239,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
 
     self.assertEqual(len(approvals), 10)
     self.assertEqual(set(a.approval_id for a in approvals), approval_ids)
@@ -246,14 +251,15 @@ class DatabaseTestUsersMixin(object):
     # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
-    approval_request = objects.ApprovalRequest(
-        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+    approval_request = rdf_objects.ApprovalRequest(
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+        APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
         grants=[
-            objects.ApprovalGrant(grantor_username="grantor1"),
-            objects.ApprovalGrant(grantor_username="grantor2")
+            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
+            rdf_objects.ApprovalGrant(grantor_username="grantor2")
         ],
         expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
     approval_id = d.WriteApprovalRequest(approval_request)
@@ -261,7 +267,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
 
     self.assertEqual(len(approvals), 1)
     self.assertEqual(approvals[0].approval_id, approval_id)
@@ -277,15 +283,15 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     for i in range(10):
-      approval_request = objects.ApprovalRequest(
-          approval_type=objects.ApprovalRequest.ApprovalType.
+      approval_request = rdf_objects.ApprovalRequest(
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
           APPROVAL_TYPE_CLIENT,
           subject_id="C.00000000000000%d" % i,
           requestor_username="requestor",
           reason="some test reason %d" % i,
           grants=[
-              objects.ApprovalGrant(grantor_username="grantor_%d_1" % i),
-              objects.ApprovalGrant(grantor_username="grantor_%d_2" % i)
+              rdf_objects.ApprovalGrant(grantor_username="grantor_%d_1" % i),
+              rdf_objects.ApprovalGrant(grantor_username="grantor_%d_2" % i)
           ],
           expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
       d.WriteApprovalRequest(approval_request)
@@ -293,7 +299,7 @@ class DatabaseTestUsersMixin(object):
     approvals = sorted(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT),
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT),
         key=lambda a: a.reason)
 
     self.assertEqual(len(approvals), 10)
@@ -314,8 +320,8 @@ class DatabaseTestUsersMixin(object):
 
     non_expired_approval_ids = set()
     for i in range(10):
-      approval_request = objects.ApprovalRequest(
-          approval_type=objects.ApprovalRequest.ApprovalType.
+      approval_request = rdf_objects.ApprovalRequest(
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
           APPROVAL_TYPE_CLIENT,
           subject_id="C.000000005000000%d" % i,
           requestor_username="requestor",
@@ -329,7 +335,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
 
     self.assertEqual(len(approvals), 5)
     self.assertEqual(
@@ -346,8 +352,8 @@ class DatabaseTestUsersMixin(object):
 
     approval_ids = set()
     for i in range(10):
-      approval_request = objects.ApprovalRequest(
-          approval_type=objects.ApprovalRequest.ApprovalType.
+      approval_request = rdf_objects.ApprovalRequest(
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
           APPROVAL_TYPE_CLIENT,
           subject_id="C.000000005000000%d" % i,
           requestor_username="requestor",
@@ -359,7 +365,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
             include_expired=True))
 
     self.assertEqual(len(approvals), 10)
@@ -375,7 +381,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
             subject_id=client_id))
     self.assertFalse(approvals)
 
@@ -386,8 +392,9 @@ class DatabaseTestUsersMixin(object):
     # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
-    approval_request = objects.ApprovalRequest(
-        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+    approval_request = rdf_objects.ApprovalRequest(
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+        APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -397,7 +404,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
             subject_id=client_id))
 
     self.assertEqual(len(approvals), 1)
@@ -420,8 +427,8 @@ class DatabaseTestUsersMixin(object):
 
     approval_ids = set()
     for _ in range(10):
-      approval_request = objects.ApprovalRequest(
-          approval_type=objects.ApprovalRequest.ApprovalType.
+      approval_request = rdf_objects.ApprovalRequest(
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
           APPROVAL_TYPE_CLIENT,
           subject_id=client_id,
           requestor_username="requestor",
@@ -432,7 +439,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
             subject_id=client_id))
 
     self.assertEqual(len(approvals), 10)
@@ -445,14 +452,15 @@ class DatabaseTestUsersMixin(object):
     # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
-    approval_request = objects.ApprovalRequest(
-        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+    approval_request = rdf_objects.ApprovalRequest(
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
+        APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
         grants=[
-            objects.ApprovalGrant(grantor_username="grantor1"),
-            objects.ApprovalGrant(grantor_username="grantor2")
+            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
+            rdf_objects.ApprovalGrant(grantor_username="grantor2")
         ],
         expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
     approval_id = d.WriteApprovalRequest(approval_request)
@@ -460,7 +468,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
             subject_id=client_id))
 
     self.assertEqual(len(approvals), 1)
@@ -478,15 +486,15 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     for i in range(10):
-      approval_request = objects.ApprovalRequest(
-          approval_type=objects.ApprovalRequest.ApprovalType.
+      approval_request = rdf_objects.ApprovalRequest(
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
           APPROVAL_TYPE_CLIENT,
           subject_id=client_id,
           requestor_username="requestor",
           reason="some test reason %d" % i,
           grants=[
-              objects.ApprovalGrant(grantor_username="grantor_%d_1" % i),
-              objects.ApprovalGrant(grantor_username="grantor_%d_2" % i)
+              rdf_objects.ApprovalGrant(grantor_username="grantor_%d_1" % i),
+              rdf_objects.ApprovalGrant(grantor_username="grantor_%d_2" % i)
           ],
           expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
       d.WriteApprovalRequest(approval_request)
@@ -494,7 +502,7 @@ class DatabaseTestUsersMixin(object):
     approvals = sorted(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
             subject_id=client_id),
         key=lambda a: a.reason)
 
@@ -517,8 +525,8 @@ class DatabaseTestUsersMixin(object):
 
     non_expired_approval_ids = set()
     for i in range(10):
-      approval_request = objects.ApprovalRequest(
-          approval_type=objects.ApprovalRequest.ApprovalType.
+      approval_request = rdf_objects.ApprovalRequest(
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
           APPROVAL_TYPE_CLIENT,
           subject_id=client_id,
           requestor_username="requestor",
@@ -532,7 +540,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
             subject_id=client_id))
 
     self.assertEqual(len(approvals), 5)
@@ -551,8 +559,8 @@ class DatabaseTestUsersMixin(object):
 
     approval_ids = set()
     for i in range(10):
-      approval_request = objects.ApprovalRequest(
-          approval_type=objects.ApprovalRequest.ApprovalType.
+      approval_request = rdf_objects.ApprovalRequest(
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
           APPROVAL_TYPE_CLIENT,
           subject_id=client_id,
           requestor_username="requestor",
@@ -564,7 +572,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
             subject_id=client_id,
             include_expired=True))
 
@@ -576,11 +584,11 @@ class DatabaseTestUsersMixin(object):
     username = "test"
     d.WriteGRRUser(username)
 
-    n = objects.UserNotification(
+    n = rdf_objects.UserNotification(
         username=username,
-        notification_type=objects.UserNotification.Type.
+        notification_type=rdf_objects.UserNotification.Type.
         TYPE_CLIENT_INTERROGATED,
-        state=objects.UserNotification.State.STATE_PENDING,
+        state=rdf_objects.UserNotification.State.STATE_PENDING,
         timestamp=rdfvalue.RDFDatetime(42),
         message="blah")
     d.WriteUserNotification(n)
@@ -595,11 +603,11 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser(username)
 
     ns = [
-        objects.UserNotification(
+        rdf_objects.UserNotification(
             username=username,
-            notification_type=objects.UserNotification.Type.
+            notification_type=rdf_objects.UserNotification.Type.
             TYPE_CLIENT_INTERROGATED,
-            state=objects.UserNotification.State.STATE_PENDING,
+            state=rdf_objects.UserNotification.State.STATE_PENDING,
             timestamp=rdfvalue.RDFDatetime(42 + i),
             message="blah%d" % i) for i in range(10)
     ]
@@ -615,11 +623,11 @@ class DatabaseTestUsersMixin(object):
     username = "test"
     d.WriteGRRUser(username)
 
-    n = objects.UserNotification(
+    n = rdf_objects.UserNotification(
         username=username,
-        notification_type=objects.UserNotification.Type.
+        notification_type=rdf_objects.UserNotification.Type.
         TYPE_CLIENT_INTERROGATED,
-        state=objects.UserNotification.State.STATE_PENDING,
+        state=rdf_objects.UserNotification.State.STATE_PENDING,
         message="blah")
     d.WriteUserNotification(n)
 
@@ -640,21 +648,21 @@ class DatabaseTestUsersMixin(object):
 
     ts.append(rdfvalue.RDFDatetime.Now())
 
-    n = objects.UserNotification(
+    n = rdf_objects.UserNotification(
         username=username,
-        notification_type=objects.UserNotification.Type.
+        notification_type=rdf_objects.UserNotification.Type.
         TYPE_CLIENT_INTERROGATED,
-        state=objects.UserNotification.State.STATE_PENDING,
+        state=rdf_objects.UserNotification.State.STATE_PENDING,
         message="n0")
     d.WriteUserNotification(n)
 
     ts.append(rdfvalue.RDFDatetime.Now())
 
-    n = objects.UserNotification(
+    n = rdf_objects.UserNotification(
         username=username,
-        notification_type=objects.UserNotification.Type.
+        notification_type=rdf_objects.UserNotification.Type.
         TYPE_CLIENT_INTERROGATED,
-        state=objects.UserNotification.State.STATE_PENDING,
+        state=rdf_objects.UserNotification.State.STATE_PENDING,
         message="n1")
     d.WriteUserNotification(n)
 
@@ -740,11 +748,11 @@ class DatabaseTestUsersMixin(object):
     self._SetupUserNotificationTimerangeTest()
 
     ns = d.ReadUserNotifications(
-        username, state=objects.UserNotification.State.STATE_NOT_PENDING)
+        username, state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
     self.assertEqual(len(ns), 0)
 
     ns = d.ReadUserNotifications(
-        username, state=objects.UserNotification.State.STATE_PENDING)
+        username, state=rdf_objects.UserNotification.State.STATE_PENDING)
     self.assertEqual(len(ns), 2)
 
   def testReadUserNotificationsWithStateAndTimerange(self):
@@ -756,13 +764,13 @@ class DatabaseTestUsersMixin(object):
     ns = d.ReadUserNotifications(
         username,
         timerange=(ts[0], ts[1]),
-        state=objects.UserNotification.State.STATE_NOT_PENDING)
+        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
     self.assertEqual(len(ns), 0)
 
     ns = d.ReadUserNotifications(
         username,
         timerange=(ts[0], ts[1]),
-        state=objects.UserNotification.State.STATE_PENDING)
+        state=rdf_objects.UserNotification.State.STATE_PENDING)
     self.assertEqual(len(ns), 1)
     self.assertEqual(ns[0].message, "n0")
 
@@ -776,10 +784,11 @@ class DatabaseTestUsersMixin(object):
 
     d.UpdateUserNotifications(
         username, [all_ns[0].timestamp],
-        state=objects.UserNotification.State.STATE_NOT_PENDING)
+        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
 
     ns = d.ReadUserNotifications(username)
     ns = sorted(ns, key=lambda x: x.message)
     self.assertEqual(ns[0].state,
-                     objects.UserNotification.State.STATE_NOT_PENDING)
-    self.assertEqual(ns[1].state, objects.UserNotification.State.STATE_PENDING)
+                     rdf_objects.UserNotification.State.STATE_NOT_PENDING)
+    self.assertEqual(ns[1].state,
+                     rdf_objects.UserNotification.State.STATE_PENDING)

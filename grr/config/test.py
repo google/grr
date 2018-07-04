@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Configuration parameters for the test subsystem."""
-from grr.lib import config_lib
+from grr.core.grr_response_core.lib import config_lib
 
 # Default for running in the current directory
 config_lib.DEFINE_constant_string(

@@ -13161,13 +13161,13 @@
                 "type": "unicode",
                 "value": "ListProcesses"
               },
+              "leased_until": {
+                "type": "RDFDatetime",
+                "value": 10042000000
+              },
               "session_id": {
                 "type": "RDFURN",
                 "value": "aff4:/C.1000000000000000/flows/F:123456"
-              },
-              "task_eta": {
-                "type": "RDFDatetime",
-                "value": 10042000000
               },
               "task_id": {
                 "type": "long",
@@ -13182,8 +13182,8 @@
         "items": [
           {
             "client_action": "ListProcesses",
+            "leased_until": 10042000000,
             "session_id": "aff4:/C.1000000000000000/flows/F:123456",
-            "task_eta": 10042000000,
             "task_id": 43
           }
         ]
@@ -13202,6 +13202,10 @@
                 "type": "unicode",
                 "value": "ListProcesses"
               },
+              "leased_until": {
+                "type": "RDFDatetime",
+                "value": 10042000000
+              },
               "responses": [
                 {
                   "type": "GrrMessage",
@@ -13214,13 +13218,13 @@
                       "type": "float",
                       "value": 7200.0
                     },
-                    "eta": {
-                      "type": "RDFDatetime",
-                      "value": 42000000
-                    },
-                    "last_lease": {
+                    "leased_by": {
                       "type": "unicode",
                       "value": "test_process@test.host:42"
+                    },
+                    "leased_until": {
+                      "type": "RDFDatetime",
+                      "value": 42000000
                     },
                     "name": {
                       "type": "unicode",
@@ -13286,10 +13290,6 @@
                 "type": "RDFURN",
                 "value": "aff4:/C.1000000000000000/flows/F:123456"
               },
-              "task_eta": {
-                "type": "RDFDatetime",
-                "value": 10042000000
-              },
               "task_id": {
                 "type": "long",
                 "value": 43
@@ -13303,12 +13303,13 @@
         "items": [
           {
             "client_action": "ListProcesses",
+            "leased_until": 10042000000,
             "responses": [
               {
                 "auth_state": "AUTHENTICATED",
                 "cpu_limit": 7200.0,
-                "eta": 42000000,
-                "last_lease": "test_process@test.host:42",
+                "leased_by": "test_process@test.host:42",
+                "leased_until": 42000000,
                 "name": "ListProcesses",
                 "payload": {
                   "status": "GENERIC_ERROR"
@@ -13327,7 +13328,6 @@
               }
             ],
             "session_id": "aff4:/C.1000000000000000/flows/F:123456",
-            "task_eta": 10042000000,
             "task_id": 43
           }
         ]
@@ -15658,13 +15658,13 @@
                       "type": "float",
                       "value": 7200.0
                     },
-                    "eta": {
-                      "type": "RDFDatetime",
-                      "value": 42000000
-                    },
-                    "last_lease": {
+                    "leased_by": {
                       "type": "unicode",
                       "value": "test_process@test.host:42"
+                    },
+                    "leased_until": {
+                      "type": "RDFDatetime",
+                      "value": 42000000
                     },
                     "name": {
                       "type": "unicode",
@@ -15755,8 +15755,8 @@
               {
                 "auth_state": "AUTHENTICATED",
                 "cpu_limit": 7200.0,
-                "eta": 42000000,
-                "last_lease": "test_process@test.host:42",
+                "leased_by": "test_process@test.host:42",
+                "leased_until": 42000000,
                 "name": "ListProcesses",
                 "payload": {
                   "status": "GENERIC_ERROR"

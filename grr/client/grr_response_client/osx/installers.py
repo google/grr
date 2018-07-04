@@ -6,8 +6,8 @@ import zipfile
 
 from grr import config
 from grr_response_client import installer
-from grr.lib import config_lib
-from grr.lib import type_info
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib import type_info
 
 
 class OSXInstaller(installer.Installer):

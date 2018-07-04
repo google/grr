@@ -126,5 +126,14 @@ CREATE TABLE IF NOT EXISTS cron_jobs(
     leased_until DATETIME(6),
     leased_by VARCHAR(128),
     PRIMARY KEY (job_id)
+)""", """
+CREATE TABLE IF NOT EXISTS client_messages(
+    client_id BIGINT UNSIGNED,
+    message_id BIGINT UNSIGNED,
+    timestamp DATETIME(6),
+    message MEDIUMBLOB,
+    leased_until DATETIME(6),
+    leased_by VARCHAR(128),
+    PRIMARY KEY (client_id, message_id)
 )"""
 ]

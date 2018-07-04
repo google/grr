@@ -5,8 +5,8 @@
 import json
 
 
-from grr.lib import flags
-from grr.lib import stats
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import stats
 from grr.server.grr_response_server import stats_server
 
 from grr.test_lib import test_lib

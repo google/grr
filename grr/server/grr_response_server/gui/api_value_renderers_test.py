@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Tests for API value renderers."""
 
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr.server.grr_response_server.gui import api_value_renderers
 from grr.test_lib import test_lib

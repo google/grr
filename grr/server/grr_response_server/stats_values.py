@@ -2,12 +2,12 @@
 """RDF values for representing stats in the data-store."""
 
 
-from grr.lib import stats
-from grr.lib.rdfvalues import structs
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 
 
-class StatsStoreFieldValue(structs.RDFProtoStruct):
+class StatsStoreFieldValue(rdf_structs.RDFProtoStruct):
   """RDFValue definition for fields values to be stored in the data store."""
 
   protobuf = jobs_pb2.StatsStoreFieldValue
@@ -35,7 +35,7 @@ class StatsStoreFieldValue(structs.RDFProtoStruct):
     self.field_type = field_type
 
 
-class StatsStoreValue(structs.RDFProtoStruct):
+class StatsStoreValue(rdf_structs.RDFProtoStruct):
   """RDFValue definition for stats values to be stored in the data store."""
   protobuf = jobs_pb2.StatsStoreValue
   rdf_deps = [
@@ -74,7 +74,7 @@ class StatsStoreValue(structs.RDFProtoStruct):
     self.value_type = value_type
 
 
-class StatsStoreMetricsMetadata(structs.RDFProtoStruct):
+class StatsStoreMetricsMetadata(rdf_structs.RDFProtoStruct):
   """Container with metadata for all the metrics in a given process."""
 
   protobuf = jobs_pb2.StatsStoreMetricsMetadata

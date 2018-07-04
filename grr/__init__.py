@@ -9,7 +9,7 @@ def version():
   """Return a dict with GRR version information."""
   # Delay import until we have the config system to find the version.ini file.
   # pylint: disable=g-import-not-at-top
-  from grr.lib import config_lib
+  from grr.core.grr_response_core.lib import config_lib
 
   version_ini = config_lib.Resource().Filter("version.ini")
   if not os.path.exists(version_ini):

@@ -12,10 +12,10 @@ import pytest
 from grr_response_client import actions
 from grr_response_client.client_actions import standard
 
-from grr.lib import registry
-from grr.lib import utils
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.server.grr_response_server import server_stubs
 
 from grr.test_lib import test_lib

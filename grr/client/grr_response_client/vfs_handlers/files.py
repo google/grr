@@ -10,8 +10,8 @@ import threading
 
 from grr_response_client import client_utils
 from grr_response_client import vfs
-from grr.lib import utils
-from grr.lib.rdfvalues import paths
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 # File handles are cached here. They expire after a couple minutes so
 # we don't keep files locked on the client.
@@ -65,7 +65,7 @@ class FileHandleManager(object):
 class File(vfs.VFSHandler):
   """Read a regular file."""
 
-  supported_pathtype = paths.PathSpec.PathType.OS
+  supported_pathtype = rdf_paths.PathSpec.PathType.OS
   auto_register = True
 
   files = None
@@ -105,7 +105,7 @@ class File(vfs.VFSHandler):
     if self.pathspec[0].HasField("offset"):
       self.file_offset = self.pathspec[0].offset
 
-    self.pathspec.last.path_options = paths.PathSpec.Options.CASE_LITERAL
+    self.pathspec.last.path_options = rdf_paths.PathSpec.Options.CASE_LITERAL
 
     self.FileHacks()
     self.filename = client_utils.CanonicalPathToLocalPath(self.path)
@@ -218,7 +218,7 @@ class File(vfs.VFSHandler):
 
       # The recursion of the `os.walk` procedure is guided by the `dirs`
       # variable [1]. By clearing `dirs` below we force the generator to omit
-      # certain paths.
+      # certain rdf_paths.
       #
       # [1]: https://docs.python.org/2/library/os.html#os.walk
 
@@ -303,7 +303,7 @@ class File(vfs.VFSHandler):
     return self.size is None
 
   def StatFS(self, path=None):
-    """Call os.statvfs for a given list of paths. OS X and Linux only.
+    """Call os.statvfs for a given list of rdf_paths. OS X and Linux only.
 
     Note that a statvfs call for a network filesystem (e.g. NFS) that is
     unavailable, e.g. due to no network, will result in the call blocking.
@@ -344,4 +344,4 @@ class File(vfs.VFSHandler):
 
 class TempFile(File):
   """GRR temporary files on the client."""
-  supported_pathtype = paths.PathSpec.PathType.TMPFILE
+  supported_pathtype = rdf_paths.PathSpec.PathType.TMPFILE

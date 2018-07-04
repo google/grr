@@ -18,9 +18,9 @@ from grr_response_client import client_startup
 from grr_response_client import comms
 from grr_response_client import vfs
 from grr.config import contexts
-from grr.lib import flags
-from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 flags.DEFINE_integer("nrclients", 1, "Number of clients to start")
 

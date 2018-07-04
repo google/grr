@@ -5,9 +5,9 @@ import hashlib
 import zlib
 
 from grr_response_client import streaming
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 
 class TransferStoreUploader(object):

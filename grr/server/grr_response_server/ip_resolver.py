@@ -7,8 +7,8 @@ import socket
 import ipaddr
 
 from grr import config
-from grr.lib import registry
-from grr.lib import utils
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import utils
 
 
 class IPInfo(object):

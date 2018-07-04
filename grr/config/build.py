@@ -3,9 +3,9 @@
 import os
 import time
 
-from grr.lib import config_lib
-from grr.lib import rdfvalue
-from grr.lib import type_info
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import type_info
 
 config_lib.DEFINE_option(
     type_info.RDFValueType(

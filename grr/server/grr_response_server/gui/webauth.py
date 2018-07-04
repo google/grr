@@ -10,7 +10,7 @@ from werkzeug import wrappers as werkzeug_wrappers
 from google.oauth2 import id_token
 
 from grr import config
-from grr.lib import registry
+from grr.core.grr_response_core.lib import registry
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import aff4
 

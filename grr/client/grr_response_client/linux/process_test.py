@@ -6,8 +6,8 @@ import os
 
 from grr_response_client import process_error
 from grr_response_client.linux import process
-from grr.lib import flags
-from grr.lib import utils
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import utils
 from grr.test_lib import test_lib
 
 

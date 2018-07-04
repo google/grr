@@ -7,11 +7,11 @@ import mock
 
 from google.protobuf import timestamp_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
-from grr.lib import flags
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import events as rdf_events
-from grr.lib.rdfvalues import test_base as rdf_test_base
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
+from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import client_index
 from grr.server.grr_response_server import data_store

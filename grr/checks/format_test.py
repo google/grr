@@ -6,7 +6,7 @@ import os
 
 
 from grr import config
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server.checks import checks_test_lib
 from grr.test_lib import test_lib
 

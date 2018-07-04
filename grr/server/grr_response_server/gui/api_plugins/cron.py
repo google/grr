@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """API handlers for dealing with cron jobs."""
 
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import utils
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import cron_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow

@@ -9,17 +9,17 @@ import time
 import jinja2
 
 from grr import config
-from grr.lib import queues
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib import stats
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import paths
-from grr.lib.rdfvalues import protodict
-from grr.lib.rdfvalues import standard
-from grr.lib.rdfvalues import structs as rdf_structs
+from grr.core.grr_response_core.lib import queues
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import stats
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
@@ -281,7 +281,7 @@ class ClientStatsHandler(message_handlers.MessageHandler,
 class DeleteGRRTempFilesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.DeleteGRRTempFilesArgs
   rdf_deps = [
-      paths.PathSpec,
+      rdf_paths.PathSpec,
   ]
 
 
@@ -372,7 +372,7 @@ class Kill(flow.GRRFlow):
 class UpdateConfigurationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateConfigurationArgs
   rdf_deps = [
-      protodict.Dict,
+      rdf_protodict.Dict,
   ]
 
 
@@ -405,7 +405,7 @@ class UpdateConfiguration(flow.GRRFlow):
 class ExecutePythonHackArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ExecutePythonHackArgs
   rdf_deps = [
-      protodict.Dict,
+      rdf_protodict.Dict,
   ]
 
 
@@ -534,7 +534,7 @@ class Foreman(flow.WellKnownFlow):
 class OnlineNotificationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.OnlineNotificationArgs
   rdf_deps = [
-      standard.DomainEmailAddress,
+      rdf_standard.DomainEmailAddress,
   ]
 
 

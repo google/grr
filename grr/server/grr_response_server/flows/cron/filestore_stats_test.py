@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Tests for the filestore stats."""
 
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server.aff4_objects import filestore as aff4_filestore
 from grr.server.grr_response_server.flows.cron import filestore_stats

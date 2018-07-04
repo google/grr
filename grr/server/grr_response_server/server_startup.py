@@ -5,11 +5,11 @@ import os
 import platform
 
 from grr import config
-from grr.lib import config_lib
-from grr.lib import registry
-from grr.lib import stats
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib import stats
 # pylint: disable=unused-import
-from grr.lib.local import plugins
+from grr.core.grr_response_core.lib.local import plugins
 # pylint: enable=unused-import
 from grr.server.grr_response_server import server_logging
 from grr.server.grr_response_server.local import registry_init

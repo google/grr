@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 """RDFValues for GRR server-side cron jobs."""
 
-from grr.lib import rdfvalue
-from grr.lib import registry
-from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import structs
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
+from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
-class CronJobRunStatus(structs.RDFProtoStruct):
+class CronJobRunStatus(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.CronJobRunStatus
 
 
-class CreateCronJobFlowArgs(structs.RDFProtoStruct):
+class CreateCronJobFlowArgs(rdf_structs.RDFProtoStruct):
   """Args to create a run for a cron job."""
   protobuf = flows_pb2.CreateCronJobFlowArgs
   rdf_deps = [
@@ -32,7 +32,7 @@ class CreateCronJobFlowArgs(structs.RDFProtoStruct):
       return flow_cls.args_type
 
 
-class CronJob(structs.RDFProtoStruct):
+class CronJob(rdf_structs.RDFProtoStruct):
   """The cron job class."""
   protobuf = flows_pb2.CronJob
   rdf_deps = [

@@ -14,7 +14,7 @@ from grr_response_client import client_startup
 from grr_response_client import fleetspeak_client
 from grr_response_client import installer
 from grr.config import contexts
-from grr.lib import flags
+from grr.core.grr_response_core.lib import flags
 
 flags.DEFINE_bool("install", False, "Specify this to install the client.")
 

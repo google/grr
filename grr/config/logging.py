@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 """Configuration parameters for logging and error reporting subsystems."""
 
-from grr.lib import config_lib
-from grr.lib import type_info
-from grr.lib.rdfvalues import standard
+from grr.core.grr_response_core.lib import config_lib
+from grr.core.grr_response_core.lib import type_info
+from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
 
-config_lib.DEFINE_string("Logging.domain", "localhost",
-                         "The email domain belonging to this installation. "
-                         "Leave blank to not restrict email to this domain")
+config_lib.DEFINE_string(
+    "Logging.domain", "localhost",
+    "The email domain belonging to this installation. "
+    "Leave blank to not restrict email to this domain")
 
-config_lib.DEFINE_list("Logging.engines", ["stderr"],
-                       "Enabled logging engines. Valid values are "
-                       "combinations of stderr,file,syslog,event_log.")
+config_lib.DEFINE_list(
+    "Logging.engines", ["stderr"], "Enabled logging engines. Valid values are "
+    "combinations of stderr,file,syslog,event_log.")
 
 config_lib.DEFINE_bool(
     "Logging.verbose", False, help="If true log more verbosely.")
@@ -34,14 +35,14 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_option(
     type_info.RDFValueType(
-        rdfclass=standard.DomainEmailAddress,
+        rdfclass=rdf_standard.DomainEmailAddress,
         name="Monitoring.alert_email",
         help="The email address to send events to.",
         default="grr-monitoring@localhost"))
 
 config_lib.DEFINE_option(
     type_info.RDFValueType(
-        rdfclass=standard.DomainEmailAddress,
+        rdfclass=rdf_standard.DomainEmailAddress,
         name="Monitoring.emergency_access_email",
         help="The email address to notify in an emergency.",
         default="grr-emergency@localhost"))

@@ -6,10 +6,10 @@ import math
 import os
 
 from grr import config
-from grr.lib import flags
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import events as rdf_events
-from grr.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
+from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import events
 from grr.server.grr_response_server.aff4_objects import filestore_test_lib
 from grr.server.grr_response_server.flows.cron import filestore_stats

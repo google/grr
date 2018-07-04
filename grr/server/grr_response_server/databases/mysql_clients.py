@@ -4,12 +4,12 @@
 import datetime
 import MySQLdb
 
-from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
+from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import utils
+from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import db
 from grr.server.grr_response_server.databases import mysql_utils
-from grr.server.grr_response_server.rdfvalues import objects
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class MySQLDBClientMixin(object):
@@ -77,7 +77,7 @@ class MySQLDBClientMixin(object):
       if not row:
         break
       cid, fs, crt, ping, clk, ip, foreman, first, lct, lst = row
-      ret[mysql_utils.IntToClientID(cid)] = objects.ClientMetadata(
+      ret[mysql_utils.IntToClientID(cid)] = rdf_objects.ClientMetadata(
           certificate=crt,
           fleetspeak_enabled=fs,
           first_seen=mysql_utils.MysqlToRDFDatetime(first),
@@ -139,7 +139,7 @@ class MySQLDBClientMixin(object):
       if not row:
         break
       cid, snapshot, timestamp, startup_info = row
-      client_obj = mysql_utils.StringToRDFProto(objects.ClientSnapshot,
+      client_obj = mysql_utils.StringToRDFProto(rdf_objects.ClientSnapshot,
                                                 snapshot)
       client_obj.startup_info = mysql_utils.StringToRDFProto(
           rdf_client.StartupInfo, startup_info)
@@ -177,7 +177,7 @@ class MySQLDBClientMixin(object):
     ret = []
     cursor.execute(query, args)
     for snapshot, startup_info, timestamp in cursor.fetchall():
-      client = objects.ClientSnapshot.FromSerializedString(snapshot)
+      client = rdf_objects.ClientSnapshot.FromSerializedString(snapshot)
       client.startup_info = rdf_client.StartupInfo.FromSerializedString(
           startup_info)
       client.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
@@ -309,7 +309,7 @@ class MySQLDBClientMixin(object):
         if c_full_info:
           yield mysql_utils.IntToClientID(prev_cid), c_full_info
 
-        metadata = objects.ClientMetadata(
+        metadata = rdf_objects.ClientMetadata(
             certificate=crt,
             fleetspeak_enabled=fs,
             first_seen=mysql_utils.MysqlToRDFDatetime(first),
@@ -322,13 +322,14 @@ class MySQLDBClientMixin(object):
             last_crash_timestamp=mysql_utils.MysqlToRDFDatetime(last_crash_ts))
 
         if client_obj is not None:
-          l_snapshot = objects.ClientSnapshot.FromSerializedString(client_obj)
+          l_snapshot = rdf_objects.ClientSnapshot.FromSerializedString(
+              client_obj)
           l_snapshot.timestamp = mysql_utils.MysqlToRDFDatetime(last_client_ts)
           l_snapshot.startup_info = rdf_client.StartupInfo.FromSerializedString(
               client_startup_obj)
           l_snapshot.startup_info.timestamp = l_snapshot.timestamp
         else:
-          l_snapshot = objects.ClientSnapshot(
+          l_snapshot = rdf_objects.ClientSnapshot(
               client_id=mysql_utils.IntToClientID(cid))
 
         if last_startup_obj is not None:
@@ -340,7 +341,7 @@ class MySQLDBClientMixin(object):
           startup_info = None
 
         prev_cid = cid
-        c_full_info = objects.ClientFullInfo(
+        c_full_info = rdf_objects.ClientFullInfo(
             metadata=metadata,
             labels=[],
             last_snapshot=l_snapshot,
@@ -348,7 +349,7 @@ class MySQLDBClientMixin(object):
 
       if label_owner and label_name:
         c_full_info.labels.append(
-            objects.ClientLabel(name=label_name, owner=label_owner))
+            rdf_objects.ClientLabel(name=label_name, owner=label_owner))
 
     if c_full_info:
       yield mysql_utils.IntToClientID(prev_cid), c_full_info
@@ -466,7 +467,7 @@ class MySQLDBClientMixin(object):
     cursor.execute(query, int_ids)
     for client_id, owner, label in cursor.fetchall():
       ret[mysql_utils.IntToClientID(client_id)].append(
-          objects.ClientLabel(name=utils.SmartUnicode(label), owner=owner))
+          rdf_objects.ClientLabel(name=utils.SmartUnicode(label), owner=owner))
 
     for r in ret.values():
       r.sort(key=lambda label: (label.owner, label.name))
@@ -492,7 +493,7 @@ class MySQLDBClientMixin(object):
     result = []
     for owner, label in cursor.fetchall():
       result.append(
-          objects.ClientLabel(name=utils.SmartUnicode(label), owner=owner))
+          rdf_objects.ClientLabel(name=utils.SmartUnicode(label), owner=owner))
 
     result.sort(key=lambda label: (label.owner, label.name))
     return result

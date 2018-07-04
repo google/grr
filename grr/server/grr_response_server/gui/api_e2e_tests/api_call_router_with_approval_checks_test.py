@@ -5,8 +5,8 @@
 from grr import config
 from grr_api_client import errors as grr_api_errors
 
-from grr.lib import flags
-from grr.lib import rdfvalue
+from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import rdfvalue
 from grr.server.grr_response_server.aff4_objects import user_managers
 
 from grr.server.grr_response_server.gui import api_auth_manager
