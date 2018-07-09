@@ -278,14 +278,25 @@ class GetFileStat(actions.ActionPlugin):
     except (IOError, OSError) as error:
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, error)
 
+  @classmethod
+  def Start(cls, args):
+    fd = vfs.VFSOpen(args.pathspec)
+    stat_entry = fd.Stat(ext_attrs=args.collect_ext_attrs)
+    yield stat_entry
+
 
 class ExecuteCommand(actions.ActionPlugin):
   """Executes one of the predefined commands."""
+
   in_rdfvalue = rdf_client.ExecuteRequest
   out_rdfvalues = [rdf_client.ExecuteResponse]
 
   def Run(self, command):
-    """Run."""
+    for res in self.Start(command):
+      self.SendReply(res)
+
+  @classmethod
+  def Start(cls, command):
     cmd = command.cmd
     args = command.args
     time_limit = command.time_limit
@@ -297,14 +308,13 @@ class ExecuteCommand(actions.ActionPlugin):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    self.SendReply(
-        rdf_client.ExecuteResponse(
-            request=command,
-            stdout=stdout,
-            stderr=stderr,
-            exit_status=status,
-            # We have to return microseconds.
-            time_used=int(1e6 * time_used)))
+    yield rdf_client.ExecuteResponse(
+        request=command,
+        stdout=stdout,
+        stderr=stderr,
+        exit_status=status,
+        # We have to return microseconds.
+        time_used=int(1e6 * time_used))
 
 
 class ExecuteBinaryCommand(actions.ActionPlugin):

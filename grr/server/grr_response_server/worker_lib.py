@@ -105,12 +105,22 @@ class GRRWorker(object):
 
   def Run(self):
     """Event loop."""
+    was_master = False
     try:
       while 1:
         if master.MASTER_WATCHER.IsMaster():
           processed = self.RunOnce()
+          if not was_master:
+            if data_store.RelationalDBReadEnabled(category="message_handlers"):
+              data_store.REL_DB.RegisterMessageHandler(
+                  self._ProcessMessageHandlerRequests,
+                  self.well_known_flow_lease_time,
+                  limit=1000)
+          was_master = True
         else:
           processed = 0
+          data_store.REL_DB.UnregisterMessageHandler()
+          was_master = False
           time.sleep(60)
 
         if processed == 0:
@@ -127,23 +137,8 @@ class GRRWorker(object):
       logging.info("Caught interrupt, exiting.")
       self.__class__.thread_pool.Join()
 
-  def _ProcessMessageHandlerRequests(self):
+  def _ProcessMessageHandlerRequests(self, requests):
     """Processes message handler requests."""
-
-    if not data_store.RelationalDBReadEnabled(category="message_handlers"):
-      return 0
-
-    now = rdfvalue.RDFDatetime.Now()
-    if now - self.last_mh_lease_attempt < self.MH_LEASE_INTERVAL:
-      return 0
-
-    self.last_mh_lease_attempt = now
-
-    requests = data_store.REL_DB.LeaseMessageHandlerRequests(
-        lease_time=self.well_known_flow_lease_time, limit=1000)
-    if not requests:
-      return 0
-
     logging.debug("Leased message handler request ids: %s", ",".join(
         str(r.request_id) for r in requests))
     grouped_requests = utils.GroupBy(requests, lambda r: r.handler_name)
@@ -164,7 +159,6 @@ class GRRWorker(object):
     logging.debug("Deleting message handler request ids: %s", ",".join(
         str(r.request_id) for r in requests))
     data_store.REL_DB.DeleteMessageHandlerRequests(requests)
-    return len(requests)
 
   def RunOnce(self):
     """Processes one set of messages from Task Scheduler.
@@ -176,7 +170,7 @@ class GRRWorker(object):
         Total number of messages processed by this call.
     """
     start_time = time.time()
-    processed = self._ProcessMessageHandlerRequests()
+    processed = 0
 
     queue_manager = queue_manager_lib.QueueManager(token=self.token)
     for queue in self.queues:

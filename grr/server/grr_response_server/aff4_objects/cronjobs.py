@@ -532,7 +532,7 @@ class CronJob(aff4.AFF4Volume):
     cron_args = self.Get(self.Schema.CRON_ARGS)
     cron_args.flow_runner_args.base_session_id = self.urn
 
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         runner_args=cron_args.flow_runner_args,
         args=cron_args.flow_args,
         token=self.token,

@@ -100,7 +100,7 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
 
     # Note that runner_args are dropped. From all the arguments We use only
     # the flow name and the arguments.
-    flow_id = flow.GRRFlow.StartFlow(
+    flow_id = flow.StartFlow(
         client_id=args.client_id.ToClientURN(),
         flow_name=args.flow.name,
         token=token,

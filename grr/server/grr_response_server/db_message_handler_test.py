@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 """Tests for the message handler database api."""
 
+import Queue
+
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
+
 from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
@@ -42,23 +45,7 @@ class DatabaseTestHandlerMixin(object):
       r.timestamp = None
 
     self.assertEqual(requests[2:4], read)
-
-  def testMessageHandlerRequestSorting(self):
-
-    for i, ts in enumerate(
-        [10000, 11000, 12000, 13000, 14000, 19000, 18000, 17000, 16000, 15000]):
-      with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(ts)):
-        request = rdf_objects.MessageHandlerRequest(
-            client_id="C.1000000000000000",
-            handler_name="Testhandler",
-            request_id=i * 100,
-            request=rdfvalue.RDFInteger(i))
-        self.db.WriteMessageHandlerRequests([request])
-
-    read = self.db.ReadMessageHandlerRequests()
-
-    for i in range(1, len(read)):
-      self.assertGreater(read[i - 1].timestamp, read[i].timestamp)
+    self.db.DeleteMessageHandlerRequests(read)
 
   def testMessageHandlerRequestLeasing(self):
 
@@ -74,55 +61,26 @@ class DatabaseTestHandlerMixin(object):
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)):
       self.db.WriteMessageHandlerRequests(requests)
 
-    t0 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000)
-    with test_lib.FakeTime(t0):
-      t0_expiry = t0 + lease_time
-      leased = self.db.LeaseMessageHandlerRequests(
-          lease_time=lease_time, limit=5)
+    leased = Queue.Queue()
+    self.db.RegisterMessageHandler(leased.put, lease_time, limit=5)
 
-      self.assertEqual(len(leased), 5)
+    got = []
+    while len(got) < 10:
+      try:
+        l = leased.get(True, timeout=6)
+      except Queue.Empty:
+        self.fail(
+            "Timed out waiting for messages, expected 10, got %d" % len(got))
+      self.assertLessEqual(len(l), 5)
+      for m in l:
+        self.assertEqual(m.leased_by, utils.ProcessIdString())
+        self.assertGreater(m.leased_until, rdfvalue.RDFDatetime.Now())
+        self.assertLess(m.timestamp, rdfvalue.RDFDatetime.Now())
+        m.leased_by = None
+        m.leased_until = None
+        m.timestamp = None
+      got += l
+    self.db.DeleteMessageHandlerRequests(got)
 
-      for request in leased:
-        self.assertEqual(request.leased_until, t0_expiry)
-        self.assertEqual(request.leased_by, utils.ProcessIdString())
-
-    t1 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 100)
-    with test_lib.FakeTime(t1):
-      t1_expiry = t1 + lease_time
-      leased = self.db.LeaseMessageHandlerRequests(
-          lease_time=lease_time, limit=5)
-
-      self.assertEqual(len(leased), 5)
-
-      for request in leased:
-        self.assertEqual(request.leased_until, t1_expiry)
-        self.assertEqual(request.leased_by, utils.ProcessIdString())
-
-      # Nothing left to lease.
-      leased = self.db.LeaseMessageHandlerRequests(
-          lease_time=lease_time, limit=2)
-
-      self.assertEqual(len(leased), 0)
-
-    read = self.db.ReadMessageHandlerRequests()
-
-    self.assertEqual(len(read), 10)
-    for r in read:
-      self.assertEqual(r.leased_by, utils.ProcessIdString())
-
-    self.assertEqual(len([r for r in read if r.leased_until == t0_expiry]), 5)
-    self.assertEqual(len([r for r in read if r.leased_until == t1_expiry]), 5)
-
-    # Half the leases expired.
-    t2 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 350)
-    with test_lib.FakeTime(t2):
-      leased = self.db.LeaseMessageHandlerRequests(lease_time=lease_time)
-
-      self.assertEqual(len(leased), 5)
-
-    # All of them expired.
-    t3 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 10350)
-    with test_lib.FakeTime(t3):
-      leased = self.db.LeaseMessageHandlerRequests(lease_time=lease_time)
-
-      self.assertEqual(len(leased), 10)
+    got.sort(key=lambda req: req.request_id)
+    self.assertEqual(requests, got)

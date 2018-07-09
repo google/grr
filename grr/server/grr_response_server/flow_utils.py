@@ -135,7 +135,7 @@ def StartFlowAndWait(client_id,
   Returns:
     The urn of the flow that was run.
   """
-  flow_urn = flow.GRRFlow.StartFlow(
+  flow_urn = flow.StartFlow(
       client_id=client_id, token=token, sync=True, **flow_args)
 
   WaitForFlow(flow_urn, token=token, timeout=timeout)

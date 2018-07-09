@@ -32,7 +32,7 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
     self.hunts_urns = []
     with test_lib.FakeTime(40):
       for i in range(self.NUM_HUNTS):
-        hunt = implementation.GRRHunt.StartHunt(
+        hunt = implementation.StartHunt(
             hunt_name=standard.SampleHunt.__name__,
             expiry_time=rdfvalue.Duration("1m") * i,
             token=self.token)
@@ -41,7 +41,7 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
 
   def testDoesNothingIfAgeLimitNotSetInConfig(self):
     with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           flow_name=data_retention.CleanHunts.__name__,
           sync=True,
           token=self.token)
@@ -55,7 +55,7 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
         "DataRetention.hunts_ttl": rdfvalue.Duration("150s")
     }):
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
-        flow.GRRFlow.StartFlow(
+        flow.StartFlow(
             flow_name=data_retention.CleanHunts.__name__,
             sync=True,
             token=self.token)
@@ -82,7 +82,7 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
         "DataRetention.hunts_ttl": rdfvalue.Duration("1s")
     }):
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
-        flow.GRRFlow.StartFlow(
+        flow.StartFlow(
             flow_name=data_retention.CleanHunts.__name__,
             sync=True,
             token=self.token)
@@ -117,7 +117,7 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
     }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
-        flow.GRRFlow.StartFlow(
+        flow.StartFlow(
             flow_name=data_retention.CleanHunts.__name__,
             sync=True,
             token=self.token)
@@ -164,7 +164,7 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
 
   def testDoesNothingIfAgeLimitNotSetInConfig(self):
     with test_lib.FakeTime(40 + 60 * self.NUM_CRON_RUNS):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           flow_name=data_retention.CleanCronJobs.__name__,
           sync=True,
           token=self.token)
@@ -186,7 +186,7 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
       # Only two iterations are supposed to survive, as they were running
       # every minute.
       with test_lib.FakeTime(40 + 60 * self.NUM_CRON_RUNS):
-        flow.GRRFlow.StartFlow(
+        flow.StartFlow(
             flow_name=data_retention.CleanCronJobs.__name__,
             sync=True,
             token=self.token)
@@ -237,7 +237,7 @@ class CleanTempTest(flow_test_lib.FlowTestsBaseclass):
 
   def testDoesNothingIfAgeLimitNotSetInConfig(self):
     with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           flow_name=data_retention.CleanTemp.__name__,
           sync=True,
           token=self.token)
@@ -252,7 +252,7 @@ class CleanTempTest(flow_test_lib.FlowTestsBaseclass):
     }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
-        flow.GRRFlow.StartFlow(
+        flow.StartFlow(
             flow_name=data_retention.CleanTemp.__name__,
             sync=True,
             token=self.token)
@@ -280,7 +280,7 @@ class CleanTempTest(flow_test_lib.FlowTestsBaseclass):
     }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
-        flow.GRRFlow.StartFlow(
+        flow.StartFlow(
             flow_name=data_retention.CleanTemp.__name__,
             sync=True,
             token=self.token)
@@ -308,7 +308,7 @@ class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
 
   def testDoesNothingIfAgeLimitNotSetInConfig(self):
     with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           flow_name=data_retention.CleanInactiveClients.__name__,
           sync=True,
           token=self.token)
@@ -325,7 +325,7 @@ class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
     }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
-        flow.GRRFlow.StartFlow(
+        flow.StartFlow(
             flow_name=data_retention.CleanInactiveClients.__name__,
             sync=True,
             token=self.token)
@@ -359,7 +359,7 @@ class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
     }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
-        flow.GRRFlow.StartFlow(
+        flow.StartFlow(
             flow_name=data_retention.CleanInactiveClients.__name__,
             sync=True,
             token=self.token)

@@ -76,7 +76,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   def FilenameToPathID(self, fname):
     path = os.path.join(self.base_path, "searching", fname)
-    return rdf_objects.PathID(components=path.split(os.path.sep))
+    return rdf_objects.PathID.FromComponents(path.split(os.path.sep))
 
   EXPECTED_HASHES = {
       "auth.log": ("67b8fc07bd4b6efc3b2dce322e8ddf609b540805",

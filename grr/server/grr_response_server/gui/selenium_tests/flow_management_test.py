@@ -70,7 +70,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,
@@ -130,7 +130,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "Launched Flow GetFile")
 
     # Test that recursive tests are shown in a tree table.
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
@@ -197,7 +197,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.GetJavaScriptValue(
         "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
 
-    flow_1 = flow.GRRFlow.StartFlow(
+    flow_1 = flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.FlowWithOneLogStatement.__name__,
         token=self.token)
@@ -210,7 +210,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=tr:contains('%s')" % flow_1.Basename())
 
     # Create a recursive flow_2 that will appear after auto-refresh.
-    flow_2 = flow.GRRFlow.StartFlow(
+    flow_2 = flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
@@ -247,7 +247,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
           (index + 2, nested_flow.flow_id))
 
   def testOverviewIsShownForNestedHuntFlows(self):
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=gui_test_lib.RecursiveTestFlow.__name__),
@@ -322,7 +322,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "aff4:/%s/fs/os/some/unique/path" % self.client_id)
 
   def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
         client_id=self.client_id,
         sync=False,
@@ -389,7 +389,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "Error while opening flow:")
 
   def testApiExampleIsShown(self):
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
         client_id=self.client_id,
         token=self.token)
@@ -407,7 +407,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         '"name": "%s"' % gui_test_lib.FlowWithOneStatEntryResult.__name__)
 
   def testChangingTabUpdatesUrl(self):
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
         client_id=self.client_id,
         token=self.token)
@@ -433,7 +433,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilEqual(base_url + "/api", self.GetCurrentUrlPath)
 
   def testDirectLinksToFlowsTabsWorkCorrectly(self):
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
         client_id=self.client_id,
         token=self.token)
@@ -462,7 +462,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testCancelFlowWorksCorrectly(self):
     """Tests that cancelling flows works."""
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
@@ -484,7 +484,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "Cancelled in GUI")
 
   def testFlowListGetsUpdatedWithNewFlows(self):
-    flow_1 = flow.GRRFlow.StartFlow(
+    flow_1 = flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
@@ -502,7 +502,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('%s')" % flow_1.Basename())
 
-    flow_2 = flow.GRRFlow.StartFlow(
+    flow_2 = flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.FlowWithOneLogStatement.__name__,
         token=self.token)
@@ -512,7 +512,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=tr:contains('%s')" % flow_2.Basename())
 
   def testFlowListGetsUpdatedWithChangedFlows(self):
-    f = flow.GRRFlow.StartFlow(
+    f = flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
@@ -537,7 +537,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=tr:contains('%s') div[state=ERROR]" % f.Basename())
 
   def testFlowOverviewGetsUpdatedWhenFlowChanges(self):
-    f = flow.GRRFlow.StartFlow(
+    f = flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
@@ -569,7 +569,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         "tr:contains('Status'):contains('Because I said so')")
 
   def testFlowLogsTabGetsUpdatedWhenNewLogsAreAdded(self):
-    f = flow.GRRFlow.StartFlow(
+    f = flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
@@ -600,7 +600,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=grr-flow-log td:contains('bar-log')")
 
   def testFlowResultsTabGetsUpdatedWhenNewResultsAreAdded(self):
-    f = flow.GRRFlow.StartFlow(
+    f = flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
@@ -632,7 +632,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=grr-results-collection td:contains('bar-result')")
 
   def testDownloadFilesPanelIsShownWhenNewResultsAreAdded(self):
-    f = flow.GRRFlow.StartFlow(
+    f = flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)

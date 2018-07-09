@@ -153,7 +153,7 @@ class CronManager(object):
     # Make sure the flow is created with cron job as a parent folder.
     job.cron_args.flow_runner_args.base_session_id = runs_base
 
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         runner_args=job.cron_args.flow_runner_args,
         args=job.cron_args.flow_args,
         token=token,

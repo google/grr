@@ -531,8 +531,6 @@ class GRRClientWorker(threading.Thread):
 
     self.heart_beat_cb = heart_beat_cb
 
-    self.StartStatsCollector()
-
     self.lock = threading.RLock()
 
     # The worker may communicate over HTTP independently from the comms
@@ -552,6 +550,9 @@ class GRRClientWorker(threading.Thread):
       self._out_queue = SizeLimitedQueue(
           maxsize=config.CONFIG["Client.max_out_queue"],
           heart_beat_cb=heart_beat_cb)
+
+    # Only start this thread after the _out_queue is ready to send.
+    self.StartStatsCollector()
 
     self.daemon = True
 

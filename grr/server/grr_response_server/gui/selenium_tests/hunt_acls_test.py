@@ -26,7 +26,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
   def CreateSampleHunt(self, token=None):
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rate=100,
         filename="TestFilename",
@@ -343,7 +343,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         action=rdf_file_finder.FileFinderAction(action_type="STAT"))
     flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
         flow_name=file_finder.FileFinder.__name__)
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=self.client_id,
         args=flow_args,
         runner_args=flow_runner_args,

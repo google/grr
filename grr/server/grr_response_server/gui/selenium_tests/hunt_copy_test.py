@@ -23,7 +23,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt copying GUI."""
 
   def CreateSampleHunt(self, description, token=None):
-    implementation.GRRHunt.StartHunt(
+    implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         description=description,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
@@ -300,7 +300,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     literal_match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
         literal="foo\x0d\xc8bar")
 
-    implementation.GRRHunt.StartHunt(
+    implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         description="model hunt",
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
@@ -364,7 +364,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
         "foo\x0d\xc8bar")
 
   def testCopyHuntPreservesRuleType(self):
-    implementation.GRRHunt.StartHunt(
+    implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         description="model hunt",
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(

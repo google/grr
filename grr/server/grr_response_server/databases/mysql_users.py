@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """The MySQL database methods for GRR users and approval handling."""
 
+import MySQLdb
+
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import db
@@ -262,7 +264,10 @@ class MySQLDBUsersMixin(object):
         int(notification.state),
         notification.SerializeToString()
     ]
-    cursor.execute(query, args)
+    try:
+      cursor.execute(query, args)
+    except MySQLdb.IntegrityError:
+      raise db.UnknownGRRUserError("User %s not found!" % notification.username)
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadUserNotifications(self,

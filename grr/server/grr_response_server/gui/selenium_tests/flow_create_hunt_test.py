@@ -34,7 +34,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
     args = flows_processes.ListProcessesArgs(
         filename_regex="test[a-z]*", fetch_binaries=True)
 
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=flows_processes.ListProcesses.__name__,
         args=args,
         client_id=self.client_id,
@@ -88,7 +88,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, flows_processes.ListProcesses.__name__)
 
   def testCheckCreateHuntButtonIsOnlyEnabledWithFlowSelection(self):
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)

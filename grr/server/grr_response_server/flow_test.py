@@ -147,7 +147,7 @@ class FlowCreationTest(BasicFlowTest):
   def testInvalidClientId(self):
     """Should raise if the client_id is invalid."""
     with self.assertRaises(ValueError):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id="hello",
           flow_name=flow_test_lib.FlowOrderTest.__name__,
           token=self.token)
@@ -156,14 +156,14 @@ class FlowCreationTest(BasicFlowTest):
     """Check that flows reject unknown args."""
     self.assertRaises(
         type_info.UnknownArg,
-        flow.GRRFlow.StartFlow,
+        flow.StartFlow,
         client_id=self.client_id,
         flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token,
         foobar=1)
 
   def testTypeAttributeIsNotAppendedWhenFlowIsClosed(self):
-    session_id = flow.GRRFlow.StartFlow(
+    session_id = flow.StartFlow(
         client_id=self.client_id,
         flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
@@ -187,7 +187,7 @@ class FlowCreationTest(BasicFlowTest):
 
   def testFlowSerialization(self):
     """Check that we can serialize flows."""
-    session_id = flow.GRRFlow.StartFlow(
+    session_id = flow.StartFlow(
         client_id=self.client_id,
         flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
@@ -225,7 +225,7 @@ class FlowCreationTest(BasicFlowTest):
         client_id=self.client_id)
 
   def testTerminate(self):
-    session_id = flow.GRRFlow.StartFlow(
+    session_id = flow.StartFlow(
         client_id=self.client_id,
         flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
@@ -242,7 +242,7 @@ class FlowCreationTest(BasicFlowTest):
                      rdf_flow_runner.FlowContext.State.ERROR)
 
     reason = "no reason"
-    session_id = flow.GRRFlow.StartFlow(
+    session_id = flow.StartFlow(
         client_id=self.client_id,
         flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
@@ -260,7 +260,7 @@ class FlowCreationTest(BasicFlowTest):
     self.assertTrue(reason in runner.context.status)
 
   def testChildTermination(self):
-    session_id = flow.GRRFlow.StartFlow(
+    session_id = flow.StartFlow(
         client_id=self.client_id,
         flow_name="CallClientParentFlow",
         token=self.token)
@@ -323,7 +323,7 @@ class FlowCreationTest(BasicFlowTest):
     self.old_notify = manager._MultiNotifyQueue
     with utils.Stubber(queue_manager.QueueManager, "_MultiNotifyQueue",
                        self.CollectNotifications):
-      session_id = flow.GRRFlow.StartFlow(
+      session_id = flow.StartFlow(
           client_id=self.client_id,
           flow_name="NoRequestParentFlow",
           token=self.token)
@@ -361,7 +361,7 @@ class FlowCreationTest(BasicFlowTest):
         # doesn't change the test.
         (data_store.DB.mutation_pool_cls, "QueueScheduleTasks",
          QueueScheduleTasks)):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=self.client_id,
           flow_name="CallClientParentFlow",
           token=self.token)
@@ -601,14 +601,14 @@ class FlowTest(BasicFlowTest):
 
     # Should raise on parsing default.
     with self.assertRaises(ValueError):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=self.client_id,
           flow_name="BadArgsFlow1",
           arg1=False,
           token=self.token)
 
     # Should not raise now if we provide the correct type.
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         client_id=self.client_id,
         flow_name="BadArgsFlow1",
         arg1=rdf_paths.PathSpec(),
@@ -684,7 +684,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
     if client_mock is None:
       client_mock = hunt_test_lib.SampleHuntMock()
 
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=self.client_id,
         args=flow_args,
         runner_args=runner_args,
@@ -789,7 +789,7 @@ class GeneralFlowsTest(BasicFlowTest):
       worker_mock = worker_test_lib.MockWorker(
           check_flow_errors=True, token=self.token)
 
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=self.client_id,
           flow_name="DelayedCallStateFlow",
           token=self.token)
@@ -822,7 +822,7 @@ class GeneralFlowsTest(BasicFlowTest):
   def testCreatorPropagation(self):
 
     # Instantiate the flow using one username.
-    session_id = flow.GRRFlow.StartFlow(
+    session_id = flow.StartFlow(
         client_id=self.client_id,
         flow_name="ParentFlow",
         sync=False,
@@ -905,7 +905,7 @@ class GeneralFlowsTest(BasicFlowTest):
     # pyformat: enable
 
     for (priority, msg) in args:
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=self.client_id,
           flow_name="PriorityFlow",
           msg=msg,
@@ -952,7 +952,7 @@ class GeneralFlowsTest(BasicFlowTest):
     PriorityFlow.storage = server_result
 
     for (priority, msg) in args:
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=self.client_id,
           flow_name="PriorityFlow",
           msg=msg,
@@ -995,7 +995,7 @@ class FlowLimitTests(BasicFlowTest):
         self.client_id, client_mock, token=self.token)
     worker_mock = ResourcedWorker(check_flow_errors=True, token=self.token)
 
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         client_id=self.client_id,
         flow_name=flow_name,
         token=self.token,

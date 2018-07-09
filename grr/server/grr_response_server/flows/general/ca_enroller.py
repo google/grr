@@ -128,7 +128,7 @@ class Enroler(flow.WellKnownFlow):
     # Only enroll this client if it has no certificate yet.
     if not client.Get(client.Schema.CERT):
       # Start the enrollment flow for this client.
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=client_id,
           flow_name=CAEnroler.__name__,
           csr=cert,
@@ -166,7 +166,7 @@ class EnrolmentHandler(message_handlers.MessageHandler):
     for client_id in client_ids:
       if client_id not in mds or not mds[client_id].certificate:
         # Start the enrollment flow for this client.
-        flow.GRRFlow.StartFlow(
+        flow.StartFlow(
             client_id=client_id,
             flow_name=CAEnroler.__name__,
             csr=requests[client_id],

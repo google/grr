@@ -34,8 +34,8 @@ class ClientActionStub(object):
 class ArtifactCollector(ClientActionStub):
   """The client side artifact collector implementation."""
 
-  in_rdfvalue = rdf_artifacts.ArtifactCollectorArgs
-  out_rdfvalues = [rdf_artifacts.ArtifactCollectorResult]
+  in_rdfvalue = rdf_artifacts.ClientArtifactCollectorArgs
+  out_rdfvalues = [rdf_artifacts.ClientArtifactCollectorResult]
 
 
 # from windows/windows.py, osx/osx.py and linux/linux.py

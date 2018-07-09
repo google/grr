@@ -310,6 +310,21 @@ class ActionPlugin(object):
     except AttributeError:
       logging.info("Can't disable Nanny on this OS.")
 
+  @classmethod
+  def Start(cls, args):
+    """Executes the client action.
+
+    Contains the functionality to perform a client action without having to
+    instantiate an Action object. It takes as input an in_rdfvalue object and
+    yields out_rdfvalue objects. This method is used by the Run method which
+    sends the generated objects to the server and by the ClientArtifactCollector
+    which collects several results before sending them.
+
+    Args:
+      args: An in_rdfvalue object specific to the Action.
+    """
+    pass
+
   @property
   def session_id(self):
     try:

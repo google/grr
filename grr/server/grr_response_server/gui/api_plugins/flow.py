@@ -880,7 +880,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
           flow_id=utils.SmartStr(args.original_flow.flow_id),
           client_id=utils.SmartStr(args.original_flow.client_id))
 
-    flow_id = flow.GRRFlow.StartFlow(
+    flow_id = flow.StartFlow(
         client_id=args.client_id.ToClientURN(),
         flow_name=flow_name,
         token=token,

@@ -28,7 +28,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             ctime=long(1333718907.167083 * 1e6))
     ])
 
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=client_id,
         flow_name=flow_processes.ListProcesses.__name__,
         token=self.token)
@@ -71,7 +71,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             ctime=long(1333718907.167083 * 1e6))
     ])
 
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=client_id,
         flow_name=flow_processes.ListProcesses.__name__,
         filename_regex=r".*cmd2.exe",
@@ -118,7 +118,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             family="INET", state="ESTABLISHED"))
     client_mock = action_mocks.ListProcessesMock([p1, p2, p3])
 
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=client_id,
         flow_name=flow_processes.ListProcesses.__name__,
         connection_states=["ESTABLISHED", "LISTEN"],

@@ -135,14 +135,14 @@ class TestMemoryCollector(MemoryTest):
 
   def testMemoryCollectorIsDisabledByDefault(self):
     with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=self.client_id,
           flow_name=memory.MemoryCollector.__name__,
           token=self.token)
 
   def RunWithDownload(self):
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      self.flow_urn = flow.GRRFlow.StartFlow(
+      self.flow_urn = flow.StartFlow(
           client_id=self.client_id,
           flow_name=memory.MemoryCollector.__name__,
           token=self.token)
@@ -275,7 +275,7 @@ class ListVADBinariesTest(MemoryTest):
 
   def testListVADBinariesIsDisabledByDefault(self):
     with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=self.client_id,
           flow_name=memory.ListVADBinaries.__name__,
           token=self.token)
@@ -418,7 +418,7 @@ class TestAnalyzeClientMemory(rekall_test_lib.RekallTestBase):
 
   def testAnalyzeClientMemoryIsDisabledByDefault(self):
     with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=self.client_id,
           flow_name=memory.AnalyzeClientMemory.__name__,
           token=self.token)

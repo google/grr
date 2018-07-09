@@ -48,7 +48,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
   def CreateSampleHunt(self, token=None):
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rate=100,
         filename="TestFilename",

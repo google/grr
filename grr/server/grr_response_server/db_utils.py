@@ -42,11 +42,20 @@ def CallLoggedAndAccounted(f):
   return Decorator
 
 
+def ClientIdFromGrrMessage(m):
+  if m.queue:
+    return m.queue.Split()[0]
+  if m.source:
+    return m.source.Basename()
+
+
 class DBMetricsInit(registry.InitHook):
   """Install database metrics."""
 
   def RunOnce(self):
     stats.STATS.RegisterEventMetric(
-        "db_request_latency", fields=[("call", str)])
+        "db_request_latency",
+        fields=[("call", str)],
+        bins=[0.05 * 1.2**x for x in range(30)])  # 50ms to ~10 seconds
     stats.STATS.RegisterCounterMetric(
         "db_request_errors", fields=[("call", str), ("type", str)])

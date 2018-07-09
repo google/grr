@@ -69,7 +69,7 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
     output_plugins = [
         output_plugin.OutputPluginDescriptor(plugin_name="TestOutputPlugin")
     ]
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),

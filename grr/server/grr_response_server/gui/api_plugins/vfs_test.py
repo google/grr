@@ -83,7 +83,7 @@ class VfsTestMixin(object):
   def CreateRecursiveListFlow(self, client_id, token):
     flow_args = filesystem.RecursiveListDirectoryArgs()
 
-    return flow.GRRFlow.StartFlow(
+    return flow.StartFlow(
         client_id=client_id,
         flow_name=filesystem.RecursiveListDirectory.__name__,
         args=flow_args,
@@ -94,7 +94,7 @@ class VfsTestMixin(object):
         path=file_path, pathtype=rdf_paths.PathSpec.PathType.OS)
     flow_args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
 
-    return flow.GRRFlow.StartFlow(
+    return flow.StartFlow(
         client_id=client_id,
         flow_name=transfer.MultiGetFile.__name__,
         args=flow_args,
@@ -576,7 +576,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testHandlerThrowsExceptionOnArbitraryFlowId(self):
     # Create a mock flow.
-    self.flow_urn = flow.GRRFlow.StartFlow(
+    self.flow_urn = flow.StartFlow(
         client_id=self.client_id,
         flow_name=discovery.Interrogate.__name__,
         token=self.token)
@@ -673,7 +673,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
 
   def testHandlerRaisesOnArbitraryFlowId(self):
     # Create a mock flow.
-    self.flow_urn = flow.GRRFlow.StartFlow(
+    self.flow_urn = flow.StartFlow(
         client_id=self.client_id,
         flow_name=discovery.Interrogate.__name__,
         token=self.token)
@@ -700,15 +700,15 @@ class VfsTimelineTestMixin(object):
   """
 
   def SetupTestTimeline(self):
-    self.client_id = self.SetupClient(0)
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    client_id = self.SetupClient(0)
+    fixture_test_lib.ClientFixture(client_id, token=self.token)
 
     # Choose some directory with pathspec in the ClientFixture.
     self.category_path = "fs/os"
     self.folder_path = self.category_path + "/Users/中国新闻网新闻中/Shared"
     self.file_path = self.folder_path + "/a.txt"
 
-    file_urn = self.client_id.Add(self.file_path)
+    file_urn = client_id.Add(self.file_path)
     for i in range(0, 5):
       with test_lib.FakeTime(i):
         stat_entry = rdf_client.StatEntry()
@@ -721,9 +721,10 @@ class VfsTimelineTestMixin(object):
           fd.Set(fd.Schema.STAT, stat_entry)
 
         if data_store.RelationalDBWriteEnabled():
-          client_id = self.client_id.Basename()
+          cid = client_id.Basename()
           path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
-          data_store.REL_DB.WritePathInfos(client_id, [path_info])
+          data_store.REL_DB.WritePathInfos(cid, [path_info])
+    return client_id
 
 
 @db_test_lib.DualDBTest
@@ -733,7 +734,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
   def setUp(self):
     super(ApiGetVfsTimelineAsCsvHandlerTest, self).setUp()
     self.handler = vfs_plugin.ApiGetVfsTimelineAsCsvHandler()
-    self.SetupTestTimeline()
+    self.client_id = self.SetupTestTimeline()
 
   def testRaisesOnEmptyPath(self):
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
@@ -795,7 +796,7 @@ class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
   def setUp(self):
     super(ApiGetVfsTimelineHandlerTest, self).setUp()
     self.handler = vfs_plugin.ApiGetVfsTimelineHandler()
-    self.SetupTestTimeline()
+    self.client_id = self.SetupTestTimeline()
 
   def testRaisesOnEmptyPath(self):
     args = vfs_plugin.ApiGetVfsTimelineArgs(

@@ -75,7 +75,7 @@ class CreateGenericHuntFlow(flow.GRRFlow):
     """Create the hunt, in the paused state."""
     # Anyone can create the hunt but it will be created in the paused
     # state. Permissions are required to actually start it.
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         runner_args=self.args.hunt_runner_args,
         args=self.args.hunt_args,
         token=self.token) as hunt:
@@ -101,7 +101,7 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Create the hunt and run it."""
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         runner_args=self.args.hunt_runner_args,
         args=self.args.hunt_args,
         token=self.token) as hunt:
@@ -187,20 +187,11 @@ class MultiHuntVerificationSummaryError(HuntVerificationError):
     return "\n".join(str(error) for error in self.errors)
 
 
-class VerifyHuntOutputPluginsCronFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.VerifyHuntOutputPluginsCronFlowArgs
-  rdf_deps = [
-      rdfvalue.Duration,
-  ]
-
-
 class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
   """Runs Verify() method of output plugins of active hunts."""
 
   frequency = rdfvalue.Duration("4h")
   lifetime = rdfvalue.Duration("4h")
-
-  args_type = VerifyHuntOutputPluginsCronFlowArgs
 
   NON_VERIFIABLE = "NON_VERIFIABLE"
 
@@ -325,12 +316,10 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
   def Start(self):
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
 
-    if not self.args.check_range:
-      self.args.check_range = rdfvalue.Duration(
-          "%ds" % int(self.__class__.frequency.seconds * 2))
+    check_range = self.frequency * 2
 
     range_end = rdfvalue.RDFDatetime.Now()
-    range_start = rdfvalue.RDFDatetime.Now() - self.args.check_range
+    range_start = rdfvalue.RDFDatetime.Now() - check_range
 
     children_urns = list(hunts_root.ListChildren(age=(range_start, range_end)))
     children_urns.sort(key=operator.attrgetter("age"), reverse=True)

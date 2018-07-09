@@ -4,6 +4,7 @@
 import email
 import functools
 import itertools
+import logging
 
 import jinja2
 
@@ -742,10 +743,15 @@ here
 
   def CreateApprovalNotification(self, approval):
     for user in approval.notified_users:
-      notification_lib.Notify(
-          user.strip(), self.__class__.approval_notification_type,
-          "Please grant access to %s" % approval.subject_title,
-          approval.ObjectReference())
+      try:
+        notification_lib.Notify(
+            user.strip(), self.__class__.approval_notification_type,
+            "Please grant access to %s" % approval.subject_title,
+            approval.ObjectReference())
+      except db.UnknownGRRUserError:
+        # The relational db does not allow sending notifications to users that
+        # don't exist. This should happen rarely but we need to catch this case.
+        logging.error("Notification sent for unknown user %s!", user.strip())
 
   def Handle(self, args, token=None):
     if not args.approval.reason:
@@ -1069,7 +1075,7 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
         args, token=token)
 
     if args.keep_client_alive:
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=args.client_id.ToClientURN(),
           flow_name=administrative.KeepAlive.__name__,
           duration=3600,

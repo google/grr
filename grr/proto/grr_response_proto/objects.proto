@@ -187,6 +187,18 @@ message PathInfo {
   optional Hash hash_entry = 6;
 }
 
+message ClientPathID {
+  optional string client_id = 1;
+  optional PathInfo.PathType path_type = 2;
+  optional bytes path_id = 3 [(sem_type) = { type: "PathID" }];
+}
+
+message BlobReference {
+  optional uint64 offset = 1;
+  optional uint64 size = 2;
+  optional bytes blob_id = 3 [(sem_type) = { type: "BlobID" }];
+}
+
 message ObjectReference {
   option (semantic) = {
     union_field: "reference_type"

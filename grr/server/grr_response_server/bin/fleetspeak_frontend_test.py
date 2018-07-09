@@ -247,7 +247,7 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
         fake_service_client.outgoing,
         "InsertMessage",
         wraps=fake_service_client.outgoing.InsertMessage):
-      flow_urn = flow.GRRFlow.StartFlow(
+      flow_urn = flow.StartFlow(
           client_id=self.client_id,
           flow_name=flow_processes.ListProcesses.__name__,
           token=self.token)

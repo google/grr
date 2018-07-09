@@ -13,6 +13,7 @@ import warnings
 import MySQLdb
 
 from grr.server.grr_response_server import db as db_module
+from grr.server.grr_response_server.databases import mysql_blobs
 from grr.server.grr_response_server.databases import mysql_clients
 from grr.server.grr_response_server.databases import mysql_cronjobs
 from grr.server.grr_response_server.databases import mysql_ddl
@@ -45,7 +46,8 @@ def _IsRetryable(error):
 
 
 # pyformat: disable
-class MysqlDB(mysql_clients.MySQLDBClientMixin,
+class MysqlDB(mysql_blobs.MySQLDBBlobsMixin,
+              mysql_clients.MySQLDBClientMixin,
               mysql_cronjobs.MySQLDBCronjobMixin,
               mysql_events.MySQLDBEventMixin,
               mysql_flows.MySQLDBFlowMixin,
@@ -90,6 +92,11 @@ class MysqlDB(mysql_clients.MySQLDBClientMixin,
         self._MariaDBCompatibility(cursor)
         self._SetBinlogFormat(cursor)
         self._InitializeSchema(cursor)
+    self.handler_thread = None
+    self.handler_stop = True
+
+  def Close(self):
+    self.pool.close()
 
   def _CheckForMariaDB(self, cursor):
     """Checks if we are running against MariaDB."""

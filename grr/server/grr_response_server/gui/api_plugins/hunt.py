@@ -1232,7 +1232,7 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
 
     # Anyone can create the hunt but it will be created in the paused
     # state. Permissions are required to actually start it.
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         runner_args=args.hunt_runner_args, args=generic_hunt_args,
         token=token) as hunt:
 

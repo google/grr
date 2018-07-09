@@ -7,6 +7,7 @@ import threading
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import db
+from grr.server.grr_response_server.databases import mem_blobs
 from grr.server.grr_response_server.databases import mem_clients
 from grr.server.grr_response_server.databases import mem_cronjobs
 from grr.server.grr_response_server.databases import mem_events
@@ -17,7 +18,8 @@ from grr.server.grr_response_server.databases import mem_users
 
 
 # pyformat: disable
-class InMemoryDB(mem_clients.InMemoryDBClientMixin,
+class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
+                 mem_clients.InMemoryDBClientMixin,
                  mem_cronjobs.InMemoryDBCronjobMixin,
                  mem_events.InMemoryDBEventMixin,
                  mem_flows.InMemoryDBFlowMixin,
@@ -52,7 +54,16 @@ class InMemoryDB(mem_clients.InMemoryDBClientMixin,
     self.startup_history = {}
     # Maps (client_id, path_type, path_id) to a path record.
     self.path_records = {}
+    self.message_handler_requests = {}
+    self.message_handler_leases = {}
+    self.events = []
+    self.cronjobs = {}
+    self.cronjob_leases = {}
+    self.foreman_rules = []
+    self.blobs = {}
     self.users = {}
+    self.handler_thread = None
+    self.handler_stop = True
 
   @utils.Synchronized
   def ClearTestDB(self):

@@ -215,7 +215,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       self.email_messages.append(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with hunts_implementation.GRRHunt.StartHunt(
+    with hunts_implementation.StartHunt(
         hunt_name=hunts_standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=flow_test_lib.FlowWithOneClientRequest.__name__),

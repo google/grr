@@ -2097,7 +2097,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     return res
 
   def StartFlow(self, client_id):
-    flow_id = flow.GRRFlow.StartFlow(
+    flow_id = flow.StartFlow(
         client_id=client_id,
         flow_name=filesystem.ListDirectory.__name__,
         queue=self.queue,

@@ -328,7 +328,7 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
 
   @flow.StateHandler()
   def Start(self):
-    with hunts_implementation.GRRHunt.StartHunt(
+    with hunts_implementation.StartHunt(
         hunt_name=hunts_standard.GenericHunt.__name__,
         client_limit=0,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(

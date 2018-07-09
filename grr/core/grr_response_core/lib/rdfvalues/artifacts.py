@@ -385,12 +385,43 @@ class ExtendedArtifact(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ArtifactCollectorArgs(rdf_structs.RDFProtoStruct):
+class ClientArtifactCollectorArgs(rdf_structs.RDFProtoStruct):
   """An RDFValue representation of an artifact bundle."""
-  protobuf = artifact_pb2.ArtifactCollectorArgs
-  rdf_deps = [ExtendedArtifact, rdf_client.KnowledgeBase]
+  protobuf = artifact_pb2.ClientArtifactCollectorArgs
+  rdf_deps = [
+      ExtendedArtifact,
+      rdf_client.KnowledgeBase,
+      rdfvalue.ByteSize,
+  ]
 
 
-class ArtifactCollectorResult(rdf_structs.RDFProtoStruct):
+class ClientActionResponse(rdf_structs.RDFProtoStruct):
+  """An RDFValue representing one type of response for a client action."""
+  protobuf = artifact_pb2.ClientActionResponse
+  rdf_deps = [
+      rdf_client.ExecuteResponse,
+      rdf_protodict.Dict,
+      rdf_protodict.DataBlob,
+      rdf_client.Filesystem,
+      rdf_client.NetworkConnection,
+      rdf_client.Interface,
+      rdf_client.Process,
+      rdf_client.User,
+      rdf_client.OSXServiceInformation,
+      rdf_client.StatEntry,
+  ]
+
+
+class CollectedArtifact(rdf_structs.RDFProtoStruct):
+  """An RDFValue representation of a single collected artifact."""
+  protobuf = artifact_pb2.CollectedArtifact
+  rdf_deps = [
+      ArtifactName,
+      ClientActionResponse,
+  ]
+
+
+class ClientArtifactCollectorResult(rdf_structs.RDFProtoStruct):
   """An RDFValue representation of the result of the collection results."""
-  protobuf = artifact_pb2.ArtifactCollectorResult
+  protobuf = artifact_pb2.ClientArtifactCollectorResult
+  rdf_deps = [CollectedArtifact]

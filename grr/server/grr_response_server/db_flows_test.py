@@ -31,6 +31,10 @@ class DatabaseTestFlowMixin(object):
     # Extra delete should not raise.
     self.db.DeleteClientMessages([msg])
 
+    # Deleting the same message multiple times is an error.
+    with self.assertRaises(ValueError):
+      self.db.DeleteClientMessages([msg, msg])
+
   def testClientMessageUpdate(self):
     client_id = self.InitializeClient()
     msg = rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)

@@ -43,9 +43,9 @@ def ValidateVfsPath(path):
         "Empty path is not a valid path: %s." % utils.SmartStr(path))
 
   if components[0] not in ROOT_FILES_WHITELIST:
-    raise ValueError("First path component was '%s', but has to be one of %s" %
-                     (utils.SmartStr(components[0]),
-                      ", ".join(ROOT_FILES_WHITELIST)))
+    raise ValueError(
+        "First path component was '%s', but has to be one of %s" %
+        (utils.SmartStr(components[0]), ", ".join(ROOT_FILES_WHITELIST)))
 
   return True
 
@@ -307,7 +307,7 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
       # TODO(hanuszczak): The tests passed even without support for timestamp
       # filtering. The test suite should be probably improved in that regard.
-      path_id = rdf_objects.PathID(components)
+      path_id = rdf_objects.PathID.FromComponents(components)
       path_info = data_store.REL_DB.FindPathInfoByPathID(
           str(args.client_id), path_type, path_id, timestamp=args.timestamp)
 
@@ -412,7 +412,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
       return self._GetFilesystemChildren(args)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-    path_id = rdf_objects.PathID(components)
+    path_id = rdf_objects.PathID.FromComponents(components)
 
     child_path_ids = data_store.REL_DB.FindDescendentPathIDs(
         client_id=client_id.Basename(),
@@ -493,8 +493,8 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
       age = aff4.NEWEST_TIME
 
     directory = aff4.FACTORY.Open(
-        args.client_id.ToClientURN().Add(path), mode="r", token=token).Upgrade(
-            aff4_standard.VFSDirectory)
+        args.client_id.ToClientURN().Add(path), mode="r",
+        token=token).Upgrade(aff4_standard.VFSDirectory)
 
     if args.directories_only:
       children = [
@@ -811,7 +811,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
     if args.max_depth == 1:
       flow_args = filesystem.ListDirectoryArgs(pathspec=fd.real_pathspec)
 
-      flow_urn = flow.GRRFlow.StartFlow(
+      flow_urn = flow.StartFlow(
           client_id=args.client_id.ToClientURN(),
           flow_name=filesystem.ListDirectory.__name__,
           args=flow_args,
@@ -822,7 +822,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
       flow_args = filesystem.RecursiveListDirectoryArgs(
           pathspec=fd.real_pathspec, max_depth=args.max_depth)
 
-      flow_urn = flow.GRRFlow.StartFlow(
+      flow_urn = flow.StartFlow(
           client_id=args.client_id.ToClientURN(),
           flow_name=filesystem.RecursiveListDirectory.__name__,
           args=flow_args,
@@ -855,8 +855,9 @@ class ApiGetVfsRefreshOperationStateHandler(
   def Handle(self, args, token=None):
     flow_obj = aff4.FACTORY.Open(args.operation_id, token=token)
 
-    if not isinstance(flow_obj, (filesystem.RecursiveListDirectory,
-                                 filesystem.ListDirectory)):
+    if not isinstance(
+        flow_obj,
+        (filesystem.RecursiveListDirectory, filesystem.ListDirectory)):
       raise VfsRefreshOperationNotFoundError(
           "Operation with id %s not found" % args.operation_id)
 
@@ -995,8 +996,8 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
     items = ApiGetVfsTimelineHandler.GetTimelineItems(folder_urn, token=token)
 
     return api_call_handler_base.ApiBinaryStream(
-        "%s_%s_timeline" % (args.client_id,
-                            utils.SmartStr(folder_urn.Basename())),
+        "%s_%s_timeline" % (args.client_id, utils.SmartStr(
+            folder_urn.Basename())),
         content_generator=self._GenerateExport(items))
 
 

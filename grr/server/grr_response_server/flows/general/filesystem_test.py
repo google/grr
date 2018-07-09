@@ -522,7 +522,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     # flow since Weird_illegal_attribute is not a valid client attribute.
     self.assertRaises(
         artifact_utils.KnowledgeBaseInterpolationError,
-        flow.GRRFlow.StartFlow,
+        flow.StartFlow,
         flow_name=filesystem.Glob.__name__,
         paths=paths,
         client_id=self.client_id,

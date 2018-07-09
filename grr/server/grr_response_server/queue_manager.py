@@ -115,7 +115,7 @@ class QueueManager(object):
 
     # A queue of client messages to remove. Keys are client ids, values are
     # lists of task ids.
-    self.client_messages_to_delete = []
+    self.client_messages_to_delete = {}
     self.new_client_messages = []
     self.notifications = {}
 
@@ -187,7 +187,7 @@ class QueueManager(object):
 
   def DeQueueClientRequest(self, request):
     """Remove the message from the client queue that this request forms."""
-    self.client_messages_to_delete.append(request)
+    self.client_messages_to_delete[request.task_id] = request
 
   def MultiCheckStatus(self, requests):
     """Checks if there is a status message queued for a number of requests."""
@@ -329,10 +329,12 @@ class QueueManager(object):
 
       if data_store.RelationalDBReadEnabled(category="client_messages"):
         if self.client_messages_to_delete:
-          data_store.REL_DB.DeleteClientMessages(self.client_messages_to_delete)
+          data_store.REL_DB.DeleteClientMessages(
+              self.client_messages_to_delete.values())
       else:
-        messages_by_queue = utils.GroupBy(self.client_messages_to_delete,
-                                          lambda request: request.queue)
+        messages_by_queue = utils.GroupBy(
+            self.client_messages_to_delete.values(),
+            lambda request: request.queue)
         for queue, messages in messages_by_queue.items():
           self.Delete(queue, messages, mutation_pool=mutation_pool)
 
@@ -355,7 +357,7 @@ class QueueManager(object):
     self.response_queue = []
     self.requests_to_delete = []
 
-    self.client_messages_to_delete = []
+    self.client_messages_to_delete = {}
     self.notifications = {}
     self.new_client_messages = []
 

@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 """The in memory database methods for flow handling."""
+import logging
 import sys
+import threading
+import time
 
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
+from grr.server.grr_response_server import db_utils
 
 
 class InMemoryDBFlowMixin(object):
@@ -44,10 +48,39 @@ class InMemoryDBFlowMixin(object):
       if r.request_id in flow_dict:
         del flow_dict[r.request_id]
 
-  @utils.Synchronized
-  def LeaseMessageHandlerRequests(self, lease_time=None, limit=1000):
+  def RegisterMessageHandler(self, handler, lease_time, limit=1000):
     """Leases a number of message handler requests up to the indicated limit."""
+    self.UnregisterMessageHandler()
 
+    self.handler_stop = False
+    self.handler_thread = threading.Thread(
+        name="message_handler",
+        target=self._MessageHandlerLoop,
+        args=(handler, lease_time, limit))
+    self.handler_thread.daemon = True
+    self.handler_thread.start()
+
+  def UnregisterMessageHandler(self):
+    """Unregisters any registered message handler."""
+    if self.handler_thread:
+      self.handler_stop = True
+      self.handler_thread.join()
+      self.handler_thread = None
+
+  def _MessageHandlerLoop(self, handler, lease_time, limit):
+    while not self.handler_stop:
+      try:
+        msgs = self._LeaseMessageHandlerRequests(lease_time, limit)
+        if msgs:
+          handler(msgs)
+        else:
+          time.sleep(0.2)
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception("_LeaseMessageHandlerRequests raised %s.", e)
+
+  @utils.Synchronized
+  def _LeaseMessageHandlerRequests(self, lease_time, limit):
+    """Read and lease some outstanding message handler requests."""
     leased_requests = []
 
     now = rdfvalue.RDFDatetime.Now()
@@ -74,7 +107,7 @@ class InMemoryDBFlowMixin(object):
     res = []
     for msgs_by_id in self.client_messages.values():
       for orig_msg in msgs_by_id.values():
-        if orig_msg.queue.Split()[0] != client_id:
+        if db_utils.ClientIdFromGrrMessage(orig_msg) != client_id:
           continue
         msg = orig_msg.Copy()
         current_lease = self.client_message_leases.get(msg.task_id)
@@ -87,16 +120,24 @@ class InMemoryDBFlowMixin(object):
   @utils.Synchronized
   def DeleteClientMessages(self, messages):
     """Deletes a list of client messages from the db."""
+    to_delete = []
     for m in messages:
-      client_id = m.queue.Split()[0]
+      client_id = db_utils.ClientIdFromGrrMessage(m)
+      to_delete.append((client_id, m.task_id))
+
+    if len(set(to_delete)) != len(to_delete):
+      raise ValueError(
+          "Received multiple copies of the same message to delete.")
+
+    for client_id, task_id in to_delete:
       tasks = self.client_messages.get(client_id)
-      if not tasks or m.task_id not in tasks:
+      if not tasks or task_id not in tasks:
         # TODO(amoser): Once new flows are in, reevaluate if we can raise on
         # deletion request for unknown messages.
         continue
-      del tasks[m.task_id]
-      if m.task_id in self.client_message_leases:
-        del self.client_message_leases[m.task_id]
+      del tasks[task_id]
+      if task_id in self.client_message_leases:
+        del self.client_message_leases[task_id]
 
   @utils.Synchronized
   def LeaseClientMessages(self, client_id, lease_time=None, limit=sys.maxsize):
@@ -110,7 +151,7 @@ class InMemoryDBFlowMixin(object):
     leases = self.client_message_leases
     for msgs_by_id in self.client_messages.values():
       for msg in msgs_by_id.values():
-        if msg.queue.Split()[0] != client_id:
+        if db_utils.ClientIdFromGrrMessage(msg) != client_id:
           continue
 
         existing_lease = leases.get(msg.task_id)
@@ -128,5 +169,5 @@ class InMemoryDBFlowMixin(object):
   def WriteClientMessages(self, messages):
     """Writes messages that should go to the client to the db."""
     for m in messages:
-      client_id = m.queue.Split()[0]
+      client_id = db_utils.ClientIdFromGrrMessage(m)
       self.client_messages.setdefault(client_id, {})[m.task_id] = m

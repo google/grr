@@ -1,8 +1,9 @@
 syntax = "proto2";
 
 import "grr_response_proto/jobs.proto";
-import "grr_response_proto/semantic.proto";
 import "grr_response_proto/knowledge_base.proto";
+import "grr_response_proto/semantic.proto";
+import "grr_response_proto/sysinfo.proto";
 
 
 
@@ -141,10 +142,59 @@ message ArtifactDescriptor {
     }];
 }
 
-message ArtifactCollectorArgs {
+message ClientArtifactCollectorArgs {
   repeated ExtendedArtifact artifacts = 1
       [(sem_type) = { description: "A list of artifacts." }];
-  optional KnowledgeBase knowledge_base = 2;
+  optional KnowledgeBase knowledge_base = 2 [(sem_type) = {
+    description: "The knowledge base containing information about the client."
+  }];
+  optional bool use_tsk = 3 [
+    (sem_type) = {
+      description: "Whether raw filesystem access should be used.",
+    },
+    default = false
+  ];
+  optional bool split_output_by_artifact = 4 [
+    (sem_type) = {
+      description: "If True, use output as a directory and write a separate"
+                   " collection for each artifact collected.",
+      label: ADVANCED,
+    },
+    default = false
+  ];
+  optional bool error_on_no_results = 5 [
+    (sem_type) = {
+      description: "If True, an artifact returning no results will raise a hard"
+                   " error. This is useful where you always expect results."
+    },
+    default = false
+  ];
+  optional bool apply_parsers = 6 [
+    (sem_type) = {
+      description: "If True, apply any relevant parser to the collected data. "
+                   "If False, return the raw collected data e.g Files or Registry Keys.",
+      label: ADVANCED,
+    },
+    default = true
+  ];
+  optional bool ignore_interpolation_errors = 7 [
+    (sem_type) = {
+      description: "If true, don't die if %%users.homedir%% and similar fail"
+                   " to expand. It's common on windows for some user attributes to be"
+                   " missing if users have never logged in. Enable this when you have"
+                   " multiple artifacts or paths and want to report partial results.",
+    },
+    default = false
+  ];
+  optional uint64 max_file_size = 8 [
+    (sem_type) = {
+      type: "ByteSize",
+      description: "The maximum size of files we will download in bytes,"
+                   " 500MB by default.",
+      label: ADVANCED
+    },
+    default = 500000000
+  ];
 }
 
 message ExtendedArtifact {
@@ -161,7 +211,6 @@ message ExtendedSource {
       [(sem_type) = { description: "The base source." }];
   optional PathSpec.PathType path_type = 6
       [(sem_type) = { description: "Path Type" }];
-
   optional uint64 max_bytesize = 7 [(sem_type) = {
     type: "ByteSize",
     description: "File Finder Download Action Option: The maximum byte size of "
@@ -173,5 +222,50 @@ message ExtendedSource {
   }];
 }
 
-message ArtifactCollectorResult {
+message ClientArtifactCollectorResult {
+  repeated CollectedArtifact collected_artifacts = 1 [(sem_type) = {
+    description: "The results of the single collected artifacts."
+  }];
+}
+
+message CollectedArtifact {
+  required string name = 1 [(sem_type) = {
+    description: "The name of the artifact.",
+    type: "ArtifactName",
+  }];
+  repeated ClientActionResponse action_responses = 2 [(sem_type) = {
+    description: "The responses from the performed client actions."
+  }];
+}
+
+message ClientActionResponse {
+  repeated ExecuteResponse execute_response = 1
+      [(sem_type) = { description: "The response from executing a command." }];
+  repeated Dict wmi_response = 2 [
+    (sem_type) = { description: "The response from running a WMI command." }
+  ];
+  repeated DataBlob hostname = 3 [
+    (sem_type) = { description: "The response from a GetHostname request." }
+  ];
+  repeated Filesystem filesystems = 4 [(sem_type) = {
+    description: "The response from an EnumerateFilesystems request."
+  }];
+  repeated NetworkConnection network_connections = 5 [(sem_type) = {
+    description: "The response from a ListNetworkConnections request."
+  }];
+  repeated Interface interfaces = 6 [(sem_type) = {
+    description: "The response from an EnumerateInterfaces request."
+  }];
+  repeated Process processes = 7 [
+    (sem_type) = { description: "The response from a ListProcesses request." }
+  ];
+  repeated User users = 8 [
+    (sem_type) = { description: "The response from an EnumerateUsers request." }
+  ];
+  repeated OSXServiceInformation services = 9 [(sem_type) = {
+    description: "The response from an OSXEnumerateRunningServices request"
+  }];
+  repeated StatEntry file_stat = 10 [(sem_type) = {
+    description: "The response from requesting a registry value."
+  }];
 }

@@ -92,7 +92,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
                 value=1336650631137737))
     ])
 
-    hunt = implementation.GRRHunt.StartHunt(
+    hunt = implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
@@ -165,7 +165,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
                 value=1336650631137737))
     ])
 
-    hunt = implementation.GRRHunt.StartHunt(
+    hunt = implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
@@ -213,7 +213,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
                 field="UNSET", attribute_regex="HUNT"))
     ])
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=BrokenSampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
@@ -235,7 +235,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_limit=client_limit,
@@ -262,7 +262,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
   def testStartClients(self):
     client_id = test_lib.TEST_CLIENT_ID
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__, client_rate=0,
         token=self.token) as hunt:
 
@@ -299,7 +299,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
@@ -338,7 +338,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
@@ -375,7 +375,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
@@ -421,7 +421,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_limit=5,
         client_rule_set=client_rule_set,
@@ -458,7 +458,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=BrokenSampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
@@ -492,7 +492,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=DummyHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=1,

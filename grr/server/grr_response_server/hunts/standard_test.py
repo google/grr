@@ -90,7 +90,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     num_files = len(glob.glob(path))
     self.assertGreater(num_files, 0)
 
-    hunt = implementation.GRRHunt.StartHunt(
+    hunt = implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
@@ -150,7 +150,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       self.assertFalse(list(flows_fd.ListChildren()))
 
   def testStoppingHuntMarksFlowsForTerminationAndCleansQueues(self):
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=InfiniteFlow.__name__),
@@ -641,10 +641,14 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       self.AssignTasksToClients()
       self.RunHunt(failrate=-1)
 
-      # LongRunningDummyHuntOutputPlugin will set the time to 100s on the first
-      # run, which will effectively mean that it's running for too long.
-      self.ProcessHuntOutputPlugins(
-          batch_size=1, max_running_time=rdfvalue.Duration("99s"))
+      # Max run time for the VerifyHuntOutputPluginsCronFlow is 0.6*lifetime so
+      # 165s gives 99s max run time. LongRunningDummyHuntOutputPlugin will set
+      # the time to 100s on the first run, which will effectively mean that it's
+      # running for too long.
+      phrccf = process_results.ProcessHuntResultCollectionsCronFlow
+      with utils.MultiStubber((phrccf, "lifetime", rdfvalue.Duration("165s")),
+                              (phrccf, "BATCH_SIZE", 1)):
+        self.ProcessHuntOutputPlugins()
 
       # In normal conditions, there should be 10 results generated.
       # With batch size of 1 this should result in 10 calls to output plugin.
@@ -653,8 +657,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       self.assertEqual(hunt_test_lib.LongRunningDummyHuntOutputPlugin.num_calls,
                        1)
 
-  def testProcessHuntResultCollectionsCronFlowDoesNotAbortsIfRunningInTime(
-      self):
+  def testProcessHuntResultCollectionsCronFlowDoesNotAbortIfRunningInTime(self):
     self.assertEqual(hunt_test_lib.LongRunningDummyHuntOutputPlugin.num_calls,
                      0)
 
@@ -672,10 +675,13 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       self.AssignTasksToClients()
       self.RunHunt(failrate=-1)
 
-      # LongRunningDummyHuntOutputPlugin will set the time to 100s on the first
-      # run, which will effectively mean that it's running in time.
-      self.ProcessHuntOutputPlugins(
-          batch_size=1, max_running_time=rdfvalue.Duration("101s"))
+      # Same as above, 170s lifetime gives 102s max run time which is longer
+      # than 100s, the time LongRunningDummyHuntOutputPlugin will set on the
+      # first run. This time, the flow will run in time.
+      phrccf = process_results.ProcessHuntResultCollectionsCronFlow
+      with utils.MultiStubber((phrccf, "lifetime", rdfvalue.Duration("170s")),
+                              (phrccf, "BATCH_SIZE", 1)):
+        self.ProcessHuntOutputPlugins()
 
       # In normal conditions, there should be 10 results generated.
       self.assertEqual(hunt_test_lib.LongRunningDummyHuntOutputPlugin.num_calls,
@@ -732,7 +738,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self._AppendFlowRequest(args.flows, 2, 2)
     self._AppendFlowRequest(args.flows, 2, 3)
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.VariableGenericHunt.__name__,
         args=args,
         client_rate=0,
@@ -767,7 +773,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
   def testHuntTermination(self):
     """This tests that hunts with a client limit terminate correctly."""
     with test_lib.FakeTime(1000, increment=1e-6):
-      with implementation.GRRHunt.StartHunt(
+      with implementation.StartHunt(
           hunt_name=standard.GenericHunt.__name__,
           flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
               flow_name=transfer.GetFile.__name__),
@@ -986,7 +992,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
   def testHuntExpiration(self):
     """This tests that hunts with a client limit terminate correctly."""
     with test_lib.FakeTime(1000):
-      with implementation.GRRHunt.StartHunt(
+      with implementation.StartHunt(
           hunt_name=standard.GenericHunt.__name__,
           flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
               flow_name=transfer.GetFile.__name__),
@@ -1036,7 +1042,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
   def testHuntModificationWorksCorrectly(self):
     """This tests running the hunt on some clients."""
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
@@ -1102,7 +1108,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
   def testResourceUsageStats(self):
     client_ids = self.SetupClients(10)
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
@@ -1162,7 +1168,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
   def testHuntCollectionLogging(self):
     """This tests running the hunt on some clients."""
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=flow_test_lib.DummyLogFlow.__name__),
@@ -1207,7 +1213,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     # parameters are not valid so the flow will error out but it's
     # enough to check if the flow was actually run (i.e., it passed
     # the label test).
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=administrative.UpdateClient.__name__),
@@ -1254,11 +1260,11 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     return sum(result.values()), result
 
   def testDoesNothingWithNonGenericHunts(self):
-    implementation.GRRHunt.StartHunt(
+    implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__, token=self.token)
 
     prev_count, _ = self.GetVerificationsStats()
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
         token=self.token)
     count, _ = self.GetVerificationsStats()
@@ -1271,7 +1277,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     self.RunHunt()
 
     prev_count, _ = self.GetVerificationsStats()
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
         token=self.token)
     count, _ = self.GetVerificationsStats()
@@ -1287,7 +1293,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     self.RunHunt()
 
     _, prev_results = self.GetVerificationsStats()
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
         token=self.token)
     _, results = self.GetVerificationsStats()
@@ -1302,7 +1308,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     self.AssignTasksToClients()
     self.RunHunt()
 
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
         token=self.token)
 
@@ -1322,7 +1328,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     self.RunHunt()
 
     _, prev_results = self.GetVerificationsStats()
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
         token=self.token)
     _, results = self.GetVerificationsStats()
@@ -1340,7 +1346,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     prev_count, _ = self.GetVerificationsStats()
     self.assertRaises(
         standard.HuntVerificationError,
-        flow.GRRFlow.StartFlow,
+        flow.StartFlow,
         flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
         token=self.token)
     count, _ = self.GetVerificationsStats()
@@ -1358,7 +1364,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     prev_count = stats.STATS.GetMetricValue(
         "hunt_output_plugin_verification_errors")
     try:
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
           token=self.token)
     except standard.HuntVerificationError:
@@ -1382,7 +1388,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     _, prev_results = self.GetVerificationsStats()
     self.assertRaises(
         standard.HuntVerificationError,
-        flow.GRRFlow.StartFlow,
+        flow.StartFlow,
         flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
         token=self.token)
     _, results = self.GetVerificationsStats()
@@ -1400,12 +1406,15 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
       self.RunHunt()
 
     prev_count, _ = self.GetVerificationsStats()
-    flow.GRRFlow.StartFlow(
-        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
-        check_range="60m",
-        token=self.token)
-    count, _ = self.GetVerificationsStats()
-    self.assertEqual(count - prev_count, 0)
+    # Check frequency is 2*cron job frequency so setting frequency to 30m gives
+    # a check frequency of 60m, slightly less than the 61m we set above.
+    with utils.Stubber(standard.VerifyHuntOutputPluginsCronFlow, "frequency",
+                       rdfvalue.Duration("30m")):
+      flow.StartFlow(
+          flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
+          token=self.token)
+      count, _ = self.GetVerificationsStats()
+      self.assertEqual(count - prev_count, 0)
 
 
 def main(argv):

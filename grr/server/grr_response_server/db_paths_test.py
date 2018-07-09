@@ -57,9 +57,10 @@ class DatabaseTestPathsMixin(object):
 
     results = self.db.FindPathInfosByPathIDs(
         client_id, rdf_objects.PathInfo.PathType.TSK,
-        [rdf_objects.PathID(["foo", "bar"])])
+        [rdf_objects.PathID.FromComponents(["foo", "bar"])])
 
-    result_path_info = results[rdf_objects.PathID(["foo", "bar"])]
+    result_path_info = results[rdf_objects.PathID.FromComponents(["foo",
+                                                                  "bar"])]
     self.assertEqual(result_path_info.path_type,
                      rdf_objects.PathInfo.PathType.TSK)
     self.assertEqual(result_path_info.components, ["foo", "bar"])
@@ -75,9 +76,9 @@ class DatabaseTestPathsMixin(object):
     self.db.WritePathInfos(
         client_id, [rdf_objects.PathInfo.OS(components=["foo"])])
 
-    result = self.db.FindPathInfoByPathID(client_id,
-                                          rdf_objects.PathInfo.PathType.OS,
-                                          rdf_objects.PathID(["foo"]))
+    result = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
     self.assertEqual(result.components, ["foo"])
     self.assertGreater(result.timestamp, timestamp_0)
     self.assertLess(result.timestamp, now())
@@ -91,9 +92,9 @@ class DatabaseTestPathsMixin(object):
         client_id,
         [rdf_objects.PathInfo.OS(components=["foo"], stat_entry=stat_entry)])
 
-    result = self.db.FindPathInfoByPathID(client_id,
-                                          rdf_objects.PathInfo.PathType.OS,
-                                          rdf_objects.PathID(["foo"]))
+    result = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
     self.assertEqual(result.components, ["foo"])
     self.assertEqual(result.stat_entry.st_mode, 42)
     self.assertGreater(result.timestamp, timestamp_1)
@@ -108,9 +109,9 @@ class DatabaseTestPathsMixin(object):
         client_id,
         [rdf_objects.PathInfo.OS(components=["foo"], hash_entry=hash_entry)])
 
-    result = self.db.FindPathInfoByPathID(client_id,
-                                          rdf_objects.PathInfo.PathType.OS,
-                                          rdf_objects.PathID(["foo"]))
+    result = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
     self.assertEqual(result.components, ["foo"])
     self.assertEqual(result.hash_entry.md5, b"foo")
     self.assertGreater(result.timestamp, timestamp_2)
@@ -124,9 +125,9 @@ class DatabaseTestPathsMixin(object):
         client_id,
         [rdf_objects.PathInfo.OS(components=["foo"], directory=True)])
 
-    result = self.db.FindPathInfoByPathID(client_id,
-                                          rdf_objects.PathInfo.PathType.OS,
-                                          rdf_objects.PathID(["foo"]))
+    result = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
     self.assertEqual(result.components, ["foo"])
     self.assertEqual(result.stat_entry.st_mode, 42)
     self.assertEqual(result.hash_entry.md5, b"foo")
@@ -145,9 +146,9 @@ class DatabaseTestPathsMixin(object):
     path_info.hash_entry.sha256 = b"norf"
     self.db.WritePathInfos(client_id, [path_info])
 
-    result = self.db.FindPathInfoByPathID(client_id,
-                                          rdf_objects.PathInfo.PathType.OS,
-                                          rdf_objects.PathID(["foo"]))
+    result = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
     self.assertEqual(result.components, ["foo"])
     self.assertEqual(result.stat_entry.st_mode, 108)
     self.assertEqual(result.hash_entry.sha256, b"norf")
@@ -173,18 +174,19 @@ class DatabaseTestPathsMixin(object):
 
     results = self.db.FindPathInfosByPathIDs(
         client_id, rdf_objects.PathInfo.PathType.OS, [
-            rdf_objects.PathID([]),
-            rdf_objects.PathID(["foo"]),
-            rdf_objects.PathID(["foo", "bar"]),
+            rdf_objects.PathID.FromComponents([]),
+            rdf_objects.PathID.FromComponents(["foo"]),
+            rdf_objects.PathID.FromComponents(["foo", "bar"]),
         ])
 
-    root_path_info = results[rdf_objects.PathID([])]
+    root_path_info = results[rdf_objects.PathID.FromComponents([])]
     self.assertFalse(root_path_info.HasField("stat_entry"))
 
-    foo_path_info = results[rdf_objects.PathID(["foo"])]
+    foo_path_info = results[rdf_objects.PathID.FromComponents(["foo"])]
     self.assertFalse(foo_path_info.HasField("stat_entry"))
 
-    foobar_path_info = results[rdf_objects.PathID(["foo", "bar"])]
+    foobar_path_info = results[rdf_objects.PathID.FromComponents(["foo",
+                                                                  "bar"])]
     self.assertTrue(foobar_path_info.HasField("stat_entry"))
     self.assertFalse(foobar_path_info.HasField("hash_entry"))
     self.assertEqual(foobar_path_info.stat_entry.st_mode, 1337)
@@ -205,7 +207,7 @@ class DatabaseTestPathsMixin(object):
 
     result = self.db.FindPathInfoByPathID(
         client_id, rdf_objects.PathInfo.PathType.OS,
-        rdf_objects.PathID(["foo", "bar", "baz"]))
+        rdf_objects.PathID.FromComponents(["foo", "bar", "baz"]))
 
     self.assertEqual(result.components, ["foo", "bar", "baz"])
     self.assertTrue(result.HasField("hash_entry"))
@@ -228,7 +230,7 @@ class DatabaseTestPathsMixin(object):
 
     result = self.db.FindPathInfoByPathID(
         client_id, rdf_objects.PathInfo.PathType.OS,
-        rdf_objects.PathID(["foo", "bar", "baz"]))
+        rdf_objects.PathID.FromComponents(["foo", "bar", "baz"]))
 
     self.assertEqual(result.components, ["foo", "bar", "baz"])
     self.assertTrue(result.HasField("stat_entry"))
@@ -253,9 +255,9 @@ class DatabaseTestPathsMixin(object):
     hash_entry_timestamp = rdfvalue.RDFDatetime.Now()
     self.db.WritePathInfos(client_id, [hash_entry_path_info])
 
-    result = self.db.FindPathInfoByPathID(client_id,
-                                          rdf_objects.PathInfo.PathType.OS,
-                                          rdf_objects.PathID(["foo"]))
+    result = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
 
     now = rdfvalue.RDFDatetime.Now()
 
@@ -279,22 +281,23 @@ class DatabaseTestPathsMixin(object):
 
     results = self.db.FindPathInfosByPathIDs(
         client_id, rdf_objects.PathInfo.PathType.OS, [
-            rdf_objects.PathID(["foo"]),
-            rdf_objects.PathID(["foo", "bar"]),
-            rdf_objects.PathID(["foo", "bar", "baz"]),
+            rdf_objects.PathID.FromComponents(["foo"]),
+            rdf_objects.PathID.FromComponents(["foo", "bar"]),
+            rdf_objects.PathID.FromComponents(["foo", "bar", "baz"]),
         ])
 
     self.assertEqual(len(results), 3)
 
-    foo = results[rdf_objects.PathID(["foo"])]
+    foo = results[rdf_objects.PathID.FromComponents(["foo"])]
     self.assertEqual(foo.components, ["foo"])
     self.assertTrue(foo.directory)
 
-    foobar = results[rdf_objects.PathID(["foo", "bar"])]
+    foobar = results[rdf_objects.PathID.FromComponents(["foo", "bar"])]
     self.assertEqual(foobar.components, ["foo", "bar"])
     self.assertTrue(foobar.directory)
 
-    foobarbaz = results[rdf_objects.PathID(["foo", "bar", "baz"])]
+    foobarbaz = results[rdf_objects.PathID.FromComponents(["foo", "bar",
+                                                           "baz"])]
     self.assertEqual(foobarbaz.components, ["foo", "bar", "baz"])
     self.assertFalse(foobarbaz.directory)
 
@@ -308,15 +311,17 @@ class DatabaseTestPathsMixin(object):
 
     os_results = self.db.FindPathInfosByPathIDs(
         client_id, rdf_objects.PathInfo.PathType.OS,
-        [rdf_objects.PathID(["foo"])])
+        [rdf_objects.PathID.FromComponents(["foo"])])
     self.assertEqual(len(os_results), 1)
-    self.assertTrue(os_results[rdf_objects.PathID(["foo"])].directory)
+    self.assertTrue(os_results[rdf_objects.PathID.FromComponents(
+        ["foo"])].directory)
 
     tsk_results = self.db.FindPathInfosByPathIDs(
         client_id, rdf_objects.PathInfo.PathType.TSK,
-        [rdf_objects.PathID(["foo"])])
+        [rdf_objects.PathID.FromComponents(["foo"])])
     self.assertEqual(len(tsk_results), 1)
-    self.assertFalse(tsk_results[rdf_objects.PathID(["foo"])].directory)
+    self.assertFalse(tsk_results[rdf_objects.PathID.FromComponents(
+        ["foo"])].directory)
 
   def testWritePathInfosUpdates(self):
     client_id = self.InitializeClient()
@@ -333,10 +338,11 @@ class DatabaseTestPathsMixin(object):
 
     results = self.db.FindPathInfosByPathIDs(
         client_id, rdf_objects.PathInfo.PathType.OS, [
-            rdf_objects.PathID(["foo", "bar", "baz"]),
+            rdf_objects.PathID.FromComponents(["foo", "bar", "baz"]),
         ])
 
-    result_path_info = results[rdf_objects.PathID(["foo", "bar", "baz"])]
+    result_path_info = results[rdf_objects.PathID.FromComponents(
+        ["foo", "bar", "baz"])]
     self.assertTrue(result_path_info.directory)
 
   def testWritePathInfosUpdatesAncestors(self):
@@ -350,12 +356,13 @@ class DatabaseTestPathsMixin(object):
             rdf_objects.PathInfo.OS(components=["foo", "bar"]),
         ])
 
-    results = self.db.FindPathInfosByPathIDs(client_id,
-                                             rdf_objects.PathInfo.PathType.OS,
-                                             [rdf_objects.PathID(["foo"])])
+    results = self.db.FindPathInfosByPathIDs(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        [rdf_objects.PathID.FromComponents(["foo"])])
 
     self.assertEqual(len(results), 1)
-    self.assertTrue(results[rdf_objects.PathID(["foo"])].directory)
+    self.assertTrue(results[rdf_objects.PathID.FromComponents(
+        ["foo"])].directory)
 
   def testWritePathInfosDuplicatedData(self):
     client_id = self.InitializeClient()
@@ -371,10 +378,11 @@ class DatabaseTestPathsMixin(object):
 
     results = self.db.FindPathInfosByPathIDs(
         client_id, rdf_objects.PathInfo.PathType.OS,
-        [rdf_objects.PathID(["foo", "bar"])])
+        [rdf_objects.PathID.FromComponents(["foo", "bar"])])
     self.assertEqual(len(results), 1)
 
-    result_path_info = results[rdf_objects.PathID(["foo", "bar"])]
+    result_path_info = results[rdf_objects.PathID.FromComponents(["foo",
+                                                                  "bar"])]
     self.assertEqual(result_path_info.components, ["foo", "bar"])
     self.assertEqual(result_path_info.directory, False)
 
@@ -398,7 +406,7 @@ class DatabaseTestPathsMixin(object):
     result_1 = self.db.FindPathInfoByPathID(
         client_id,
         rdf_objects.PathInfo.PathType.OS,
-        rdf_objects.PathID(["foo", "bar"]),
+        rdf_objects.PathID.FromComponents(["foo", "bar"]),
         timestamp=timestamp_1)
     self.assertEqual(result_1.stat_entry.st_size, 1337)
     self.assertEqual(result_1.hash_entry.sha256, b"foo")
@@ -406,7 +414,7 @@ class DatabaseTestPathsMixin(object):
     result_2 = self.db.FindPathInfoByPathID(
         client_id,
         rdf_objects.PathInfo.PathType.OS,
-        rdf_objects.PathID(["foo", "bar"]),
+        rdf_objects.PathID.FromComponents(["foo", "bar"]),
         timestamp=timestamp_2)
     self.assertEqual(result_2.stat_entry.st_size, 42)
     self.assertEqual(result_2.hash_entry.sha256, b"bar")
@@ -540,16 +548,16 @@ class DatabaseTestPathsMixin(object):
     }
     self.db.MultiWritePathHistory(client_id, stat_entries, {})
 
-    path_info = self.db.FindPathInfoByPathID(client_id,
-                                             rdf_objects.PathInfo.PathType.OS,
-                                             rdf_objects.PathID(["foo"]))
+    path_info = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
     self.assertEqual(path_info.stat_entry.st_mode, 1337)
     self.assertEqual(path_info.last_stat_entry_timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("1999-01-01"))
 
-    path_info = self.db.FindPathInfoByPathID(client_id,
-                                             rdf_objects.PathInfo.PathType.TSK,
-                                             rdf_objects.PathID(["bar"]))
+    path_info = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.TSK,
+        rdf_objects.PathID.FromComponents(["bar"]))
     self.assertEqual(path_info.stat_entry.st_mode, 108)
     self.assertEqual(path_info.last_stat_entry_timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("1988-01-01"))
@@ -573,16 +581,16 @@ class DatabaseTestPathsMixin(object):
     }
     self.db.MultiWritePathHistory(client_id, {}, hash_entries)
 
-    path_info = self.db.FindPathInfoByPathID(client_id,
-                                             rdf_objects.PathInfo.PathType.OS,
-                                             rdf_objects.PathID(["foo"]))
+    path_info = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
     self.assertEqual(path_info.hash_entry.md5, b"foo")
     self.assertEqual(path_info.last_hash_entry_timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("2010-10-10"))
 
-    path_info = self.db.FindPathInfoByPathID(client_id,
-                                             rdf_objects.PathInfo.PathType.OS,
-                                             rdf_objects.PathID(["bar"]))
+    path_info = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["bar"]))
     self.assertEqual(path_info.hash_entry.md5, b"bar")
     self.assertEqual(path_info.last_hash_entry_timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11"))
@@ -597,18 +605,21 @@ class DatabaseTestPathsMixin(object):
 
     results = self.db.FindPathInfosByPathIDs(
         client_id, rdf_objects.PathInfo.PathType.OS, [
-            rdf_objects.PathID(["foo", "bar"]),
-            rdf_objects.PathID(["foo", "baz"]),
-            rdf_objects.PathID(["quux", "norf"])
+            rdf_objects.PathID.FromComponents(["foo", "bar"]),
+            rdf_objects.PathID.FromComponents(["foo", "baz"]),
+            rdf_objects.PathID.FromComponents(["quux", "norf"])
         ])
     self.assertEqual(len(results), 3)
-    self.assertIsNotNone(results[rdf_objects.PathID(["foo", "bar"])])
-    self.assertIsNone(results[rdf_objects.PathID(["foo", "baz"])])
-    self.assertIsNone(results[rdf_objects.PathID(["quux", "norf"])])
+    self.assertIsNotNone(results[rdf_objects.PathID.FromComponents(
+        ["foo", "bar"])])
+    self.assertIsNone(results[rdf_objects.PathID.FromComponents(["foo",
+                                                                 "baz"])])
+    self.assertIsNone(results[rdf_objects.PathID.FromComponents(
+        ["quux", "norf"])])
 
   def testFindPathInfoByPathIDValidatesTimestamp(self):
     client_id = self.InitializeClient()
-    path_id = rdf_objects.PathID(["foo", "bar", "baz"])
+    path_id = rdf_objects.PathID.FromComponents(["foo", "bar", "baz"])
 
     with self.assertRaises(TypeError):
       self.db.FindPathInfoByPathID(
@@ -619,7 +630,7 @@ class DatabaseTestPathsMixin(object):
 
   def testFindPathInfoByPathIDNonExistent(self):
     client_id = self.InitializeClient()
-    path_id = rdf_objects.PathID(["foo", "bar", "baz"])
+    path_id = rdf_objects.PathID.FromComponents(["foo", "bar", "baz"])
 
     with self.assertRaises(db.UnknownPathError):
       self.db.FindPathInfoByPathID(client_id, rdf_objects.PathInfo.PathType.OS,
@@ -646,7 +657,7 @@ class DatabaseTestPathsMixin(object):
                            [rdf_objects.PathInfo.FromStatEntry(stat_entry)])
     timestamp_3 = rdfvalue.RDFDatetime.Now()
 
-    path_id = rdf_objects.PathID(["foo", "bar", "baz"])
+    path_id = rdf_objects.PathID.FromComponents(["foo", "bar", "baz"])
 
     path_info_last = self.db.FindPathInfoByPathID(
         client_id, rdf_objects.PathInfo.PathType.OS, path_id)
@@ -681,7 +692,7 @@ class DatabaseTestPathsMixin(object):
     client_id = self.InitializeClient()
 
     path_info = rdf_objects.PathInfo.OS(components=["foo"])
-    path_id = rdf_objects.PathID(["foo"])
+    path_id = rdf_objects.PathID.FromComponents(["foo"])
 
     path_info.hash_entry = rdf_crypto.Hash(md5=b"bar")
     self.db.WritePathInfos(client_id, [path_info])
@@ -731,9 +742,9 @@ class DatabaseTestPathsMixin(object):
 
     self.db.WritePathInfos(client_id, [path_info_1, path_info_2, path_info_3])
 
-    path_id_1 = rdf_objects.PathID(["foo", "bar"])
-    path_id_2 = rdf_objects.PathID(["baz", "quux", "norf"])
-    path_id_3 = rdf_objects.PathID(["blargh"])
+    path_id_1 = rdf_objects.PathID.FromComponents(["foo", "bar"])
+    path_id_2 = rdf_objects.PathID.FromComponents(["baz", "quux", "norf"])
+    path_id_3 = rdf_objects.PathID.FromComponents(["blargh"])
 
     results = self.db.FindPathInfosByPathIDs(client_id,
                                              rdf_objects.PathInfo.PathType.OS,
@@ -754,7 +765,7 @@ class DatabaseTestPathsMixin(object):
     client_id = self.InitializeClient()
 
     path_info = rdf_objects.PathInfo.OS(components=["foo"])
-    path_id = rdf_objects.PathID(["foo"])
+    path_id = rdf_objects.PathID.FromComponents(["foo"])
 
     path_info.stat_entry = rdf_client.StatEntry(st_mode=42)
     path_info.hash_entry = None
@@ -821,15 +832,15 @@ class DatabaseTestPathsMixin(object):
     path_info.hash_entry.md5 = b"bar"
     self.db.WritePathInfos(client_id, [path_info])
 
-    path_info = self.db.FindPathInfoByPathID(client_id,
-                                             rdf_objects.PathInfo.PathType.OS,
-                                             rdf_objects.PathID(["foo"]))
+    path_info = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
     self.assertEqual(path_info.stat_entry.st_mode, 42)
     self.assertEqual(path_info.hash_entry.md5, b"foo")
 
-    path_info = self.db.FindPathInfoByPathID(client_id,
-                                             rdf_objects.PathInfo.PathType.OS,
-                                             rdf_objects.PathID(["bar"]))
+    path_info = self.db.FindPathInfoByPathID(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["bar"]))
     self.assertEqual(path_info.stat_entry.st_mode, 1337)
     self.assertEqual(path_info.hash_entry.md5, b"bar")
 
@@ -839,9 +850,9 @@ class DatabaseTestPathsMixin(object):
     self.db.WritePathInfos(
         client_id, [rdf_objects.PathInfo.OS(components=["foo"])])
 
-    results = self.db.FindDescendentPathIDs(client_id,
-                                            rdf_objects.PathInfo.PathType.OS,
-                                            rdf_objects.PathID(["foo"]))
+    results = self.db.FindDescendentPathIDs(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
     self.assertItemsEqual(results, [])
 
   def testFindDescendentPathIDsSingleResult(self):
@@ -852,11 +863,12 @@ class DatabaseTestPathsMixin(object):
             rdf_objects.PathInfo.OS(components=["foo", "bar"]),
         ])
 
-    results = self.db.FindDescendentPathIDs(client_id,
-                                            rdf_objects.PathInfo.PathType.OS,
-                                            rdf_objects.PathID(["foo"]))
+    results = self.db.FindDescendentPathIDs(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
 
-    self.assertItemsEqual(results, [rdf_objects.PathID(["foo", "bar"])])
+    self.assertItemsEqual(results,
+                          [rdf_objects.PathID.FromComponents(["foo", "bar"])])
 
   def testFindDescendentPathIDsSingle(self):
     client_id = self.InitializeClient()
@@ -866,14 +878,14 @@ class DatabaseTestPathsMixin(object):
             rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "quux"]),
         ])
 
-    results = self.db.FindDescendentPathIDs(client_id,
-                                            rdf_objects.PathInfo.PathType.OS,
-                                            rdf_objects.PathID(["foo"]))
+    results = self.db.FindDescendentPathIDs(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
 
     self.assertItemsEqual(results, [
-        rdf_objects.PathID(["foo", "bar"]),
-        rdf_objects.PathID(["foo", "bar", "baz"]),
-        rdf_objects.PathID(["foo", "bar", "baz", "quux"]),
+        rdf_objects.PathID.FromComponents(["foo", "bar"]),
+        rdf_objects.PathID.FromComponents(["foo", "bar", "baz"]),
+        rdf_objects.PathID.FromComponents(["foo", "bar", "baz", "quux"]),
     ])
 
   def testFindDescendentPathIDsBranching(self):
@@ -885,14 +897,14 @@ class DatabaseTestPathsMixin(object):
             rdf_objects.PathInfo.OS(components=["foo", "baz"]),
         ])
 
-    results = self.db.FindDescendentPathIDs(client_id,
-                                            rdf_objects.PathInfo.PathType.OS,
-                                            rdf_objects.PathID(["foo"]))
+    results = self.db.FindDescendentPathIDs(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents(["foo"]))
 
     self.assertItemsEqual(results, [
-        rdf_objects.PathID(["foo", "bar"]),
-        rdf_objects.PathID(["foo", "bar", "quux"]),
-        rdf_objects.PathID(["foo", "baz"]),
+        rdf_objects.PathID.FromComponents(["foo", "bar"]),
+        rdf_objects.PathID.FromComponents(["foo", "bar", "quux"]),
+        rdf_objects.PathID.FromComponents(["foo", "baz"]),
     ])
 
   def testFindDescendentPathIDsLimited(self):
@@ -909,17 +921,23 @@ class DatabaseTestPathsMixin(object):
     results = self.db.FindDescendentPathIDs(
         client_id,
         rdf_objects.PathInfo.PathType.OS,
-        rdf_objects.PathID(["foo"]),
+        rdf_objects.PathID.FromComponents(["foo"]),
         max_depth=2)
 
-    self.assertIn(rdf_objects.PathID(["foo", "bar"]), results)
-    self.assertIn(rdf_objects.PathID(["foo", "bar", "baz"]), results)
-    self.assertIn(rdf_objects.PathID(["foo", "bar", "blargh"]), results)
-    self.assertIn(rdf_objects.PathID(["foo", "norf", "thud"]), results)
+    self.assertIn(rdf_objects.PathID.FromComponents(["foo", "bar"]), results)
+    self.assertIn(
+        rdf_objects.PathID.FromComponents(["foo", "bar", "baz"]), results)
+    self.assertIn(
+        rdf_objects.PathID.FromComponents(["foo", "bar", "blargh"]), results)
+    self.assertIn(
+        rdf_objects.PathID.FromComponents(["foo", "norf", "thud"]), results)
 
-    self.assertNotIn(rdf_objects.PathID(["foo", "bar", "baz", "quux"]), results)
     self.assertNotIn(
-        rdf_objects.PathID(["foo", "norf", "thud", "plugh"]), results)
+        rdf_objects.PathID.FromComponents(["foo", "bar", "baz", "quux"]),
+        results)
+    self.assertNotIn(
+        rdf_objects.PathID.FromComponents(["foo", "norf", "thud", "plugh"]),
+        results)
 
   def testFindDescendentPathIDsTypeSeparated(self):
     client_id = self.InitializeClient()
@@ -932,13 +950,16 @@ class DatabaseTestPathsMixin(object):
 
     os_results = self.db.FindDescendentPathIDs(
         client_id, rdf_objects.PathInfo.PathType.OS,
-        rdf_objects.PathID(["usr", "bin"]))
-    self.assertEqual(os_results, {rdf_objects.PathID(["usr", "bin", "javac"])})
+        rdf_objects.PathID.FromComponents(["usr", "bin"]))
+    self.assertEqual(
+        os_results,
+        {rdf_objects.PathID.FromComponents(["usr", "bin", "javac"])})
 
     tsk_results = self.db.FindDescendentPathIDs(
         client_id, rdf_objects.PathInfo.PathType.TSK,
-        rdf_objects.PathID(["usr", "bin"]))
-    self.assertEqual(tsk_results, {rdf_objects.PathID(["usr", "bin", "gdb"])})
+        rdf_objects.PathID.FromComponents(["usr", "bin"]))
+    self.assertEqual(tsk_results,
+                     {rdf_objects.PathID.FromComponents(["usr", "bin", "gdb"])})
 
   def testFindDescendentPathIDsAll(self):
     client_id = self.InitializeClient()
@@ -949,12 +970,12 @@ class DatabaseTestPathsMixin(object):
             rdf_objects.PathInfo.OS(components=["baz", "quux"]),
         ])
 
-    results = self.db.FindDescendentPathIDs(client_id,
-                                            rdf_objects.PathInfo.PathType.OS,
-                                            rdf_objects.PathID([]))
+    results = self.db.FindDescendentPathIDs(
+        client_id, rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathID.FromComponents([]))
     self.assertItemsEqual(results, [
-        rdf_objects.PathID(["foo"]),
-        rdf_objects.PathID(["foo", "bar"]),
-        rdf_objects.PathID(["baz"]),
-        rdf_objects.PathID(["baz", "quux"]),
+        rdf_objects.PathID.FromComponents(["foo"]),
+        rdf_objects.PathID.FromComponents(["foo", "bar"]),
+        rdf_objects.PathID.FromComponents(["baz"]),
+        rdf_objects.PathID.FromComponents(["baz", "quux"]),
     ])

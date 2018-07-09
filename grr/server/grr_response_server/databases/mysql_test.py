@@ -46,13 +46,16 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     cursor.execute("CREATE DATABASE " + dbname)
     logging.info("Created test database: %s", dbname)
 
+    conn = mysql.MysqlDB(
+        host=host, port=port, user=user, passwd=passwd, db=dbname)
+
     def Fin():
       cursor.execute("DROP DATABASE " + dbname)
       cursor.close()
       connection.close()
+      conn.Close()
 
-    return mysql.MysqlDB(
-        host=host, port=port, user=user, passwd=passwd, db=dbname), Fin
+    return conn, Fin
     # pylint: enable=unreachable
 
   def testIsRetryable(self):
@@ -264,6 +267,27 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testFindPathInfoByPathIDTimestampStatAndHashEntry(self):
+    pass
+
+  def testReadingNonExistentBlobReturnsNone(self):
+    pass
+
+  def testSingleBlobCanBeWrittenAndThenRead(self):
+    pass
+
+  def testMultipleBlobsCanBeWrittenAndThenRead(self):
+    pass
+
+  def testWritingBlobReferenceToNonExistentPathRaises(self):
+    pass
+
+  def testReadingBlobReferenceFromNonExistentPathReturnsEmptyResult(self):
+    pass
+
+  def testSingleBlobReferenceCanBeWrittenAndThenRead(self):
+    pass
+
+  def testMultipleBlobReferencesCanBeWrittenAndThenRead(self):
     pass
 
   def testFindPathInfoByPathIDOlder(self):

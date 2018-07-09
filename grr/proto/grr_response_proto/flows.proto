@@ -689,10 +689,13 @@ message ArtifactCollectorFlowArgs {
       label: HIDDEN,
     }];
 
-  optional bool on_no_results_error = 7 [(sem_type) = {
+  optional bool error_on_no_results = 7 [
+    (sem_type) = {
       description: "If True, an artifact returning no results will raise a hard"
-      " error. This is useful where you always expect results."
-    }, default=false];
+                   " error. This is useful where you always expect results."
+    },
+    default = false
+  ];
 
   optional bool apply_parsers = 8 [(sem_type) = {
       description: "If True, apply any relevant parser to the collected data. "
@@ -1158,6 +1161,7 @@ message MultiGetFileArgs {
     }, default=1000];
 }
 
+// DEPRECATED. This cronjob doesn't use any args anymore.
 // Next field ID: 6
 message ProcessHuntResultCollectionsCronFlowArgs {
   optional uint64 batch_size = 1 [(sem_type) = {
@@ -1179,6 +1183,7 @@ message ProcessHuntResultCollectionsCronFlowArgs {
     }, default=0];
 }
 
+// DEPRECATED. This cronjob doesn't use any args anymore.
 // Next field ID: 2
 message VerifyHuntOutputPluginsCronFlowArgs {
   optional uint64 check_range = 1 [(sem_type) = {

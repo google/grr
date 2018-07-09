@@ -560,7 +560,7 @@ class ApiListHuntApprovalsHandlerTest(acl_test_lib.AclTestMixin,
     self.handler = user_plugin.ApiListHuntApprovalsHandler()
 
   def testRendersRequestedHuntAppoval(self):
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__, token=self.token) as hunt:
       pass
 

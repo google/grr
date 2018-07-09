@@ -7,6 +7,14 @@ import threading
 import MySQLdb
 
 
+class Error(Exception):
+  pass
+
+
+class PoolAlreadyClosedError(Error):
+  pass
+
+
 class Pool(object):
   """A Pool of database connections.
 
@@ -31,6 +39,7 @@ class Pool(object):
     self.connect_func = connect_func
     self.limiter = threading.BoundedSemaphore(max_size)
     self.idle_conns = []  # Atomic access only!!
+    self.closed = False
 
   def get(self, blocking=True):
     """Gets a connection.
@@ -41,7 +50,14 @@ class Pool(object):
 
     Returns:
       A connection to the database.
+
+    Raises:
+      PoolAlreadyClosedError: if close() method was already called on
+      this pool.
     """
+    if self.closed:
+      raise PoolAlreadyClosedError("Connection pool is already closed.")
+
     # NOTE: Once we acquire capacity from the semaphore, it is essential that we
     # return it eventually. On success, this responsibility is delegated to
     # _ConnectionProxy.
@@ -60,6 +76,11 @@ class Pool(object):
         self.limiter.release()
         raise
     return _ConnectionProxy(self, c)
+
+  def close(self):
+    self.closed = True
+    for conn in self.idle_conns:
+      conn.close()
 
 
 class _ConnectionProxy(object):
@@ -83,7 +104,7 @@ class _ConnectionProxy(object):
   def close(self):
     if self.con:
       try:
-        if not self.errored:
+        if not self.errored and not self.pool.closed:
           try:
             self.con.rollback()
             # append is atomic.

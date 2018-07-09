@@ -33,7 +33,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,
@@ -61,7 +61,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,
@@ -96,7 +96,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,

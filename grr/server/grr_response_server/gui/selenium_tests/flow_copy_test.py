@@ -46,7 +46,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
   def testOriginalFlowArgsAreShownInCopyForm(self):
     args = flows_processes.ListProcessesArgs(
         filename_regex="test[a-z]*", fetch_binaries=True)
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=flows_processes.ListProcesses.__name__,
         args=args,
         client_id=self.client_id,
@@ -80,7 +80,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
   def testCopyingFlowUpdatesFlowListAndSelectsNewFlow(self):
     args = flows_processes.ListProcessesArgs(
         filename_regex="test[a-z]*", fetch_binaries=True)
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=flows_processes.ListProcesses.__name__,
         args=args,
         client_id=self.client_id,
@@ -110,7 +110,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
   def testAddingOutputPluginToCopiedFlowWorks(self):
     args = flows_processes.ListProcessesArgs(
         filename_regex="test[a-z]*", fetch_binaries=True)
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=flows_processes.ListProcesses.__name__,
         args=args,
         client_id=self.client_id,
@@ -130,7 +130,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
   def testUserChangesToCopiedFlowAreRespected(self):
     args = flows_processes.ListProcessesArgs(
         filename_regex="test[a-z]*", fetch_binaries=True)
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=flows_processes.ListProcesses.__name__,
         args=args,
         client_id=self.client_id,
@@ -214,7 +214,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     args = rdf_file_finder.FileFinderArgs(
         action=action, conditions=[condition], paths=["a/b/*"])
 
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=flows_file_finder.FileFinder.__name__,
         args=args,
         client_id=self.client_id,
@@ -238,7 +238,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
 
   def testCopyACLErrorIsCorrectlyDisplayed(self):
     args = rdf_file_finder.FileFinderArgs(paths=["a/b/*"])
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         flow_name=flows_file_finder.FileFinder.__name__,
         args=args,
         client_id=self.client_id,

@@ -4,6 +4,7 @@
 This package contains the rdfvalue wrappers around the top level datastore
 objects defined by objects.proto.
 """
+import functools
 import hashlib
 import os
 import re
@@ -198,14 +199,80 @@ class ApprovalRequest(rdf_structs.RDFProtoStruct):
     return self.expiration_time < rdfvalue.RDFDatetime.Now()
 
 
-class PathID(object):
+@functools.total_ordering
+class HashID(rdfvalue.RDFValue):
+  """An unique hash identifier."""
+
+  __abstract = True  # pylint: disable=g-bad-name
+
+  data_store_type = "bytes"
+
+  hash_id_length = None
+
+  def __init__(self, initializer=None, age=None):
+    if self.__class__.hash_id_length is None:
+      raise TypeError("Trying to instantiate base HashID class. "
+                      "hash_id_length has to be set.")
+
+    super(HashID, self).__init__(initializer=initializer, age=age)
+    if not self._value:
+      if initializer is None:
+        initializer = "\x00" * self.__class__.hash_id_length
+      self.ParseFromString(initializer)
+
+  def ParseFromString(self, string):
+    if not isinstance(string, (bytes, rdfvalue.RDFBytes)):
+      raise TypeError(
+          "Expected bytes or RDFBytes but got `%s` instead" % type(string))
+    if len(string) != self.__class__.hash_id_length:
+      raise ValueError("Expected %s bytes but got `%s` instead" %
+                       (self.__class__.hash_id_length, len(string)))
+
+    if isinstance(string, rdfvalue.RDFBytes):
+      self._value = string.SerializeToString()
+    else:
+      self._value = string
+
+  def SerializeToString(self):
+    return self.AsBytes()
+
+  @classmethod
+  def FromBytes(cls, raw):
+    return cls(raw)
+
+  def AsBytes(self):
+    return self._value
+
+  def __repr__(self):
+    return "%s(%s)" % (self.__class__.__name__, repr(self._value.encode("hex")))
+
+  def __str__(self):
+    return self.__repr__()
+
+  def __lt__(self, other):
+    if isinstance(other, self.__class__):
+      return self._value < other._value  # pylint: disable=protected-access
+    else:
+      return self._value < other
+
+  def __eq__(self, other):
+    if isinstance(other, self.__class__):
+      return self._value == other._value  # pylint: disable=protected-access
+    else:
+      return self._value == other
+
+
+class PathID(HashID):
   """An unique path identifier corresponding to some path.
 
   Args:
     components: A list of path components to construct the identifier from.
   """
 
-  def __init__(self, components):
+  hash_id_length = 32
+
+  @classmethod
+  def FromComponents(cls, components):
     _ValidatePathComponents(components)
 
     # TODO(hanuszczak): `SmartStr` is terrible, lets not do that.
@@ -219,34 +286,13 @@ class PathID(object):
       string = "{lengths}:{path}".format(
           lengths=",".join(str(len(component)) for component in components),
           path="/".join(components))
-      self._bytes = hashlib.sha256(string).digest()
+      result = hashlib.sha256(string).digest()
     else:
       # For an empty list of components (representing `/`, i.e. the root path),
       # we use special value: zero represented as a 256-bit number.
-      self._bytes = b"\0" * 32
+      result = b"\0" * 32
 
-  @classmethod
-  def FromBytes(cls, raw):
-    if not isinstance(raw, bytes):
-      raise TypeError("Expected `%s` but got `%s` instead" % (bytes, type(raw)))
-    if len(raw) != 32:
-      raise ValueError("Expected 32 bytes but got `%s` instead" % len(raw))
-
-    result = cls([])
-    result._bytes = raw  # pylint: disable=protected-access
-    return result
-
-  def AsBytes(self):
-    return self._bytes
-
-  def __eq__(self, other):
-    return self.AsBytes() == other.AsBytes()
-
-  def __hash__(self):
-    return hash(self.AsBytes())
-
-  def __repr__(self):
-    return "PathID({})".format(repr(self.AsBytes().encode("hex")))
+    return PathID(result)
 
 
 class PathInfo(rdf_structs.RDFProtoStruct):
@@ -343,7 +389,7 @@ class PathInfo(rdf_structs.RDFProtoStruct):
       return self.components[-1]
 
   def GetPathID(self):
-    return PathID(self.components)
+    return PathID.FromComponents(self.components)
 
   def GetParent(self):
     """Constructs a path info corresponding to the parent of current path.
@@ -548,4 +594,29 @@ class MessageHandlerRequest(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdfvalue.RDFDatetime,
       rdf_protodict.EmbeddedRDFValue,
+  ]
+
+
+class BlobID(HashID):
+  """Blob identificator."""
+
+  hash_id_length = 32
+
+  @classmethod
+  def FromBlobData(cls, data):
+    h = hashlib.sha256(data).digest()
+    return BlobID(h)
+
+
+class ClientPathID(rdf_structs.RDFProtoStruct):
+  protobuf = objects_pb2.ClientPathID
+  rdf_deps = [
+      PathID,
+  ]
+
+
+class BlobReference(rdf_structs.RDFProtoStruct):
+  protobuf = objects_pb2.BlobReference
+  rdf_deps = [
+      BlobID,
   ]

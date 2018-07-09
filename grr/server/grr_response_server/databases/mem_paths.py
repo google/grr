@@ -21,7 +21,11 @@ class _PathRecord(object):
 
     self._stat_entries = {}
     self._hash_entries = {}
+    self._blob_references = {}
     self._children = set()
+
+  def AddBlobReference(self, blob_ref):
+    self._blob_references[blob_ref.offset] = blob_ref.Copy()
 
   def AddStatEntry(self, stat_entry, timestamp):
     self._stat_entries[timestamp] = stat_entry.Copy()
@@ -91,6 +95,9 @@ class _PathRecord(object):
 
   def GetChildren(self):
     return set(self._children)
+
+  def GetBlobReferences(self):
+    return self._blob_references.values()
 
   @staticmethod
   def _LastEntryTimestamp(collection, upper_bound_timestamp):

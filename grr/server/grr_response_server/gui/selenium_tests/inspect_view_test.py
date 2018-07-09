@@ -35,7 +35,7 @@ class TestClientLoadView(TestInspectViewBase):
     else:
       client_id = rdf_client.ClientURN(client_id)
 
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         client_id=client_id,
         flow_name=processes.ListProcesses.__name__,
         token=token)
@@ -54,7 +54,7 @@ class TestClientLoadView(TestInspectViewBase):
     self.Open("/#/clients/%s/load-stats" % self.client_id)
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
 
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         client_id=rdf_client.ClientURN(self.client_id),
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
@@ -79,7 +79,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
 
     self.RequestAndGrantClientApproval(client_id)
 
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         client_id=rdf_client.ClientURN(client_id),
         flow_name=flow_discovery.Interrogate.__name__,
         token=self.token)

@@ -52,7 +52,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
       flow_plugin.ApiFlowId("foo/bar")
 
   def testResolvesSimpleFlowURN(self):
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__,
         client_id=self.client_urn,
         token=self.token)
@@ -64,7 +64,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
         flow_urn)
 
   def testResolvesNestedFlowURN(self):
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__,
         client_id=self.client_urn,
         token=self.token)
@@ -84,7 +84,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
         children[0].urn)
 
   def _StartHunt(self):
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__),
@@ -135,7 +135,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
 
   def testInitializesClientIdForClientBasedFlows(self):
     client_id = self.SetupClient(0)
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         # Override base session id, so that the flow URN looks
         # like: aff4:/F:112233
         base_session_id="aff4:/",
@@ -150,7 +150,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
 
   def testLeavesClientIdEmptyForNonClientBasedFlows(self):
     client_id = self.SetupClient(0)
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=client_id,
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
@@ -194,7 +194,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.client_id = self.SetupClient(0)
 
-    self.flow_urn = flow.GRRFlow.StartFlow(
+    self.flow_urn = flow.StartFlow(
         flow_name=file_finder.FileFinder.__name__,
         client_id=self.client_id,
         paths=[os.path.join(self.base_path, "test.plist")],
@@ -331,7 +331,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     with test_lib.FakeTime(42):
-      flow_urn = flow.GRRFlow.StartFlow(
+      flow_urn = flow.StartFlow(
           flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__,
           client_id=self.client_id,
           token=self.token)

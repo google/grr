@@ -1287,7 +1287,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     session_ids = []
     for _ in range(10):
       session_ids.append(
-          flow.GRRFlow.StartFlow(
+          flow.StartFlow(
               client_id=self.client_id,
               flow_name=flow_test_lib.FlowOrderTest.__name__,
               token=self.token))

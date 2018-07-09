@@ -5,6 +5,7 @@ import abc
 import random
 
 from grr.server.grr_response_server import db
+from grr.server.grr_response_server import db_blobs_test
 from grr.server.grr_response_server import db_clients_test
 from grr.server.grr_response_server import db_cronjob_test
 from grr.server.grr_response_server import db_events_test
@@ -16,6 +17,7 @@ from grr.server.grr_response_server import db_users_test
 
 
 class DatabaseTestMixin(
+    db_blobs_test.DatabaseTestBlobsMixin,
     db_clients_test.DatabaseTestClientsMixin,
     db_cronjob_test.DatabaseTestCronjobMixin,
     db_events_test.DatabaseEventsTestMixin,
@@ -53,6 +55,7 @@ class DatabaseTestMixin(
   def tearDown(self):
     if self.cleanup:
       self.cleanup()
+    self.db.UnregisterMessageHandler()
     super(DatabaseTestMixin, self).tearDown()
 
   def testDatabaseType(self):

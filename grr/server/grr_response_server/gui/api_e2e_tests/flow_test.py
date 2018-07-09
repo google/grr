@@ -39,7 +39,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
 
   def testListFlowsFromClientRef(self):
     client_urn = self.SetupClient(0)
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=client_urn,
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
@@ -53,7 +53,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
 
   def testListFlowsFromClientObject(self):
     client_urn = self.SetupClient(0)
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=client_urn,
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
@@ -112,7 +112,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
     client_urn = self.SetupClient(0)
     client_mock = action_mocks.ListProcessesMock([process])
 
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=client_urn,
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
@@ -129,7 +129,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
   def testWaitUntilDoneReturnsWhenFlowCompletes(self):
     client_urn = self.SetupClient(0)
 
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=client_urn,
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
@@ -150,7 +150,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
   def testWaitUntilDoneRaisesWhenFlowFails(self):
     client_urn = self.SetupClient(0)
 
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=client_urn,
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
@@ -169,7 +169,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
   def testWaitUntilDoneRasiesWhenItTimesOut(self):
     client_urn = self.SetupClient(0)
 
-    flow_urn = flow.GRRFlow.StartFlow(
+    flow_urn = flow.StartFlow(
         client_id=client_urn,
         flow_name=processes.ListProcesses.__name__,
         token=self.token)

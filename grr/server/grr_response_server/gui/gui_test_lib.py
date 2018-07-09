@@ -705,7 +705,7 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
     token = token or self.token
     self.client_ids = self.SetupClients(client_count)
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
@@ -743,7 +743,7 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
           rdfvalue.RDFURN("aff4:/sample/3")
       ]
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=[],
@@ -765,7 +765,7 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
 class SearchClientTestBase(GRRSeleniumTest):
 
   def CreateSampleHunt(self, description, token=None):
-    return implementation.GRRHunt.StartHunt(
+    return implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         description=description,
         token=token)

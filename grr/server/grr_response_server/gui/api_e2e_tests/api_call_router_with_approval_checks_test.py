@@ -61,7 +61,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
   def CreateSampleHunt(self):
     """Creats SampleHunt, writes it to the data store and returns it's id."""
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         token=self.token.SetUID()) as hunt:
       return hunt.session_id

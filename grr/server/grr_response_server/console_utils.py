@@ -552,7 +552,7 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
   else:
     token = access_control.ACLToken(username="GRRConsole")
 
-  session_id = flow.GRRFlow.StartFlow(
+  session_id = flow.StartFlow(
       client_id=client_id,
       flow_name=flow_name,
       queue=queue,

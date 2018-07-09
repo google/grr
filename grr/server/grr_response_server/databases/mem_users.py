@@ -115,6 +115,9 @@ class InMemoryDBUsersMixin(object):
   @utils.Synchronized
   def WriteUserNotification(self, notification):
     """Writes a notification for a given user."""
+    if notification.username not in self.users:
+      raise db.UnknownGRRUserError("User %s not found!" % notification.username)
+
     cloned_notification = notification.Copy()
     if not cloned_notification.timestamp:
       cloned_notification.timestamp = rdfvalue.RDFDatetime.Now()

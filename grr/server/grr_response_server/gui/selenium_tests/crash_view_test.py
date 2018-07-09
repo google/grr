@@ -82,7 +82,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     # Make this not match anything.
     client_rule_set.rules[0].regex.attribute_regex = ""
 
-    with implementation.GRRHunt.StartHunt(
+    with implementation.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,

@@ -6,11 +6,15 @@ import tempfile
 
 from google.protobuf import text_format
 import unittest
+
+from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_proto import objects_pb2
 from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr.test_lib import test_lib
 
 
 def MakeClient():
@@ -114,54 +118,38 @@ class ObjectTest(unittest.TestCase):
     self.assertEqual(client.timestamp, summary.timestamp)
 
 
-class PathIDTest(unittest.TestCase):
+class PathIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
+  rdfvalue_class = rdf_objects.PathID
+
+  def GenerateSample(self, number=0):
+    return rdf_objects.PathID.FromComponents(["a"] * number)
 
   def testFromBytes(self):
-    foo = rdf_objects.PathID.FromBytes(b"12345678" * 4)
-    self.assertEqual(foo.AsBytes(), b"12345678" * 4)
+    foo = rdf_objects.PathID(b"12345678" * 4)
+    self.assertEqual(foo, b"12345678" * 4)
+
+  def testFromRDFBytes(self):
+    foo = rdf_objects.PathID(rdfvalue.RDFBytes(b"12345678" * 4))
+    self.assertEqual(foo, b"12345678" * 4)
 
   def testFromBytesValidatesType(self):
     with self.assertRaises(TypeError):
-      rdf_objects.PathID.FromBytes(42)
+      rdf_objects.PathID(42)
 
   def testFromBytesValidatesLength(self):
     with self.assertRaises(ValueError):
-      rdf_objects.PathID.FromBytes(b"foobar")
+      rdf_objects.PathID(b"foobar")
 
-  def testEquality(self):
-    foo = rdf_objects.PathID(["quux", "norf"])
-    bar = rdf_objects.PathID(["quux", "norf"])
-
-    self.assertIsNot(foo, bar)
-    self.assertEqual(foo, bar)
-
-  def testInequality(self):
-    foo = rdf_objects.PathID(["quux", "foo"])
-    bar = rdf_objects.PathID(["quux", "bar"])
-
-    self.assertIsNot(foo, bar)
-    self.assertNotEqual(foo, bar)
-
-  def testHash(self):
-    quuxes = dict()
-    quuxes[rdf_objects.PathID(["foo", "bar"])] = 4
-    quuxes[rdf_objects.PathID(["foo", "baz"])] = 8
-    quuxes[rdf_objects.PathID(["norf"])] = 15
-    quuxes[rdf_objects.PathID(["foo", "bar"])] = 16
-    quuxes[rdf_objects.PathID(["norf"])] = 23
-    quuxes[rdf_objects.PathID(["thud"])] = 42
-
-    self.assertEqual(quuxes[rdf_objects.PathID(["foo", "bar"])], 16)
-    self.assertEqual(quuxes[rdf_objects.PathID(["foo", "baz"])], 8)
-    self.assertEqual(quuxes[rdf_objects.PathID(["norf"])], 23)
-    self.assertEqual(quuxes[rdf_objects.PathID(["thud"])], 42)
-
-  def testRepr(self):
-    string = str(rdf_objects.PathID(["foo", "bar", "baz"]))
+  def testStr(self):
+    string = str(rdf_objects.PathID.FromComponents(["foo", "bar", "baz"]))
     self.assertRegexpMatches(string, r"^PathID\(\'[0-9a-f]{64}\'\)$")
 
-  def testReprEmpty(self):
-    string = str(rdf_objects.PathID([]))
+  def testStrEmpty(self):
+    string = str(rdf_objects.PathID.FromComponents([]))
+    self.assertEqual(string, "PathID('{}')".format("0" * 64))
+
+  def testDefaultsToNull(self):
+    string = str(rdf_objects.PathID())
     self.assertEqual(string, "PathID('{}')".format("0" * 64))
 
 
@@ -570,5 +558,41 @@ class VfsFileReferenceTest(unittest.TestCase):
       rdf_objects.VfsFileReference().ToPath()
 
 
+class BlobIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
+  rdfvalue_class = rdf_objects.BlobID
+
+  def GenerateSample(self, number=0):
+    return rdf_objects.BlobID.FromBlobData("a" * number)
+
+  def testFromBytes(self):
+    foo = rdf_objects.BlobID(b"12345678" * 4)
+    self.assertEqual(foo, b"12345678" * 4)
+
+  def testFromRDFBytes(self):
+    foo = rdf_objects.BlobID(rdfvalue.RDFBytes(b"12345678" * 4))
+    self.assertEqual(foo, b"12345678" * 4)
+
+  def testFromBytesValidatesType(self):
+    with self.assertRaises(TypeError):
+      rdf_objects.BlobID(42)
+
+  def testFromBytesValidatesLength(self):
+    with self.assertRaises(ValueError):
+      rdf_objects.BlobID(b"foobar")
+
+  def testStr(self):
+    string = str(rdf_objects.BlobID.FromBlobData(b"foo"))
+    self.assertRegexpMatches(string, r"^BlobID\(\'[0-9a-f]{64}\'\)$")
+
+  def testDefaultsToNull(self):
+    string = str(rdf_objects.BlobID())
+    self.assertEqual(string, "BlobID('{}')".format("0" * 64))
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.main(argv)
+
+
 if __name__ == "__main__":
-  unittest.main()
+  flags.StartMain(main)

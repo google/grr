@@ -579,6 +579,15 @@ class DatabaseTestUsersMixin(object):
     self.assertEqual(len(approvals), 10)
     self.assertEqual(set(a.approval_id for a in approvals), approval_ids)
 
+  def testNotificationForUnknownUser(self):
+    n = rdf_objects.UserNotification(
+        username="doesnotexist",
+        notification_type=rdf_objects.UserNotification.Type.
+        TYPE_CLIENT_INTERROGATED,
+        state=rdf_objects.UserNotification.State.STATE_PENDING)
+    with self.assertRaises(db.UnknownGRRUserError):
+      self.db.WriteUserNotification(n)
+
   def testNotificationCanBeWrittenAndRead(self):
     d = self.db
     username = "test"

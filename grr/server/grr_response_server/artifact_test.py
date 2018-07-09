@@ -439,14 +439,14 @@ class ArtifactFlowLinuxTest(ArtifactTest):
           client_id=client_id,
           split_output_by_artifact=True)
 
-      # Test the on_no_results_error option.
+      # Test the error_on_no_results option.
       with self.assertRaises(RuntimeError) as context:
         self.RunCollectorAndGetCollection(
             ["NullArtifact"],
             client_mock=self.client_mock,
             client_id=client_id,
             split_output_by_artifact=True,
-            on_no_results_error=True)
+            error_on_no_results=True)
       if "collector returned 0 responses" not in str(context.exception):
         raise RuntimeError("0 responses should have been returned")
 

@@ -211,7 +211,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
         rdf_flow_runner.FlowRunnerArgs(flow_name=transfer.GetFile.__name__))
 
     client_rule_set = (client_rule_set or self._CreateForemanClientRuleSet())
-    return implementation.GRRHunt.StartHunt(
+    return implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=flow_runner_args,
         flow_args=flow_args,
@@ -251,11 +251,10 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
         hunt_urn, age=aff4.ALL_TIMES, mode="rw", token=self.token) as hunt_obj:
       hunt_obj.Stop()
 
-  def ProcessHuntOutputPlugins(self, **flow_args):
-    flow_urn = flow.GRRFlow.StartFlow(
+  def ProcessHuntOutputPlugins(self):
+    flow_urn = flow.StartFlow(
         flow_name=process_results.ProcessHuntResultCollectionsCronFlow.__name__,
-        token=self.token,
-        **flow_args)
+        token=self.token)
     flow_test_lib.TestFlowHelper(flow_urn, token=self.token)
     return flow_urn
 

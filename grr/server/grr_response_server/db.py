@@ -70,6 +70,20 @@ class UnknownPathError(NotFoundError):
     self.path_id = path_id
 
 
+class AtLeastOneUnknownPathError(NotFoundError):
+  """An exception class raised when one of a set of paths is unknown."""
+
+  def __init__(self, client_path_ids, cause=None):
+    message = "At least one of client path ids does not exist: "
+    message += ", ".join(utils.SmartStr(cpid) for cpid in client_path_ids)
+    if cause is not None:
+      message += ": %s" % cause
+    super(AtLeastOneUnknownPathError, self).__init__(message)
+
+    self.client_path_ids = client_path_ids
+    self.cause = cause
+
+
 class UnknownRuleError(NotFoundError):
   pass
 
@@ -754,7 +768,7 @@ class Database(object):
     """Writes a list of message handler requests to the database.
 
     Args:
-      requests: List of requests.
+      requests: List of objects.MessageHandlerRequest.
     """
 
   @abc.abstractmethod
@@ -771,21 +785,25 @@ class Database(object):
     """Deletes a list of message handler requests from the database.
 
     Args:
-      requests: List of requests.
+      requests: List of objects.MessageHandlerRequest.
     """
 
   @abc.abstractmethod
-  def LeaseMessageHandlerRequests(self, lease_time=None, limit=1000):
-    """Leases a number of message handler requests up to the indicated limit.
+  def RegisterMessageHandler(self, handler, lease_time, limit=1000):
+    """Registers a message handler to receive batches of messages.
 
     Args:
+      handler: Method, which will be called repeatedly with lists of leased
+               objects.MessageHandlerRequest. Required.
       lease_time: rdfvalue.Duration indicating how long the lease should be
-                  valid.
-      limit: Limit for the number of leased requests in one call.
-
-    Returns:
-      A list of objects.MessageHandlerRequest, the leased requests.
+                  valid. Required.
+      limit: Limit for the number of leased requests to give one execution of
+             handler.
     """
+
+  @abc.abstractmethod
+  def UnregisterMessageHandler(self):
+    """Unregisters any registered message handler."""
 
   @abc.abstractmethod
   def WriteCronJob(self, cronjob):
@@ -901,6 +919,60 @@ class Database(object):
 
     Raises:
       ValueError: If not all of the cronjobs are leased.
+    """
+
+  @abc.abstractmethod
+  def WriteClientPathBlobReferences(self, references_by_client_path_id):
+    """Writes blob references for given client path ids.
+
+    Args:
+      references_by_client_path_id: Dictionary of
+          ClientPathID -> [BlobReference].
+
+    Raises:
+      AtLeastOneUnknownPathError: if one or more ClientPathIDs are not known
+      to the database.
+    """
+
+  @abc.abstractmethod
+  def ReadClientPathBlobReferences(self, client_path_ids):
+    """Reads blob references of given client path ids.
+
+    Args:
+      client_path_ids: A list of ClientPathIDs.
+
+    Returns:
+      Dictionary of ClientPathID -> [BlobReference]. Every path id from
+      the path_ids argument will be present in the result. "No blob references"
+      will be expressed as empty list.
+    """
+
+  @abc.abstractmethod
+  def WriteBlobs(self, blob_id_data_pairs):
+    """Writes given blobs.
+
+    Args:
+      blob_id_data_pairs: An iterable of (blob_id, blob_data) tuples. Each
+                          blob_id should be a blob hash (i.e. uniquely
+                          idenitify the blob) expressed as bytes. blob_data
+                          should be expressed in bytes.
+
+    Raises:
+      ValueError: If anything but a tuple of 2 elements is encountered in
+                  blob_id_data_pairs.
+    """
+
+  @abc.abstractmethod
+  def ReadBlobs(self, blob_ids):
+    """Reads given blobs.
+
+    Args:
+      blob_ids: An iterable with blob hashes expressed as bytes.
+
+    Returns:
+      A map of {blob_id: blob_data} where blob_data is blob bytes previously
+      written with WriteBlobs. If blob_data for particular blob are not found,
+      blob_data is expressed as None.
     """
 
   @abc.abstractmethod
@@ -1023,6 +1095,18 @@ class DatabaseValidationWrapper(Database):
 
   def _ValidateTimestamp(self, timestamp):
     self._ValidateType(timestamp, rdfvalue.RDFDatetime)
+
+  def _ValidateClientPathID(self, client_path_id):
+    self._ValidateType(client_path_id, rdf_objects.ClientPathID)
+
+  def _ValidateBlobReference(self, blob_ref):
+    self._ValidateType(blob_ref, rdf_objects.BlobReference)
+
+  def _ValidateBlobID(self, blob_id):
+    self._ValidateType(blob_id, rdf_objects.BlobID)
+
+  def _ValidateBytes(self, value):
+    self._ValidateType(value, bytes)
 
   def WriteClientMetadata(self,
                           client_id,
@@ -1355,10 +1439,16 @@ class DatabaseValidationWrapper(Database):
   def ReadMessageHandlerRequests(self):
     return self.delegate.ReadMessageHandlerRequests()
 
-  def LeaseMessageHandlerRequests(self, lease_time=None, limit=1000):
+  def RegisterMessageHandler(self, handler, lease_time, limit=1000):
+    if handler is None:
+      raise ValueError("handler must be provided")
+
     self._ValidateDuration(lease_time)
-    return self.delegate.LeaseMessageHandlerRequests(
-        lease_time=lease_time, limit=limit)
+    return self.delegate.RegisterMessageHandler(
+        handler, lease_time, limit=limit)
+
+  def UnregisterMessageHandler(self):
+    return self.delegate.UnregisterMessageHandler()
 
   def WriteCronJob(self, cronjob):
     self._ValidateType(cronjob, rdf_cronjobs.CronJob)
@@ -1412,6 +1502,33 @@ class DatabaseValidationWrapper(Database):
     for job in jobs:
       self._ValidateType(job, rdf_cronjobs.CronJob)
     return self.delegate.ReturnLeasedCronJobs(jobs)
+
+  def WriteClientPathBlobReferences(self, references_by_client_path_id):
+    for client_path_id, refs in references_by_client_path_id.iteritems():
+      self._ValidateClientPathID(client_path_id)
+      for ref in refs:
+        self._ValidateBlobReference(ref)
+
+    self.delegate.WriteClientPathBlobReferences(references_by_client_path_id)
+
+  def ReadClientPathBlobReferences(self, client_path_ids):
+    for p in client_path_ids:
+      self._ValidateClientPathID(p)
+
+    return self.delegate.ReadClientPathBlobReferences(client_path_ids)
+
+  def WriteBlobs(self, blob_id_data_pairs):
+    for bid, data in blob_id_data_pairs.items():
+      self._ValidateBlobID(bid)
+      self._ValidateBytes(data)
+
+    return self.delegate.WriteBlobs(blob_id_data_pairs)
+
+  def ReadBlobs(self, blob_ids):
+    for bid in blob_ids:
+      self._ValidateBlobID(bid)
+
+    return self.delegate.ReadBlobs(blob_ids)
 
   def WriteClientMessages(self, messages):
     for message in messages:

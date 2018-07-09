@@ -787,7 +787,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     # If we got no responses, and user asked for it, we error out.
-    if self.args.on_no_results_error and self.state.response_count == 0:
+    if self.args.error_on_no_results and self.state.response_count == 0:
       raise artifact_utils.ArtifactProcessingError(
           "Artifact collector returned 0 responses.")
 
@@ -938,19 +938,29 @@ class ClientArtifactCollector(flow.GRRFlow):
       artifact_list: list of artifact names to be collected
 
     Returns:
-      rdf value artifact_bundle containing a list of extended artifacts and the
+      rdf value bundle containing a list of extended artifacts and the
       knowledge base
     """
-    artifact_bundle = rdf_artifacts.ArtifactCollectorArgs()
-    artifact_bundle.knowledge_base = self.args.knowledge_base
+    bundle = rdf_artifacts.ClientArtifactCollectorArgs()
+    bundle.knowledge_base = self.args.knowledge_base
+    # TODO(user): Check if the knowledge base is provided. What does the
+    # ArtifactCollector do if it's not present?
+    # Switch the Interrogate flow from the ArtifactCollector flow to the
+    # ClientArtifactCollector? (Think about a way to avoid a dependency loop.)
+    bundle.split_output_by_artifact = self.args.split_output_by_artifact
+    bundle.error_on_no_results = self.args.error_on_no_results
+    bundle.apply_parsers = self.args.apply_parsers
+    bundle.ignore_interpolation_errors = self.args.ignore_interpolation_errors
+    bundle.max_file_size = self.args.max_file_size
+    bundle.use_tsk = self.args.use_tsk
     self.processed_artifacts = set()
     for artifact_name in artifact_list:
       if artifact_name in self.processed_artifacts:
         continue
       artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
       extended_artifact = self._ExtendArtifact(artifact_obj)
-      artifact_bundle.artifacts.append(extended_artifact)
-    return artifact_bundle
+      bundle.artifacts.append(extended_artifact)
+    return bundle
 
   def _ExtendArtifact(self, art_obj):
     """Extend artifact by adding information needed for their collection.

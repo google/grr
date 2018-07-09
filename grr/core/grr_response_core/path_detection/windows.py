@@ -3,7 +3,7 @@
 
 import re
 
-from grr.path_detection import core
+from grr.core.grr_response_core.path_detection import core
 
 
 class RunDllExtractor(core.Extractor):
@@ -127,7 +127,6 @@ class EnvVarsPostProcessor(core.PostProcessor):
           # function as a replacement argument, backreferences are ignored.
           # pylint: disable=cell-var-from-loop
           processed_results.append(var_regex.sub(lambda _: repl, result))
-          # pylint: enable=cell-var-from-loop
       results = processed_results
 
     return results

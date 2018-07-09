@@ -7,8 +7,6 @@ import logging
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import flow
@@ -16,14 +14,6 @@ from grr.server.grr_response_server import output_plugin
 from grr.server.grr_response_server.aff4_objects import cronjobs
 from grr.server.grr_response_server.hunts import implementation
 from grr.server.grr_response_server.hunts import results as hunts_results
-
-
-class ProcessHuntResultCollectionsCronFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.ProcessHuntResultCollectionsCronFlowArgs
-  rdf_deps = [
-      rdfvalue.Duration,
-      rdfvalue.RDFDatetime,
-  ]
 
 
 class ResultsProcessingError(Exception):
@@ -58,16 +48,12 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
   lifetime = rdfvalue.Duration("40m")
   allow_overruns = True
 
-  args_type = ProcessHuntResultCollectionsCronFlowArgs
-
-  DEFAULT_BATCH_SIZE = 5000
+  BATCH_SIZE = 5000
 
   def CheckIfRunningTooLong(self):
-    if self.args.max_running_time:
-      elapsed = (
-          rdfvalue.RDFDatetime.Now().AsSecondsSinceEpoch() -
-          self.start_time.AsSecondsSinceEpoch())
-      if elapsed > self.args.max_running_time:
+    if self.max_running_time:
+      elapsed = rdfvalue.RDFDatetime.Now() - self.start_time
+      if elapsed > self.max_running_time:
         return True
     return False
 
@@ -129,16 +115,14 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     """Reads results for one hunt and process them."""
     hunt_results_urn, results = (
         hunts_results.HuntResultQueue.ClaimNotificationsForCollection(
-            start_time=self.args.start_processing_time,
-            token=self.token,
-            lease_time=self.lifetime))
+            token=self.token, lease_time=self.lifetime))
     logging.debug("Found %d results for hunt %s", len(results),
                   hunt_results_urn)
     if not results:
       return 0
 
     hunt_urn = rdfvalue.RDFURN(hunt_results_urn.Dirname())
-    batch_size = self.args.batch_size or self.DEFAULT_BATCH_SIZE
+    batch_size = self.BATCH_SIZE
     metadata_urn = hunt_urn.Add("ResultsMetadata")
     exceptions_by_plugin = {}
     num_processed_for_hunt = 0
@@ -189,9 +173,7 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     self.start_time = rdfvalue.RDFDatetime.Now()
 
     exceptions_by_hunt = {}
-    if not self.args.max_running_time:
-      self.args.max_running_time = rdfvalue.Duration("%ds" % int(
-          ProcessHuntResultCollectionsCronFlow.lifetime.seconds * 0.6))
+    self.max_running_time = self.lifetime * 0.6
 
     while not self.CheckIfRunningTooLong():
       count = self.ProcessOneHunt(exceptions_by_hunt)

@@ -134,9 +134,9 @@ class GRRFleetspeakClient(object):
 
     try:
       sent_bytes = self._fs.Send(fs_msg)
-    except (IOError, struct.error) as e:
+    except (IOError, struct.error):
       logging.critical("Broken local Fleetspeak connection (write end).")
-      raise e
+      raise
 
     stats.STATS.IncrementCounter("grr_client_sent_bytes", sent_bytes)
 
@@ -174,9 +174,9 @@ class GRRFleetspeakClient(object):
     """Receives a single message through Fleetspeak."""
     try:
       fs_msg, received_bytes = self._fs.Recv()
-    except (IOError, struct.error) as e:
+    except (IOError, struct.error):
       logging.critical("Broken local Fleetspeak connection (read end).")
-      raise e
+      raise
 
     received_type = fs_msg.data.TypeName()
     if not received_type.endswith("grr.GrrMessage"):

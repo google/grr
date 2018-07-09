@@ -513,7 +513,7 @@ class EnrolmentInterrogateEvent(events.EventListener):
 
   def ProcessMessages(self, msgs=None, token=None):
     for msg in msgs:
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=msg,
           flow_name=Interrogate.__name__,
           queue=queues.ENROLLMENT,

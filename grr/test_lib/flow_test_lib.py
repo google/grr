@@ -233,7 +233,7 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
     if client_id is None:
       client_id = self.client_id
 
-    session_id = flow.GRRFlow.StartFlow(
+    session_id = flow.StartFlow(
         client_id=client_id, flow_name=name, token=self.token)
 
     return aff4.FACTORY.Open(session_id, mode="rw", token=self.token)
@@ -529,7 +529,7 @@ def TestFlowHelper(flow_urn_or_cls_name,
                        execution.
     token: Security token.
     sync: Whether StartFlow call should be synchronous or not.
-    **kwargs: Arbitrary args that will be passed to flow.GRRFlow.StartFlow().
+    **kwargs: Arbitrary args that will be passed to flow.StartFlow().
   Returns:
     The session id of the flow that was run.
   """
@@ -543,7 +543,7 @@ def TestFlowHelper(flow_urn_or_cls_name,
     session_id = flow_urn_or_cls_name
   else:
     # Instantiate the flow:
-    session_id = flow.GRRFlow.StartFlow(
+    session_id = flow.StartFlow(
         client_id=client_id,
         flow_name=flow_urn_or_cls_name,
         sync=sync,

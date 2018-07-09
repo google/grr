@@ -40,10 +40,17 @@ class Echo(actions.ActionPlugin):
 
 class GetHostname(actions.ActionPlugin):
   """Retrieves the host name of the client."""
+
   out_rdfvalues = [rdf_protodict.DataBlob]
 
-  def Run(self, unused_args):
-    self.SendReply(rdf_protodict.DataBlob(string=socket.gethostname()))
+  def Run(self, args):
+    for res in self.Start(args):
+      self.SendReply(res)
+
+  @classmethod
+  def Start(cls, args):
+    del args  # Unused.
+    yield rdf_protodict.DataBlob(string=socket.gethostname())
 
 
 class GetPlatformInfo(actions.ActionPlugin):

@@ -42,6 +42,68 @@ class HuntRunnerError(Exception):
   """Raised when there is an error during state transitions."""
 
 
+def StartHunt(args=None, runner_args=None, token=None, **kwargs):
+  """This class method creates new hunts."""
+  # If no token is specified, raise.
+  if not token:
+    raise access_control.UnauthorizedAccess("A token must be specified.")
+
+  # Build the runner args from the keywords.
+  if runner_args is None:
+    runner_args = rdf_hunts.HuntRunnerArgs()
+
+  flow.FilterArgsFromSemanticProtobuf(runner_args, kwargs)
+
+  # Is the required hunt a known hunt?
+  hunt_cls = GRRHunt.classes.get(runner_args.hunt_name)
+  if not hunt_cls or not aff4.issubclass(hunt_cls, GRRHunt):
+    raise RuntimeError("Unable to locate hunt %s" % runner_args.hunt_name)
+
+  # Make a new hunt object and initialize its runner.
+  hunt_obj = aff4.FACTORY.Create(None, hunt_cls, mode="w", token=token)
+
+  # Hunt is called using keyword args. We construct an args proto from the
+  # kwargs.
+  if hunt_obj.args_type and args is None:
+    args = hunt_obj.args_type()
+    flow.FilterArgsFromSemanticProtobuf(args, kwargs)
+
+  if hunt_obj.args_type and not isinstance(args, hunt_obj.args_type):
+    raise RuntimeError("Hunt args must be instance of %s" % hunt_obj.args_type)
+
+  if kwargs:
+    raise type_info.UnknownArg("Unknown parameters to StartHunt: %s" % kwargs)
+
+  # Store the hunt args.
+  hunt_obj.args = args
+  hunt_obj.runner_args = runner_args
+
+  # Hunts are always created in the paused state. The runner method Start
+  # should be called to start them.
+  hunt_obj.Set(hunt_obj.Schema.STATE("PAUSED"))
+
+  runner = hunt_obj.CreateRunner(runner_args=runner_args)
+  # Allow the hunt to do its own initialization.
+  runner.RunStateMethod("Start")
+
+  hunt_obj.Flush()
+
+  try:
+    flow_name = args.flow_runner_args.flow_name
+  except AttributeError:
+    flow_name = ""
+
+  event = rdf_events.AuditEvent(
+      user=token.username,
+      action="HUNT_CREATED",
+      urn=hunt_obj.urn,
+      flow_name=flow_name,
+      description=runner_args.description)
+  events_lib.Events.PublishEvent("Audit", event, token=token)
+
+  return hunt_obj
+
+
 class HuntResultsMetadata(aff4.AFF4Object):
   """Metadata AFF4 object used by CronHuntOutputFlow."""
 
@@ -1161,70 +1223,6 @@ class GRRHunt(flow.FlowBase):
     Args:
       client_id: The new client assigned to this hunt.
     """
-
-  @classmethod
-  def StartHunt(cls, args=None, runner_args=None, token=None, **kwargs):
-    """This class method creates new hunts."""
-    # If no token is specified, raise.
-    if not token:
-      raise access_control.UnauthorizedAccess("A token must be specified.")
-
-    # Build the runner args from the keywords.
-    if runner_args is None:
-      runner_args = rdf_hunts.HuntRunnerArgs()
-
-    cls.FilterArgsFromSemanticProtobuf(runner_args, kwargs)
-
-    # Is the required flow a known flow?
-    if (runner_args.hunt_name not in cls.classes or
-        not aff4.issubclass(cls.classes[runner_args.hunt_name], GRRHunt)):
-      raise RuntimeError("Unable to locate hunt %s" % runner_args.hunt_name)
-
-    # Make a new hunt object and initialize its runner.
-    hunt_obj = aff4.FACTORY.Create(
-        None, cls.classes[runner_args.hunt_name], mode="w", token=token)
-
-    # Hunt is called using keyword args. We construct an args proto from the
-    # kwargs.
-    if hunt_obj.args_type and args is None:
-      args = hunt_obj.args_type()
-      cls.FilterArgsFromSemanticProtobuf(args, kwargs)
-
-    if hunt_obj.args_type and not isinstance(args, hunt_obj.args_type):
-      raise RuntimeError(
-          "Hunt args must be instance of %s" % hunt_obj.args_type)
-
-    if kwargs:
-      raise type_info.UnknownArg("Unknown parameters to StartHunt: %s" % kwargs)
-
-    # Store the hunt args.
-    hunt_obj.args = args
-    hunt_obj.runner_args = runner_args
-
-    # Hunts are always created in the paused state. The runner method Start
-    # should be called to start them.
-    hunt_obj.Set(hunt_obj.Schema.STATE("PAUSED"))
-
-    runner = hunt_obj.CreateRunner(runner_args=runner_args)
-    # Allow the hunt to do its own initialization.
-    runner.RunStateMethod("Start")
-
-    hunt_obj.Flush()
-
-    try:
-      flow_name = args.flow_runner_args.flow_name
-    except AttributeError:
-      flow_name = ""
-
-    event = rdf_events.AuditEvent(
-        user=token.username,
-        action="HUNT_CREATED",
-        urn=hunt_obj.urn,
-        flow_name=flow_name,
-        description=runner_args.description)
-    events_lib.Events.PublishEvent("Audit", event, token=token)
-
-    return hunt_obj
 
   @classmethod
   def StartClients(cls, hunt_id, client_ids, token=None):

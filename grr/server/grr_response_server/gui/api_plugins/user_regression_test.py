@@ -297,7 +297,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.CreateAdminUser("approver")
 
       client_urn = self.SetupClient(0)
-      flow_urn = flow.GRRFlow.StartFlow(
+      flow_urn = flow.StartFlow(
           flow_name=discovery.Interrogate.__name__,
           client_id=client_urn,
           token=self.token)
@@ -409,7 +409,7 @@ class ApiListHuntApprovalsHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser("approver")
 
-      hunt = implementation.GRRHunt.StartHunt(
+      hunt = implementation.StartHunt(
           hunt_name=standard.GenericHunt.__name__, token=self.token)
 
     with test_lib.FakeTime(43):
@@ -609,14 +609,10 @@ class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
   api_method = "GetPendingUserNotificationsCount"
   handler = user_plugin.ApiGetPendingUserNotificationsCountHandler
 
-  def setUp(self):
-    super(ApiGetPendingUserNotificationsCountHandlerRegressionTest,
-          self).setUp()
-    self.client_id = self.SetupClient(0)
-    self.CreateUser(self.token.username)
-
   def Run(self):
-    _SendNotifications(self.token.username, self.client_id)
+    client_id = self.SetupClient(0)
+    self.CreateUser(self.token.username)
+    _SendNotifications(self.token.username, client_id)
 
     self.Check("GetPendingUserNotificationsCount")
 
@@ -628,13 +624,11 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
   api_method = "ListPendingUserNotifications"
   handler = user_plugin.ApiListPendingUserNotificationsHandler
 
-  def setUp(self):
-    super(ApiListPendingUserNotificationsHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClient(0)
+  def Run(self):
+    client_id = self.SetupClient(0)
     self.CreateUser(self.token.username)
 
-  def Run(self):
-    _SendNotifications(self.token.username, self.client_id)
+    _SendNotifications(self.token.username, client_id)
 
     self.Check(
         "ListPendingUserNotifications",
@@ -656,13 +650,10 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
   api_method = "ListAndResetUserNotifications"
   handler = user_plugin.ApiListAndResetUserNotificationsHandler
 
-  def setUp(self):
-    super(ApiListAndResetUserNotificationsHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClient(0)
-    self.CreateUser(self.token.username)
-
   def Run(self):
-    _SendNotifications(self.token.username, self.client_id)
+    client_id = self.SetupClient(0)
+    self.CreateUser(self.token.username)
+    _SendNotifications(self.token.username, client_id)
 
     # _SendNotifications schedule notifications at timestamp 42 and 44.
     # REL_DB-based ListAndResetUserNotifications implementation only

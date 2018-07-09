@@ -690,7 +690,7 @@ class Duration(RDFInteger):
 
   def __mul__(self, other):
     if isinstance(other, (int, long, float, Duration)):
-      return self.__class__(self._value * other)
+      return self.__class__(int(self._value * other))
 
     return NotImplemented
 

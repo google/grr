@@ -373,7 +373,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
                       self.server.HandleMessageBundles, request_comms, 2)
 
     # We can still schedule a flow for it
-    flow.GRRFlow.StartFlow(
+    flow.StartFlow(
         client_id=client_id,
         flow_name=flow_test_lib.SendingFlow.__name__,
         message_count=1,
@@ -386,8 +386,8 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
     new_tasks = manager.Query(client_id, limit=100)
 
-    # The different in eta times reflect the lease that the server took on the
-    # client messages.
+    # The difference in leased_until times reflects the lease that the server
+    # took on the client messages.
     lease_time = new_tasks[0].leased_until - tasks[0].leased_until
 
     # This lease time must be small, as the HandleMessageBundles() call failed,
@@ -429,7 +429,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
     default_ttl = rdf_flows.GrrMessage().task_ttl
     with test_lib.FakeTime(base_time):
-      flow.GRRFlow.StartFlow(
+      flow.StartFlow(
           client_id=client_id,
           flow_name=flow_test_lib.SendingFlow.__name__,
           message_count=1,
@@ -454,7 +454,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     msgs_recvd = []
 
     with test_lib.FakeTime(base_time):
-      flow_id = flow.GRRFlow.StartFlow(
+      flow_id = flow.StartFlow(
           client_id=client_id,
           flow_name=flow_test_lib.SendingFlow.__name__,
           message_count=1,
