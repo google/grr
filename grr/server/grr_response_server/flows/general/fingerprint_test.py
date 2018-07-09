@@ -62,8 +62,10 @@ class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
 
     if data_store.RelationalDBReadEnabled(category="vfs"):
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
-      path_info = data_store.REL_DB.FindPathInfoByPathID(
-          client_id.Basename(), path_info.path_type, path_info.GetPathID())
+      path_info = data_store.REL_DB.ReadPathInfo(
+          client_id.Basename(),
+          path_info.path_type,
+          components=tuple(path_info.components))
 
       hash_obj = path_info.hash_entry
     else:

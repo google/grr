@@ -7,8 +7,8 @@ from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.checks import checks
-from grr.server.grr_response_server.checks import checks_test_lib
+from grr.server.grr_response_server.check_lib import checks
+from grr.server.grr_response_server.check_lib import checks_test_lib
 from grr.server.grr_response_server.flows.general import checks as flow_checks
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib

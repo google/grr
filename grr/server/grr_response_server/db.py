@@ -595,6 +595,96 @@ class Database(object):
         if snapshot:
           yield snapshot
 
+  def ReadPathInfo(self, client_id, path_type, components, timestamp=None):
+    """Retrieves a path info record for a given path.
+
+    The `timestamp` parameter specifies for what moment in time the path
+    information is to be retrieved. For example, if (using abstract time units)
+    at time 1 the path was in state A, at time 5 it was observed to be in state
+    B and at time 8 it was in state C one wants to retrieve information at time
+    6 the result is going to be B.
+
+    Args:
+      client_id: An identifier string for a client.
+      path_type: A type of a path to retrieve path information for.
+      components: A tuple of path components of a path to retrieve path
+                  information for.
+      timestamp: A moment in time for which we want to retrieve the information.
+                 If none is provided, the latest known path information is
+                 returned.
+
+    Returns:
+      An `rdf_objects.PathInfo` instance.
+    """
+    path_id = rdf_objects.PathID.FromComponents(components)
+    return self.FindPathInfoByPathID(
+        client_id, path_type, path_id, timestamp=timestamp)
+
+  def ReadPathInfos(self, client_id, path_type, components_list):
+    """Retrieves path info records for given paths.
+
+    Args:
+      client_id: An identifier string for a client.
+      path_type: A type of a path to retrieve path information for.
+      components_list: An iterable of tuples of path components corresponding to
+                       paths to retrieve path information for.
+
+    Returns:
+      A dictionary mapping path components to `rdf_objects.PathInfo` instances.
+    """
+    path_ids = dict()
+    for components in components_list:
+      path_ids[rdf_objects.PathID.FromComponents(components)] = components
+
+    by_path_id = self.FindPathInfosByPathIDs(client_id, path_type, path_ids)
+
+    by_components = dict()
+    for path_id, path_info in by_path_id.iteritems():
+      by_components[path_ids[path_id]] = path_info
+    return by_components
+
+  def ListChildPathInfos(self, client_id, path_type, components):
+    """Lists path info records that correspond to children of given path.
+
+    Args:
+      client_id: An identifier string for a client.
+      path_type: A type of a path to retrieve path information for.
+      components: A tuple of path components of a path to retrieve child path
+                  information for.
+
+    Returns:
+      A list of `rdf_objects.PathInfo` instances sorted by path components.
+    """
+    return self.ListDescendentPathInfos(
+        client_id, path_type, components, max_depth=1)
+
+  def ListDescendentPathInfos(self,
+                              client_id,
+                              path_type,
+                              components,
+                              max_depth=None):
+    """Lists path info records that are correspond to descendants of given path.
+
+    Args:
+      client_id: An identifier string for a client.
+      path_type: A type of a path to retrieve path information for.
+      components: A tuple of path components of a path to retrieve descendent
+                  path information for.
+      max_depth: If set, the maximum number of generations to descend, otherwise
+                 unlimited.
+
+    Returns:
+      A list of `rdf_objects.PathInfo` instances sorted by path components.
+    """
+    path_id = rdf_objects.PathID.FromComponents(components)
+
+    result_path_ids = self.FindDescendentPathIDs(
+        client_id, path_type, path_id, max_depth=max_depth)
+    result_path_infos = self.FindPathInfosByPathIDs(client_id, path_type,
+                                                    result_path_ids).values()
+
+    return sorted(result_path_infos, key=lambda _: tuple(_.components))
+
   @abc.abstractmethod
   def FindPathInfoByPathID(self, client_id, path_type, path_id, timestamp=None):
     """Returns path info record for a particular path on a particular client.
@@ -1029,6 +1119,12 @@ class DatabaseValidationWrapper(Database):
       message = "Expected `%s` but got `%s` instead"
       raise TypeError(message % (expected_type, type(value)))
 
+  @staticmethod
+  def _ValidateEnumType(value, expected_enum_type):
+    if value not in expected_enum_type.reverse_enum:
+      message = "Expected one of `%s` but got `%s` instead"
+      raise TypeError(message % (expected_enum_type.reverse_enum, value))
+
   def _ValidateStringId(self, id_type, id_value):
     if not isinstance(id_value, basestring):
       raise TypeError(
@@ -1062,6 +1158,11 @@ class DatabaseValidationWrapper(Database):
     if not path_info.path_type:
       raise ValueError(
           "Expected path_type to be set, got: %s" % str(path_info.path_type))
+
+  def _ValidatePathComponents(self, components):
+    self._ValidateType(components, tuple)
+    for component in components:
+      self._ValidateType(component, (str, unicode))
 
   def _ValidateNotificationType(self, notification_type):
     if notification_type is None:
@@ -1346,6 +1447,44 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.GrantApproval(requestor_username, approval_id,
                                        grantor_username)
+
+  def ReadPathInfo(self, client_id, path_type, components, timestamp=None):
+    self._ValidateClientId(client_id)
+    self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    self._ValidatePathComponents(components)
+
+    if timestamp is not None:
+      self._ValidateTimestamp(timestamp)
+
+    return self.delegate.ReadPathInfo(
+        client_id, path_type, components, timestamp=timestamp)
+
+  def ReadPathInfos(self, client_id, path_type, components_list):
+    self._ValidateClientId(client_id)
+    self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    for components in components_list:
+      self._ValidatePathComponents(components)
+
+    return self.delegate.ReadPathInfos(client_id, path_type, components_list)
+
+  def ListChildPathInfos(self, client_id, path_type, components):
+    self._ValidateClientId(client_id)
+    self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    self._ValidatePathComponents(components)
+
+    return self.delegate.ListChildPathInfos(client_id, path_type, components)
+
+  def ListDescendentPathInfos(self,
+                              client_id,
+                              path_type,
+                              components,
+                              max_depth=None):
+    self._ValidateClientId(client_id)
+    self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    self._ValidatePathComponents(components)
+
+    return self.delegate.ListDescendentPathInfos(
+        client_id, path_type, components, max_depth=max_depth)
 
   def FindPathInfoByPathID(self, client_id, path_type, path_id, timestamp=None):
     self._ValidateClientId(client_id)

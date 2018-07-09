@@ -61,10 +61,10 @@ class VfsMigrationTest(test_lib.GRRBaseTest):
 
     data_migration.MigrateClientVfs(client_urn)
 
-    path_info = data_store.REL_DB.FindPathInfoByPathID(
+    path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
         path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["foo"]))
+        components=("foo",))
     self.assertEqual(path_info.stat_entry.st_mode, 1337)
     self.assertEqual(path_info.stat_entry.st_size, 42)
 
@@ -77,10 +77,10 @@ class VfsMigrationTest(test_lib.GRRBaseTest):
 
     data_migration.MigrateClientVfs(client_urn)
 
-    path_info = data_store.REL_DB.FindPathInfoByPathID(
+    path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
         path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["foo"]))
+        components=("foo",))
     self.assertEqual(path_info.hash_entry.md5, b"bar")
     self.assertEqual(path_info.hash_entry.sha256, b"baz")
 
@@ -96,10 +96,10 @@ class VfsMigrationTest(test_lib.GRRBaseTest):
 
     data_migration.MigrateClientVfs(client_urn)
 
-    path_info = data_store.REL_DB.FindPathInfoByPathID(
+    path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
         path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["foo"]))
+        components=("foo",))
     self.assertEqual(path_info.stat_entry.st_mode, 108)
     self.assertEqual(path_info.hash_entry.sha256, b"quux")
 
@@ -112,19 +112,14 @@ class VfsMigrationTest(test_lib.GRRBaseTest):
 
     data_migration.MigrateClientVfs(client_urn)
 
-    foo_path_id = rdf_objects.PathID.FromComponents(["foo"])
-    foo_bar_path_id = rdf_objects.PathID.FromComponents(["foo", "bar"])
-    foo_bar_baz_path_id = rdf_objects.PathID.FromComponents(
-        ["foo", "bar", "baz"])
-
-    path_infos = data_store.REL_DB.FindPathInfosByPathIDs(
+    path_infos = data_store.REL_DB.ReadPathInfos(
         client_id=client_urn.Basename(),
         path_type=rdf_objects.PathInfo.PathType.OS,
-        path_ids=[foo_path_id, foo_bar_path_id, foo_bar_baz_path_id])
+        components_list=[("foo",), ("foo", "bar"), ("foo", "bar", "baz")])
 
-    self.assertEqual(path_infos[foo_path_id].stat_entry.st_mtime, None)
-    self.assertEqual(path_infos[foo_bar_path_id].stat_entry.st_mtime, None)
-    self.assertEqual(path_infos[foo_bar_baz_path_id].stat_entry.st_mtime, 101)
+    self.assertEqual(path_infos[("foo",)].stat_entry.st_mtime, None)
+    self.assertEqual(path_infos[("foo", "bar")].stat_entry.st_mtime, None)
+    self.assertEqual(path_infos[("foo", "bar", "baz")].stat_entry.st_mtime, 101)
 
   def testStatHistory(self):
     datetime = rdfvalue.RDFDatetime.FromHumanReadable
@@ -146,24 +141,24 @@ class VfsMigrationTest(test_lib.GRRBaseTest):
 
     data_migration.MigrateClientVfs(client_urn)
 
-    path_info = data_store.REL_DB.FindPathInfoByPathID(
+    path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
         path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["foo"]),
+        components=("foo",),
         timestamp=datetime("2000-01-10"))
     self.assertEqual(path_info.stat_entry.st_size, 10)
 
-    path_info = data_store.REL_DB.FindPathInfoByPathID(
+    path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
         path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["foo"]),
+        components=("foo",),
         timestamp=datetime("2000-02-20"))
     self.assertEqual(path_info.stat_entry.st_size, 20)
 
-    path_info = data_store.REL_DB.FindPathInfoByPathID(
+    path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
         path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["foo"]),
+        components=("foo",),
         timestamp=datetime("2000-03-30"))
     self.assertEqual(path_info.stat_entry.st_size, 30)
 
@@ -187,24 +182,24 @@ class VfsMigrationTest(test_lib.GRRBaseTest):
 
     data_migration.MigrateClientVfs(client_urn)
 
-    path_info = data_store.REL_DB.FindPathInfoByPathID(
+    path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
         path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["bar"]),
+        components=("bar",),
         timestamp=datetime("2010-12-31"))
     self.assertEqual(path_info.hash_entry.md5, b"quux")
 
-    path_info = data_store.REL_DB.FindPathInfoByPathID(
+    path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
         path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["bar"]),
+        components=("bar",),
         timestamp=datetime("2020-12-31"))
     self.assertEqual(path_info.hash_entry.md5, b"norf")
 
-    path_info = data_store.REL_DB.FindPathInfoByPathID(
+    path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
         path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["bar"]),
+        components=("bar",),
         timestamp=datetime("2030-12-31"))
     self.assertEqual(path_info.hash_entry.md5, b"blargh")
 

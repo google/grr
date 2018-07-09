@@ -14,9 +14,9 @@ from grr.core.grr_response_core.lib.parsers import linux_service_parser
 from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server.checks import checks
-from grr.server.grr_response_server.checks import filters
-from grr.server.grr_response_server.checks import hints
+from grr.server.grr_response_server.check_lib import checks
+from grr.server.grr_response_server.check_lib import filters
+from grr.server.grr_response_server.check_lib import hints
 from grr.test_lib import test_lib
 
 
@@ -47,7 +47,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
     if HostCheckTest.loaded_checks is None:
       HostCheckTest.loaded_checks = {}
 
-    cfg = os.path.join(config.CONFIG["Test.srcdir"], "grr", "checks", cfg_file)
+    cfg = os.path.join(config.CONFIG["Test.srcdir"], "grr", "server",
+                       "grr_response_server", "checks", cfg_file)
     if check_ids:
       key = "%s:%s" % (cfg, ",".join(check_ids))
       if key in HostCheckTest.loaded_checks:

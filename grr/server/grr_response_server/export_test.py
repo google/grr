@@ -24,7 +24,7 @@ from grr.server.grr_response_server import events
 from grr.server.grr_response_server import export
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.aff4_objects import filestore
-from grr.server.grr_response_server.checks import checks
+from grr.server.grr_response_server.check_lib import checks
 from grr.server.grr_response_server.flows.general import collectors
 from grr.server.grr_response_server.flows.general import transfer
 from grr.server.grr_response_server.hunts import results as hunts_results
@@ -297,8 +297,9 @@ class ExportTest(ExportTestBase):
 
     if data_store.RelationalDBReadEnabled(category="vfs"):
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
-      path_info = data_store.REL_DB.FindPathInfoByPathID(
-          self.client_id.Basename(), path_info.path_type, path_info.GetPathID())
+      path_info = data_store.REL_DB.ReadPathInfo(self.client_id.Basename(),
+                                                 path_info.path_type,
+                                                 tuple(path_info.components))
       hash_value = path_info.hash_entry
     else:
       fd = aff4.FACTORY.Open(urn, token=self.token)

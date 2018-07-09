@@ -7,7 +7,7 @@ from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import artifact
 from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.checks import checks
+from grr.server.grr_response_server.check_lib import checks
 from grr.server.grr_response_server.flows.general import collectors
 
 

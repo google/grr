@@ -3,7 +3,10 @@
 from grr.core.grr_response_core.lib import config_lib
 
 config_lib.DEFINE_list("Checks.config_dir", [
-    "%(grr/checks|resource)", "%(grr/checks/local|resource)"
+    "%(grr.server.grr_response_server|module_path)/"
+    "checks",
+    "%(grr.server.grr_response_server|module_path)/"
+    "checks/local"
 ], "A list of directories to load checks from.")
 
 config_lib.DEFINE_list("Checks.config_files", [],

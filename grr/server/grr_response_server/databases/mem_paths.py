@@ -126,32 +126,77 @@ class InMemoryDBPathMixin(object):
   """InMemoryDB mixin for path related functions."""
 
   @utils.Synchronized
-  def FindPathInfoByPathID(self, client_id, path_type, path_id, timestamp=None):
+  def ReadPathInfo(self, client_id, path_type, components, timestamp=None):
+    """Retrieves a path info record for a given path."""
     try:
-      path_record = self.path_records[(client_id, path_type, path_id)]
+      path_record = self.path_records[(client_id, path_type, components)]
       return path_record.GetPathInfo(timestamp=timestamp)
     except KeyError:
+      # TODO(hanuszczak): Refactor `db.UnknownPathError` to contain `components`
+      # field instead of `path_id`.
       raise db.UnknownPathError(
-          client_id=client_id, path_type=path_type, path_id=path_id)
+          client_id=client_id, path_type=path_type, path_id=None)
 
   @utils.Synchronized
-  def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
-    """Returns path info records for a client."""
-    ret = {}
-    for path_id in path_ids:
+  def ReadPathInfos(self, client_id, path_type, components_list):
+    """Retrieves path info records for given paths."""
+    result = {}
+
+    for components in components_list:
       try:
-        path_record = self.path_records[(client_id, path_type, path_id)]
-        ret[path_id] = path_record.GetPathInfo()
+        path_record = self.path_records[(client_id, path_type, components)]
+        result[components] = path_record.GetPathInfo()
       except KeyError:
-        ret[path_id] = None
-    return ret
+        result[components] = None
+
+    return result
+
+  @utils.Synchronized
+  def ListDescendentPathInfos(self,
+                              client_id,
+                              path_type,
+                              components,
+                              max_depth=None):
+    """Lists path info records that correspond to children of given path."""
+    result = []
+
+    for path_idx, path_record in self.path_records.iteritems():
+      other_client_id, other_path_type, other_components = path_idx
+      if client_id != other_client_id or path_type != other_path_type:
+        continue
+      if len(other_components) == len(components):
+        continue
+      if not utils.IterableStartsWith(other_components, components):
+        continue
+      if (max_depth is not None and
+          len(other_components) - len(components) > max_depth):
+        continue
+
+      result.append(path_record.GetPathInfo())
+
+    result.sort(key=lambda _: tuple(_.components))
+    return result
+
+  # TODO(hanuszczak): This should never be called anymore. Remove it once this
+  # method is gone from the database interface.
+  @utils.Synchronized
+  def FindPathInfoByPathID(self, client_id, path_type, path_id, timestamp=None):
+    raise NotImplementedError()
+
+  # TODO(hanuszczak): This should never be called anymore. Remove it once this
+  # method is gone from the database interface.
+  @utils.Synchronized
+  def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
+    raise NotImplementedError()
 
   def _GetPathRecord(self, client_id, path_info):
-    path_idx = (client_id, path_info.path_type, path_info.GetPathID())
-    return self.path_records.setdefault(
-        path_idx,
-        _PathRecord(
-            path_type=path_info.path_type, components=path_info.components))
+    components = tuple(path_info.components)
+
+    path_idx = (client_id, path_info.path_type, components)
+    path_record = _PathRecord(
+        path_type=path_info.path_type, components=components)
+
+    return self.path_records.setdefault(path_idx, path_record)
 
   def _WritePathInfo(self, client_id, path_info, ancestor):
     """Writes a single path info record for given client."""
@@ -190,23 +235,9 @@ class InMemoryDBPathMixin(object):
       path_record = self._GetPathRecord(client_id, path_info)
       path_record.AddHashEntry(hash_entry, path_info.timestamp)
 
+  # TODO(hanuszczak): This should never be called anymore. Remove it once this
+  # method is gone from the database interface.
   @utils.Synchronized
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):
-    """Finds all path_ids seen on a client descent from path_id."""
-    descendents = set()
-    if max_depth == 0:
-      return descendents
-
-    next_depth = None
-    if max_depth is not None:
-      next_depth = max_depth - 1
-
-    path_record = self.path_records[(client_id, path_type, path_id)]
-    for child_path_id in path_record.GetChildren():
-      descendents.add(child_path_id)
-      descendents.update(
-          self.FindDescendentPathIDs(
-              client_id, path_type, child_path_id, max_depth=next_depth))
-
-    return descendents
+    raise NotImplementedError()

@@ -6,8 +6,8 @@ from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.server.grr_response_server.checks import checks
-from grr.server.grr_response_server.checks import filters
+from grr.server.grr_response_server.check_lib import checks
+from grr.server.grr_response_server.check_lib import filters
 from grr.test_lib import test_lib
 
 # Just a named tuple that can be used to test objectfilter expressions.

@@ -55,10 +55,8 @@ def GetUrnHashEntry(urn, token=None):
   if data_store.RelationalDBReadEnabled(category="vfs"):
     client_id, vfs_path = urn.Split(2)
     path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
-    path_id = rdf_objects.PathID.FromComponents(components)
 
-    path_info = data_store.REL_DB.FindPathInfoByPathID(client_id, path_type,
-                                                       path_id)
+    path_info = data_store.REL_DB.ReadPathInfo(client_id, path_type, components)
     return path_info.hash_entry
   else:
     with aff4.FACTORY.Open(urn, token=token) as fd:

@@ -15,6 +15,7 @@ from grr.server.grr_response_server.databases import mem_flows
 from grr.server.grr_response_server.databases import mem_foreman_rules
 from grr.server.grr_response_server.databases import mem_paths
 from grr.server.grr_response_server.databases import mem_users
+from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
 
 
 # pyformat: disable
@@ -52,8 +53,12 @@ class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
     self.metadatas = {}
     self.notifications_by_username = {}
     self.startup_history = {}
-    # Maps (client_id, path_type, path_id) to a path record.
+    # TODO(hanuszczak): Consider chaning this to nested dicts for improved
+    # debugging experience.
+    # Maps (client_id, path_type, components) to a path record.
     self.path_records = {}
+    # Maps (client_id, path_type, path_id) to a blob record.
+    self.blob_records = {}
     self.message_handler_requests = {}
     self.message_handler_leases = {}
     self.events = []
@@ -68,6 +73,15 @@ class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
   @utils.Synchronized
   def ClearTestDB(self):
     self._Init()
+
+  def _AllPathIDs(self):
+    result = set()
+
+    for client_id, path_type, components in self.path_records.iterkeys():
+      path_id = rdf_objects.PathID.FromComponents(components)
+      result.add((client_id, path_type, path_id))
+
+    return result
 
   def _ParseTimeRange(self, timerange):
     """Parses a timerange argument and always returns non-None timerange."""

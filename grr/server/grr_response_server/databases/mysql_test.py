@@ -212,16 +212,16 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testMultiWriteHistoryTwoPaths(self):
     pass
 
-  def testFindPathInfosByPathIDsNonExistent(self):
+  def testReadPathInfosNonExistent(self):
     pass
 
-  def testFindPathInfoByPathIDNonExistent(self):
+  def testReadPathInfoNonExistent(self):
     pass
 
-  def testFindPathInfoByPathIDTimestampStatEntry(self):
+  def testReadPathInfoTimestampStatEntry(self):
     pass
 
-  def testFindPathInfosByPathIDsMany(self):
+  def testReadPathInfosMany(self):
     pass
 
   def testWritePathInfosDuplicatedData(self):
@@ -230,29 +230,38 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testWritePathInfosStoresCopy(self):
     pass
 
-  def testFindDescendentPathIDsEmptyResult(self):
+  def testListDescendentPathInfosEmptyResult(self):
     pass
 
-  def testFindDescendentPathIDsSingleResult(self):
+  def testListDescendentPathInfosSingleResult(self):
     pass
 
-  def testFindDescendentPathIDsSingle(self):
+  def testListDescendentPathInfosSingle(self):
     pass
 
-  def testFindDescendentPathIDsBranching(self):
+  def testListDescendentPathInfosBranching(self):
     pass
 
-  def testFindDescendentPathIDsLimited(self):
+  def testListDescendentPathInfosLimited(self):
     pass
 
-  def testFindDescendentPathIDsTypeSeparated(self):
+  def testListDescendentPathInfosTypeSeparated(self):
     pass
 
-  def testFindDescendentPathIDsAll(self):
+  def testListDescendentPathInfosAll(self):
+    pass
+
+  def testListChildPathInfosRoot(self):
+    pass
+
+  def testListChildPathInfosDetails(self):
+    pass
+
+  def testListChildPathInfosDeepSorted(self):
     pass
 
   # TODO(hanuszczak): Remove these once support for storing file hashes in
-  # the F1 backend is ready.
+  # the MySQL backend is ready.
 
   def testWritePathInfosHashEntry(self):
     pass
@@ -263,10 +272,10 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testWritePathInfoHashAndStatEntrySeparateWrites(self):
     pass
 
-  def testFindPathInfoByPathIDTimestampHashEntry(self):
+  def testReadPathInfoTimestampHashEntry(self):
     pass
 
-  def testFindPathInfoByPathIDTimestampStatAndHashEntry(self):
+  def testReadPathInfoTimestampStatAndHashEntry(self):
     pass
 
   def testReadingNonExistentBlobReturnsNone(self):
@@ -290,7 +299,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testMultipleBlobReferencesCanBeWrittenAndThenRead(self):
     pass
 
-  def testFindPathInfoByPathIDOlder(self):
+  def testReadPathInfoOlder(self):
     pass
 
 

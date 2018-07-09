@@ -307,9 +307,8 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
       # TODO(hanuszczak): The tests passed even without support for timestamp
       # filtering. The test suite should be probably improved in that regard.
-      path_id = rdf_objects.PathID.FromComponents(components)
-      path_info = data_store.REL_DB.FindPathInfoByPathID(
-          str(args.client_id), path_type, path_id, timestamp=args.timestamp)
+      path_info = data_store.REL_DB.ReadPathInfo(
+          str(args.client_id), path_type, components, timestamp=args.timestamp)
 
       if path_info:
         stat_entry = path_info.stat_entry
@@ -412,18 +411,11 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
       return self._GetFilesystemChildren(args)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-    path_id = rdf_objects.PathID.FromComponents(components)
 
-    child_path_ids = data_store.REL_DB.FindDescendentPathIDs(
+    child_path_infos = data_store.REL_DB.ListChildPathInfos(
         client_id=client_id.Basename(),
         path_type=path_type,
-        path_id=path_id,
-        max_depth=1)
-
-    child_path_infos = data_store.REL_DB.FindPathInfosByPathIDs(
-        client_id=client_id.Basename(),
-        path_type=path_type,
-        path_ids=child_path_ids).values()
+        components=components)
 
     items = []
 

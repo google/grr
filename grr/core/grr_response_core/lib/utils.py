@@ -1683,3 +1683,25 @@ class StatCache(object):
 def ProcessIdString():
   return "%s@%s:%d" % (psutil.Process().name(), socket.gethostname(),
                        os.getpid())
+
+
+# TODO(hanuszczak): We should create some module with general-purpose functions
+# that should be in standard library but are not for some reason.
+def IterableStartsWith(this, that):
+  """Checks whether an iterable `this` starts with `that`."""
+  this_iter = iter(this)
+  that_iter = iter(that)
+
+  while True:
+    try:
+      this_value = next(that_iter)
+    except StopIteration:
+      return True
+
+    try:
+      that_value = next(this_iter)
+    except StopIteration:
+      return False
+
+    if this_value != that_value:
+      return False

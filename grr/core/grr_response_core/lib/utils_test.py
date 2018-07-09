@@ -754,6 +754,35 @@ class StatCacheTest(unittest.TestCase):
       self.assertFalse(stat_mock.called)
 
 
+class IterableStartsWith(unittest.TestCase):
+
+  def testEmptyStartsWithEmpty(self):
+    self.assertTrue(utils.IterableStartsWith([], []))
+
+  def testNonEmptyStartsWithEmpty(self):
+    self.assertTrue(utils.IterableStartsWith([1, 2, 3], []))
+
+  def testEmptyDoesNotStartWithNonEmpty(self):
+    self.assertFalse(utils.IterableStartsWith([], [1, 2, 3]))
+
+  def testEqual(self):
+    self.assertTrue(utils.IterableStartsWith([1, 2, 3], [1, 2, 3]))
+
+  def testProperPrefix(self):
+    self.assertTrue(utils.IterableStartsWith([1, 2, 3], [1, 2]))
+    self.assertTrue(utils.IterableStartsWith([1, 2, 3], [1]))
+
+  def testDifferentElement(self):
+    self.assertFalse(utils.IterableStartsWith([1, 2, 3], [1, 4, 5]))
+
+  def testStringTypes(self):
+    self.assertTrue(
+        utils.IterableStartsWith(["foo", "bar", "baz"], ["foo", "bar"]))
+
+  def testNonListIterable(self):
+    self.assertTrue(utils.IterableStartsWith((5, 4, 3), (5, 4)))
+
+
 def main(argv):
   test_lib.main(argv)
 

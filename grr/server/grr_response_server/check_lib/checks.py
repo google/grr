@@ -16,9 +16,9 @@ from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import anomaly_pb2
 from grr_response_proto import checks_pb2
-from grr.server.grr_response_server.checks import filters
-from grr.server.grr_response_server.checks import hints
-from grr.server.grr_response_server.checks import triggers
+from grr.server.grr_response_server.check_lib import filters
+from grr.server.grr_response_server.check_lib import hints
+from grr.server.grr_response_server.check_lib import triggers
 
 
 class Error(Exception):

@@ -74,9 +74,9 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     return rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
         os.path.join(self.base_path, "searching", fname))
 
-  def FilenameToPathID(self, fname):
+  def FilenameToPathComponents(self, fname):
     path = os.path.join(self.base_path, "searching", fname)
-    return rdf_objects.PathID.FromComponents(path.split(os.path.sep))
+    return tuple(path.split(os.path.sep))
 
   EXPECTED_HASHES = {
       "auth.log": ("67b8fc07bd4b6efc3b2dce322e8ddf609b540805",
@@ -104,9 +104,10 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
                            "hashes: %s" % fname)
 
       if data_store.RelationalDBReadEnabled(category="vfs"):
-        path_info = data_store.REL_DB.FindPathInfoByPathID(
-            self.client_id, rdf_objects.PathInfo.PathType.OS,
-            self.FilenameToPathID(fname))
+        path_info = data_store.REL_DB.ReadPathInfo(
+            self.client_id,
+            rdf_objects.PathInfo.PathType.OS,
+            components=self.FilenameToPathComponents(fname))
         hash_obj = path_info.hash_entry
       else:
         with aff4.FACTORY.Open(
@@ -120,9 +121,10 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   def CheckFilesNotHashed(self, fnames):
     for fname in fnames:
       if data_store.RelationalDBReadEnabled(category="vfs"):
-        path_info = data_store.REL_DB.FindPathInfoByPathID(
-            self.client_id, rdf_objects.PathInfo.PathType.OS,
-            self.FilenameToPathID(fname))
+        path_info = data_store.REL_DB.ReadPathInfo(
+            self.client_id,
+            rdf_objects.PathInfo.PathType.OS,
+            components=self.FilenameToPathComponents(fname))
 
         hash_entry = path_info.hash_entry
       else:

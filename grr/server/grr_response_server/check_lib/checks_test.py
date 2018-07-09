@@ -11,9 +11,9 @@ from grr.core.grr_response_core.lib.parsers import config_file as config_file_pa
 from grr.core.grr_response_core.lib.parsers import wmi_parser
 from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.server.grr_response_server.checks import checks
-from grr.server.grr_response_server.checks import checks_test_lib
-from grr.server.grr_response_server.checks import filters
+from grr.server.grr_response_server.check_lib import checks
+from grr.server.grr_response_server.check_lib import checks_test_lib
+from grr.server.grr_response_server.check_lib import filters
 from grr.server.grr_response_server.parsers import linux_cmd_parser
 from grr.test_lib import test_lib
 

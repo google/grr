@@ -417,34 +417,34 @@ class CategorizedPathTest(unittest.TestCase):
   def testParseOs(self):
     path_type, components = rdf_objects.ParseCategorizedPath("fs/os/foo/bar")
     self.assertEqual(path_type, rdf_objects.PathInfo.PathType.OS)
-    self.assertEqual(components, ["foo", "bar"])
+    self.assertEqual(components, ("foo", "bar"))
 
   def testParseTsk(self):
     path_type, components = rdf_objects.ParseCategorizedPath("fs/tsk/quux/norf")
     self.assertEqual(path_type, rdf_objects.PathInfo.PathType.TSK)
-    self.assertEqual(components, ["quux", "norf"])
+    self.assertEqual(components, ("quux", "norf"))
 
   def testParseRegistry(self):
     path_type, components = rdf_objects.ParseCategorizedPath(
         "registry/thud/blargh")
     self.assertEqual(path_type, rdf_objects.PathInfo.PathType.REGISTRY)
-    self.assertEqual(components, ["thud", "blargh"])
+    self.assertEqual(components, ("thud", "blargh"))
 
   def testParseTemp(self):
     path_type, components = rdf_objects.ParseCategorizedPath("temp/os/registry")
     self.assertEqual(path_type, rdf_objects.PathInfo.PathType.TEMP)
-    self.assertEqual(components, ["os", "registry"])
+    self.assertEqual(components, ("os", "registry"))
 
   def testParseOsRoot(self):
     path_type, components = rdf_objects.ParseCategorizedPath("fs/os")
     self.assertEqual(path_type, rdf_objects.PathInfo.PathType.OS)
-    self.assertEqual(components, [])
+    self.assertEqual(components, ())
 
   def testParseTskExtraSlashes(self):
     path_type, components = rdf_objects.ParseCategorizedPath(
         "/fs///tsk/foo///bar")
     self.assertEqual(path_type, rdf_objects.PathInfo.PathType.TSK)
-    self.assertEqual(components, ["foo", "bar"])
+    self.assertEqual(components, ("foo", "bar"))
 
   def testParseIncorrect(self):
     with self.assertRaisesRegexp(ValueError, "path"):
@@ -455,32 +455,32 @@ class CategorizedPathTest(unittest.TestCase):
 
   def testSerializeOs(self):
     path_type = rdf_objects.PathInfo.PathType.OS
-    path = rdf_objects.ToCategorizedPath(path_type, ["foo", "bar"])
+    path = rdf_objects.ToCategorizedPath(path_type, ("foo", "bar"))
     self.assertEqual(path, "fs/os/foo/bar")
 
   def testSerializeTsk(self):
     path_type = rdf_objects.PathInfo.PathType.TSK
-    path = rdf_objects.ToCategorizedPath(path_type, ["quux", "norf"])
+    path = rdf_objects.ToCategorizedPath(path_type, ("quux", "norf"))
     self.assertEqual(path, "fs/tsk/quux/norf")
 
   def testSerializeRegistry(self):
     path_type = rdf_objects.PathInfo.PathType.REGISTRY
-    path = rdf_objects.ToCategorizedPath(path_type, ["thud", "baz"])
+    path = rdf_objects.ToCategorizedPath(path_type, ("thud", "baz"))
     self.assertEqual(path, "registry/thud/baz")
 
   def testSerializeTemp(self):
     path_type = rdf_objects.PathInfo.PathType.TEMP
-    path = rdf_objects.ToCategorizedPath(path_type, ["blargh"])
+    path = rdf_objects.ToCategorizedPath(path_type, ("blargh",))
     self.assertEqual(path, "temp/blargh")
 
   def testSerializeOsRoot(self):
     path_type = rdf_objects.PathInfo.PathType.OS
-    path = rdf_objects.ToCategorizedPath(path_type, [])
+    path = rdf_objects.ToCategorizedPath(path_type, ())
     self.assertEqual(path, "fs/os")
 
   def testSerializeIncorrectType(self):
     with self.assertRaisesRegexp(ValueError, "type"):
-      rdf_objects.ToCategorizedPath("MEMORY", ["foo", "bar"])
+      rdf_objects.ToCategorizedPath("MEMORY", ("foo", "bar"))
 
 
 class VfsFileReferenceTest(unittest.TestCase):

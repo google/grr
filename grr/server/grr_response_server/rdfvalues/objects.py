@@ -474,14 +474,14 @@ def _ValidatePathComponents(components):
 
 def ParseCategorizedPath(path):
   """Parses a categorized path string into type and list of components."""
-  components = [component for component in path.split("/") if component]
-  if components[0:2] == ["fs", "os"]:
+  components = tuple(component for component in path.split("/") if component)
+  if components[0:2] == ("fs", "os"):
     return PathInfo.PathType.OS, components[2:]
-  elif components[0:2] == ["fs", "tsk"]:
+  elif components[0:2] == ("fs", "tsk"):
     return PathInfo.PathType.TSK, components[2:]
-  elif components[0:1] == ["registry"]:
+  elif components[0:1] == ("registry",):
     return PathInfo.PathType.REGISTRY, components[1:]
-  elif components[0:1] == ["temp"]:
+  elif components[0:1] == ("temp",):
     return PathInfo.PathType.TEMP, components[1:]
   else:
     raise ValueError("Incorrect path: '%s'" % path)
@@ -491,10 +491,10 @@ def ToCategorizedPath(path_type, components):
   """Translates a path type and a list of components to a categorized path."""
   try:
     prefix = {
-        PathInfo.PathType.OS: ["fs", "os"],
-        PathInfo.PathType.TSK: ["fs", "tsk"],
-        PathInfo.PathType.REGISTRY: ["registry"],
-        PathInfo.PathType.TEMP: ["temp"],
+        PathInfo.PathType.OS: ("fs", "os"),
+        PathInfo.PathType.TSK: ("fs", "tsk"),
+        PathInfo.PathType.REGISTRY: ("registry",),
+        PathInfo.PathType.TEMP: ("temp",),
     }[path_type]
   except KeyError:
     raise ValueError("Unknown path type: `%s`" % path_type)

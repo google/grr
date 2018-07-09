@@ -495,7 +495,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def _WaitForAjaxCompleted(self):
     self.WaitUntilEqual(
         [], self.GetJavaScriptValue,
-        "return $('body').injector().get('$http').pendingRequests")
+        "return (window.$ && $('body') && $('body').injector && "
+        "$('body').injector().get('$http').pendingRequests) || []")
 
   @SeleniumAction
   def Type(self, target, text, end_with_enter=False):

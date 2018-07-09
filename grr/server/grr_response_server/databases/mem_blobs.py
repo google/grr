@@ -5,24 +5,38 @@ from grr.core.grr_response_core.lib import utils
 from grr.server.grr_response_server import db
 
 
+class _BlobRecord(object):
+
+  def __init__(self):
+    self._blob_refs = {}
+
+  def AddBlobReference(self, blob_ref):
+    self._blob_refs[blob_ref.offset] = blob_ref.Copy()
+
+  def GetBlobReferences(self):
+    return self._blob_refs.values()
+
+
 class InMemoryDBBlobsMixin(object):
   """InMemoryDB mixin for blobs related functions."""
 
   @utils.Synchronized
   def WriteClientPathBlobReferences(self, references_by_client_path_id):
     """Writes blob references for given client path ids."""
+    all_path_ids = self._AllPathIDs()
 
     for client_path_id, blob_refs in references_by_client_path_id.items():
-      try:
-        path_record = self.path_records[(client_path_id.client_id,
-                                         client_path_id.path_type,
-                                         client_path_id.path_id)]
-      except KeyError:
+      path_idx = (client_path_id.client_id, client_path_id.path_type,
+                  client_path_id.path_id)
+
+      if path_idx not in all_path_ids:
         raise db.AtLeastOneUnknownPathError(
             references_by_client_path_id.values())
 
+      blob_record = self.blob_records.setdefault(path_idx, _BlobRecord())
+
       for blob_ref in blob_refs:
-        path_record.AddBlobReference(blob_ref)
+        blob_record.AddBlobReference(blob_ref)
 
   @utils.Synchronized
   def ReadClientPathBlobReferences(self, client_path_ids):
@@ -31,9 +45,9 @@ class InMemoryDBBlobsMixin(object):
     result = {}
     for cpid in client_path_ids:
       try:
-        path_record = self.path_records[(cpid.client_id, cpid.path_type,
+        blob_record = self.blob_records[(cpid.client_id, cpid.path_type,
                                          cpid.path_id)]
-        result[cpid] = path_record.GetBlobReferences()
+        result[cpid] = blob_record.GetBlobReferences()
       except KeyError:
         result[cpid] = []
 
