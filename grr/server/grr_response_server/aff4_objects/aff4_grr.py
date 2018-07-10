@@ -19,15 +19,15 @@ from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import db
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import foreman_rules
-from grr.server.grr_response_server import grr_collections
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server.aff4_objects import standard
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import flow
+from grr_response_server import foreman_rules
+from grr_response_server import grr_collections
+from grr_response_server import queue_manager
+from grr_response_server.aff4_objects import standard
 
 
 class SpaceSeparatedStringArray(rdfvalue.RDFString):

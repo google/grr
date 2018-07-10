@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Setup configuration for the python grr modules."""
+from __future__ import print_function
 
 # pylint: disable=unused-variable
 # pylint: disable=g-multiple-import
@@ -88,18 +89,18 @@ class Sdist(sdist):
 data_files = (
     find_data_files("executables") + find_data_files("install_data") +
     find_data_files("scripts") + find_data_files("grr/artifacts") +
-    find_data_files("grr/checks") + find_data_files(
+    find_data_files("grr/server/grr_response_server/checks") + find_data_files(
         "grr/server/grr_response_server/gui/static",
         ignore_dirs=IGNORE_GUI_DIRS) + find_data_files(
             "grr/server/grr_response_server/gui/local/static",
             ignore_dirs=IGNORE_GUI_DIRS) + ["version.ini"])
 
 if "VIRTUAL_ENV" not in os.environ:
-  print "*****************************************************"
-  print "  WARNING: You are not installing in a virtual"
-  print "  environment. This configuration is not supported!!!"
-  print "  Expect breakage."
-  print "*****************************************************"
+  print("*****************************************************")
+  print("  WARNING: You are not installing in a virtual")
+  print("  environment. This configuration is not supported!!!")
+  print("  Expect breakage.")
+  print("*****************************************************")
 
 setup_args = dict(
     name="grr-response-core",

@@ -16,26 +16,26 @@ from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import client_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import client_index
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import db
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server import fleetspeak_connector
-from grr.server.grr_response_server import fleetspeak_utils
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import ip_resolver
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server import timeseries
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import standard
-from grr.server.grr_response_server.aff4_objects import stats as aff4_stats
-from grr.server.grr_response_server.flows.general import audit
-from grr.server.grr_response_server.flows.general import discovery
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui import api_call_handler_utils
-from grr.server.grr_response_server.gui.api_plugins import stats as api_stats
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import client_index
+from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import events
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
+from grr_response_server import flow
+from grr_response_server import ip_resolver
+from grr_response_server import queue_manager
+from grr_response_server import timeseries
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import standard
+from grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_server.flows.general import audit
+from grr_response_server.flows.general import discovery
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import api_call_handler_utils
+from grr_response_server.gui.api_plugins import stats as api_stats
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def UpdateClientsFromFleetspeak(clients):

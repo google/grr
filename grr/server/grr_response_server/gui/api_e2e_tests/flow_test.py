@@ -10,10 +10,10 @@ from grr_api_client import utils as grr_api_utils
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.flows.general import processes
-from grr.server.grr_response_server.gui import api_e2e_test_lib
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server.flows.general import processes
+from grr_response_server.gui import api_e2e_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

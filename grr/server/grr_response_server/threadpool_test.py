@@ -10,7 +10,7 @@ import time
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import threadpool
+from grr_response_server import threadpool
 from grr.test_lib import test_lib
 
 

@@ -3,7 +3,7 @@
 
 import yaml
 from grr.core.grr_response_core.lib import rdfvalue
-from grr.server.grr_response_server import aff4
+from grr_response_server import aff4
 
 
 def YamlDumper(aff4object):

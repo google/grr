@@ -3,6 +3,7 @@
 
 SQLite database files are created by taking the root of each AFF4 object.
 """
+from __future__ import print_function
 
 
 import itertools
@@ -18,11 +19,11 @@ import time
 
 import sqlite3
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.data_stores import common
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server.data_stores import common
 
 SQLITE_EXTENSION = ".sqlite"
 SQLITE_TIMEOUT = 600.0
@@ -508,8 +509,8 @@ class SqliteConnection(object):
     """Print the SQLite database."""
     query = "SELECT subject, predicate, timestamp, value FROM tbl"
     for sub, pred, ts, val in self.Execute(query):
-      print "(%s, %s, %s) = %s" % (sub, pred, ts, val)
-    print "---------------------------------"
+      print("(%s, %s, %s) = %s" % (sub, pred, ts, val))
+    print("---------------------------------")
 
   def __enter__(self):
     self.lock.acquire()

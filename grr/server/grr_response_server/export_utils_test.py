@@ -11,14 +11,14 @@ from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import export_utils
-from grr.server.grr_response_server import sequential_collection
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import standard
-from grr.server.grr_response_server.flows.general import collectors
-from grr.server.grr_response_server.hunts import results
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import export_utils
+from grr_response_server import sequential_collection
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import standard
+from grr_response_server.flows.general import collectors
+from grr_response_server.hunts import results
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

@@ -8,10 +8,10 @@ from grr.core.grr_response_core.lib import flags
 
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import config as rdf_config
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.flows.general import discovery
-from grr.server.grr_response_server.gui import gui_test_lib
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server.flows.general import discovery
+from grr_response_server.gui import gui_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib

@@ -6,9 +6,9 @@ import os
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server.flows.general import audit
-from grr.server.grr_response_server.flows.general import filesystem
+from grr_response_server import aff4
+from grr_response_server.flows.general import audit
+from grr_response_server.flows.general import filesystem
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

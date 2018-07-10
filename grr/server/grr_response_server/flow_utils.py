@@ -4,9 +4,9 @@
 import logging
 import time
 
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server.aff4_objects import aff4_grr
 
 # How long to wait, by default, for a flow to finish.
 DEFAULT_TIMEOUT = 650

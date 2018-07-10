@@ -6,11 +6,11 @@ import logging
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import queue_manager
+from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 
 
 class Error(Exception):

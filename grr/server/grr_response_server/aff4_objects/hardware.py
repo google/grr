@@ -3,7 +3,7 @@
 
 from grr.core.grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 
-from grr.server.grr_response_server import sequential_collection
+from grr_response_server import sequential_collection
 
 
 class ACPITableDataCollection(

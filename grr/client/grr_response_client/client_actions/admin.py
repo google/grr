@@ -16,9 +16,9 @@ import pkg_resources
 import psutil
 import pytsk3
 
-from grr import config
 from grr_response_client import actions
 from grr_response_client.client_actions import tempfiles
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import config_lib
 from grr.core.grr_response_core.lib import queues
 from grr.core.grr_response_core.lib import rdfvalue

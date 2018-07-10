@@ -6,17 +6,17 @@ from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 
 from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import foreman_rules
-from grr.server.grr_response_server.aff4_objects import cronjobs
-from grr.server.grr_response_server.flows.cron import system as cron_system
-from grr.server.grr_response_server.flows.general import file_finder
-from grr.server.grr_response_server.gui import api_regression_test_lib
-from grr.server.grr_response_server.gui.api_plugins import cron as cron_plugin
-from grr.server.grr_response_server.gui.api_plugins import cron_test as cron_plugin_test
-from grr.server.grr_response_server.hunts import standard
-from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import foreman_rules
+from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.flows.cron import system as cron_system
+from grr_response_server.flows.general import file_finder
+from grr_response_server.gui import api_regression_test_lib
+from grr_response_server.gui.api_plugins import cron as cron_plugin
+from grr_response_server.gui.api_plugins import cron_test as cron_plugin_test
+from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr.test_lib import test_lib
 
 
@@ -113,17 +113,17 @@ class ApiCreateCronJobHandlerRegressionTest(
         replace=ReplaceCronJobUrn)
 
 
-class ApiListCronJobFlowsHandlerRegressionTest(
+class ApiListCronJobRunsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest):
-  """Test cron job flows list handler."""
+  """Test cron job runs list handler."""
 
-  api_method = "ListCronJobFlows"
-  handler = cron_plugin.ApiListCronJobFlowsHandler
+  api_method = "ListCronJobRuns"
+  handler = cron_plugin.ApiListCronJobRunsHandler
 
   flow_name = cron_system.GRRVersionBreakDown.__name__
 
   def setUp(self):
-    super(ApiListCronJobFlowsHandlerRegressionTest, self).setUp()
+    super(ApiListCronJobRunsHandlerRegressionTest, self).setUp()
 
     with test_lib.FakeTime(44):
       cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
@@ -134,30 +134,30 @@ class ApiListCronJobFlowsHandlerRegressionTest(
 
       cronjobs.GetCronManager().RunOnce(token=self.token)
 
-  def _GetFlowId(self):
+  def _GetRunId(self):
     runs = cronjobs.GetCronManager().ReadJobRuns(
         self.flow_name, token=self.token)
 
     return runs[0].urn.Basename()
 
   def Run(self):
-    flow_id = self._GetFlowId()
+    run_id = self._GetRunId()
 
     self.Check(
-        "ListCronJobFlows",
-        args=cron_plugin.ApiListCronJobFlowsArgs(cron_job_id=self.flow_name),
-        replace={flow_id: "F:ABCDEF11"})
+        "ListCronJobRuns",
+        args=cron_plugin.ApiListCronJobRunsArgs(cron_job_id=self.flow_name),
+        replace={run_id: "F:ABCDEF11"})
 
 
-class ApiGetCronJobFlowHandlerRegressionTest(
+class ApiGetCronJobRunHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest):
-  """Test cron job flow getter handler."""
+  """Test cron job run getter handler."""
 
-  api_method = "GetCronJobFlow"
-  handler = cron_plugin.ApiGetCronJobFlowHandler
+  api_method = "GetCronJobRun"
+  handler = cron_plugin.ApiGetCronJobRunHandler
 
   def setUp(self):
-    super(ApiGetCronJobFlowHandlerRegressionTest, self).setUp()
+    super(ApiGetCronJobRunHandlerRegressionTest, self).setUp()
 
     self.flow_name = cron_system.GRRVersionBreakDown.__name__
 
@@ -170,20 +170,20 @@ class ApiGetCronJobFlowHandlerRegressionTest(
 
       cronjobs.GetCronManager().RunOnce(token=self.token)
 
-  def _GetFlowId(self):
+  def _GetRunId(self):
     runs = cronjobs.GetCronManager().ReadJobRuns(
         self.flow_name, token=self.token)
 
     return runs[0].urn.Basename()
 
   def Run(self):
-    flow_id = self._GetFlowId()
+    run_id = self._GetRunId()
 
     self.Check(
-        "GetCronJobFlow",
-        args=cron_plugin.ApiGetCronJobFlowArgs(
-            cron_job_id=self.flow_name, flow_id=flow_id),
-        replace={flow_id: "F:ABCDEF11"})
+        "GetCronJobRun",
+        args=cron_plugin.ApiGetCronJobRunArgs(
+            cron_job_id=self.flow_name, run_id=run_id),
+        replace={run_id: "F:ABCDEF11"})
 
 
 class ApiForceRunCronJobRegressionTest(

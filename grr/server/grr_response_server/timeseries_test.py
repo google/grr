@@ -2,7 +2,7 @@
 """Tests for grr.lib.timeseries."""
 
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server import timeseries
+from grr_response_server import timeseries
 from grr.test_lib import test_lib
 
 

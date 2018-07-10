@@ -6,7 +6,7 @@ import sys
 
 import mock
 
-from grr.server.grr_response_server import data_store
+from grr_response_server import data_store
 from grr.test_lib import test_lib
 
 

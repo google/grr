@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This tool builds or repacks the client binaries."""
+from __future__ import print_function
 
 import getpass
 import glob
@@ -11,9 +12,9 @@ import subprocess
 import sys
 
 
-from grr import config as grr_config
 from grr_response_client import client_startup
-from grr.config import contexts
+from grr.core.grr_response_core import config as grr_config
+from grr.core.grr_response_core.config import contexts
 from grr.core.grr_response_core.lib import build
 from grr.core.grr_response_core.lib import builders
 from grr.core.grr_response_core.lib import config_lib
@@ -208,10 +209,10 @@ class TemplateBuilder(object):
 
     template_path = None
     if output:
-      template_path = os.path.join(output,
-                                   grr_config.CONFIG.Get(
-                                       "PyInstaller.template_filename",
-                                       context=context))
+      template_path = os.path.join(
+          output,
+          grr_config.CONFIG.Get(
+              "PyInstaller.template_filename", context=context))
 
     builder_obj = self.GetBuilder(context)
     builder_obj.MakeExecutableTemplate(output_file=template_path)
@@ -262,7 +263,7 @@ class MultiTemplateRepacker(object):
     try:
       return self._windows_passphrase
     except AttributeError:
-      print "Enter passphrase for Windows code signing"
+      print("Enter passphrase for Windows code signing")
       self._windows_passphrase = getpass.getpass()
       return self._windows_passphrase
 
@@ -270,7 +271,7 @@ class MultiTemplateRepacker(object):
     try:
       return self._rpm_passphrase
     except AttributeError:
-      print "Enter passphrase for RPM code signing"
+      print("Enter passphrase for RPM code signing")
       self._rpm_passphrase = getpass.getpass()
       return self._rpm_passphrase
 
@@ -314,7 +315,7 @@ class MultiTemplateRepacker(object):
           elif template.endswith(".rpm.zip"):
             bulk_sign_installers = True
 
-        print "Calling %s" % " ".join(repack_args)
+        print("Calling %s" % " ".join(repack_args))
         results.append(
             pool.apply_async(SpawnProcess, (repack_args,), dict(passwd=passwd)))
 
@@ -323,7 +324,7 @@ class MultiTemplateRepacker(object):
           debug_args = []
           debug_args.extend(repack_args)
           debug_args.append("--debug_build")
-          print "Calling %s" % " ".join(debug_args)
+          print("Calling %s" % " ".join(debug_args))
           results.append(
               pool.apply_async(
                   SpawnProcess, (debug_args,), dict(passwd=passwd)))
@@ -337,7 +338,7 @@ class MultiTemplateRepacker(object):
         result_obj.get(9999)
       pool.join()
     except KeyboardInterrupt:
-      print "parent received control-c"
+      print("parent received control-c")
       pool.terminate()
     except ErrorDuringRepacking:
       pool.terminate()

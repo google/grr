@@ -33,8 +33,8 @@ from google.protobuf import text_format
 from fleetspeak.src.client.daemonservice.proto.fleetspeak_daemonservice import config_pb2 as fs_config_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 
-from grr import config
-from grr.config import contexts
+from grr.core.grr_response_core import config
+from grr.core.grr_response_core.config import contexts
 from grr.core.grr_response_core.lib import config_lib
 from grr.core.grr_response_core.lib import config_validator_base
 from grr.core.grr_response_core.lib import rdfvalue

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Utility classes for front-end testing."""
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import frontend_lib
+from grr_response_server import frontend_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

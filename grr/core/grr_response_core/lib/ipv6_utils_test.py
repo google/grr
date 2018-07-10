@@ -5,7 +5,7 @@ import os
 import socket
 import yaml
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import ipv6_utils
 from grr.test_lib import test_lib

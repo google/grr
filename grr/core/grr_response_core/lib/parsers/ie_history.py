@@ -9,6 +9,7 @@ For anyone who wants a useful reference, see this:
 http://heanet.dl.sourceforge.net/project/libmsiecf/Documentation/MSIE%20Cache%20
 File%20format/MSIE%20Cache%20File%20%28index.dat%29%20format.pdf
 """
+from __future__ import print_function
 
 
 import datetime
@@ -158,7 +159,7 @@ class IEParser(object):
 
 def main(argv):
   if len(argv) < 2:
-    print "Usage: {0} index.dat".format(os.path.basename(argv[0]))
+    print("Usage: {0} index.dat".format(os.path.basename(argv[0])))
   else:
     files_to_process = []
     for input_glob in argv[1:]:
@@ -167,7 +168,7 @@ def main(argv):
       ie = IEParser(open(input_file, "rb"))
       for dat in ie.Parse():
         dat["ctime"] = datetime.datetime.utcfromtimestamp(dat["ctime"] / 1e6)
-        print "{ctime} {header} {url}".format(**dat)
+        print("{ctime} {header} {url}".format(**dat))
 
 
 if __name__ == "__main__":

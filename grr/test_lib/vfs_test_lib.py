@@ -7,19 +7,19 @@ import time
 
 import mock
 
-from grr import config
 from grr_response_client import client_utils
 from grr_response_client import vfs
 # TODO(hanuszczak): This import is required because otherwise VFS handler
 # classes are not registered correctly and things start to fail. This is
 # terrible and has to be fixed as soon as possible.
 from grr_response_client.vfs_handlers import files  # pylint: disable=unused-import
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import client_fixture
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server import client_fixture
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import standard as aff4_standard
 
 
 class VFSOverrider(object):
@@ -176,7 +176,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         lower_parts.append(parts[-1])
         path = utils.Join(*lower_parts)
       else:
-        path = utils.Join(* [x.lower() for x in parts])
+        path = utils.Join(*[x.lower() for x in parts])
     return path
 
   def BuildIntermediateDirectories(self):
@@ -197,8 +197,12 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         if dirname == "/" or dirname in self.paths:
           break
 
-        self.paths[dirname] = (aff4_standard.VFSDirectory, rdf_client.StatEntry(
-            st_mode=16877, st_size=1, st_dev=1, pathspec=new_pathspec))
+        self.paths[dirname] = (aff4_standard.VFSDirectory,
+                               rdf_client.StatEntry(
+                                   st_mode=16877,
+                                   st_size=1,
+                                   st_dev=1,
+                                   pathspec=new_pathspec))
 
   def ListFiles(self, ext_attrs=None):
     del ext_attrs  # Unused.
@@ -278,7 +282,8 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
       self.pathspec = pathspec
     else:
       self.pathspec.last.path = os.path.join(
-          self.pathspec.last.path, pathspec.CollapsePath().lstrip("/"))
+          self.pathspec.last.path,
+          pathspec.CollapsePath().lstrip("/"))
     self.path = self.pathspec.CollapsePath()
 
   @classmethod
@@ -336,7 +341,7 @@ class RegistryFake(FakeRegistryVFSHandler):
     res = res.rstrip("/")
     parts = res.split("/")
     for cache_key in [
-        utils.Join(* [p.lower() for p in parts[:-1]] + parts[-1:]),
+        utils.Join(*[p.lower() for p in parts[:-1]] + parts[-1:]),
         res.lower()
     ]:
       if not cache_key.startswith("/"):
@@ -437,12 +442,11 @@ class RegistryVFSStubber(object):
 
     self.stubber = utils.MultiStubber(
         (registry, "KeyHandle", RegistryFake.FakeKeyHandle),
-        (registry, "OpenKey", fixture.OpenKey), (registry, "QueryValueEx",
-                                                 fixture.QueryValueEx),
-        (registry, "QueryInfoKey",
-         fixture.QueryInfoKey), (registry, "EnumValue",
-                                 fixture.EnumValue), (registry, "EnumKey",
-                                                      fixture.EnumKey))
+        (registry, "OpenKey", fixture.OpenKey),
+        (registry, "QueryValueEx", fixture.QueryValueEx),
+        (registry, "QueryInfoKey", fixture.QueryInfoKey),
+        (registry, "EnumValue", fixture.EnumValue),
+        (registry, "EnumKey", fixture.EnumKey))
     self.stubber.Start()
 
     # Add the Registry handler to the vfs.

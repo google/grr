@@ -7,8 +7,8 @@ from grr_response_client.client_actions import plist
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import plist as rdf_plist
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.flows.general import filetypes
+from grr_response_server import flow
+from grr_response_server.flows.general import filetypes
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

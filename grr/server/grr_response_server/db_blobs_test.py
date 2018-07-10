@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Mixin tests for blobs in the relational db."""
 
-from grr.server.grr_response_server import db
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import db
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class DatabaseTestBlobsMixin(object):

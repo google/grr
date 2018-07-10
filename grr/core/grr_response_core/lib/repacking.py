@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Client repacking library."""
+from __future__ import print_function
 
 import getpass
 import logging
@@ -8,7 +9,7 @@ import platform
 import sys
 import zipfile
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import build
 from grr.core.grr_response_core.lib import config_lib
 from grr.core.grr_response_core.lib.builders import signing
@@ -62,7 +63,7 @@ class TemplateRepacker(object):
 
   def GetSigningPassword(self):
     if sys.stdin.isatty():
-      print "Enter passphrase for code signing:"
+      print("Enter passphrase for code signing:")
       return getpass.getpass()
     else:
       passwd = sys.stdin.readline().strip()
@@ -155,7 +156,7 @@ class TemplateRepacker(object):
     """
     orig_config = config.CONFIG
     repack_config = RepackConfig()
-    print "Repacking template: %s" % template_path
+    print("Repacking template: %s" % template_path)
     config.CONFIG = repack_config.GetConfigFromTemplate(template_path)
 
     result_path = None
@@ -169,9 +170,9 @@ class TemplateRepacker(object):
                                      "ClientRepacker.output_filename",
                                      context=repack_context))
 
-      print "Using context: %s and labels: %s" % (
-          repack_context,
-          config.CONFIG.Get("Client.labels", context=repack_context))
+      print("Using context: %s and labels: %s" %
+            (repack_context,
+             config.CONFIG.Get("Client.labels", context=repack_context)))
       try:
         signer = None
         if sign:
@@ -184,14 +185,14 @@ class TemplateRepacker(object):
         logging.exception("Repacking template %s failed:", template_path)
 
       if result_path:
-        print "Repacked into %s" % result_path
+        print("Repacked into %s" % result_path)
         if upload:
           # We delay import here so we don't have to import the entire server
           # codebase and do full server init if we're just building and
           # repacking clients. This codepath is used by config_updater
           # initialize
           # pylint: disable=g-import-not-at-top
-          from grr.server.grr_response_server import maintenance_utils
+          from grr_response_server import maintenance_utils
           # pylint: enable=g-import-not-at-top
           dest = config.CONFIG.Get(
               "Executables.installer", context=repack_context)
@@ -201,7 +202,7 @@ class TemplateRepacker(object):
               client_context=repack_context,
               token=token)
       else:
-        print "Failed to repack %s." % template_path
+        print("Failed to repack %s." % template_path)
     finally:
       config.CONFIG = orig_config
 
@@ -221,7 +222,7 @@ class TemplateRepacker(object):
           token=token)
       # If it's windows also repack a debug version.
       if template_path.endswith(".exe.zip"):
-        print "Repacking as debug installer: %s." % template_path
+        print("Repacking as debug installer: %s." % template_path)
         self.RepackTemplate(
             template_path,
             os.path.join(config.CONFIG["ClientBuilder.executables_dir"],

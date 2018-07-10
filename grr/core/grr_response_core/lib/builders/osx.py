@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """An implementation of an OSX client builder."""
+from __future__ import print_function
 import logging
 import os
 import shutil
@@ -7,7 +8,7 @@ import StringIO
 import subprocess
 import zipfile
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import build
 from grr.core.grr_response_core.lib import config_lib
 from grr.core.grr_response_core.lib import flags
@@ -145,7 +146,7 @@ class DarwinClientBuilder(build.ClientBuilder):
             "binaries signing...")
       return
 
-    print "Signing binaries with keychain: %s" % keychain_file
+    print("Signing binaries with keychain: %s" % keychain_file)
 
     with utils.TempDirectory() as temp_dir:
       # codesign needs the directory name to adhere to a particular
@@ -191,7 +192,7 @@ class DarwinClientBuilder(build.ClientBuilder):
               ["Client Context"] + self.context, validate=False))
 
   def RunCmd(self, command):
-    print "Running: %s" % " ".join(command)
+    print("Running: %s" % " ".join(command))
     subprocess.check_call(command)
 
   def Set755Permissions(self):
@@ -219,8 +220,8 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.RunCmd(command)
 
   def RenamePkgToTemplate(self, output_file):
-    print "Copying output to templates location: %s -> %s" % (
-        self.prodbuild_out_binary, output_file)
+    print("Copying output to templates location: %s -> %s" %
+          (self.prodbuild_out_binary, output_file))
     utils.EnsureDirExists(os.path.dirname(output_file))
     shutil.copyfile(self.prodbuild_out_binary, output_file)
 

@@ -22,7 +22,7 @@ def get_config():
   """Get INI parser with version.ini data."""
   ini_path = os.path.join(THIS_DIRECTORY, "version.ini")
   if not os.path.exists(ini_path):
-    ini_path = os.path.join(THIS_DIRECTORY, "../../../version.ini")
+    ini_path = os.path.join(THIS_DIRECTORY, "../../version.ini")
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
@@ -43,15 +43,8 @@ class Sdist(sdist):
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
     shutil.copy(
-        os.path.join(THIS_DIRECTORY, "../../../version.ini"), sdist_version_ini)
+        os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
 
-
-if "VIRTUAL_ENV" not in os.environ:
-  print "*****************************************************"
-  print "  WARNING: You are not installing in a virtual"
-  print "  environment. This configuration is not supported!!!"
-  print "  Expect breakage."
-  print "*****************************************************"
 
 setup_args = dict(
     name="grr-response-server",
@@ -65,21 +58,21 @@ setup_args = dict(
     entry_points={
         "console_scripts": [
             "grr_console = "
-            "grr.server.grr_response_server.distro_entry:Console",
+            "grr_response_server.distro_entry:Console",
             "grr_api_shell_raw_access = "
-            "grr.server.grr_response_server.distro_entry:ApiShellRawAccess",
+            "grr_response_server.distro_entry:ApiShellRawAccess",
             "grr_config_updater = "
-            "grr.server.grr_response_server.distro_entry:ConfigUpdater",
+            "grr_response_server.distro_entry:ConfigUpdater",
             "grr_frontend = "
-            "grr.server.grr_response_server.distro_entry:GrrFrontend",
+            "grr_response_server.distro_entry:GrrFrontend",
             "grr_server = "
-            "grr.server.grr_response_server.distro_entry:GrrServer",
+            "grr_response_server.distro_entry:GrrServer",
             "grr_worker = "
-            "grr.server.grr_response_server.distro_entry:Worker",
+            "grr_response_server.distro_entry:Worker",
             "grr_admin_ui = "
-            "grr.server.grr_response_server.distro_entry:AdminUI",
+            "grr_response_server.distro_entry:AdminUI",
             "grr_fuse = "
-            "grr.server.grr_response_server.distro_entry:GRRFuse",
+            "grr_response_server.distro_entry:GRRFuse",
         ]
     },
     install_requires=[

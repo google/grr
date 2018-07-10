@@ -4,7 +4,7 @@
 Each report plugin is a subclass of ReportPluginBase.
 """
 
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
+from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
 
 
 class ReportPluginBase(object):

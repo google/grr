@@ -11,12 +11,12 @@ from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store_utils
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import filestore
-from grr.server.grr_response_server.aff4_objects import filestore_test_lib
-from grr.server.grr_response_server.flows.general import file_finder
+from grr_response_server import aff4
+from grr_response_server import data_store_utils
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import filestore
+from grr_response_server.aff4_objects import filestore_test_lib
+from grr_response_server.flows.general import file_finder
 from grr.test_lib import action_mocks
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import db_test_lib

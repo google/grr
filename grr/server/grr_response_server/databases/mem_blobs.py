@@ -2,7 +2,7 @@
 """DB mixin for blobs-related methods."""
 
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import db
+from grr_response_server import db
 
 
 class _BlobRecord(object):

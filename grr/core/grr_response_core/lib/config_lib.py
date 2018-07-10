@@ -3,6 +3,7 @@
 
 This handles opening and parsing of config files.
 """
+from __future__ import print_function
 
 import collections
 import ConfigParser
@@ -446,7 +447,7 @@ class OrderedYamlDict(yaml.YAMLObject, collections.OrderedDict):
       key = loader.construct_object(key_node, deep=deep)
       try:
         hash(key)
-      except TypeError, exc:
+      except TypeError as exc:
         raise yaml.loader.ConstructorError(
             "while constructing a mapping", node.start_mark,
             "found unacceptable key (%s)" % exc, key_node.start_mark)
@@ -1091,7 +1092,7 @@ class GrrConfigManager(object):
     return result
 
   def PrintHelp(self):
-    print self.FormatHelp()
+    print(self.FormatHelp())
 
   default_descriptors = {
       str: type_info.String,
@@ -1801,7 +1802,7 @@ def ParseConfigCommandLine():
   # initialized so the user can examine what we think the value of all the
   # parameters are.
   if flags.FLAGS.config_help:
-    print "Configuration overview."
+    print("Configuration overview.")
 
     _CONFIG.PrintHelp()
     sys.exit(0)

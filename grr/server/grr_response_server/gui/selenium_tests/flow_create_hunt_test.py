@@ -5,11 +5,11 @@
 import unittest
 from grr.core.grr_response_core.lib import flags
 
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server.flows.general import processes as flows_processes
-from grr.server.grr_response_server.gui import gui_test_lib
-from grr.server.grr_response_server.output_plugins import email_plugin
+from grr_response_server import flow
+from grr_response_server import output_plugin
+from grr_response_server.flows.general import processes as flows_processes
+from grr_response_server.gui import gui_test_lib
+from grr_response_server.output_plugins import email_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import hunt_test_lib

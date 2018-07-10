@@ -8,7 +8,7 @@ import re
 import StringIO
 import zipfile
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 
 from grr.core.grr_response_core.lib import utils
@@ -17,18 +17,18 @@ from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import vfs_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import data_store_utils
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
-from grr.server.grr_response_server.flows.general import filesystem
-from grr.server.grr_response_server.flows.general import transfer
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui.api_plugins import client
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import data_store_utils
+from grr_response_server import flow
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server.flows.general import filesystem
+from grr_response_server.flows.general import transfer
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui.api_plugins import client
 
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Files can only be accessed if their first path component is from this list.
 ROOT_FILES_WHITELIST = ["fs", "registry", "temp"]

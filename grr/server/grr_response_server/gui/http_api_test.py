@@ -9,17 +9,17 @@ from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr.server.grr_response_server import access_control
+from grr_response_server import access_control
 
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import db
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
-from grr.server.grr_response_server.gui import api_auth_manager
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui import api_call_router
-from grr.server.grr_response_server.gui import api_test_lib
-from grr.server.grr_response_server.gui import http_api
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_test_lib
+from grr_response_server.gui import http_api
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 

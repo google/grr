@@ -3,10 +3,10 @@
 
 
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server.gui import api_call_router
-from grr.server.grr_response_server.gui import api_test_lib
+from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_test_lib
 
-from grr.server.grr_response_server.gui.api_plugins import reflection as reflection_plugin
+from grr_response_server.gui.api_plugins import reflection as reflection_plugin
 
 from grr.test_lib import test_lib
 

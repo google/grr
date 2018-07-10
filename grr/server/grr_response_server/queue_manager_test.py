@@ -9,9 +9,9 @@ from grr.core.grr_response_core.lib import queues
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import data_store
+from grr_response_server import queue_manager
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

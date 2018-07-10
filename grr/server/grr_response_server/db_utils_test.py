@@ -4,8 +4,8 @@ import logging
 import mock
 
 import unittest
-from grr.server.grr_response_server import db
-from grr.server.grr_response_server import db_utils
+from grr_response_server import db
+from grr_response_server import db_utils
 from grr.test_lib import stats_test_lib
 
 

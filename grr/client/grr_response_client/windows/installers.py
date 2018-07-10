@@ -27,8 +27,8 @@ import win32service
 import win32serviceutil
 import winerror
 
-from grr import config
 from grr_response_client import installer
+from grr.core.grr_response_core import config
 
 
 def StartService(service_name):

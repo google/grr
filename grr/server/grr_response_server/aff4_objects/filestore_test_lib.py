@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Helper functions for filestore testing."""
 
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server.flows.general import transfer
+from grr_response_server import events
+from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 

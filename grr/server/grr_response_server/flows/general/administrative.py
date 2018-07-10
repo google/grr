@@ -8,7 +8,7 @@ import time
 
 import jinja2
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import queues
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
@@ -21,20 +21,20 @@ from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import db
-from grr.server.grr_response_server import email_alerts
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import grr_collections
-from grr.server.grr_response_server import message_handlers
-from grr.server.grr_response_server import server_stubs
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import collects
-from grr.server.grr_response_server.aff4_objects import stats as aff4_stats
-from grr.server.grr_response_server.flows.general import discovery
-from grr.server.grr_response_server.hunts import implementation
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import email_alerts
+from grr_response_server import events
+from grr_response_server import flow
+from grr_response_server import grr_collections
+from grr_response_server import message_handlers
+from grr_response_server import server_stubs
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import collects
+from grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_server.flows.general import discovery
+from grr_response_server.hunts import implementation
 
 
 class AdministrativeInit(registry.InitHook):

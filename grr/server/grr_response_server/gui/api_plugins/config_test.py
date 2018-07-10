@@ -2,13 +2,13 @@
 """This modules contains tests for config API handler."""
 
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import maintenance_utils
-from grr.server.grr_response_server.gui import api_test_lib
-from grr.server.grr_response_server.gui.api_plugins import config as config_plugin
+from grr_response_server import maintenance_utils
+from grr_response_server.gui import api_test_lib
+from grr_response_server.gui.api_plugins import config as config_plugin
 from grr.test_lib import test_lib
 
 

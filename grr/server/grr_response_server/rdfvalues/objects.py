@@ -238,6 +238,10 @@ class HashID(rdfvalue.RDFValue):
 
   @classmethod
   def FromBytes(cls, raw):
+    if not isinstance(raw, bytes):
+      message = "Expected value of type `%s` but got `%s` instead"
+      raise ValueError(message % (bytes, raw))
+
     return cls(raw)
 
   def AsBytes(self):
@@ -390,6 +394,9 @@ class PathInfo(rdf_structs.RDFProtoStruct):
 
   def GetPathID(self):
     return PathID.FromComponents(self.components)
+
+  def GetParentPathID(self):
+    return PathID.FromComponents(self.components[:-1])
 
   def GetParent(self):
     """Constructs a path info corresponding to the parent of current path.

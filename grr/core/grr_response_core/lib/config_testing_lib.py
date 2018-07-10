@@ -5,7 +5,7 @@ import copy
 import logging
 
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import config_lib
 from grr.core.grr_response_core.lib import utils
 from grr.test_lib import test_lib

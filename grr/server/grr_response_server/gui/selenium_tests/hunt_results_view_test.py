@@ -8,13 +8,13 @@ import unittest
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.gui import api_call_router_with_approval_checks
-from grr.server.grr_response_server.gui import gui_test_lib
-from grr.server.grr_response_server.gui.api_plugins import hunt as api_hunt
-from grr.server.grr_response_server.output_plugins import csv_plugin
-from grr.server.grr_response_server.output_plugins import sqlite_plugin
-from grr.server.grr_response_server.output_plugins import yaml_plugin
+from grr_response_server import data_store
+from grr_response_server.gui import api_call_router_with_approval_checks
+from grr_response_server.gui import gui_test_lib
+from grr_response_server.gui.api_plugins import hunt as api_hunt
+from grr_response_server.output_plugins import csv_plugin
+from grr_response_server.output_plugins import sqlite_plugin
+from grr_response_server.output_plugins import yaml_plugin
 from grr.test_lib import db_test_lib
 
 

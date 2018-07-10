@@ -6,15 +6,15 @@ import logging
 
 # We need to import the server_plugins module before other server init modules.
 # pylint: disable=unused-import,g-bad-import-order
-from grr.server.grr_response_server import server_plugins
+from grr_response_server import server_plugins
 # pylint: disable=unused-import,g-bad-import-order
 
-from grr import config
-from grr.config import contexts
+from grr.core.grr_response_core import config
+from grr.core.grr_response_core.config import contexts
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import server_startup
+from grr_response_server import access_control
+from grr_response_server import data_store
+from grr_response_server import server_startup
 from grr_response_test.end_to_end_tests import runner
 
 flags.DEFINE_string("api_endpoint", "http://localhost:8000",

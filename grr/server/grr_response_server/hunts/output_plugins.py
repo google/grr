@@ -6,7 +6,7 @@
 # pickled OutputPlugin objects (OutputPlugin was renamed to
 # OutputPluginDescriptor).
 
-from grr.server.grr_response_server import output_plugin
+from grr_response_server import output_plugin
 
 # pylint: disable=invalid-name
 OutputPlugin = output_plugin.OutputPluginDescriptor

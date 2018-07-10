@@ -3,7 +3,7 @@
 
 import logging
 from fleetspeak.src.server.grpcservice.client import client as fs_client
-from grr import config
+from grr.core.grr_response_core import config
 
 # The singleton instance of the Fleetspeak connector.
 CONN = None

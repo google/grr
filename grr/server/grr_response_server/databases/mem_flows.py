@@ -7,7 +7,7 @@ import time
 
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import db_utils
+from grr_response_server import db_utils
 
 
 class InMemoryDBFlowMixin(object):

@@ -15,10 +15,10 @@ from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import rdf_yara
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.flows.general import yara_flows
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.flows.general import yara_flows
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib

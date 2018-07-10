@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Tests for grr.lib.objectfilter."""
+from __future__ import print_function
 
 
 import unittest

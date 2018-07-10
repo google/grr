@@ -4,9 +4,9 @@
 import time
 
 
-from grr import config
 from grr_response_client import vfs
 from grr_response_client.client_actions import standard
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import type_info
@@ -17,16 +17,16 @@ from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server import server_stubs
-from grr.server.grr_response_server.flows.general import filesystem
-from grr.server.grr_response_server.flows.general import transfer
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import output_plugin
+from grr_response_server import queue_manager
+from grr_response_server import server_stubs
+from grr_response_server.flows.general import filesystem
+from grr_response_server.flows.general import transfer
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib

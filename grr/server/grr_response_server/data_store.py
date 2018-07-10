@@ -33,6 +33,7 @@ More complex types should be encoded into bytes and stored in the data store as
 bytes. The data store can then treat the type as an opaque type (and will not be
 able to filter it directly).
 """
+from __future__ import print_function
 
 import abc
 import atexit
@@ -42,19 +43,19 @@ import random
 import sys
 import time
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import blob_store
-from grr.server.grr_response_server import db
-from grr.server.grr_response_server import stats_values
-from grr.server.grr_response_server.databases import registry_init
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import access_control
+from grr_response_server import blob_store
+from grr_response_server import db
+from grr_response_server import stats_values
+from grr_response_server.databases import registry_init
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 flags.DEFINE_bool("list_storage", False, "List all storage subsystems present.")
 
@@ -1658,7 +1659,7 @@ class DataStoreInit(registry.InitHook):
 
   def _ListStorageOptions(self):
     for name, cls in DataStore.classes.items():
-      print "%s\t\t%s" % (name, cls.__doc__)
+      print("%s\t\t%s" % (name, cls.__doc__))
 
   def Run(self):
     """Initialize the data_store."""
@@ -1674,8 +1675,8 @@ class DataStoreInit(registry.InitHook):
     except KeyError:
       msg = ("No Storage System %s found." %
              config.CONFIG["Datastore.implementation"])
-      print msg
-      print "Available options:"
+      print(msg)
+      print("Available options:")
       self._ListStorageOptions()
       raise ValueError(msg)
 

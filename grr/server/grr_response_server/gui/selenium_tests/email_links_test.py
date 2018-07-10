@@ -9,12 +9,12 @@ import unittest
 from grr.core.grr_response_core.lib import flags
 
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import email_alerts
-from grr.server.grr_response_server.aff4_objects import cronjobs
-from grr.server.grr_response_server.flows.cron import system as cron_system
-from grr.server.grr_response_server.gui import gui_test_lib
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
+from grr_response_server import email_alerts
+from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.flows.cron import system as cron_system
+from grr_response_server.gui import gui_test_lib
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
 
 

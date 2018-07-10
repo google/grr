@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This file contains various utility classes used by GRR."""
+from __future__ import print_function
 
 import array
 import base64
@@ -206,7 +207,7 @@ class LinkedList(object):
   def Print(self):
     p = self.next
     while p is not self:
-      print "%s: prev %r next %r\n" % (p.data, p.prev, p.next)
+      print("%s: prev %r next %r\n" % (p.data, p.prev, p.next))
       p = p.next
 
 
@@ -967,7 +968,7 @@ class StreamingZipGenerator(object):
       raise ValueError("An arcname must be provided.")
 
     zinfo = zipfile.ZipInfo(arcname, date_time)
-    zinfo.external_attr = (st[0] & 0xFFFF) << 16L  # Unix attributes
+    zinfo.external_attr = (st[0] & 0xFFFF) << 16  # Unix attributes
 
     if compress_type is None:
       zinfo.compress_type = self._compression

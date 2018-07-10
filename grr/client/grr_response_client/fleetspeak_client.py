@@ -15,8 +15,8 @@ import time
 
 from fleetspeak.src.client.daemonservice.client import client as fs_client
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
-from grr import config
 from grr_response_client import comms
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import communicator
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue

@@ -7,7 +7,7 @@ import logging
 import operator
 import re
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
@@ -17,24 +17,24 @@ from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import hunt_pb2
 
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server import foreman_rules
-from grr.server.grr_response_server import instant_output_plugin
-from grr.server.grr_response_server import notification
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server.flows.general import export
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui import api_call_handler_utils
-from grr.server.grr_response_server.gui.api_plugins import client as api_client
-from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
-from grr.server.grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
-from grr.server.grr_response_server.gui.api_plugins import vfs as api_vfs
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
+from grr_response_server import aff4
+from grr_response_server import events
+from grr_response_server import foreman_rules
+from grr_response_server import instant_output_plugin
+from grr_response_server import notification
+from grr_response_server import output_plugin
+from grr_response_server.flows.general import export
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import api_call_handler_utils
+from grr_response_server.gui.api_plugins import client as api_client
+from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
+from grr_response_server.gui.api_plugins import vfs as api_vfs
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
 
-from grr.server.grr_response_server.rdfvalues import hunts as rdf_hunts
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 

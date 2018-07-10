@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 """RDFValue implementations for hunts."""
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
-from grr.server.grr_response_server import foreman_rules
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import foreman_rules
+from grr_response_server import output_plugin
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class HuntNotification(rdf_structs.RDFProtoStruct):

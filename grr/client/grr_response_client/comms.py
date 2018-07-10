@@ -87,11 +87,11 @@ import requests
 
 from google.protobuf import json_format
 
-from grr import config
 from grr_response_client import actions
 from grr_response_client import client_stats
 from grr_response_client import client_utils
 from grr_response_client.client_actions import admin
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import communicator
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import queues

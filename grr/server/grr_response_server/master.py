@@ -15,7 +15,7 @@ will run into race conditions and have to disable the backup instances.
 import logging
 
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import stats
 

@@ -25,28 +25,28 @@ import yaml
 
 import unittest
 
-from grr import config
-
 from grr_response_client import comms
+
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
 
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr.server.grr_response_server import access_control
+from grr_response_server import access_control
 
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import artifact
-from grr.server.grr_response_server import client_index
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import email_alerts
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import filestore
-from grr.server.grr_response_server.aff4_objects import users
-from grr.server.grr_response_server.flows.general import audit
+from grr_response_server import aff4
+from grr_response_server import artifact
+from grr_response_server import client_index
+from grr_response_server import data_store
+from grr_response_server import email_alerts
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import filestore
+from grr_response_server.aff4_objects import users
+from grr_response_server.flows.general import audit
 
-from grr.server.grr_response_server.hunts import results as hunts_results
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.hunts import results as hunts_results
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 from grr.test_lib import testing_startup
 

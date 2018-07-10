@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This package contains GRR client templates."""
+from __future__ import print_function
 import ConfigParser
 import glob
 import os
@@ -67,7 +68,7 @@ class Sdist(sdist):
     base_dir = os.getcwd()
     self.CheckTemplates(base_dir, setup_args["version"])
     sdist.run(self)
-    print "To upload a release, run upload.sh [version]"
+    print("To upload a release, run upload.sh [version]")
 
   def make_release_tree(self, base_dir, files):
     sdist.make_release_tree(self, base_dir, files)
@@ -91,11 +92,11 @@ def find_data_files(source, prefix=None):
 
 
 if "VIRTUAL_ENV" not in os.environ:
-  print "*****************************************************"
-  print "  WARNING: You are not installing in a virtual"
-  print "  environment. This configuration is not supported!!!"
-  print "  Expect breakage."
-  print "*****************************************************"
+  print("*****************************************************")
+  print("  WARNING: You are not installing in a virtual")
+  print("  environment. This configuration is not supported!!!")
+  print("  Expect breakage.")
+  print("*****************************************************")
 
 setup_args = dict(
     name="grr-response-templates",

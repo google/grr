@@ -16,14 +16,14 @@ from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import handler_registry
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server import server_stubs
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import events
+from grr_response_server import flow
+from grr_response_server import handler_registry
+from grr_response_server import queue_manager
+from grr_response_server import server_stubs
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 

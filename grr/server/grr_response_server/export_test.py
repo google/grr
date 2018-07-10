@@ -18,17 +18,17 @@ from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import rdf_yara
 from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server import export
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import filestore
-from grr.server.grr_response_server.check_lib import checks
-from grr.server.grr_response_server.flows.general import collectors
-from grr.server.grr_response_server.flows.general import transfer
-from grr.server.grr_response_server.hunts import results as hunts_results
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import events
+from grr_response_server import export
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import filestore
+from grr_response_server.check_lib import checks
+from grr_response_server.flows.general import collectors
+from grr_response_server.flows.general import transfer
+from grr_response_server.hunts import results as hunts_results
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import export_test_lib

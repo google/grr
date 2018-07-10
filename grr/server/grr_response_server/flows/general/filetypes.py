@@ -4,8 +4,8 @@
 from grr.core.grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import server_stubs
+from grr_response_server import flow
+from grr_response_server import server_stubs
 
 
 class PlistValueFilterArgs(rdf_structs.RDFProtoStruct):

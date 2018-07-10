@@ -6,16 +6,16 @@ import threading
 
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import db
-from grr.server.grr_response_server.databases import mem_blobs
-from grr.server.grr_response_server.databases import mem_clients
-from grr.server.grr_response_server.databases import mem_cronjobs
-from grr.server.grr_response_server.databases import mem_events
-from grr.server.grr_response_server.databases import mem_flows
-from grr.server.grr_response_server.databases import mem_foreman_rules
-from grr.server.grr_response_server.databases import mem_paths
-from grr.server.grr_response_server.databases import mem_users
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import db
+from grr_response_server.databases import mem_blobs
+from grr_response_server.databases import mem_clients
+from grr_response_server.databases import mem_cronjobs
+from grr_response_server.databases import mem_events
+from grr_response_server.databases import mem_flows
+from grr_response_server.databases import mem_foreman_rules
+from grr_response_server.databases import mem_paths
+from grr_response_server.databases import mem_users
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 # pyformat: disable

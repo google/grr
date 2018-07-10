@@ -11,7 +11,7 @@ import socket
 import threading
 
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib import utils
@@ -125,7 +125,7 @@ class StatsServerInit(registry.InitHook):
       logging.info("Starting monitoring server on port %d.", port)
       try:
         # pylint: disable=g-import-not-at-top
-        from grr.server.grr_response_server.local import stats_server
+        from grr_response_server.local import stats_server
         # pylint: enable=g-import-not-at-top
         server_obj = stats_server.StatsServer(port)
         logging.debug("Using local StatsServer")

@@ -4,10 +4,10 @@
 
 
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import api_call_router
 
-from grr.server.grr_response_server.gui import api_call_router_without_checks
+from grr_response_server.gui import api_call_router_without_checks
 from grr.test_lib import test_lib
 
 

@@ -6,22 +6,22 @@ import random
 import threading
 import time
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import cronjobs
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import master
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import cronjobs
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import master
+from grr_response_server import queue_manager
+from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
 class Error(Exception):

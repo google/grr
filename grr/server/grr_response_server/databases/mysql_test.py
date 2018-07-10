@@ -10,9 +10,9 @@ import unittest
 import MySQLdb
 
 import unittest
-from grr.server.grr_response_server import db_test_mixin
-from grr.server.grr_response_server import db_utils
-from grr.server.grr_response_server.databases import mysql
+from grr_response_server import db_test_mixin
+from grr_response_server import db_utils
+from grr_response_server.databases import mysql
 from grr.test_lib import stats_test_lib
 
 
@@ -249,6 +249,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testListDescendentPathInfosAll(self):
+    pass
+
+  def testListDescendentPathInfosLimitedDirectory(self):
     pass
 
   def testListChildPathInfosRoot(self):

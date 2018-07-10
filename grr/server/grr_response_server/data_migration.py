@@ -11,11 +11,11 @@ from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import type_info
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 _CLIENT_BATCH_SIZE = 200
 _CLIENT_VERSION_THRESHOLD = rdfvalue.Duration("24h")

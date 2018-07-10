@@ -7,12 +7,12 @@ from grr.core.grr_response_core.lib import artifact_utils
 from grr.core.grr_response_core.lib import flags
 
 from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.flows.general import collectors
-from grr.server.grr_response_server.flows.general import file_finder
-from grr.server.grr_response_server.gui import api_call_robot_router as rr
-from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server import access_control
+from grr_response_server import flow
+from grr_response_server.flows.general import collectors
+from grr_response_server.flows.general import file_finder
+from grr_response_server.gui import api_call_robot_router as rr
+from grr_response_server.gui.api_plugins import flow as api_flow
 
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

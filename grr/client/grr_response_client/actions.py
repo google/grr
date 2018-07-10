@@ -10,8 +10,8 @@ import traceback
 
 import psutil
 
-from grr import config
 from grr_response_client import client_utils
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry

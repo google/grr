@@ -6,15 +6,15 @@ from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import cron_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui.api_plugins import flow as api_plugins_flow
-from grr.server.grr_response_server.hunts import standard
-from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui.api_plugins import flow as api_plugins_flow
+from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class CronJobNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -29,6 +29,13 @@ class ApiCronJobId(rdfvalue.RDFString):
       raise ValueError("Can't call ToURN() on an empty cron job id.")
 
     return aff4_cronjobs.CronManager.CRON_JOBS_PATH.Add(self._value)
+
+
+class ApiCronJobRunId(rdfvalue.RDFString):
+  """Class encapsulating cron job run ids."""
+
+  def ToURN(self, cron_job_id):
+    return cron_job_id.ToURN().Add(self._value)
 
 
 class ApiCronJob(rdf_structs.RDFProtoStruct):
@@ -147,6 +154,44 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
             cron_job_id=utils.SmartStr(self.cron_job_id)))
 
 
+class ApiCronJobRun(rdf_structs.RDFProtoStruct):
+  """ApiCronJobRun represents individual cron job runs."""
+  protobuf = cron_pb2.ApiCronJobRun
+  rdf_deps = [
+      ApiCronJobRunId,
+      rdfvalue.RDFDatetime,
+  ]
+
+  def InitFromApiFlow(self, f):
+    """Shortcut method for easy legacy cron jobs support."""
+
+    self.run_id = f.flow_id
+    self.started_at = f.started_at
+
+    flow_state_enum = api_plugins_flow.ApiFlow.State
+    errors_map = {
+        flow_state_enum.RUNNING: self.Status.RUNNING,
+        flow_state_enum.TERMINATED: self.Status.FINISHED,
+        flow_state_enum.ERROR: self.Status.ERROR,
+        flow_state_enum.CLIENT_CRASHED: self.Status.ERROR
+    }
+    self.status = errors_map[f.state]
+
+    if f.state != f.State.RUNNING:
+      self.finished_at = f.last_active_at
+
+    if f.context.kill_timestamp:
+      self.status = self.Status.LIFETIME_EXCEEDED
+
+    if f.context.HasField("status"):
+      self.log_message = f.context.status
+
+    if f.context.HasField("backtrace"):
+      self.backtrace = f.context.backtrace
+
+    return self
+
+
 class ApiListCronJobsArgs(rdf_structs.RDFProtoStruct):
   protobuf = cron_pb2.ApiListCronJobsArgs
 
@@ -204,49 +249,65 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
           "Cron job with id %s could not be found" % args.cron_job_id)
 
 
-class ApiListCronJobFlowsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiListCronJobFlowsArgs
+class ApiListCronJobRunsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = cron_pb2.ApiListCronJobRunsArgs
   rdf_deps = [
       ApiCronJobId,
   ]
 
 
-class ApiListCronJobFlowsHandler(api_call_handler_base.ApiCallHandler):
-  """Retrieves the given cron job's flows."""
+class ApiListCronJobRunsResult(rdf_structs.RDFProtoStruct):
+  protobuf = cron_pb2.ApiListCronJobRunsResult
+  rdf_deps = [
+      ApiCronJobRun,
+  ]
 
-  args_type = ApiListCronJobFlowsArgs
-  result_type = api_plugins_flow.ApiListFlowsResult
+
+class ApiListCronJobRunsHandler(api_call_handler_base.ApiCallHandler):
+  """Retrieves the given cron job's runs."""
+
+  args_type = ApiListCronJobRunsArgs
+  result_type = ApiListCronJobRunsResult
 
   def Handle(self, args, token=None):
-    return api_plugins_flow.ApiListFlowsHandler.BuildFlowList(
-        args.cron_job_id.ToURN(), args.count, args.offset, token=token)
+    # Note: this is a legacy AFF4 implementation.
+    flows_result = api_plugins_flow.ApiListFlowsHandler.BuildFlowList(
+        args.cron_job_id.ToURN(),
+        args.count,
+        args.offset,
+        with_state_and_context=True,
+        token=token)
+    return ApiListCronJobRunsResult(
+        items=[ApiCronJobRun().InitFromApiFlow(f) for f in flows_result.items])
 
 
-class ApiGetCronJobFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiGetCronJobFlowArgs
+class ApiGetCronJobRunArgs(rdf_structs.RDFProtoStruct):
+  protobuf = cron_pb2.ApiGetCronJobRunArgs
   rdf_deps = [
       ApiCronJobId,
-      api_plugins_flow.ApiFlowId,
+      ApiCronJobRunId,
   ]
 
 
-class ApiGetCronJobFlowHandler(api_call_handler_base.ApiCallHandler):
-  """Renders given cron flow.
+class ApiGetCronJobRunHandler(api_call_handler_base.ApiCallHandler):
+  """Renders given cron run.
 
   Only top-level flows can be targeted. Times returned in the response are micro
   seconds since epoch.
   """
 
-  args_type = ApiGetCronJobFlowArgs
-  result_type = api_plugins_flow.ApiFlow
+  args_type = ApiGetCronJobRunArgs
+  result_type = ApiCronJobRun
 
   def Handle(self, args, token=None):
-    flow_urn = args.flow_id.ResolveCronJobFlowURN(args.cron_job_id)
+    # Note: this is a legacy AFF4 implementation.
+    flow_urn = args.run_id.ToURN(args.cron_job_id)
     flow_obj = aff4.FACTORY.Open(
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
-
-    return api_plugins_flow.ApiFlow().InitFromAff4Object(
+    f = api_plugins_flow.ApiFlow().InitFromAff4Object(
         flow_obj, with_state_and_context=True)
+
+    return ApiCronJobRun().InitFromApiFlow(f)
 
 
 class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):

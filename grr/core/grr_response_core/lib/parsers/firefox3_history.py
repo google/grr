@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Parser for Mozilla Firefox3 3 History files."""
+from __future__ import print_function
 
 __program__ = "firefox3_history.py"
 
@@ -64,13 +65,13 @@ class Firefox3History(sqlite_file.SQLiteFile):
 
 def main(argv):
   if len(argv) < 2:
-    print "Usage: %s places.sqlite" % __program__
+    print("Usage: %s places.sqlite" % __program__)
     sys.exit(1)
 
   encoding = locale.getpreferredencoding()
 
   if encoding.upper() != "UTF-8":
-    print "%s requires an UTF-8 capable console/terminal" % __program__
+    print("%s requires an UTF-8 capable console/terminal" % __program__)
     sys.exit(1)
 
   files_to_process = []
@@ -92,7 +93,7 @@ def main(argv):
 
       output_string = "%s\t%s\t%s\t%s" % (date_string, entry_type, url, title)
 
-      print output_string.encode("UTF-8")
+      print(output_string.encode("UTF-8"))
 
 
 if __name__ == "__main__":

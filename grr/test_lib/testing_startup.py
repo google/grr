@@ -3,17 +3,17 @@
 
 import os
 
-from grr import config
-from grr.config import contexts
+from grr.core.grr_response_core import config
+from grr.core.grr_response_core.config import contexts
 from grr.core.grr_response_core.lib import config_lib
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import stats
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import server_logging
-from grr.server.grr_response_server.blob_stores import memory_stream_bs
-from grr.server.grr_response_server.data_stores import fake_data_store
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import server_logging
+from grr_response_server.blob_stores import memory_stream_bs
+from grr_response_server.data_stores import fake_data_store
 
 # Make sure we do not reinitialize multiple times.
 INIT_RAN = False

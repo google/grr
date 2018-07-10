@@ -6,15 +6,15 @@ import unittest
 from grr.core.grr_response_core.lib import flags
 
 from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server.flows.general import file_finder
-from grr.server.grr_response_server.gui import gui_test_lib
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr.server.grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr_response_server import access_control
+from grr_response_server import flow
+from grr_response_server import output_plugin
+from grr_response_server.flows.general import file_finder
+from grr_response_server.gui import gui_test_lib
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr.test_lib import db_test_lib
 
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Tests for triggers."""
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server.check_lib import triggers
+from grr_response_server.check_lib import triggers
 from grr.test_lib import test_lib
 
 target_1 = triggers.Target({})

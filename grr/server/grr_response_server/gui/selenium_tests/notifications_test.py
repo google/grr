@@ -5,13 +5,13 @@
 import unittest
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import notification
-from grr.server.grr_response_server.flows.general import discovery
-from grr.server.grr_response_server.gui import gui_test_lib
-from grr.server.grr_response_server.gui.api_plugins.client import ApiSearchClientsHandler
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server import notification
+from grr_response_server.flows.general import discovery
+from grr_response_server.gui import gui_test_lib
+from grr_response_server.gui.api_plugins.client import ApiSearchClientsHandler
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import db_test_lib
 
 

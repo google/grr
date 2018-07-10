@@ -26,25 +26,25 @@ from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import foreman
-from grr.server.grr_response_server import foreman_rules
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
-from grr.server.grr_response_server.aff4_objects import users
-from grr.server.grr_response_server.flows.general import processes
-from grr.server.grr_response_server.flows.general import transfer
-from grr.server.grr_response_server.gui import api_auth_manager
-from grr.server.grr_response_server.gui import api_call_router_with_approval_checks
-from grr.server.grr_response_server.gui import webauth
-from grr.server.grr_response_server.gui import wsgiapp_testlib
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import foreman
+from grr_response_server import foreman_rules
+from grr_response_server import output_plugin
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server.aff4_objects import users
+from grr_response_server.flows.general import processes
+from grr_response_server.flows.general import transfer
+from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_router_with_approval_checks
+from grr_response_server.gui import webauth
+from grr_response_server.gui import wsgiapp_testlib
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib as ar_test_lib

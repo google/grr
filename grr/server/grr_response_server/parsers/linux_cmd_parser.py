@@ -8,7 +8,7 @@ import re
 from grr.core.grr_response_core.lib import parser
 from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.server.grr_response_server import artifact_registry
+from grr_response_server import artifact_registry
 
 
 # TODO(user): Extend this to resolve repo/publisher to its baseurl.

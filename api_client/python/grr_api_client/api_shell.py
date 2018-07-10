@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """GRR API shell implementation."""
+from __future__ import print_function
 
 import argparse
 import logging
@@ -85,7 +86,7 @@ def main(argv=None):
       verify=verify)
 
   if flags.exec_code and flags.exec_file:
-    print "--exec_code --exec_file flags can't be supplied together"
+    print("--exec_code --exec_file flags can't be supplied together")
     sys.exit(1)
   elif flags.exec_code:
     # pylint: disable=exec-used

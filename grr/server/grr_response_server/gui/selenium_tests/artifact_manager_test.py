@@ -5,11 +5,11 @@
 import os
 
 import unittest
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server import artifact
-from grr.server.grr_response_server import artifact_registry
-from grr.server.grr_response_server.gui import gui_test_lib
+from grr_response_server import artifact
+from grr_response_server import artifact_registry
+from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
 
 

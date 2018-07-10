@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Update the artifacts directory from upstream."""
+from __future__ import print_function
 import fnmatch
 import glob
 import os
@@ -23,7 +24,7 @@ def main():
 
   for name in zip_obj.namelist():
     if fnmatch.fnmatch(name, "*/data/*.yaml"):
-      print "Extracting %s" % name
+      print("Extracting %s" % name)
       with open(os.path.basename(name), "wb") as fd:
         fd.write(zip_obj.open(name).read())
 

@@ -7,9 +7,9 @@ from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import fleetspeak_connector
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import fleetspeak_connector
 
 
 def IsFleetspeakEnabledClient(grr_id, token):

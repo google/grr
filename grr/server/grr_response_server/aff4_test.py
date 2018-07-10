@@ -14,17 +14,17 @@ from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import collects
-from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
-from grr.server.grr_response_server.data_stores import fake_data_store
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import collects
+from grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server.data_stores import fake_data_store
 # TODO(user): break the dependency cycle described in
 # aff4_objects/standard.py and remove this import.
 # pylint: disable=unused-import
-from grr.server.grr_response_server.flows.general import filesystem
+from grr_response_server.flows.general import filesystem
 # pylint: enable=unused-import
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import flow_test_lib

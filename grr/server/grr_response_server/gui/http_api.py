@@ -15,19 +15,19 @@ from werkzeug import wrappers as werkzeug_wrappers
 
 from google.protobuf import json_format
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
-from grr.server.grr_response_server.gui import api_auth_manager
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui import api_call_router
-from grr.server.grr_response_server.gui import api_value_renderers
+from grr_response_server import access_control
+from grr_response_server import data_store
+from grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_value_renderers
 
 
 class Error(Exception):

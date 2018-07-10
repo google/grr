@@ -6,7 +6,7 @@ import Queue
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
 
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 

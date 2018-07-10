@@ -7,10 +7,10 @@ import traceback
 from grr_api_client import connector
 from grr_api_client import errors
 from grr_api_client import utils
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui import api_call_router_without_checks
-from grr.server.grr_response_server.gui.root import api_root_router
+from grr_response_server import access_control
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import api_call_router_without_checks
+from grr_response_server.gui.root import api_root_router
 
 
 class RawConnector(connector.Connector):

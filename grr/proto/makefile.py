@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A script to prepare the source tree for building."""
+from __future__ import print_function
 
 # This script must have no special requirements because it wont be able to
 # import any GRR stuff until the protos are built.
@@ -79,7 +80,8 @@ def MakeProto():
           "--proto_path=%s" % ROOT,
           proto
       ]
-      print "Compiling %s with (cwd: %s): %s" % (proto, ROOT, " ".join(command))
+      print(
+          "Compiling %s with (cwd: %s): %s" % (proto, ROOT, " ".join(command)))
       # The protoc compiler is too dumb to deal with full paths - it expects a
       # relative path from the current working directory.
       subprocess.check_call(command, cwd=ROOT)

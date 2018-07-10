@@ -5,13 +5,13 @@ import urllib2
 import zlib
 
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import rekall_profile_server
-from grr.server.grr_response_server import server_stubs
+from grr_response_server import aff4
+from grr_response_server import rekall_profile_server
+from grr_response_server import server_stubs
 from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
 

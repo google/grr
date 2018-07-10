@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """Approvals checking logic."""
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.authorization import client_approval_auth
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import access_control
+from grr_response_server import data_store
+from grr_response_server.authorization import client_approval_auth
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def BuildLegacySubject(subject_id, approval_type):

@@ -4,11 +4,11 @@ from grr.core.grr_response_core.lib import parser
 from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import artifact
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.check_lib import checks
-from grr.server.grr_response_server.flows.general import collectors
+from grr_response_server import aff4
+from grr_response_server import artifact
+from grr_response_server import flow
+from grr_response_server.check_lib import checks
+from grr_response_server.flows.general import collectors
 
 
 class CheckFlowArgs(rdf_structs.RDFProtoStruct):

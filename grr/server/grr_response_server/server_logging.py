@@ -7,12 +7,12 @@ import os
 import socket
 import time
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 
 try:
   # pylint: disable=g-import-not-at-top
-  from grr.server.grr_response_server.local import log as local_log
+  from grr_response_server.local import log as local_log
   # pylint: enable=g-import-not-at-top
 except ImportError:
   local_log = None

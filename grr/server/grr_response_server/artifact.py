@@ -3,7 +3,7 @@
 
 import logging
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import artifact_utils
 from grr.core.grr_response_core.lib import parser
 from grr.core.grr_response_core.lib import rdfvalue
@@ -15,10 +15,10 @@ from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import artifact_registry
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
+from grr_response_server import aff4
+from grr_response_server import artifact_registry
+from grr_response_server import data_store
+from grr_response_server import flow
 
 
 def GetArtifactKnowledgeBase(client_obj, allow_uninitialized=False):

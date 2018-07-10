@@ -8,17 +8,17 @@ import socket
 
 import mock
 
-from grr import config
 from grr_response_client.client_actions import admin
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import client_index
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server.flows.general import discovery
+from grr_response_server import aff4
+from grr_response_server import client_index
+from grr_response_server import data_store
+from grr_response_server import events
+from grr_response_server.flows.general import discovery
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib

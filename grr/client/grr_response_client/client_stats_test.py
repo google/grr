@@ -6,9 +6,9 @@ import mock
 import psutil
 
 import unittest
-from grr import config
 from grr_response_client import client_stats
 from grr_response_client.client_actions import admin
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import stats
 from grr.test_lib import test_lib

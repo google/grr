@@ -4,14 +4,14 @@
 
 import jinja2
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import output_plugin_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import email_alerts
-from grr.server.grr_response_server import output_plugin
+from grr_response_server import aff4
+from grr_response_server import email_alerts
+from grr_response_server import output_plugin
 
 
 class EmailOutputPluginArgs(rdf_structs.RDFProtoStruct):

@@ -9,7 +9,7 @@ from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import output_plugin_pb2
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class RequestState(rdf_structs.RDFProtoStruct):

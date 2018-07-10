@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-"""Tests for grr.server.grr_response_server.aff4_objects.security."""
+"""Tests for grr_response_server.aff4_objects.security."""
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server.aff4_objects import security
-from grr.server.grr_response_server.aff4_objects import users
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server.aff4_objects import security
+from grr_response_server.aff4_objects import users
 from grr.test_lib import acl_test_lib
 from grr.test_lib import test_lib
 

@@ -5,7 +5,7 @@ import logging
 import os
 import re
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import parser
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.parsers import config_file

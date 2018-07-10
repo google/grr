@@ -76,7 +76,8 @@ class DomainEmailAddress(EmailAddress):
   def ParseFromString(self, value):
     super(DomainEmailAddress, self).ParseFromString(value)
 
-    # TODO(user): dependency loop with grr/config/client.py.
+    # TODO(user): dependency loop with
+    # core/grr_response_core/grr/config/client.py.
     # pylint: disable=protected-access
     domain = config_lib._CONFIG["Logging.domain"]
     # pylint: enable=protected-access

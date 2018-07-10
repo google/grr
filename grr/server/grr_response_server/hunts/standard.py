@@ -13,18 +13,18 @@ from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import grr_collections
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server.aff4_objects import cronjobs
-from grr.server.grr_response_server.flows.general import transfer
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr.server.grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import events
+from grr_response_server import flow
+from grr_response_server import grr_collections
+from grr_response_server import output_plugin
+from grr_response_server import queue_manager
+from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.flows.general import transfer
+from grr_response_server.hunts import implementation
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import hunts as rdf_hunts
 
 
 class Error(Exception):

@@ -12,14 +12,14 @@ from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
 from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import client_index
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import fleetspeak_connector
-from grr.server.grr_response_server import fleetspeak_utils
-from grr.server.grr_response_server.flows.general import audit
-from grr.server.grr_response_server.gui import api_test_lib
-from grr.server.grr_response_server.gui.api_plugins import client as client_plugin
+from grr_response_server import aff4
+from grr_response_server import client_index
+from grr_response_server import data_store
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
+from grr_response_server.flows.general import audit
+from grr_response_server.gui import api_test_lib
+from grr_response_server.gui.api_plugins import client as client_plugin
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib

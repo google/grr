@@ -11,8 +11,8 @@ import yaml
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server.output_plugins import csv_plugin
-from grr.server.grr_response_server.output_plugins import test_plugins
+from grr_response_server.output_plugins import csv_plugin
+from grr_response_server.output_plugins import test_plugins
 from grr.test_lib import test_lib
 
 
@@ -35,7 +35,7 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
                   path="/foo/bar/%d" % i, pathtype="OS"),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
               st_ino=1063090,
-              st_dev=64512L,
+              st_dev=64512,
               st_nlink=1 + i,
               st_uid=139592,
               st_gid=5000,

@@ -5,18 +5,18 @@
 import mock
 
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server import access_control
+from grr_response_server import access_control
 
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui import api_call_router_with_approval_checks as api_router
-from grr.server.grr_response_server.gui.api_plugins import client as api_client
-from grr.server.grr_response_server.gui.api_plugins import cron as api_cron
-from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
-from grr.server.grr_response_server.gui.api_plugins import hunt as api_hunt
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import api_call_router_with_approval_checks as api_router
+from grr_response_server.gui.api_plugins import client as api_client
+from grr_response_server.gui.api_plugins import cron as api_cron
+from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.gui.api_plugins import hunt as api_hunt
 
-from grr.server.grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.gui.api_plugins import user as api_user
 
-from grr.server.grr_response_server.gui.api_plugins import vfs as api_vfs
+from grr_response_server.gui.api_plugins import vfs as api_vfs
 
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib

@@ -3,8 +3,8 @@
 
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server.aff4_objects import standard
+from grr_response_server import aff4
+from grr_response_server.aff4_objects import standard
 
 
 class ClientStats(standard.VFSDirectory):

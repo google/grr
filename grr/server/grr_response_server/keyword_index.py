@@ -7,8 +7,8 @@ possible to search for those names which match all keywords.
 """
 
 
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
+from grr_response_server import aff4
+from grr_response_server import data_store
 
 
 # TODO(amoser): This class is deprecated, remove at some point.

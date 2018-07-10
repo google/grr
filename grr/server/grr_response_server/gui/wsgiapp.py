@@ -18,15 +18,15 @@ from werkzeug import routing as werkzeug_routing
 from werkzeug import wrappers as werkzeug_wrappers
 from werkzeug import wsgi as werkzeug_wsgi
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import server_logging
-from grr.server.grr_response_server.gui import http_api
-from grr.server.grr_response_server.gui import webauth
+from grr_response_server import access_control
+from grr_response_server import server_logging
+from grr_response_server.gui import http_api
+from grr_response_server.gui import webauth
 
 CSRF_DELIMITER = ":"
 CSRF_TOKEN_DURATION = rdfvalue.Duration("10h")
@@ -334,7 +334,7 @@ class GuiPluginsInit(registry.InitHook):
   def RunOnce(self):
     """Import the plugins once only."""
     # pylint: disable=unused-variable,g-import-not-at-top
-    from grr.server.grr_response_server.gui import gui_plugins
+    from grr_response_server.gui import gui_plugins
     # pylint: enable=unused-variable,g-import-not-at-top
 
     if config.CONFIG.Get("AdminUI.django_secret_key", None):

@@ -4,8 +4,6 @@ r"""This is the GRR client for Fleetspeak enabled installations.
 
 import pdb
 
-from grr import config
-
 # pylint: disable=unused-import
 from grr_response_client import client_plugins
 # pylint: enable=unused-import
@@ -13,14 +11,16 @@ from grr_response_client import client_plugins
 from grr_response_client import client_startup
 from grr_response_client import fleetspeak_client
 from grr_response_client import installer
-from grr.config import contexts
+from grr.core.grr_response_core import config
+from grr.core.grr_response_core.config import contexts
 from grr.core.grr_response_core.lib import flags
 
 flags.DEFINE_bool("install", False, "Specify this to install the client.")
 
-flags.DEFINE_bool("break_on_start", False,
-                  "If True break into a pdb shell immediately on startup. This"
-                  " can be used for debugging the client manually.")
+flags.DEFINE_bool(
+    "break_on_start", False,
+    "If True break into a pdb shell immediately on startup. This"
+    " can be used for debugging the client manually.")
 
 
 def main(unused_args):

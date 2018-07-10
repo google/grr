@@ -50,7 +50,7 @@ pip install -e grr/client/
 pip install -e api_client/python/
 
 # Depends on grr-response-client
-pip install -e grr/config/grr-response-server/[mysqldatastore]
+pip install -e grr/server/[mysqldatastore]
 
 # Depends on grr-response-server and grr-api-client
 pip install -e grr/test

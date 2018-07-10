@@ -6,7 +6,7 @@ from grr_response_proto import tests_pb2
 # This import guarantees that all API-related RDF types will get imported
 # (as they're all references by api_call_router).
 # pylint: disable=unused-import
-from grr.server.grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_call_router
 # pylint: enable=unused-import
 from grr.test_lib import acl_test_lib
 from grr.test_lib import test_lib

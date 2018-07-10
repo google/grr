@@ -9,7 +9,7 @@ from grr.core.grr_response_core.lib import type_info
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 
-from grr.server.grr_response_server.rdfvalues import aff4 as rdf_aff4
+from grr_response_server.rdfvalues import aff4 as rdf_aff4
 from grr.test_lib import test_lib
 
 

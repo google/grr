@@ -66,17 +66,17 @@ from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 # Note: OutputPluginDescriptor is also needed implicitly by FlowRunnerArgs
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import grr_collections
-from grr.server.grr_response_server import multi_type_collection
-from grr.server.grr_response_server import notification as notification_lib
-from grr.server.grr_response_server import output_plugin as output_plugin_lib
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server import sequential_collection
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import grr_collections
+from grr_response_server import multi_type_collection
+from grr_response_server import notification as notification_lib
+from grr_response_server import output_plugin as output_plugin_lib
+from grr_response_server import queue_manager
+from grr_response_server import sequential_collection
+from grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class FlowRunnerError(Exception):

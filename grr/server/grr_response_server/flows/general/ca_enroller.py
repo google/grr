@@ -10,13 +10,13 @@ from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import client_index
-from grr.server.grr_response_server import data_migration
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import message_handlers
-from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr_response_server import aff4
+from grr_response_server import client_index
+from grr_response_server import data_migration
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import message_handlers
+from grr_response_server.aff4_objects import aff4_grr
 
 
 class CAEnrolerArgs(rdf_structs.RDFProtoStruct):

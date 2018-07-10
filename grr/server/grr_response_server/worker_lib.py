@@ -7,7 +7,7 @@ import time
 import traceback
 
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import queues as queues_config
 from grr.core.grr_response_core.lib import rdfvalue
@@ -15,17 +15,17 @@ from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import handler_registry
-from grr.server.grr_response_server import master
-from grr.server.grr_response_server import queue_manager as queue_manager_lib
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import handler_registry
+from grr_response_server import master
+from grr_response_server import queue_manager as queue_manager_lib
 # pylint: disable=unused-import
-from grr.server.grr_response_server import server_stubs
+from grr_response_server import server_stubs
 # pylint: enable=unused-import
-from grr.server.grr_response_server import threadpool
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import threadpool
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
 class Error(Exception):

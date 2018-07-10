@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tool for mounting AFF4 datastore over FUSE."""
+from __future__ import print_function
 
 import datetime
 import errno
@@ -10,25 +11,25 @@ import sys
 
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.server.grr_response_server.flows.general import filesystem
-from grr.server.grr_response_server import server_plugins
+from grr_response_server.flows.general import filesystem
+from grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr import config
-from grr.config import contexts
-from grr.config import server as config_server
+from grr.core.grr_response_core import config
+from grr.core.grr_response_core.config import contexts
+from grr.core.grr_response_core.config import server as config_server
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import type_info
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow_utils
-from grr.server.grr_response_server import server_startup
-from grr.server.grr_response_server.aff4_objects import standard
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow_utils
+from grr_response_server import server_startup
+from grr_response_server.aff4_objects import standard
 
 # Check if fuse is installed. If it's not, set it to None so we know to mock it
 # out later.
@@ -552,7 +553,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
 
 
 def Usage():
-  print "Needs at least --mountpoint"
+  print("Needs at least --mountpoint")
   print("e.g. \n python grr/tools/fuse_mount.py "
         "--config=install_data/etc/grr-server.yaml "
         "--mountpoint=/home/%s/mntpoint" % getpass.getuser())

@@ -3,6 +3,7 @@
 
 We can schedule a new flow for a specific client.
 """
+from __future__ import print_function
 
 # pylint: disable=unused-import
 # Import things that are useful from the console.
@@ -18,40 +19,40 @@ import time
 
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.server.grr_response_server import server_plugins
+from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order
 
-from grr import config
-from grr.config import contexts
-from grr.config import server as config_server
+from grr.core.grr_response_core import config
+from grr.core.grr_response_core.config import contexts
+from grr.core.grr_response_core.config import server as config_server
 from grr.core.grr_response_core.lib import artifact_utils
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import type_info
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import artifact
-from grr.server.grr_response_server import console_utils
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import export_utils
-from grr.server.grr_response_server import fleetspeak_connector
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import flow_runner
-from grr.server.grr_response_server import flow_utils
-from grr.server.grr_response_server import hunts
-from grr.server.grr_response_server import ipshell
-from grr.server.grr_response_server import maintenance_utils
-from grr.server.grr_response_server import server_startup
-from grr.server.grr_response_server import worker_lib
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import security
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import artifact
+from grr_response_server import console_utils
+from grr_response_server import data_store
+from grr_response_server import export_utils
+from grr_response_server import fleetspeak_connector
+from grr_response_server import flow
+from grr_response_server import flow_runner
+from grr_response_server import flow_utils
+from grr_response_server import hunts
+from grr_response_server import ipshell
+from grr_response_server import maintenance_utils
+from grr_response_server import server_startup
+from grr_response_server import worker_lib
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import security
 
 # All the functions in this lib we want in local namespace.
 # pylint: disable=wildcard-import
-from grr.server.grr_response_server.console_utils import *
+from grr_response_server.console_utils import *
 # pylint: enable=wildcard-import
 
-from grr.server.grr_response_server.flows.general import memory
+from grr_response_server.flows.general import memory
 # pylint: enable=unused-import
 
 flags.DEFINE_string(
@@ -82,7 +83,7 @@ flags.DEFINE_version(config_server.VERSION["packageversion"])
 
 def Lister(arg):
   for x in arg:
-    print x
+    print(x)
 
 
 def GetChildrenList(urn, token=None):

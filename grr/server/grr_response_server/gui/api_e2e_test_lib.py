@@ -15,11 +15,11 @@ import portpicker
 from grr_api_client import api as grr_api
 from grr_api_client import utils as grr_api_utils
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server.gui import api_auth_manager
-from grr.server.grr_response_server.gui import api_call_router_without_checks
-from grr.server.grr_response_server.gui import webauth
-from grr.server.grr_response_server.gui import wsgiapp_testlib
-from grr.server.grr_response_server.gui.root import api_root_router
+from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_router_without_checks
+from grr_response_server.gui import webauth
+from grr_response_server.gui import wsgiapp_testlib
+from grr_response_server.gui.root import api_root_router
 from grr.test_lib import acl_test_lib
 from grr.test_lib import test_lib
 

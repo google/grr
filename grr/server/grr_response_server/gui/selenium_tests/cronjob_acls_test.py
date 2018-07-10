@@ -5,9 +5,9 @@
 import unittest
 from grr.core.grr_response_core.lib import flags
 
-from grr.server.grr_response_server.aff4_objects import cronjobs
-from grr.server.grr_response_server.flows.cron import system as cron_system
-from grr.server.grr_response_server.gui import gui_test_lib
+from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.flows.cron import system as cron_system
+from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
 
 

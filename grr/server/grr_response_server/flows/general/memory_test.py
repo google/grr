@@ -8,28 +8,28 @@ import gzip
 import json
 import os
 
-from grr import config
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import server_stubs
-from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server import server_stubs
+from grr_response_server.aff4_objects import aff4_grr
 # TODO(user): break the dependency cycle described in memory.py and
 # and remove this import.
 # pylint: disable=unused-import
-from grr.server.grr_response_server.flows.general import collectors
+from grr_response_server.flows.general import collectors
 # pylint: enable=unused-import
-from grr.server.grr_response_server.flows.general import filesystem
-from grr.server.grr_response_server.flows.general import memory
-from grr.server.grr_response_server.flows.general import transfer
+from grr_response_server.flows.general import filesystem
+from grr_response_server.flows.general import memory
+from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import rekall_test_lib

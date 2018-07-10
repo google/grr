@@ -7,7 +7,7 @@ from grr.core.grr_response_core.lib import flags
 from grr_response_proto.api import client_pb2
 from grr_response_proto.api import vfs_pb2
 from grr_response_proto.api.root import user_management_pb2
-from grr.server.grr_response_server.bin import api_shell_raw_access_lib
+from grr_response_server.bin import api_shell_raw_access_lib
 from grr.test_lib import acl_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib

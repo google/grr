@@ -13,7 +13,7 @@ from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_proto import objects_pb2
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 

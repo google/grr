@@ -4,12 +4,12 @@
 from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api.root import user_management_pb2
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server.aff4_objects import users
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import events
+from grr_response_server.aff4_objects import users
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui.api_plugins import user as api_user
 
 
 class ApiCreateGrrUserArgs(rdf_structs.RDFProtoStruct):

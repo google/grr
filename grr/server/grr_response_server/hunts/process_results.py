@@ -7,13 +7,13 @@ import logging
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server.aff4_objects import cronjobs
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import results as hunts_results
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import output_plugin
+from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import results as hunts_results
 
 
 class ResultsProcessingError(Exception):

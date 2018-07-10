@@ -13,14 +13,14 @@ from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_proto import jobs_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import fleetspeak_connector
-from grr.server.grr_response_server import fleetspeak_utils
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server.bin import fleetspeak_frontend as fs_frontend_tool
-from grr.server.grr_response_server.flows.general import processes as flow_processes
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
+from grr_response_server import flow
+from grr_response_server import queue_manager
+from grr_response_server.bin import fleetspeak_frontend as fs_frontend_tool
+from grr_response_server.flows.general import processes as flow_processes
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
@@ -225,7 +225,7 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
             ppid=1,
             cmdline=["cmd.exe"],
             exe=r"c:\windows\cmd.exe",
-            ctime=1333718907167083L)
+            ctime=1333718907167083)
     ])
     client_mock.mock_task_queue = []
 
@@ -262,7 +262,7 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(len(processes), 1)
     process, = processes
 
-    self.assertEqual(process.ctime, 1333718907167083L)
+    self.assertEqual(process.ctime, 1333718907167083)
     self.assertEqual(process.cmdline, ["cmd.exe"])
 
 

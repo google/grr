@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """System cron flows tests."""
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import stats as aff4_stats
-from grr.server.grr_response_server.flows.cron import system
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_server.flows.cron import system
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -151,10 +151,10 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     data = [(x.x_value, x.y_value) for x in histogram]
 
-    self.assertEqual(
-        data, [(86400000000L, 0L), (172800000000L, 0L), (259200000000L, 0L),
-               (604800000000L, 0L), (1209600000000L, count),
-               (2592000000000L, count), (5184000000000L, count)])
+    self.assertEqual(data,
+                     [(86400000000, 0), (172800000000, 0), (259200000000, 0),
+                      (604800000000, 0), (1209600000000, count),
+                      (2592000000000, count), (5184000000000, count)])
 
   def testLastAccessStats(self):
     """Check that all client stats cron jobs are run."""
@@ -162,13 +162,13 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
         system.LastAccessStats.__name__, token=self.token)
 
     # All our clients appeared at the same time (and did not appear since).
-    self._CheckAccessStats("All", count=20L)
+    self._CheckAccessStats("All", count=20)
 
     # All our clients appeared at the same time but this label is only half.
-    self._CheckAccessStats("Label1", count=10L)
+    self._CheckAccessStats("Label1", count=10)
 
     # All our clients appeared at the same time but this label is only half.
-    self._CheckAccessStats("Label2", count=10L)
+    self._CheckAccessStats("Label2", count=10)
 
   def testPurgeClientStats(self):
     client_id = test_lib.TEST_CLIENT_ID

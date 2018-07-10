@@ -12,17 +12,17 @@ import time
 import warnings
 import MySQLdb
 
-from grr.server.grr_response_server import db as db_module
-from grr.server.grr_response_server.databases import mysql_blobs
-from grr.server.grr_response_server.databases import mysql_clients
-from grr.server.grr_response_server.databases import mysql_cronjobs
-from grr.server.grr_response_server.databases import mysql_ddl
-from grr.server.grr_response_server.databases import mysql_events
-from grr.server.grr_response_server.databases import mysql_flows
-from grr.server.grr_response_server.databases import mysql_foreman_rules
-from grr.server.grr_response_server.databases import mysql_paths
-from grr.server.grr_response_server.databases import mysql_pool
-from grr.server.grr_response_server.databases import mysql_users
+from grr_response_server import db as db_module
+from grr_response_server.databases import mysql_blobs
+from grr_response_server.databases import mysql_clients
+from grr_response_server.databases import mysql_cronjobs
+from grr_response_server.databases import mysql_ddl
+from grr_response_server.databases import mysql_events
+from grr_response_server.databases import mysql_flows
+from grr_response_server.databases import mysql_foreman_rules
+from grr_response_server.databases import mysql_paths
+from grr_response_server.databases import mysql_pool
+from grr_response_server.databases import mysql_users
 
 # Maximum retry count:
 _MAX_RETRY_COUNT = 5

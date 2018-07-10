@@ -2,10 +2,10 @@
 """This modules contains regression tests for config API handler."""
 
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server.gui import api_regression_test_lib
-from grr.server.grr_response_server.gui.api_plugins import config as config_plugin
+from grr_response_server.gui import api_regression_test_lib
+from grr_response_server.gui.api_plugins import config as config_plugin
 
-from grr.server.grr_response_server.gui.api_plugins import config_test as config_plugin_test
+from grr_response_server.gui.api_plugins import config_test as config_plugin_test
 
 
 class ApiListGrrBinariesHandlerRegressionTest(

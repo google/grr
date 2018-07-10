@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """Tests for grr.server.authorization.client_approval_auth."""
+from __future__ import print_function
 
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server.authorization import client_approval_auth
+from grr_response_server import access_control
+from grr_response_server.authorization import client_approval_auth
 from grr.test_lib import test_lib
 
 
@@ -32,7 +33,7 @@ class ClientApprovalAuthorizationTest(rdf_test_base.RDFValueTestMixin,
     acl = client_approval_auth.ClientApprovalAuthorization(users=["test"])
     with self.assertRaises(
         client_approval_auth.ErrorInvalidClientApprovalAuthorization):
-      print acl.label
+      print(acl.label)
 
     # Bad label
     with self.assertRaises(

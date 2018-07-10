@@ -7,15 +7,15 @@ import urllib2
 import zlib
 
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import server_stubs
-from grr.server.grr_response_server import threadpool
-from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import server_stubs
+from grr_response_server import threadpool
+from grr_response_server.aff4_objects import aff4_grr
 
 
 class ProfileServer(object):

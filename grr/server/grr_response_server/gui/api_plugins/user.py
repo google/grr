@@ -8,7 +8,7 @@ import logging
 
 import jinja2
 
-from grr import config
+from grr.core.grr_response_core import config
 
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
@@ -18,29 +18,29 @@ from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import user_pb2
 
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import db
-from grr.server.grr_response_server import email_alerts
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import notification as notification_lib
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
-from grr.server.grr_response_server.aff4_objects import security as aff4_security
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
-from grr.server.grr_response_server.flows.general import administrative
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui import approval_checks
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import email_alerts
+from grr_response_server import flow
+from grr_response_server import notification as notification_lib
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
+from grr_response_server.aff4_objects import security as aff4_security
+from grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.flows.general import administrative
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import approval_checks
 
-from grr.server.grr_response_server.gui.api_plugins import client as api_client
+from grr_response_server.gui.api_plugins import client as api_client
 
-from grr.server.grr_response_server.gui.api_plugins import cron as api_cron
-from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
-from grr.server.grr_response_server.gui.api_plugins import hunt as api_hunt
-from grr.server.grr_response_server.hunts import implementation
+from grr_response_server.gui.api_plugins import cron as api_cron
+from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.gui.api_plugins import hunt as api_hunt
+from grr_response_server.hunts import implementation
 
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class GlobalNotificationNotFoundError(

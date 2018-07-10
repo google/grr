@@ -4,7 +4,7 @@
 import itertools
 import re
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
@@ -12,20 +12,20 @@ from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import flow_pb2
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import instant_output_plugin
-from grr.server.grr_response_server import notification
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui import api_call_handler_utils
-from grr.server.grr_response_server.gui.api_plugins import client
-from grr.server.grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server import instant_output_plugin
+from grr_response_server import notification
+from grr_response_server import output_plugin
+from grr_response_server import queue_manager
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import api_call_handler_utils
+from grr_response_server.gui.api_plugins import client
+from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -768,7 +768,11 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
       return obj.Get(obj.Schema.LAST, 0)
 
   @staticmethod
-  def BuildFlowList(root_urn, count, offset, token=None):
+  def BuildFlowList(root_urn,
+                    count,
+                    offset,
+                    with_state_and_context=False,
+                    token=None):
     if not count:
       stop = None
     else:
@@ -804,7 +808,10 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
             flow_id = "%s/%s" % (parent_id, urn.Basename())
           else:
             flow_id = urn.Basename()
-          api_flow = ApiFlow().InitFromAff4Object(fd, flow_id=flow_id)
+          api_flow = ApiFlow().InitFromAff4Object(
+              fd,
+              flow_id=flow_id,
+              with_state_and_context=with_state_and_context)
         except AttributeError:
           # If this doesn't work there's no way to recover.
           continue

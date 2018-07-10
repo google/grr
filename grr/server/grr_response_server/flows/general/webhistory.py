@@ -14,10 +14,10 @@ from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_fin
 from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import flow_utils
-from grr.server.grr_response_server.flows.general import file_finder
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server import flow_utils
+from grr_response_server.flows.general import file_finder
 
 
 class ChromeHistoryArgs(rdf_structs.RDFProtoStruct):

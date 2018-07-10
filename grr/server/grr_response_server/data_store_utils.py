@@ -6,10 +6,10 @@ This module serves simple functions that delegate calls to appropriate store
 provided in this module should be no longer useful.
 """
 
-from grr import config
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr.core.grr_response_core import config
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def GetClientVersion(client_id, token=None):

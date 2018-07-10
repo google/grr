@@ -6,12 +6,12 @@ and must be accessed from a machine that runs GRR services directly (it runs
 on top of a server bound to "localhost").
 """
 
-from grr.server.grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_call_router
 
-from grr.server.grr_response_server.gui.api_plugins import reflection as api_reflection
-from grr.server.grr_response_server.gui.api_plugins import user as api_user
-from grr.server.grr_response_server.gui.root.api_plugins import binary_management as api_binary_management
-from grr.server.grr_response_server.gui.root.api_plugins import user_management as api_user_management
+from grr_response_server.gui.api_plugins import reflection as api_reflection
+from grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.gui.root.api_plugins import binary_management as api_binary_management
+from grr_response_server.gui.root.api_plugins import user_management as api_user_management
 
 
 class ApiRootRouter(api_call_router.ApiCallRouter):

@@ -66,6 +66,28 @@ message ApiCronJob {
     }];
 }
 
+message ApiCronJobRun {
+  optional string run_id = 1 [(sem_type) = {
+      type: "ApiCronJobRunId"
+    }];
+  optional uint64 started_at = 2 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+  optional uint64 finished_at = 3 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+  enum Status {
+    UNSET = 0;
+    RUNNING = 1;
+    FINISHED = 2;
+    ERROR = 3;
+    LIFETIME_EXCEEDED = 4;
+  };
+  optional Status status = 4;
+  optional string log_message = 5;
+  optional string backtrace = 6;
+}
+
 //
 // Method arguments and results.
 //
@@ -112,7 +134,14 @@ message ApiModifyCronJobArgs {
     }];
 }
 
-message ApiListCronJobFlowsArgs {
+message ApiDeleteCronJobArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId",
+      description: "The id of the cron job."
+    }];
+};
+
+message ApiListCronJobRunsArgs {
   optional string cron_job_id = 1 [(sem_type) = {
       type: "ApiCronJobId",
       description: "Cron job id."
@@ -125,20 +154,17 @@ message ApiListCronJobFlowsArgs {
     }];
 };
 
-message ApiGetCronJobFlowArgs {
+message ApiListCronJobRunsResult {
+  repeated ApiCronJobRun items = 1;
+}
+
+message ApiGetCronJobRunArgs {
   optional string cron_job_id = 1 [(sem_type) = {
       type: "ApiCronJobId",
       description: "Cron job id."
     }];
-  optional string flow_id = 2 [(sem_type) = {
-      type: "ApiFlowId",
+  optional string run_id = 2 [(sem_type) = {
+      type: "ApiCronJobRunId",
       description: "Flow id."
     }];
 }
-
-message ApiDeleteCronJobArgs {
-  optional string cron_job_id = 1 [(sem_type) = {
-      type: "ApiCronJobId",
-      description: "The id of the cron job."
-    }];
-};

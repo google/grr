@@ -31,7 +31,7 @@ function build_sdists() {
       --formats=zip --dist-dir="${PWD}/sdists"
   python api_client/python/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
-  python grr/config/grr-response-server/setup.py --quiet sdist \
+  python grr/server/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
   python grr/test/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"

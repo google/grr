@@ -10,20 +10,20 @@ import os
 import mock
 import psutil
 
-from grr import config
 from grr_response_client.client_actions import standard
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import artifact_utils
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import artifact
-from grr.server.grr_response_server import artifact_registry
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import sequential_collection
-from grr.server.grr_response_server.flows.general import collectors
+from grr_response_server import aff4
+from grr_response_server import artifact
+from grr_response_server import artifact_registry
+from grr_response_server import flow
+from grr_response_server import sequential_collection
+from grr_response_server.flows.general import collectors
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib

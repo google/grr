@@ -20,10 +20,10 @@ from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import export_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store_utils
-from grr.server.grr_response_server.aff4_objects import filestore
-from grr.server.grr_response_server.flows.general import collectors as flow_collectors
+from grr_response_server import aff4
+from grr_response_server import data_store_utils
+from grr_response_server.aff4_objects import filestore
+from grr_response_server.flows.general import collectors as flow_collectors
 
 try:
   # pylint: disable=g-import-not-at-top

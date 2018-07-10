@@ -7,8 +7,6 @@ import threading
 import time
 
 
-from grr import config
-
 # pylint: disable=unused-import
 # Make sure we load the client plugins
 from grr_response_client import client_plugins
@@ -17,25 +15,27 @@ from grr_response_client import client_plugins
 from grr_response_client import client_startup
 from grr_response_client import comms
 from grr_response_client import vfs
-from grr.config import contexts
+from grr.core.grr_response_core import config
+from grr.core.grr_response_core.config import contexts
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 flags.DEFINE_integer("nrclients", 1, "Number of clients to start")
 
-flags.DEFINE_string("cert_file", "",
-                    "Path to a file that stores all certificates for"
-                    "the client pool.")
+flags.DEFINE_string(
+    "cert_file", "", "Path to a file that stores all certificates for"
+    "the client pool.")
 
 flags.DEFINE_bool("enroll_only", False,
                   "If specified, the script will enroll all clients and exit.")
 
-flags.DEFINE_bool("fast_poll", False,
-                  "If specified, every client in the pool will work in the "
-                  "fast poll mode. This is useful for benchmarks, as in fast "
-                  "poll mode the timeouts are predictable and benchmarks "
-                  "results are more stable.")
+flags.DEFINE_bool(
+    "fast_poll", False,
+    "If specified, every client in the pool will work in the "
+    "fast poll mode. This is useful for benchmarks, as in fast "
+    "poll mode the timeouts are predictable and benchmarks "
+    "results are more stable.")
 
 
 class PoolGRRClient(threading.Thread):
@@ -95,8 +95,8 @@ def CreateClientPool(n):
     clients_loaded = False
 
   if clients_loaded and len(clients) < n:
-    raise RuntimeError("Loaded %d clients, but expected %d." % (len(clients),
-                                                                n))
+    raise RuntimeError(
+        "Loaded %d clients, but expected %d." % (len(clients), n))
 
   while len(clients) < n:
     # Generate a new RSA key pair for each client.
@@ -121,8 +121,8 @@ def CreateClientPool(n):
           break
 
         else:
-          logging.info("%s: Enrolled %d/%d clients.",
-                       int(time.time()), enrolled, n)
+          logging.info("%s: Enrolled %d/%d clients.", int(time.time()),
+                       enrolled, n)
     else:
       try:
         while True:

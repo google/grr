@@ -1257,37 +1257,16 @@
       "url": "/api/v2/users/api_test_user/approvals/cron-job/CronJob_567890/approval:222222"
     }
   ],
-  "ApiGetCronJobFlowHandler": [
+  "ApiGetCronJobRunHandler": [
     {
-      "api_method": "GetCronJobFlow",
+      "api_method": "GetCronJobRun",
       "method": "GET",
       "response": {
-        "args": {
-          "@type": "type.googleapis.com/EmptyMessage"
-        },
-        "context": {
-          "createTime": "44000000",
-          "creator": "api_test_user",
-          "currentState": "Start",
-          "nextOutboundId": "2",
-          "outstandingRequests": "1",
-          "sessionId": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11",
-          "state": "RUNNING"
-        },
-        "creator": "api_test_user",
-        "lastActiveAt": "44000000",
-        "name": "GRRVersionBreakDown",
-        "runnerArgs": {
-          "baseSessionId": "aff4:/cron/GRRVersionBreakDown",
-          "flowName": "GRRVersionBreakDown",
-          "originalFlow": {}
-        },
         "startedAt": "44000000",
-        "state": "RUNNING",
-        "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+        "status": "RUNNING"
       },
-      "test_class": "ApiGetCronJobFlowHandlerRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/GRRVersionBreakDown/flows/F:ABCDEF11"
+      "test_class": "ApiGetCronJobRunHandlerRegressionTest_http_v2",
+      "url": "/api/v2/cron-jobs/GRRVersionBreakDown/runs/F:ABCDEF11"
     }
   ],
   "ApiGetFileDownloadCommandHandler": [
@@ -5901,33 +5880,21 @@
       "url": "/api/v2/clients/labels"
     }
   ],
-  "ApiListCronJobFlowsHandler": [
+  "ApiListCronJobRunsHandler": [
     {
-      "api_method": "ListCronJobFlows",
+      "api_method": "ListCronJobRuns",
       "method": "GET",
       "response": {
         "items": [
           {
-            "args": {
-              "@type": "type.googleapis.com/EmptyMessage"
-            },
-            "creator": "api_test_user",
-            "flowId": "F:ABCDEF11",
-            "lastActiveAt": "44000000",
-            "name": "GRRVersionBreakDown",
-            "runnerArgs": {
-              "baseSessionId": "aff4:/cron/GRRVersionBreakDown",
-              "flowName": "GRRVersionBreakDown",
-              "originalFlow": {}
-            },
+            "runId": "F:ABCDEF11",
             "startedAt": "44000000",
-            "state": "RUNNING",
-            "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+            "status": "RUNNING"
           }
         ]
       },
-      "test_class": "ApiListCronJobFlowsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/GRRVersionBreakDown/flows"
+      "test_class": "ApiListCronJobRunsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/cron-jobs/GRRVersionBreakDown/runs"
     }
   ],
   "ApiListCronJobsHandler": [

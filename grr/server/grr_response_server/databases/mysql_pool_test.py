@@ -5,7 +5,7 @@ import mock
 import MySQLdb
 
 import unittest
-from grr.server.grr_response_server.databases import mysql_pool
+from grr_response_server.databases import mysql_pool
 
 
 class TestPool(unittest.TestCase):

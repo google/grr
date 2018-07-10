@@ -4,12 +4,12 @@
 
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server.flows.general import transfer
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import aff4
+from grr_response_server import output_plugin
+from grr_response_server.flows.general import transfer
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import test_lib
 
 

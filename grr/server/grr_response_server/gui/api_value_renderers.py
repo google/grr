@@ -17,10 +17,10 @@ from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_
 from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import reflection_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
+from grr_response_server import aff4
+from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 
-from grr.server.grr_response_server.gui.api_plugins import stats as api_stats
+from grr_response_server.gui.api_plugins import stats as api_stats
 
 
 class Error(Exception):

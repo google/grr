@@ -22,10 +22,10 @@ import requests
 from grr_api_client import api as grr_api
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr.server.grr_response_server.flows.general import processes
-from grr.server.grr_response_server.gui import api_auth_manager
-from grr.server.grr_response_server.gui import webauth
-from grr.server.grr_response_server.gui import wsgiapp_testlib
+from grr_response_server.flows.general import processes
+from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import webauth
+from grr_response_server.gui import wsgiapp_testlib
 from grr.test_lib import acl_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib

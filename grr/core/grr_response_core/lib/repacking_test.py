@@ -8,7 +8,7 @@ import zipfile
 
 import yaml
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import build
 from grr.core.grr_response_core.lib import config_lib
 from grr.core.grr_response_core.lib import flags

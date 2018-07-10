@@ -6,11 +6,11 @@ import itertools
 import logging
 
 from grr.core.grr_response_core.lib import queues as queue_config
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server import worker_lib
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server import queue_manager
+from grr_response_server import worker_lib
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
 class MockThreadPool(object):

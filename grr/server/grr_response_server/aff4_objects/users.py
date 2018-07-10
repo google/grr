@@ -11,7 +11,7 @@ from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_proto import user_pb2
-from grr.server.grr_response_server import aff4
+from grr_response_server import aff4
 
 
 class Error(Exception):

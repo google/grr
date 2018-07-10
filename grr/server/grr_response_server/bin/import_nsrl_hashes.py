@@ -1,20 +1,21 @@
 #!/usr/bin/env python
 """Script for importing NSRL files."""
+from __future__ import print_function
 
 import csv
 import os
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.server.grr_response_server import server_plugins
+from grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import server_startup
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import server_startup
 
-from grr.server.grr_response_server.aff4_objects import filestore
+from grr_response_server.aff4_objects import filestore
 
 flags.DEFINE_string("filename", "", "File with hashes.")
 flags.DEFINE_integer("start", None, "Start row in the file.")
@@ -44,7 +45,7 @@ def ImportFile(store, filename, start):
       i += 1
       if i and i % 5000 == 0:
         data_store.DB.Flush()
-        print "Imported %d hashes" % i
+        print("Imported %d hashes" % i)
       if i > 1:
         if len(row) != 8:
           continue
@@ -70,7 +71,7 @@ def ImportFile(store, filename, start):
           product_code_list = [int(row[5])]
           op_system_code_list = [row[6]]
         except Exception as e:  # pylint: disable=broad-except
-          print "Failed at %d with %s" % (i, str(e))
+          print("Failed at %d with %s" % (i, str(e)))
           return i - 1
     if current_row:
       _ImportRow(store, current_row, product_code_list, op_system_code_list)
@@ -84,7 +85,7 @@ def main(argv):
 
   filename = flags.FLAGS.filename
   if not os.path.exists(filename):
-    print "File %s does not exist" % filename
+    print("File %s does not exist" % filename)
     return
 
   with aff4.FACTORY.Create(
@@ -94,7 +95,7 @@ def main(argv):
       token=aff4.FACTORY.root_token) as store:
     imported = ImportFile(store, filename, flags.FLAGS.start)
     data_store.DB.Flush()
-    print "Imported %d hashes" % imported
+    print("Imported %d hashes" % imported)
 
 
 if __name__ == "__main__":

@@ -5,8 +5,8 @@ import os
 import posix
 import tempfile
 
-from grr import config
 from grr_response_client.client_actions import tempfiles
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths

@@ -3,7 +3,7 @@
 
 import logging
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import artifact_utils
 from grr.core.grr_response_core.lib import parser
 from grr.core.grr_response_core.lib import rdfvalue
@@ -15,21 +15,21 @@ from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import artifact
-from grr.server.grr_response_server import artifact_registry
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import sequential_collection
-from grr.server.grr_response_server import server_stubs
-from grr.server.grr_response_server.flows.general import file_finder
-from grr.server.grr_response_server.flows.general import filesystem
-from grr.server.grr_response_server.flows.general import memory
-from grr.server.grr_response_server.flows.general import transfer
+from grr_response_server import aff4
+from grr_response_server import artifact
+from grr_response_server import artifact_registry
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import sequential_collection
+from grr_response_server import server_stubs
+from grr_response_server.flows.general import file_finder
+from grr_response_server.flows.general import filesystem
+from grr_response_server.flows.general import memory
+from grr_response_server.flows.general import transfer
 # For file collection artifacts. pylint: disable=unused-import
-from grr.server.grr_response_server.parsers import registry_init
+from grr_response_server.parsers import registry_init
 # pylint: enable=unused-import
-from grr.server.grr_response_server.parsers import windows_persistence
+from grr_response_server.parsers import windows_persistence
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):

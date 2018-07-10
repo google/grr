@@ -4,20 +4,20 @@
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import notification
-from grr.server.grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
-from grr.server.grr_response_server.flows.general import discovery
-from grr.server.grr_response_server.gui import api_regression_test_lib
-from grr.server.grr_response_server.gui.api_plugins import user as user_plugin
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
-from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr.server.grr_response_server.rdfvalues import hunts as rdf_hunts
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import notification
+from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
+from grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.flows.general import discovery
+from grr_response_server.gui import api_regression_test_lib
+from grr_response_server.gui.api_plugins import user as user_plugin
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 from grr.test_lib import acl_test_lib
 from grr.test_lib import hunt_test_lib

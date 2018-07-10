@@ -9,12 +9,12 @@ from werkzeug import wrappers as werkzeug_wrappers
 
 from google.oauth2 import id_token
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import registry
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
+from grr_response_server import access_control
+from grr_response_server import aff4
 
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.aff4_objects import users as aff4_users
 
 
 class BaseWebAuthManager(object):

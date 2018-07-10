@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Parser for OSX quarantine sqlite files."""
+from __future__ import print_function
 
 __program__ = "osx_quarantine.py"
 
@@ -44,13 +45,13 @@ class OSXQuarantineEvents(sqlite_file.SQLiteFile):
 
 def main(argv):
   if len(argv) < 2:
-    print "Usage: %s com.apple.LaunchServices.QuarantineEvents" % __program__
+    print("Usage: %s com.apple.LaunchServices.QuarantineEvents" % __program__)
     sys.exit(1)
 
   encoding = locale.getpreferredencoding()
 
   if encoding.upper() != "UTF-8":
-    print "%s requires an UTF-8 capable console/terminal" % __program__
+    print("%s requires an UTF-8 capable console/terminal" % __program__)
     sys.exit(1)
 
   files_to_process = []
@@ -74,7 +75,7 @@ def main(argv):
       output_string = u"%s\t%s\t%s\t%s\t%s\t%s" % (date_string, entry_type, url,
                                                    data1, data2, data3)
 
-      print output_string.encode("UTF-8")
+      print(output_string.encode("UTF-8"))
 
 
 if __name__ == "__main__":

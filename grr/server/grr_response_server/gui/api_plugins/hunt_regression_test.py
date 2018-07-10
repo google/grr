@@ -9,16 +9,16 @@ from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server.gui import api_regression_test_lib
-from grr.server.grr_response_server.gui.api_plugins import hunt as hunt_plugin
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import process_results
-from grr.server.grr_response_server.output_plugins import test_plugins
-from grr.server.grr_response_server.rdfvalues import hunts as rdf_hunts
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import output_plugin
+from grr_response_server.gui import api_regression_test_lib
+from grr_response_server.gui.api_plugins import hunt as hunt_plugin
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import process_results
+from grr_response_server.output_plugins import test_plugins
+from grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib

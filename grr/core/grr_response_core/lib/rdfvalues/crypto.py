@@ -63,8 +63,8 @@ class RDFX509Cert(rdfvalue.RDFValue):
       elif isinstance(initializer, basestring):
         self.ParseFromString(initializer)
       else:
-        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                       (self.__class__, initializer))
+        raise rdfvalue.InitializeError(
+            "Cannot initialize %s from %s." % (self.__class__, initializer))
 
   def GetRawCertificate(self):
     return self._value
@@ -165,14 +165,16 @@ class RDFX509Cert(rdfvalue.RDFValue):
     builder = builder.not_valid_after(now_plus_year.AsDatetime())
     now_minus_ten = now - rdfvalue.Duration("10s")
     builder = builder.not_valid_before(now_minus_ten.AsDatetime())
-    # TODO(user): dependency loop with grr/config/client.py.
+    # TODO(user): dependency loop with
+    # grr/core/grr_response_core/config/client.py.
     # pylint: disable=protected-access
     ca_cert = config_lib._CONFIG["CA.certificate"]
     # pylint: enable=protected-access
     builder = builder.issuer_name(ca_cert.GetIssuer())
     builder = builder.public_key(csr.GetPublicKey().GetRawPublicKey())
 
-    # TODO(user): dependency loop with grr/config/client.py.
+    # TODO(user): dependency loop with
+    # grr/core/grr_response_core/config/client.py.
     # pylint: disable=protected-access
     ca_key = config_lib._CONFIG["PrivateKeys.ca_key"]
     # pylint: enable=protected-access
@@ -209,8 +211,8 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
                 hashes.SHA256(),
                 backend=openssl.backend)
       elif initializer is not None:
-        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                       (self.__class__, initializer))
+        raise rdfvalue.InitializeError(
+            "Cannot initialize %s from %s." % (self.__class__, initializer))
 
   def ParseFromString(self, csr_as_pem):
     self._value = x509.load_pem_x509_csr(csr_as_pem, backend=openssl.backend)
@@ -260,8 +262,8 @@ class RSAPublicKey(rdfvalue.RDFValue):
       elif isinstance(initializer, basestring):
         self.ParseFromString(initializer)
       else:
-        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                       (self.__class__, initializer))
+        raise rdfvalue.InitializeError(
+            "Cannot initialize %s from %s." % (self.__class__, initializer))
 
   def GetRawPublicKey(self):
     return self._value
@@ -299,11 +301,12 @@ class RSAPublicKey(rdfvalue.RDFValue):
       raise ValueError("Can't Encrypt with empty key.")
 
     try:
-      return self._value.encrypt(message,
-                                 padding.OAEP(
-                                     mgf=padding.MGF1(algorithm=hashes.SHA1()),
-                                     algorithm=hashes.SHA1(),
-                                     label=None))
+      return self._value.encrypt(
+          message,
+          padding.OAEP(
+              mgf=padding.MGF1(algorithm=hashes.SHA1()),
+              algorithm=hashes.SHA1(),
+              label=None))
     except ValueError as e:
       raise CipherError(e)
 
@@ -344,8 +347,8 @@ class RSAPrivateKey(rdfvalue.RDFValue):
       elif isinstance(initializer, basestring):
         self.ParseFromString(initializer)
       else:
-        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                       (self.__class__, initializer))
+        raise rdfvalue.InitializeError(
+            "Cannot initialize %s from %s." % (self.__class__, initializer))
 
   def GetRawPrivateKey(self):
     return self._value
@@ -369,11 +372,12 @@ class RSAPrivateKey(rdfvalue.RDFValue):
       raise ValueError("Can't Decrypt with empty key.")
 
     try:
-      return self._value.decrypt(message,
-                                 padding.OAEP(
-                                     mgf=padding.MGF1(algorithm=hashes.SHA1()),
-                                     algorithm=hashes.SHA1(),
-                                     label=None))
+      return self._value.decrypt(
+          message,
+          padding.OAEP(
+              mgf=padding.MGF1(algorithm=hashes.SHA1()),
+              algorithm=hashes.SHA1(),
+              label=None))
     except ValueError as e:
       raise CipherError(e)
 
@@ -405,7 +409,8 @@ class RSAPrivateKey(rdfvalue.RDFValue):
       # allow_prompt was not set, we use the context we are in to see if it
       # makes sense to ask.
       elif self.allow_prompt == None:
-        # TODO(user): dependency loop with grr/config/client.py.
+        # TODO(user): dependency loop with
+        # core/grr_response_core/grr/config/client.py.
         # pylint: disable=protected-access
         if "Commandline Context" not in config_lib._CONFIG.context:
           raise type_info.TypeValueError("Private key invalid: %s" % e)
@@ -545,8 +550,8 @@ class EncryptionKey(rdfvalue.RDFBytes):
   def ParseFromString(self, string):
 
     if len(string) % 8:
-      raise CipherError("Invalid key length %d (%s)." % (len(string) * 8,
-                                                         string))
+      raise CipherError(
+          "Invalid key length %d (%s)." % (len(string) * 8, string))
 
     self._value = string
     self.length = 8 * len(self._value)

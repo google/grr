@@ -12,8 +12,8 @@ import logging
 import os
 import sys
 
-from grr import config
-from grr.config import contexts
+from grr.core.grr_response_core import config
+from grr.core.grr_response_core.config import contexts
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import registry
 

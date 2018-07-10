@@ -3,8 +3,8 @@
 """Tests for the PAM config checks."""
 
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server.check_lib import checks_test_lib
-from grr.server.grr_response_server.parsers import linux_pam_parser
+from grr_response_server.check_lib import checks_test_lib
+from grr_response_server.parsers import linux_pam_parser
 from grr.test_lib import test_lib
 
 

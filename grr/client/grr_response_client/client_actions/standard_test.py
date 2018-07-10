@@ -7,8 +7,8 @@ import os
 import time
 
 
-from grr import config
 from grr_response_client.client_actions import standard
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
@@ -74,11 +74,11 @@ magic_return_str = decode(s)
     python_code = """
 
 def f(n):
-    print "F called:", n
+    print("F called:", n)
 
-print "Calling f."
+print("Calling f.")
 f(1)
-print "Done."
+print("Done.")
 """
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
@@ -97,7 +97,7 @@ def f():
 
 f()
 Progress()
-print "Done."
+print("Done.")
 """
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)

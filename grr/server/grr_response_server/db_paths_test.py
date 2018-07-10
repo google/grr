@@ -7,8 +7,8 @@ from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import db
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import db
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class DatabaseTestPathsMixin(object):
@@ -932,6 +932,29 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(results[1].components, ("baz", "quux"))
     self.assertEqual(results[2].components, ("foo",))
     self.assertEqual(results[3].components, ("foo", "bar"))
+
+  def testListDescendentPathInfosLimitedDirectory(self):
+    client_id = self.InitializeClient()
+
+    path_info_1 = rdf_objects.PathInfo.OS(components=["foo", "bar", "baz"])
+    path_info_1.stat_entry.st_mode = 108
+
+    path_info_2 = rdf_objects.PathInfo.OS(components=["foo", "bar"])
+    path_info_2.stat_entry.st_mode = 1337
+
+    path_info_3 = rdf_objects.PathInfo.OS(components=["foo", "norf", "quux"])
+    path_info_3.stat_entry.st_mode = 707
+
+    self.db.WritePathInfos(client_id, [path_info_1, path_info_2, path_info_3])
+
+    results = self.db.ListDescendentPathInfos(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=(), max_depth=2)
+
+    self.assertEqual(len(results), 3)
+    self.assertEqual(results[0].components, ("foo",))
+    self.assertEqual(results[1].components, ("foo", "bar"))
+    self.assertEqual(results[2].components, ("foo", "norf"))
+    self.assertEqual(results[1].stat_entry.st_mode, 1337)
 
   def testListChildPathInfosRoot(self):
     client_id = self.InitializeClient()

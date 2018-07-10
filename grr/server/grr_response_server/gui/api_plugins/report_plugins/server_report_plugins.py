@@ -5,13 +5,13 @@ import operator
 
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
-from grr.server.grr_response_server import aff4
+from grr_response_server import aff4
 
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
-from grr.server.grr_response_server.flows.general import audit
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import report_plugin_base
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import report_utils
+from grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.flows.general import audit
+from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
+from grr_response_server.gui.api_plugins.report_plugins import report_plugin_base
+from grr_response_server.gui.api_plugins.report_plugins import report_utils
 
 TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
 

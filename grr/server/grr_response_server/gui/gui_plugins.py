@@ -9,10 +9,10 @@ modules that have been customized for your deployment.
 """
 
 # pylint: disable=unused-import
-from grr.server.grr_response_server.gui import api_call_robot_router
-from grr.server.grr_response_server.gui import api_call_router_with_approval_checks
-from grr.server.grr_response_server.gui import api_call_router_without_checks
-from grr.server.grr_response_server.gui import api_labels_restricted_call_router
+from grr_response_server.gui import api_call_robot_router
+from grr_response_server.gui import api_call_router_with_approval_checks
+from grr_response_server.gui import api_call_router_without_checks
+from grr_response_server.gui import api_labels_restricted_call_router
 
-from grr.server.grr_response_server.gui import api_plugins
-from grr.server.grr_response_server.gui import local
+from grr_response_server.gui import api_plugins
+from grr_response_server.gui import local

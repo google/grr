@@ -8,19 +8,19 @@ from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import output_plugin
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server.flows.general import discovery
-from grr.server.grr_response_server.flows.general import file_finder
-from grr.server.grr_response_server.flows.general import processes
-from grr.server.grr_response_server.flows.general import transfer
-from grr.server.grr_response_server.gui import api_regression_test_lib
-from grr.server.grr_response_server.gui.api_plugins import flow as flow_plugin
-from grr.server.grr_response_server.output_plugins import email_plugin
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import output_plugin
+from grr_response_server import queue_manager
+from grr_response_server.flows.general import discovery
+from grr_response_server.flows.general import file_finder
+from grr_response_server.flows.general import processes
+from grr_response_server.flows.general import transfer
+from grr_response_server.gui import api_regression_test_lib
+from grr_response_server.gui.api_plugins import flow as flow_plugin
+from grr_response_server.output_plugins import email_plugin
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import acl_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib

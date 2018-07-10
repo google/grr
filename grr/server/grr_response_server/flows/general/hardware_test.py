@@ -5,10 +5,10 @@ from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.aff4_objects import hardware as aff4_hardware
-from grr.server.grr_response_server.flows.general import hardware
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server.aff4_objects import hardware as aff4_hardware
+from grr_response_server.flows.general import hardware
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

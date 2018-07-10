@@ -5,7 +5,7 @@ import glob
 import logging
 import os
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import config_testing_lib
 from grr.core.grr_response_core.lib import flags
 from grr.test_lib import test_lib

@@ -4,11 +4,11 @@
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import stats as stats_lib
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
+from grr_response_server import aff4
+from grr_response_server import flow
 
-from grr.server.grr_response_server.aff4_objects import cronjobs
-from grr.server.grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.aff4_objects import stats as aff4_stats
 
 
 class ClassCounter(object):

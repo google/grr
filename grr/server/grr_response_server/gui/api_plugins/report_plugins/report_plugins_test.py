@@ -5,24 +5,24 @@ import itertools
 import math
 import os
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server.aff4_objects import filestore_test_lib
-from grr.server.grr_response_server.flows.cron import filestore_stats
-from grr.server.grr_response_server.flows.cron import system as cron_system
+from grr_response_server import events
+from grr_response_server.aff4_objects import filestore_test_lib
+from grr_response_server.flows.cron import filestore_stats
+from grr_response_server.flows.cron import system as cron_system
 
-from grr.server.grr_response_server.flows.general import audit
-from grr.server.grr_response_server.gui.api_plugins import stats as stats_api
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import client_report_plugins
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import filestore_report_plugins
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import report_plugins
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import report_plugins_test_mocks
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import server_report_plugins
+from grr_response_server.flows.general import audit
+from grr_response_server.gui.api_plugins import stats as stats_api
+from grr_response_server.gui.api_plugins.report_plugins import client_report_plugins
+from grr_response_server.gui.api_plugins.report_plugins import filestore_report_plugins
+from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
+from grr_response_server.gui.api_plugins.report_plugins import report_plugins
+from grr_response_server.gui.api_plugins.report_plugins import report_plugins_test_mocks
+from grr_response_server.gui.api_plugins.report_plugins import server_report_plugins
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

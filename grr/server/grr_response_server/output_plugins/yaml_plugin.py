@@ -9,7 +9,7 @@ import yaml
 
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr.server.grr_response_server import instant_output_plugin
+from grr_response_server import instant_output_plugin
 
 
 def _SerializeToYaml(value):

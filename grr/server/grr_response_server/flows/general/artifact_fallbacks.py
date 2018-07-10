@@ -10,9 +10,9 @@ from grr.core.grr_response_core.lib import parser
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.server.grr_response_server import artifact
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import server_stubs
+from grr_response_server import artifact
+from grr_response_server import flow
+from grr_response_server import server_stubs
 
 
 class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):

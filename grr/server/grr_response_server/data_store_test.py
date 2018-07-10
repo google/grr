@@ -26,17 +26,17 @@ from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server import sequential_collection
-from grr.server.grr_response_server import threadpool
-from grr.server.grr_response_server import worker_lib
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import standard
-from grr.server.grr_response_server.flows.general import filesystem
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import queue_manager
+from grr_response_server import sequential_collection
+from grr_response_server import threadpool
+from grr_response_server import worker_lib
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import standard
+from grr_response_server.flows.general import filesystem
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import benchmark_test_lib
 from grr.test_lib import test_lib
 

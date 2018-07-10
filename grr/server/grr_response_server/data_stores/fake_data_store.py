@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """An implementation of an in-memory data store for testing."""
+from __future__ import print_function
 
 import sys
 import threading
@@ -7,7 +8,7 @@ import time
 
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import data_store
+from grr_response_server import data_store
 
 
 class FakeDBSubjectLock(data_store.DBSubjectLock):
@@ -377,4 +378,4 @@ class FakeDataStore(data_store.DataStore):
     for s in sorted(self.subjects):
       if literal and literal not in s:
         continue
-      print s
+      print(s)

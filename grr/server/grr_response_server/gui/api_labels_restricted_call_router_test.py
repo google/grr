@@ -4,13 +4,13 @@
 
 from grr.core.grr_response_core.lib import flags
 
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
+from grr_response_server import access_control
+from grr_response_server import aff4
 
-from grr.server.grr_response_server.flows.general import processes
-from grr.server.grr_response_server.gui import api_labels_restricted_call_router as api_router
-from grr.server.grr_response_server.gui.api_plugins import client as api_client
-from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.flows.general import processes
+from grr_response_server.gui import api_labels_restricted_call_router as api_router
+from grr_response_server.gui.api_plugins import client as api_client
+from grr_response_server.gui.api_plugins import flow as api_flow
 from grr.test_lib import acl_test_lib
 
 from grr.test_lib import test_lib

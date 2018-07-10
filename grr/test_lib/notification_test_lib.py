@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Test routines for user notifications-related testing."""
 
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server.aff4_objects import users as aff4_users
 
 
 class NotificationTestMixin(object):

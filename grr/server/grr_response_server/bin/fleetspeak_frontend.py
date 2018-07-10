@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This is the GRR frontend FS Server."""
+from __future__ import print_function
 
 import logging
 import time
@@ -7,18 +8,18 @@ import grpc
 
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.server.grr_response_server import server_plugins
+from grr_response_server import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import communicator
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.server.grr_response_server import fleetspeak_connector
-from grr.server.grr_response_server import fleetspeak_utils
-from grr.server.grr_response_server import frontend_lib
-from grr.server.grr_response_server import server_startup
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
+from grr_response_server import frontend_lib
+from grr_response_server import server_startup
 
 
 class GRRFSServer(object):
@@ -105,7 +106,7 @@ def main(argv):
     while True:
       time.sleep(600)
   except KeyboardInterrupt:
-    print "Caught keyboard interrupt, stopping"
+    print("Caught keyboard interrupt, stopping")
 
 
 if __name__ == "__main__":

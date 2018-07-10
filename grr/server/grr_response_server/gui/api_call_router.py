@@ -7,19 +7,19 @@ import re
 
 from grr.core.grr_response_core.lib import registry
 
-from grr.server.grr_response_server.gui import api_value_renderers
-from grr.server.grr_response_server.gui.api_plugins import artifact as api_artifact
-from grr.server.grr_response_server.gui.api_plugins import client as api_client
-from grr.server.grr_response_server.gui.api_plugins import config as api_config
-from grr.server.grr_response_server.gui.api_plugins import cron as api_cron
-from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
-from grr.server.grr_response_server.gui.api_plugins import hunt as api_hunt
-from grr.server.grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
-from grr.server.grr_response_server.gui.api_plugins import reflection as api_reflection
-from grr.server.grr_response_server.gui.api_plugins import stats as api_stats
-from grr.server.grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.gui import api_value_renderers
+from grr_response_server.gui.api_plugins import artifact as api_artifact
+from grr_response_server.gui.api_plugins import client as api_client
+from grr_response_server.gui.api_plugins import config as api_config
+from grr_response_server.gui.api_plugins import cron as api_cron
+from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.gui.api_plugins import hunt as api_hunt
+from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
+from grr_response_server.gui.api_plugins import reflection as api_reflection
+from grr_response_server.gui.api_plugins import stats as api_stats
+from grr_response_server.gui.api_plugins import user as api_user
 
-from grr.server.grr_response_server.gui.api_plugins import vfs as api_vfs
+from grr_response_server.gui.api_plugins import vfs as api_vfs
 
 
 class Http(object):
@@ -664,23 +664,23 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Cron")
-  @ArgsType(api_cron.ApiListCronJobFlowsArgs)
-  @ResultType(api_flow.ApiListFlowsResult)
-  @Http("GET", "/api/cron-jobs/<cron_job_id>/flows")
-  def ListCronJobFlows(self, args, token=None):
-    """List flows initiated by the given cron job."""
+  @ArgsType(api_cron.ApiListCronJobRunsArgs)
+  @ResultType(api_cron.ApiListCronJobRunsResult)
+  @Http("GET", "/api/cron-jobs/<cron_job_id>/runs")
+  def ListCronJobRuns(self, args, token=None):
+    """List runs initiated by the given cron job."""
 
     raise NotImplementedError()
 
   @Category("Cron")
-  @ArgsType(api_cron.ApiGetCronJobFlowArgs)
-  @ResultType(api_flow.ApiFlow)
+  @ArgsType(api_cron.ApiGetCronJobRunArgs)
+  @ResultType(api_cron.ApiCronJobRun)
   @Http(
       "GET",
-      "/api/cron-jobs/<cron_job_id>/flows/<flow_id>",
+      "/api/cron-jobs/<cron_job_id>/runs/<run_id>",
       strip_root_types=False)
-  def GetCronJobFlow(self, args, token=None):
-    """Get details of a flow started by a cron job."""
+  def GetCronJobRun(self, args, token=None):
+    """Get details of a run started by a cron job."""
 
     raise NotImplementedError()
 

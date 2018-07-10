@@ -16,7 +16,7 @@ from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.server.grr_response_server import server_stubs
+from grr_response_server import server_stubs
 
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks

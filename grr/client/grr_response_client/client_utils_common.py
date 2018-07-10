@@ -10,8 +10,8 @@ import threading
 import time
 
 
-from grr import config
 from grr_response_client.local import binary_whitelist
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import constants
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 

@@ -5,7 +5,7 @@
 import collections
 import logging
 import yaml
-from grr.server.grr_response_server.authorization import groups
+from grr_response_server.authorization import groups
 
 
 class Error(Exception):

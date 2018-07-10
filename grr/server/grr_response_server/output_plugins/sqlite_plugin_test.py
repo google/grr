@@ -15,9 +15,9 @@ from grr.core.grr_response_core.lib import type_info
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr.server.grr_response_server import export
-from grr.server.grr_response_server.output_plugins import sqlite_plugin
-from grr.server.grr_response_server.output_plugins import test_plugins
+from grr_response_server import export
+from grr_response_server.output_plugins import sqlite_plugin
+from grr_response_server.output_plugins import test_plugins
 from grr.test_lib import test_lib
 
 
@@ -70,7 +70,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
           pathspec=rdf_paths.PathSpec(path="/foo/bar/%d" % i, pathtype="OS"),
           st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
           st_ino=1063090,
-          st_dev=64512L,
+          st_dev=64512,
           st_nlink=1 + i,
           st_uid=139592,
           st_gid=5000,

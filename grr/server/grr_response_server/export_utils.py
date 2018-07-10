@@ -12,15 +12,15 @@ from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import client_index
-from grr.server.grr_response_server import sequential_collection
-from grr.server.grr_response_server import serialize
-from grr.server.grr_response_server import threadpool
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import standard
-from grr.server.grr_response_server.flows.general import collectors
-from grr.server.grr_response_server.hunts import results
+from grr_response_server import aff4
+from grr_response_server import client_index
+from grr_response_server import sequential_collection
+from grr_response_server import serialize
+from grr_response_server import threadpool
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import standard
+from grr_response_server.flows.general import collectors
+from grr_response_server.hunts import results
 
 BUFFER_SIZE = 16 * 1024 * 1024
 

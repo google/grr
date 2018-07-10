@@ -6,19 +6,19 @@ from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto import api_call_router_pb2
-from grr.server.grr_response_server import access_control
+from grr_response_server import access_control
 
-from grr.server.grr_response_server import aff4
+from grr_response_server import aff4
 
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import user_managers
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import user_managers
 
-from grr.server.grr_response_server.gui import api_call_router
-from grr.server.grr_response_server.gui import api_call_router_without_checks
+from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_call_router_without_checks
 
-from grr.server.grr_response_server.gui.api_plugins import client as api_client
+from grr_response_server.gui.api_plugins import client as api_client
 
-from grr.server.grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.gui.api_plugins import user as api_user
 
 
 def CheckClientLabels(client_id,

@@ -5,7 +5,7 @@ import unittest
 
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr.server.grr_response_server import artifact_registry as ar
+from grr_response_server import artifact_registry as ar
 from grr.test_lib import test_lib
 
 

@@ -6,9 +6,9 @@ import time
 
 
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server.gui import api_auth_manager
-from grr.server.grr_response_server.gui import api_call_router_with_approval_checks
-from grr.server.grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_router_with_approval_checks
+from grr_response_server.gui import api_e2e_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib

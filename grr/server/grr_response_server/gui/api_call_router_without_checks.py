@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 """Implementation of a router class that does no ACL checks."""
 
-from grr.server.grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_call_router
 
-from grr.server.grr_response_server.gui.api_plugins import artifact as api_artifact
-from grr.server.grr_response_server.gui.api_plugins import client as api_client
-from grr.server.grr_response_server.gui.api_plugins import config as api_config
-from grr.server.grr_response_server.gui.api_plugins import cron as api_cron
-from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
-from grr.server.grr_response_server.gui.api_plugins import hunt as api_hunt
-from grr.server.grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
-from grr.server.grr_response_server.gui.api_plugins import reflection as api_reflection
-from grr.server.grr_response_server.gui.api_plugins import stats as api_stats
-from grr.server.grr_response_server.gui.api_plugins import user as api_user
-from grr.server.grr_response_server.gui.api_plugins import vfs as api_vfs
+from grr_response_server.gui.api_plugins import artifact as api_artifact
+from grr_response_server.gui.api_plugins import client as api_client
+from grr_response_server.gui.api_plugins import config as api_config
+from grr_response_server.gui.api_plugins import cron as api_cron
+from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.gui.api_plugins import hunt as api_hunt
+from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
+from grr_response_server.gui.api_plugins import reflection as api_reflection
+from grr_response_server.gui.api_plugins import stats as api_stats
+from grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.gui.api_plugins import vfs as api_vfs
 
 
 class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
@@ -178,11 +178,11 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def ModifyCronJob(self, args, token=None):
     return api_cron.ApiModifyCronJobHandler()
 
-  def ListCronJobFlows(self, args, token=None):
-    return api_cron.ApiListCronJobFlowsHandler()
+  def ListCronJobRuns(self, args, token=None):
+    return api_cron.ApiListCronJobRunsHandler()
 
-  def GetCronJobFlow(self, args, token=None):
-    return api_cron.ApiGetCronJobFlowHandler()
+  def GetCronJobRun(self, args, token=None):
+    return api_cron.ApiGetCronJobRunHandler()
 
   def DeleteCronJob(self, args, token=None):
     return api_cron.ApiDeleteCronJobHandler()

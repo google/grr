@@ -19,10 +19,10 @@ import win32service
 import win32serviceutil
 import wmi
 
-from grr import config
 from grr_response_client import actions
-
 from grr_response_client.client_actions import standard
+
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict

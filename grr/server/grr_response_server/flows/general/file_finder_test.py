@@ -14,20 +14,20 @@ from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import data_store_utils
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import data_store_utils
+from grr_response_server import flow
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import standard as aff4_standard
 # TODO(user):
 # TestFileFinderFlow.testTreatsGlobsAsPathsWhenMemoryPathTypeIsUsed expects
 # auditign system to work. Refactor and remove the unused import
 # pylint: disable=unused-import
-from grr.server.grr_response_server.flows.general import audit as _
+from grr_response_server.flows.general import audit as _
 # pylint: enable=unused-import
-from grr.server.grr_response_server.flows.general import file_finder
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.flows.general import file_finder
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib

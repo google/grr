@@ -6,14 +6,14 @@
 import unittest
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import notification
-from grr.server.grr_response_server.aff4_objects import cronjobs
-from grr.server.grr_response_server.flows.cron import system as cron_system
-from grr.server.grr_response_server.gui import gui_test_lib
-from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import notification
+from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.flows.cron import system as cron_system
+from grr_response_server.gui import gui_test_lib
+from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
@@ -86,21 +86,20 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Tabs should appear in the bottom pane
     self.WaitUntil(self.IsElementPresent, "css=#main_bottomPane #Details")
-    self.WaitUntil(self.IsElementPresent, "css=#main_bottomPane #Flows")
+    self.WaitUntil(self.IsElementPresent, "css=#main_bottomPane #Runs")
 
     self.WaitUntil(self.IsTextPresent, "Allow Overruns")
     self.WaitUntil(self.IsTextPresent, "Flow Arguments")
 
-    # Click on "Flows" tab
-    self.Click("css=#main_bottomPane #Flows")
+    # Click on "Runs" tab
+    self.Click("css=#main_bottomPane #Runs")
 
     # Click on the first flow and wait for flow details panel to appear.
-    self.Click("css=#main_bottomPane td:contains('OSBreakDown')")
-    self.WaitUntil(self.IsTextPresent, "Outstanding requests")
-
-    # Close the panel.
-    self.Click("css=#main_bottomPane .panel button.close")
-    self.WaitUntilNot(self.IsTextPresent, "Outstanding requests")
+    runs = cronjobs.GetCronManager().ReadJobRuns(
+        cron_system.OSBreakDown.__name__)
+    self.assertEqual(len(runs), 1)
+    self.WaitUntil(self.IsElementPresent,
+                   "css=td:contains('%s')" % runs[0].urn.Basename())
 
   def testToolbarStateForDisabledCronJob(self):
     cronjobs.GetCronManager().DisableJob(job_id="OSBreakDown")

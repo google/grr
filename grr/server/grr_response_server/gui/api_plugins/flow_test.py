@@ -14,17 +14,17 @@ from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.flows.general import file_finder
-from grr.server.grr_response_server.flows.general import processes
-from grr.server.grr_response_server.gui import api_test_lib
-from grr.server.grr_response_server.gui.api_plugins import client as client_plugin
-from grr.server.grr_response_server.gui.api_plugins import flow as flow_plugin
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
-from grr.server.grr_response_server.output_plugins import test_plugins
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import aff4
+from grr_response_server import flow
+from grr_response_server.flows.general import file_finder
+from grr_response_server.flows.general import processes
+from grr_response_server.gui import api_test_lib
+from grr_response_server.gui.api_plugins import client as client_plugin
+from grr_response_server.gui.api_plugins import flow as flow_plugin
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
+from grr_response_server.output_plugins import test_plugins
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib

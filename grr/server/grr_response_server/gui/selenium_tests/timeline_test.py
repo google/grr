@@ -9,10 +9,10 @@ from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 
-from grr.server.grr_response_server.flows.general import filesystem
-from grr.server.grr_response_server.gui import api_call_router_with_approval_checks
-from grr.server.grr_response_server.gui import gui_test_lib
-from grr.server.grr_response_server.gui.api_plugins import vfs as api_vfs
+from grr_response_server.flows.general import filesystem
+from grr_response_server.gui import api_call_router_with_approval_checks
+from grr_response_server.gui import gui_test_lib
+from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib

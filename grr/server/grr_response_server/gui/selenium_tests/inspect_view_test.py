@@ -6,11 +6,11 @@ import unittest
 from grr.core.grr_response_core.lib import flags
 
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server.flows.general import discovery as flow_discovery
-from grr.server.grr_response_server.flows.general import processes
-from grr.server.grr_response_server.gui import gui_test_lib
+from grr_response_server import flow
+from grr_response_server import queue_manager
+from grr_response_server.flows.general import discovery as flow_discovery
+from grr_response_server.flows.general import processes
+from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 

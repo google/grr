@@ -3,11 +3,11 @@ from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_migration
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import data_migration
+from grr_response_server import data_store
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 

@@ -7,16 +7,16 @@ import logging
 import sys
 
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server import key_utils
-from grr.server.grr_response_server.aff4_objects import collects
-from grr.server.grr_response_server.aff4_objects import users
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import events
+from grr_response_server import key_utils
+from grr_response_server.aff4_objects import collects
+from grr_response_server.aff4_objects import users
 
 DIGEST_ALGORITHM = hashlib.sha256  # pylint: disable=invalid-name
 DIGEST_ALGORITHM_STR = "sha256"

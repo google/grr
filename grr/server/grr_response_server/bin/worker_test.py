@@ -7,7 +7,7 @@ import time
 
 import mock
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import queues
 from grr.core.grr_response_core.lib import rdfvalue
@@ -15,17 +15,17 @@ from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import flow_runner
-from grr.server.grr_response_server import frontend_lib
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server import worker_lib
-from grr.server.grr_response_server.flows.general import administrative
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server import flow_runner
+from grr_response_server import frontend_lib
+from grr_response_server import queue_manager
+from grr_response_server import worker_lib
+from grr_response_server.flows.general import administrative
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
@@ -1038,8 +1038,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         5000.0, 4980.0, 4960.0, 4940.0, 4920.0, 4900.0, 4880.0, 4860.0, 4840.0
     ])
     self.assertEqual(result["networklimit"], [
-        1000000L, 999000L, 998000L, 997000L, 996000L, 995000L, 994000L, 993000L,
-        992000L
+        1000000, 999000, 998000, 997000, 996000, 995000, 994000, 993000, 992000
     ])
 
     result.clear()

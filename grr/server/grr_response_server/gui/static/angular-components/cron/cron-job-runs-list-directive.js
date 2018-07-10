@@ -1,17 +1,17 @@
-goog.module('grrUi.cron.cronJobFlowsListDirective');
+goog.module('grrUi.cron.cronJobRunsListDirective');
 goog.module.declareLegacyNamespace();
 
 
 
 /**
- * Controller for cronJobFlowsListDirective.
+ * Controller for cronJobRunsListDirective.
  *
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-const CronJobFlowsListController = function(
+const CronJobRunsListController = function(
     $scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -20,13 +20,13 @@ const CronJobFlowsListController = function(
   this.grrApiService_ = grrApiService;
 
   /** @type {?string} */
-  this.flowsUrl;
+  this.runsUrl;
 
   /** @type {?string} */
   this.cronJobId;
 
-  /** @type {?string} */
-  this.selectedFlowId;
+  /** @type {?Object} */
+  this.selectedRun;
 
   this.scope_.$watch('cronJobId', this.onCronJobIdChange_.bind(this));
 };
@@ -38,38 +38,37 @@ const CronJobFlowsListController = function(
  * @param {?string} cronJobId New binding value.
  * @private
  */
-CronJobFlowsListController.prototype.onCronJobIdChange_ = function(
+CronJobRunsListController.prototype.onCronJobIdChange_ = function(
     cronJobId) {
   if (angular.isString(cronJobId)) {
     var components = cronJobId.split('/');
     this.cronJobId  = components[components.length - 1];
-    this.flowsUrl = '/cron-jobs/' + this.cronJobId + '/flows';
+    this.runsUrl = '/cron-jobs/' + this.cronJobId + '/runs';
   }
 };
 
-
 /**
- * Closes the flow details div.
+ * Closes the run details div.
  */
-CronJobFlowsListController.prototype.closeDetails = function() {
-  this.selectedFlowId = null;
+CronJobRunsListController.prototype.closeDetails = function() {
+  this.selectedRun = null;
 };
 
 
 /**
- * CronJobFlowsListDirective definition.
+ * CronJobRunsListDirective definition.
  *
  * @return {angular.Directive} Directive definition object.
  */
-exports.CronJobFlowsListDirective = function() {
+exports.CronJobRunsListDirective = function() {
   return {
     scope: {
       cronJobId: '=',
-      selectedFlowId: '=?'
+      selectedRunId: '=?'
     },
     restrict: 'E',
-    templateUrl: '/static/angular-components/cron/cron-job-flows-list.html',
-    controller: CronJobFlowsListController,
+    templateUrl: '/static/angular-components/cron/cron-job-runs-list.html',
+    controller: CronJobRunsListController,
     controllerAs: 'controller'
   };
 };
@@ -81,4 +80,4 @@ exports.CronJobFlowsListDirective = function() {
  * @const
  * @export
  */
-exports.CronJobFlowsListDirective.directive_name = 'grrCronJobFlowsList';
+exports.CronJobRunsListDirective.directive_name = 'grrCronJobRunsList';

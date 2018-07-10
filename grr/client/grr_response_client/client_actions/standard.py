@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Standard actions that happen on the client."""
+from __future__ import print_function
 import cStringIO as StringIO
 import ctypes
 import gzip
@@ -15,11 +16,11 @@ import zlib
 
 import psutil
 
-from grr import config
 from grr_response_client import actions
 from grr_response_client import client_utils_common
 from grr_response_client import vfs
 from grr_response_client.client_actions import tempfiles
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import constants
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
@@ -467,7 +468,7 @@ class Segfault(actions.ActionPlugin):
     """Does the segfaulting."""
     if flags.FLAGS.debug:
       logging.warning("Segfault action requested :(")
-      print ctypes.cast(1, ctypes.POINTER(ctypes.c_void_p)).contents
+      print(ctypes.cast(1, ctypes.POINTER(ctypes.c_void_p)).contents)
     else:
       logging.warning("Segfault requested but not running in debug mode.")
 

@@ -15,13 +15,13 @@ from google.protobuf import json_format
 from grr_api_client.connectors import http_connector
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import gui
-from grr.server.grr_response_server.gui import api_auth_manager
-from grr.server.grr_response_server.gui import api_call_router
-from grr.server.grr_response_server.gui import api_value_renderers
-from grr.server.grr_response_server.gui import http_api
-from grr.server.grr_response_server.gui import wsgiapp_testlib
+from grr_response_server import data_store
+from grr_response_server import gui
+from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_value_renderers
+from grr_response_server.gui import http_api
+from grr_response_server.gui import wsgiapp_testlib
 from grr.test_lib import test_lib
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")

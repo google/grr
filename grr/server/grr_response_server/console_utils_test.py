@@ -3,8 +3,8 @@
 
 
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import console_utils
+from grr_response_server import aff4
+from grr_response_server import console_utils
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

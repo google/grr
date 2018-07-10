@@ -5,12 +5,12 @@ To use this entry point you must run "grr_config_updater initialize" first.
 """
 
 
-from grr.config import server as config_server
+from grr.core.grr_response_core.config import server as config_server
 
 from grr.core.grr_response_core.lib import flags
-from grr.server.grr_response_server.bin import frontend
-from grr.server.grr_response_server.bin import worker
-from grr.server.grr_response_server.gui import admin_ui
+from grr_response_server.bin import frontend
+from grr_response_server.bin import worker
+from grr_response_server.gui import admin_ui
 
 flags.DEFINE_string("component", None,
                     "Component to start: [frontend|admin_ui|worker].")

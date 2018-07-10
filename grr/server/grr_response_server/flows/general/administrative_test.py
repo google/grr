@@ -9,9 +9,9 @@ import time
 
 import psutil
 
-from grr import config
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
@@ -19,24 +19,24 @@ from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import email_alerts
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import maintenance_utils
-from grr.server.grr_response_server import server_stubs
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import stats as aff4_stats
-from grr.server.grr_response_server.aff4_objects import users
-from grr.server.grr_response_server.flows.general import administrative
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import email_alerts
+from grr_response_server import flow
+from grr_response_server import maintenance_utils
+from grr_response_server import server_stubs
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_server.aff4_objects import users
+from grr_response_server.flows.general import administrative
 # pylint: disable=unused-import
 # For AuditEventListener, needed to handle published audit events.
-from grr.server.grr_response_server.flows.general import audit as _
+from grr_response_server.flows.general import audit as _
 # pylint: enable=unused-import
-from grr.server.grr_response_server.flows.general import discovery
-from grr.server.grr_response_server.hunts import implementation as hunts_implementation
-from grr.server.grr_response_server.hunts import standard as hunts_standard
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.flows.general import discovery
+from grr_response_server.hunts import implementation as hunts_implementation
+from grr_response_server.hunts import standard as hunts_standard
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib

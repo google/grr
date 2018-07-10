@@ -41,6 +41,7 @@ self.runner_args: The flow runners args. This is an instance of
   FlowRunnerArgs() which may be build from keyword args.
 
 """
+from __future__ import print_function
 
 import functools
 import logging
@@ -59,20 +60,20 @@ from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
-from grr.server.grr_response_server import access_control
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import data_store_utils
-from grr.server.grr_response_server import events
-from grr.server.grr_response_server import flow_runner
-from grr.server.grr_response_server import grr_collections
-from grr.server.grr_response_server import multi_type_collection
-from grr.server.grr_response_server import notification as notification_lib
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server import sequential_collection
-from grr.server.grr_response_server import server_stubs
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import access_control
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import data_store_utils
+from grr_response_server import events
+from grr_response_server import flow_runner
+from grr_response_server import grr_collections
+from grr_response_server import multi_type_collection
+from grr_response_server import notification as notification_lib
+from grr_response_server import queue_manager
+from grr_response_server import sequential_collection
+from grr_response_server import server_stubs
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class FlowResultCollection(sequential_collection.GrrMessageCollection):
@@ -982,7 +983,7 @@ class GRRFlow(FlowBase):
 
   @classmethod
   def PrintArgsHelp(cls):
-    print cls.GetArgsHelpAsString()
+    print(cls.GetArgsHelpAsString())
 
   @classmethod
   def _ClsHelpEpilog(cls):

@@ -4,10 +4,10 @@
 import unittest
 from grr.core.grr_response_core.lib import flags
 
-from grr.server.grr_response_server import foreman
-from grr.server.grr_response_server.gui import gui_test_lib
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
+from grr_response_server import foreman
+from grr_response_server.gui import gui_test_lib
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib

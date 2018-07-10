@@ -13,7 +13,7 @@ from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import output_plugin_pb2
-from grr.server.grr_response_server import aff4
+from grr_response_server import aff4
 
 
 class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):

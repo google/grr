@@ -46,7 +46,7 @@ class Firefox3HistoryTest(test_lib.GRRBaseTest):
     self.assertEqual(len(entries), 3)
     self.assertEqual(entries[1][3],
                      "Slashdot: News for nerds, stuff that matters")
-    self.assertEqual(entries[2][0], 1342526323608384L)
+    self.assertEqual(entries[2][0], 1342526323608384)
     self.assertEqual(entries[2][1], "FIREFOX3_VISIT")
     self.assertEqual(entries[2][2],
                      "https://blog.duosecurity.com/2012/07/exploit-mitigations"

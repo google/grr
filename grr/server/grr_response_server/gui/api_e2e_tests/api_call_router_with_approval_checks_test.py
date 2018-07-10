@@ -2,19 +2,19 @@
 """API E2E tests for an ApiCallRouterWithChecks."""
 
 
-from grr import config
 from grr_api_client import errors as grr_api_errors
+from grr.core.grr_response_core import config
 
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
-from grr.server.grr_response_server.aff4_objects import user_managers
+from grr_response_server.aff4_objects import user_managers
 
-from grr.server.grr_response_server.gui import api_auth_manager
-from grr.server.grr_response_server.gui import api_call_router_with_approval_checks as api_router
-from grr.server.grr_response_server.gui import api_e2e_test_lib
-from grr.server.grr_response_server.gui import gui_test_lib
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
+from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_router_with_approval_checks as api_router
+from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import gui_test_lib
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
 
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib

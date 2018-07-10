@@ -4,7 +4,7 @@
 
 import logging
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import registry
 
 

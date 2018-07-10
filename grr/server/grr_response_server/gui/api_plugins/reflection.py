@@ -5,11 +5,11 @@ from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto.api import reflection_pb2
-from grr.server.grr_response_server import aff4
+from grr_response_server import aff4
 
-from grr.server.grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import api_call_handler_base
 
-from grr.server.grr_response_server.gui import api_value_renderers
+from grr_response_server.gui import api_value_renderers
 
 
 def _GetAllTypes():

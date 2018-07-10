@@ -6,12 +6,12 @@ from grr.core.grr_response_core.lib import stats
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import stats_pb2
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import timeseries
-from grr.server.grr_response_server.aff4_objects import stats_store as stats_store_lib
-from grr.server.grr_response_server.gui import api_call_handler_base
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
-from grr.server.grr_response_server.gui.api_plugins.report_plugins import report_plugins
+from grr_response_server import aff4
+from grr_response_server import timeseries
+from grr_response_server.aff4_objects import stats_store as stats_store_lib
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
+from grr_response_server.gui.api_plugins.report_plugins import report_plugins
 
 
 class ApiStatsStoreMetricDataPoint(rdf_structs.RDFProtoStruct):

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-"""Tests for grr.server.grr_response_server.hunts.results."""
+"""Tests for grr_response_server.hunts.results."""
 
 
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server.hunts import results as hunts_results
+from grr_response_server import data_store
+from grr_response_server.hunts import results as hunts_results
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import test_lib
 

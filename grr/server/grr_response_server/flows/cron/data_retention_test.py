@@ -3,20 +3,20 @@
 
 import re
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.aff4_objects import cronjobs
-from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
-from grr.server.grr_response_server.data_stores import fake_data_store
-from grr.server.grr_response_server.flows.cron import data_retention
-from grr.server.grr_response_server.hunts import implementation
-from grr.server.grr_response_server.hunts import standard
-from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server.data_stores import fake_data_store
+from grr_response_server.flows.cron import data_retention
+from grr_response_server.hunts import implementation
+from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

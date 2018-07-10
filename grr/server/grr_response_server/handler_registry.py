@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """A registry of all new style well known flows."""
 
-from grr.server.grr_response_server.flows.general import administrative
-from grr.server.grr_response_server.flows.general import ca_enroller
-from grr.server.grr_response_server.flows.general import transfer
+from grr_response_server.flows.general import administrative
+from grr_response_server.flows.general import ca_enroller
+from grr_response_server.flows.general import transfer
 
 message_handlers = [
     ca_enroller.EnrolmentHandler,

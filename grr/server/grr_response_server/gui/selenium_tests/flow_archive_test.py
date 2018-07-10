@@ -9,16 +9,16 @@ import unittest
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import flow
+from grr_response_server import flow
 
-from grr.server.grr_response_server.flows.general import transfer as flows_transfer
-from grr.server.grr_response_server.gui import api_call_handler_utils
-from grr.server.grr_response_server.gui import api_call_router_with_approval_checks
-from grr.server.grr_response_server.gui import gui_test_lib
-from grr.server.grr_response_server.gui.api_plugins import flow as api_flow
-from grr.server.grr_response_server.output_plugins import csv_plugin
-from grr.server.grr_response_server.output_plugins import sqlite_plugin
-from grr.server.grr_response_server.output_plugins import yaml_plugin
+from grr_response_server.flows.general import transfer as flows_transfer
+from grr_response_server.gui import api_call_handler_utils
+from grr_response_server.gui import api_call_router_with_approval_checks
+from grr_response_server.gui import gui_test_lib
+from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.output_plugins import csv_plugin
+from grr_response_server.output_plugins import sqlite_plugin
+from grr_response_server.output_plugins import yaml_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib

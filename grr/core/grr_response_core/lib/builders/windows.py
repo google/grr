@@ -11,7 +11,7 @@ import sys
 
 import win32process
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import build
 
 MODULE_PATTERNS = [

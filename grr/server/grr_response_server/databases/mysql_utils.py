@@ -6,7 +6,7 @@ import functools
 import inspect
 
 from grr.core.grr_response_core.lib import rdfvalue
-from grr.server.grr_response_server import db_utils
+from grr_response_server import db_utils
 
 
 # GRR Client IDs are strings of the form "C.<16 hex digits>", our MySQL schema

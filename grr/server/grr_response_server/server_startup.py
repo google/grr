@@ -4,15 +4,15 @@ import logging
 import os
 import platform
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import config_lib
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import stats
 # pylint: disable=unused-import
 from grr.core.grr_response_core.lib.local import plugins
 # pylint: enable=unused-import
-from grr.server.grr_response_server import server_logging
-from grr.server.grr_response_server.local import registry_init
+from grr_response_server import server_logging
+from grr_response_server.local import registry_init
 
 # pylint: disable=g-import-not-at-top
 if platform.system() != "Windows":

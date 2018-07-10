@@ -4,13 +4,13 @@
 
 from grr.core.grr_response_core.lib import flags
 
-from grr.server.grr_response_server.aff4_objects import cronjobs
-from grr.server.grr_response_server.flows.cron import system as cron_system
-from grr.server.grr_response_server.gui import api_test_lib
-from grr.server.grr_response_server.gui.api_plugins import cron as cron_plugin
-from grr.server.grr_response_server.hunts import standard
-from grr.server.grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.flows.cron import system as cron_system
+from grr_response_server.gui import api_test_lib
+from grr_response_server.gui.api_plugins import cron as cron_plugin
+from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import test_lib
 
 

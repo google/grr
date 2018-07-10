@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests for grr.server.grr_response_server.flows.general.collectors.
+"""Tests for grr_response_server.flows.general.collectors.
 
 These tests cover the interaction of artifacts. They test that collection of
 good artifacts can still succeed if some bad artifacts are defined, and the
@@ -9,19 +9,19 @@ various ways of loading artifacts.
 import os
 
 
-from grr import config
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import artifact
-from grr.server.grr_response_server import artifact_registry
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.flows.general import collectors
-from grr.server.grr_response_server.flows.general import transfer
+from grr_response_server import aff4
+from grr_response_server import artifact
+from grr_response_server import artifact_registry
+from grr_response_server import data_store
+from grr_response_server import flow
+from grr_response_server.flows.general import collectors
+from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import flow_test_lib

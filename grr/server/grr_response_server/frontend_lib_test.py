@@ -9,10 +9,10 @@ import time
 import mock
 import requests
 
-from grr import config
 from grr_response_client import comms
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
+from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import communicator
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import queues
@@ -23,17 +23,17 @@ from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import fleetspeak_connector
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server import frontend_lib
-from grr.server.grr_response_server import maintenance_utils
-from grr.server.grr_response_server import queue_manager
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.flows.general import administrative
-from grr.server.grr_response_server.flows.general import ca_enroller
-from grr.server.grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import fleetspeak_connector
+from grr_response_server import flow
+from grr_response_server import frontend_lib
+from grr_response_server import maintenance_utils
+from grr_response_server import queue_manager
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.flows.general import administrative
+from grr_response_server.flows.general import ca_enroller
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import frontend_test_lib

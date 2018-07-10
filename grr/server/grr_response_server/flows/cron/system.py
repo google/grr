@@ -8,17 +8,17 @@ import time
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr.server.grr_response_server import aff4
-from grr.server.grr_response_server import data_store
-from grr.server.grr_response_server import export_utils
-from grr.server.grr_response_server import flow
-from grr.server.grr_response_server.aff4_objects import aff4_grr
-from grr.server.grr_response_server.aff4_objects import cronjobs
-from grr.server.grr_response_server.aff4_objects import stats as aff4_stats
-from grr.server.grr_response_server.flows.general import discovery as flows_discovery
-from grr.server.grr_response_server.hunts import implementation as hunts_implementation
-from grr.server.grr_response_server.hunts import standard as hunts_standard
-from grr.server.grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import export_utils
+from grr_response_server import flow
+from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_server.flows.general import discovery as flows_discovery
+from grr_response_server.hunts import implementation as hunts_implementation
+from grr_response_server.hunts import standard as hunts_standard
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
 class _ActiveCounter(object):
