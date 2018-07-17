@@ -38,36 +38,23 @@ const FormController =
     }
 
     return this.grrReflectionService_.getRDFValueDescriptor(
-        'CreateGenericHuntFlowArgs', true);
+        'ApiCreateCronJobArgs', true);
   }.bind(this)).then(function(descriptors) {
     angular.extend(this.descriptors_, descriptors);
 
-    return this.grrReflectionService_.getRDFValueDescriptor(
-        'ApiCronJob', true);
-  }.bind(this)).then(function(descriptors) {
-    angular.extend(this.descriptors_, descriptors);
-
-    this.scope_.$watch('cronJob',
-                       this.onCronJobChange_.bind(this));
+    this.scope_.$watch('createCronJobArgs',
+                       this.onCronJobCreateArgsChange_.bind(this));
   }.bind(this));
-
-  // Aliasing hunt arguments which are themselves a part of
-  // CreateAndRunGenericHuntFlow args - purely for convenience when
-  // when using it in the template.
-  this.scope_.$watch('cronJob.value.flow_args.value.hunt_args',
-                     function(newValue) {
-                       this.genericHuntArgs = newValue;
-                     }.bind(this));
 
   // Aliasing hunt runner arguments which are themselves a part of
   // CreateAndRunGenericHuntFlow args - purely for convenience when
   // when using it in the template.
-  this.scope_.$watch('cronJob.value.flow_args.value.hunt_runner_args',
+  this.scope_.$watch('createCronJobArgs.value.hunt_runner_args',
                      function(newValue) {
                        this.huntRunnerArgs = newValue;
                      }.bind(this));
 
-  this.scope_.$watch('cronJob.value.description.value',
+  this.scope_.$watch('createCronJobArgs.value.description.value',
                      this.onCronJobDescriptionChange_.bind(this));
 };
 
@@ -102,12 +89,12 @@ FormController.prototype.onCronJobDescriptionChange_ = function(
 
 
 /**
- * Called when 'genericHuntArgs' binding changes.
+ * Called when 'createCronJobArgs' binding changes.
  *
  * @param {Object} newValue New binding value.
  * @private
  */
-FormController.prototype.onCronJobChange_ = function(newValue) {
+FormController.prototype.onCronJobCreateArgsChange_ = function(newValue) {
   /**
    * In order to make forms work, we have to make sure that all the structures
    * and values, that are going to be edited, are initialized to their
@@ -120,15 +107,10 @@ FormController.prototype.onCronJobChange_ = function(newValue) {
   // If cronJob is not initialized, initialize it with default
   // ApiCronJob value.
   if (angular.isUndefined(newValue)) {
-    newValue = this.scope_['cronJob'] =
-        angular.copy(this.descriptors_['ApiCronJob']['default']);
+    newValue = this.scope_['createCronJobArgs'] =
+        angular.copy(this.descriptors_['ApiCreateCronJobArgs']['default']);
   }
 
-  // Flow name should always be CreateAndRunGenericHuntFlow.
-  newValue['value']['flow_name'] = {
-    type: 'RDFString',
-    value: 'CreateAndRunGenericHuntFlow'
-  };
   // If periodicity is not set, set it to 7 days.
   if (angular.isUndefined(newValue['value']['periodicity'])) {
     newValue['value']['periodicity'] = {
@@ -143,43 +125,21 @@ FormController.prototype.onCronJobChange_ = function(newValue) {
       value: 60 * 60 * 1
     };
   }
-  // If flow arguments are not set, initialize them to CreateGenericHuntFlowArgs
-  // default value.
-  if (angular.isUndefined(newValue['value']['flow_args'])) {
-    newValue['value']['flow_args'] =
-        angular.copy(this.descriptors_['CreateGenericHuntFlowArgs']['default']);
-  }
-  var createHuntFlowArgs = newValue['value']['flow_args']['value'];
 
-  // If CreateGenericHuntFlowArgs.hunt_args is not initialized, initialize
-  // it to default GenericHuntArgs value.
-  if (angular.isUndefined(createHuntFlowArgs['hunt_args'])) {
-    createHuntFlowArgs['hunt_args'] =
-        angular.copy(this.descriptors_['GenericHuntArgs']['default']);
-  }
-
-  var huntArgs = createHuntFlowArgs['hunt_args']['value'];
-  // If CreateGenericHuntFlowArgs.hunt_args.flow_runner_args is not
-  // initialized, initialize it to FlowRunnerArgs default.
-  if (angular.isUndefined(huntArgs['flow_runner_args'])) {
-    huntArgs['flow_runner_args'] = angular.copy(
-        this.descriptors_['FlowRunnerArgs']['default']);
-  }
-  // If CreateGenericHuntFlowArgs.hunt_args.flow_runner_args.flow_name is not
-  // initialized, initialize it to RDFString default.
-  if (angular.isUndefined(huntArgs['flow_runner_args']['value']['flow_name'])) {
-    huntArgs['flow_runner_args']['value']['flow_name'] =
+  // If flow_name is not initialized, initialize it to RDFString default.
+  if (angular.isUndefined(newValue['value']['flow_name'])) {
+    newValue['value']['flow_name'] =
         angular.copy(this.descriptors_['RDFString']['default']);
   }
 
   // If CreateGenericHuntFlowArgs.hunt_runner_args is not initialized,
   // initialize it to HuntRunnerArgs default.
-  if (angular.isUndefined(createHuntFlowArgs['hunt_runner_args'])) {
-    createHuntFlowArgs['hunt_runner_args'] =
+  if (angular.isUndefined(newValue['value']['hunt_runner_args'])) {
+    newValue['value']['hunt_runner_args'] =
         angular.copy(this.descriptors_['HuntRunnerArgs']['default']);
   }
 
-  var huntRunnerArgs = createHuntFlowArgs['hunt_runner_args']['value'];
+  var huntRunnerArgs = newValue['value']['hunt_runner_args']['value'];
   // Initialize CreateGenericHuntFlowArgs.hunt_runner_args.client_rule_set
   if (angular.isUndefined(huntRunnerArgs['client_rule_set'])) {
     huntRunnerArgs['client_rule_set'] = angular.copy(
@@ -211,7 +171,8 @@ FormController.prototype.onCronJobChange_ = function(newValue) {
  * @export
  */
 FormController.prototype.sendRequest = function() {
-  this.grrApiService_.post('/cron-jobs', this.scope_['cronJob'], true).then(
+  this.grrApiService_.post('/cron-jobs',
+                           this.scope_['createCronJobArgs'], true).then(
       function resolve(response) {
         this.serverResponse = response;
         this.scope_['cronJob'] = response['data'];
@@ -232,6 +193,7 @@ FormController.prototype.sendRequest = function() {
 exports.FormDirective = function() {
   return {
     scope: {
+      createCronJobArgs: '=?',
       cronJob: '=?',
 
       onResolve: '&',

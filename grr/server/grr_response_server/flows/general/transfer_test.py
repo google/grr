@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test the file transfer mechanism."""
+from __future__ import division
 
 import hashlib
 import os
@@ -95,7 +96,7 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
     self._RunAndCheck(chunk_size, download_length)
 
     # Not a multiple of the chunk size.
-    download_length = 15 * chunk_size + chunk_size / 2
+    download_length = 15 * chunk_size + chunk_size // 2
     self._RunAndCheck(chunk_size, download_length)
 
   def testGetFile(self):

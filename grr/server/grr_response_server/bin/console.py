@@ -129,7 +129,8 @@ def main(argv):
     exec (flags.FLAGS.code_to_execute)  # pylint: disable=exec-used
   elif flags.FLAGS.command_file:
     logging.info("Running code from file: %s", flags.FLAGS.command_file)
-    execfile(flags.FLAGS.command_file)
+    with open(flags.FLAGS.command_file, "r") as filedesc:
+      exec (filedesc.read())  # pylint: disable=exec-used
 
   if (flags.FLAGS.exit_on_complete and
       (flags.FLAGS.code_to_execute or flags.FLAGS.command_file)):

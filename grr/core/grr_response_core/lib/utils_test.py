@@ -423,14 +423,14 @@ class StreamingZipWriterTest(test_lib.GRRBaseTest):
         zip_fd = zipfile.ZipFile(outfd, "r")
 
         link_info = zip_fd.getinfo("test1.txt.link")
-        self.assertEqual(link_info.external_attr, (0644 | 0120000) << 16)
+        self.assertEqual(link_info.external_attr, (0o644 | 0o120000) << 16)
         self.assertEqual(link_info.create_system, 3)
 
         link_contents = zip_fd.read("test1.txt.link")
         self.assertEqual(link_contents, "test1.txt")
 
         link_info = zip_fd.getinfo("test2.txt.link")
-        self.assertEqual(link_info.external_attr, (0644 | 0120000) << 16)
+        self.assertEqual(link_info.external_attr, (0o644 | 0o120000) << 16)
         self.assertEqual(link_info.create_system, 3)
 
         link_contents = zip_fd.read("test2.txt.link")
@@ -442,7 +442,7 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
 
   def testTarFileWithOneFile(self):
     infd = StringIO.StringIO("this is a test string")
-    st = os.stat_result((0644, 0, 0, 0, 0, 0, len(infd.getvalue()), 0, 0, 0))
+    st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd.getvalue()), 0, 0, 0))
 
     # Write the tar into a file like object.
     outfd = StringIO.StringIO()
@@ -463,10 +463,10 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
     outfd = StringIO.StringIO()
 
     infd1 = StringIO.StringIO("this is a test string")
-    st1 = os.stat_result((0644, 0, 0, 0, 0, 0, len(infd1.getvalue()), 0, 0, 0))
+    st1 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd1.getvalue()), 0, 0, 0))
 
     infd2 = StringIO.StringIO("this is another test string")
-    st2 = os.stat_result((0644, 0, 0, 0, 0, 0, len(infd2.getvalue()), 0, 0, 0))
+    st2 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd2.getvalue()), 0, 0, 0))
 
     # Write the tar into a file like object.
     with utils.StreamingTarWriter(outfd, mode="w:gz") as writer:
@@ -491,10 +491,10 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
     outfd = StringIO.StringIO()
 
     infd1 = StringIO.StringIO("this is a test string")
-    st1 = os.stat_result((0644, 0, 0, 0, 0, 0, len(infd1.getvalue()), 0, 0, 0))
+    st1 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd1.getvalue()), 0, 0, 0))
 
     infd2 = StringIO.StringIO("this is another test string")
-    st2 = os.stat_result((0644, 0, 0, 0, 0, 0, len(infd2.getvalue()), 0, 0, 0))
+    st2 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd2.getvalue()), 0, 0, 0))
 
     # Write the zip into a file like object.
     with utils.StreamingTarWriter(outfd, mode="w:gz") as writer:

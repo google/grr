@@ -11,7 +11,6 @@ from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import output_plugin
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import hunt as hunt_plugin
 from grr_response_server.hunts import implementation
@@ -19,6 +18,7 @@ from grr_response_server.hunts import process_results
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -370,7 +370,7 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
       with self.CreateHunt(
           description="the hunt",
           output_plugins=[
-              output_plugin.OutputPluginDescriptor(
+              rdf_output_plugin.OutputPluginDescriptor(
                   plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
                   plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
                       filename_regex="blah!", fetch_binaries=True))
@@ -402,7 +402,7 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
       hunt_urn = self.StartHunt(
           description="the hunt",
           output_plugins=[
-              output_plugin.OutputPluginDescriptor(
+              rdf_output_plugin.OutputPluginDescriptor(
                   plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
                   plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
                       filename_regex="blah!", fetch_binaries=True))
@@ -437,7 +437,7 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
   uses_legacy_dynamic_protos = True
 
   def Run(self):
-    failing_descriptor = output_plugin.OutputPluginDescriptor(
+    failing_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=hunt_test_lib.FailingDummyHuntOutputPlugin.__name__)
 
     with test_lib.FakeTime(42, increment=1):

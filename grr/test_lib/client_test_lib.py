@@ -7,6 +7,8 @@ import subprocess
 import types
 import unittest
 
+
+from future.utils import with_metaclass
 import pytest
 
 from grr_response_client import actions
@@ -23,10 +25,9 @@ from grr.test_lib import worker_mocks
 
 
 @pytest.mark.small
-class EmptyActionTest(test_lib.GRRBaseTest):
+class EmptyActionTest(
+    with_metaclass(registry.MetaclassRegistry, test_lib.GRRBaseTest)):
   """Test the client Actions."""
-
-  __metaclass__ = registry.MetaclassRegistry
 
   def RunAction(self, action_cls, arg=None, grr_worker=None):
     if arg is None:

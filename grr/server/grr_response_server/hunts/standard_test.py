@@ -7,7 +7,6 @@ import math
 import os
 import time
 
-
 import mock
 
 from grr.core.grr_response_core.lib import flags
@@ -20,7 +19,6 @@ from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import flow
-from grr_response_server import output_plugin
 from grr_response_server import queue_manager
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import administrative
@@ -31,6 +29,7 @@ from grr_response_server.hunts import implementation
 from grr_response_server.hunts import process_results
 from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -262,7 +261,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
   def testOutputPluginsProcessOnlyNewResultsOnEveryRun(self):
     hunt_urn = self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="DummyHuntOutputPlugin")
     ])
 
@@ -306,7 +305,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(hunt.context.results_count, 10)
 
   def testOutputPluginsProcessingStatusIsWrittenToStatusCollection(self):
-    plugin_descriptor = output_plugin.OutputPluginDescriptor(
+    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")
     hunt_urn = self.StartHunt(output_plugins=[plugin_descriptor])
 
@@ -330,7 +329,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
   def testMultipleOutputPluginsProcessingStatusAreWrittenToStatusCollection(
       self):
-    plugin_descriptor = output_plugin.OutputPluginDescriptor(
+    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")
     hunt_urn = self.StartHunt(output_plugins=[plugin_descriptor])
 
@@ -364,9 +363,9 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(items[1].plugin_descriptor, plugin_descriptor)
 
   def testErrorOutputPluginStatusIsAlsoWrittenToErrorsCollection(self):
-    failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
+    failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="FailingDummyHuntOutputPlugin")
-    plugin_descriptor = output_plugin.OutputPluginDescriptor(
+    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")
     hunt_urn = self.StartHunt(
         output_plugins=[failing_plugin_descriptor, plugin_descriptor])
@@ -408,7 +407,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(items[1].summary, "Oh no!")
 
   def testOutputPluginFlushErrorIsLoggedProperly(self):
-    failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
+    failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="FailingInFlushDummyHuntOutputPlugin")
     hunt_urn = self.StartHunt(output_plugins=[failing_plugin_descriptor])
 
@@ -446,9 +445,9 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
   def testFailingOutputPluginDoesNotAffectOtherOutputPlugins(self):
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="FailingDummyHuntOutputPlugin"),
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="DummyHuntOutputPlugin")
     ])
 
@@ -472,9 +471,9 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_responses, 10)
 
   def testResultsProcessingErrorContainsDetailedFailureData(self):
-    failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
+    failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="FailingDummyHuntOutputPlugin")
-    plugin_descriptor = output_plugin.OutputPluginDescriptor(
+    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")
     hunt_urn = self.StartHunt(
         output_plugins=[failing_plugin_descriptor, plugin_descriptor])
@@ -513,7 +512,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       side_effect=RuntimeError("Oh, no"))
   def testResultsAreNotProcessedAgainAfterPluginFailure(self,
                                                         process_responses_mock):
-    failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
+    failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="FailingDummyHuntOutputPlugin")
     self.StartHunt(output_plugins=[failing_plugin_descriptor])
 
@@ -532,7 +531,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(process_responses_mock.call_count, 1)
 
   def testUpdatesStatsCounterOnSuccess(self):
-    failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
+    failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")
     self.StartHunt(output_plugins=[failing_plugin_descriptor])
 
@@ -556,7 +555,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(errors_count - prev_errors_count, 0)
 
   def testUpdatesStatsCounterOnFailure(self):
-    failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
+    failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="FailingDummyHuntOutputPlugin")
     self.StartHunt(output_plugins=[failing_plugin_descriptor])
 
@@ -584,7 +583,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
   def testOutputPluginsMaintainState(self):
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="StatefulDummyHuntOutputPlugin")
     ])
 
@@ -607,11 +606,11 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
   def testMultipleHuntsOutputIsProcessedCorrectly(self):
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="DummyHuntOutputPlugin")
     ])
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="StatefulDummyHuntOutputPlugin")
     ])
 
@@ -635,7 +634,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
     with utils.Stubber(time, "time", TimeStub):
       self.StartHunt(output_plugins=[
-          output_plugin.OutputPluginDescriptor(
+          rdf_output_plugin.OutputPluginDescriptor(
               plugin_name="LongRunningDummyHuntOutputPlugin")
       ])
       self.AssignTasksToClients()
@@ -669,7 +668,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
     with utils.Stubber(time, "time", TimeStub):
       self.StartHunt(output_plugins=[
-          output_plugin.OutputPluginDescriptor(
+          rdf_output_plugin.OutputPluginDescriptor(
               plugin_name="LongRunningDummyHuntOutputPlugin")
       ])
       self.AssignTasksToClients()
@@ -689,7 +688,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
   def testHuntResultsArrivingWhileOldResultsAreProcessedAreHandled(self):
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="DummyHuntOutputPlugin")
     ])
 
@@ -1286,7 +1285,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
 
   def testReturnsNAStatusForGenericHuntWithUnverifiableOutputPlugins(self):
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=hunt_test_lib.DummyHuntOutputPlugin.__name__)
     ])
     self.AssignTasksToClients()
@@ -1302,7 +1301,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
 
   def testWritesStatusToHuntResultsMetadata(self):
     hunt_urn = self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=hunt_test_lib.DummyHuntOutputPlugin.__name__)
     ])
     self.AssignTasksToClients()
@@ -1321,7 +1320,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
 
   def testRunsCorrespondingVerifierIfThereIsOne(self):
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=hunt_test_lib.VerifiableDummyHuntOutputPlugin.__name__)
     ])
     self.AssignTasksToClients()
@@ -1337,7 +1336,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
 
   def testRaisesIfVerifierRaises(self):
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier.
             __name__)
     ])
@@ -1354,7 +1353,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
 
   def testUpdatesStatsCounterOnException(self):
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier.
             __name__)
     ])
@@ -1374,12 +1373,12 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
 
   def testChecksAllHuntsEvenIfOneRaises(self):
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier.
             __name__)
     ])
     self.StartHunt(output_plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=hunt_test_lib.VerifiableDummyHuntOutputPlugin.__name__)
     ])
     self.AssignTasksToClients()
@@ -1398,7 +1397,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now - rdfvalue.Duration("61m"), increment=1e-6):
       self.StartHunt(output_plugins=[
-          output_plugin.OutputPluginDescriptor(
+          rdf_output_plugin.OutputPluginDescriptor(
               plugin_name=hunt_test_lib.VerifiableDummyHuntOutputPlugin.__name__
           )
       ])

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Helper functionality for gui testing."""
+from __future__ import division
 
 import atexit
 import functools

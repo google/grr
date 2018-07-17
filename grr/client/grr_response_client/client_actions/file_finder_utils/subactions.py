@@ -3,20 +3,21 @@
 
 import abc
 
+
+from future.utils import with_metaclass
+
 from grr_response_client import client_utils
 from grr_response_client import client_utils_common
 from grr_response_client.client_actions.file_finder_utils import uploading
 from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
-class Action(object):
+class Action(with_metaclass(abc.ABCMeta, object)):
   """An abstract class for subactions of the client-side file-finder.
 
   Attributes:
     flow: A parent flow action that spawned the subaction.
   """
-
-  __metaclass__ = abc.ABCMeta
 
   def __init__(self, flow):
     self.flow = flow

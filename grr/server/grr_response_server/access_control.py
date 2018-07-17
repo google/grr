@@ -15,6 +15,8 @@ import logging
 import time
 
 
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import stats
@@ -50,7 +52,7 @@ class ExpiryError(Error):
   counter = "grr_expired_tokens"
 
 
-class AccessControlManager(object):
+class AccessControlManager(with_metaclass(registry.MetaclassRegistry, object)):
   """A class for managing access to data resources.
 
   This class is responsible for determining which users have access to each
@@ -59,8 +61,6 @@ class AccessControlManager(object):
   By default it delegates some of this functionality to a UserManager class
   which takes care of label management and user management components.
   """
-
-  __metaclass__ = registry.MetaclassRegistry
 
   def CheckClientAccess(self, token, client_urn):
     """Checks access to the given client.

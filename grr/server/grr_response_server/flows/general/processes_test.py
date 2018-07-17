@@ -25,7 +25,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             ppid=1,
             cmdline=["cmd.exe"],
             exe="c:\\windows\\cmd.exe",
-            ctime=long(1333718907.167083 * 1e6))
+            ctime=1333718907167083)
     ])
 
     flow_urn = flow.StartFlow(
@@ -52,23 +52,17 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             ppid=1,
             cmdline=["cmd.exe"],
             exe="c:\\windows\\cmd.exe",
-            ctime=long(1333718907.167083 * 1e6)),
+            ctime=1333718907167083),
         rdf_client.Process(
             pid=3,
             ppid=1,
             cmdline=["cmd2.exe"],
             exe="c:\\windows\\cmd2.exe",
-            ctime=long(1333718907.167083 * 1e6)),
+            ctime=1333718907167083),
         rdf_client.Process(
-            pid=4,
-            ppid=1,
-            cmdline=["missing_exe.exe"],
-            ctime=long(1333718907.167083 * 1e6)),
+            pid=4, ppid=1, cmdline=["missing_exe.exe"], ctime=1333718907167083),
         rdf_client.Process(
-            pid=5,
-            ppid=1,
-            cmdline=["missing2_exe.exe"],
-            ctime=long(1333718907.167083 * 1e6))
+            pid=5, ppid=1, cmdline=["missing2_exe.exe"], ctime=1333718907167083)
     ])
 
     flow_urn = flow.StartFlow(
@@ -100,20 +94,20 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ppid=1,
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
-        ctime=long(1333718907.167083 * 1e6),
+        ctime=1333718907167083,
         connections=rdf_client.NetworkConnection(family="INET", state="CLOSED"))
     p2 = rdf_client.Process(
         pid=3,
         ppid=1,
         cmdline=["cmd2.exe"],
         exe="c:\\windows\\cmd2.exe",
-        ctime=long(1333718907.167083 * 1e6),
+        ctime=1333718907167083,
         connections=rdf_client.NetworkConnection(family="INET", state="LISTEN"))
     p3 = rdf_client.Process(
         pid=4,
         ppid=1,
         cmdline=["missing_exe.exe"],
-        ctime=long(1333718907.167083 * 1e6),
+        ctime=1333718907167083,
         connections=rdf_client.NetworkConnection(
             family="INET", state="ESTABLISHED"))
     client_mock = action_mocks.ListProcessesMock([p1, p2, p3])
@@ -136,17 +130,14 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
   def testWhenFetchingFiltersOutProcessesWithoutExeAndConnectionState(self):
     client_id = self.SetupClient(0)
     p1 = rdf_client.Process(
-        pid=2,
-        ppid=1,
-        cmdline=["test_img.dd"],
-        ctime=long(1333718907.167083 * 1e6))
+        pid=2, ppid=1, cmdline=["test_img.dd"], ctime=1333718907167083)
 
     p2 = rdf_client.Process(
         pid=2,
         ppid=1,
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
-        ctime=long(1333718907.167083 * 1e6),
+        ctime=1333718907167083,
         connections=rdf_client.NetworkConnection(
             family="INET", state="ESTABLISHED"))
 
@@ -170,7 +161,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ppid=1,
         cmdline=["test_img.dd"],
         exe=os.path.join(self.base_path, "test_img.dd"),
-        ctime=long(1333718907.167083 * 1e6))
+        ctime=1333718907167083)
 
     client_mock = action_mocks.ListProcessesMock([process])
 
@@ -193,14 +184,14 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ppid=1,
         cmdline=["test_img.dd"],
         exe=os.path.join(self.base_path, "test_img.dd"),
-        ctime=long(1333718907.167083 * 1e6))
+        ctime=1333718907167083)
 
     process2 = rdf_client.Process(
         pid=3,
         ppid=1,
         cmdline=["test_img.dd", "--arg"],
         exe=os.path.join(self.base_path, "test_img.dd"),
-        ctime=long(1333718907.167083 * 1e6))
+        ctime=1333718907167083)
 
     client_mock = action_mocks.ListProcessesMock([process1, process2])
 
@@ -220,14 +211,14 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ppid=1,
         cmdline=["test_img.dd"],
         exe=os.path.join(self.base_path, "test_img.dd"),
-        ctime=long(1333718907.167083 * 1e6))
+        ctime=1333718907167083)
 
     process2 = rdf_client.Process(
         pid=2,
         ppid=1,
         cmdline=["file_that_does_not_exist"],
         exe=os.path.join(self.base_path, "file_that_does_not_exist"),
-        ctime=long(1333718907.167083 * 1e6))
+        ctime=1333718907167083)
 
     client_mock = action_mocks.ListProcessesMock([process1, process2])
 

@@ -67,7 +67,7 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
       GrrMessage.next_id_base = id_base
 
     # 32 bit timestamp (in 1/1000 second resolution)
-    time_base = (long(time.time() * 1000) & 0x1FFFFFFF) << 32
+    time_base = (int(time.time() * 1000) & 0x1FFFFFFF) << 32
 
     priority_prefix = self.max_priority - self.priority
     # Prepend the priority so the messages stay sorted.

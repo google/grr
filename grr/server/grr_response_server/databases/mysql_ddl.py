@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS cron_jobs(
     create_time DATETIME(6),
     current_run_id INT UNSIGNED,
     disabled BOOL,
+    forced_run_requested BOOL,
     last_run_time DATETIME(6),
     last_run_status INT UNSIGNED,
     state MEDIUMBLOB,

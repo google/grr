@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the ThreadPool class."""
+from __future__ import division
 
 import logging
 import Queue

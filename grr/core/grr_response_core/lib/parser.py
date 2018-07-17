@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Registry for parsers and abstract classes for basic parser functionality."""
 
+
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core.lib import registry
 # For CronTabFile, an artifact output type. pylint: disable=unused-import
 from grr.core.grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs
@@ -24,13 +27,12 @@ class ParseError(Error):
   """An error that gets raised due to the parsing of the output failing."""
 
 
-class Parser(object):
+class Parser(with_metaclass(registry.MetaclassRegistry, object)):
   """A class for looking up parsers.
 
   Parsers may be in other libraries or third party code, this class keeps
   references to each of them so they can be called by name by the artifacts.
   """
-  __metaclass__ = registry.MetaclassRegistry
 
   # A list of string identifiers for artifacts that this parser can process.
   supported_artifacts = []

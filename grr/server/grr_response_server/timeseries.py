@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Operations on a series of points, indexed by time.
 """
+from __future__ import division
 
 import copy
 
@@ -137,7 +138,7 @@ class Timeseries(object):
       if mode == NORMALIZE_MODE_GAUGE:
         v = None
         if g:
-          v = float(sum(g)) / float(len(g))
+          v = sum(g) / len(g)
         self.data.append([v, offset + start_time])
       else:
         if g:
@@ -218,4 +219,7 @@ class Timeseries(object):
     values = [v for v, _ in self.data if v is not None]
     if not values:
       return None
-    return sum(values) / len(values)
+
+    # TODO(hanuszczak): Why do we return a floored division result instead of
+    # the exact value?
+    return sum(values) // len(values)

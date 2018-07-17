@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """This module tests the RDFValue implementation for performance."""
-
+from __future__ import division
 
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import type_info
@@ -142,7 +142,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
   def testDecodeRepeatedFields(self):
     """Test decoding of repeated fields."""
 
-    repeats = self.REPEATS / 50
+    repeats = self.REPEATS // 50
     s = jobs_pb2.MessageList()
     for i in range(self.REPEATS):
       s.job.add(session_id="test", name="foobar", request_id=i)
@@ -166,7 +166,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
   def testRepeatedFields(self):
     """Test serialization and construction of repeated fields."""
 
-    repeats = self.REPEATS / 50
+    repeats = self.REPEATS // 50
 
     def ProtoCreateAndSerialize():
       s = jobs_pb2.MessageList()

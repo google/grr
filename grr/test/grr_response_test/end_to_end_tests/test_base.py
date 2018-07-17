@@ -6,6 +6,9 @@ import logging
 import StringIO
 import time
 
+
+from future.utils import with_metaclass
+
 import unittest
 
 from grr_api_client import errors
@@ -148,10 +151,8 @@ class RunFlowAndWaitError(Error):
 init_fn = lambda: (None, None)
 
 
-class EndToEndTest(unittest.TestCase):
+class EndToEndTest(with_metaclass(EndToEndTestMetaclass, unittest.TestCase)):
   """This is a end-to-end test base class."""
-
-  __metaclass__ = EndToEndTestMetaclass
 
   class Platform(object):
     LINUX = "Linux"

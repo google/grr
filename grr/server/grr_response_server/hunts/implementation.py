@@ -5,6 +5,8 @@ A hunt is a mechanism for automatically scheduling flows on a selective subset
 of clients, managing these flows, collecting and presenting the combined results
 of all these flows.
 """
+from __future__ import division
+
 import logging
 import threading
 import traceback
@@ -1291,8 +1293,7 @@ class GRRHunt(flow.FlowBase):
     # Check average per-client results count limit.
     if self.runner_args.avg_results_per_client_limit:
       avg_results_per_client = (
-          self.context.results_count / float(
-              self.context.completed_clients_count))
+          self.context.results_count / self.context.completed_clients_count)
       if (avg_results_per_client >
           self.runner_args.avg_results_per_client_limit):
         # Stop the hunt since we get too many results per client.
@@ -1306,8 +1307,8 @@ class GRRHunt(flow.FlowBase):
     if self.runner_args.avg_cpu_seconds_per_client_limit:
       avg_cpu_seconds_per_client = (
           (self.context.client_resources.cpu_usage.user_cpu_time +
-           self.context.client_resources.cpu_usage.system_cpu_time) / float(
-               self.context.completed_clients_count))
+           self.context.client_resources.cpu_usage.system_cpu_time) /
+          self.context.completed_clients_count)
       if (avg_cpu_seconds_per_client >
           self.runner_args.avg_cpu_seconds_per_client_limit):
         # Stop the hunt since we use too many CPUs per client.
@@ -1320,8 +1321,8 @@ class GRRHunt(flow.FlowBase):
     # Check average per-client network bytes limit.
     if self.runner_args.avg_network_bytes_per_client_limit:
       avg_network_bytes_per_client = (
-          self.context.network_bytes_sent / float(
-              self.context.completed_clients_count))
+          self.context.network_bytes_sent /
+          self.context.completed_clients_count)
       if (avg_network_bytes_per_client >
           self.runner_args.avg_network_bytes_per_client_limit):
         # Stop the hunt since we use too many network bytes sent
@@ -1402,7 +1403,7 @@ class GRRHunt(flow.FlowBase):
   def HeartBeat(self):
     if self.locked:
       lease_time = self.transaction.lease_time
-      if self.CheckLease() < lease_time / 2:
+      if self.CheckLease() < lease_time // 2:
         logging.debug("%s: Extending Lease", self.session_id)
         self.UpdateLease(lease_time)
     else:

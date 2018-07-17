@@ -8,13 +8,13 @@ from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import access_control
 from grr_response_server import flow
-from grr_response_server import output_plugin
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import db_test_lib
 
 
@@ -416,7 +416,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     flow_args.paths = ["b/*", "c/*"]
     client_rule_set.rules[0].regex.field = "FQDN"
     output_plugins = [
-        output_plugin.OutputPluginDescriptor(plugin_name="TestOutputPlugin")
+        rdf_output_plugin.OutputPluginDescriptor(plugin_name="TestOutputPlugin")
     ]
     new_h = self.CreateHunt(
         flow_args=flow_args,

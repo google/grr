@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """These are filesystem related flows."""
+from __future__ import division
+
 import fnmatch
 import re
 import stat
@@ -452,7 +454,7 @@ class UpdateSparseImageChunks(flow.GRRFlow):
       raise IOError("Error running TransferBuffer: %s" % responses.status)
     response = responses.First()
 
-    chunk_number = response.offset / self.state.chunksize
+    chunk_number = response.offset // self.state.chunksize
 
     self.state.blobs.append([chunk_number, response])
 
@@ -540,7 +542,7 @@ class FetchBufferForSparseImage(flow.GRRFlow):
 
     # Write the data we got from the client to the file.
     # sparse_image = self.state.fd
-    chunk_number = response.offset / self.state.chunksize
+    chunk_number = response.offset // self.state.chunksize
     self.state.blobs.append([chunk_number, response])
 
     length_to_read = min(self.state.chunksize, self.state.bytes_left_to_read)
@@ -589,8 +591,8 @@ class FetchBufferForSparseImage(flow.GRRFlow):
       A (length, offset) tuple, containing the length and offset
       required to read all affected chunks.
     """
-    start_chunk = offset / chunksize
-    end_chunk = (offset + length) / chunksize
+    start_chunk = offset // chunksize
+    end_chunk = (offset + length) // chunksize
     # If we happened to round down to the beginning of the end chunk, make sure
     # to read to the end of it (which is the beginning of the next chunk).
     if (offset + length) % chunksize != 0:

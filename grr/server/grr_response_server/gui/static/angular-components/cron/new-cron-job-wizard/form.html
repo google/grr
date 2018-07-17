@@ -5,17 +5,17 @@
       title="Cron Job properties"
       is-valid="controller.huntRunnerArgs.value.client_rule_set">
 
-    <grr-configure-schedule-page cron-job="cronJob">
+    <grr-configure-schedule-page cron-job-args="createCronJobArgs">
     </grr-configure-schedule-page>
 
   </grr-wizard-form-page>
 
   <!-- Configure flow -->
   <grr-wizard-form-page title="What to run?"
-                        is-valid="controller.genericHuntArgs.value.flow_runner_args.value.flow_name.value">
+                        is-valid="createCronJobArgs.value.flow_name.value">
 
-    <grr-configure-flow-page flow-name="controller.genericHuntArgs.value.flow_runner_args.value.flow_name.value"
-                             flow-arguments="controller.genericHuntArgs.value.flow_args"
+    <grr-configure-flow-page flow-name="createCronJobArgs.value.flow_name.value"
+                             flow-arguments="createCronJobArgs.value.flow_args"
                              hunt-runner-args="controller.huntRunnerArgs">
     </grr-configure-flow-page>
 
@@ -42,7 +42,7 @@
   <grr-wizard-form-page title="Review"
                         next-button-label="Schedule Hunt">
 
-    <grr-new-cron-job-review-page cron-job="cronJob">
+    <grr-new-cron-job-review-page cron-job-args="createCronJobArgs">
     </grr-new-cron-job-review-page>
 
   </grr-wizard-form-page>

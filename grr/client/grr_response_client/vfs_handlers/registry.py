@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Implement access to the windows registry."""
+from __future__ import division
 
 import ctypes
 import ctypes.wintypes
@@ -145,7 +146,7 @@ def QueryInfoKey(key):
     raise ctypes.WinError(2)
 
   last_modified = ft.dwLowDateTime | (ft.dwHighDateTime << 32)
-  last_modified = last_modified / 10000000 - WIN_UNIX_DIFF_MSECS
+  last_modified = last_modified // 10000000 - WIN_UNIX_DIFF_MSECS
 
   return (num_sub_keys.value, num_values.value, last_modified)
 

@@ -8,6 +8,8 @@ import time
 import traceback
 
 
+from future.utils import with_metaclass
+
 import psutil
 
 from grr_response_client import client_utils
@@ -34,7 +36,7 @@ class NetworkBytesExceededError(Error):
   """Exceeded the maximum number of bytes allowed to be sent for this action."""
 
 
-class ActionPlugin(object):
+class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
   """Baseclass for plugins.
 
   An action is a plugin abstraction which receives an rdfvalue and
@@ -62,8 +64,6 @@ class ActionPlugin(object):
 
   # Authentication Required for this Action:
   _authentication_required = True
-
-  __metaclass__ = registry.MetaclassRegistry
 
   __abstract = True  # pylint: disable=invalid-name
 

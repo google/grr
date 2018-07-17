@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 """Renderers that render RDFValues into JSON compatible data structures."""
+from __future__ import division
 
 import base64
 import inspect
 import logging
 import numbers
 
+
+from future.utils import with_metaclass
+from past.builtins import long
 
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
@@ -72,10 +76,8 @@ def StripTypeInfo(rendered_data):
     return rendered_data
 
 
-class ApiValueRenderer(object):
+class ApiValueRenderer(with_metaclass(registry.MetaclassRegistry, object)):
   """Baseclass for API renderers that render RDFValues."""
-
-  __metaclass__ = registry.MetaclassRegistry
 
   value_class = object
 

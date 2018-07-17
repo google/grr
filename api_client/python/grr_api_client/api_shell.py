@@ -93,7 +93,7 @@ def main(argv=None):
     exec (flags.exec_code, dict(grrapi=grrapi))
     # pylint: enable=exec-used
   elif flags.exec_file:
-    execfile(flags.exec_file, dict(grrapi=grrapi))
+    api_shell_lib.ExecFile(flags.exec_file, grrapi)
   else:
     api_shell_lib.IPShell([sys.argv[0]], user_ns=dict(grrapi=grrapi))
 

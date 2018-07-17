@@ -12,7 +12,6 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
-from grr_response_server import output_plugin
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
@@ -20,6 +19,7 @@ from grr_response_server.gui import gui_test_lib
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
@@ -607,7 +607,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
             )),
         client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=[
-            output_plugin.OutputPluginDescriptor(
+            rdf_output_plugin.OutputPluginDescriptor(
                 plugin_name="DummyOutputPlugin",
                 plugin_args=gui_test_lib.DummyOutputPlugin.args_type(
                     filename_regex="blah!", fetch_binaries=True))

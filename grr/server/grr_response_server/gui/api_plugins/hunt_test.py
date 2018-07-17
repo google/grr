@@ -20,7 +20,6 @@ from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import output_plugin
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import api_test_lib
@@ -29,6 +28,7 @@ from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -500,11 +500,11 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.client_ids = self.SetupClients(5)
     self.handler = hunt_plugin.ApiListHuntOutputPluginLogsHandler()
     self.output_plugins = [
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
             plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
                 filename_regex="foo")),
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
             plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
                 filename_regex="bar"))

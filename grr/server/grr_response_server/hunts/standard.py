@@ -25,39 +25,11 @@ from grr_response_server.flows.general import transfer
 from grr_response_server.hunts import implementation
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
 
 class Error(Exception):
   pass
-
-
-class GenericHuntArgs(rdf_structs.RDFProtoStruct):
-  """Arguments to the generic hunt."""
-  protobuf = flows_pb2.GenericHuntArgs
-  rdf_deps = [
-      rdf_flow_runner.FlowRunnerArgs,
-      output_plugin.OutputPluginDescriptor,
-  ]
-
-  def Validate(self):
-    self.flow_runner_args.Validate()
-    self.flow_args.Validate()
-
-  def GetFlowArgsClass(self):
-    if self.flow_runner_args.flow_name:
-      flow_cls = registry.FlowRegistry.FlowClassByName(
-          self.flow_runner_args.flow_name)
-
-      # The required protobuf for this class is in args_type.
-      return flow_cls.args_type
-
-
-class CreateGenericHuntFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.CreateGenericHuntFlowArgs
-  rdf_deps = [
-      GenericHuntArgs,
-      rdf_hunts.HuntRunnerArgs,
-  ]
 
 
 class CreateGenericHuntFlow(flow.GRRFlow):
@@ -68,7 +40,7 @@ class CreateGenericHuntFlow(flow.GRRFlow):
   access control manager.
   """
 
-  args_type = CreateGenericHuntFlowArgs
+  args_type = rdf_hunts.CreateGenericHuntFlowArgs
 
   @flow.StateHandler()
   def Start(self):
@@ -96,7 +68,7 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
   client. Thus, this flow must *not* be SUID.
   """
 
-  args_type = CreateGenericHuntFlowArgs
+  args_type = rdf_hunts.CreateGenericHuntFlowArgs
 
   @flow.StateHandler()
   def Start(self):
@@ -235,7 +207,9 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
           mdata.Schema.OUTPUT_PLUGINS, {}).items():
 
         plugin_obj = plugin_descriptor.GetPluginForState(plugin_state)
-        plugin_verifiers_classes = plugin_descriptor.GetPluginVerifiersClasses()
+        opv = output_plugin.OutputPluginVerifier
+        plugin_verifiers_classes = opv.VerifierClassesForPlugin(
+            plugin_descriptor.plugin_name)
 
         if not plugin_verifiers_classes:
           results.setdefault(self.NON_VERIFIABLE, []).append(
@@ -343,7 +317,7 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
 class GenericHunt(implementation.GRRHunt):
   """This is a hunt to start any flow on multiple clients."""
 
-  args_type = GenericHuntArgs
+  args_type = rdf_hunts.GenericHuntArgs
 
   def _CreateAuditEvent(self, event_action):
     flow_name = self.hunt_obj.args.flow_runner_args.flow_name
@@ -468,7 +442,7 @@ class VariableGenericHuntArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.VariableGenericHuntArgs
   rdf_deps = [
       FlowRequest,
-      output_plugin.OutputPluginDescriptor,
+      rdf_output_plugin.OutputPluginDescriptor,
   ]
 
 
@@ -515,6 +489,7 @@ class VariableGenericHunt(GenericHunt):
 
 
 class StandardHuntInitHook(registry.InitHook):
+  """Init hook for hunt related stats."""
 
   def RunOnce(self):
     """Register standard hunt-related stats."""

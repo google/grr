@@ -2,11 +2,13 @@
 """Dummy end-to-end test classes for testing the E2ETestRunner."""
 import abc
 
+
+from future.utils import with_metaclass
+
 from grr_response_test.end_to_end_tests import test_base
 
 
-class AbstractFakeE2ETest(test_base.EndToEndTest):
-  __metaclass__ = abc.ABCMeta
+class AbstractFakeE2ETest(with_metaclass(abc.ABCMeta, test_base.EndToEndTest)):
 
   def testCommon(self):
     pass

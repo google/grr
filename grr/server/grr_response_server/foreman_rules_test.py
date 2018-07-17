@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test for the foreman client rule classes."""
+from __future__ import division
 
 from grr.core.grr_response_core.lib import flags
 from grr.core.grr_response_core.lib import rdfvalue
@@ -26,7 +27,7 @@ class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
 
     # Generate a sequence of rules using all other bits
     ret.rules = [
-        ForemanClientRuleTest.GenerateSample(n) for n in xrange(number / 2)
+        ForemanClientRuleTest.GenerateSample(n) for n in xrange(number // 2)
     ]
 
     return ret

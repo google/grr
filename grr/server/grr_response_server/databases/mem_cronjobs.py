@@ -41,7 +41,8 @@ class InMemoryDBCronjobMixin(object):
                     last_run_status=db.Database.unchanged,
                     last_run_time=db.Database.unchanged,
                     current_run_id=db.Database.unchanged,
-                    state=db.Database.unchanged):
+                    state=db.Database.unchanged,
+                    forced_run_requested=db.Database.unchanged):
     """Updates run information for an existing cron job."""
     job = self.cronjobs.get(cronjob_id)
     if job is None:
@@ -55,6 +56,8 @@ class InMemoryDBCronjobMixin(object):
       job.current_run_id = current_run_id
     if state != db.Database.unchanged:
       job.state = state
+    if forced_run_requested != db.Database.unchanged:
+      job.forced_run_requested = forced_run_requested
 
   @utils.Synchronized
   def EnableCronJob(self, cronjob_id):
@@ -125,3 +128,25 @@ class InMemoryDBCronjobMixin(object):
     if errored_jobs:
       raise ValueError("Some jobs could not be returned: %s" % ",".join(
           job.job_id for job in errored_jobs))
+
+  def WriteCronJobRun(self, run_object):
+    """Stores a cron job run object in the database."""
+    clone = run_object.Copy()
+    clone.timestamp = rdfvalue.RDFDatetime.Now()
+    self.cronjob_runs[clone.run_id] = clone
+
+  def ReadCronJobRuns(self, job_id):
+    """Reads all cron job runs for a given job id."""
+    return [run for run in self.cronjob_runs.values() if run.job_id == job_id]
+
+  def ReadCronJobRun(self, job_id, run_id):
+    """Reads a single cron job run from the db."""
+    for run in self.cronjob_runs.values():
+      if run.job_id == job_id and run.run_id == run_id:
+        return run
+
+  def DeleteOldCronJobRuns(self, cutoff_timestamp):
+    """Deletes cron job runs for a given job id."""
+    for run in self.cronjob_runs.values():
+      if run.timestamp < cutoff_timestamp:
+        del self.cronjob_runs[run.run_id]

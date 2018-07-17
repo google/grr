@@ -5,6 +5,8 @@ This code is based on the memorpy project:
 https://github.com/n1nj4sec/memorpy
 
 """
+from __future__ import division
+
 import ctypes
 import ctypes.util
 
@@ -35,7 +37,7 @@ class vm_region_submap_short_info_data_64(ctypes.Structure):
 
 # pylint: enable=invalid-name
 
-submap_info_size = ctypes.sizeof(vm_region_submap_short_info_data_64) / 4
+submap_info_size = ctypes.sizeof(vm_region_submap_short_info_data_64) // 4
 
 VM_PROT_READ = 1
 VM_PROT_WRITE = 2

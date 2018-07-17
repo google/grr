@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 """Classes for benchmarking-related tests."""
+from __future__ import division
 from __future__ import print_function
 
 import logging
 import time
+
+
+from future.utils import with_metaclass
 import pytest
 
 from grr.core.grr_response_core.lib import registry
@@ -11,9 +15,9 @@ from grr.test_lib import test_lib
 
 
 @pytest.mark.large
-class MicroBenchmarks(test_lib.GRRBaseTest):
+class MicroBenchmarks(
+    with_metaclass(registry.MetaclassRegistry, test_lib.GRRBaseTest)):
   """This base class created the GRR benchmarks."""
-  __metaclass__ = registry.MetaclassRegistry
 
   units = "us"
 

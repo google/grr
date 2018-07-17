@@ -9,6 +9,7 @@ For anyone who wants a useful reference, see this:
 http://heanet.dl.sourceforge.net/project/libmsiecf/Documentation/MSIE%20Cache%20
 File%20format/MSIE%20Cache%20File%20%28index.dat%29%20format.pdf
 """
+from __future__ import division
 from __future__ import print_function
 
 
@@ -120,9 +121,9 @@ class IEParser(object):
     header, blocks, mtime, ctime, ftime, _, url = dat
     url = url.split(chr(0x00))[0]
     if mtime:
-      mtime = mtime / 10 - WIN_UNIX_DIFF_MSECS
+      mtime = mtime // 10 - WIN_UNIX_DIFF_MSECS
     if ctime:
-      ctime = ctime / 10 - WIN_UNIX_DIFF_MSECS
+      ctime = ctime // 10 - WIN_UNIX_DIFF_MSECS
     return {
         "header": header,  # the header
         "blocks": blocks,  # number of blocks
@@ -167,7 +168,7 @@ def main(argv):
     for input_file in files_to_process:
       ie = IEParser(open(input_file, "rb"))
       for dat in ie.Parse():
-        dat["ctime"] = datetime.datetime.utcfromtimestamp(dat["ctime"] / 1e6)
+        dat["ctime"] = datetime.datetime.utcfromtimestamp(dat["ctime"] // 1e6)
         print("{ctime} {header} {url}".format(**dat))
 
 

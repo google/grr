@@ -8,6 +8,10 @@ starting flows and for validating arguments.
 
 import logging
 
+
+from future.utils import with_metaclass
+from past.builtins import long
+
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
@@ -25,14 +29,12 @@ class UnknownArg(TypeValueError):
   """Raised for unknown flow args."""
 
 
-class TypeInfoObject(object):
+class TypeInfoObject(with_metaclass(registry.MetaclassRegistry, object)):
   """Definition of the interface for flow arg typing information."""
 
   # Some descriptors can delegate to child descriptors to define types of
   # members.
   child_descriptor = None
-
-  __metaclass__ = registry.MetaclassRegistry
 
   # The delegate type this TypeInfoObject manages.
   _type = None

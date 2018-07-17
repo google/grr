@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Abstracts encryption and authentication."""
+from __future__ import division
 
 import struct
 import time
@@ -141,9 +142,9 @@ class ReceivedCipher(Cipher):
           self.serialized_cipher)
 
       # Check the key lengths.
-      if (len(self.cipher.key) != self.key_size / 8 or
-          len(self.cipher.metadata_iv) != self.iv_size / 8 or
-          len(self.cipher.hmac_key) != self.key_size / 8):
+      if (len(self.cipher.key) * 8 != self.key_size or
+          len(self.cipher.metadata_iv) * 8 != self.iv_size or
+          len(self.cipher.hmac_key) * 8 != self.key_size):
         raise DecryptionError("Invalid cipher.")
 
       self.VerifyHMAC()
@@ -356,7 +357,7 @@ class Communicator(object):
 
     # Make a nonce for this transaction
     if timestamp is None:
-      self.timestamp = timestamp = long(time.time() * 1000000)
+      self.timestamp = timestamp = int(time.time() * 1000000)
 
     packed_message_list = rdf_flows.PackedMessageList(timestamp=timestamp)
     self.EncodeMessageList(message_list, packed_message_list)

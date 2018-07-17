@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.ie_history."""
+from __future__ import division
 
 
 import datetime

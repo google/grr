@@ -4,6 +4,9 @@ import os
 import re
 import stat
 
+
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core.lib import objectfilter
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
@@ -121,13 +124,12 @@ class SerialHandler(BaseHandler):
     return self.results
 
 
-class Filter(object):
+class Filter(with_metaclass(registry.MetaclassRegistry, object)):
   """A class for looking up filters.
 
   Filters may be in other libraries or third party code. This class keeps
   references to each of them so they can be called by name by checks.
   """
-  __metaclass__ = registry.MetaclassRegistry
 
   filters = {}
 
@@ -398,7 +400,7 @@ class StatFilter(Filter):
     if self.cfg.mask:
       self.mask = int(self.cfg.mask[0], 8)
     else:
-      self.mask = 07777
+      self.mask = 0o7777
     if self.cfg.mode:
       self.mode = int(self.cfg.mode[0], 8)
       self.matchers.append(self._MatchMode)

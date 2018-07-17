@@ -31,7 +31,7 @@ class GrrApplicationLogger(object):
   def GetNewEventId(self, event_time=None):
     """Return a unique Event ID string."""
     if event_time is None:
-      event_time = long(time.time() * 1e6)
+      event_time = int(time.time() * 1e6)
 
     return "%s:%s:%s" % (event_time, socket.gethostname(), os.getpid())
 

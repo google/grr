@@ -11,9 +11,9 @@ from grr_response_server import flow
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import flow as api_plugins_flow
-from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -43,7 +43,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
 
   ApiCronJob is meant to be more lightweight than automatically generated AFF4
   representation. It's also meant to contain only the information needed by
-  the UI and and to not expose implementation defails.
+  the UI and to not expose implementation details.
   """
   protobuf = cron_pb2.ApiCronJob
   rdf_deps = [
@@ -310,40 +310,60 @@ class ApiGetCronJobRunHandler(api_call_handler_base.ApiCallHandler):
     return ApiCronJobRun().InitFromApiFlow(f)
 
 
+class ApiCreateCronJobArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for CreateCronJob API call."""
+
+  protobuf = cron_pb2.ApiCreateCronJobArgs
+  rdf_deps = [
+      rdfvalue.Duration,
+      rdf_hunts.HuntRunnerArgs,
+  ]
+
+  def GetFlowArgsClass(self):
+    if self.flow_name:
+      flow_cls = registry.FlowRegistry.FlowClassByName(self.flow_name)
+
+      # The required protobuf for this class is in args_type.
+      return flow_cls.args_type
+
+
 class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Creates a new cron job."""
 
-  args_type = ApiCronJob
+  args_type = ApiCreateCronJobArgs
   result_type = ApiCronJob
 
-  def Handle(self, args, token=None):
-    args.flow_args.hunt_runner_args.hunt_name = "GenericHunt"
+  def Handle(self, source_args, token=None):
+    # Make sure we don't modify source arguments.
+    args = source_args.Copy()
 
-    # TODO(user): The following should be asserted in a more elegant way.
-    # Also, it's not clear whether cron job scheduling UI is used often enough
-    # to justify its existence. We should check with opensource users whether
-    # they find this feature useful and if not, deprecate it altogether.
-    if args.flow_name != standard.CreateAndRunGenericHuntFlow.__name__:
-      raise ValueError("Only CreateAndRunGenericHuntFlow flows are supported "
-                       "here (got: %s)." % args.flow_name)
-
+    # Clear all fields marked with HIDDEN.
+    args.flow_args.ClearFieldsWithLabel(
+        rdf_structs.SemanticDescriptor.Labels.HIDDEN)
     # Clear all fields marked with HIDDEN, except for output_plugins - they are
     # marked HIDDEN, because we have a separate UI for them, not because they
     # shouldn't be shown to the user at all.
     #
     # TODO(user): Refactor the code to remove the HIDDEN label from
     # FlowRunnerArgs.output_plugins.
-    args.flow_runner_args.ClearFieldsWithLabel(
+    args.hunt_runner_args.ClearFieldsWithLabel(
         rdf_structs.SemanticDescriptor.Labels.HIDDEN,
         exceptions="output_plugins")
-    if not args.flow_runner_args.flow_name:
-      args.flow_runner_args.flow_name = args.flow_name
+
+    flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
+        flow_name="CreateAndRunGenericHuntFlow")
+
+    flow_args = rdf_hunts.CreateGenericHuntFlowArgs()
+    flow_args.hunt_args.flow_args = args.flow_args
+    flow_args.hunt_args.flow_runner_args.flow_name = args.flow_name
+    flow_args.hunt_runner_args = args.hunt_runner_args
+    flow_args.hunt_runner_args.hunt_name = "GenericHunt"
 
     cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
         description=args.description,
         periodicity=args.periodicity,
-        flow_runner_args=args.flow_runner_args,
-        flow_args=args.flow_args,
+        flow_runner_args=flow_runner_args,
+        flow_args=flow_args,
         allow_overruns=args.allow_overruns,
         lifetime=args.lifetime)
     name = aff4_cronjobs.GetCronManager().CreateJob(

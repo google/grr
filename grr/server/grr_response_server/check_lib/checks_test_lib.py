@@ -5,6 +5,7 @@ import os
 import StringIO
 
 
+from future.utils import with_metaclass
 import yaml
 
 from grr.core.grr_response_core import config
@@ -20,9 +21,9 @@ from grr_response_server.check_lib import hints
 from grr.test_lib import test_lib
 
 
-class HostCheckTest(test_lib.GRRBaseTest):
+class HostCheckTest(
+    with_metaclass(registry.MetaclassRegistry, test_lib.GRRBaseTest)):
   """The base class for host check tests."""
-  __metaclass__ = registry.MetaclassRegistry
 
   loaded_checks = None
 

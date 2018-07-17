@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for administrative flows."""
+from __future__ import division
 
 import os
 import subprocess

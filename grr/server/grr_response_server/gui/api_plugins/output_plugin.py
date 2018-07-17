@@ -12,13 +12,14 @@ from grr_response_server import instant_output_plugin
 
 from grr_response_server import output_plugin
 from grr_response_server.gui import api_call_handler_base
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
 
 class ApiOutputPlugin(rdf_structs.RDFProtoStruct):
   """Output plugin API entity."""
   protobuf = output_plugin_pb2.ApiOutputPlugin
   rdf_deps = [
-      output_plugin.OutputPluginDescriptor,
+      rdf_output_plugin.OutputPluginDescriptor,
       output_plugin.OutputPluginVerificationResult,
   ]
 

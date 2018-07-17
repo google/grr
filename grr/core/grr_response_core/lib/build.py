@@ -750,9 +750,10 @@ class LinuxClientRepacker(ClientRepacker):
 
       # Set the daemon to executable.
       os.chmod(
-          os.path.join(agent_dir,
-                       config.CONFIG.Get(
-                           "Client.binary_name", context=self.context)), 0755)
+          os.path.join(
+              agent_dir,
+              config.CONFIG.Get("Client.binary_name", context=self.context)),
+          0o755)
 
       arch = config.CONFIG.Get("Template.arch", context=self.context)
 
@@ -909,7 +910,7 @@ class CentosClientRepacker(LinuxClientRepacker):
         fd.write(client_config_content)
 
       # Set the daemon to executable.
-      os.chmod(os.path.join(target_binary_dir, client_binary_name), 0755)
+      os.chmod(os.path.join(target_binary_dir, client_binary_name), 0o755)
 
       client_arch = config.CONFIG.Get("Template.arch", context=self.context)
       if client_arch == "amd64":

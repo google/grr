@@ -87,7 +87,7 @@ def ValidateCSRFTokenOrRaise(request):
   try:
     decoded = base64.urlsafe_b64decode(csrf_token + "==")
     digest, token_time = decoded.rsplit(CSRF_DELIMITER, 1)
-    token_time = long(token_time)
+    token_time = int(token_time)
   except (TypeError, ValueError):
     logging.info("Malformed CSRF token for: %s", request.path)
     raise werkzeug_exceptions.Forbidden("Malformed CSRF token")

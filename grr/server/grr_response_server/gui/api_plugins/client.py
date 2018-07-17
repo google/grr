@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API handlers for accessing and searching clients and managing labels."""
+from __future__ import division
 
 import shlex
 import sys
@@ -1018,7 +1019,7 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
 
     if len(stat_values) > self.MAX_SAMPLES:
       sampling_interval = rdfvalue.Duration.FromSeconds(
-          ((end_time - start_time).seconds / self.MAX_SAMPLES) or 1)
+          ((end_time - start_time).seconds // self.MAX_SAMPLES) or 1)
       if args.metric in self.GAUGE_METRICS:
         mode = timeseries.NORMALIZE_MODE_GAUGE
       else:

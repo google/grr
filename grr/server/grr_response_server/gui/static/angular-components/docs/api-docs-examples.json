@@ -517,34 +517,27 @@
       "request_payload": {
         "description": "Foobar!",
         "flow_args": {
-          "hunt_args": {
-            "flow_args": {
-              "paths": [
-                "c:\\windows\\system32\\notepad.*"
-              ]
-            },
-            "flow_runner_args": {
-              "flow_name": "FileFinder"
-            }
-          },
-          "hunt_runner_args": {
-            "avg_cpu_seconds_per_client_limit": 60,
-            "avg_network_bytes_per_client_limit": 10485760,
-            "avg_results_per_client_limit": 1000,
-            "client_rule_set": {
-              "rules": [
-                {
-                  "os": {
-                    "os_windows": true
-                  }
-                }
-              ]
-            },
-            "crash_limit": 100,
-            "description": "Foobar! (cron)"
-          }
+          "paths": [
+            "c:\\windows\\system32\\notepad.*"
+          ]
         },
-        "flow_name": "CreateAndRunGenericHuntFlow",
+        "flow_name": "FileFinder",
+        "hunt_runner_args": {
+          "avg_cpu_seconds_per_client_limit": 60,
+          "avg_network_bytes_per_client_limit": 10485760,
+          "avg_results_per_client_limit": 1000,
+          "client_rule_set": {
+            "rules": [
+              {
+                "os": {
+                  "os_windows": true
+                }
+              }
+            ]
+          },
+          "crash_limit": 100,
+          "description": "Foobar! (cron)"
+        },
         "lifetime": 3600,
         "periodicity": 604800
       },

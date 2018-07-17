@@ -6,6 +6,9 @@ import logging
 import pdb
 import traceback
 
+
+from future.utils import with_metaclass
+
 from grr_response_client.client_actions import standard
 
 from grr.core.grr_response_core.lib import flags
@@ -224,10 +227,9 @@ class WellKnownSessionTest2(WellKnownSessionTest):
       queue=rdfvalue.RDFURN("test"), flow_name="TestSessionId2")
 
 
-class FlowTestsBaseclass(test_lib.GRRBaseTest):
+class FlowTestsBaseclass(
+    with_metaclass(registry.MetaclassRegistry, test_lib.GRRBaseTest)):
   """The base class for all flow tests."""
-
-  __metaclass__ = registry.MetaclassRegistry
 
   def FlowSetup(self, name, client_id=None):
     if client_id is None:

@@ -262,7 +262,7 @@ class LastAccessStats(AbstractClientStatsCronFlow):
     return self.values[label]
 
   def BeginProcessing(self):
-    self._bins = [long(x * 1e6 * 24 * 60 * 60) for x in self._bins]
+    self._bins = [x * 1e6 * 24 * 60 * 60 for x in self._bins]
 
     self.values = {}
 
@@ -322,7 +322,7 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
     apply plugins specific to the local installation.
 
     Returns:
-      list of output_plugin.OutputPluginDescriptor objects
+      list of rdf_output_plugin.OutputPluginDescriptor objects
     """
     return []
 

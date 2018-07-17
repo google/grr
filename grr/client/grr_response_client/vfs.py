@@ -3,6 +3,9 @@
 
 import os
 
+
+from future.utils import with_metaclass
+
 from grr_response_client import client_utils
 from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import registry
@@ -14,7 +17,7 @@ from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 DEVICE_CACHE = utils.TimeBasedCache()
 
 
-class VFSHandler(object):
+class VFSHandler(with_metaclass(registry.MetaclassRegistry, object)):
   """Base class for handling objects in the VFS."""
   supported_pathtype = -1
 
@@ -32,8 +35,6 @@ class VFSHandler(object):
   # updated to reflect any potential recursion.
   pathspec = None
   base_fd = None
-
-  __metaclass__ = registry.MetaclassRegistry
 
   def __init__(self,
                base_fd,

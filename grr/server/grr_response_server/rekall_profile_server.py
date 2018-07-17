@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 """A server that retrieves Rekall profiles by name."""
+from __future__ import division
 
 import json
 import logging
 import urllib2
 import zlib
 
+
+from future.utils import with_metaclass
 
 from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
@@ -18,9 +21,8 @@ from grr_response_server import threadpool
 from grr_response_server.aff4_objects import aff4_grr
 
 
-class ProfileServer(object):
-
-  __metaclass__ = registry.MetaclassRegistry
+class ProfileServer(with_metaclass(registry.MetaclassRegistry, object)):
+  """A base class for profile servers."""
 
   def __init__(self):
     self.token = access_control.ACLToken(

@@ -3,6 +3,9 @@
 
 import logging
 
+
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import artifact_utils
 from grr.core.grr_response_core.lib import parser
@@ -487,7 +490,8 @@ class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ArtifactFallbackCollector(flow.GRRFlow):
+class ArtifactFallbackCollector(
+    with_metaclass(registry.MetaclassRegistry, flow.GRRFlow)):
   """Abstract class for artifact fallback flows.
 
   If an artifact can't be collected by normal means a flow can be registered
@@ -500,7 +504,6 @@ class ArtifactFallbackCollector(flow.GRRFlow):
   the artifact value in the same format as would have been returned by the
   original artifact collection.
   """
-  __metaclass__ = registry.MetaclassRegistry
   args_type = ArtifactFallbackCollectorArgs
 
   # List of artifact names for which we are registering as the fallback

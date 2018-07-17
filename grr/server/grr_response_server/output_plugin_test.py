@@ -3,6 +3,7 @@
 
 
 from grr.core.grr_response_core.lib import flags
+from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
 from grr_response_server import aff4
 from grr_response_server import output_plugin
@@ -10,6 +11,7 @@ from grr_response_server.flows.general import transfer
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import test_lib
 
 
@@ -24,19 +26,22 @@ class TestOutputPluginWithArgs(output_plugin.OutputPlugin):
 class OutputPluginTest(test_lib.GRRBaseTest):
 
   def testGetPluginArgsHandlesMissingPluginsCorrectly(self):
-    descriptor = output_plugin.OutputPluginDescriptor(
+    descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="TestOutputPluginWithArgs",
         plugin_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__))
     serialized = descriptor.SerializeToString()
 
-    deserialized = output_plugin.OutputPluginDescriptor()
+    deserialized = rdf_output_plugin.OutputPluginDescriptor()
     deserialized.ParseFromString(serialized)
     self.assertEqual(deserialized, descriptor)
     self.assertEqual(deserialized.GetPluginClass(), TestOutputPluginWithArgs)
 
-    with utils.Stubber(output_plugin.OutputPlugin, "classes", {}):
-      deserialized = output_plugin.OutputPluginDescriptor()
+    opr = registry.OutputPluginRegistry
+    with utils.Stubber(opr, "PLUGIN_REGISTRY", opr.PLUGIN_REGISTRY.copy()):
+      del opr.PLUGIN_REGISTRY["TestOutputPluginWithArgs"]
+
+      deserialized = rdf_output_plugin.OutputPluginDescriptor()
       deserialized.ParseFromString(serialized)
 
       self.assertTrue(deserialized.GetPluginClass(),
@@ -67,7 +72,7 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
 
   def _CreateHunt(self, description):
     output_plugins = [
-        output_plugin.OutputPluginDescriptor(plugin_name="TestOutputPlugin")
+        rdf_output_plugin.OutputPluginDescriptor(plugin_name="TestOutputPlugin")
     ]
     with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,

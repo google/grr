@@ -4,6 +4,7 @@
 import logging
 
 
+from future.utils import with_metaclass
 from werkzeug import utils as werkzeug_utils
 from werkzeug import wrappers as werkzeug_wrappers
 
@@ -17,7 +18,7 @@ from grr_response_server import aff4
 from grr_response_server.aff4_objects import users as aff4_users
 
 
-class BaseWebAuthManager(object):
+class BaseWebAuthManager(with_metaclass(registry.MetaclassRegistry, object)):
   """A class managing web authentication.
 
   This class is responsible for deciding if the user will have access to the web
@@ -26,8 +27,6 @@ class BaseWebAuthManager(object):
 
   Checks are done using a decorator function.
   """
-
-  __metaclass__ = registry.MetaclassRegistry
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     """A decorator applied to protected web handlers.

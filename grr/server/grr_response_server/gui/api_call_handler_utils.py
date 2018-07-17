@@ -115,8 +115,8 @@ class CollectionArchiveGenerator(object):
     manifest_fd.write(yaml.safe_dump(manifest))
 
     manifest_fd.seek(0)
-    st = os.stat_result((0644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0, 0,
-                         0))
+    st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0,
+                         0, 0))
 
     for chunk in self.archive_generator.WriteFromFD(
         manifest_fd, os.path.join(self.prefix, "MANIFEST"), st=st):
@@ -128,7 +128,7 @@ class CollectionArchiveGenerator(object):
     client_info_path = os.path.join(self.prefix,
                                     client_fd.urn.Basename(),
                                     "client_info.yaml")
-    st = os.stat_result((0644, 0, 0, 0, 0, 0, len(summary), 0, 0, 0))
+    st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(summary), 0, 0, 0))
     yield self.archive_generator.WriteFileHeader(client_info_path, st=st)
     yield self.archive_generator.WriteFileChunk(summary)
     yield self.archive_generator.WriteFileFooter()
@@ -168,7 +168,7 @@ class CollectionArchiveGenerator(object):
 
           # Make sure size of the original file is passed. It's required
           # when output_writer is StreamingTarWriter.
-          st = os.stat_result((0644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
+          st = os.stat_result((0o644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
           fds_to_write[fd] = (content_path, st)
 
       if fds_to_write:

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """A builder implementation for windows clients."""
+from __future__ import division
+
 import ctypes
 import logging
 import os
@@ -61,7 +63,7 @@ def EnumMissingModules():
   else:
     handle_type = ctypes.c_ulong
 
-  module_list = (handle_type * (count.value / ctypes.sizeof(handle_type)))()
+  module_list = (handle_type * (count.value // ctypes.sizeof(handle_type)))()
 
   ctypes.windll.psapi.EnumProcessModulesEx(process_handle,
                                            ctypes.byref(module_list),

@@ -8,6 +8,7 @@ RDFValue class, regardless of where they are defined. To do this reliably, these
 implementations must be imported _before_ the relevant classes are referenced
 from this module.
 """
+from __future__ import division
 
 import abc
 import calendar
@@ -20,8 +21,11 @@ import re
 import time
 import zlib
 
+
 import dateutil
 from dateutil import parser
+from future.utils import with_metaclass
+from past.builtins import long
 
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
@@ -65,12 +69,11 @@ class RDFValueMetaclass(registry.MetaclassRegistry):
       callback(target=cls, **kwargs)
 
 
-class RDFValue(object):
+class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   """Baseclass for values.
 
   RDFValues are serialized to and from the data store.
   """
-  __metaclass__ = RDFValueMetaclass
 
   # This is how the attribute will be serialized to the data store. It must
   # indicate both the type emitted by SerializeToDataStore() and expected by
@@ -358,7 +361,7 @@ class RDFInteger(RDFValue):
     return self._value
 
   def __long__(self):
-    return long(self._value)
+    return int(self._value)
 
   def __int__(self):
     return int(self._value)
@@ -415,14 +418,22 @@ class RDFInteger(RDFValue):
   def __mul__(self, other):
     return self._value * other
 
+  # TODO(hanuszczak): There are no `__rop__` methods in Python 3 so all of these
+  # should be removed. Also, in general it should not be possible to add two
+  # values with incompatible types (e.g. `RDFInteger` and `int`). Sadly,
+  # currently a lot of code depends on this behaviour but it should be changed
+  # in the future.
   def __rmul__(self, other):
     return self._value * other
 
   def __div__(self, other):
-    return self._value / other
+    return self._value.__div__(other)
 
-  def __rdiv__(self, other):
-    return other / self._value
+  def __truediv__(self, other):
+    return self._value.__truediv__(other)
+
+  def __floordiv__(self, other):
+    return self._value.__floordiv__(other)
 
   def __hash__(self):
     return hash(self._value)
@@ -471,11 +482,10 @@ class RDFDatetime(RDFInteger):
 
   def AsDatetime(self):
     """Return the time as a python datetime object."""
-    return datetime.datetime.utcfromtimestamp(
-        self._value / float(self.converter))
+    return datetime.datetime.utcfromtimestamp(self._value / self.converter)
 
   def AsSecondsSinceEpoch(self):
-    return self._value / self.converter
+    return self._value // self.converter
 
   def AsMicrosecondsSinceEpoch(self):
     return self._value
@@ -668,7 +678,7 @@ class Duration(RDFInteger):
     time_secs = self._value
     for label, divider in self.DIVIDERS.items():
       if time_secs % divider == 0:
-        return "%d%s" % (time_secs / divider, label)
+        return "%d%s" % (time_secs // divider, label)
 
   def __unicode__(self):
     return utils.SmartUnicode(str(self))
@@ -797,13 +807,13 @@ class ByteSize(RDFInteger):
     size_token = ""
     if self._value > 1024**3:
       size_token = "GiB"
-      value = float(self._value) / 1024**3
+      value = self._value / 1024**3
     elif self._value > 1024**2:
       size_token = "MiB"
-      value = float(self._value) / 1024**2
+      value = self._value / 1024**2
     elif self._value > 1024:
       size_token = "KiB"
-      value = float(self._value) / 1024
+      value = self._value / 1024
     else:
       return utils.SmartStr(self._value) + "B"
 
@@ -834,7 +844,7 @@ class ByteSize(RDFInteger):
     if "." in value:
       value = float(value)
     else:
-      value = long(value)
+      value = int(value)
 
     self._value = int(value * multiplier)
 

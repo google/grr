@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Filestore stats crons."""
+from __future__ import division
 
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import stats as stats_lib
@@ -41,7 +42,7 @@ class ClassFileSizeCounter(ClassCounter):
 
   def Save(self, fd):
     for classname, count in self.value_dict.items():
-      self.graph.Append(label=classname, y_value=count / float(self.GB))
+      self.graph.Append(label=classname, y_value=count / self.GB)
     fd.Set(self.attribute, self.graph)
 
 

@@ -12,6 +12,9 @@ import logging
 import re
 import time
 
+
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
@@ -193,7 +196,7 @@ class ExportedYaraProcessScanMatch(rdf_structs.RDFProtoStruct):
   rdf_deps = [ExportedProcess, ExportedMetadata]
 
 
-class ExportConverter(object):
+class ExportConverter(with_metaclass(registry.MetaclassRegistry, object)):
   """Base ExportConverter class.
 
   ExportConverters are used to convert RDFValues to export-friendly RDFValues.
@@ -208,8 +211,6 @@ class ExportConverter(object):
   the same input_rdf_type value. They will be applied sequentially and their
   cumulative results will be returned.
   """
-
-  __metaclass__ = registry.MetaclassRegistry
 
   # Type of values that this converter accepts.
   input_rdf_type = None

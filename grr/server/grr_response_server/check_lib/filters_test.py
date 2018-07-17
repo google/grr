@@ -242,14 +242,14 @@ class StatFilterTests(test_lib.GRRBaseTest):
   def testFileTypeParse(self):
     """FileType filters restrict results to specified file types."""
     all_types = {
-        "BLOCK": self._GenStat(st_mode=24992),  # 0060640
-        "Character": self._GenStat(st_mode=8608),  # 0020640
-        "directory": self._GenStat(st_mode=16873),  # 0040751
-        "fiFO": self._GenStat(st_mode=4534),  # 0010666
-        "REGULAR": self._GenStat(st_mode=33204),  # 0100664
-        "socket": self._GenStat(st_mode=49568),  # 0140640
-        "SymLink": self._GenStat(st_mode=41471)
-    }  # 0120777
+        "BLOCK": self._GenStat(st_mode=0o60640),
+        "Character": self._GenStat(st_mode=0o20640),
+        "directory": self._GenStat(st_mode=0o40751),
+        "fiFO": self._GenStat(st_mode=0o10666),
+        "REGULAR": self._GenStat(st_mode=0o100664),
+        "socket": self._GenStat(st_mode=0o140640),
+        "SymLink": self._GenStat(st_mode=0o120777),
+    }
     filt = filters.StatFilter()
     for file_type, expected in all_types.iteritems():
       filt._Flush()
@@ -330,8 +330,8 @@ class StatFilterTests(test_lib.GRRBaseTest):
   def testPermissionsParse(self):
     """Permissions comparisons operate successfully."""
     filt = filters.StatFilter()
-    obj1 = self._GenStat(st_mode=0100740)
-    obj2 = self._GenStat(st_mode=0100755)
+    obj1 = self._GenStat(st_mode=0o100740)
+    obj2 = self._GenStat(st_mode=0o100755)
     objs = [obj1, obj2]
     results = filt.Parse(objs, "mode:0644")
     self.assertFalse(results)
@@ -345,14 +345,14 @@ class StatFilterTests(test_lib.GRRBaseTest):
   def testParseFileObjs(self):
     """Multiple file types are parsed successfully."""
     filt = filters.StatFilter()
-    ok = self._GenStat(path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100640)
+    ok = self._GenStat(path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0o100640)
     link = self._GenStat(
-        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0120640)
+        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0o120640)
     user = self._GenStat(
-        path="/etc/shadow", st_uid=1000, st_gid=1000, st_mode=0100640)
+        path="/etc/shadow", st_uid=1000, st_gid=1000, st_mode=0o100640)
     writable = self._GenStat(
-        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100666)
-    cfg = {"path": "/etc/shadow", "st_uid": 0, "st_gid": 0, "st_mode": 0100640}
+        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0o100666)
+    cfg = {"path": "/etc/shadow", "st_uid": 0, "st_gid": 0, "st_mode": 0o100640}
     invalid = rdf_protodict.AttributedDict(**cfg)
     objs = [ok, link, user, writable, invalid]
     results = filt.Parse(objs, "uid:>=0 gid:>=0")

@@ -3,14 +3,16 @@
 
 from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import rdfvalue
+from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_server import foreman_rules
-from grr_response_server import output_plugin
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
 
 class HuntNotification(rdf_structs.RDFProtoStruct):
@@ -62,7 +64,7 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdfvalue.Duration,
       foreman_rules.ForemanClientRuleSet,
-      output_plugin.OutputPluginDescriptor,
+      rdf_output_plugin.OutputPluginDescriptor,
       rdfvalue.RDFURN,
       FlowLikeObjectReference,
   ]
@@ -96,4 +98,33 @@ class HuntError(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.HuntError
   rdf_deps = [
       rdf_client.ClientURN,
+  ]
+
+
+class GenericHuntArgs(rdf_structs.RDFProtoStruct):
+  """Arguments to the generic hunt."""
+  protobuf = flows_pb2.GenericHuntArgs
+  rdf_deps = [
+      rdf_flow_runner.FlowRunnerArgs,
+      rdf_output_plugin.OutputPluginDescriptor,
+  ]
+
+  def Validate(self):
+    self.flow_runner_args.Validate()
+    self.flow_args.Validate()
+
+  def GetFlowArgsClass(self):
+    if self.flow_runner_args.flow_name:
+      flow_cls = registry.FlowRegistry.FlowClassByName(
+          self.flow_runner_args.flow_name)
+
+      # The required protobuf for this class is in args_type.
+      return flow_cls.args_type
+
+
+class CreateGenericHuntFlowArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.CreateGenericHuntFlowArgs
+  rdf_deps = [
+      GenericHuntArgs,
+      HuntRunnerArgs,
   ]

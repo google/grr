@@ -238,7 +238,7 @@ class GRRUser(aff4.AFF4Object):
         subject=subject,
         message=msg,
         source=source,
-        timestamp=long(time.time() * 1e6))
+        timestamp=int(time.time() * 1e6))
 
     # Limit the notification to 50, expiring older notifications.
     while len(pending) > 50:

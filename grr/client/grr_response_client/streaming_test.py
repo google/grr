@@ -5,6 +5,9 @@ import abc
 import functools
 import os
 
+
+from future.utils import with_metaclass
+
 import unittest
 from grr_response_client import streaming
 from grr_response_client.client_actions.file_finder_utils import conditions
@@ -12,9 +15,7 @@ from grr.core.grr_response_core.lib import flags
 from grr.test_lib import test_lib
 
 
-class StreamerTestMixin(object):
-
-  __metaclass__ = abc.ABCMeta
+class StreamerTestMixin(with_metaclass(abc.ABCMeta, object)):
 
   @abc.abstractmethod
   def Stream(self, streamer, data):
@@ -165,9 +166,7 @@ class StreamMemoryTest(StreamerTestMixin, unittest.TestCase):
     return functools.partial(streamer.StreamMemory, process)
 
 
-class ReaderTestMixin(object):
-
-  __metaclass__ = abc.ABCMeta
+class ReaderTestMixin(with_metaclass(abc.ABCMeta, object)):
 
   @abc.abstractmethod
   def Prepare(self, data, callback, offset=0):

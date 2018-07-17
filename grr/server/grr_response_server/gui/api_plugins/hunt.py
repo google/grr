@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API handlers for accessing hunts."""
+from __future__ import division
 
 import functools
 import itertools
@@ -828,8 +829,8 @@ class ApiGetHuntClientCompletionStatsHandler(
     for client in completed_clients:
       fdict.setdefault(client, []).append(client.age)
 
-    cl_age = [int(min(x) / 1e6) for x in cdict.values()]
-    fi_age = [int(min(x) / 1e6) for x in fdict.values()]
+    cl_age = [min(x).AsSecondsSinceEpoch() for x in cdict.itervalues()]
+    fi_age = [min(x).AsSecondsSinceEpoch() for x in fdict.itervalues()]
 
     cl_hist = {}
     fi_hist = {}
@@ -1139,8 +1140,7 @@ class ApiGetHuntContextResult(rdf_structs.RDFProtoStruct):
     if hunt_name:
       hunt_cls = implementation.GRRHunt.classes.get(hunt_name)
       if hunt_cls is None:
-        raise ValueError(
-            "Hunt %s not known by this implementation." % hunt_name)
+        raise ValueError("Hunt %s not known." % hunt_name)
 
       # The required protobuf for this class is in args_type.
       return hunt_cls.args_type
@@ -1177,6 +1177,7 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiCreateHuntArgs(rdf_structs.RDFProtoStruct):
+  """Args for the ApiCreateHuntHandler."""
   protobuf = hunt_pb2.ApiCreateHuntArgs
   rdf_deps = [
       rdf_hunts.HuntRunnerArgs,
@@ -1202,7 +1203,7 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
     """Creates a new hunt."""
 
     # We only create generic hunts with /hunts/create requests.
-    generic_hunt_args = standard.GenericHuntArgs()
+    generic_hunt_args = rdf_hunts.GenericHuntArgs()
     generic_hunt_args.flow_runner_args.flow_name = args.flow_name
     generic_hunt_args.flow_args = args.flow_args
 

@@ -9,6 +9,9 @@ WIP, will eventually replace datastore.py.
 """
 import abc
 
+
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
@@ -100,9 +103,12 @@ class UnknownCronjobError(NotFoundError):
   pass
 
 
-class Database(object):
+class UnknownCronjobRunError(NotFoundError):
+  pass
+
+
+class Database(with_metaclass(abc.ABCMeta, object)):
   """The GRR relational database abstraction."""
-  __metaclass__ = abc.ABCMeta
 
   unchanged = "__unchanged__"
 
@@ -972,7 +978,8 @@ class Database(object):
                     last_run_status=unchanged,
                     last_run_time=unchanged,
                     current_run_id=unchanged,
-                    state=unchanged):
+                    state=unchanged,
+                    forced_run_requested=unchanged):
     """Updates run information for an existing cron job.
 
     Args:
@@ -981,7 +988,8 @@ class Database(object):
       last_run_time: The last time a run was started for this cron job.
       current_run_id: The id of the currently active run.
       state: The state dict for stateful cron jobs.
-
+      forced_run_requested: A boolean indicating if a forced run is pending
+                            for this job.
     Raises:
       UnknownCronjobError: A cron job with the given id does not exist.
     """
@@ -1009,6 +1017,46 @@ class Database(object):
 
     Raises:
       ValueError: If not all of the cronjobs are leased.
+    """
+
+  @abc.abstractmethod
+  def WriteCronJobRun(self, run_object):
+    """Stores a cron job run object in the database.
+
+    Args:
+      run_object: A rdf_cronjobs.CronJobRun object to store.
+    """
+
+  @abc.abstractmethod
+  def ReadCronJobRuns(self, job_id):
+    """Reads all cron job runs for a given job id.
+
+    Args:
+      job_id: Runs will be returned for the job with the given id.
+
+    Returns:
+      A list of rdf_cronjobs.CronJobRun objects.
+    """
+
+  @abc.abstractmethod
+  def ReadCronJobRun(self, job_id, run_id):
+    """Reads a single cron job run from the db.
+
+    Args:
+      job_id: The job_id of the run to be read.
+      run_id: The run_id of the run to be read.
+
+    Returns:
+      An rdf_cronjobs.CronJobRun object.
+    """
+
+  @abc.abstractmethod
+  def DeleteOldCronJobRuns(self, cutoff_timestamp):
+    """Deletes cron job runs that are older than cutoff_timestamp.
+
+    Args:
+      cutoff_timestamp: This method deletes all runs that were started before
+                        cutoff_timestamp.
     """
 
   @abc.abstractmethod
@@ -1620,14 +1668,16 @@ class DatabaseValidationWrapper(Database):
                     last_run_status=Database.unchanged,
                     last_run_time=Database.unchanged,
                     current_run_id=Database.unchanged,
-                    state=Database.unchanged):
+                    state=Database.unchanged,
+                    forced_run_requested=Database.unchanged):
     self._ValidateCronJobId(cronjob_id)
     return self.delegate.UpdateCronJob(
         cronjob_id,
         last_run_status=last_run_status,
         last_run_time=last_run_time,
         current_run_id=current_run_id,
-        state=state)
+        state=state,
+        forced_run_requested=forced_run_requested)
 
   def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):
     if cronjob_ids:
@@ -1641,6 +1691,23 @@ class DatabaseValidationWrapper(Database):
     for job in jobs:
       self._ValidateType(job, rdf_cronjobs.CronJob)
     return self.delegate.ReturnLeasedCronJobs(jobs)
+
+  def WriteCronJobRun(self, run_object):
+    # TODO(amoser): Reenable once this object exists.
+    # self._ValidateType(run_object, rdf_cronjobs.CronJobRun)
+    return self.delegate.WriteCronJobRun(run_object)
+
+  def ReadCronJobRun(self, job_id, run_id):
+    self._ValidateCronJobId(job_id)
+    return self.delegate.ReadCronJobRun(job_id, run_id)
+
+  def ReadCronJobRuns(self, job_id):
+    self._ValidateCronJobId(job_id)
+    return self.delegate.ReadCronJobRuns(job_id)
+
+  def DeleteOldCronJobRuns(self, cutoff_timestamp):
+    self._ValidateTimestamp(cutoff_timestamp)
+    return self.delegate.DeleteCronJobRuns(cutoff_timestamp)
 
   def WriteClientPathBlobReferences(self, references_by_client_path_id):
     for client_path_id, refs in references_by_client_path_id.iteritems():

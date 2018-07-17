@@ -3,6 +3,7 @@
 
 import abc
 import os
+from future.utils import with_metaclass
 
 
 class Streamer(object):
@@ -164,10 +165,8 @@ class Chunk(object):
       yield span
 
 
-class Reader(object):
+class Reader(with_metaclass(abc.ABCMeta, object)):
   """A unified interface for reader-like objects."""
-
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractproperty
   def offset(self):

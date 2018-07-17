@@ -3,6 +3,9 @@
 """The base classes for RDFValue tests."""
 import time
 
+
+from past.builtins import long
+
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import type_info
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client

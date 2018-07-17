@@ -86,11 +86,11 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   def testPrettyPrintMode(self):
 
     for mode, result in [
-        (0775, "-rwxrwxr-x"),
-        (075, "----rwxr-x"),
+        (0o775, "-rwxrwxr-x"),
+        (0o75, "----rwxr-x"),
         (0, "----------"),
         # DIR
-        (040775, "drwxrwxr-x"),
+        (0o40775, "drwxrwxr-x"),
         # SUID
         (35232, "-rwSr-----"),
         # GID

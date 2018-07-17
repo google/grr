@@ -27,8 +27,12 @@ class MySQLDBCronjobMixin(object):
 
   def _CronjobFromRow(self, row):
     """Creates a cronjob object from a database result row."""
-    (job, create_time, disabled, last_run_status, last_run_time, current_run_id,
-     state, leased_until, leased_by) = row
+    (job, create_time, disabled, forced_run_requested, last_run_status,
+     last_run_time, current_run_id, state, leased_until, leased_by) = row
+
+    # This is not yet used.
+    del forced_run_requested
+
     job = rdf_cronjobs.CronJob.FromSerializedString(job)
     job.current_run_id = current_run_id
     job.disabled = disabled
@@ -44,7 +48,7 @@ class MySQLDBCronjobMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadCronJobs(self, cronjob_ids=None, cursor=None):
     """Reads all cronjobs from the database."""
-    query = ("SELECT job, create_time, disabled, "
+    query = ("SELECT job, create_time, disabled, forced_run_requested, "
              "last_run_status, last_run_time, current_run_id, state, "
              "leased_until, leased_by "
              "FROM cron_jobs")
@@ -92,6 +96,7 @@ class MySQLDBCronjobMixin(object):
                     last_run_time=db.Database.unchanged,
                     current_run_id=db.Database.unchanged,
                     state=db.Database.unchanged,
+                    forced_run_requested=db.Database.unchanged,
                     cursor=None):
     """Updates run information for an existing cron job."""
     updates = []
@@ -108,6 +113,9 @@ class MySQLDBCronjobMixin(object):
     if state != db.Database.unchanged:
       updates.append("state=%s")
       args.append(state.SerializeToString())
+    if forced_run_requested != db.Database.unchanged:
+      updates.append("forced_run_requested=%s")
+      args.append(forced_run_requested)
 
     if not updates:
       return
@@ -142,7 +150,7 @@ class MySQLDBCronjobMixin(object):
       return []
 
     cursor.execute(
-        "SELECT job, create_time, disabled, "
+        "SELECT job, create_time, disabled, forced_run_requested, "
         "last_run_status, last_run_time, current_run_id, state, "
         "leased_until, leased_by "
         "FROM cron_jobs WHERE leased_until=%s AND leased_by=%s",
@@ -181,3 +189,23 @@ class MySQLDBCronjobMixin(object):
     if returned != len(jobs):
       raise ValueError("%d cronjobs in %s could not be returned." % (
           (len(jobs) - returned), jobs))
+
+  @mysql_utils.WithTransaction()
+  def WriteCronJobRun(self, run_object, cursor=None):
+    """Stores a cron job run object in the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def ReadCronJobRuns(self, job_id, cursor=None):
+    """Reads all cron job runs for a given job id."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def ReadCronJobRun(self, job_id, run_id, cursor=None):
+    """Reads a single cron job run from the db."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def DeleteOldCronJobRuns(self, cutoff_timestamp, cursor=None):
+    """Deletes cron job runs that are older then the given timestamp."""
+    raise NotImplementedError()

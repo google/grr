@@ -1,5 +1,7 @@
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
+
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/semantic.proto";
@@ -233,39 +235,16 @@ message CollectedArtifact {
     description: "The name of the artifact.",
     type: "ArtifactName",
   }];
-  repeated ClientActionResponse action_responses = 2 [(sem_type) = {
-    description: "The responses from the performed client actions."
+  repeated ClientActionResult action_results = 2 [(sem_type) = {
+    description: "The results from the performed client actions."
   }];
 }
 
-message ClientActionResponse {
-  repeated ExecuteResponse execute_response = 1
-      [(sem_type) = { description: "The response from executing a command." }];
-  repeated Dict wmi_response = 2 [
-    (sem_type) = { description: "The response from running a WMI command." }
-  ];
-  repeated DataBlob hostname = 3 [
-    (sem_type) = { description: "The response from a GetHostname request." }
-  ];
-  repeated Filesystem filesystems = 4 [(sem_type) = {
-    description: "The response from an EnumerateFilesystems request."
-  }];
-  repeated NetworkConnection network_connections = 5 [(sem_type) = {
-    description: "The response from a ListNetworkConnections request."
-  }];
-  repeated Interface interfaces = 6 [(sem_type) = {
-    description: "The response from an EnumerateInterfaces request."
-  }];
-  repeated Process processes = 7 [
-    (sem_type) = { description: "The response from a ListProcesses request." }
-  ];
-  repeated User users = 8 [
-    (sem_type) = { description: "The response from an EnumerateUsers request." }
-  ];
-  repeated OSXServiceInformation services = 9 [(sem_type) = {
-    description: "The response from an OSXEnumerateRunningServices request"
-  }];
-  repeated StatEntry file_stat = 10 [(sem_type) = {
-    description: "The response from requesting a registry value."
+message ClientActionResult {
+  optional string type = 11
+      [(sem_type) = { description: "The type of the client action result." }];
+  optional google.protobuf.Any value = 12 [(sem_type) = {
+    description: "The value of the response."
+    dynamic_type: "GetValueClass"
   }];
 }

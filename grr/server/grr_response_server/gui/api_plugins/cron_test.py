@@ -8,9 +8,9 @@ from grr_response_server.aff4_objects import cronjobs
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import cron as cron_plugin
-from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
@@ -38,13 +38,14 @@ class ApiCreateCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
     super(ApiCreateCronJobHandlerTest, self).setUp()
     self.handler = cron_plugin.ApiCreateCronJobHandler()
 
-  def testBaseSessionIdFlowRunnerArgumentIsNotRespected(self):
-    args = cron_plugin.ApiCronJob(
-        flow_name=standard.CreateAndRunGenericHuntFlow.__name__,
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            base_session_id="aff4:/foo"))
+  def testAddForemanRulesHuntRunnerArgumentIsNotRespected(self):
+    args = cron_plugin.ApiCreateCronJobArgs(
+        flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__,
+        hunt_runner_args=rdf_hunts.HuntRunnerArgs(
+            # Default is True.
+            add_foreman_rules=False))
     result = self.handler.Handle(args, token=self.token)
-    self.assertFalse(result.flow_runner_args.HasField("base_session_id"))
+    self.assertTrue(result.flow_args.hunt_runner_args.add_foreman_rules)
 
 
 class ApiDeleteCronJobHandlerTest(api_test_lib.ApiCallHandlerTest,

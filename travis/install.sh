@@ -56,4 +56,4 @@ pip install -e grr/server/[mysqldatastore]
 pip install -e grr/test
 
 cd grr/proto && python makefile.py && cd -
-cd grr/artifacts && python makefile.py && cd -
+cd grr/core/grr_response_core/artifacts && python makefile.py && cd -

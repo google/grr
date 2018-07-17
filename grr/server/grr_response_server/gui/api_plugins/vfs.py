@@ -1095,7 +1095,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         # Skipping first component: client id.
         content_path = os.path.join(prefix, *components[1:])
         # TODO(user): Export meaningful file metadata.
-        st = os.stat_result((0644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
+        st = os.stat_result((0o644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
         yield archive_generator.WriteFileHeader(content_path, st=st)
 
       yield archive_generator.WriteFileChunk(chunk)

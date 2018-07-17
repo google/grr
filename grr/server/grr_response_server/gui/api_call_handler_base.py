@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """The base class for ApiCallHandlers."""
 
+
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core.lib import registry
 
 
@@ -46,10 +49,8 @@ class ApiBinaryStream(object):
       yield chunk
 
 
-class ApiCallHandler(object):
+class ApiCallHandler(with_metaclass(registry.MetaclassRegistry, object)):
   """Baseclass for restful API renderers."""
-
-  __metaclass__ = registry.MetaclassRegistry
 
   # RDFValue type used to handle API renderer arguments. This has to be
   # a class object.

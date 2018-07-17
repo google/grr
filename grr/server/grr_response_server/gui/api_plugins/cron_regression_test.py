@@ -15,8 +15,8 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import cron as cron_plugin
 from grr_response_server.gui.api_plugins import cron_test as cron_plugin_test
-from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr.test_lib import test_lib
 
 
@@ -91,25 +91,26 @@ class ApiCreateCronJobHandlerRegressionTest(
       jobs = list(cronjobs.GetCronManager().ListJobs(token=self.token))
       return {jobs[0]: "CreateAndRunGeneicHuntFlow_1234"}
 
-    flow_args = standard.CreateGenericHuntFlowArgs()
-    flow_args.hunt_args.flow_args = rdf_file_finder.FileFinderArgs(
+    flow_name = file_finder.FileFinder.__name__
+    flow_args = rdf_file_finder.FileFinderArgs(
         paths=["c:\\windows\\system32\\notepad.*"])
-    flow_args.hunt_args.flow_runner_args.flow_name = (
-        file_finder.FileFinder.__name__)
-    flow_args.hunt_runner_args.client_rule_set.rules = [
+
+    hunt_runner_args = rdf_hunts.HuntRunnerArgs()
+    hunt_runner_args.client_rule_set.rules = [
         foreman_rules.ForemanClientRule(
             os=foreman_rules.ForemanOsClientRule(os_windows=True))
     ]
-    flow_args.hunt_runner_args.description = "Foobar! (cron)"
+    hunt_runner_args.description = "Foobar! (cron)"
 
     self.Check(
         "CreateCronJob",
-        args=cron_plugin.ApiCronJob(
+        args=cron_plugin.ApiCreateCronJobArgs(
             description="Foobar!",
-            flow_name=standard.CreateAndRunGenericHuntFlow.__name__,
+            flow_name=flow_name,
+            flow_args=flow_args,
+            hunt_runner_args=hunt_runner_args,
             periodicity=604800,
-            lifetime=3600,
-            flow_args=flow_args),
+            lifetime=3600),
         replace=ReplaceCronJobUrn)
 
 

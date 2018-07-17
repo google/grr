@@ -3,6 +3,8 @@
 
 This contains an AFF4 data model implementation.
 """
+from __future__ import division
+
 import __builtin__
 import abc
 import itertools
@@ -12,6 +14,7 @@ import threading
 import time
 import zlib
 
+from future.utils import with_metaclass
 
 from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import lexer
@@ -1512,11 +1515,8 @@ class LazyDecoder(object):
     return self.serialized
 
 
-class AFF4Object(object):
+class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
   """Base class for all objects."""
-
-  # We are a registered class.
-  __metaclass__ = registry.MetaclassRegistry
 
   # This property is used in GUIs to define behaviours. These can take arbitrary
   # values as needed. Behaviours are read only and set in the class definition.
@@ -2472,9 +2472,8 @@ class AFF4Symlink(AFF4Object):
       raise ValueError("Unable to open symlink, clone is None.")
 
 
-class AFF4Stream(AFF4Object):
+class AFF4Stream(with_metaclass(abc.ABCMeta, AFF4Object)):
   """An abstract stream for reading data."""
-  __metaclass__ = abc.ABCMeta
 
   # The read pointer offset.
   offset = 0
@@ -2757,7 +2756,7 @@ class AFF4ImageBase(AFF4Stream):
   @classmethod
   def _GenerateChunkPaths(cls, fds):
     for fd in fds:
-      num_chunks = fd.size / fd.chunksize + 1
+      num_chunks = fd.size // fd.chunksize + 1
       for chunk in xrange(num_chunks):
         yield fd.urn.Add(fd.CHUNK_ID_TEMPLATE % chunk), fd
 
@@ -2847,7 +2846,7 @@ class AFF4ImageBase(AFF4Stream):
     elif whence == 1:
       self.offset += offset
     elif whence == 2:
-      self.offset = long(self.size) + offset
+      self.offset = self.size + offset
 
   def Tell(self):
     return self.offset
@@ -2928,7 +2927,7 @@ class AFF4ImageBase(AFF4Stream):
 
   def _ReadPartial(self, length):
     """Read as much as possible, but not more than length."""
-    chunk = self.offset / self.chunksize
+    chunk = self.offset // self.chunksize
     chunk_offset = self.offset % self.chunksize
 
     available_to_read = min(length, self.chunksize - chunk_offset)
@@ -2975,7 +2974,7 @@ class AFF4ImageBase(AFF4Stream):
   def _WritePartial(self, data):
     """Writes at most one chunk of data."""
 
-    chunk = self.offset / self.chunksize
+    chunk = self.offset // self.chunksize
     chunk_offset = self.offset % self.chunksize
     data = utils.SmartStr(data)
 
@@ -3056,9 +3055,8 @@ class AFF4InitHook(registry.InitHook):
     FACTORY = Factory()  # pylint: disable=g-bad-name
 
 
-class AFF4Filter(object):
+class AFF4Filter(with_metaclass(registry.MetaclassRegistry, object)):
   """A simple filtering system to be used with Query()."""
-  __metaclass__ = registry.MetaclassRegistry
 
   def __init__(self, *args):
     self.args = args

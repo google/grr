@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """UI client report handling classes."""
+from __future__ import division
 
 import time
 
@@ -28,8 +29,9 @@ class GRRVersion1ReportPlugin(report_plugin_base.ReportPluginBase):
       # Find the correct graph and merge the OS categories together
       if "%d day" % self.__class__.ACTIVE_DAY in graph.title:
         for sample in graph:
-          categories.setdefault(sample.label, []).append(
-              (graph_series.age / 1000, sample.y_value))
+          timestamp = graph_series.age.AsMicrosecondsSinceEpoch() // 1000
+          categories.setdefault(sample.label, []).append((timestamp,
+                                                          sample.y_value))
         break
 
   def GetReportData(self, get_report_args, token):
@@ -105,11 +107,11 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
     for graph in graph_series:
       for sample in graph:
         # Provide the time in js timestamps (milliseconds since the epoch).
-        days = sample.x_value / 1000000 / 24 / 60 / 60
+        days = sample.x_value // 1000000 // 24 // 60 // 60
         if days in self.__class__.ACTIVE_DAYS_DISPLAY:
           label = "%s day active" % days
-          categories.setdefault(label, []).append((graph_series.age / 1000,
-                                                   sample.y_value))
+          timestamp = graph_series.age.AsMicrosecondsSinceEpoch() // 1000
+          categories.setdefault(label, []).append((timestamp, sample.y_value))
 
   def GetReportData(self, get_report_args, token):
     """Show how the last active breakdown evolved over time."""

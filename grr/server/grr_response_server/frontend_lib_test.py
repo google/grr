@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for frontend server, client communicator, and the GRRHTTPClient."""
+from __future__ import division
 
 import array
 import logging
@@ -1169,7 +1170,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
           field_data = field_data.SerializeToString()
 
         modified_data = array.array("c", field_data)
-        offset = len(field_data) / 2
+        offset = len(field_data) // 2
         modified_data[offset] = chr((ord(field_data[offset]) % 250) + 1)
         setattr(self.client_communication, self.corruptor_field,
                 modified_data.tostring())

@@ -64,6 +64,7 @@ class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
     self.events = []
     self.cronjobs = {}
     self.cronjob_leases = {}
+    self.cronjob_runs = {}
     self.foreman_rules = []
     self.blobs = {}
     self.users = {}

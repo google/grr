@@ -5,6 +5,9 @@ import base64
 import copy
 import struct
 
+from future.utils import with_metaclass
+
+from past.builtins import long
 
 # pylint: disable=g-import-not-at-top
 try:
@@ -585,7 +588,7 @@ class ProtoFixed32(ProtoUnsignedInteger):
   wire_type = WIRETYPE_FIXED32
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", struct.pack("<L", long(value)))
+    return (self.encoded_tag, "", struct.pack("<L", int(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<L", value[2])[0]
@@ -598,7 +601,7 @@ class ProtoFixed64(ProtoFixed32):
   wire_type = WIRETYPE_FIXED64
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", struct.pack("<Q", long(value)))
+    return (self.encoded_tag, "", struct.pack("<Q", int(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<Q", value[2])[0]
@@ -612,7 +615,7 @@ class ProtoFixedU32(ProtoFixed32):
   proto_type_name = "fixed32"
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", struct.pack("<l", long(value)))
+    return (self.encoded_tag, "", struct.pack("<l", int(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<l", value[2])[0]
@@ -1052,13 +1055,11 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
 
-class RepeatedFieldHelper(object):
+class RepeatedFieldHelper(with_metaclass(registry.MetaclassRegistry, object)):
   """A helper for the RDFProto to handle repeated fields.
 
   This helper is intended to only be constructed from the RDFProto class.
   """
-
-  __metaclass__ = registry.MetaclassRegistry
 
   dirty = False
 
@@ -1502,7 +1503,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
     cls._class_attributes = set(dir(cls))
 
 
-class RDFStruct(rdfvalue.RDFValue):
+class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   """An RDFValue object which contains fields like a struct.
 
   Struct members contain values such as integers, strings etc. These are stored
@@ -1527,8 +1528,6 @@ class RDFStruct(rdfvalue.RDFValue):
   expensive. If the user never access the specific field, we can keep the
   internal representation in wire format and not convert it to a unicode object.
   """
-
-  __metaclass__ = RDFStructMetaclass
 
   # This can be populated with a type_info.TypeDescriptorSet() object to
   # initialize the class.

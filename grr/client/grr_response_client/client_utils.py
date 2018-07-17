@@ -71,7 +71,7 @@ def StatEntryFromStat(stat, pathspec, ext_attrs=True):
       continue
 
     # TODO(hanuszczak): Why are we doing this?
-    value = long(value)
+    value = int(value)
     if value < 0:
       value &= 0xFFFFFFFF
 

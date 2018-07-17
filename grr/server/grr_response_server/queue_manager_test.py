@@ -158,7 +158,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertGreater(task.task_id, 0)
     self.assertGreater(task.task_id & 0xffffffff, 0)
-    self.assertEqual((long(self._current_mock_time * 1000) & 0xffffffff) << 32,
+    self.assertEqual((int(self._current_mock_time * 1000) & 0xffffffff) << 32,
                      task.task_id
                      & 0x1fffffff00000000)
     self.assertEqual(task.task_ttl, 5)

@@ -33,6 +33,7 @@ More complex types should be encoded into bytes and stored in the data store as
 bytes. The data store can then treat the type as an opaque type (and will not be
 able to filter it directly).
 """
+from __future__ import division
 from __future__ import print_function
 
 import abc
@@ -42,6 +43,9 @@ import logging
 import random
 import sys
 import time
+
+
+from future.utils import with_metaclass
 
 from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import flags
@@ -410,7 +414,7 @@ class MutationPool(object):
     """Business logic helper for QueueQueryAndOwn()."""
     tasks = []
 
-    lease = long(lease_seconds * 1e6)
+    lease = int(lease_seconds * 1e6)
 
     # Only grab attributes with timestamps in the past.
     delete_attrs = set()
@@ -445,7 +449,7 @@ class MutationPool(object):
           subject,
           serialized_tasks_dict,
           replace=True,
-          timestamp=long(time.time() * 1e6) + lease,
+          timestamp=int(time.time() * 1e6) + lease,
           to_delete=delete_attrs)
 
     if delete_attrs:
@@ -529,10 +533,8 @@ class MutationPool(object):
         subject, [DataStore.AFF4_INDEX_DIR_TEMPLATE % utils.SmartStr(child)])
 
 
-class DataStore(object):
+class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
   """Abstract database access."""
-
-  __metaclass__ = registry.MetaclassRegistry
 
   # Constants relating to timestamps.
   ALL_TIMESTAMPS = "ALL_TIMESTAMPS"
@@ -1581,15 +1583,13 @@ class DataStore(object):
       yield (subject, children)
 
 
-class DBSubjectLock(object):
+class DBSubjectLock(with_metaclass(registry.MetaclassRegistry, object)):
   """Provide a simple subject lock using the database.
 
   This class should not be used directly. Its only safe to use via the
   DataStore.LockRetryWrapper() above which implements correct backoff and
   retry behavior.
   """
-
-  __metaclass__ = registry.MetaclassRegistry
 
   def __init__(self, data_store, subject, lease_time=None):
     """Obtain the subject lock for lease_time seconds.

@@ -9,6 +9,7 @@ import logging
 import os
 import platform
 import re
+from future.utils import with_metaclass
 
 
 class PathOpts(object):
@@ -28,13 +29,11 @@ class PathOpts(object):
     self.recursion_blacklist = set(recursion_blacklist or [])
 
 
-class PathComponent(object):
+class PathComponent(with_metaclass(abc.ABCMeta, object)):
   """An abstract class representing parsed path component.
 
   A path component is part of the path delimited by the directory separator.
   """
-
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def Generate(self, dirpath):

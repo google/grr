@@ -4,6 +4,7 @@
 Includes functions that are used by interactive console utilities such as
 approval or token handling.
 """
+from __future__ import division
 from __future__ import print_function
 
 import csv

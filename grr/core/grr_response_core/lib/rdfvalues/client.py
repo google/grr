@@ -4,6 +4,7 @@
 This module contains the RDFValue implementations used to communicate with the
 client.
 """
+from __future__ import division
 
 import hashlib
 import logging
@@ -13,7 +14,9 @@ import socket
 import stat
 import struct
 
+
 import ipaddr
+from past.builtins import long
 import psutil
 
 from grr.core.grr_response_core.lib import ipv6_utils
@@ -483,8 +486,8 @@ class Volume(rdf_structs.RDFProtoStruct):
 
   def FreeSpacePercent(self):
     try:
-      return (self.actual_available_allocation_units / float(
-          self.total_allocation_units)) * 100.0
+      return (self.actual_available_allocation_units /
+              self.total_allocation_units) * 100.0
     except ZeroDivisionError:
       return 100
 
@@ -498,7 +501,7 @@ class Volume(rdf_structs.RDFProtoStruct):
 
   def AUToGBytes(self, allocation_units):
     """Convert a number of allocation units to GigaBytes."""
-    return self.AUToBytes(allocation_units) / 1000.0**3
+    return self.AUToBytes(allocation_units) // 1000.0**3
 
   def Name(self):
     """Return the best available name for this volume."""
@@ -697,7 +700,7 @@ class Process(rdf_structs.RDFProtoStruct):
       pass
 
     try:
-      response.ctime = long(psutil_process.create_time() * 1e6)
+      response.ctime = int(psutil_process.create_time() * 1e6)
       response.status = str(psutil_process.status())
     except (psutil.NoSuchProcess, psutil.AccessDenied):
       pass

@@ -158,6 +158,11 @@ class WmiQuery(actions.ActionPlugin):
 
   def Run(self, args):
     """Run the WMI query and return the data."""
+    for res in self.Start(args):
+      self.SendReply(res)
+
+  @classmethod
+  def Start(cls, args):
     query = args.query
     base_object = args.base_object or r"winmgmts:\root\cimv2"
 
@@ -165,7 +170,7 @@ class WmiQuery(actions.ActionPlugin):
       raise RuntimeError("Only SELECT WMI queries allowed.")
 
     for response_dict in RunWMIQuery(query, baseobj=base_object):
-      self.SendReply(response_dict)
+      yield response_dict
 
 
 def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Basic rdfvalue tests."""
+from __future__ import division
 
 import datetime
 from datetime import datetime
@@ -47,8 +48,7 @@ class RDFIntegerTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertTrue(5 < rdfvalue.RDFInteger(10))
 
   def testDividesAndIsDividableByPrimitiveInts(self):
-    self.assertEqual(rdfvalue.RDFInteger(10) / 5, 2)
-    self.assertEqual(100 / rdfvalue.RDFInteger(10), 10)
+    self.assertEqual(rdfvalue.RDFInteger(10) // 5, 2)
 
   def testMultipliesAndIsMultipliedByByPrimitive(self):
     self.assertEqual(rdfvalue.RDFInteger(10) * 10, 100)
@@ -288,7 +288,7 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(int(date1), 1320142980000000)
 
     self.assertEqual(
-        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(int(date1) / 1e6)),
+        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(int(date1) // 1e6)),
         time_string)
 
     # We always stringify the date in UTC timezone.

@@ -41,12 +41,15 @@ self.runner_args: The flow runners args. This is an instance of
   FlowRunnerArgs() which may be build from keyword args.
 
 """
+from __future__ import division
 from __future__ import print_function
 
 import functools
 import logging
 import operator
 
+
+from future.utils import with_metaclass
 
 from grr.core.grr_response_core.lib import queues
 from grr.core.grr_response_core.lib import rdfvalue
@@ -518,10 +521,8 @@ def StartFlow(args=None,
   return flow_obj.urn
 
 
-class FlowBase(aff4.AFF4Volume):
+class FlowBase(with_metaclass(registry.FlowRegistry, aff4.AFF4Volume)):
   """The base class for Flows and Hunts."""
-
-  __metaclass__ = registry.FlowRegistry
 
   # Alternatively we can specify a single semantic protobuf that will be used to
   # provide the args.
@@ -847,7 +848,7 @@ class GRRFlow(FlowBase):
   def HeartBeat(self):
     if self.locked:
       lease_time = self.transaction.lease_time
-      if self.CheckLease() < lease_time / 2:
+      if self.CheckLease() < lease_time // 2:
         logging.debug("%s: Extending Lease", self.session_id)
         self.UpdateLease(lease_time)
 

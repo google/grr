@@ -4,6 +4,7 @@
 
 Implementations should be able to pass these tests to be conformant.
 """
+from __future__ import division
 
 import csv
 import functools
@@ -980,13 +981,13 @@ class DataStoreTestMixin(object):
 
     # Extend the range of valid timestamps returned from the table to account
     # for potential clock skew.
-    start = long(time.time() - 60) * 1e6
+    start = int(time.time() - 60) * 1e6
     data_store.DB.Set(subject, predicate, "1")
 
     stored, ts = data_store.DB.Resolve(subject, predicate)
 
     # Check the time is reasonable
-    end = long(time.time() + 60) * 1e6
+    end = int(time.time() + 60) * 1e6
 
     self.assertTrue(ts >= start and ts <= end)
     self.assertEqual(stored, "1")
@@ -1642,7 +1643,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
       self.last_time = this_time
       self.steps += 1
       self.AddResult(self.test_name, this_time - self.start_time, self.steps,
-                     data_store.DB.Size() / 1024, queries_diff, self.subjects,
+                     data_store.DB.Size() // 1024, queries_diff, self.subjects,
                      self.predicates, self.values)
 
   def WriteCSV(self, remove=False):
@@ -1695,7 +1696,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     """Randomly read the database."""
     if change_test:
       self.test_name = "read random %d%%" % fraction
-    for _ in range(0, int(float(len(subjects)) * float(fraction) / 100.0)):
+    for _ in range(0, int(len(subjects) * fraction / 100.0)):
       i = self.rand.choice(subjects.keys())
       subject = subjects[i]["name"]
       predicates = subjects[i]["attrs"]
@@ -1805,7 +1806,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     """Adds new clients/subjects to the database."""
     if change_test:
       self.test_name = "add %d%%" % fraction
-    how_many = int(float(len(subjects)) * float(fraction) / 100)
+    how_many = int(len(subjects) * fraction / 100)
     new_value = os.urandom(100)
     new_subject = max(subjects.iteritems(), key=operator.itemgetter(0))[0] + 1
     # Generate client names.
@@ -1884,7 +1885,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
   def _RemoveManyAttributes(self, subjects, fraction):
     """Delete all predicates (except 1) from subjects with many predicates."""
     self.test_name = "del +attrs %d%%" % fraction
-    often = 100 / fraction
+    often = 100 // fraction
     count = 0
     for i in subjects:
       subject = subjects[i]["name"]
@@ -1926,7 +1927,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
   def _DoMix(self, subjects):
     """Do a mix of database operations."""
     self.test_name = "mix"
-    for _ in xrange(0, len(subjects) / 2000):
+    for _ in xrange(0, len(subjects) // 2000):
       # Do random operations.
       op = self.rand.randint(0, 3)
       if op == 0:
@@ -1964,7 +1965,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     """Adds 'howmany' blobs with size 'size' kbs."""
     self.test_name = "add blobs %dx%dk" % (howmany, size)
     count = 0
-    often = howmany / 10
+    often = howmany // 10
 
     for count in xrange(howmany):
       data = self._GenerateRandomString(1024 * size)
@@ -2243,7 +2244,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     # Tests run in arbitrary order but for the benchmarks, the order makes a
     # difference so we call them all from one test here.
     self.n = 1000
-    self.small_n = self.n / 100
+    self.small_n = self.n // 100
     self.units = "ms"
 
     self.BenchmarkWriting()

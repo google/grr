@@ -27,6 +27,7 @@ from grr_response_server import server_stubs
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
@@ -704,20 +705,20 @@ class FlowOutputPluginsTest(BasicFlowTest):
   def testFlowWithOutputPluginButWithoutResultsCompletes(self):
     self.RunFlow(
         flow_name="NoRequestParentFlow",
-        plugins=output_plugin.OutputPluginDescriptor(
+        plugins=rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="DummyFlowOutputPlugin"))
     self.assertEqual(DummyFlowOutputPlugin.num_calls, 0)
 
   def testFlowWithOutputPluginProcessesResultsSuccessfully(self):
     self.RunFlow(
-        plugins=output_plugin.OutputPluginDescriptor(
+        plugins=rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="DummyFlowOutputPlugin"))
     self.assertEqual(DummyFlowOutputPlugin.num_calls, 1)
     self.assertEqual(DummyFlowOutputPlugin.num_responses, 1)
 
   def testFlowLogsSuccessfulOutputPluginProcessing(self):
     flow_urn = self.RunFlow(
-        plugins=output_plugin.OutputPluginDescriptor(
+        plugins=rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="DummyFlowOutputPlugin"))
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     log_messages = [item.log_message for item in flow_obj.GetLog()]
@@ -727,7 +728,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
 
   def testFlowLogsFailedOutputPluginProcessing(self):
     flow_urn = self.RunFlow(
-        plugins=output_plugin.OutputPluginDescriptor(
+        plugins=rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="FailingDummyFlowOutputPlugin"))
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     log_messages = [item.log_message for item in flow_obj.GetLog()]
@@ -737,16 +738,16 @@ class FlowOutputPluginsTest(BasicFlowTest):
 
   def testFlowDoesNotFailWhenOutputPluginFails(self):
     flow_urn = self.RunFlow(
-        plugins=output_plugin.OutputPluginDescriptor(
+        plugins=rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="FailingDummyFlowOutputPlugin"))
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     self.assertEqual(flow_obj.context.state, "TERMINATED")
 
   def testFailingPluginDoesNotImpactOtherPlugins(self):
     self.RunFlow(plugins=[
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="FailingDummyFlowOutputPlugin"),
-        output_plugin.OutputPluginDescriptor(
+        rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="DummyFlowOutputPlugin")
     ])
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """FS GRR server side integration utility functions."""
+from __future__ import division
 
 import binascii
 
@@ -52,4 +53,4 @@ def GRRIDToFleetspeakID(grr_id):
 
 def TSToRDFDatetime(ts):
   """Convert a protobuf.Timestamp to an RDFDatetime."""
-  return rdfvalue.RDFDatetime(ts.seconds * 1000000 + ts.nanos / 1000)
+  return rdfvalue.RDFDatetime(ts.seconds * 1000000 + ts.nanos // 1000)

@@ -359,6 +359,84 @@ describe('semantic proto form directive', () => {
     });
   });
 
+  describe('form for structure with 1 dynamic field', () => {
+    const defaultFooStructValue = {
+      type: 'Foo',
+      mro: ['Foo', 'RDFProtoStruct'],
+      value: {},
+    };
+
+    beforeEach(() => {
+      // Reflection service is a mock. Stub out the getRDFValueDescriptor method
+      // and return a promise with the reflection data.
+      const data = {
+        'Foo': {
+          'default': {
+            'type': 'Foo',
+            'value': {},
+          },
+          'doc': 'This is a structure Foo.',
+          'fields': [
+            {
+              'doc': 'Field 1 description.',
+              'dynamic': true,
+              'friendly_name': 'Field 1',
+              'index': 1,
+              'name': 'field_1',
+              'repeated': false,
+            },
+          ],
+          'kind': 'struct',
+          'name': 'Foo',
+          'mro': ['Foo', 'RDFProtoStruct'],
+        },
+        'PrimitiveType': {
+          'default': {
+            'type': 'PrimitiveType',
+            'value': '',
+          },
+          'doc': 'Test primitive type description.',
+          'kind': 'primitive',
+          'name': 'PrimitiveType',
+          'mro': ['PrimitiveType'],
+        },
+      };
+
+      const reflectionDeferred = $q.defer();
+      reflectionDeferred.resolve(data);
+      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor')
+          .and.callFake((type, opt_withDeps) => {
+            const reflectionDeferred = $q.defer();
+            reflectionDeferred.resolve(opt_withDeps ? data : data[type]);
+            return reflectionDeferred.promise;
+          });
+    });
+
+    it('does not prefill non-prefilled dynamic field', () => {
+      const fooValue = defaultFooStructValue;
+      const element = renderTestTemplate(fooValue);
+
+      const field = element.find('grr-form-proto-repeated-field:nth(0)');
+      const fieldValue = field.scope().$eval(field.attr('value'));
+      expect(fieldValue).toBeUndefined();
+    });
+
+    it('uses existing dynamic field value when it\'s prefilled', () => {
+      const fooValue = defaultFooStructValue;
+      fooValue.value = {
+        field_1: {
+          type: 'PrimitiveType',
+          value: '42',
+        },
+      };
+      const element = renderTestTemplate(angular.copy(fooValue));
+
+      const field = element.find('grr-form-proto-repeated-field:nth(0)');
+      const fieldValue = field.scope().$eval(field.attr('value'));
+      expect(fieldValue).toEqual(fooValue.value.field_1);
+    });
+  });
+
   describe('form for structure with 1 repeated field', () => {
     beforeEach(() => {
       // Reflection service is a mock. Stub out the getRDFValueDescriptor method

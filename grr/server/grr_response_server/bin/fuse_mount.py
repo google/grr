@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tool for mounting AFF4 datastore over FUSE."""
+from __future__ import division
 from __future__ import print_function
 
 import datetime
@@ -478,8 +479,8 @@ class GRRFuse(GRRFuseDatastoreOnly):
     Returns:
       A list of chunk numbers.
     """
-    start_chunk = offset / fd.chunksize
-    end_chunk = (offset + length - 1) / fd.chunksize
+    start_chunk = offset // fd.chunksize
+    end_chunk = (offset + length - 1) // fd.chunksize
 
     relevant_chunks = xrange(start_chunk, end_chunk + 1)
 

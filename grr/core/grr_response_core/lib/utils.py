@@ -959,7 +959,7 @@ class StreamingZipGenerator(object):
     """
     # Fake stat response.
     if st is None:
-      st = os.stat_result((0100644, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+      st = os.stat_result((0o100644, 0, 0, 0, 0, 0, 0, 0, 0, 0))
 
     mtime = time.localtime(st.st_mtime or time.time())
     date_time = mtime[0:6]
@@ -1005,7 +1005,7 @@ class StreamingZipGenerator(object):
 
     zinfo = zipfile.ZipInfo(dst_arcname)
     # This marks a symlink.
-    zinfo.external_attr = (0644 | 0120000) << 16
+    zinfo.external_attr = (0o644 | 0o120000) << 16
     # This marks create_system as UNIX.
     zinfo.create_system = 3
 
@@ -1016,7 +1016,7 @@ class StreamingZipGenerator(object):
         0x756e,
         len(src_arcname) + 14,
         0,  # CRC-32 of the remaining data
-        0120000,  # file permissions
+        0o120000,  # file permissions
         0,  # target file size
         0,  # user ID
         0,  # group ID

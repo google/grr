@@ -13,7 +13,7 @@ goog.module.declareLegacyNamespace();
 exports.ReviewPageDirective = function() {
   return {
     scope: {
-      cronJob: '='
+      cronJobArgs: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/cron/new-cron-job-wizard/' +

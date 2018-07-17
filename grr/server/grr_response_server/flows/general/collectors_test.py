@@ -10,6 +10,7 @@ import os
 import mock
 import psutil
 
+from grr_response_client.client_actions import artifact_collector
 from grr_response_client.client_actions import standard
 from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import artifact_utils
@@ -416,11 +417,15 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
     return flow.GRRFlow.ResultCollectionForFID(session_id)
 
 
-class TestClientArtifactCollector(flow_test_lib.FlowTestsBaseclass):
+class ClientArtifactCollectorUnitsTest(flow_test_lib.FlowTestsBaseclass):
   """Test the clientside artifact collection test artifacts."""
 
   def setUp(self):
-    super(TestClientArtifactCollector, self).setUp()
+    super(ClientArtifactCollectorUnitsTest, self).setUp()
+
+    self._patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
+    self._patcher.start()
+
     test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
@@ -433,27 +438,30 @@ class TestClientArtifactCollector(flow_test_lib.FlowTestsBaseclass):
       artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
       fd.Set(kb)
 
+  def tearDown(self):
+    self._patcher.stop()
+    super(ClientArtifactCollectorUnitsTest, self).tearDown()
+
   def testKnowledgeBase(self):
     """Test that the knowledge base is passed in the bundle."""
-    artifact_collector = collectors.ClientArtifactCollector(None)
-    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+    coll = collectors.ClientArtifactCollector(None)
+    coll.args = artifact_utils.ArtifactCollectorFlowArgs()
 
     kb = rdf_client.KnowledgeBase()
     kb.os = "Windows"
-    artifact_collector.args.knowledge_base = kb
+    coll.args.knowledge_base = kb
 
-    artifact_bundle = artifact_collector._GetArtifactCollectorArgs([])
+    artifact_bundle = coll._GetArtifactCollectorArgs([])
 
     self.assertEqual(artifact_bundle.knowledge_base.os, "Windows")
 
   def testPrepareBasicArtifactBundle(self):
     """Test we can prepare a basic artifact."""
     artifact_list = ["TestCmdArtifact"]
-    artifact_collector = collectors.ClientArtifactCollector(None)
-    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+    coll = collectors.ClientArtifactCollector(None)
+    coll.args = artifact_utils.ArtifactCollectorFlowArgs()
 
-    artifact_bundle = artifact_collector._GetArtifactCollectorArgs(
-        artifact_list)
+    artifact_bundle = coll._GetArtifactCollectorArgs(artifact_list)
     artifacts_objects = list(artifact_bundle.artifacts)
 
     art_obj = artifacts_objects[0]
@@ -465,35 +473,34 @@ class TestClientArtifactCollector(flow_test_lib.FlowTestsBaseclass):
 
   def testSourceMeetsConditions(self):
     """Test we can get a GRR client artifact with conditions."""
-    artifact_collector = collectors.ClientArtifactCollector(None)
-    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+    coll = collectors.ClientArtifactCollector(None)
+    coll.args = artifact_utils.ArtifactCollectorFlowArgs()
 
     kb = rdf_client.KnowledgeBase()
     kb.os = "Windows"
-    artifact_collector.args.knowledge_base = kb
+    coll.args.knowledge_base = kb
 
     # Run with false condition.
     source = rdf_artifacts.ArtifactSource(
         type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": standard.ListProcesses.__name__},
         conditions=["os == 'Linux'"])
-    self.assertFalse(artifact_collector._MeetsConditions(source))
+    self.assertFalse(coll._MeetsConditions(source))
 
     # Run with matching or condition.
     source = rdf_artifacts.ArtifactSource(
         type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": standard.ListProcesses.__name__},
         conditions=["os == 'Linux' or os == 'Windows'"])
-    self.assertTrue(artifact_collector._MeetsConditions(source))
+    self.assertTrue(coll._MeetsConditions(source))
 
   def testPrepareAggregatedArtifactBundle(self):
     """Test we can prepare the source artifacts of an aggregation artifact."""
     artifact_list = ["TestAggregationArtifact"]
-    artifact_collector = collectors.ClientArtifactCollector(None)
-    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+    coll = collectors.ClientArtifactCollector(None)
+    coll.args = artifact_utils.ArtifactCollectorFlowArgs()
 
-    artifact_bundle = artifact_collector._GetArtifactCollectorArgs(
-        artifact_list)
+    artifact_bundle = coll._GetArtifactCollectorArgs(artifact_list)
     artifacts_objects = list(artifact_bundle.artifacts)
 
     art_obj = artifacts_objects[0]
@@ -511,11 +518,10 @@ class TestClientArtifactCollector(flow_test_lib.FlowTestsBaseclass):
         "TestFilesArtifact", "DepsWindirRegex", "DepsProvidesMultiple",
         "WMIActiveScriptEventConsumer"
     ]
-    artifact_collector = collectors.ClientArtifactCollector(None)
-    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+    coll = collectors.ClientArtifactCollector(None)
+    coll.args = artifact_utils.ArtifactCollectorFlowArgs()
 
-    artifact_bundle = artifact_collector._GetArtifactCollectorArgs(
-        artifact_list)
+    artifact_bundle = coll._GetArtifactCollectorArgs(artifact_list)
     artifacts_objects = list(artifact_bundle.artifacts)
 
     self.assertEqual(len(artifacts_objects), 4)
@@ -535,14 +541,89 @@ class TestClientArtifactCollector(flow_test_lib.FlowTestsBaseclass):
         "TestAggregationArtifact", "TestFilesArtifact", "TestCmdArtifact",
         "TestFilesArtifact"
     ]
-    artifact_collector = collectors.ClientArtifactCollector(None)
-    artifact_collector.args = artifact_utils.ArtifactCollectorFlowArgs()
+    coll = collectors.ClientArtifactCollector(None)
+    coll.args = artifact_utils.ArtifactCollectorFlowArgs()
 
-    artifact_bundle = artifact_collector._GetArtifactCollectorArgs(
-        artifact_list)
+    artifact_bundle = coll._GetArtifactCollectorArgs(artifact_list)
     artifacts_objects = list(artifact_bundle.artifacts)
 
     self.assertEqual(len(artifacts_objects), 2)
+
+
+class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
+  """Test the clientside artifact collection test artifacts."""
+
+  def setUp(self):
+    super(ClientArtifactCollectorFlowTest, self).setUp()
+
+    self._patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
+    self._patcher.start()
+
+    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
+                                       "artifacts", "test_artifacts.json")
+    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
+
+    self.client_id = self.SetupClient(0)
+
+    with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
+      fd.Set(fd.Schema.SYSTEM("Linux"))
+      kb = fd.Schema.KNOWLEDGE_BASE()
+      artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
+      fd.Set(kb)
+
+  def _RunCAC(self, artifact_list):
+    session_id = flow_test_lib.TestFlowHelper(
+        collectors.ClientArtifactCollector.__name__,
+        action_mocks.ActionMock(artifact_collector.ArtifactCollector),
+        client_id=self.client_id,
+        artifact_list=artifact_list,
+        token=self.token)
+
+    return list(flow.GRRFlow.ResultCollectionForFID(session_id))
+
+  def tearDown(self):
+    self._patcher.stop()
+    super(ClientArtifactCollectorFlowTest, self).tearDown()
+
+  def testClientArtifactCollector(self):
+    """Test artifact collector flow with a single artifact."""
+
+    client_test_lib.Command("/usr/bin/dpkg", args=["--list"], system="Linux")
+
+    artifact_list = ["TestCmdArtifact"]
+    results = self._RunCAC(artifact_list)
+    self.assertEqual(len(results), 1)
+
+    result = results[0]
+    self.assertIsInstance(result, rdf_artifacts.ClientArtifactCollectorResult)
+
+    self.assertEqual(len(result.collected_artifacts), 1)
+
+    collected_artifact = result.collected_artifacts[0]
+    self.assertEqual(collected_artifact.name, "TestCmdArtifact")
+    self.assertGreater(collected_artifact.action_results[0].value.time_used, 0)
+
+  def testClientArtifactCollectorWithMultipleArtifacts(self):
+    """Test artifact collector flow with a single artifact."""
+
+    client_test_lib.Command("/usr/bin/dpkg", args=["--list"], system="Linux")
+
+    artifact_list = ["TestCmdArtifact", "TestOSAgnostic"]
+    results = self._RunCAC(artifact_list)
+    self.assertEqual(len(results), 1)
+
+    result = results[0]
+    self.assertIsInstance(result, rdf_artifacts.ClientArtifactCollectorResult)
+
+    self.assertEqual(len(result.collected_artifacts), 2)
+
+    collected_artifact = result.collected_artifacts[0]
+    self.assertEqual(collected_artifact.name, "TestCmdArtifact")
+    self.assertGreater(collected_artifact.action_results[0].value.time_used, 0)
+
+    collected_artifact = result.collected_artifacts[1]
+    self.assertEqual(collected_artifact.name, "TestOSAgnostic")
+    self.assertTrue(collected_artifact.action_results[0].value.string)
 
 
 def main(argv):

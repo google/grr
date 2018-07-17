@@ -3,7 +3,7 @@ check_id: 'CIS-CRON-PERMISSIONS'
 method:
   - target: {os: ['Linux']}
     probe:
-      # artifact defined in grr/artifacts/cron.yaml not in ForensicArtifacts
+      # artifact defined in grr/core/grr_response_core/artifacts/cron.yaml not in ForensicArtifacts
       - artifact: 'AllLinuxScheduleFiles'
         hint:
           problem: 'System crontabs can be modified by non-privileged users.'

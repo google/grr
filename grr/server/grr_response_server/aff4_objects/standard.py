@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """These are standard aff4 objects."""
+from __future__ import division
 
 import StringIO
 
@@ -74,7 +75,7 @@ class HashList(rdfvalue.RDFBytes):
   HASH_SIZE = 32
 
   def __len__(self):
-    return len(self._value) / self.HASH_SIZE
+    return len(self._value) // self.HASH_SIZE
 
   def __iter__(self):
     for i in range(len(self)):
@@ -199,7 +200,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
   def _ReadPartial(self, length):
     """Read as much as possible, but not more than length."""
-    chunk = self.offset / self.chunksize
+    chunk = self.offset // self.chunksize
     chunk_offset = self.offset % self.chunksize
 
     # If we're past the end of the file, we don't have a chunk to read from, so

@@ -408,7 +408,7 @@ class ExportTest(ExportTestBase):
         ppid=1,
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
-        ctime=long(1333718907.167083 * 1e6))
+        ctime=1333718907167083)
 
     converter = export.ProcessToExportedProcessConverter()
     results = list(converter.Convert(self.metadata, process, token=self.token))
@@ -418,7 +418,7 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[0].ppid, 1)
     self.assertEqual(results[0].cmdline, "cmd.exe")
     self.assertEqual(results[0].exe, "c:\\windows\\cmd.exe")
-    self.assertEqual(results[0].ctime, long(1333718907.167083 * 1e6))
+    self.assertEqual(results[0].ctime, 1333718907167083)
 
   def testProcessToExportedOpenFileConverter(self):
     process = rdf_client.Process(
@@ -426,7 +426,7 @@ class ExportTest(ExportTestBase):
         ppid=1,
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
-        ctime=long(1333718907.167083 * 1e6),
+        ctime=1333718907167083,
         open_files=["/some/a", "/some/b"])
 
     converter = export.ProcessToExportedOpenFileConverter()
@@ -459,7 +459,7 @@ class ExportTest(ExportTestBase):
         ppid=1,
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
-        ctime=long(1333718907.167083 * 1e6),
+        ctime=1333718907167083,
         connections=[conn1, conn2])
 
     converter = export.ProcessToExportedNetworkConnectionConverter()
@@ -1249,7 +1249,7 @@ class YaraProcessScanResponseConverterTest(ExportTestBase):
         ppid=1,
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
-        ctime=long(1333718907.167083 * 1e6))
+        ctime=1333718907167083)
     return rdf_yara.YaraProcessScanMatch(
         process=process, match=match, scan_time_us=42)
 
@@ -1265,7 +1265,7 @@ class YaraProcessScanResponseConverterTest(ExportTestBase):
     self.assertEqual(converted[0].process.ppid, 1)
     self.assertEqual(converted[0].process.cmdline, "cmd.exe")
     self.assertEqual(converted[0].process.exe, "c:\\windows\\cmd.exe")
-    self.assertEqual(converted[0].process.ctime, long(1333718907.167083 * 1e6))
+    self.assertEqual(converted[0].process.ctime, 1333718907167083)
 
     self.assertEqual(converted[0].rule_name, "foo")
     self.assertEqual(converted[0].scan_time_us, 42)

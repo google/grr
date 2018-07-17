@@ -3,6 +3,7 @@
 
 SQLite database files are created by taking the root of each AFF4 object.
 """
+from __future__ import division
 from __future__ import print_function
 
 
@@ -17,6 +18,8 @@ import thread
 import threading
 import time
 
+
+from past.builtins import long
 import sqlite3
 
 from grr.core.grr_response_core import config
@@ -538,7 +541,7 @@ class SqliteConnection(object):
         self.deleted = 0
         self.next_vacuum_check = max(
             config.CONFIG["SqliteDatastore.vacuum_check"],
-            self.next_vacuum_check / 2)
+            self.next_vacuum_check // 2)
       else:
         # Back-off a bit.
         self.next_vacuum_check *= 2
@@ -559,7 +562,7 @@ class SqliteConnection(object):
     free_pages = int(free_pages_result[0])
     # Return true if ratio of free pages is high enough.
     vacuum_ratio = config.CONFIG["SqliteDatastore.vacuum_ratio"]
-    return 100.0 * float(free_pages) / float(pages) >= vacuum_ratio
+    return 100.0 * free_pages / pages >= vacuum_ratio
 
   def _HasRecentVacuum(self):
     """Check if a vacuum operation has been performed recently."""
@@ -679,7 +682,7 @@ class SqliteDataStore(data_store.DataStore):
           if element_timestamp is None:
             element_timestamp = timestamp
 
-          element_timestamp = long(element_timestamp)
+          element_timestamp = int(element_timestamp)
           value = self._Encode(v)
           sqlite_connection.SetAttribute(subject, attribute, value,
                                          element_timestamp)

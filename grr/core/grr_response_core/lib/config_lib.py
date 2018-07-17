@@ -20,8 +20,8 @@ import sys
 import traceback
 
 
+from future.utils import with_metaclass
 import pkg_resources
-
 import yaml
 
 from grr.core.grr_response_core.lib import flags
@@ -127,10 +127,8 @@ def SetPlatformArchContext():
   _CONFIG.AddContext("Arch:%s" % arch)
 
 
-class ConfigFilter(object):
+class ConfigFilter(with_metaclass(registry.MetaclassRegistry, object)):
   """A configuration filter can transform a configuration parameter."""
-
-  __metaclass__ = registry.MetaclassRegistry
 
   name = "identity"
 
@@ -307,9 +305,8 @@ class ModulePath(ConfigFilter):
     return result
 
 
-class GRRConfigParser(object):
+class GRRConfigParser(with_metaclass(registry.MetaclassRegistry, object)):
   """The base class for all GRR configuration parsers."""
-  __metaclass__ = registry.MetaclassRegistry
 
   # Configuration parsers are named. This name is used to select the correct
   # parser from the --config parameter which is interpreted as a filename,
@@ -392,7 +389,7 @@ class ConfigFileParser(ConfigParser.RawConfigParser, GRRConfigParser):
       # We can not use the standard open() call because we need to
       # enforce restrictive file permissions on the created file.
       mode = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-      fd = os.open(self.filename, mode, 0600)
+      fd = os.open(self.filename, mode, 0o600)
       with os.fdopen(fd, "wb") as config_file:
         self.SaveDataToFD(raw_data, config_file)
 
@@ -555,7 +552,7 @@ class YamlParser(GRRConfigParser):
       # We can not use the standard open() call because we need to
       # enforce restrictive file permissions on the created file.
       mode = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-      fd = os.open(self.filename, mode, 0600)
+      fd = os.open(self.filename, mode, 0o600)
       with os.fdopen(fd, "wb") as config_file:
         self.SaveDataToFD(raw_data, config_file)
 

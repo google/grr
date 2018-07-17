@@ -211,7 +211,7 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
       self.assertEqual(response.io_samples[i].read_bytes, 100 * (i + 1))
       self.assertEqual(response.io_samples[i].write_bytes, 100 * (i + 1))
 
-    self.assertEqual(response.boot_time, long(100 * 1e6))
+    self.assertEqual(response.boot_time, 100 * 1e6)
 
   def testFiltersDataPointsByStartTime(self):
     start_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(117)

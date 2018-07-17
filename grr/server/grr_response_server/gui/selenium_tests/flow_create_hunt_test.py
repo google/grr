@@ -6,10 +6,10 @@ import unittest
 from grr.core.grr_response_core.lib import flags
 
 from grr_response_server import flow
-from grr_response_server import output_plugin
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.output_plugins import email_plugin
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import hunt_test_lib
@@ -26,7 +26,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
     self.action_mock = action_mocks.FileFinderClientMock()
 
   def testCreateHuntFromFlow(self):
-    email_descriptor = output_plugin.OutputPluginDescriptor(
+    email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
         plugin_args=email_plugin.EmailOutputPluginArgs(
             email_address="test@localhost", emails_limit=42))

@@ -11,6 +11,7 @@ import socket
 import sys
 
 
+from future.utils import with_metaclass
 import psutil
 import pytest
 
@@ -82,7 +83,8 @@ ApiRegressionTestMetaclass.RegisterConnectionMixin(
 
 @pytest.mark.small
 @pytest.mark.api_regression
-class ApiRegressionTest(test_lib.GRRBaseTest):
+class ApiRegressionTest(
+    with_metaclass(ApiRegressionTestMetaclass, test_lib.GRRBaseTest)):
   """Base class for API handlers regression tests.
 
   Regression tests are supposed to implement a single abstract Run() method.
@@ -98,8 +100,6 @@ class ApiRegressionTest(test_lib.GRRBaseTest):
   aggregated with data from other test classes and printed to the stdout.
 
   """
-
-  __metaclass__ = ApiRegressionTestMetaclass
 
   # Name of the ApiCallRouter's method that's tested in this class.
   api_method = None

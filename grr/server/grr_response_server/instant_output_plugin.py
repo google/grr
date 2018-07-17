@@ -4,6 +4,9 @@
 import itertools
 import re
 
+
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import utils
@@ -11,14 +14,12 @@ from grr_response_server import aff4
 from grr_response_server import export
 
 
-class InstantOutputPlugin(object):
+class InstantOutputPlugin(with_metaclass(registry.MetaclassRegistry, object)):
   """The base class for instant output plugins.
 
   Instant output plugins do on-the-fly data conversion and are used in
   GetExportedFlowResults/GetExportedHuntResults methods.
   """
-
-  __metaclass__ = registry.MetaclassRegistry
   __abstract = True  # pylint: disable=g-bad-name
 
   plugin_name = None

@@ -15,15 +15,15 @@ will run into race conditions and have to disable the backup instances.
 import logging
 
 
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib import stats
 
 
-class DefaultMasterWatcher(object):
+class DefaultMasterWatcher(with_metaclass(registry.MetaclassRegistry, object)):
   """A Master Watcher that always returns True."""
-
-  __metaclass__ = registry.MetaclassRegistry
 
   is_master = True
 

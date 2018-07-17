@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Administrative flows for managing the clients state."""
+from __future__ import division
 
 import logging
 import shlex
@@ -732,7 +733,7 @@ Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
         client_id=client_id,
         client_info=client_info,
         crash_message=message,
-        timestamp=long(time.time() * 1e6),
+        timestamp=int(time.time() * 1e6),
         crash_type="Nanny Message")
 
     self.WriteAllCrashDetails(client_id, crash_details, token=self.token)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.timeseries."""
+from __future__ import division
 
 from grr.core.grr_response_core.lib import flags
 from grr_response_server import timeseries

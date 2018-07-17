@@ -11,7 +11,6 @@ from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
-from grr_response_server import output_plugin
 from grr_response_server import queue_manager
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import file_finder
@@ -21,6 +20,7 @@ from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr_response_server.output_plugins import email_plugin
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
@@ -260,7 +260,7 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
 
   def Run(self):
     client_id = self.SetupClient(0)
-    email_descriptor = output_plugin.OutputPluginDescriptor(
+    email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
         plugin_args=email_plugin.EmailOutputPluginArgs(
             email_address="test@localhost", emails_limit=42))
@@ -294,7 +294,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
 
   def Run(self):
     client_id = self.SetupClient(0)
-    email_descriptor = output_plugin.OutputPluginDescriptor(
+    email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
         plugin_args=email_plugin.EmailOutputPluginArgs(
             email_address="test@localhost", emails_limit=42))
@@ -333,7 +333,7 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
 
   def Run(self):
     client_id = self.SetupClient(0)
-    failing_descriptor = output_plugin.OutputPluginDescriptor(
+    failing_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=hunt_test_lib.FailingDummyHuntOutputPlugin.__name__)
 
     with test_lib.FakeTime(42):

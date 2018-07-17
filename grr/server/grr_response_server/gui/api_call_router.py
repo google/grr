@@ -5,6 +5,8 @@ import inspect
 import re
 
 
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core.lib import registry
 
 from grr_response_server.gui import api_value_renderers
@@ -139,10 +141,8 @@ class RouterMethodMetadata(object):
     return result
 
 
-class ApiCallRouter(object):
+class ApiCallRouter(with_metaclass(registry.MetaclassRegistry, object)):
   """Routers do ACL checks and route API requests to handlers."""
-
-  __metaclass__ = registry.MetaclassRegistry
   __abstract = True  # pylint: disable=g-bad-name
 
   # If router is configurable, RDFValue class of its configuration
@@ -629,7 +629,7 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Cron")
-  @ArgsType(api_cron.ApiCronJob)
+  @ArgsType(api_cron.ApiCreateCronJobArgs)
   @ResultType(api_cron.ApiCronJob)
   @Http("POST", "/api/cron-jobs", strip_root_types=False)
   def CreateCronJob(self, args, token=None):

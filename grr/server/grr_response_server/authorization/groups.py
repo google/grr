@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 """Group authorization checking."""
 
-
 import logging
+
+
+from future.utils import with_metaclass
 
 from grr.core.grr_response_core import config
 from grr.core.grr_response_core.lib import registry
 
 
-class GroupAccessManager(object):
-  __metaclass__ = registry.MetaclassRegistry
-
+class GroupAccessManager(with_metaclass(registry.MetaclassRegistry, object)):
   __abstract = True  # pylint: disable=g-bad-name
 
   def AuthorizeGroup(self, group, subject):

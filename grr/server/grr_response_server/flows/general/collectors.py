@@ -914,6 +914,67 @@ class ClientArtifactCollector(flow.GRRFlow):
   args_type = artifact_utils.ArtifactCollectorFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
+  @flow.StateHandler()
+  def Start(self):
+    """Issue the artifact collection request."""
+    super(ClientArtifactCollector, self).Start()
+
+    self.state.knowledge_base = self.args.knowledge_base
+    self.state.response_count = 0
+
+    # TODO(user): Fill the knowledge base on the client side and remove the
+    # field knowledge_base from ClientArtifactCollectorArgs
+
+    dependency = artifact_utils.ArtifactCollectorFlowArgs.Dependency
+    if self.args.dependencies == dependency.FETCH_NOW:
+      # String due to dependency loop with discover.py.
+      self.CallFlow("Interrogate", next_state="StartCollection")
+      return
+
+    if (self.args.dependencies == dependency.USE_CACHED and
+        not self.state.knowledge_base):
+      # If not provided, get a knowledge base from the client.
+      try:
+        with aff4.FACTORY.Open(self.client_id, token=self.token) as client:
+          self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(client)
+      except artifact_utils.KnowledgeBaseUninitializedError:
+        # If no-one has ever initialized the knowledge base, we should do so
+        # now.
+        if not self._AreArtifactsKnowledgeBaseArtifacts():
+          # String due to dependency loop with discover.py.
+          self.CallFlow("Interrogate", next_state="StartCollection")
+          return
+
+    # In all other cases start the collection state.
+    self.CallStateInline(next_state="StartCollection")
+
+  # TODO(user): Remove this state when the knowledge base is filled on the
+  # client side.
+  @flow.StateHandler()
+  def StartCollection(self, responses):
+    """Start collecting."""
+    if not responses.success:
+      raise artifact_utils.KnowledgeBaseUninitializedError(
+          "Attempt to initialize Knowledge Base failed.")
+
+    if not self.state.knowledge_base:
+      with aff4.FACTORY.Open(self.client_id, token=self.token) as client:
+        # If we are processing the knowledge base, it still won't exist yet.
+        self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
+            client, allow_uninitialized=True)
+
+    request = self._GetArtifactCollectorArgs(self.args.artifact_list)
+    self.CollectArtifacts(request)
+
+  # TODO(user): Remove this method when the knowledge base is filled on the
+  # client side.
+  def _AreArtifactsKnowledgeBaseArtifacts(self):
+    knowledgebase_list = config.CONFIG["Artifacts.knowledge_base"]
+    for artifact_name in self.args.artifact_list:
+      if artifact_name not in knowledgebase_list:
+        return False
+    return True
+
   def GetPathType(self):
     if self.args.use_tsk:
       return rdf_paths.PathSpec.PathType.TSK
@@ -943,10 +1004,15 @@ class ClientArtifactCollector(flow.GRRFlow):
     """
     bundle = rdf_artifacts.ClientArtifactCollectorArgs()
     bundle.knowledge_base = self.args.knowledge_base
+
     # TODO(user): Check if the knowledge base is provided. What does the
     # ArtifactCollector do if it's not present?
     # Switch the Interrogate flow from the ArtifactCollector flow to the
     # ClientArtifactCollector? (Think about a way to avoid a dependency loop.)
+
+    # TODO(user): Remove error_on_no_results, split_out_by_artifact,
+    # apply_parsers because they are only needed on the server.
+
     bundle.split_output_by_artifact = self.args.split_output_by_artifact
     bundle.error_on_no_results = self.args.error_on_no_results
     bundle.apply_parsers = self.args.apply_parsers
@@ -1026,7 +1092,33 @@ class ClientArtifactCollector(flow.GRRFlow):
   def CollectArtifacts(self, art_bundle):
     """Start the client side artifact collection."""
     self.CallClient(
-        server_stubs.ArtifactCollector, request=art_bundle, next_state="")
+        server_stubs.ArtifactCollector,
+        request=art_bundle,
+        next_state="ProcessCollected")
+
+  @flow.StateHandler()
+  def ProcessCollected(self, responses):
+    if not responses.success:
+      self.Log("Artifact data collection failed. Status: %s.", responses.status)
+      raise flow.FlowError(responses.status)
+
+    self.Log("Artifact data collection completed successfully.")
+    for response in responses:
+      self._ParseResponse(response)
+
+  def _ParseResponse(self, response):
+    # TODO(user): Add support for parsers.
+    self.state.response_count += 1
+    self.SendReply(response)
+
+  @flow.StateHandler()
+  def End(self):
+    super(ClientArtifactCollector, self).End()
+
+    # If we got no responses, and user asked for it, we error out.
+    if self.args.error_on_no_results and self.state.response_count == 0:
+      raise artifact_utils.ArtifactProcessingError(
+          "Artifact collector returned 0 responses.")
 
 
 def ConvertSupportedOSToConditions(src_object):

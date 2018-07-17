@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Implementation of various cryptographic types."""
+from __future__ import division
 
 import hashlib
 import logging
@@ -575,7 +576,7 @@ class EncryptionKey(rdfvalue.RDFBytes):
 
   @classmethod
   def GenerateKey(cls, length=128):
-    return cls(os.urandom(length / 8))
+    return cls(os.urandom(length // 8))
 
   @classmethod
   def GenerateRandomIV(cls, length=128):

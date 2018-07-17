@@ -6,6 +6,9 @@ This way we prevent loading effectively the whole client code into ours
 server parts.
 """
 
+
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
@@ -21,10 +24,8 @@ from grr.core.grr_response_core.lib.rdfvalues import rdf_yara
 from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
-class ClientActionStub(object):
+class ClientActionStub(with_metaclass(registry.MetaclassRegistry, object)):
   """Stub for a client action. To be used in server code."""
-
-  __metaclass__ = registry.MetaclassRegistry
 
   in_rdfvalue = None
   out_rdfvalues = [None]

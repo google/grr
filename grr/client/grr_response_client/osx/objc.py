@@ -6,6 +6,9 @@ import ctypes.util
 import logging
 import subprocess
 
+
+from past.builtins import long
+
 # kCFStringEncodingUTF8
 UTF8 = 134217984
 

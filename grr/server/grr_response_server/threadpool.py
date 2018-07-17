@@ -21,6 +21,7 @@ Example usage:
 >>> SharedPool().Join()
 
 """
+from __future__ import division
 
 import itertools
 import logging
@@ -508,7 +509,7 @@ class BatchConverter(object):
       return
 
     try:
-      total_batch_count = len(values) / self.batch_size
+      total_batch_count = len(values) // self.batch_size
     except TypeError:
       total_batch_count = -1
 

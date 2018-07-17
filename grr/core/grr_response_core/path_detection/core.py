@@ -3,6 +3,7 @@
 
 import abc
 import shlex
+from future.utils import with_metaclass
 
 
 def SplitIntoComponents(str_in):
@@ -32,10 +33,8 @@ def SplitIntoComponents(str_in):
       return components
 
 
-class Extractor(object):
+class Extractor(with_metaclass(abc.ABCMeta, object)):
   """Base class for paths extractors."""
-
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def Extract(self, components):
@@ -55,10 +54,8 @@ class Extractor(object):
     raise NotImplementedError()
 
 
-class PostProcessor(object):
+class PostProcessor(with_metaclass(abc.ABCMeta, object)):
   """Base class for paths post-processors."""
-
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def Process(self, path):

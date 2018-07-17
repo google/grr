@@ -13,12 +13,12 @@ from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_fin
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import flow
-from grr_response_server import output_plugin
 from grr_response_server.flows.general import file_finder as flows_file_finder
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.output_plugins import email_plugin
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import hunt_test_lib
@@ -38,7 +38,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     fixture_test_lib.ClientFixture(self.client_id, self.token)
     self.RequestAndGrantClientApproval("C.0000000000000001")
 
-    self.email_descriptor = output_plugin.OutputPluginDescriptor(
+    self.email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
         plugin_args=email_plugin.EmailOutputPluginArgs(
             email_address="test@localhost", emails_limit=42))
@@ -178,7 +178,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
         flows_processes.ListProcessesArgs(filename_regex="somethingElse*",))
     self.assertListEqual(
         list(fobj.runner_args.output_plugins), [
-            output_plugin.OutputPluginDescriptor(
+            rdf_output_plugin.OutputPluginDescriptor(
                 plugin_name=gui_test_lib.DummyOutputPlugin.__name__,
                 plugin_args=flows_processes.ListProcessesArgs(
                     filename_regex="foobar!")), self.email_descriptor

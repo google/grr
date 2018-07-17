@@ -34,7 +34,8 @@ def run_make_files(make_ui_files=True, sync_artifacts=True):
 
   if sync_artifacts:
     # Sync the artifact repo with upstream for distribution.
-    subprocess.check_call(["python", "makefile.py"], cwd="grr/artifacts")
+    subprocess.check_call(
+        ["python", "makefile.py"], cwd="grr/core/grr_response_core/artifacts")
 
   if make_ui_files:
     subprocess.check_call(
@@ -88,7 +89,8 @@ class Sdist(sdist):
 
 data_files = (
     find_data_files("executables") + find_data_files("install_data") +
-    find_data_files("scripts") + find_data_files("grr/artifacts") +
+    find_data_files("scripts") +
+    find_data_files("grr/core/grr_response_core/artifacts") +
     find_data_files("grr/server/grr_response_server/checks") + find_data_files(
         "grr/server/grr_response_server/gui/static",
         ignore_dirs=IGNORE_GUI_DIRS) + find_data_files(
@@ -123,9 +125,11 @@ setup_args = dict(
         "binplist==0.1.4",
         "cryptography==2.0.3",
         "fleetspeak==0.0.7",
+        "future==0.16.0",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
         "ipython==5.0.0",
+        "future==0.16.0",
         "pip>=8.1.1",
         "psutil==5.4.3",
         "python-dateutil==2.6.1",

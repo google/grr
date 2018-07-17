@@ -11,6 +11,7 @@ and class as value.
 import abc
 import logging
 import threading
+from future.utils import with_metaclass
 
 
 class MetaclassRegistry(abc.ABCMeta):
@@ -113,10 +114,43 @@ class FlowRegistry(MetaclassRegistry):
   def FlowClassByName(mcs, flow_name):
     flow_cls = mcs.FLOW_REGISTRY.get(flow_name)
     if flow_cls is None:
-      raise ValueError(
-          "Flow '%s' not known by this implementation." % flow_name)
+      raise ValueError("Flow '%s' not known." % flow_name)
 
     return flow_cls
+
+
+class CronJobRegistry(MetaclassRegistry):
+  """A dedicated registry that only contains cron jobs."""
+
+  CRON_REGISTRY = {}
+
+  def __init__(cls, name, bases, env_dict):
+    MetaclassRegistry.__init__(cls, name, bases, env_dict)
+
+    cls.CRON_REGISTRY[name] = cls
+
+  @classmethod
+  def CronJobClassByName(mcs, job_name):
+    job_cls = mcs.CRON_REGISTRY.get(job_name)
+    if job_cls is None:
+      raise ValueError("CronJob '%s' not known." % job_name)
+
+    return job_cls
+
+
+class OutputPluginRegistry(MetaclassRegistry):
+  """A dedicated registry that only contains output plugins."""
+
+  PLUGIN_REGISTRY = {}
+
+  def __init__(cls, name, bases, env_dict):
+    MetaclassRegistry.__init__(cls, name, bases, env_dict)
+
+    cls.PLUGIN_REGISTRY[name] = cls
+
+  @classmethod
+  def PluginClassByName(mcs, plugin_name):
+    return mcs.PLUGIN_REGISTRY.get(plugin_name)
 
 
 # Utility functions
@@ -191,14 +225,13 @@ class HookRegistry(object):
     """Hooks that can be called more than once."""
 
 
-class InitHook(HookRegistry):
+class InitHook(with_metaclass(MetaclassRegistry, HookRegistry)):
   """Global GRR init registry.
 
   Any classes which extend this class will be instantiated exactly
   once when the system is initialized. This allows plugin modules to
   register initialization routines.
   """
-  __metaclass__ = MetaclassRegistry
 
 
 # This method is only used in tests and will rerun all the hooks to create a

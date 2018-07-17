@@ -4,8 +4,9 @@
 from grr.core.grr_response_core.lib import config_lib
 
 config_lib.DEFINE_list("Artifacts.artifact_dirs", [
-    "%(grr/artifacts|resource)", "%(grr/artifacts/flow_templates|resource)",
-    "%(grr/artifacts/local|resource)"
+    "%(grr/core/grr_response_core/artifacts|resource)",
+    "%(grr/core/grr_response_core/artifacts/flow_templates|resource)",
+    "%(grr/core/grr_response_core/artifacts/local|resource)"
 ], "A list directories to load artifacts from.")
 
 config_lib.DEFINE_list(

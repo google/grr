@@ -2,19 +2,19 @@
 """The GRR event publishing classes."""
 
 
+from future.utils import with_metaclass
+
 from grr.core.grr_response_core.lib import rdfvalue
 from grr.core.grr_response_core.lib import registry
 
 
-class EventListener(object):
+class EventListener(with_metaclass(registry.EventRegistry, object)):
   """Base Class for all Event Listeners.
 
   Event listeners can register for an event by specifying the event
   name in the EVENTS constant.
   """
   EVENTS = []
-
-  __metaclass__ = registry.EventRegistry
 
   def ProcessMessages(self, msgs=None, token=None):
     """Processes a message for the event."""

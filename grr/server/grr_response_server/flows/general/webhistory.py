@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Flow to recover history files."""
+from __future__ import division
 
 # DISABLED for now until it gets converted to artifacts.
 

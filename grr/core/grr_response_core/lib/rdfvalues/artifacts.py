@@ -395,21 +395,15 @@ class ClientArtifactCollectorArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ClientActionResponse(rdf_structs.RDFProtoStruct):
+class ClientActionResult(rdf_structs.RDFProtoStruct):
   """An RDFValue representing one type of response for a client action."""
-  protobuf = artifact_pb2.ClientActionResponse
-  rdf_deps = [
-      rdf_client.ExecuteResponse,
-      rdf_protodict.Dict,
-      rdf_protodict.DataBlob,
-      rdf_client.Filesystem,
-      rdf_client.NetworkConnection,
-      rdf_client.Interface,
-      rdf_client.Process,
-      rdf_client.User,
-      rdf_client.OSXServiceInformation,
-      rdf_client.StatEntry,
-  ]
+  protobuf = artifact_pb2.ClientActionResult
+
+  def GetValueClass(self):
+    try:
+      return rdfvalue.RDFValue.GetPlugin(self.type)
+    except KeyError:
+      raise ValueError("No class found for type %s." % self.type)
 
 
 class CollectedArtifact(rdf_structs.RDFProtoStruct):
@@ -417,7 +411,7 @@ class CollectedArtifact(rdf_structs.RDFProtoStruct):
   protobuf = artifact_pb2.CollectedArtifact
   rdf_deps = [
       ArtifactName,
-      ClientActionResponse,
+      ClientActionResult,
   ]
 
 

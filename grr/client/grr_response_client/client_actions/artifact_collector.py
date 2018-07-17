@@ -24,32 +24,89 @@ class ArtifactCollector(actions.ActionPlugin):
       self.Progress()
       artifact_result = rdf_artifacts.CollectedArtifact(name=artifact.name)
       for source in artifact.sources:
-        action_response = rdf_artifacts.ClientActionResponse()
-        for action, request, response_field in self._ProcessSource(source):
+        for action, request in self._ProcessSource(source):
           for res in action.Start(request):
-            getattr(action_response, response_field).append(res)
-        artifact_result.action_responses.append(action_response)
+            action_result = rdf_artifacts.ClientActionResult()
+            action_result.type = res.__class__.__name__
+            action_result.value = res
+            artifact_result.action_results.append(action_result)
 
       result.collected_artifacts.append(artifact_result)
     # TODO(user): Limit the number of bytes and send multiple responses.
+    # e.g. grr_rekall.py RESPONSE_CHUNK_SIZE
     self.SendReply(result)
 
   def _ProcessSource(self, args):
     source_type = args.base_source.type
-    if source_type == rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION:
-      yield self._ProcessClientActionSource()
-    elif source_type == rdf_artifacts.ArtifactSource.SourceType.COMMAND:
+    type_name = rdf_artifacts.ArtifactSource.SourceType
+    if source_type == type_name.COMMAND:
       yield self._ProcessCommandSource(args)
-    elif source_type == rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE:
+    elif source_type == type_name.DIRECTORY:
+      # TODO(user): Not implemented yet.
+      raise NotImplementedError()
+    elif source_type == type_name.FILE:
+      # TODO(user): Not implemented yet.
+      # Created action `Download` in file_finder.py with classmethod Start that
+      # would take FileFinderArgs as input and return a FileFinderResult object.
+      # opts = rdf_file_finder.FileFinderDownloadActionOptions(
+      #     max_size=args.max_bytesize
+      # )
+      # action = rdf_file_finder.FileFinderAction(
+      #     action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
+      #     download=opts
+      # )
+      # request = rdf_file_finder.FileFinderArgs(
+      #     paths=args.paths,
+      #     pathtype=args.pathtype,
+      #     action=action
+      # )
+
+      # action = subactions.DownloadAction
+
+      raise NotImplementedError()
+    elif source_type == type_name.GREP:
+      # TODO(user): Not implemented yet.
+      raise NotImplementedError()
+    elif source_type == type_name.REGISTRY_KEY:
+      # TODO(user): Not implemented yet.
+      raise NotImplementedError()
+    elif source_type == type_name.REGISTRY_VALUE:
       for res in self._ProcessRegistryValueSource(args):
         yield res
+    elif source_type == type_name.WMI:
+      for res in self._ProcessWmiSource(args):
+        yield res
+    elif source_type == type_name.ARTIFACT_GROUP:
+      # TODO(user): Not implemented yet.
+      raise NotImplementedError()
+    elif source_type == type_name.ARTIFACT_FILES:
+      # TODO(user): Not implemented yet.
+      raise NotImplementedError()
+    elif source_type == type_name.GRR_CLIENT_ACTION:
+      yield self._ProcessClientActionSource(args)
     else:
       raise ValueError("Incorrect source type: %s" % source_type)
 
-  def _ProcessClientActionSource(self):
-    action = admin.GetHostname
-    response_field = "hostname"
-    return action, {}, response_field
+  def _ProcessWmiSource(self, args):
+    # pylint: disable= g-import-not-at-top
+    from grr_response_client.client_actions.windows import windows
+    # pylint: enable=g-import-not-at-top
+    action = windows.WmiQuery
+    query = args.base_source.attributes["query"]
+    queries = artifact_utils.InterpolateKbAttributes(
+        query, self.knowledge_base, self.ignore_interpolation_errors)
+    base_object = args.base_source.attributes.get("base_object")
+    for query in queries:
+      request = rdf_client.WMIRequest(query=query, base_object=base_object)
+      yield action, request
+
+  def _ProcessClientActionSource(self, args):
+    for action_name in args.base_source.attributes["client_action"].keys():
+      if action_name == "GetHostname":
+        action = admin.GetHostname
+        return action, {}
+      else:
+        raise ValueError("Action %s not implemented yet." % action_name)
 
   def _ProcessCommandSource(self, args):
     action = standard.ExecuteCommand
@@ -57,8 +114,7 @@ class ArtifactCollector(actions.ActionPlugin):
         cmd=args.base_source.attributes["cmd"],
         args=args.base_source.attributes["args"],
     )
-    response_field = "execute_response"
-    return action, request, response_field
+    return action, request
 
   def _ProcessRegistryValueSource(self, args):
     new_paths = set()
@@ -83,9 +139,8 @@ class ArtifactCollector(actions.ActionPlugin):
       pass
     else:
       action = standard.GetFileStat
-      response_field = "file_stat"
       for new_path in new_paths:
         pathspec = rdf_paths.PathSpec(
             path=new_path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
         request = rdf_client.GetFileStatRequest(pathspec=pathspec)
-        yield action, request, response_field
+        yield action, request

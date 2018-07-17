@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """RDFValue instances related to the statistics collection."""
+from __future__ import division
 
 import math
 import threading
@@ -60,14 +61,14 @@ class RunningStats(rdf_structs.RDFProtoStruct):
     if self.num == 0:
       return 0
     else:
-      return self.sum / float(self.num)
+      return self.sum / self.num
 
   @property
   def std(self):
     if self.num == 0:
       return 0
     else:
-      return math.sqrt(self.sum_sq / float(self.num) - self.mean**2)
+      return math.sqrt(self.sum_sq / self.num - self.mean**2)
 
 
 class ClientResourcesStats(rdf_structs.RDFProtoStruct):

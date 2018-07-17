@@ -68,6 +68,8 @@ Examples:
 
 """
 
+from __future__ import division
+
 import collections
 import itertools
 import logging
@@ -743,7 +745,7 @@ class GRRClientWorker(threading.Thread):
   def MemoryExceeded(self):
     """Returns True if our memory footprint is too large."""
     rss_size = self.proc.memory_info().rss
-    return rss_size / 1024 / 1024 > config.CONFIG["Client.rss_max"]
+    return rss_size // 1024 // 1024 > config.CONFIG["Client.rss_max"]
 
   def IsActive(self):
     """Returns True if worker is currently handling a message."""

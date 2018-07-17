@@ -106,7 +106,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
         ppid=1,
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
-        ctime=long(1333718907.167083 * 1e6),
+        ctime=1333718907167083,
         RSS_size=42)
 
     client_urn = self.SetupClient(0)

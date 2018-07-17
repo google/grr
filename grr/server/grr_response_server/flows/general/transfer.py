@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """These flows are designed for high performance transfers."""
+from __future__ import division
 
 import logging
 import zlib
@@ -66,7 +67,7 @@ class GetFile(flow.GRRFlow):
   def Start(self):
     """Get information about the file from the client."""
     self.state.max_chunk_number = max(2,
-                                      self.args.read_length / self.CHUNK_SIZE)
+                                      self.args.read_length // self.CHUNK_SIZE)
 
     self.state.current_chunk_number = 0
     self.state.file_size = 0
@@ -103,7 +104,7 @@ class GetFile(flow.GRRFlow):
     else:
       self.state.file_size = self.args.read_length
 
-    self.state.max_chunk_number = (self.state.file_size / self.CHUNK_SIZE) + 1
+    self.state.max_chunk_number = (self.state.file_size // self.CHUNK_SIZE) + 1
 
     self.FetchWindow(
         min(self.WINDOW_SIZE,
@@ -575,7 +576,7 @@ class MultiGetFileMixin(object):
 
       # We do not have the file here yet - we need to retrieve it.
       expected_number_of_hashes = (
-          file_tracker["size_to_download"] / self.CHUNK_SIZE + 1)
+          file_tracker["size_to_download"] // self.CHUNK_SIZE + 1)
 
       # We just hash ALL the chunks in the file now. NOTE: This maximizes client
       # VFS cache hit rate and is far more efficient than launching multiple
@@ -836,7 +837,7 @@ class GetMBR(flow.GRRFlow):
     self.state.buffers = []
 
     buffer_size = constants.CLIENT_MAX_BUFFER_SIZE
-    buffers_we_need = self.args.length / buffer_size
+    buffers_we_need = self.args.length // buffer_size
     if self.args.length % buffer_size:
       buffers_we_need += 1
 

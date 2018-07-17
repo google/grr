@@ -233,6 +233,12 @@ SemanticProtoFormController.prototype.onDescriptorsFetched_ = function(
       }
     }
 
+    // We can't initialize dynamic fields in any way - we don't know which
+    // type they should be.
+    if (field.dynamic) {
+      return;
+    }
+
     if (field.repeated) {
       field.depth = 0;
 

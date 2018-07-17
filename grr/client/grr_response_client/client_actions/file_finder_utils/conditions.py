@@ -4,16 +4,17 @@
 import abc
 import collections
 
+
+from future.utils import with_metaclass
+
 from grr_response_client import streaming
 from grr.core.grr_response_core.lib import utils
 from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 
 
-class MetadataCondition(object):
+class MetadataCondition(with_metaclass(abc.ABCMeta, object)):
   """An abstract class representing conditions on the file metadata."""
-
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def Check(self, stat):
@@ -132,10 +133,8 @@ class ExtFlagsCondition(MetadataCondition):
     return (bits_set & flags) == bits_set and (bits_unset & flags) == 0
 
 
-class ContentCondition(object):
+class ContentCondition(with_metaclass(abc.ABCMeta, object)):
   """An abstract class representing conditions on the file contents."""
-
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def Search(self, path):
@@ -230,10 +229,8 @@ class RegexMatchCondition(ContentCondition):
       yield match
 
 
-class Matcher(object):
+class Matcher(with_metaclass(abc.ABCMeta, object)):
   """An abstract class for objects able to lookup byte strings."""
-
-  __metaclass__ = abc.ABCMeta
 
   Span = collections.namedtuple("Span", ["begin", "end"])  # pylint: disable=invalid-name
 

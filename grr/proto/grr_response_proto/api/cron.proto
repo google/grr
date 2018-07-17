@@ -92,6 +92,38 @@ message ApiCronJobRun {
 // Method arguments and results.
 //
 
+message ApiCreateCronJobArgs {
+  optional string flow_name = 1 [(sem_type) = {
+      description: "Cron flow name."
+    }];
+  optional google.protobuf.Any flow_args = 2 [(sem_type) = {
+      description: "Cron flow arguments.",
+      dynamic_type: "GetFlowArgsClass"
+    }];
+  optional HuntRunnerArgs hunt_runner_args = 3 [(sem_type) = {
+      description: "Hunt runner arguments."
+    }];
+
+  optional string description = 4 [(sem_type) = {
+      description: "Cron job description."
+    }];
+  optional uint64 periodicity = 5 [(sem_type) = {
+      type: "Duration",
+      description: "Interval between cron runs."
+    }];
+  optional uint64 lifetime = 6 [(sem_type) = {
+      type: "Duration",
+      description: "How long each run of the cron should be allowed to run. "
+      "Runs that exceed lifetime will be killed. This is complimentary but"
+      " different to periodicity e.g. it allows us to run jobs weekly that"
+      " should be killed if they take more than a few hours.",
+    }];
+  optional bool allow_overruns = 7 [(sem_type) = {
+      description: "If true, don't kill the previous run if new one starts.",
+      label: ADVANCED
+    }];
+}
+
 message ApiListCronJobsArgs {
   optional int64 offset = 1 [(sem_type) = {
       description: "Starting offset."
