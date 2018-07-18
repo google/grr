@@ -2,9 +2,9 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Unit test for the linux file parser."""
 
+import io
 import operator
 import os
-import StringIO
 
 
 from grr_response_core.lib import flags
@@ -115,7 +115,7 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
     for filename, data in test_data.items():
       pathspec = rdf_paths.PathSpec(path=filename, pathtype="OS")
       stat = rdf_client.StatEntry(pathspec=pathspec)
-      file_obj = StringIO.StringIO(data)
+      file_obj = io.BytesIO(data)
       stats.append(stat)
       file_objs.append(file_obj)
       kb_objs.append(None)
@@ -150,7 +150,7 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
 user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user2:/bin/bash
 """
-    out = list(parser.Parse(None, StringIO.StringIO(dat), None))
+    out = list(parser.Parse(None, io.BytesIO(dat), None))
     self.assertEqual(len(out), 2)
     self.assertTrue(isinstance(out[1], rdf_client.User))
     self.assertTrue(isinstance(out[1], rdf_client.User))
@@ -162,7 +162,7 @@ user2:x:1001:1001:User2 Name,,,:/home/user
 """
     parser = linux_file_parser.PasswdParser()
     self.assertRaises(lib_parser.ParseError, list,
-                      parser.Parse(None, StringIO.StringIO(dat), None))
+                      parser.Parse(None, io.BytesIO(dat), None))
 
   def testPasswdBufferParser(self):
     """Ensure we can extract users from a passwd file."""
@@ -192,7 +192,7 @@ super_group (-,user5,) (-,user6,) (-,文德文,) group1 group2
 super_group2 (-,user7,) super_group
 super_group3 (-,user5,) (-,user6,) group1 group2
 """
-    dat_fd = StringIO.StringIO(dat)
+    dat_fd = io.StringIO(dat)
 
     with test_lib.ConfigOverrider({
         "Artifacts.netgroup_user_blacklist": ["user2", "user3"]
@@ -241,7 +241,7 @@ super_group (-,,user5,) (-user6,) group1 group2
 super_group2 (-,user7,) super_group
 """
     self.assertRaises(lib_parser.ParseError, list,
-                      parser.Parse(None, StringIO.StringIO(dat), None))
+                      parser.Parse(None, io.BytesIO(dat), None))
 
   def testWtmpParser(self):
     """Test parsing of wtmp file."""
@@ -280,7 +280,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
       if data is None:
         data = []
       lines = "\n".join(data).format(**self.crypt)
-      files.append(StringIO.StringIO(lines))
+      files.append(io.BytesIO(lines))
     return stats, files
 
   def testNoAnomaliesWhenEverythingIsFine(self):
@@ -460,7 +460,7 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
   def testFindPaths(self):
     # TODO(user): Deal with cases where multiple vars are exported.
     # export TERM PERLLIB=.:shouldntbeignored
-    bashrc_data = StringIO.StringIO("""
+    bashrc_data = io.BytesIO("""
       IGNORE='bad' PATH=${HOME}/bin:$PATH
      { PYTHONPATH=/path1:/path2 }
       export TERM=screen-256color
@@ -475,7 +475,7 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
       # Ignore PATH=foo:bar
       TERM=vt100 PS=" Foo" PERL5LIB=:shouldntbeignored
     """)
-    cshrc_data = StringIO.StringIO("""
+    cshrc_data = io.BytesIO("""
       setenv PATH ${HOME}/bin:$PATH
       setenv PYTHONPATH /path1:/path2
       set term = (screen-256color)

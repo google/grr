@@ -2,11 +2,11 @@
 """Tests for API client + HTTPS server integration."""
 
 import datetime
+import io
 import os
 import SimpleHTTPServer
 import socket
 import SocketServer
-import StringIO
 import threading
 
 
@@ -112,7 +112,7 @@ class ApiSslE2ETestMixin(object):
     client_urn = self.SetupClient(0)
     fixture_test_lib.ClientFixture(client_urn, self.token)
 
-    out = StringIO.StringIO()
+    out = io.BytesIO()
     self.api.Client(client_id=client_urn.Basename()).File(
         "fs/tsk/c/bin/rbash").GetBlob().WriteToStream(out)
 

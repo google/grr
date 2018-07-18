@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Plugins that produce results in YAML."""
 
-import cStringIO
+import io
 import os
 import zipfile
 
@@ -66,7 +66,11 @@ class YamlInstantOutputPluginWithExportConversion(
     counter = 1
     for batch in utils.Grouper(exported_values, self.ROW_BATCH):
       counter += len(batch)
-      buf = cStringIO.StringIO()
+      # TODO(hanuszczak): YAML is supposed to be a unicode file format so we
+      # should use `StringIO` here instead. However, because PyYAML dumps to
+      # `bytes` instead of `unicode` we have to use `BytesIO`. It should be
+      # investigated whether there is a way to adjust behaviour of PyYAML.
+      buf = io.BytesIO()
       for value in batch:
         buf.write("\n")
         buf.write(_SerializeToYaml(value))

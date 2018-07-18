@@ -5,8 +5,9 @@ import base64
 import copy
 import struct
 
-from future.utils import with_metaclass
 
+from builtins import chr  # pylint: disable=redefined-builtin
+from future.utils import with_metaclass
 from past.builtins import long
 
 # pylint: disable=g-import-not-at-top
@@ -54,14 +55,14 @@ _WIRETYPE_MAX = 5
 # protobuf library. Placing them in this file allows us to remove dependency on
 # the standard protobuf library.
 
-ORD_MAP = dict((chr(x), x) for x in range(0, 256))
-CHR_MAP = dict((x, chr(x)) for x in range(0, 256))
-HIGH_CHR_MAP = dict((x, chr(0x80 | x)) for x in range(0, 256))
+ORD_MAP = {chr(x).encode("latin-1"): x for x in range(0, 256)}
+CHR_MAP = {x: chr(x).encode("latin-1") for x in range(0, 256)}
+HIGH_CHR_MAP = {x: chr(0x80 | x).encode("latin-1") for x in range(0, 256)}
 
 # Some optimizations to get rid of AND operations below since they are really
 # slow in Python.
-ORD_MAP_AND_0X80 = dict((chr(x), x & 0x80) for x in range(0, 256))
-ORD_MAP_AND_0X7F = dict((chr(x), x & 0x7F) for x in range(0, 256))
+ORD_MAP_AND_0X80 = {chr(x).encode("latin-1"): x & 0x80 for x in range(0, 256)}
+ORD_MAP_AND_0X7F = {chr(x).encode("latin-1"): x & 0x7F for x in range(0, 256)}
 
 
 # This function is HOT.
@@ -505,7 +506,7 @@ class ProtoBinary(ProtoType):
       self.default = utils.SmartStr(default)
 
   def Validate(self, value, **_):
-    if value.__class__ is not str:
+    if not isinstance(value, bytes):
       raise type_info.TypeValueError("%s not a valid string" % value)
 
     return value

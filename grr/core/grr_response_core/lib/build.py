@@ -34,6 +34,7 @@ from fleetspeak.src.client.daemonservice.proto.fleetspeak_daemonservice import c
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 
 from grr_response_core import config
+from grr_response_core import version
 from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import config_validator_base
@@ -170,10 +171,7 @@ class ClientBuilder(BuilderBase):
       except OSError:
         pass
 
-    version_ini = config_lib.Resource().Filter("version.ini")
-    if not os.path.exists(version_ini):
-      raise RuntimeError(
-          "Couldn't find version_ini in virtual env root: %s" % version_ini)
+    version_ini = version.VersionPath()
     shutil.copy(version_ini, os.path.join(self.output_dir, "version.ini"))
 
     with open(os.path.join(self.output_dir, "build.yaml"), "wb") as fd:
@@ -274,10 +272,9 @@ class ClientRepacker(BuilderBase):
     """Generates the client config file for inclusion in deployable binaries."""
     with utils.TempDirectory() as tmp_dir:
       # Make sure we write the file in yaml format.
-      filename = os.path.join(tmp_dir,
-                              config.CONFIG.Get(
-                                  "ClientBuilder.config_filename",
-                                  context=context))
+      filename = os.path.join(
+          tmp_dir,
+          config.CONFIG.Get("ClientBuilder.config_filename", context=context))
 
       new_config = config.CONFIG.MakeNewConfig()
       new_config.Initialize(reset=True, data="")
@@ -321,9 +318,9 @@ class ClientRepacker(BuilderBase):
           validator = config_validator_base.PrivateConfigValidator.classes[
               private_validator]()
         except KeyError:
-          logging.error("Couldn't find config validator class %s, "
-                        "you probably need to copy it into lib/local",
-                        private_validator)
+          logging.error(
+              "Couldn't find config validator class %s, "
+              "you probably need to copy it into lib/local", private_validator)
           raise
         validator.ValidateEndConfig(new_config, self.context)
 
@@ -664,9 +661,9 @@ class LinuxClientRepacker(ClientRepacker):
 
     shutil.move(
         os.path.join(target_binary_dir, "grr-client"),
-        os.path.join(target_binary_dir,
-                     config.CONFIG.Get(
-                         "Client.binary_name", context=self.context)))
+        os.path.join(
+            target_binary_dir,
+            config.CONFIG.Get("Client.binary_name", context=self.context)))
 
     deb_in_dir = os.path.join(template_path, "dist/debian/debian.in/")
 
@@ -736,16 +733,17 @@ class LinuxClientRepacker(ClientRepacker):
       # before it.
       target_dir = config.CONFIG.Get(
           "ClientBuilder.target_dir", context=self.context).lstrip("/")
-      agent_dir = os.path.join(template_dir, "debian",
-                               config.CONFIG.Get(
-                                   "ClientBuilder.package_name",
-                                   context=self.context), target_dir)
+      agent_dir = os.path.join(
+          template_dir, "debian",
+          config.CONFIG.Get("ClientBuilder.package_name", context=self.context),
+          target_dir)
 
       with open(
-          os.path.join(agent_dir,
-                       config.CONFIG.Get(
-                           "ClientBuilder.config_filename",
-                           context=self.context)), "wb") as fd:
+          os.path.join(
+              agent_dir,
+              config.CONFIG.Get(
+                  "ClientBuilder.config_filename", context=self.context)),
+          "wb") as fd:
         fd.write(client_config_content)
 
       # Set the daemon to executable.
@@ -903,10 +901,11 @@ class CentosClientRepacker(LinuxClientRepacker):
       client_config_content = self.GetClientConfig(client_context)
 
       with open(
-          os.path.join(target_binary_dir,
-                       config.CONFIG.Get(
-                           "ClientBuilder.config_filename",
-                           context=self.context)), "wb") as fd:
+          os.path.join(
+              target_binary_dir,
+              config.CONFIG.Get(
+                  "ClientBuilder.config_filename", context=self.context)),
+          "wb") as fd:
         fd.write(client_config_content)
 
       # Set the daemon to executable.
@@ -929,8 +928,9 @@ class CentosClientRepacker(LinuxClientRepacker):
 
       client_version = config.CONFIG.Get(
           "Template.version_string", context=self.context)
-      rpm_filename = os.path.join(rpm_rpms_dir, client_arch, "%s-%s-1.%s.rpm" %
-                                  (client_name, client_version, client_arch))
+      rpm_filename = os.path.join(
+          rpm_rpms_dir, client_arch,
+          "%s-%s-1.%s.rpm" % (client_name, client_version, client_arch))
 
       utils.EnsureDirExists(os.path.dirname(output_path))
       shutil.move(rpm_filename, output_path)

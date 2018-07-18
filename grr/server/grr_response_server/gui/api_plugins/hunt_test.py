@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """This modules contains tests for hunts API handlers."""
 
+import io
 import os
-import StringIO
 import tarfile
 import zipfile
 
@@ -269,7 +269,7 @@ class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
             hunt_id=self.hunt.urn.Basename(), archive_format="ZIP"),
         token=self.token)
 
-    out_fd = StringIO.StringIO()
+    out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
       out_fd.write(chunk)
 

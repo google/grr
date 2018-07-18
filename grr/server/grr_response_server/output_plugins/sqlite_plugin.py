@@ -2,7 +2,7 @@
 """Plugin that exports results as SQLite db scripts."""
 
 import collections
-import cStringIO
+import io
 import os
 import zipfile
 
@@ -116,13 +116,13 @@ class SqliteInstantOutputPlugin(
 
     yield self.archive_generator.WriteFileChunk("BEGIN TRANSACTION;\n")
     with db_connection:
-      buf = cStringIO.StringIO()
-      buf.write("CREATE TABLE \"%s\" (\n  " % table_name)
+      buf = io.StringIO()
+      buf.write(u"CREATE TABLE \"%s\" (\n  " % table_name)
       column_types = [(k, v.sqlite_type) for k, v in schema.items()]
-      buf.write(",\n  ".join(["\"%s\" %s" % (k, v) for k, v in column_types]))
-      buf.write("\n);")
+      buf.write(u",\n  ".join([u"\"%s\" %s" % (k, v) for k, v in column_types]))
+      buf.write(u"\n);")
       db_cursor.execute(buf.getvalue())
-      yield self.archive_generator.WriteFileChunk(buf.getvalue() + "\n")
+      yield self.archive_generator.WriteFileChunk(buf.getvalue() + u"\n")
       self._InsertValueIntoDb(table_name, schema, first_value, db_cursor)
 
     for sql in self._FlushAllRows(db_connection, table_name):
@@ -159,11 +159,11 @@ class SqliteInstantOutputPlugin(
 
   def _InsertValueIntoDb(self, table_name, schema, value, db_cursor):
     sql_dict = self._ConvertToCanonicalSqlDict(schema, value.ToPrimitiveDict())
-    buf = cStringIO.StringIO()
-    buf.write("INSERT INTO \"%s\" (\n  " % table_name)
-    buf.write(",\n  ".join(["\"%s\"" % k for k in sql_dict.keys()]))
-    buf.write("\n)")
-    buf.write("VALUES (%s);" % ",".join(["?"] * len(sql_dict)))
+    buf = io.StringIO()
+    buf.write(u"INSERT INTO \"%s\" (\n  " % table_name)
+    buf.write(u",\n  ".join(["\"%s\"" % k for k in sql_dict.keys()]))
+    buf.write(u"\n)")
+    buf.write(u"VALUES (%s);" % u",".join([u"?"] * len(sql_dict)))
     db_cursor.execute(buf.getvalue(), sql_dict.values())
 
   def _ConvertToCanonicalSqlDict(self, schema, raw_dict, prefix=""):

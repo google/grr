@@ -6,6 +6,8 @@ import calendar
 import struct
 import time
 
+from builtins import chr  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -81,7 +83,7 @@ class WMIEventConsumerParser(parser.WMIQueryParser):
 
     try:
       wmi_dict["CreatorSID"] = BinarySIDtoStringSID("".join(
-          [chr(i) for i in wmi_dict["CreatorSID"]]))
+          [chr(i).encode("latin-1") for i in wmi_dict["CreatorSID"]]))
     except (ValueError, TypeError) as e:
       # We recover from corrupt SIDs by outputting it raw as a string
       wmi_dict["CreatorSID"] = str(wmi_dict["CreatorSID"])

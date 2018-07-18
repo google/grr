@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """This module contains tests for flows-related API handlers."""
 
+import io
 import os
-import StringIO
 import tarfile
 import zipfile
 
@@ -205,7 +205,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
         self.flow_urn, action_mock, client_id=self.client_id, token=self.token)
 
   def _GetZipManifest(self, result):
-    out_fd = StringIO.StringIO()
+    out_fd = io.BytesIO()
 
     for chunk in result.GenerateContent():
       out_fd.write(chunk)

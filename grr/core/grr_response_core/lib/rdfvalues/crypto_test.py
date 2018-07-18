@@ -5,6 +5,8 @@
 import hashlib
 import os
 
+from builtins import chr  # pylint: disable=redefined-builtin
+
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import flags
@@ -288,7 +290,7 @@ class SymmetricCipherTest(rdf_test_base.RDFValueTestMixin,
 class RSATest(CryptoTestBase):
 
   def _Tamper(self, string):
-    return string[:-1] + chr(ord(string[-1]) ^ 1)
+    return string[:-1] + chr(ord(string[-1]) ^ 1).encode("latin-1")
 
   def testPassPhraseEncryption(self):
     passphrase = "testtest"
@@ -397,7 +399,7 @@ class RSATest(CryptoTestBase):
 class HMACTest(CryptoTestBase):
 
   def _Tamper(self, string):
-    return string[:-1] + chr(ord(string[-1]) ^ 1)
+    return string[:-1] + chr(ord(string[-1]) ^ 1).encode("latin-1")
 
   def testHMAC(self):
     """A basic test for the HMAC class."""

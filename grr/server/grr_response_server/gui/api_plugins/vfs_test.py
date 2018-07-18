@@ -2,7 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """This modules contains tests for VFS API handlers."""
 
-import StringIO
+import io
 import unittest
 import zipfile
 
@@ -840,7 +840,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
         vfs_plugin.ApiGetVfsFilesArchiveArgs(client_id=self.client_id),
         token=self.token)
 
-    out_fd = StringIO.StringIO()
+    out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
       out_fd.write(chunk)
 
@@ -861,7 +861,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
             client_id=self.client_id, file_path="fs/os/c/Downloads"),
         token=self.token)
 
-    out_fd = StringIO.StringIO()
+    out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
       out_fd.write(chunk)
 
@@ -877,7 +877,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
             client_id=self.client_id, file_path="fs/os/blah/blah"),
         token=self.token)
 
-    out_fd = StringIO.StringIO()
+    out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
       out_fd.write(chunk)
 
@@ -899,7 +899,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
         vfs_plugin.ApiGetVfsFilesArchiveArgs(
             client_id=self.client_id, timestamp=self.time_2),
         token=self.token)
-    out_fd = StringIO.StringIO()
+    out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
       out_fd.write(chunk)
     zip_fd = zipfile.ZipFile(out_fd, "r")
@@ -912,7 +912,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
         vfs_plugin.ApiGetVfsFilesArchiveArgs(
             client_id=self.client_id, timestamp=self.time_1),
         token=self.token)
-    out_fd = StringIO.StringIO()
+    out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
       out_fd.write(chunk)
     zip_fd = zipfile.ZipFile(out_fd, "r")

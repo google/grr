@@ -28,10 +28,11 @@ pip install ./dist/grr-response-proto-*.tar.gz
 cd -
 
 # Base package, grr-response-core, depends on grr-response-proto.
-# Running sdist first since it accepts --no-sync-artifacts and
-# --no-make-ui-files flags.
-python setup.py sdist --no-sync-artifacts --no-make-ui-files
+# Running sdist first since it accepts --no-sync-artifacts flag.
+cd grr/core
+python setup.py sdist --no-sync-artifacts
 pip install ./dist/grr-response-core-*.tar.gz
+cd -
 
 # Depends on grr-response-core.
 # Note that we can't do "python setup.py install" since setup.py

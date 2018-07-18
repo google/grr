@@ -7,9 +7,9 @@ from __future__ import division
 
 import __builtin__
 import abc
+import io
 import itertools
 import logging
-import StringIO
 import threading
 import time
 import zlib
@@ -2604,24 +2604,24 @@ class AFF4MemoryStreamBase(AFF4Stream):
   def Initialize(self):
     """Try to load the data from the store."""
     super(AFF4MemoryStreamBase, self).Initialize()
-    contents = ""
+    contents = b""
 
     if "r" in self.mode:
-      contents = self.Get(self.Schema.CONTENT)
+      contents = self.Get(self.Schema.CONTENT).AsBytes()
       try:
         if contents is not None:
-          contents = zlib.decompress(utils.SmartStr(contents))
+          contents = zlib.decompress(contents)
       except zlib.error:
         pass
 
-    self.fd = StringIO.StringIO(contents)
+    self.fd = io.BytesIO(contents)
     self.size = len(contents)
     self.offset = 0
 
   def Truncate(self, offset=None):
     if offset is None:
       offset = self.offset
-    self.fd = StringIO.StringIO(self.fd.getvalue()[:offset])
+    self.fd = io.BytesIO(self.fd.getvalue()[:offset])
     self.size.Set(offset)
 
   def Read(self, length):
@@ -2868,7 +2868,7 @@ class AFF4ImageBase(AFF4Stream):
     for child in FACTORY.MultiOpen(
         chunk_names, mode="rw", token=self.token, age=self.age_policy):
       if isinstance(child, AFF4Stream):
-        fd = StringIO.StringIO(child.read())
+        fd = io.BytesIO(child.read())
         fd.dirty = False
         fd.chunk = chunk_names[child.urn]
         self.chunk_cache.Put(fd.chunk, fd)
@@ -2896,7 +2896,7 @@ class AFF4ImageBase(AFF4Stream):
     except KeyError:
       pass
 
-    fd = StringIO.StringIO()
+    fd = io.BytesIO()
     fd.chunk = chunk
     fd.dirty = True
     self.chunk_cache.Put(chunk, fd)

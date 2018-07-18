@@ -230,6 +230,9 @@ class RDFBytes(RDFValue):
     else:
       self._value = string
 
+  def AsBytes(self):
+    return self._value
+
   def SerializeToString(self):
     return self._value
 

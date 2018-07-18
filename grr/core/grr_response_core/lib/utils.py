@@ -625,16 +625,23 @@ def SmartUnicode(string):
   return string
 
 
-def Xor(string, key):
-  """Returns a string where each character has been xored with key."""
-  return "".join([chr(c ^ key) for c in bytearray(string)])
+def Xor(bytestr, key):
+  """Returns a `bytes` object where each byte has been xored with key."""
+  # TODO(hanuszczak): Remove this import when string migration is done.
+  from builtins import bytes  # pylint: disable=redefined-builtin, g-import-not-at-top
 
+  if not isinstance(bytestr, bytes):
+    raise TypeError("Expected `%s` but got `%s`" % (type(bytestr), bytes))
 
-def XorByteArray(arr, key):
-  """Xors every item in the array with key and returns it."""
-  for i in xrange(len(arr)):
-    arr[i] ^= key
-  return arr
+  # TODO(hanuszczak): This seemingly no-op operation actually changes things.
+  # In Python 2 this function receives a `str` object which has different
+  # iterator semantics. So we use a `bytes` wrapper from the `future` package to
+  # get the Python 3 behaviour. In Python 3 this should be indeed a no-op. Once
+  # the migration is completed and support for Python 2 is dropped, this line
+  # can be removed.
+  bytestr = bytes(bytestr)
+
+  return bytes([byte ^ key for byte in bytestr])
 
 
 def FormatAsHexString(num, width=None, prefix="0x"):

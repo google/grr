@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Tests for API client and hunts-related API calls."""
 
-import StringIO
+import io
 import zipfile
 
 
@@ -190,7 +190,7 @@ class ApiClientLibHuntTest(api_e2e_test_lib.ApiE2ETest,
     self.assertEqual(len(stats.worst_performers), 5)
 
   def testGetFilesArchive(self):
-    zip_stream = StringIO.StringIO()
+    zip_stream = io.BytesIO()
     self.api.Hunt(self.hunt_obj.urn.Basename()).GetFilesArchive().WriteToStream(
         zip_stream)
     zip_fd = zipfile.ZipFile(zip_stream)
@@ -199,7 +199,7 @@ class ApiClientLibHuntTest(api_e2e_test_lib.ApiE2ETest,
     self.assertTrue(namelist)
 
   def testExportedResults(self):
-    zip_stream = StringIO.StringIO()
+    zip_stream = io.BytesIO()
     self.api.Hunt(self.hunt_obj.urn.Basename()).GetExportedResults(
         csv_plugin.CSVInstantOutputPlugin.plugin_name).WriteToStream(zip_stream)
     zip_fd = zipfile.ZipFile(zip_stream)

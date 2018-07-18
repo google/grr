@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Implementations of various collections."""
 
-import cStringIO
+import io
 
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import aff4
@@ -72,7 +72,7 @@ class GRRSignedBlob(aff4.AFF4Stream):
 
       self.collection = grr_collections.SignedBlobCollection(
           self.urn.Add("collection"))
-      self.fd = cStringIO.StringIO()
+      self.fd = io.BytesIO()
       self._size = 0
 
       if self.mode == "r":

@@ -2,7 +2,7 @@
 """These are standard aff4 objects."""
 from __future__ import division
 
-import StringIO
+import io
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -122,7 +122,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
     res = data_store.DB.ReadBlobs(chunk_hashes.values(), token=self.token)
     for blob_hash, content in res.iteritems():
       for chunk_nr in chunk_nrs[blob_hash]:
-        fd = StringIO.StringIO(content)
+        fd = io.BytesIO(content)
         fd.dirty = False
         fd.chunk = chunk_nr
         self.chunk_cache.Put(chunk_nr, fd)
@@ -186,7 +186,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
     except KeyError:
       pass
 
-    fd = StringIO.StringIO()
+    fd = io.BytesIO()
     fd.chunk = chunk
     fd.dirty = True
     self.chunk_cache.Put(chunk, fd)

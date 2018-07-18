@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """GRR specific AFF4 objects."""
 
+import io
 import logging
 import re
-import StringIO
 import time
 
 
@@ -723,17 +723,23 @@ class VFSBlobImage(VFSFile):
     super(VFSBlobImage, self).Initialize()
     self.content_dirty = False
     if self.mode == "w":
-      self.index = StringIO.StringIO("")
+      self.index = io.BytesIO(b"")
       self.finalized = False
     else:
-      self.index = StringIO.StringIO(self.Get(self.Schema.HASHES, ""))
+      hashes = self.Get(self.Schema.HASHES)
+      if hashes is not None:
+        init = hashes.AsBytes()
+      else:
+        init = b""
+
+      self.index = io.BytesIO(init)
       self.finalized = self.Get(self.Schema.FINALIZED, False)
 
   def Truncate(self, offset=0):
     if offset != 0:
       raise IOError("Non-zero truncation not supported for BlobImage")
     super(VFSBlobImage, self).Truncate(0)
-    self.index = StringIO.StringIO("")
+    self.index = io.BytesIO("")
     self.finalized = False
 
   def _GetChunkForWriting(self, chunk):
@@ -772,7 +778,7 @@ class VFSBlobImage(VFSFile):
   def _ReadChunks(self, chunks):
     res = data_store.DB.ReadBlobs(chunks, token=self.token)
     for blob_hash, content in res.iteritems():
-      fd = StringIO.StringIO(content)
+      fd = io.BytesIO(content)
       fd.dirty = False
       fd.chunk = blob_hash
       self.chunk_cache.Put(blob_hash, fd)

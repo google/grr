@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Test the grr aff4 objects."""
 
-import StringIO
+import io
 import time
 
 import mock
@@ -295,8 +295,8 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for cron functionality."""
 
   def testAppendContentError(self):
-    src_content = "ABCD" * 10
-    src_fd = StringIO.StringIO(src_content)
+    src_content = b"ABCD" * 10
+    src_fd = io.BytesIO(src_content)
 
     dest_fd = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("temp"),
@@ -313,8 +313,8 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
 
   def testAppendContent(self):
     """Test writing content where content length % chunksize == 0."""
-    src_content = "ABCDEFG" * 10  # 10 chunksize blobs
-    src_fd = StringIO.StringIO(src_content)
+    src_content = b"ABCDEFG" * 10  # 10 chunksize blobs
+    src_fd = io.BytesIO(src_content)
 
     dest_fd = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("temp"),
@@ -344,25 +344,25 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(StringIO.StringIO("123456789"))
+      fd.AppendContent(io.BytesIO(b"123456789"))
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     chunks_fds = list(aff4.AFF4Stream.MultiStream([fd]))
 
     self.assertEqual(len(chunks_fds), 1)
-    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertEqual(chunks_fds[0][1], b"123456789")
     self.assertIs(chunks_fds[0][0], fd)
 
   def testMultiStreamStreamsSinglfeFileWithTwoChunks(self):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(StringIO.StringIO("123456789"))
+      fd.AppendContent(io.BytesIO(b"123456789"))
 
     with aff4.FACTORY.Create(
         "aff4:/bar", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(StringIO.StringIO("abcd"))
+      fd.AppendContent(io.BytesIO(b"abcd"))
 
     fd1 = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
@@ -370,22 +370,22 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(chunks_fds), 2)
 
-    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertEqual(chunks_fds[0][1], b"123456789")
     self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][1], "abcd")
+    self.assertEqual(chunks_fds[1][1], b"abcd")
     self.assertIs(chunks_fds[1][0], fd2)
 
   def testMultiStreamStreamsTwoFilesWithTwoChunksInEach(self):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
+      fd.AppendContent(io.BytesIO(b"*" * 10 + b"123456789"))
 
     with aff4.FACTORY.Create(
         "aff4:/bar", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(StringIO.StringIO("*" * 10 + "abcd"))
+      fd.AppendContent(io.BytesIO(b"*" * 10 + b"abcd"))
 
     fd1 = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
@@ -393,23 +393,23 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(chunks_fds), 4)
 
-    self.assertEqual(chunks_fds[0][1], "*" * 10)
+    self.assertEqual(chunks_fds[0][1], b"*" * 10)
     self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][1], "123456789")
+    self.assertEqual(chunks_fds[1][1], b"123456789")
     self.assertIs(chunks_fds[1][0], fd1)
 
-    self.assertEqual(chunks_fds[2][1], "*" * 10)
+    self.assertEqual(chunks_fds[2][1], b"*" * 10)
     self.assertIs(chunks_fds[2][0], fd2)
 
-    self.assertEqual(chunks_fds[3][1], "abcd")
+    self.assertEqual(chunks_fds[3][1], b"abcd")
     self.assertIs(chunks_fds[3][0], fd2)
 
   def testMultiStreamReturnsExceptionIfChunkIsMissing(self):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(StringIO.StringIO("123456789"))
+      fd.AppendContent(io.BytesIO(b"123456789"))
 
       fd.index.seek(0)
       blob_id = fd.index.read(fd._HASH_SIZE).encode("hex")
@@ -426,7 +426,7 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
+      fd.AppendContent(io.BytesIO(b"*" * 10 + b"123456789"))
 
       fd.index.seek(0)
       unused_blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
@@ -450,7 +450,7 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
+      fd.AppendContent(io.BytesIO(b"*" * 10 + b"123456789"))
 
       fd.index.seek(0)
       unused_blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
@@ -467,7 +467,7 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
       else:
         error_detected = True
 
-    self.assertEqual(content, ["*" * 10])
+    self.assertEqual(content, [b"*" * 10])
     self.assertTrue(error_detected)
 
   @mock.patch.object(aff4_grr.VFSBlobImage, "MULTI_STREAM_CHUNKS_READ_AHEAD", 1)
@@ -477,7 +477,7 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
+      fd.AppendContent(io.BytesIO(b"*" * 10 + b"123456789"))
 
       fd.index.seek(0)
       blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")

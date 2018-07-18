@@ -119,7 +119,7 @@ class IEParser(object):
     fmt += "{0}s".format(record_size - struct.calcsize(fmt))
     dat = struct.unpack(fmt, self.input_dat[offset:offset + record_size])
     header, blocks, mtime, ctime, ftime, _, url = dat
-    url = url.split(chr(0x00))[0]
+    url = url.split(b"\x00")[0]
     if mtime:
       mtime = mtime // 10 - WIN_UNIX_DIFF_MSECS
     if ctime:

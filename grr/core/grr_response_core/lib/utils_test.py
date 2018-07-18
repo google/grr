@@ -162,15 +162,6 @@ class UtilsTest(test_lib.GRRBaseTest):
       xor_str = utils.Xor(xor_str, key)
       self.assertEqual(xor_str, test_str)
 
-  def testXorByteArray(self):
-    test_arr = bytearray("Hello World!!")
-    for key in [1, 5, 123, 255]:
-      xor_arr = bytearray(test_arr)
-      utils.XorByteArray(xor_arr, key)
-      self.assertNotEqual(xor_arr, test_arr)
-      utils.XorByteArray(xor_arr, key)
-      self.assertEqual(xor_arr, test_arr)
-
   def LinkedListTest(self):
 
     l = utils.LinkedList()

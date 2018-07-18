@@ -13,6 +13,9 @@ import logging
 import os
 import time
 
+
+from builtins import input  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
@@ -177,7 +180,7 @@ def ApprovalGrant(token=None):
     reason = utils.DecodeReasonString(reason)
     print(request)
     print("Reason: %s" % reason)
-    if raw_input("Do you approve this request? [y/N] ").lower() == "y":
+    if input("Do you approve this request? [y/N] ").lower() == "y":
       security.ClientApprovalGrantor(
           subject_urn=client_id, reason=reason, delegate=user,
           token=token).Grant()

@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """A library for check-specific tests."""
+
 import collections
+import io
 import os
-import StringIO
 
 
 from future.utils import with_metaclass
@@ -153,7 +154,7 @@ class HostCheckTest(
     for path, lines in data.items():
       stat = self.CreateStat(path)
       stats.append(stat)
-      file_obj = StringIO.StringIO(lines)
+      file_obj = io.BytesIO(lines)
       files.append(file_obj)
       if not parser.process_together:
         rdfs.extend(list(parser.Parse(stat, file_obj, None)))
@@ -243,7 +244,7 @@ class HostCheckTest(
       p = rdf_paths.PathSpec(path=path, pathtype="OS")
       stats.append(rdf_client.StatEntry(pathspec=p, **modes))
     for val in data:
-      files.append(StringIO.StringIO(val))
+      files.append(io.BytesIO(val))
     return stats, files
 
   @classmethod

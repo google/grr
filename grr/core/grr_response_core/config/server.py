@@ -6,7 +6,7 @@ from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 
-VERSION = version.version()
+VERSION = version.Version()
 
 config_lib.DEFINE_integer("Source.version_major", VERSION["major"],
                           "Major version number of client binary.")

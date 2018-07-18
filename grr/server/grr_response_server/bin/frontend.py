@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import BaseHTTPServer
 import cgi
-import cStringIO
+import io
 import logging
 import pdb
 import socket
@@ -163,7 +163,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     # that would stall for a long time when calling socket.recv(n) with a large
     # n. rfile.read() passes the length down to socket.recv() so it's much
     # faster to read the data in small 8k chunks.
-    input_data = cStringIO.StringIO()
+    input_data = io.BytesIO()
     while length >= 0:
       read_size = min(self.RECV_BLOCK_SIZE, length)
       data = self.rfile.read(read_size)

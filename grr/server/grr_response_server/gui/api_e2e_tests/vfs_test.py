@@ -2,7 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for API client and VFS-related API calls."""
 
-import StringIO
+import io
 import threading
 import time
 import zipfile
@@ -53,7 +53,7 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
             [u"a.txt", u"b.txt", u"c.txt", u"d.txt", u"sub1", u"中国新闻网新闻中.txt"]))
 
   def testGetBlob(self):
-    out = StringIO.StringIO()
+    out = io.BytesIO()
     self.api.Client(client_id=self.client_urn.Basename()).File(
         "fs/tsk/c/bin/rbash").GetBlob().WriteToStream(out)
 
@@ -63,14 +63,14 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
     aff4.FACTORY.Copy("aff4:/C.1000000000000000/fs/tsk/c/bin/bash",
                       "aff4:/C.1000000000000000/fs/tsk/c/bin/中国新闻网新闻中")
 
-    out = StringIO.StringIO()
+    out = io.BytesIO()
     self.api.Client(client_id=self.client_urn.Basename()).File(
         u"fs/tsk/c/bin/中国新闻网新闻中").GetBlob().WriteToStream(out)
 
     self.assertEqual(out.getvalue(), "Hello world")
 
   def testGetFilesArchive(self):
-    zip_stream = StringIO.StringIO()
+    zip_stream = io.BytesIO()
     self.api.Client(client_id=self.client_urn.Basename()).File(
         "fs/tsk/c/bin").GetFilesArchive().WriteToStream(zip_stream)
     zip_fd = zipfile.ZipFile(zip_stream)
@@ -146,7 +146,7 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
       self.assertTrue(isinstance(item, vfs_pb2.ApiVfsTimelineItem))
 
   def testGetTimelineAsCsv(self):
-    out = StringIO.StringIO()
+    out = io.BytesIO()
     self.api.Client(client_id=self.client_urn.Basename()).File(
         "fs").GetTimelineAsCsv().WriteToStream(out)
     self.assertTrue(out.getvalue())

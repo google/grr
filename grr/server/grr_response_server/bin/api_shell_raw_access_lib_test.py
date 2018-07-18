@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import StringIO
+import io
 
 
 from grr_api_client import errors
@@ -33,7 +33,7 @@ class RawConnectorTest(test_lib.GRRBaseTest):
 
     args = vfs_pb2.ApiGetFileBlobArgs(
         client_id=client_id.Basename(), file_path="fs/tsk/c/bin/rbash")
-    out = StringIO.StringIO()
+    out = io.BytesIO()
     self.connector.SendStreamingRequest("GetFileBlob", args).WriteToStream(out)
     self.assertEqual(out.getvalue(), "Hello world")
 

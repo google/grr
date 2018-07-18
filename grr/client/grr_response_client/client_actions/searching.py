@@ -210,7 +210,7 @@ class Grep(actions.ActionPlugin):
 
   def FindLiteral(self, pattern, data):
     """Search the data for a hit."""
-    utils.XorByteArray(pattern, self.xor_in_key)
+    pattern = utils.Xor(pattern, self.xor_in_key)
 
     offset = 0
     while 1:
@@ -223,8 +223,6 @@ class Grep(actions.ActionPlugin):
       yield (offset, offset + len(pattern))
 
       offset += 1
-
-    utils.XorByteArray(pattern, self.xor_in_key)
 
   BUFF_SIZE = 1024 * 1024 * 10
   ENVELOPE_SIZE = 1000
@@ -296,8 +294,7 @@ class Grep(actions.ActionPlugin):
     if args.regex:
       find_func = functools.partial(self.FindRegex, args.regex)
     elif args.literal:
-      find_func = functools.partial(self.FindLiteral,
-                                    bytearray(utils.SmartStr(args.literal)))
+      find_func = functools.partial(self.FindLiteral, args.literal.AsBytes())
     else:
       raise RuntimeError("Grep needs a regex or a literal.")
 
@@ -335,11 +332,9 @@ class Grep(actions.ActionPlugin):
         if end + base_offset - preamble_size > args.start_offset + args.length:
           break
 
-        out_data = ""
-        for i in xrange(
-            max(0, start - args.bytes_before),
-            min(len(data), end + args.bytes_after)):  # pyformat: disable
-          out_data += chr(ord(data[i]) ^ self.xor_out_key)
+        data_start = max(0, start - args.bytes_before)
+        data_end = min(len(data), end + args.bytes_after)
+        out_data = utils.Xor(data[data_start:data_end], self.xor_out_key)
 
         hits += 1
         self.SendReply(

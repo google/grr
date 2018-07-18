@@ -2,8 +2,8 @@
 """CSV single-pass output plugin."""
 
 
-import cStringIO
 import csv
+import io
 import os
 import zipfile
 
@@ -67,7 +67,7 @@ class CSVInstantOutputPlugin(
         "%s/%s/from_%s.csv" % (self.path_prefix, first_value.__class__.__name__,
                                original_value_type.__name__))
 
-    buf = cStringIO.StringIO()
+    buf = io.BytesIO()
     writer = csv.writer(buf)
     # Write the CSV header based on first value class and write
     # the first value itself. All other values are guaranteed
@@ -81,7 +81,7 @@ class CSVInstantOutputPlugin(
     for batch in utils.Grouper(exported_values, self.ROW_BATCH):
       counter += len(batch)
 
-      buf = cStringIO.StringIO()
+      buf = io.BytesIO()
       writer = csv.writer(buf)
       for value in batch:
         writer.writerow(self._GetCSVRow(value))

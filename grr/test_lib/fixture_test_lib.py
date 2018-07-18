@@ -129,7 +129,7 @@ class LegacyClientFixture(object):
           if attribute in ["aff4:content", "aff4:content"]:
             # For AFF4MemoryStreams we need to call Write() instead of
             # directly setting the contents..
-            aff4_object.Write(rdfvalue_object)
+            aff4_object.Write(rdfvalue_object.AsBytes())
           else:
             aff4_object.AddAttribute(attribute, rdfvalue_object)
 

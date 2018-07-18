@@ -2,10 +2,10 @@
 """API handlers for dealing with files in a client's virtual file system."""
 
 import csv
+import io
 import logging
 import os
 import re
-import StringIO
 import zipfile
 
 from grr_response_core import config
@@ -964,7 +964,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
   CHUNK_SIZE = 1000
 
   def _GenerateExport(self, items):
-    fd = StringIO.StringIO()
+    fd = io.BytesIO()
     writer = csv.writer(fd)
 
     # Write header. Since we do not stick to a specific timeline format, we
@@ -979,7 +979,9 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
         ])
 
       yield fd.getvalue()
-      fd.truncate(size=0)
+
+      fd.seek(0)
+      fd.truncate()
 
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)

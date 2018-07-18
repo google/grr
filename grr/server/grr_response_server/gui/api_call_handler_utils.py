@@ -2,7 +2,7 @@
 """This file contains utility functions used in ApiCallHandler classes."""
 
 
-import cStringIO
+import io
 import itertools
 import logging
 import os
@@ -109,7 +109,11 @@ class CollectionArchiveGenerator(object):
     if self.failed_files:
       manifest["failed_files_list"] = self.failed_files
 
-    manifest_fd = cStringIO.StringIO()
+    # TODO(hanuszczak): Manifest is a YAML file which is supposed to be
+    # unicode-encoded format. However due to PyYAML incompetence we are given
+    # `bytes` object as a result of dumping. It should be investigated and
+    # changed to `StringIO` if possible.
+    manifest_fd = io.BytesIO()
     if self.total_files != self.archived_files:
       manifest_fd.write(self.FILES_SKIPPED_WARNING)
     manifest_fd.write(yaml.safe_dump(manifest))

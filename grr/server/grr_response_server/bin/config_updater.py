@@ -14,6 +14,8 @@ import subprocess
 import sys
 import urlparse
 
+
+from builtins import input  # pylint: disable=redefined-builtin
 import pkg_resources
 import yaml
 
@@ -388,7 +390,7 @@ def RetryQuestion(question_text, output_re="", default_val=None):
       new_text = "%s [%s]: " % (question_text, default_val)
     else:
       new_text = "%s: " % question_text
-    output = raw_input(new_text) or str(default_val)
+    output = input(new_text) or str(default_val)
     output = output.strip()
     if not output_re or re.match(output_re, output):
       break
@@ -477,7 +479,7 @@ to create the necessary database and tables using the credentials provided.
 
 ***WARNING***
 """)
-    while raw_input("Are you ready to continue?[Yn]: ").upper() != "Y":
+    while input("Are you ready to continue?[Yn]: ").upper() != "Y":
       pass
     config.Set("Datastore.implementation", "MySQLAdvancedDataStore")
     mysql_host = RetryQuestion("MySQL Host", "^[\\.A-Za-z0-9-]+$",
@@ -558,8 +560,8 @@ datastore.  To do this we need to configure a datastore.\n""")
          grr_config.CONFIG.Get("Mysql.database_name"),
          grr_config.CONFIG.Get("Mysql.database_username")))
 
-    if raw_input("Do you want to keep this configuration?"
-                 " [Yn]: ").upper() == "N":
+    if input("Do you want to keep this configuration?"
+             " [Yn]: ").upper() == "N":
       ConfigureDatastore(config)
 
   print("""\n\n-=GRR URLs=-
@@ -595,8 +597,8 @@ server and the admin user interface.\n""")
   Frontend URL(s): %s
 """ % (existing_ui_urn, existing_frontend_urns))
 
-    if raw_input("Do you want to keep this configuration?"
-                 " [Yn]: ").upper() == "N":
+    if input("Do you want to keep this configuration?"
+             " [Yn]: ").upper() == "N":
       ConfigureHostnames(config)
 
   print("""\n\n-=GRR Emails=-
@@ -619,8 +621,8 @@ server and the admin user interface.\n""")
   Emergency Access Email Address: %s
 """ % (existing_log_domain, existing_al_email, existing_em_email))
 
-    if raw_input("Do you want to keep this configuration?"
-                 " [Yn]: ").upper() == "N":
+    if input("Do you want to keep this configuration?"
+             " [Yn]: ").upper() == "N":
       ConfigureEmails(config)
   rekall_enabled = grr_config.CONFIG.Get("Rekall.enabled", False)
   if rekall_enabled:
@@ -654,8 +656,8 @@ def AddUsers(token=None):
           add_labels=["admin"],
           token=token)
     else:
-      if ((raw_input("User 'admin' already exists, do you want to "
-                     "reset the password? [yN]: ").upper() or "N") == "Y"):
+      if ((input("User 'admin' already exists, do you want to "
+                 "reset the password? [yN]: ").upper() or "N") == "Y"):
         maintenance_utils.UpdateUser(
             "admin", password=True, add_labels=["admin"], token=token)
 
@@ -716,8 +718,8 @@ def Initialize(config=None, token=None):
   prev_config_file = config.Get("ConfigUpdater.old_config", default=None)
   if prev_config_file and os.access(prev_config_file, os.R_OK):
     print("Found config file %s." % prev_config_file)
-    if raw_input("Do you want to import this configuration?"
-                 " [yN]: ").upper() == "Y":
+    if input("Do you want to import this configuration?"
+             " [yN]: ").upper() == "Y":
       options_imported = ImportConfig(prev_config_file, config)
   else:
     print("No old config file found.")
@@ -727,8 +729,8 @@ def Initialize(config=None, token=None):
     if options_imported > 0:
       print("Since you have imported keys from another installation in the "
             "last step,\nyou probably do not want to generate new keys now.")
-    if (raw_input("You already have keys in your config, do you want to"
-                  " overwrite them? [yN]: ").upper() or "N") == "Y":
+    if (input("You already have keys in your config, do you want to"
+              " overwrite them? [yN]: ").upper() or "N") == "Y":
       GenerateKeys(config, overwrite_keys=True)
   else:
     GenerateKeys(config)
@@ -975,7 +977,7 @@ You are about to rotate the server key. Note that:
     point on.
     """)
 
-    if raw_input("Continue? [yN]: ").upper() == "Y":
+    if input("Continue? [yN]: ").upper() == "Y":
       if flags.FLAGS.keylength:
         keylength = int(flags.FLAGS.keylength)
       else:

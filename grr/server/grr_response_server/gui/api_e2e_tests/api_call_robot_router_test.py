@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """API E2E tests for ApiCallRobotRouter."""
 
+import io
 import os
-import StringIO
 import zipfile
 
 
@@ -110,7 +110,7 @@ users:
         ["test.plist", "numbers.txt", "numbers.txt.ver2"])
 
     # Now downloads the files archive.
-    zip_stream = StringIO.StringIO()
+    zip_stream = io.BytesIO()
     flow_obj.GetFilesArchive().WriteToStream(zip_stream)
     zip_fd = zipfile.ZipFile(zip_stream)
 

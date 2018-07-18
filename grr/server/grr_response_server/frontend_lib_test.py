@@ -7,6 +7,8 @@ import logging
 import pdb
 import time
 
+from builtins import chr  # pylint: disable=redefined-builtin
+
 import mock
 import requests
 
@@ -750,9 +752,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     # 4) The modification may have no effect on the data at all.
     for x in range(0, len(cipher_text), 50):
       # Futz with the cipher text (Make sure it's really changed)
-      mod_cipher_text = (
-          cipher_text[:x] + chr((ord(cipher_text[x]) % 250) + 1) +
-          cipher_text[x + 1:])
+      mod = chr((ord(cipher_text[x]) % 250) + 1).encode("latin-1")
+      mod_cipher_text = cipher_text[:x] + mod + cipher_text[x + 1:]
 
       try:
         decoded, client_id, _ = self.server_communicator.DecryptMessage(
@@ -1171,7 +1172,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
         modified_data = array.array("c", field_data)
         offset = len(field_data) // 2
-        modified_data[offset] = chr((ord(field_data[offset]) % 250) + 1)
+        char = field_data[offset]
+        modified_data[offset] = chr((ord(char) % 250) + 1).encode("latin-1")
         setattr(self.client_communication, self.corruptor_field,
                 modified_data.tostring())
 

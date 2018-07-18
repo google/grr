@@ -4,6 +4,8 @@
 import platform
 import unittest
 
+from builtins import chr  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -220,7 +222,7 @@ class BinarySIDToStringSIDTest(test_lib.GRRBaseTest):
 
   def testConversion(self):
     for expected_value, binary in self.tests:
-      binary_sid = "".join([chr(x) for x in binary])
+      binary_sid = "".join([chr(x).encode("latin-1") for x in binary])
 
       if expected_value is None:
         # Test is meant to raise
