@@ -14,9 +14,9 @@ import urlparse
 
 from past.builtins import long
 
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib.parsers import sqlite_file
-from grr.core.grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
+from grr_response_core.lib import parser
+from grr_response_core.lib.parsers import sqlite_file
+from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
 
 
 class ChromeHistoryParser(parser.FileParser):

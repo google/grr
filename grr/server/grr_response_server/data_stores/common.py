@@ -7,8 +7,8 @@ import os
 import re
 import stat
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
 
 
 def ConvertStringToFilename(name):

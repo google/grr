@@ -7,11 +7,11 @@ import StringIO
 import mock
 import yaml
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import build
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core import config
+from grr_response_core.lib import build
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.test_lib import test_lib
 
 

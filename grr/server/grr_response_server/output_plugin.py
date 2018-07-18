@@ -9,10 +9,10 @@ import zipfile
 
 from future.utils import with_metaclass
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import output_plugin_pb2
 from grr_response_server import aff4
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin

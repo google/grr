@@ -7,10 +7,10 @@ import os
 from future.utils import with_metaclass
 
 from grr_response_client import client_utils
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core import config
+from grr_response_core.lib import registry
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 # A central Cache for vfs handlers. This can be used to keep objects alive
 # for a limited time.

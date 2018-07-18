@@ -12,8 +12,8 @@ import logging
 import urlparse
 import _winreg
 
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import utils
 
 
 class RegistryConfigParser(config_lib.GRRConfigParser):

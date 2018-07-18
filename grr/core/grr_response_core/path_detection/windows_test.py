@@ -2,8 +2,8 @@
 """Tests for windows paths detection logic."""
 
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.path_detection import windows
+from grr_response_core.lib import flags
+from grr_response_core.path_detection import windows
 from grr.test_lib import test_lib
 
 

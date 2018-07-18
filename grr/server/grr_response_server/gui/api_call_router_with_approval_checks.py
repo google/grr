@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Implementation of a router class that has approvals-based ACL checks."""
 
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import stats
+from grr_response_core.lib import utils
 from grr_response_server import access_control
 from grr_response_server import aff4
 

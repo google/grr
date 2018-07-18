@@ -2,11 +2,11 @@
 """Unit test for the linux sysctl parser."""
 
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.parsers import linux_service_parser
-from grr.core.grr_response_core.lib.parsers import parsers_test_lib
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib import flags
+from grr_response_core.lib.parsers import linux_service_parser
+from grr_response_core.lib.parsers import parsers_test_lib
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.test_lib import test_lib
 
 

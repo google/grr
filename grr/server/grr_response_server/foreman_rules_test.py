@@ -2,9 +2,9 @@
 """Test for the foreman client rule classes."""
 from __future__ import division
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import foreman_rules

@@ -6,11 +6,11 @@ import calendar
 import struct
 import time
 
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import wmi as rdf_wmi
+from grr_response_core.lib import parser
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import wmi as rdf_wmi
 
 
 def BinarySIDtoStringSID(sid):

@@ -2,7 +2,7 @@
 """Tests for an ApiLabelsRestrictedCallRouter."""
 
 
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 
 from grr_response_server import access_control
 from grr_response_server import aff4

@@ -13,10 +13,10 @@ from grr_response_server import server_plugins
 
 from grr_api_client import api
 from grr_api_client import api_shell_lib
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.config import contexts
-from grr.core.grr_response_core.config import server as config_server
-from grr.core.grr_response_core.lib import flags
+from grr_response_core import config
+from grr_response_core.config import contexts
+from grr_response_core.config import server as config_server
+from grr_response_core.lib import flags
 from grr_response_server import access_control
 from grr_response_server import fleetspeak_connector
 from grr_response_server import server_startup

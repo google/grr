@@ -3,13 +3,13 @@
 
 import logging
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import config_lib
+from grr_response_core import config
+from grr_response_core.lib import config_lib
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import config_pb2
 from grr_response_server import aff4
 

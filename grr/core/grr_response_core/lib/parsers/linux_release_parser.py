@@ -4,9 +4,9 @@ import collections
 import itertools
 import re
 
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib import parser
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 ParsedRelease = collections.namedtuple('ParsedRelease', 'release, major, minor')
 WeightedReleaseFile = collections.namedtuple('WeightedReleaseFile',

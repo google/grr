@@ -7,8 +7,8 @@ import threading
 
 from werkzeug import serving
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import utils
+from grr_response_core import config
+from grr_response_core.lib import utils
 from grr_response_server.gui import wsgiapp
 
 

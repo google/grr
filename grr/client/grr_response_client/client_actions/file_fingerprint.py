@@ -3,10 +3,10 @@
 
 import hashlib
 
-from grr.core.grr_response_core.lib import fingerprint
+from grr_response_core.lib import fingerprint
 from grr_response_client import vfs
 from grr_response_client.client_actions import standard
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client as rdf_client
 
 
 class Fingerprinter(fingerprint.Fingerprinter):

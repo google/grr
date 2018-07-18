@@ -2,7 +2,7 @@
 """The benchmark tests for the fake data store."""
 
 
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 from grr_response_server import data_store_test
 from grr.test_lib import test_lib
 

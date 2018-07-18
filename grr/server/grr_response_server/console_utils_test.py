@@ -2,7 +2,7 @@
 """Tests for grr.lib.console_utils."""
 
 
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 from grr_response_server import aff4
 from grr_response_server import console_utils
 from grr.test_lib import flow_test_lib

@@ -3,7 +3,7 @@
 """Test Selenium tests JS errors detection logic."""
 
 import unittest
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 from grr_response_server.gui import gui_test_lib
 
 

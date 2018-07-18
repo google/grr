@@ -13,8 +13,8 @@ import sys
 
 import win32process
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import build
+from grr_response_core import config
+from grr_response_core.lib import build
 
 MODULE_PATTERNS = [
     # Visual Studio runtime libs.

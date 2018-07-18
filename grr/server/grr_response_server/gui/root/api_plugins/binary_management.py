@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Root-access-level API handlers for binary management."""
 
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api.root import binary_management_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store

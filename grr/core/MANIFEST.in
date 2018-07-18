@@ -1,17 +1,10 @@
 include version.ini
 
 recursive-include * *
-recursive-include gui *
 
 recursive-exclude .git *
 recursive-exclude build *
 recursive-exclude dist *
-recursive-exclude vagrant *
-recursive-exclude travis *
-recursive-exclude grr/config/grr-response-* *
-recursive-exclude grr/server/grr_response_server/gui/static/bower_components *
-recursive-exclude grr/server/grr_response_server/gui/static/node_modules *
-recursive-exclude grr/server/grr_response_server/gui/static/tmp *
 recursive-exclude executables *.zip
 recursive-exclude executables/installers *
 recursive-exclude executables *.bin

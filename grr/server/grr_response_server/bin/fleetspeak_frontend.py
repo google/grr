@@ -11,11 +11,11 @@ import grpc
 from grr_response_server import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import communicator
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core import config
+from grr_response_core.lib import communicator
+from grr_response_core.lib import flags
+from grr_response_core.lib import stats
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import frontend_lib

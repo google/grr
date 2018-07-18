@@ -3,11 +3,11 @@
 
 import stat
 
-from grr.core.grr_response_core.lib import artifact_utils
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib import artifact_utils
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import events

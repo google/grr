@@ -10,9 +10,9 @@ import types
 from binplist import binplist
 from grr_response_client import actions
 from grr_response_client import vfs
-from grr.core.grr_response_core.lib import plist as plist_lib
-from grr.core.grr_response_core.lib.rdfvalues import plist as rdf_plist
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib import plist as plist_lib
+from grr_response_core.lib.rdfvalues import plist as rdf_plist
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 
 class PlistQuery(actions.ActionPlugin):

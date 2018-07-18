@@ -27,8 +27,8 @@ from dateutil import parser
 from future.utils import with_metaclass
 from past.builtins import long
 
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000

@@ -4,8 +4,8 @@
 import sys
 import threading
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
 from grr_response_server import db
 from grr_response_server.databases import mem_blobs
 from grr_response_server.databases import mem_clients

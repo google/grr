@@ -11,7 +11,7 @@ from past.builtins import long
 
 # pylint: disable=g-import-not-at-top
 try:
-  from grr.accelerated import _semantic
+  from grr.core.accelerated import _semantic
 except ImportError:
   _semantic = None
 
@@ -21,11 +21,11 @@ from google.protobuf import wrappers_pb2
 from google.protobuf import descriptor_pb2
 from google.protobuf import text_format
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import proto2 as rdf_proto2
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib import type_info
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import proto2 as rdf_proto2
 from grr_response_proto import semantic_pb2
 # pylint: disable=super-init-not-called
 # pylint: enable=g-import-not-at-top

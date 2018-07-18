@@ -16,14 +16,14 @@ from grr_response_server.flows.general import filesystem
 from grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.config import contexts
-from grr.core.grr_response_core.config import server as config_server
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core import config
+from grr_response_core.config import contexts
+from grr_response_core.config import server as config_server
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import type_info
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
 
 from grr_response_server import access_control
 from grr_response_server import aff4

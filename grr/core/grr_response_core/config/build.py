@@ -3,9 +3,9 @@
 import os
 import time
 
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import type_info
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import type_info
 
 config_lib.DEFINE_option(
     type_info.RDFValueType(
@@ -85,7 +85,7 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string(
     "ClientBuilder.fleetspeak_config_path",
     "%(install_data/fleetspeak/%(Client.platform)/"
-    "grr_service_config.txt.in|resource)",
+    "grr_service_config.txt.in@grr-response-core|resource)",
     "Path to GRR's Fleetspeak service configuration.")
 
 
@@ -240,8 +240,8 @@ VSVersionInfo\(
 """)
 
 config_lib.DEFINE_bytes(
-    "PyInstaller.icon", "%(%(grr/server/grr_response_server/gui/"
-    "static/images/grr.ico|resource)|file)",
+    "PyInstaller.icon",
+    "%(%(install_data/grr.ico@grr-response-core|resource)|file)",
     "The icon file contents to use for building the client.")
 
 config_lib.DEFINE_string(
@@ -335,7 +335,7 @@ config_lib.DEFINE_option(
     PathTypeInfo(
         name="ClientBuilder.executables_dir",
         must_exist=False,
-        default="%(executables|resource)",
+        default="%(executables@grr-response-core|resource)",
         help="The path to the grr executables directory."))
 
 config_lib.DEFINE_option(

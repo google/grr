@@ -3,9 +3,9 @@
 
 import os
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_server import artifact
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import artifact as artifact_plugin

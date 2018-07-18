@@ -9,8 +9,8 @@ import unittest
 import mock
 import pexpect
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.builders import signing
+from grr_response_core.lib import flags
+from grr_response_core.lib.builders import signing
 from grr.test_lib import test_lib
 
 

@@ -8,9 +8,9 @@ import collections
 from future.utils import with_metaclass
 
 from grr_response_client import streaming
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 
 
 class MetadataCondition(with_metaclass(abc.ABCMeta, object)):

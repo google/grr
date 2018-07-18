@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Configuration parameters for logging and error reporting subsystems."""
 
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import standard as rdf_standard
 
 config_lib.DEFINE_string(
     "Logging.domain", "localhost",

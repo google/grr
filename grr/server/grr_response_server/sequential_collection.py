@@ -7,10 +7,10 @@ import random
 import threading
 import time
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 from grr_response_server import data_store
 

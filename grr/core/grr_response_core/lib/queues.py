@@ -4,7 +4,7 @@
 This module defines the queues where a worker may look for work.
 """
 
-from grr.core.grr_response_core.lib import rdfvalue
+from grr_response_core.lib import rdfvalue
 
 # Queues that a standard worker should work from, highest priority first.
 #

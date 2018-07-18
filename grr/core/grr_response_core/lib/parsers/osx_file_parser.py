@@ -8,9 +8,9 @@ import stat
 
 
 from binplist import binplist
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import plist as rdf_plist
+from grr_response_core.lib import parser
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import plist as rdf_plist
 
 
 class OSXUsersParser(parser.ArtifactFilesParser):

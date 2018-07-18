@@ -4,11 +4,11 @@
 import os
 
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import parser as lib_parser
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib import parser as lib_parser
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import artifact
 from grr_response_server.parsers import linux_cmd_parser
 from grr.test_lib import artifact_test_lib

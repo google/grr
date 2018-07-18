@@ -5,10 +5,10 @@
 
 import re
 
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib import parser
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import standard as rdf_standard
 
 
 class OSXLaunchdJobDict(object):

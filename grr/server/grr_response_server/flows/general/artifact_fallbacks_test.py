@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Tests for grr.server.flows.general.artifact_fallbacks."""
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import flow
 from grr_response_server.flows.general import artifact_fallbacks
 from grr.test_lib import action_mocks

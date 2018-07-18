@@ -5,10 +5,10 @@ from __future__ import division
 import math
 import threading
 
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import analysis_pb2
 from grr_response_proto import jobs_pb2
 

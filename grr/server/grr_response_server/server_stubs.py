@@ -9,19 +9,19 @@ server parts.
 
 from future.utils import with_metaclass
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr.core.grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import cloud as rdf_cloud
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import plist as rdf_plist
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.core.grr_response_core.lib.rdfvalues import rdf_yara
-from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import plist as rdf_plist
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import rdf_yara
+from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class ClientActionStub(with_metaclass(registry.MetaclassRegistry, object)):

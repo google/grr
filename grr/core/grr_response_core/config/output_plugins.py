@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Configuration parameters for server output plugins."""
 
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import rdfvalue
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import rdfvalue
 
 config_lib.DEFINE_string("BigQuery.service_acct_json", None,
                          "The json contents of the service account file.")

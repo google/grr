@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """Configuration parameters for the artifact subsystem."""
 
-from grr.core.grr_response_core.lib import config_lib
+from grr_response_core.lib import config_lib
 
 config_lib.DEFINE_list("Artifacts.artifact_dirs", [
-    "%(grr/core/grr_response_core/artifacts|resource)",
-    "%(grr/core/grr_response_core/artifacts/flow_templates|resource)",
-    "%(grr/core/grr_response_core/artifacts/local|resource)"
+    "%(grr_response_core/artifacts@grr-response-core|resource)",
+    "%(grr_response_core/artifacts/flow_templates@grr-response-core|resource)",
+    "%(grr_response_core/artifacts/local@grr-response-core|resource)"
 ], "A list directories to load artifacts from.")
 
 config_lib.DEFINE_list(

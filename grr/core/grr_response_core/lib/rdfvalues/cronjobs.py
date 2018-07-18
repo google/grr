@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """RDFValues for GRR client-side cron jobs parsing."""
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import sysinfo_pb2
 
 

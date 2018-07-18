@@ -10,10 +10,10 @@ from grr_response_client import client_plugins
 from grr_response_client import client_startup
 from grr_response_client import comms
 from grr_response_client import installer
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.config import contexts
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import flags
+from grr_response_core import config
+from grr_response_core.config import contexts
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import flags
 
 flags.DEFINE_bool("install", False, "Specify this to install the client.")
 

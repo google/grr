@@ -4,11 +4,11 @@
 import time
 import mock
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import queues
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib import flags
+from grr_response_core.lib import queues
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import stats
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import data_store
 from grr_response_server import queue_manager
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner

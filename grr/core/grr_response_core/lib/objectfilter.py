@@ -92,8 +92,8 @@ import binascii
 import collections
 import re
 
-from grr.core.grr_response_core.lib import lexer
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import lexer
+from grr_response_core.lib import utils
 
 
 class Error(Exception):

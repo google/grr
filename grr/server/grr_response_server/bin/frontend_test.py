@@ -13,11 +13,11 @@ import requests
 
 from google.protobuf import json_format
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr_response_core.lib import flags
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_server import aff4
 from grr_response_server import data_store_utils
 from grr_response_server import flow

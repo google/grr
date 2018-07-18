@@ -12,10 +12,10 @@ from grr_response_client import actions
 from grr_response_client import client_utils
 from grr_response_client import streaming
 from grr_response_client.client_actions import tempfiles
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import rdf_yara
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import rdf_yara
 
 
 def ProcessIterator(pids, process_regex_string, ignore_grr_process, error_list):

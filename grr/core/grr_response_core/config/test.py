@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Configuration parameters for the test subsystem."""
-from grr.core.grr_response_core.lib import config_lib
+from grr_response_core.lib import config_lib
 
 # Default for running in the current directory
 config_lib.DEFINE_constant_string(
-    "Test.srcdir", "%(grr|module_path)/../",
+    "Test.srcdir",
+    "%(grr_response_core|module_path)/../../../",
     "The directory containing the source code.")
 
 config_lib.DEFINE_constant_string(

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """Configuration parameters for the server side subsystems."""
 
-import grr
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core import version
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 
-VERSION = grr.version()
+VERSION = version.version()
 
 config_lib.DEFINE_integer("Source.version_major", VERSION["major"],
                           "Major version number of client binary.")

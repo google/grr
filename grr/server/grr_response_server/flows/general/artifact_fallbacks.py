@@ -5,11 +5,11 @@ These flows subclass lib.artifact.ArtifactFallbackCollector.
 """
 
 # pylint: disable=unused-import
-from grr.core.grr_response_core.lib import parser
+from grr_response_core.lib import parser
 # pylint: enable=unused-import
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import artifact
 from grr_response_server import flow
 from grr_response_server import server_stubs

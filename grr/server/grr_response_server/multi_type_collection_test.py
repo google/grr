@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Tests for MultiTypeCollection."""
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import data_store
 from grr_response_server import multi_type_collection
 from grr_response_server.data_stores import fake_data_store

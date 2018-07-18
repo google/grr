@@ -3,7 +3,7 @@
 
 import re
 
-from grr.core.grr_response_core import config
+from grr_response_core import config
 from grr_response_test.end_to_end_tests import test_base
 
 

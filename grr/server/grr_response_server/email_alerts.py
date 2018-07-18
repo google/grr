@@ -15,9 +15,9 @@ import socket
 
 from future.utils import with_metaclass
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core import config
+from grr_response_core.lib import registry
+from grr_response_core.lib.rdfvalues import standard as rdf_standard
 
 
 class EmailAlerterBase(with_metaclass(registry.MetaclassRegistry, object)):

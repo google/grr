@@ -4,7 +4,7 @@
 
 from future.utils import with_metaclass
 
-from grr.core.grr_response_core.lib import registry
+from grr_response_core.lib import registry
 
 
 class Error(Exception):

@@ -5,8 +5,8 @@
 import time
 
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import stats
+from grr_response_core.lib import flags
+from grr_response_core.lib import stats
 from grr.test_lib import test_lib
 
 

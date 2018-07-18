@@ -7,7 +7,7 @@ from grr_response_client import actions
 from grr_response_client import client_actions
 # pylint: enable=unused-import
 
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 from grr_response_server import server_stubs
 from grr.test_lib import test_lib
 

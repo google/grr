@@ -3,14 +3,14 @@
 
 import os
 
-from grr.core.grr_response_core.lib import artifact_utils
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_core.lib import artifact_utils
+from grr_response_core.lib import flags
+from grr_response_core.lib import parser
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import artifact_registry as ar
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib

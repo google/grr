@@ -8,14 +8,14 @@ performing basic analysis.
 import json
 import logging
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
-from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core import config
+from grr_response_core.lib import registry
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto import flows_pb2
 from grr_response_proto import rekall_pb2

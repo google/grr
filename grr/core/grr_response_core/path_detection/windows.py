@@ -3,7 +3,7 @@
 
 import re
 
-from grr.core.grr_response_core.path_detection import core
+from grr_response_core.path_detection import core
 
 
 class RunDllExtractor(core.Extractor):

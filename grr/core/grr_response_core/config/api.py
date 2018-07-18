@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """API config options."""
 
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import rdfvalue
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import rdfvalue
 
 config_lib.DEFINE_integer("API.DailyFlowRequestLimit", "10",
                           "Number of flows a user can run on a single client "

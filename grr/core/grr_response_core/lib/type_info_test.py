@@ -3,9 +3,9 @@
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Tests for grr.lib.type_info."""
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib import flags
+from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import test_lib
 
 

@@ -6,10 +6,10 @@ import os
 
 
 from grr_response_client.client_actions import plist
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import plist as plist_lib
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import plist as rdf_plist
+from grr_response_core.lib import flags
+from grr_response_core.lib import plist as plist_lib
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 

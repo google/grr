@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """AFF4 objects for managing Chipsec responses."""
 
-from grr.core.grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
+from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 
 from grr_response_server import sequential_collection
 

@@ -12,11 +12,11 @@ import zlib
 import psutil
 
 from grr_response_client.client_actions import file_finder as client_file_finder
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks

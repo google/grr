@@ -4,9 +4,9 @@
 
 from future.utils import with_metaclass
 
-from grr.core.grr_response_core.lib import registry
+from grr_response_core.lib import registry
 # For CronTabFile, an artifact output type. pylint: disable=unused-import
-from grr.core.grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 # pylint: enable=unused-import
 

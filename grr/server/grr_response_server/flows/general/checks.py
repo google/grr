@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """A flow to run checks for a host."""
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import parser
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import artifact

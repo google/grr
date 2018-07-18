@@ -3,8 +3,8 @@
 
 import logging
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
 from grr_response_server import aff4
 from grr_response_server import data_store
 

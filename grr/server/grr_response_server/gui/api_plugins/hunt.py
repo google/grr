@@ -8,14 +8,14 @@ import logging
 import operator
 import re
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
-from grr.core.grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core import config
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import hunt_pb2
 
 from grr_response_server import aff4

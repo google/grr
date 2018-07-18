@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for checks."""
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import config_file as rdf_config_file
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server.check_lib import hints
 from grr.test_lib import test_lib
 

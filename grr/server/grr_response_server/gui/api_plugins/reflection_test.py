@@ -2,7 +2,7 @@
 """This module contains tests for reflection API handlers."""
 
 
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_test_lib
 

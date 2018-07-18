@@ -2,10 +2,10 @@
 """Test of "Copy Hunt" wizard."""
 
 import unittest
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import foreman_rules
 from grr_response_server.flows.general import file_finder

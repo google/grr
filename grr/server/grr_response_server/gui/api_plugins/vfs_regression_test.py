@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """This modules contains regression tests for VFS API handlers."""
 
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 
 from grr_response_server import aff4
 from grr_response_server import flow

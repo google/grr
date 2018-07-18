@@ -13,10 +13,10 @@ from grr_response_client import vfs
 # classes are not registered correctly and things start to fail. This is
 # terrible and has to be fixed as soon as possible.
 from grr_response_client.vfs_handlers import files  # pylint: disable=unused-import
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core import config
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import client_fixture
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard

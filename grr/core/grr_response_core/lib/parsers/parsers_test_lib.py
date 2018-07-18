@@ -4,8 +4,8 @@
 import StringIO
 
 
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
 def GenInit(svc, desc, start=("2", "3", "4", "5"), stop=("1")):

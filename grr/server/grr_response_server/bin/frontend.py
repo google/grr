@@ -20,14 +20,14 @@ from google.protobuf import json_format
 from grr_response_server import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.config import server as config_server
-from grr.core.grr_response_core.lib import communicator
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core import config
+from grr_response_core.config import server as config_server
+from grr_response_core.lib import communicator
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import stats
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import aff4
 from grr_response_server import frontend_lib
 from grr_response_server import master

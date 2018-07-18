@@ -2,10 +2,10 @@
 """This module tests the RDFValue implementation for performance."""
 from __future__ import division
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import flags
+from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr.test_lib import benchmark_test_lib

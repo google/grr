@@ -156,21 +156,6 @@ message ClientArtifactCollectorArgs {
     },
     default = false
   ];
-  optional bool split_output_by_artifact = 4 [
-    (sem_type) = {
-      description: "If True, use output as a directory and write a separate"
-                   " collection for each artifact collected.",
-      label: ADVANCED,
-    },
-    default = false
-  ];
-  optional bool error_on_no_results = 5 [
-    (sem_type) = {
-      description: "If True, an artifact returning no results will raise a hard"
-                   " error. This is useful where you always expect results."
-    },
-    default = false
-  ];
   optional bool apply_parsers = 6 [
     (sem_type) = {
       description: "If True, apply any relevant parser to the collected data. "

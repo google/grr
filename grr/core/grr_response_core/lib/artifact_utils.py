@@ -9,9 +9,9 @@ import itertools
 import logging
 import re
 
-from grr.core.grr_response_core.lib import objectfilter
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import objectfilter
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 
 

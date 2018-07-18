@@ -5,9 +5,9 @@ import os
 import re
 
 
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib import parser
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import artifact_registry
 
 

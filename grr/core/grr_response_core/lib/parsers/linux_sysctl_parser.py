@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Simple parsers for configuration files."""
 
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib.parsers import config_file
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib import parser
+from grr_response_core.lib.parsers import config_file
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 
 class ProcSysParser(parser.FileParser):

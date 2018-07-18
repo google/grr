@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """These cron flows do the datastore cleanup."""
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
+from grr_response_core import config
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
 from grr_response_server import aff4
 from grr_response_server import client_index
 from grr_response_server import flow

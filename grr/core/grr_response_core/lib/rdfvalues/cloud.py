@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Cloud-related rdfvalues."""
 
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 

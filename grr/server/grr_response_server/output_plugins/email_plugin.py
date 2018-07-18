@@ -4,10 +4,10 @@
 
 import jinja2
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core import config
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import output_plugin_pb2
 from grr_response_server import aff4
 from grr_response_server import email_alerts

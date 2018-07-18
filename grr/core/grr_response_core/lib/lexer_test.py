@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Tests the query lexer."""
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import lexer
+from grr_response_core.lib import flags
+from grr_response_core.lib import lexer
 from grr.test_lib import test_lib
 
 

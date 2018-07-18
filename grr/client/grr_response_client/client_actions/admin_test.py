@@ -9,13 +9,13 @@ import requests
 from grr_response_client import client_stats
 from grr_response_client import comms
 from grr_response_client.client_actions import admin
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import stats
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 

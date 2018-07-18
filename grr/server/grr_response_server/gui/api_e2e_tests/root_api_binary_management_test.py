@@ -5,9 +5,9 @@ import StringIO
 
 
 from grr_api_client import errors as grr_api_errors
-from grr.core.grr_response_core import config as config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core import config as config
+from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_proto.api import config_pb2
 from grr_response_server.gui import api_e2e_test_lib
 from grr.test_lib import test_lib

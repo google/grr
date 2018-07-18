@@ -9,9 +9,9 @@ import logging
 from grr_response_server import server_plugins
 # pylint: disable=unused-import,g-bad-import-order
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.config import contexts
-from grr.core.grr_response_core.lib import flags
+from grr_response_core import config
+from grr_response_core.config import contexts
+from grr_response_core.lib import flags
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import server_startup

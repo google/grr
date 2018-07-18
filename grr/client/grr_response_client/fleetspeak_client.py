@@ -16,13 +16,13 @@ import time
 from fleetspeak.src.client.daemonservice.client import client as fs_client
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from grr_response_client import comms
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import communicator
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core import config
+from grr_response_core.lib import communicator
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import stats
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import jobs_pb2
 
 # pyformat: disable

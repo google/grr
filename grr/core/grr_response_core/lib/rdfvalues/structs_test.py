@@ -5,14 +5,14 @@
 from google.protobuf import descriptor_pool
 from google.protobuf import message_factory
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr.core.grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr.test_lib import test_lib
 
 # pylint: mode=test

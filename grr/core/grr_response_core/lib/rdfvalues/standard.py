@@ -4,10 +4,10 @@
 import re
 import urlparse
 
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
 

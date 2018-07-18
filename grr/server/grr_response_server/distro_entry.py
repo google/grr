@@ -4,8 +4,8 @@
 # pylint: disable=g-import-not-at-top
 # Argparse runs on import, and maintains static state.
 
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import flags
 
 
 def SetConfigOptions():
@@ -38,8 +38,8 @@ def SetConfigOptions():
 
   # 1. Specified on the command line with the "--config XXXX" option.
   # 2. Use the default config file from the grr-response package.
-  flags.PARSER.set_defaults(
-      config=config_lib.Resource().Filter("install_data/etc/grr-server.yaml"))
+  flags.PARSER.set_defaults(config=config_lib.Resource().Filter(
+      "install_data/etc/grr-server.yaml@grr-response-core"))
 
 
 def Console():

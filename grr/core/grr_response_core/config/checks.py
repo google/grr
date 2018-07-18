@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Configuration parameters for the check subsystem."""
-from grr.core.grr_response_core.lib import config_lib
+from grr_response_core.lib import config_lib
 
 config_lib.DEFINE_list("Checks.config_dir", [
     "%(grr_response_server|module_path)/"

@@ -7,8 +7,8 @@ from grr_response_client import actions
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_client.client_actions.file_finder_utils import subactions
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 
 
 class _SkipFileException(Exception):

@@ -9,7 +9,7 @@ import ctypes
 import mock
 
 from grr_response_client.osx import objc
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 from grr.test_lib import test_lib
 
 

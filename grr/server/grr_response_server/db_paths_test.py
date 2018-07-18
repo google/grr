@@ -3,10 +3,10 @@
 
 import hashlib
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 

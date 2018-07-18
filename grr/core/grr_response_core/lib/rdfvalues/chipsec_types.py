@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """RDFValues used to communicate with Chipsec."""
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto import chipsec_pb2
 

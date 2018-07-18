@@ -8,12 +8,12 @@ import os
 
 import yaml
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core import config
+from grr_response_core.lib import registry
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import anomaly_pb2
 from grr_response_proto import checks_pb2
 from grr_response_server.check_lib import filters

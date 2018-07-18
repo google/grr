@@ -4,9 +4,9 @@
 import threading
 import time
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
 from grr_response_server import data_store
 from grr_response_server import sequential_collection
 from grr.test_lib import aff4_test_lib

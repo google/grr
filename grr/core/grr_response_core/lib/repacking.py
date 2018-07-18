@@ -9,10 +9,10 @@ import platform
 import sys
 import zipfile
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import build
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib.builders import signing
+from grr_response_core import config
+from grr_response_core.lib import build
+from grr_response_core.lib import config_lib
+from grr_response_core.lib.builders import signing
 
 
 class RepackConfig(object):

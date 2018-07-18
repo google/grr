@@ -5,15 +5,15 @@ import logging
 import operator
 import time
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import communicator
-from grr.core.grr_response_core.lib import queues
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core import config
+from grr_response_core.lib import communicator
+from grr_response_core.lib import queues
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib import stats
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import client_index

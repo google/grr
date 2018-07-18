@@ -9,7 +9,7 @@ from future.utils import with_metaclass
 from grr_response_client import client_utils
 from grr_response_client import client_utils_common
 from grr_response_client.client_actions.file_finder_utils import uploading
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
 class Action(with_metaclass(abc.ABCMeta, object)):

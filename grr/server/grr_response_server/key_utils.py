@@ -6,8 +6,8 @@ from cryptography.hazmat.backends import openssl
 from cryptography.hazmat.primitives import hashes
 from cryptography.x509 import oid
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 
 
 def MakeCASignedCert(common_name,

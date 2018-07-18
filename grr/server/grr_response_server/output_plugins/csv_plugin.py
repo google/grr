@@ -9,7 +9,7 @@ import zipfile
 
 import yaml
 
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import utils
 from grr_response_server import instant_output_plugin
 
 

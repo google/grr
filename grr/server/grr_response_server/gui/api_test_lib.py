@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Base test classes for API handlers tests."""
 
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 # This import guarantees that all API-related RDF types will get imported
 # (as they're all references by api_call_router).

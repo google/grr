@@ -5,7 +5,7 @@ from __future__ import print_function
 
 
 import unittest
-from grr.core.grr_response_core.lib import objectfilter
+from grr_response_core.lib import objectfilter
 
 attr1 = "Backup"
 attr2 = "Archive"

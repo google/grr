@@ -62,8 +62,8 @@ anomaly and knowledge_base using object filter syntax. E.g.
 
 """
 
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import anomaly_pb2
 
 

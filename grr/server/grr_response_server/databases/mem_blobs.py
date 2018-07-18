@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """DB mixin for blobs-related methods."""
 
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import utils
 from grr_response_server import db
 
 

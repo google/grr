@@ -3,12 +3,12 @@
 
 import os
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.config import contexts
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import stats
+from grr_response_core import config
+from grr_response_core.config import contexts
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import flags
+from grr_response_core.lib import registry
+from grr_response_core.lib import stats
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import server_logging
@@ -18,9 +18,9 @@ from grr_response_server.data_stores import fake_data_store
 # Make sure we do not reinitialize multiple times.
 INIT_RAN = False
 
-flags.DEFINE_string("test_data_store", None,
-                    "The data store implementation to use for running "
-                    "the tests.")
+flags.DEFINE_string(
+    "test_data_store", None, "The data store implementation to use for running "
+    "the tests.")
 
 
 def TestInit():
@@ -35,7 +35,7 @@ def TestInit():
   # additional configuration in test_data/grr_test.yaml which contains typical
   # values for a complete installation.
   flags.FLAGS.config = config_lib.Resource().Filter(
-      "install_data/etc/grr-server.yaml")
+      "install_data/etc/grr-server.yaml@grr-response-core")
 
   flags.FLAGS.secondary_configs.append(config_lib.Resource().Filter(
       "grr_response_test/test_data/grr_test.yaml@grr-response-test"))

@@ -4,7 +4,7 @@
 import hashlib
 
 import logging
-from grr.core.grr_response_core.lib import rdfvalue
+from grr_response_core.lib import rdfvalue
 from grr_response_server import aff4
 from grr_response_server import blob_store
 from grr_response_server import data_store

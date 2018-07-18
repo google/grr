@@ -8,9 +8,9 @@ import socket
 from future.utils import with_metaclass
 import ipaddr
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import utils
+from grr_response_core import config
+from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 
 
 class IPInfo(object):

@@ -8,7 +8,7 @@ import subprocess
 import requests
 
 from grr_response_client import actions
-from grr.core.grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 
 
 class GetCloudVMMetadata(actions.ActionPlugin):

@@ -4,9 +4,9 @@
 
 import crontab
 
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_core.lib import parser
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 
 class CronTabParser(parser.FileParser):

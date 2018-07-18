@@ -6,7 +6,9 @@ from __future__ import print_function
 # pylint: disable=g-multiple-import
 # pylint: disable=g-import-not-at-top
 import ConfigParser
+import itertools
 import os
+import shutil
 import subprocess
 
 from setuptools import find_packages, setup, Extension
@@ -14,7 +16,9 @@ from setuptools.command.develop import develop
 from setuptools.command.install import install
 from setuptools.command.sdist import sdist
 
-IGNORE_GUI_DIRS = ["node_modules", "tmp"]
+
+THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
+os.chdir(THIS_DIRECTORY)
 
 
 def find_data_files(source, ignore_dirs=None):
@@ -29,28 +33,23 @@ def find_data_files(source, ignore_dirs=None):
   return result
 
 
-def run_make_files(make_ui_files=True, sync_artifacts=True):
-  """Builds necessary assets from sources."""
+def sync_artifacts():
+  """Sync the artifact repo with upstream for distribution."""
 
-  if sync_artifacts:
-    # Sync the artifact repo with upstream for distribution.
-    subprocess.check_call(
-        ["python", "makefile.py"], cwd="grr/core/grr_response_core/artifacts")
-
-  if make_ui_files:
-    subprocess.check_call(
-        ["npm", "install"], cwd="grr/server/grr_response_server/gui/static")
-    subprocess.check_call(
-        ["npm", "install", "-g", "gulp"],
-        cwd="grr/server/grr_response_server/gui/static")
-    subprocess.check_call(
-        ["gulp", "compile"], cwd="grr/server/grr_response_server/gui/static")
+  subprocess.check_call(
+      ["python", "makefile.py"], cwd="grr_response_core/artifacts")
 
 
 def get_config():
+  """Get INI parser with version.ini data."""
+  ini_path = os.path.join(THIS_DIRECTORY, "version.ini")
+  if not os.path.exists(ini_path):
+    ini_path = os.path.join(THIS_DIRECTORY, "../../version.ini")
+    if not os.path.exists(ini_path):
+      raise RuntimeError("Couldn't find version.ini")
+
   config = ConfigParser.SafeConfigParser()
-  config.read(
-      os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.ini"))
+  config.read(ini_path)
   return config
 
 
@@ -60,7 +59,8 @@ VERSION = get_config()
 class Develop(develop):
 
   def run(self):
-    run_make_files()
+    sync_artifacts()
+
     develop.run(self)
 
 
@@ -68,8 +68,6 @@ class Sdist(sdist):
   """Build sdist."""
 
   user_options = sdist.user_options + [
-      ("no-make-ui-files", None, "Don't build UI JS/CSS bundles (AdminUI "
-       "won't work without them)."),
       ("no-sync-artifacts", None,
        "Don't sync the artifact repo. This is unnecessary for "
        "clients and old client build OSes can't make the SSL connection."),
@@ -77,32 +75,32 @@ class Sdist(sdist):
 
   def initialize_options(self):
     self.no_sync_artifacts = None
-    self.no_make_ui_files = None
+
     sdist.initialize_options(self)
 
   def run(self):
-    run_make_files(
-        make_ui_files=not self.no_make_ui_files,
-        sync_artifacts=not self.no_sync_artifacts)
+    if not self.no_sync_artifacts:
+      sync_artifacts()
+
     sdist.run(self)
 
+  def make_release_tree(self, base_dir, files):
+    sdist.make_release_tree(self, base_dir, files)
+    sdist_version_ini = os.path.join(base_dir, "version.ini")
+    if os.path.exists(sdist_version_ini):
+      os.unlink(sdist_version_ini)
+    shutil.copy(
+        os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
 
-data_files = (
-    find_data_files("executables") + find_data_files("install_data") +
-    find_data_files("scripts") +
-    find_data_files("grr/core/grr_response_core/artifacts") +
-    find_data_files("grr/server/grr_response_server/checks") + find_data_files(
-        "grr/server/grr_response_server/gui/static",
-        ignore_dirs=IGNORE_GUI_DIRS) + find_data_files(
-            "grr/server/grr_response_server/gui/local/static",
-            ignore_dirs=IGNORE_GUI_DIRS) + ["version.ini"])
 
-if "VIRTUAL_ENV" not in os.environ:
-  print("*****************************************************")
-  print("  WARNING: You are not installing in a virtual")
-  print("  environment. This configuration is not supported!!!")
-  print("  Expect breakage.")
-  print("*****************************************************")
+data_files = list(
+    itertools.chain(
+        find_data_files("executables"),
+        find_data_files("install_data"),
+        find_data_files("scripts"),
+        find_data_files("grr_response_core/artifacts"),
+        ["version.ini"],
+    ))
 
 setup_args = dict(
     name="grr-response-core",
@@ -115,7 +113,9 @@ setup_args = dict(
     packages=find_packages(),
     zip_safe=False,
     include_package_data=True,
-    ext_modules=[Extension("grr._semantic", ["accelerated/accelerated.c"])],
+    ext_modules=[
+        Extension("grr_response_core._semantic", ["accelerated/accelerated.c"])
+    ],
     cmdclass={
         "develop": Develop,
         "install": install,
@@ -139,16 +139,8 @@ setup_args = dict(
         "requests==2.9.1",
         "virtualenv==15.0.3",
         "wheel==0.30",
-        "Werkzeug==0.11.3",
         "yara-python==3.6.3",
     ],
-    extras_require={
-        # The following requirements are needed in Windows.
-        ':sys_platform=="win32"': [
-            "WMI==1.4.9",
-            "pypiwin32==219",
-        ],
-    },
 
     # Data files used by GRR. Access these via the config_lib "resource" filter.
     data_files=data_files)

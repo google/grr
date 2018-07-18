@@ -6,7 +6,7 @@ import logging
 import psutil
 
 from grr_response_client import actions
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client as rdf_client
 
 
 class ListNetworkConnections(actions.ActionPlugin):

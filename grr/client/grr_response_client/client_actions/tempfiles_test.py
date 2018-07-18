@@ -6,10 +6,10 @@ import posix
 import tempfile
 
 from grr_response_client.client_actions import tempfiles
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 

@@ -21,11 +21,11 @@ import itertools
 import posixpath
 import re
 
-from grr.core.grr_response_core.lib import artifact_utils
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import artifact_utils
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 
 INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")

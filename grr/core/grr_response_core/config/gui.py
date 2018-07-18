@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Configuration parameters for the admin UI."""
 
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib.rdfvalues import config as rdf_config
+from grr_response_core.lib import config_lib
+from grr_response_core.lib.rdfvalues import config as rdf_config
 
 # The Admin UI web application.
 config_lib.DEFINE_integer("AdminUI.port", 8000, "port to listen on")
@@ -18,12 +18,12 @@ config_lib.DEFINE_string("AdminUI.bind", "127.0.0.1", "interface to bind to.")
 
 config_lib.DEFINE_string(
     "AdminUI.document_root",
-    "%(grr/server/grr_response_server/gui/static|resource)",
+    "%(grr_response_server/gui/static@grr-response-server|resource)",
     "The main path to the static HTML pages.")
 
 config_lib.DEFINE_string(
     "AdminUI.template_root",
-    "%(grr/server/grr_response_server/gui/templates|resource)",
+    "%(grr_response_server/gui/templates@grr-response-server|resource)",
     "The main path to the templates.")
 
 config_lib.DEFINE_string(

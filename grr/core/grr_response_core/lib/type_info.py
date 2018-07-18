@@ -12,9 +12,9 @@ import logging
 from future.utils import with_metaclass
 from past.builtins import long
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 
 
 class Error(Exception):

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """The MySQL database methods for cron job handling."""
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import db
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs

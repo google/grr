@@ -161,11 +161,11 @@ class WindowsTemplateBuilder(object):
     if args.wheel_dir:
       cmd += ["--no-index", r"--find-links=file:///%s" % args.wheel_dir]
 
-    subprocess.check_call(
-        [self.virtualenv_python64] + cmd + ["--upgrade", "pip>=8.1.1"])
+    subprocess.check_call([self.virtualenv_python64] + cmd +
+                          ["--upgrade", "pip>=8.1.1"])
     if args.build_32:
-      subprocess.check_call(
-          [self.virtualenv_python32] + cmd + ["--upgrade", "pip>=8.1.1"])
+      subprocess.check_call([self.virtualenv_python32] + cmd +
+                            ["--upgrade", "pip>=8.1.1"])
     os.environ["PROTOC"] = args.protoc
 
   def GitCheckoutGRR(self):
@@ -183,11 +183,10 @@ class WindowsTemplateBuilder(object):
                                   "grr-response-proto-*.zip")).pop()
 
   def MakeCoreSdist(self):
-    os.chdir(args.grr_src)
+    os.chdir(os.path.join(args.grr_src, "grr/core"))
     subprocess.check_call([
         self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
-        "--dist-dir=%s" % args.build_dir, "--no-make-ui-files",
-        "--no-sync-artifacts"
+        "--dist-dir=%s" % args.build_dir, "--no-sync-artifacts"
     ])
     return glob.glob(os.path.join(args.build_dir,
                                   "grr-response-core-*.zip")).pop()

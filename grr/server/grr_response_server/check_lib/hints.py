@@ -3,10 +3,10 @@
 import collections
 import string
 
-from grr.core.grr_response_core.lib import objectfilter
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import objectfilter
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 
 class Error(Exception):

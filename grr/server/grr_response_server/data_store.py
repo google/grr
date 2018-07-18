@@ -47,13 +47,13 @@ import time
 
 from future.utils import with_metaclass
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib import stats
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import access_control
 from grr_response_server import blob_store
 from grr_response_server import db

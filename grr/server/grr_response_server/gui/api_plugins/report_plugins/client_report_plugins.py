@@ -4,7 +4,7 @@ from __future__ import division
 
 import time
 
-from grr.core.grr_response_core.lib import rdfvalue
+from grr_response_core.lib import rdfvalue
 from grr_response_server import aff4
 
 from grr_response_server.aff4_objects import stats as aff4_stats

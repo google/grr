@@ -75,7 +75,15 @@ setup_args = dict(
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "rekall-core==1.7.2rc1",
         "pyinstaller==3.2.1",
-    ])
+    ],
+    extras_require={
+        # The following requirements are needed in Windows.
+        ':sys_platform=="win32"': [
+            "WMI==1.4.9",
+            "pypiwin32==219",
+        ],
+    },
+)
 
 if platform.system() == "Linux":
   setup_args["install_requires"].append("chipsec==1.2.4")

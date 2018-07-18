@@ -19,16 +19,16 @@ import ipaddr
 from past.builtins import long
 import psutil
 
-from grr.core.grr_response_core.lib import ipv6_utils
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import ipv6_utils
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import type_info
+from grr_response_core.lib import utils
 
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2

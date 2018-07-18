@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """This module contains report plugin mocks used for testing."""
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
 from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugin_base
 from grr_response_server.gui.api_plugins.report_plugins import report_plugins

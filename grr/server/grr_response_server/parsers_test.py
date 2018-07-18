@@ -3,10 +3,10 @@
 """Tests for parsers."""
 import os
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import parser as lib_parser
-from grr.core.grr_response_core.lib import rdfvalue
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib import parser as lib_parser
+from grr_response_core.lib import rdfvalue
 # pylint: disable=unused-import
 from grr_response_server.parsers import registry_init
 # pylint: enable=unused-import

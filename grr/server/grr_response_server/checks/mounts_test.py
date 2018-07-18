@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """Tests for service state checks."""
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.parsers import config_file
+from grr_response_core.lib import flags
+from grr_response_core.lib.parsers import config_file
 from grr_response_server.check_lib import checks_test_lib
 from grr.test_lib import test_lib
 

@@ -5,11 +5,11 @@ import itertools
 import math
 import os
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import events
 from grr_response_server.aff4_objects import filestore_test_lib
 from grr_response_server.flows.cron import filestore_stats

@@ -23,10 +23,10 @@ from chipsec.hal import acpi
 from chipsec.hal import spi
 from chipsec.helper import oshelper
 
-from grr.core.grr_response_core import config
+from grr_response_core import config
 from grr_response_client import actions
 from grr_response_client.client_actions import tempfiles
-from grr.core.grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
+from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 
 # pylint: enable=g-bad-import-order, g-import-not-at-top
 

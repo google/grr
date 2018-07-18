@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """The MySQL database methods for event handling."""
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_server.databases import mysql_utils
 
 

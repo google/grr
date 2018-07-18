@@ -10,8 +10,8 @@ import threading
 
 from grr_response_client import client_utils
 from grr_response_client import vfs
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 # File handles are cached here. They expire after a couple minutes so
 # we don't keep files locked on the client.

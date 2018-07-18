@@ -12,12 +12,12 @@ import abc
 
 from future.utils import with_metaclass
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import foreman_rules
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import objects as rdf_objects

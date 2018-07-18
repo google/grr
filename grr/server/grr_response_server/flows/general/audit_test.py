@@ -3,9 +3,9 @@
 
 import os
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.rdfvalues import events as rdf_events
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server.flows.general import audit
 from grr_response_server.flows.general import filesystem

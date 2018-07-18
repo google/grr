@@ -8,13 +8,13 @@ import StringIO
 from future.utils import with_metaclass
 import yaml
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib.parsers import linux_service_parser
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core import config
+from grr_response_core.lib import registry
+from grr_response_core.lib import type_info
+from grr_response_core.lib.parsers import linux_service_parser
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.check_lib import checks
 from grr_response_server.check_lib import filters
 from grr_response_server.check_lib import hints

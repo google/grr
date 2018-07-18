@@ -4,14 +4,14 @@ import collections
 import logging
 import re
 
-from grr.core.grr_response_core.lib import lexer
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import config_file as rdf_config_file
-from grr.core.grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib import lexer
+from grr_response_core.lib import parser
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import standard as rdf_standard
 
 
 def AsIter(arg):

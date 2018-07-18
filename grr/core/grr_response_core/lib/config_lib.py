@@ -24,12 +24,12 @@ from future.utils import with_metaclass
 import pkg_resources
 import yaml
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import lexer
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import flags
+from grr_response_core.lib import lexer
+from grr_response_core.lib import registry
+from grr_response_core.lib import type_info
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 # Default is set in distro_entry.py to be taken from package resource.
 flags.DEFINE_string(

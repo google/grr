@@ -13,12 +13,12 @@ from future.utils import with_metaclass
 import psutil
 
 from grr_response_client import client_utils
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 
 # Our first response in the session is this:
 INITIAL_RESPONSE_ID = 1

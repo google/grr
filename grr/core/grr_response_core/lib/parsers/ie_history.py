@@ -22,8 +22,8 @@ import struct
 import sys
 import urlparse
 
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
+from grr_response_core.lib import parser
+from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
 
 # Difference between 1 Jan 1601 and 1 Jan 1970.
 WIN_UNIX_DIFF_MSECS = 11644473600 * 1e6

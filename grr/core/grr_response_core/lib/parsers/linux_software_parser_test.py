@@ -5,9 +5,9 @@
 import os
 
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.parsers import linux_software_parser
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib import flags
+from grr_response_core.lib.parsers import linux_software_parser
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.test_lib import test_lib
 
 

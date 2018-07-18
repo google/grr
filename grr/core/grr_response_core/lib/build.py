@@ -33,17 +33,17 @@ from google.protobuf import text_format
 from fleetspeak.src.client.daemonservice.proto.fleetspeak_daemonservice import config_pb2 as fs_config_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.config import contexts
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import config_validator_base
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import utils
+from grr_response_core import config
+from grr_response_core.config import contexts
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import config_validator_base
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 # Pull in local config validators.
-from grr.core.grr_response_core.lib.local import plugins
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.local import plugins
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 
 # pylint: enable=g-import-not-at-top,unused-import
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Configuration parameters for the data stores."""
 
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import rdfvalue
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import rdfvalue
 
 config_lib.DEFINE_integer("Datastore.maximum_blob_size", 512 * 1024,
                           "Maximum blob size we may store in the datastore.")

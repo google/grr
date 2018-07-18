@@ -29,10 +29,10 @@ from rekall.ui import json_renderer
 
 from grr_response_client import actions
 from grr_response_client.client_actions import tempfiles
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class Error(Exception):

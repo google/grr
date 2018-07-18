@@ -6,8 +6,8 @@ import datetime
 
 
 from binplist import binplist
-from grr.core.grr_response_core.lib import lexer
-from grr.core.grr_response_core.lib import objectfilter
+from grr_response_core.lib import lexer
+from grr_response_core.lib import objectfilter
 
 
 class PlistFilterParser(objectfilter.Parser):

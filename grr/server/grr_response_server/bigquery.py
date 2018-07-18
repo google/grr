@@ -18,7 +18,7 @@ except ImportError:
   # Set this so mock won't complain about stubbing it.
   ServiceAccountCredentials = None
 
-from grr.core.grr_response_core import config
+from grr_response_core import config
 # pylint: enable=g-import-not-at-top
 
 BIGQUERY_SCOPE = "https://www.googleapis.com/auth/bigquery"

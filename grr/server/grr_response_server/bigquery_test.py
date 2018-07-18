@@ -10,9 +10,9 @@ import time
 from googleapiclient import errors
 import mock
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
 from grr_response_server import bigquery
 from grr.test_lib import test_lib
 

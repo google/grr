@@ -4,7 +4,7 @@
 import os
 import mock
 
-from grr.core.grr_response_core import config
+from grr_response_core import config
 from grr_response_server import aff4
 from grr_response_server import artifact_registry
 

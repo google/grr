@@ -6,7 +6,7 @@ import threading
 from grr_response_client import client_stats
 from grr_response_client import client_utils
 from grr_response_client import comms
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 
 
 class FakeMixin(object):

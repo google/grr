@@ -5,17 +5,38 @@ This is just a meta-package which pulls in the minimal requirements to create a
 full grr server.
 """
 import ConfigParser
+import itertools
 import os
 import shutil
+import subprocess
+
+from setuptools import find_packages
 from setuptools import setup
+from setuptools.command.develop import develop
 from setuptools.command.sdist import sdist
 
-THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
-# If you run setup.py from the root GRR dir you get very different results since
-# setuptools uses the MANIFEST.in from the root dir.  Make sure we are in the
-# package dir.
-os.chdir(THIS_DIRECTORY)
+def find_data_files(source, ignore_dirs=None):
+  ignore_dirs = ignore_dirs or []
+  result = []
+  for directory, dirnames, files in os.walk(source):
+    dirnames[:] = [d for d in dirnames if d not in ignore_dirs]
+
+    files = [os.path.join(directory, x) for x in files]
+    result.append((directory, files))
+
+  return result
+
+
+def make_ui_files():
+  """Builds necessary assets from sources."""
+
+  subprocess.check_call(
+      ["npm", "install"], cwd="grr_response_server/gui/static")
+  subprocess.check_call(
+      ["npm", "install", "-g", "gulp"], cwd="grr_response_server/gui/static")
+  subprocess.check_call(
+      ["gulp", "compile"], cwd="grr_response_server/gui/static")
 
 
 def get_config():
@@ -31,11 +52,43 @@ def get_config():
   return config
 
 
+IGNORE_GUI_DIRS = ["node_modules", "tmp"]
+
+THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
+
+# If you run setup.py from the root GRR dir you get very different results since
+# setuptools uses the MANIFEST.in from the root dir.  Make sure we are in the
+# package dir.
+os.chdir(THIS_DIRECTORY)
+
 VERSION = get_config()
+
+
+class Develop(develop):
+
+  def run(self):
+    make_ui_files()
+
+    develop.run(self)
 
 
 class Sdist(sdist):
   """Build sdist."""
+
+  user_options = sdist.user_options + [
+      ("no-make-ui-files", None, "Don't build UI JS/CSS bundles (AdminUI "
+       "won't work without them)."),
+  ]
+
+  def initialize_options(self):
+    self.no_make_ui_files = None
+    sdist.initialize_options(self)
+
+  def run(self):
+    if not self.no_make_ui_files:
+      make_ui_files()
+
+    sdist.run(self)
 
   def make_release_tree(self, base_dir, files):
     sdist.make_release_tree(self, base_dir, files)
@@ -46,6 +99,17 @@ class Sdist(sdist):
         os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
 
 
+data_files = list(
+    itertools.chain(
+        find_data_files("grr_response_server/checks"),
+        find_data_files(
+            "grr_response_server/gui/static", ignore_dirs=IGNORE_GUI_DIRS),
+        find_data_files(
+            "grr_response_server/gui/local/static",
+            ignore_dirs=IGNORE_GUI_DIRS),
+        ["version.ini"],
+    ))
+
 setup_args = dict(
     name="grr-response-server",
     version=VERSION.get("Version", "packageversion"),
@@ -54,7 +118,11 @@ setup_args = dict(
     maintainer="GRR Development Team",
     maintainer_email="grr-dev@googlegroups.com",
     url="https://github.com/google/grr",
-    cmdclass={"sdist": Sdist},
+    cmdclass={
+        "sdist": Sdist,
+        "develop": Develop
+    },
+    packages=find_packages(),
     entry_points={
         "console_scripts": [
             "grr_console = "
@@ -95,6 +163,6 @@ setup_args = dict(
         # pip install grr-response[mysqldatastore]
         "mysqldatastore": ["mysqlclient==1.3.12"],
     },
-    data_files=["version.ini"])
+    data_files=data_files)
 
 setup(**setup_args)

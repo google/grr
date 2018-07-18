@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import aff4
 from grr_response_server import data_migration
 from grr_response_server import data_store

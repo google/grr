@@ -5,9 +5,9 @@ To use this entry point you must run "grr_config_updater initialize" first.
 """
 
 
-from grr.core.grr_response_core.config import server as config_server
+from grr_response_core.config import server as config_server
 
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 from grr_response_server.bin import frontend
 from grr_response_server.bin import worker
 from grr_response_server.gui import admin_ui

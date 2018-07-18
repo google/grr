@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Mixin tests for storing cronjob objects in the relational db."""
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
 from grr_response_server import db
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr.test_lib import test_lib

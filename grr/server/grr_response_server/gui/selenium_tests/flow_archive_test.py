@@ -6,9 +6,9 @@ import os
 
 import mock
 import unittest
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib import flags
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import flow
 
 from grr_response_server.flows.general import transfer as flows_transfer

@@ -4,8 +4,8 @@
 import logging
 import sys
 
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
 
 # pylint: disable=g-import-not-at-top
 if sys.platform == "win32":

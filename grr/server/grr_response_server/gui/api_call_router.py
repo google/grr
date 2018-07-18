@@ -7,7 +7,7 @@ import re
 
 from future.utils import with_metaclass
 
-from grr.core.grr_response_core.lib import registry
+from grr_response_core.lib import registry
 
 from grr_response_server.gui import api_value_renderers
 from grr_response_server.gui.api_plugins import artifact as api_artifact

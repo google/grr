@@ -7,13 +7,13 @@ import os
 import StringIO
 
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import parser as lib_parser
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib import flags
+from grr_response_core.lib import parser as lib_parser
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.parsers import linux_file_parser
 from grr.test_lib import test_lib
 

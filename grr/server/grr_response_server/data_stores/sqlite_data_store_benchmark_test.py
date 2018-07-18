@@ -2,7 +2,7 @@
 """Benchmark tests for sqlite datastore."""
 
 
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 from grr_response_server import data_store_test
 from grr_response_server.data_stores import sqlite_data_store_test
 

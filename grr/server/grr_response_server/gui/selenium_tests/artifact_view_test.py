@@ -5,9 +5,9 @@
 import os
 
 import unittest
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import parser
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib import parser
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server.flows.general import collectors

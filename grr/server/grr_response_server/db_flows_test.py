@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Tests for the flow database api."""
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import test_lib
 
 

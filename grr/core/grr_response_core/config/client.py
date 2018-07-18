@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Configuration parameters for the client."""
 
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib import config_lib
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 
 # General Client options.
 config_lib.DEFINE_string(

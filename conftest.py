@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 from grr.test_lib import testing_startup
 
 SKIP_BENCHMARK = pytest.mark.skip(

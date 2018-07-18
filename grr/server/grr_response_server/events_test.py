@@ -2,10 +2,10 @@
 """Tests for the event publishing system."""
 
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import events
 from grr_response_server import maintenance_utils
 from grr_response_server.flows.general import audit

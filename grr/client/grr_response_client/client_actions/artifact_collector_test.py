@@ -6,11 +6,11 @@ import mock
 
 from grr_response_client.client_actions import artifact_collector
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifact
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core import config
+from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifact
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib

@@ -7,11 +7,11 @@ import unittest
 import unittest
 
 from grr_response_client.client_actions.file_finder_utils import conditions
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.core.grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 

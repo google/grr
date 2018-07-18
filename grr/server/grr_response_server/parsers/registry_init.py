@@ -3,7 +3,7 @@
 
 # pylint: disable=g-import-not-at-top
 # pylint: disable=unused-import
-from grr.core.grr_response_core.lib.parsers import registry_init
+from grr_response_core.lib.parsers import registry_init
 from grr_response_server.parsers import linux_cmd_parser
 from grr_response_server.parsers import linux_file_parser
 from grr_response_server.parsers import linux_pam_parser

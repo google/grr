@@ -25,7 +25,7 @@ function build_sdists() {
 
   python grr/proto/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
-  python setup.py --quiet sdist --formats=zip \
+  python grr/core/setup.py --quiet sdist --formats=zip \
       --dist-dir="${PWD}/sdists" --no-sync-artifacts
   python grr/client/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"

@@ -3,17 +3,17 @@
 
 import logging
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import artifact_utils
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
-from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core import config
+from grr_response_core.lib import artifact_utils
+from grr_response_core.lib import parser
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import artifact
@@ -920,6 +920,7 @@ class ClientArtifactCollector(flow.GRRFlow):
     super(ClientArtifactCollector, self).Start()
 
     self.state.knowledge_base = self.args.knowledge_base
+    self.processed_artifacts = set()
     self.state.response_count = 0
 
     # TODO(user): Fill the knowledge base on the client side and remove the
@@ -963,7 +964,11 @@ class ClientArtifactCollector(flow.GRRFlow):
         self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
             client, allow_uninitialized=True)
 
-    request = self._GetArtifactCollectorArgs(self.args.artifact_list)
+    request = GetArtifactCollectorArgs(
+        self.state.knowledge_base, self.processed_artifacts,
+        self.args.artifact_list, self.args.apply_parsers,
+        self.args.ignore_interpolation_errors, self.args.use_tsk,
+        self.args.max_file_size)
     self.CollectArtifacts(request)
 
   # TODO(user): Remove this method when the knowledge base is filled on the
@@ -974,120 +979,6 @@ class ClientArtifactCollector(flow.GRRFlow):
       if artifact_name not in knowledgebase_list:
         return False
     return True
-
-  def GetPathType(self):
-    if self.args.use_tsk:
-      return rdf_paths.PathSpec.PathType.TSK
-    return rdf_paths.PathSpec.PathType.OS
-
-  def _MeetsConditions(self, source):
-    """Check conditions on the source."""
-    source_conditions_met = True
-    os_conditions = ConvertSupportedOSToConditions(source)
-    if os_conditions:
-      source.conditions.append(os_conditions)
-    for condition in source.conditions:
-      source_conditions_met &= artifact_utils.CheckCondition(
-          condition, self.args.knowledge_base)
-
-    return source_conditions_met
-
-  def _GetArtifactCollectorArgs(self, artifact_list):
-    """Prepare bundle of artifacts and their dependencies for the client.
-
-    Args:
-      artifact_list: list of artifact names to be collected
-
-    Returns:
-      rdf value bundle containing a list of extended artifacts and the
-      knowledge base
-    """
-    bundle = rdf_artifacts.ClientArtifactCollectorArgs()
-    bundle.knowledge_base = self.args.knowledge_base
-
-    # TODO(user): Check if the knowledge base is provided. What does the
-    # ArtifactCollector do if it's not present?
-    # Switch the Interrogate flow from the ArtifactCollector flow to the
-    # ClientArtifactCollector? (Think about a way to avoid a dependency loop.)
-
-    # TODO(user): Remove error_on_no_results, split_out_by_artifact,
-    # apply_parsers because they are only needed on the server.
-
-    bundle.split_output_by_artifact = self.args.split_output_by_artifact
-    bundle.error_on_no_results = self.args.error_on_no_results
-    bundle.apply_parsers = self.args.apply_parsers
-    bundle.ignore_interpolation_errors = self.args.ignore_interpolation_errors
-    bundle.max_file_size = self.args.max_file_size
-    bundle.use_tsk = self.args.use_tsk
-    self.processed_artifacts = set()
-    for artifact_name in artifact_list:
-      if artifact_name in self.processed_artifacts:
-        continue
-      artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
-      extended_artifact = self._ExtendArtifact(artifact_obj)
-      bundle.artifacts.append(extended_artifact)
-    return bundle
-
-  def _ExtendArtifact(self, art_obj):
-    """Extend artifact by adding information needed for their collection.
-
-    Args:
-      art_obj: rdf value artifact
-
-    Returns:
-      rdf value representation of extended artifact containing the name of the
-      artifact and the extended sources
-    """
-    ext_art = rdf_artifacts.ExtendedArtifact()
-    ext_art.name = art_obj.name
-    for source in art_obj.sources:
-      if self._MeetsConditions(source):
-        ext_source = self._ExtendSource(source)
-        ext_art.sources.Extend(ext_source)
-    self.processed_artifacts.add(art_obj.name)
-    return ext_art
-
-  def _ExtendSource(self, source):
-    """Collect the information needed for artifact collection.
-
-    Args:
-      source: rdf value source object
-
-    Returns:
-      rdf value representation of extended source (original source plus
-      additional values)
-    """
-    ext_src = rdf_artifacts.ExtendedSource()
-    ext_src.base_source = source
-    type_name = source.type
-    source_type = rdf_artifacts.ArtifactSource.SourceType
-    if (type_name == source_type.DIRECTORY or
-        type_name == source_type.LIST_FILES):
-      ext_src.path_type = self.GetPathType()
-    elif type_name == source_type.FILE:
-      ext_src.path_type = self.GetPathType()
-      ext_src.max_bytesize = self.args.max_file_size
-    elif type_name == source_type.GREP:
-      ext_src.path_type = self.GetPathType()
-    elif type_name == source_type.REGISTRY_KEY:
-      ext_src.path_type = self.GetPathType()
-    elif (type_name == source_type.ARTIFACT or
-          type_name == source_type.ARTIFACT_GROUP or
-          type_name == source_type.ARTIFACT_FILES):
-      extended_sources = []
-      artifact_list = []
-      if "names" in source.attributes:
-        artifact_list = source.attributes["names"]
-      elif "artifact_list" in source.attributes:
-        artifact_list = source.attributes["artifact_list"]
-      for artifact_name in artifact_list:
-        if artifact_name in self.processed_artifacts:
-          continue
-        artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
-        extended_artifact = self._ExtendArtifact(artifact_obj)
-        extended_sources.extend(extended_artifact.sources)
-      return extended_sources
-    return [ext_src]
 
   def CollectArtifacts(self, art_bundle):
     """Start the client side artifact collection."""
@@ -1126,3 +1017,129 @@ def ConvertSupportedOSToConditions(src_object):
   if src_object.supported_os:
     conditions = " OR ".join("os == '%s'" % o for o in src_object.supported_os)
     return conditions
+
+
+def GetArtifactCollectorArgs(knowledge_base,
+                             processed_artifacts,
+                             artifact_list,
+                             apply_parsers=True,
+                             ignore_interpolation_errors=False,
+                             use_tsk=False,
+                             max_file_size=500000000):
+  """Prepare bundle of artifacts and their dependencies for the client.
+
+  Args:
+    knowledge_base: contains information about the client
+    processed_artifacts: artifacts that are in the final extended artifact
+    artifact_list: list of artifact names to be collected
+    apply_parsers: if True, apply any relevant parser to the collected data
+    ignore_interpolation_errors: from ArtifactCollectorFlowArgs
+    use_tsk: from ArtifactCollectorFlowArgs
+    max_file_size: from ArtifactCollectorFlowArgs
+
+  Returns:
+    rdf value bundle containing a list of extended artifacts and the
+    knowledge base
+  """
+  bundle = rdf_artifacts.ClientArtifactCollectorArgs()
+  bundle.knowledge_base = knowledge_base
+
+  # TODO(user): Check if the knowledge base is provided. What does the
+  # ArtifactCollector do if it's not present?
+  # Switch the Interrogate flow from the ArtifactCollector flow to the
+  # ClientArtifactCollector? (Think about a way to avoid a dependency loop.)
+
+  bundle.apply_parsers = apply_parsers
+  bundle.ignore_interpolation_errors = ignore_interpolation_errors
+  bundle.max_file_size = max_file_size
+  bundle.use_tsk = use_tsk
+  for artifact_name in artifact_list:
+    if artifact_name in processed_artifacts:
+      continue
+    artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
+    if not MeetsConditions(knowledge_base, artifact_obj):
+      continue
+    extended_artifact = _ExtendArtifact(knowledge_base, use_tsk, max_file_size,
+                                        processed_artifacts, artifact_obj)
+    bundle.artifacts.append(extended_artifact)
+  return bundle
+
+
+def MeetsConditions(knowledge_base, source):
+  """Check conditions on the source."""
+  source_conditions_met = True
+  os_conditions = ConvertSupportedOSToConditions(source)
+  if os_conditions:
+    source.conditions.append(os_conditions)
+  for condition in source.conditions:
+    source_conditions_met &= artifact_utils.CheckCondition(
+        condition, knowledge_base)
+
+  return source_conditions_met
+
+
+def _ExtendArtifact(knowledge_base, use_tsk, max_file_size, processed_artifacts,
+                    art_obj):
+  """Extend artifact by adding information needed for their collection.
+
+  Args:
+    knowledge_base: containing information about the client
+    use_tsk: parameter from the ArtifactCollectorFlowArgs
+    max_file_size: parameter from the ArtifactCollectorFlowArgs
+    processed_artifacts: artifacts that are in the final extended artifact
+    art_obj: rdf value artifact
+
+  Returns:
+    rdf value representation of extended artifact containing the name of the
+    artifact and the extended sources
+  """
+  ext_art = rdf_artifacts.ExtendedArtifact()
+  ext_art.name = art_obj.name
+  for source in art_obj.sources:
+    if MeetsConditions(knowledge_base, source):
+      ext_source = None
+
+      ext_src = rdf_artifacts.ExtendedSource()
+      ext_src.base_source = source
+      type_name = source.type
+      source_type = rdf_artifacts.ArtifactSource.SourceType
+      if (type_name == source_type.DIRECTORY or
+          type_name == source_type.LIST_FILES):
+        ext_src.path_type = _GetPathType(use_tsk)
+      elif type_name == source_type.FILE:
+        ext_src.path_type = _GetPathType(use_tsk)
+        ext_src.max_bytesize = max_file_size
+      elif type_name == source_type.GREP:
+        ext_src.path_type = _GetPathType(use_tsk)
+      elif type_name == source_type.REGISTRY_KEY:
+        ext_src.path_type = _GetPathType(use_tsk)
+      elif (type_name == source_type.ARTIFACT or
+            type_name == source_type.ARTIFACT_GROUP or
+            type_name == source_type.ARTIFACT_FILES):
+        extended_sources = []
+        artifact_list = []
+        if "names" in source.attributes:
+          artifact_list = source.attributes["names"]
+        elif "artifact_list" in source.attributes:
+          artifact_list = source.attributes["artifact_list"]
+        for artifact_name in artifact_list:
+          if artifact_name in processed_artifacts:
+            continue
+          artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
+          extended_artifact = _ExtendArtifact(knowledge_base, use_tsk,
+                                              max_file_size,
+                                              processed_artifacts, artifact_obj)
+          extended_sources.extend(extended_artifact.sources)
+        ext_source = extended_sources
+      if ext_source is None:
+        ext_source = [ext_src]
+
+      ext_art.sources.Extend(ext_source)
+  processed_artifacts.add(art_obj.name)
+  return ext_art
+
+
+def _GetPathType(use_tsk):
+  if use_tsk:
+    return rdf_paths.PathSpec.PathType.TSK
+  return rdf_paths.PathSpec.PathType.OS

@@ -3,7 +3,7 @@ import StringIO
 
 
 from grr_api_client import errors
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 from grr_response_proto.api import client_pb2
 from grr_response_proto.api import vfs_pb2
 from grr_response_proto.api.root import user_management_pb2

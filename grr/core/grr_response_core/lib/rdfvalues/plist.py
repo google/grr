@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """Plist related rdfvalues."""
 
-from grr.core.grr_response_core.lib import lexer
-from grr.core.grr_response_core.lib import plist
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import lexer
+from grr_response_core.lib import plist
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
 

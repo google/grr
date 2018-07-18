@@ -3,9 +3,9 @@
 import re
 from debian import deb822
 
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib import parser
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
 
 
 class DebianPackagesStatusParser(parser.FileParser):

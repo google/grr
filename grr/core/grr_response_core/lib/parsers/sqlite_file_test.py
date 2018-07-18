@@ -5,8 +5,8 @@
 import os
 import StringIO
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib.parsers import sqlite_file
+from grr_response_core.lib import flags
+from grr_response_core.lib.parsers import sqlite_file
 from grr.test_lib import test_lib
 
 

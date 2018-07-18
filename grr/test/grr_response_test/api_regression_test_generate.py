@@ -2,7 +2,7 @@
 """Program that generates golden regression data."""
 
 
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 
 from grr_response_server.gui import api_regression_test_lib
 

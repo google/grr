@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Settings for ACLs/approvals system."""
 
-from grr.core.grr_response_core.lib import config_lib
+from grr_response_core.lib import config_lib
 
 config_lib.DEFINE_string("ACL.approvers_config_file",
                          "%(Config.directory)/approvers.yaml",

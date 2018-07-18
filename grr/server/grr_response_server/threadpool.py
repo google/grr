@@ -33,8 +33,8 @@ import time
 
 import psutil
 
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import stats
+from grr_response_core.lib import utils
 
 STOP_MESSAGE = "Stop message"
 

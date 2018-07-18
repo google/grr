@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """This module contains regression tests for user API handlers."""
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
 
 from grr_response_server import aff4
 from grr_response_server import data_store

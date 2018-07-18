@@ -9,10 +9,10 @@ import hashlib
 
 import logging
 
-from grr.core.grr_response_core.lib import fingerprint
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib.rdfvalues import nsrl as rdf_nsrl
+from grr_response_core.lib import fingerprint
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib.rdfvalues import nsrl as rdf_nsrl
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store

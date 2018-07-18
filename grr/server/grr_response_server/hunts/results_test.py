@@ -2,9 +2,9 @@
 """Tests for grr_response_server.hunts.results."""
 
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import data_store
 from grr_response_server.hunts import results as hunts_results
 from grr.test_lib import aff4_test_lib

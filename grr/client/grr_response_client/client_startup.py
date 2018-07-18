@@ -2,11 +2,11 @@
 """Client startup routines."""
 
 from grr_response_client import client_logging
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.config import contexts
-from grr.core.grr_response_core.lib import config_lib
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import stats
+from grr_response_core import config
+from grr_response_core.config import contexts
+from grr_response_core.lib import config_lib
+from grr_response_core.lib import registry
+from grr_response_core.lib import stats
 
 
 def ClientInit():

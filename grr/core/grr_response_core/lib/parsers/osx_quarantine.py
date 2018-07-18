@@ -10,7 +10,7 @@ import locale
 import sys
 
 
-from grr.core.grr_response_core.lib.parsers import sqlite_file
+from grr_response_core.lib.parsers import sqlite_file
 
 
 class OSXQuarantineEvents(sqlite_file.SQLiteFile):

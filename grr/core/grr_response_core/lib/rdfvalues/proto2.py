@@ -11,8 +11,8 @@ library.
 
 import logging
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import type_info
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import type_info
 from grr_response_proto import semantic_pb2
 
 # Field types present in the proto2 field descriptors.

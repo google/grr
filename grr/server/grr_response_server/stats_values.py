@@ -2,8 +2,8 @@
 """RDF values for representing stats in the data-store."""
 
 
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import stats
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 
 

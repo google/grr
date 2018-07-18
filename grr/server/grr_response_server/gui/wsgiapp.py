@@ -18,11 +18,11 @@ from werkzeug import routing as werkzeug_routing
 from werkzeug import wrappers as werkzeug_wrappers
 from werkzeug import wsgi as werkzeug_wsgi
 
-from grr.core.grr_response_core import config
-from grr.core.grr_response_core.lib import rdfvalue
+from grr_response_core import config
+from grr_response_core.lib import rdfvalue
 
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 from grr_response_server import access_control
 from grr_response_server import server_logging
 from grr_response_server.gui import http_api

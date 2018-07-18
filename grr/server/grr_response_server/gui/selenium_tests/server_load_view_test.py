@@ -3,10 +3,10 @@
 from __future__ import division
 
 import unittest
-from grr.core.grr_response_core.lib import flags
+from grr_response_core.lib import flags
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import stats
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import stats
 from grr_response_server import aff4
 from grr_response_server.aff4_objects import stats_store
 from grr_response_server.gui import gui_test_lib

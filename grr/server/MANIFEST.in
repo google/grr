@@ -1,1 +1,6 @@
 include version.ini
+
+recursive-exclude grr_response_server/gui/static/node_modules *
+recursive-exclude grr_response_server/gui/static/tmp *
+
+recursive-exclude * *.pyc

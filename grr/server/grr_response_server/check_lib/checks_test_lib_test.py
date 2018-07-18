@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 """Tests for checks_test_lib."""
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import parser
-from grr.core.grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib import flags
+from grr_response_core.lib import parser
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server.check_lib import checks
 from grr_response_server.check_lib import checks_test_lib
 from grr.test_lib import test_lib

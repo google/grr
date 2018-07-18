@@ -4,10 +4,10 @@
 from grr_response_client import actions
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
-from grr.core.grr_response_core.lib import artifact_utils
-from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr.core.grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.core.grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib import artifact_utils
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
 class ArtifactCollector(actions.ActionPlugin):

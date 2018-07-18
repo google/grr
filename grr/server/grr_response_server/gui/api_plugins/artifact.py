@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """API handlers for accessing artifacts."""
 
-from grr.core.grr_response_core.lib import parser
+from grr_response_core.lib import parser
 
-from grr.core.grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import artifact_pb2
 from grr_response_server import artifact
 from grr_response_server import artifact_registry

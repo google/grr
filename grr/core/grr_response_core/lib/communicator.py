@@ -7,14 +7,14 @@ import time
 import zlib
 
 
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import registry
-from grr.core.grr_response_core.lib import stats
-from grr.core.grr_response_core.lib import type_info
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
+from grr_response_core.lib import stats
+from grr_response_core.lib import type_info
+from grr_response_core.lib import utils
 
-from grr.core.grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr.core.grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 
 
 class CommunicatorInit(registry.InitHook):

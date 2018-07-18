@@ -2,7 +2,7 @@
 """Map the conditions that trigger checks to the methods that perform them."""
 import itertools
 
-from grr.core.grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import checks_pb2
 
 

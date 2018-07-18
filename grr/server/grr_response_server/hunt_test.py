@@ -3,10 +3,10 @@
 
 import logging
 
-from grr.core.grr_response_core.lib import flags
-from grr.core.grr_response_core.lib import queues
-from grr.core.grr_response_core.lib import rdfvalue
-from grr.core.grr_response_core.lib import utils
+from grr_response_core.lib import flags
+from grr_response_core.lib import queues
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
 from grr_response_server import aff4
 from grr_response_server import events
 from grr_response_server import flow
