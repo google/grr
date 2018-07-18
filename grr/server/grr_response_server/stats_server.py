@@ -2,14 +2,14 @@
 """Stats server implementation."""
 
 
-import BaseHTTPServer
-
 import collections
 import json
 import logging
 import socket
 import threading
 
+
+from http import server as http_server
 
 from grr_response_core import config
 from grr_response_core.lib import registry
@@ -62,7 +62,7 @@ def BuildVarzJsonString():
   return encoder.encode(results)
 
 
-class StatsServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class StatsServerHandler(http_server.BaseHTTPRequestHandler):
   """Default stats server implementation."""
 
   def do_GET(self):  # pylint: disable=g-bad-name
@@ -94,7 +94,7 @@ class StatsServer(object):
     for port in range(self.port, max_port + 1):
       # Make a simple reference implementation WSGI server
       try:
-        server = BaseHTTPServer.HTTPServer(("", port), StatsServerHandler)
+        server = http_server.HTTPServer(("", port), StatsServerHandler)
         break
       except socket.error as e:
         if e.errno == socket.errno.EADDRINUSE and port < max_port:

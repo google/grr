@@ -6,9 +6,9 @@ import json
 import logging
 import time
 import traceback
-import urllib2
 
 
+from future.moves.urllib import parse as urlparse
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
 from werkzeug import wrappers as werkzeug_wrappers
@@ -237,7 +237,7 @@ class HttpRequestHandler(object):
     elif request.method in ["POST", "DELETE", "PATCH"]:
       # The header X-GRR-Reason is set in api-service.js.
       reason = utils.SmartUnicode(
-          urllib2.unquote(request.headers.get("X-Grr-Reason", "")))
+          urlparse.unquote(request.headers.get("X-Grr-Reason", "")))
 
     # We assume that request.user contains the username that we can trust.
     # No matter what authentication method is used, the WebAuthManager is

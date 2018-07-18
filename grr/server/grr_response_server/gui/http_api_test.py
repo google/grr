@@ -3,7 +3,9 @@
 """Tests for HTTP API."""
 
 import json
-import urllib2
+
+
+from future.moves.urllib import parse as urlparse
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
@@ -232,7 +234,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
 
   def testBuildToken(self):
     request = self._CreateRequest("POST", "/test_sample/some/path")
-    request.headers["X-Grr-Reason"] = urllib2.quote("区最 trailing space ")
+    request.headers["X-Grr-Reason"] = urlparse.quote("区最 trailing space ")
     token = self.request_handler.BuildToken(request, 20)
     self.assertEqual(token.reason, utils.SmartUnicode("区最 trailing space "))
 

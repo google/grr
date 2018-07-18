@@ -7,7 +7,7 @@ import logging
 import os
 import time
 import unittest
-import urlparse
+from future.moves.urllib import parse as urlparse
 
 import requests
 

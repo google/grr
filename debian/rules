@@ -23,7 +23,7 @@ override_dh_auto_test:
 
 override_dh_installinit:
 	dh_installinit
-	bash scripts/install_server_from_src.sh -i debian/grr-server
+	bash grr/core/scripts/install_server_from_src.sh -i debian/grr-server
 	# Add post installation instructions
 	cat debian/grr-server.postinst.in >> debian/grr-server.postinst.debhelper
 
@@ -66,8 +66,8 @@ override_dh_virtualenv:
 		--extra-pip-arg "--ignore-installed" \
 		--extra-pip-arg "--no-index" \
 		--extra-pip-arg "--find-links=${LOCAL_DEB_PYINDEX}" \
-		--extra-pip-arg "${LOCAL_DEB_PYINDEX}/${API_SDIST}" \
-		--extra-pip-arg "${LOCAL_DEB_PYINDEX}/${TEMPLATES_SDIST}" \
-		--extra-pip-arg "${LOCAL_DEB_PYINDEX}/${SERVER_SDIST}" \
-		--extra-pip-arg "${LOCAL_DEB_PYINDEX}/${CLIENT_SDIST}" \
-		--no-test
+		--skip-install \
+		--preinstall "${LOCAL_DEB_PYINDEX}/${API_SDIST}" \
+		--preinstall "${LOCAL_DEB_PYINDEX}/${TEMPLATES_SDIST}" \
+		--preinstall "${LOCAL_DEB_PYINDEX}/${SERVER_SDIST}" \
+		--preinstall "${LOCAL_DEB_PYINDEX}/${CLIENT_SDIST}"

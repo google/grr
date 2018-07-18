@@ -166,10 +166,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         self.current_artifact_name = artifact_name
         if type_name == source_type.COMMAND:
           self.RunCommand(source)
-        elif (type_name == source_type.DIRECTORY or
-              type_name == source_type.LIST_FILES):
-          # TODO(user): LIST_FILES will be replaced in favor of
-          # DIRECTORY as used by the public artifacts repo.
+        elif type_name == source_type.DIRECTORY:
           self.Glob(source, self.GetPathType())
         elif type_name == source_type.FILE:
           self.GetFiles(source, self.GetPathType(), self.args.max_file_size)
@@ -189,10 +186,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           self.WMIQuery(source)
         elif type_name == source_type.REKALL_PLUGIN:
           self.RekallPlugin(source)
-        # ARTIFACT is the legacy name for ARTIFACT_GROUP
-        # per: https://github.com/ForensicArtifacts/artifacts/pull/143
-        # TODO(user): remove legacy support after migration.
-        elif type_name in (source_type.ARTIFACT, source_type.ARTIFACT_GROUP):
+        elif type_name == source_type.ARTIFACT_GROUP:
           self.CollectArtifacts(source)
         elif type_name == source_type.ARTIFACT_FILES:
           self.CollectArtifactFiles(source)
@@ -1103,8 +1097,7 @@ def _ExtendArtifact(knowledge_base, use_tsk, max_file_size, processed_artifacts,
       ext_src.base_source = source
       type_name = source.type
       source_type = rdf_artifacts.ArtifactSource.SourceType
-      if (type_name == source_type.DIRECTORY or
-          type_name == source_type.LIST_FILES):
+      if type_name == source_type.DIRECTORY:
         ext_src.path_type = _GetPathType(use_tsk)
       elif type_name == source_type.FILE:
         ext_src.path_type = _GetPathType(use_tsk)
@@ -1113,8 +1106,7 @@ def _ExtendArtifact(knowledge_base, use_tsk, max_file_size, processed_artifacts,
         ext_src.path_type = _GetPathType(use_tsk)
       elif type_name == source_type.REGISTRY_KEY:
         ext_src.path_type = _GetPathType(use_tsk)
-      elif (type_name == source_type.ARTIFACT or
-            type_name == source_type.ARTIFACT_GROUP or
+      elif (type_name == source_type.ARTIFACT_GROUP or
             type_name == source_type.ARTIFACT_FILES):
         extended_sources = []
         artifact_list = []

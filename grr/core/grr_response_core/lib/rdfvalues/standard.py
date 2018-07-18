@@ -2,7 +2,7 @@
 """Standard RDFValues."""
 
 import re
-import urlparse
+from future.moves.urllib import parse as urlparse
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue

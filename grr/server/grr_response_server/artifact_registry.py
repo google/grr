@@ -367,15 +367,15 @@ class ArtifactRegistry(object):
       if exclude_dependents and GetArtifactPathDependencies(artifact):
         continue
 
-      # This needs to remain the last test, if it matches the result is added
-      if provides:
+      if not provides:
+        results.add(artifact)
+      else:
+        # This needs to remain the last test, if it matches the result is added
         for provide_string in artifact.provides:
           if provide_string in provides:
             results.add(artifact)
-            continue
-        continue
+            break
 
-      results.add(artifact)
     return results
 
   def GetRegisteredArtifactNames(self):

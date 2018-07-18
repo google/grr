@@ -2,7 +2,6 @@
 """This is the GRR frontend HTTP Server."""
 from __future__ import print_function
 
-import BaseHTTPServer
 import cgi
 import io
 import logging
@@ -12,6 +11,7 @@ import SocketServer
 import threading
 
 
+from http import server as http_server
 import ipaddr
 
 from google.protobuf import json_format
@@ -37,7 +37,7 @@ from grr_response_server import server_startup
 flags.DEFINE_version(config_server.VERSION["packageversion"])
 
 
-class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
   """GRR HTTP handler for receiving client posts."""
 
   statustext = {
@@ -308,7 +308,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             "frontend_active_count", self.active_counter, fields=["http"])
 
 
-class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
+class GRRHTTPServer(SocketServer.ThreadingMixIn, http_server.HTTPServer):
   """The GRR HTTP frontend server."""
 
   allow_reuse_address = True
@@ -340,8 +340,8 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
       self.address_family = socket.AF_INET6
 
     logging.info("Will attempt to listen on %s", server_address)
-    BaseHTTPServer.HTTPServer.__init__(self, server_address, handler, *args,
-                                       **kwargs)
+    http_server.HTTPServer.__init__(self, server_address, handler, *args,
+                                    **kwargs)
 
 
 def CreateServer(frontend=None):

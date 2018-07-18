@@ -959,7 +959,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     except communicator.UnknownClientCert:
       raise MakeHTTPException(406)
     except Exception as e:
-      logging.info("Exception in mock urllib2.Open: %s.", e)
+      logging.info("Exception in mock urllib.request.Open: %s.", e)
       self.last_urlmock_error = e
 
       if flags.FLAGS.debug:

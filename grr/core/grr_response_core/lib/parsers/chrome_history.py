@@ -9,9 +9,9 @@ import glob
 import itertools
 import locale
 import sys
-import urlparse
 
 
+from future.moves.urllib import parse as urlparse
 from past.builtins import long
 
 from grr_response_core.lib import parser

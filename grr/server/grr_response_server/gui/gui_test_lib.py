@@ -8,8 +8,9 @@ import logging
 import os
 import threading
 import time
-import urlparse
 
+
+from future.moves.urllib import parse as urlparse
 import portpicker
 from selenium import webdriver
 from selenium.common import exceptions

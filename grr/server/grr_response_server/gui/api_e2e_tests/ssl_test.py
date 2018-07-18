@@ -4,7 +4,6 @@
 import datetime
 import io
 import os
-import SimpleHTTPServer
 import socket
 import SocketServer
 import threading
@@ -15,6 +14,7 @@ from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.x509 import oid
+from http import server as http_server
 
 import portpicker
 import requests
@@ -175,7 +175,7 @@ class ApiSslWithWithVerifyPointingToCABundleTest(ApiSslServerTestBase,
         api_endpoint=self.endpoint, verify=self.cert_path)
 
 
-class Proxy(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class Proxy(http_server.SimpleHTTPRequestHandler):
 
   requests = []
 

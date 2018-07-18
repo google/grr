@@ -31,7 +31,7 @@ def _make_200(content):
 
 
 class RequestsInstrumentor(object):
-  """Instrument the urllib2 library."""
+  """Instrument the `requests` library."""
 
   def __init__(self):
     self.time = 0

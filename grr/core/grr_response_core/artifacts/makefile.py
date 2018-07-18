@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 """Update the artifacts directory from upstream."""
 from __future__ import print_function
+
 import fnmatch
 import glob
 import os
 import StringIO
-import urllib2
 import zipfile
+
+
+from future.moves.urllib import request as urlrequest
 
 
 def main():
@@ -15,7 +18,7 @@ def main():
   # the artifact registry and validation inside GRR. We will then move to
   # depending on pypi releases rather than just importing the yaml as we do now.
   url = "https://github.com/ForensicArtifacts/artifacts/archive/20170814.zip"
-  data = urllib2.urlopen(url).read()
+  data = urlrequest.urlopen(url).read()
 
   zip_obj = zipfile.ZipFile(StringIO.StringIO(data))
   # Remove all existing yaml files.

@@ -4,7 +4,7 @@ from __future__ import division
 
 import shlex
 import sys
-import urlparse
+from future.moves.urllib import parse as urlparse
 
 import ipaddr
 

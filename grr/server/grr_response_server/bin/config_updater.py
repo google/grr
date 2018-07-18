@@ -12,10 +12,10 @@ import readline  # pylint: disable=unused-import
 import socket
 import subprocess
 import sys
-import urlparse
 
 
 from builtins import input  # pylint: disable=redefined-builtin
+from future.moves.urllib import parse as urlparse
 import pkg_resources
 import yaml
 

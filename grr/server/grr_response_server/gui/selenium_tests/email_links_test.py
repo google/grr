@@ -3,7 +3,9 @@
 """Tests email links."""
 
 import re
-import urlparse
+
+
+from future.moves.urllib import parse as urlparse
 
 import unittest
 from grr_response_core.lib import flags

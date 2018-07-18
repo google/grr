@@ -370,8 +370,7 @@ class HTTPManager(object):
       **request_args: Args to the requests.request call.
 
     Returns:
-      a tuple of duration, urllib2.urlopen response.
-
+      a tuple of duration, urllib.request.urlopen response.
     """
     while True:
       try:

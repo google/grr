@@ -58,7 +58,7 @@ ADD . /usr/src/grr
 
 RUN cd /usr/src/grr && /usr/src/grr/docker/install_grr_from_gcs.sh
 
-ENTRYPOINT ["/usr/src/grr/scripts/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/src/grr/grr/core/scripts/docker-entrypoint.sh"]
 
 # Port for the admin UI GUI
 EXPOSE 8000

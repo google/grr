@@ -4,7 +4,7 @@
 import collections
 import json
 import logging
-import urlparse
+from future.moves.urllib import parse as urlparse
 
 import requests
 

@@ -20,7 +20,7 @@ import operator
 import os
 import struct
 import sys
-import urlparse
+from future.moves.urllib import parse as urlparse
 
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory

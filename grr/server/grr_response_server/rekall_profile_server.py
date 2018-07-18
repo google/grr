@@ -4,10 +4,11 @@ from __future__ import division
 
 import json
 import logging
-import urllib2
 import zlib
 
 
+from future.moves.urllib import error as urlerror
+from future.moves.urllib import request as urlrequest
 from future.utils import with_metaclass
 
 from grr_response_core import config
@@ -93,21 +94,21 @@ class RekallRepositoryProfileServer(ProfileServer):
     try:
       url = "%s/%s/%s.gz" % (config.CONFIG["Rekall.profile_repository"],
                              version, profile_name)
-      handle = urllib2.urlopen(url, timeout=10)
+      handle = urlrequest.urlopen(url, timeout=10)
       profile_data = handle.read()
       if profile_data[:3] != "\x1F\x8B\x08":
         raise ValueError("Downloaded file does not look like gzipped data: %s" %
                          profile_data[:100])
       compression = "GZIP"
-    except urllib2.HTTPError as e:
+    except urlerror.HTTPError as e:
       if e.code == 404:
         # Try to download without the .gz
-        handle = urllib2.urlopen(url[:-3], timeout=10)
+        handle = urlrequest.urlopen(url[:-3], timeout=10)
         profile_data = handle.read()
         compression = "NONE"
       else:
         raise
-    except urllib2.URLError as e:
+    except urlerror.URLError as e:
       logging.info("Got an URLError while downloading Rekall profile %s: %s",
                    url, e.reason)
       raise
@@ -136,7 +137,7 @@ class GRRRekallProfileServer(CachingProfileServer,
       logging.info("Getting profile: %s", profile)
       try:
         self.GetProfileByName(profile, ignore_cache=True, version=version)
-      except urllib2.URLError as e:
+      except urlerror.URLError as e:
         logging.info("Exception: %s", e)
 
   def GetMissingProfiles(
@@ -181,7 +182,7 @@ class GRRRekallProfileServer(CachingProfileServer,
         logging.info("Getting missing profile: %s", profile)
         try:
           pool.AddTask(self.GetProfileByName, (profile, version, True))
-        except urllib2.URLError as e:
+        except urlerror.URLError as e:
           logging.info("Exception: %s", e)
     finally:
       pool.Join()

@@ -64,8 +64,8 @@ mkdir -p "$INSTALL_PREFIX/etc/grr"
 # When installed globally the config files are copied to the global
 # configuration directory, except grr-server.yaml, which is effectively part of
 # the code.
-for f in $SRC_DIR/install_data/etc/*.yaml; do
-  if [ "$f" != "$SRC_DIR/install_data/etc/grr-server.yaml" ]; then
+for f in $SRC_DIR/grr/core/install_data/etc/*.yaml; do
+  if [ "$f" != "$SRC_DIR/grr/core/install_data/etc/grr-server.yaml" ]; then
     $INSTALL_CMD "$f" "$INSTALL_PREFIX/etc/grr/"
   fi
 done
@@ -73,8 +73,8 @@ done
 # Install all the script entry points in /usr/bin/.
 mkdir -p "$INSTALL_PREFIX/usr/bin/"
 
-LAUNCHER="$SRC_DIR/scripts/debian_launcher"
-LAUNCHER_NO_EXTRA_ARGS="$SRC_DIR/scripts/debian_launcher_no_extra_args"
+LAUNCHER="$SRC_DIR/grr/core/scripts/debian_launcher"
+LAUNCHER_NO_EXTRA_ARGS="$SRC_DIR/grr/core/scripts/debian_launcher_no_extra_args"
 
 $INSTALL_CMD $LAUNCHER_NO_EXTRA_ARGS "$INSTALL_PREFIX/usr/bin/grr_api_shell"
 $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_api_shell_raw_access"
