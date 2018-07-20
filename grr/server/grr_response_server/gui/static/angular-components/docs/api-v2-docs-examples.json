@@ -150,15 +150,22 @@
         "requestor": "api_test_user",
         "subject": {
           "allowOverruns": false,
+          "args": {
+            "actionType": "HUNT_CRON_ACTION",
+            "huntCronAction": {
+              "flowName": "",
+              "huntRunnerArgs": {
+                "avgCpuSecondsPerClientLimit": "60",
+                "avgNetworkBytesPerClientLimit": "10485760",
+                "avgResultsPerClientLimit": "1000",
+                "crashLimit": "100"
+              }
+            }
+          },
           "cronJobId": "CronJob_123456",
-          "description": "",
-          "flowName": "",
-          "flowRunnerArgs": {},
-          "isFailing": false,
-          "lifetime": "0",
-          "periodicity": "86400",
-          "state": "ENABLED",
-          "urn": "aff4:/cron/CronJob_123456"
+          "enabled": true,
+          "frequency": "86400",
+          "isFailing": false
         }
       },
       "test_class": "ApiCreateCronJobApprovalHandlerRegressionTest_http_v2",
@@ -1210,15 +1217,22 @@
         "requestor": "api_test_user",
         "subject": {
           "allowOverruns": false,
+          "args": {
+            "actionType": "HUNT_CRON_ACTION",
+            "huntCronAction": {
+              "flowName": "",
+              "huntRunnerArgs": {
+                "avgCpuSecondsPerClientLimit": "60",
+                "avgNetworkBytesPerClientLimit": "10485760",
+                "avgResultsPerClientLimit": "1000",
+                "crashLimit": "100"
+              }
+            }
+          },
           "cronJobId": "CronJob_123456",
-          "description": "",
-          "flowName": "",
-          "flowRunnerArgs": {},
-          "isFailing": false,
-          "lifetime": "0",
-          "periodicity": "86400",
-          "state": "ENABLED",
-          "urn": "aff4:/cron/CronJob_123456"
+          "enabled": true,
+          "frequency": "86400",
+          "isFailing": false
         }
       },
       "test_class": "ApiGetCronJobApprovalHandlerRegressionTest_http_v2",
@@ -1242,15 +1256,22 @@
         "requestor": "api_test_user",
         "subject": {
           "allowOverruns": false,
+          "args": {
+            "actionType": "HUNT_CRON_ACTION",
+            "huntCronAction": {
+              "flowName": "",
+              "huntRunnerArgs": {
+                "avgCpuSecondsPerClientLimit": "60",
+                "avgNetworkBytesPerClientLimit": "10485760",
+                "avgResultsPerClientLimit": "1000",
+                "crashLimit": "100"
+              }
+            }
+          },
           "cronJobId": "CronJob_567890",
-          "description": "",
-          "flowName": "",
-          "flowRunnerArgs": {},
-          "isFailing": false,
-          "lifetime": "0",
-          "periodicity": "86400",
-          "state": "ENABLED",
-          "urn": "aff4:/cron/CronJob_567890"
+          "enabled": true,
+          "frequency": "86400",
+          "isFailing": false
         }
       },
       "test_class": "ApiGetCronJobApprovalHandlerRegressionTest_http_v2",
@@ -1262,8 +1283,11 @@
       "api_method": "GetCronJobRun",
       "method": "GET",
       "response": {
+        "cronJobId": "GRRVersionBreakDown",
+        "finishedAt": "44000000",
+        "runId": "F:ABCDEF11",
         "startedAt": "44000000",
-        "status": "RUNNING"
+        "status": "FINISHED"
       },
       "test_class": "ApiGetCronJobRunHandlerRegressionTest_http_v2",
       "url": "/api/v2/cron-jobs/GRRVersionBreakDown/runs/F:ABCDEF11"
@@ -5236,15 +5260,22 @@
         "requestor": "requestor",
         "subject": {
           "allowOverruns": false,
+          "args": {
+            "actionType": "HUNT_CRON_ACTION",
+            "huntCronAction": {
+              "flowName": "",
+              "huntRunnerArgs": {
+                "avgCpuSecondsPerClientLimit": "60",
+                "avgNetworkBytesPerClientLimit": "10485760",
+                "avgResultsPerClientLimit": "1000",
+                "crashLimit": "100"
+              }
+            }
+          },
           "cronJobId": "CronJob_123456",
-          "description": "",
-          "flowName": "",
-          "flowRunnerArgs": {},
-          "isFailing": false,
-          "lifetime": "0",
-          "periodicity": "86400",
-          "state": "ENABLED",
-          "urn": "aff4:/cron/CronJob_123456"
+          "enabled": true,
+          "frequency": "86400",
+          "isFailing": false
         }
       },
       "test_class": "ApiGrantCronJobApprovalHandlerRegressionTest_http_v2",
@@ -5887,9 +5918,11 @@
       "response": {
         "items": [
           {
+            "cronJobId": "GRRVersionBreakDown",
+            "finishedAt": "44000000",
             "runId": "F:ABCDEF11",
             "startedAt": "44000000",
-            "status": "RUNNING"
+            "status": "FINISHED"
           }
         ]
       },
@@ -5905,55 +5938,68 @@
         "items": [
           {
             "allowOverruns": false,
+            "args": {
+              "actionType": "HUNT_CRON_ACTION",
+              "huntCronAction": {
+                "flowArgs": "",
+                "flowName": "GRRVersionBreakDown",
+                "huntRunnerArgs": {
+                  "avgCpuSecondsPerClientLimit": "60",
+                  "avgNetworkBytesPerClientLimit": "10485760",
+                  "avgResultsPerClientLimit": "1000",
+                  "crashLimit": "100"
+                }
+              }
+            },
             "cronJobId": "GRRVersionBreakDown",
-            "description": "foo",
-            "flowArgs": {
-              "@type": "type.googleapis.com/EmptyMessage"
-            },
-            "flowName": "GRRVersionBreakDown",
-            "flowRunnerArgs": {
-              "flowName": "GRRVersionBreakDown"
-            },
+            "enabled": false,
+            "frequency": "86400",
             "isFailing": false,
-            "lifetime": "7200",
-            "periodicity": "86400",
-            "state": "DISABLED",
-            "urn": "aff4:/cron/GRRVersionBreakDown"
+            "lifetime": "7200"
           },
           {
             "allowOverruns": false,
+            "args": {
+              "actionType": "HUNT_CRON_ACTION",
+              "huntCronAction": {
+                "flowArgs": "",
+                "flowName": "LastAccessStats",
+                "huntRunnerArgs": {
+                  "avgCpuSecondsPerClientLimit": "60",
+                  "avgNetworkBytesPerClientLimit": "10485760",
+                  "avgResultsPerClientLimit": "1000",
+                  "crashLimit": "100"
+                }
+              }
+            },
             "cronJobId": "LastAccessStats",
-            "description": "",
-            "flowArgs": {
-              "@type": "type.googleapis.com/EmptyMessage"
-            },
-            "flowName": "LastAccessStats",
-            "flowRunnerArgs": {
-              "flowName": "LastAccessStats"
-            },
+            "enabled": true,
+            "frequency": "604800",
             "isFailing": true,
+            "lastRunStatus": "ERROR",
             "lastRunTime": "230000000",
-            "lifetime": "86400",
-            "periodicity": "604800",
-            "state": "ENABLED",
-            "urn": "aff4:/cron/LastAccessStats"
+            "lifetime": "86400"
           },
           {
             "allowOverruns": false,
+            "args": {
+              "actionType": "HUNT_CRON_ACTION",
+              "huntCronAction": {
+                "flowArgs": "",
+                "flowName": "OSBreakDown",
+                "huntRunnerArgs": {
+                  "avgCpuSecondsPerClientLimit": "60",
+                  "avgNetworkBytesPerClientLimit": "10485760",
+                  "avgResultsPerClientLimit": "1000",
+                  "crashLimit": "100"
+                }
+              }
+            },
             "cronJobId": "OSBreakDown",
-            "description": "bar",
-            "flowArgs": {
-              "@type": "type.googleapis.com/EmptyMessage"
-            },
-            "flowName": "OSBreakDown",
-            "flowRunnerArgs": {
-              "flowName": "OSBreakDown"
-            },
+            "enabled": true,
+            "frequency": "604800",
             "isFailing": false,
-            "lifetime": "86400",
-            "periodicity": "604800",
-            "state": "ENABLED",
-            "urn": "aff4:/cron/OSBreakDown"
+            "lifetime": "86400"
           }
         ],
         "totalCount": "3"
@@ -7088,24 +7134,28 @@
       "api_method": "ModifyCronJob",
       "method": "PATCH",
       "request_payload": {
-        "state": "ENABLED"
+        "enabled": true
       },
       "response": {
         "allowOverruns": false,
+        "args": {
+          "actionType": "HUNT_CRON_ACTION",
+          "huntCronAction": {
+            "flowArgs": "",
+            "flowName": "OSBreakDown",
+            "huntRunnerArgs": {
+              "avgCpuSecondsPerClientLimit": "60",
+              "avgNetworkBytesPerClientLimit": "10485760",
+              "avgResultsPerClientLimit": "1000",
+              "crashLimit": "100"
+            }
+          }
+        },
         "cronJobId": "OSBreakDown",
-        "description": "",
-        "flowArgs": {
-          "@type": "type.googleapis.com/EmptyMessage"
-        },
-        "flowName": "OSBreakDown",
-        "flowRunnerArgs": {
-          "flowName": "OSBreakDown"
-        },
+        "enabled": true,
+        "frequency": "86400",
         "isFailing": false,
-        "lifetime": "604800",
-        "periodicity": "86400",
-        "state": "ENABLED",
-        "urn": "aff4:/cron/OSBreakDown"
+        "lifetime": "604800"
       },
       "test_class": "ApiModifyCronJobRegressionTest_http_v2",
       "url": "/api/v2/cron-jobs/OSBreakDown"
@@ -7114,24 +7164,28 @@
       "api_method": "ModifyCronJob",
       "method": "PATCH",
       "request_payload": {
-        "state": "DISABLED"
+        "enabled": false
       },
       "response": {
         "allowOverruns": false,
+        "args": {
+          "actionType": "HUNT_CRON_ACTION",
+          "huntCronAction": {
+            "flowArgs": "",
+            "flowName": "GRRVersionBreakDown",
+            "huntRunnerArgs": {
+              "avgCpuSecondsPerClientLimit": "60",
+              "avgNetworkBytesPerClientLimit": "10485760",
+              "avgResultsPerClientLimit": "1000",
+              "crashLimit": "100"
+            }
+          }
+        },
         "cronJobId": "GRRVersionBreakDown",
-        "description": "",
-        "flowArgs": {
-          "@type": "type.googleapis.com/EmptyMessage"
-        },
-        "flowName": "GRRVersionBreakDown",
-        "flowRunnerArgs": {
-          "flowName": "GRRVersionBreakDown"
-        },
+        "enabled": false,
+        "frequency": "86400",
         "isFailing": false,
-        "lifetime": "604800",
-        "periodicity": "86400",
-        "state": "DISABLED",
-        "urn": "aff4:/cron/GRRVersionBreakDown"
+        "lifetime": "604800"
       },
       "test_class": "ApiModifyCronJobRegressionTest_http_v2",
       "url": "/api/v2/cron-jobs/GRRVersionBreakDown"

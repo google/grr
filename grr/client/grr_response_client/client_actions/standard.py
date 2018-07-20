@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Standard actions that happen on the client."""
 from __future__ import print_function
-import cStringIO as StringIO
+
 import ctypes
 import gzip
 import hashlib
+import io
 import logging
 import os
 import platform
@@ -440,7 +441,11 @@ class ExecutePython(actions.ActionPlugin):
     # Export the Progress function to allow python hacks to call it.
     context["Progress"] = self.Progress
 
-    stdout = StringIO.StringIO()
+    # TODO(hanuszczak): In Python 3 writing to stdout is writing human readable
+    # text so `StringIO` is better fit. Actions should be refactored so that
+    # they write unicode (probably they already do) instead of arbitrary stream
+    # of bytes.
+    stdout = io.BytesIO()
     with utils.Stubber(sys, "stdout", StdOutHook(stdout)):
       exec (args.python_code.data, context)  # pylint: disable=exec-used
 

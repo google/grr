@@ -10,6 +10,9 @@ import os
 import re
 import stat
 
+
+from builtins import map  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -280,7 +283,7 @@ class PathID(HashID):
     _ValidatePathComponents(components)
 
     # TODO(hanuszczak): `SmartStr` is terrible, lets not do that.
-    components = map(utils.SmartStr, components)
+    components = tuple(map(utils.SmartStr, components))
 
     if components:
       # We need a string to hash, based on components. If we simply concatenated

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Library for client code signing."""
 
-import cStringIO
+import io
 import logging
 import os
 import platform
@@ -115,7 +115,7 @@ class WindowsOsslsigncodeCodeSigner(CodeSigner):
     ]
 
     try:
-      output_log = cStringIO.StringIO()
+      output_log = io.StringIO()
       ossl = pexpect.spawn("osslsigncode", args)
       # Use logfile_read so we don't get the password we're injecting.
       ossl.logfile_read = output_log
@@ -165,7 +165,7 @@ class RPMCodeSigner(CodeSigner):
     ] + rpm_filenames
 
     try:
-      output_log = cStringIO.StringIO()
+      output_log = io.StringIO()
       rpmsign = pexpect.spawn("rpmsign", args, timeout=1000)
       # Use logfile_read so we don't get the password we're injecting.
       rpmsign.logfile_read = output_log

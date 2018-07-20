@@ -2,6 +2,9 @@
 import os
 import shutil
 
+
+from builtins import zip  # pylint: disable=redefined-builtin
+
 import unittest
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_core.lib import flags

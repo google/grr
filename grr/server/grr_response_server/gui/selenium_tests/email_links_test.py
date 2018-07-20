@@ -11,8 +11,10 @@ import unittest
 from grr_response_core.lib import flags
 
 from grr_response_core.lib import utils
+from grr_response_server import cronjobs
+from grr_response_server import data_store
 from grr_response_server import email_alerts
-from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.hunts import implementation
@@ -161,13 +163,22 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     # We should end up on hunts's page.
     self.WaitUntil(self.IsTextPresent, hunt_id.Basename())
 
+  def _CreateOSBreakDownCronJobApproval(self):
+    if data_store.RelationalDBReadEnabled():
+      job_name = cron_system.OSBreakDownCronJob.__name__
+      cronjobs.ScheduleSystemCronJobs(names=[job_name])
+    else:
+      job_name = cron_system.OSBreakDown.__name__
+      aff4_cronjobs.ScheduleSystemCronFlows(names=[job_name], token=self.token)
+
+    aff4_cronjobs.GetCronManager().DisableJob(job_id=job_name)
+    return job_name
+
   def testEmailCronJobApprovalRequestLinkLeadsToACorrectPage(self):
-    cronjobs.ScheduleSystemCronFlows(
-        names=[cron_system.OSBreakDown.__name__], token=self.token)
-    cronjobs.GetCronManager().DisableJob(job_id="OSBreakDown")
+    job_name = self._CreateOSBreakDownCronJobApproval()
 
     self.RequestCronJobApproval(
-        "OSBreakDown",
+        job_name,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
         requestor=self.token.username)
@@ -189,15 +200,12 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
     self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
-    self.WaitUntil(self.IsTextPresent, "Periodicity")
+    self.WaitUntil(self.IsTextPresent, "Frequency")
 
-  def testEmailCronjobApprovalGrantNotificationLinkLeadsToCorrectPage(self):
-    cronjobs.ScheduleSystemCronFlows(
-        names=[cron_system.OSBreakDown.__name__], token=self.token)
-    cronjobs.GetCronManager().DisableJob(job_id="OSBreakDown")
-
+  def testEmailCronJobApprovalGrantNotificationLinkLeadsToCorrectPage(self):
+    job_name = self._CreateOSBreakDownCronJobApproval()
     self.RequestAndGrantCronJobApproval(
-        "OSBreakDown",
+        job_name,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
         requestor=self.token.username)

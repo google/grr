@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 """This module contains tests for user API handlers."""
 
-from grr_response_core.lib import flags
 
+from builtins import zip  # pylint: disable=redefined-builtin
+
+from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -595,8 +597,8 @@ class ApiCreateCronJobApprovalHandlerTest(
     self.SetUpApprovalTest()
 
     cron_manager = aff4_cronjobs.GetCronManager()
-    cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
-        periodicity="1d", allow_overruns=False)
+    cron_args = rdf_cronjobs.CreateCronJobArgs(
+        frequency="1d", allow_overruns=False)
     cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
     self.handler = user_plugin.ApiCreateCronJobApprovalHandler()
@@ -618,8 +620,8 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
 
   def testRendersRequestedCronJobApproval(self):
     cron_manager = aff4_cronjobs.GetCronManager()
-    cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
-        periodicity="1d", allow_overruns=False)
+    cron_args = rdf_cronjobs.CreateCronJobArgs(
+        frequency="1d", allow_overruns=False)
     cron_job_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
     self.RequestCronJobApproval(

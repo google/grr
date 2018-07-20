@@ -4,6 +4,9 @@ import collections
 import logging
 import re
 
+
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
 from grr_response_core.lib import utils

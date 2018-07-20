@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Mixin tests for blobs in the relational db."""
 
+
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_server import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 

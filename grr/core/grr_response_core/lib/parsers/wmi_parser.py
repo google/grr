@@ -7,6 +7,7 @@ import struct
 import time
 
 from builtins import chr  # pylint: disable=redefined-builtin
+from builtins import map  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
@@ -308,7 +309,7 @@ class WMIInterfacesParser(parser.WMIQueryParser):
     microseconds = timestr[15:21]
 
     unix_seconds = calendar.timegm(
-        map(int, [year, month, day, hours, minutes, seconds]))
+        tuple(map(int, [year, month, day, hours, minutes, seconds])))
     unix_seconds -= int(offset_minutes) * 60
     return rdfvalue.RDFDatetime(unix_seconds * 1e6 + int(microseconds))
 

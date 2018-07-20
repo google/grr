@@ -9,6 +9,7 @@ import time
 import traceback
 
 
+from builtins import map  # pylint: disable=redefined-builtin
 import cryptography
 from cryptography.hazmat.backends import openssl
 

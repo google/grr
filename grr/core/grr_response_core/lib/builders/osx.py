@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """An implementation of an OSX client builder."""
 from __future__ import print_function
+
+import io
 import logging
 import os
 import shutil
-import StringIO
 import subprocess
 import zipfile
 
@@ -89,7 +90,8 @@ class DarwinClientBuilder(build.ClientBuilder):
     logging.info("Generating zip template file at %s", output_file)
     with zipfile.ZipFile(output_file, mode="a") as zf:
       # Get the build yaml
-      build_yaml = StringIO.StringIO()
+      # TODO(hanuszczak): YAML, consider using `StringIO` instead.
+      build_yaml = io.BytesIO()
       self.WriteBuildYaml(build_yaml)
       build_yaml.seek(0)
       zf.writestr("build.yaml", build_yaml.read())

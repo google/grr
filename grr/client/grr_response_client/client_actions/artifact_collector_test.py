@@ -4,10 +4,11 @@ import os
 
 import mock
 
+from grr_response_client import client_utils_common
 from grr_response_client.client_actions import artifact_collector
-
 from grr_response_core import config
 from grr_response_core.lib import flags
+from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifact
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -35,7 +36,8 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     ext_src = rdf_artifact.ExtendedSource(base_source=list(artifact.sources)[0])
     ext_art = rdf_artifact.ExtendedArtifact(
         name=artifact.name, sources=list(ext_src))
-    request = rdf_artifact.ClientArtifactCollectorArgs(artifacts=list(ext_art))
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=list(ext_art), apply_parsers=False)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
     collected_artifact = list(result.collected_artifacts)[0]
     execute_response = list(collected_artifact.action_results)[0].value
@@ -51,7 +53,8 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     ext_src = rdf_artifact.ExtendedSource(base_source=list(artifact.sources)[0])
     ext_art = rdf_artifact.ExtendedArtifact(
         name=artifact.name, sources=list(ext_src))
-    request = rdf_artifact.ClientArtifactCollectorArgs(artifacts=list(ext_art))
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=list(ext_art), apply_parsers=False)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
     collected_artifact = list(result.collected_artifacts)[0]
     hostname = list(collected_artifact.action_results)[0].value
@@ -79,7 +82,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
         ext_art = rdf_artifact.ExtendedArtifact(
             name="FakeRegistryValue", sources=list(ext_src))
         request = rdf_artifact.ClientArtifactCollectorArgs(
-            artifacts=list(ext_art))
+            artifacts=list(ext_art), apply_parsers=False)
         result = self.RunAction(artifact_collector.ArtifactCollector,
                                 request)[0]
         collected_artifact = list(result.collected_artifacts)[0]
@@ -99,7 +102,8 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     ext_src = rdf_artifact.ExtendedSource(base_source=list(artifact.sources)[0])
     ext_art = rdf_artifact.ExtendedArtifact(
         name=artifact.name, sources=list(ext_src))
-    request = rdf_artifact.ClientArtifactCollectorArgs(artifacts=list(ext_art))
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=list(ext_art), apply_parsers=False)
     request.artifacts.append(ext_art)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
     collected_artifacts = list(result.collected_artifacts)
@@ -151,7 +155,8 @@ class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
     request = rdf_artifact.ClientArtifactCollectorArgs(
         artifacts=list(ext_art),
         knowledge_base=None,
-        ignore_interpolation_errors=True)
+        ignore_interpolation_errors=True,
+        apply_parsers=False)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
     self.assertIsInstance(result, rdf_artifact.ClientArtifactCollectorResult)
 
@@ -167,6 +172,79 @@ class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
       self.assertEqual(request, expected)
       self.assertEqual(action, self.action)
       self.action.Start.assert_called_with(request)
+
+
+class TestEchoCmdParser(parser.CommandParser):
+
+  output_types = ["SoftwarePackage"]
+  supported_artifacts = ["TestEchoCmdArtifact"]
+
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
+    del cmd, args, stderr, return_val, time_taken, knowledge_base  # Unused
+    installed = rdf_client.SoftwarePackage.InstallState.INSTALLED
+    soft = rdf_client.SoftwarePackage(
+        name="Package",
+        description=stdout,
+        version="1",
+        architecture="amd64",
+        install_state=installed)
+    yield soft
+
+
+class ParseResponsesTest(client_test_lib.EmptyActionTest):
+
+  def testCmdArtifact(self):
+    """Test the parsing of an Echo Command with a TestParser."""
+    client_test_lib.Command("/bin/echo", args=["1"])
+
+    processor = parser.Parser.GetClassesByArtifact("TestEchoCmdArtifact")[0]()
+
+    self.assertIsInstance(processor, TestEchoCmdParser)
+
+    request = rdf_client.ExecuteRequest(cmd="/bin/echo", args=["1"])
+    res = client_utils_common.Execute(request.cmd, request.args)
+    (stdout, stderr, status, time_used) = res
+
+    response = rdf_client.ExecuteResponse(
+        request=request,
+        stdout=stdout,
+        stderr=stderr,
+        exit_status=status,
+        time_used=int(1e6 * time_used))
+
+    results = []
+    for res in artifact_collector.ParseResponse(processor, response, {}):
+      results.append(res)
+
+    self.assertEqual(len(results), 1)
+    self.assertIsInstance(results[0], rdf_client.SoftwarePackage)
+    self.assertEqual(results[0].description, "1\n")
+
+  def testCmdArtifactAction(self):
+    """Test the actual client action with parsers."""
+    client_test_lib.Command("/bin/echo", args=["1"])
+
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.COMMAND,
+        attributes={
+            "cmd": "/bin/echo",
+            "args": ["1"]
+        })
+    ext_src = rdf_artifact.ExtendedSource(base_source=source)
+    ext_art = rdf_artifact.ExtendedArtifact(
+        name="TestEchoCmdArtifact", sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=list(ext_art),
+        knowledge_base=None,
+        ignore_interpolation_errors=True,
+        apply_parsers=True)
+    result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
+    self.assertIsInstance(result, rdf_artifact.ClientArtifactCollectorResult)
+    self.assertTrue(len(result.collected_artifacts), 1)
+    res = result.collected_artifacts[0].action_results[0].value
+    self.assertIsInstance(res, rdf_client.SoftwarePackage)
+    self.assertEqual(res.description, "1\n")
 
 
 def main(argv):

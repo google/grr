@@ -6,6 +6,9 @@ import fnmatch
 import re
 import stat
 
+
+from builtins import map  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -72,7 +75,7 @@ def WriteStatEntries(stat_entries, client_id, mutation_pool, token=None):
         token=token)
 
   if data_store.RelationalDBWriteEnabled():
-    path_infos = map(rdf_objects.PathInfo.FromStatEntry, stat_entries)
+    path_infos = list(map(rdf_objects.PathInfo.FromStatEntry, stat_entries))
     data_store.REL_DB.WritePathInfos(client_id.Basename(), path_infos)
 
 
@@ -150,7 +153,7 @@ class ListDirectory(flow.GRRFlow):
         path_info = rdf_objects.PathInfo.FromStatEntry(self.state.stat)
         data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
 
-      stat_entries = map(rdf_client.StatEntry, responses)
+      stat_entries = list(map(rdf_client.StatEntry, responses))
       WriteStatEntries(
           stat_entries,
           client_id=self.client_id,
@@ -249,7 +252,7 @@ class IteratedListDirectory(ListDirectory):
           urn, standard.VFSDirectory, mutation_pool=pool, token=self.token):
         pass
 
-      stat_entries = map(rdf_client.StatEntry, self.state.responses)
+      stat_entries = list(map(rdf_client.StatEntry, self.state.responses))
       WriteStatEntries(
           stat_entries,
           client_id=self.client_id,
@@ -356,7 +359,7 @@ class RecursiveListDirectory(flow.GRRFlow):
     """Stores all stat responses."""
     with data_store.DB.GetMutationPool() as pool:
 
-      stat_entries = map(rdf_client.StatEntry, responses)
+      stat_entries = list(map(rdf_client.StatEntry, responses))
       WriteStatEntries(
           stat_entries,
           client_id=self.client_id,

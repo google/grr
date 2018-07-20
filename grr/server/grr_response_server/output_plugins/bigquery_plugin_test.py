@@ -6,6 +6,8 @@ import gzip
 import json
 import os
 
+
+from builtins import zip  # pylint: disable=redefined-builtin
 import mock
 
 from grr_response_core import config

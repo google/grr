@@ -8,6 +8,9 @@ import logging
 import operator
 import re
 
+
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -862,7 +865,7 @@ class ApiGetHuntClientCompletionStatsHandler(
 
     # Convert to hours, starting from 0.
     times = [(t - t0) / 3600.0 for t in times]
-    return (zip(times, cl), zip(times, fi))
+    return (list(zip(times, cl)), list(zip(times, fi)))
 
   def _Resample(self, stats, target_size):
     """Resamples the stats to have a specific number of data points."""

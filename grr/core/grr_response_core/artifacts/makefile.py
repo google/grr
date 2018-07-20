@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import fnmatch
 import glob
+import io
 import os
-import StringIO
 import zipfile
 
 
@@ -20,7 +20,7 @@ def main():
   url = "https://github.com/ForensicArtifacts/artifacts/archive/20170814.zip"
   data = urlrequest.urlopen(url).read()
 
-  zip_obj = zipfile.ZipFile(StringIO.StringIO(data))
+  zip_obj = zipfile.ZipFile(io.BytesIO(data))
   # Remove all existing yaml files.
   for filename in glob.glob("*.yaml"):
     os.unlink(filename)

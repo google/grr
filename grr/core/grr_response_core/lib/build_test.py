@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Tests for building and repacking clients."""
 
+import io
 import os
-import StringIO
 
 import mock
 import yaml
@@ -43,7 +43,8 @@ class BuildTests(test_lib.GRRBaseTest):
             u"amd64"
     }
 
-    fd = StringIO.StringIO()
+    # TODO(hanuszczak): YAML, consider using `StringIO` instead.
+    fd = io.BytesIO()
     builder = build.ClientBuilder(context=context)
 
     with mock.patch.object(rdf_client.Uname, "FromCurrentSystem") as fcs:

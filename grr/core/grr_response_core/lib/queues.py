@@ -4,13 +4,15 @@
 This module defines the queues where a worker may look for work.
 """
 
+from builtins import map  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import rdfvalue
 
 # Queues that a standard worker should work from, highest priority first.
 #
 # "W" and "CA" are deprecated, but included until we are sure that they are
 # empty.
-WORKER_LIST = map(rdfvalue.RDFURN, ["CA", "W", "E", "F", "H", "S"])
+WORKER_LIST = list(map(rdfvalue.RDFURN, ["CA", "W", "E", "F", "H", "S"]))
 
 # The normal queue for enrollment messages.
 ENROLLMENT = rdfvalue.RDFURN("E")

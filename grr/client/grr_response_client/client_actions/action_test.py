@@ -6,6 +6,8 @@ import os
 import posix
 import stat
 
+
+from builtins import zip  # pylint: disable=redefined-builtin
 import psutil
 
 from grr_response_client import actions

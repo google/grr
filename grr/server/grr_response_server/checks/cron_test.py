@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 """Tests for cron checks."""
 
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly

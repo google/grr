@@ -5,7 +5,9 @@
 import unittest
 from grr_response_core.lib import flags
 
-from grr_response_server.aff4_objects import cronjobs
+from grr_response_server import cronjobs
+from grr_response_server import data_store
+from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
@@ -17,10 +19,20 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
   # can't correctly enter Unicode text into forms.
   reason = "Felt like it!"
 
+  def _ScheduleCronJob(self):
+    if data_store.RelationalDBReadEnabled(category="cronjobs"):
+      cron_job_id = cron_system.OSBreakDownCronJob.__name__
+      cronjobs.ScheduleSystemCronJobs(names=[cron_job_id])
+    else:
+      cron_job_id = cron_system.OSBreakDown.__name__
+      aff4_cronjobs.ScheduleSystemCronFlows(
+          names=[cron_job_id], token=self.token)
+    aff4_cronjobs.GetCronManager().DisableJob(job_id=cron_job_id)
+    return cron_job_id
+
   def testCronJobACLWorkflow(self):
-    cronjobs.ScheduleSystemCronFlows(
-        names=[cron_system.OSBreakDown.__name__], token=self.token)
-    cronjobs.GetCronManager().DisableJob(job_id="OSBreakDown")
+
+    cron_job_id = self._ScheduleCronJob()
 
     # Open up and click on Cron Job Viewer.
     self.Open("/")
@@ -28,7 +40,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget=crons]")
 
     # Select a cron job
-    self.Click("css=td:contains('OSBreakDown')")
+    self.Click("css=td:contains('%s')" % cron_job_id)
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=EnableCronJob]")
@@ -66,7 +78,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     # Cron job overview should be visible
     self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
-    self.WaitUntil(self.IsTextPresent, "Periodicity")
+    self.WaitUntil(self.IsTextPresent, "Frequency")
 
     self.Click("css=button:contains('Approve')")
     self.WaitUntil(self.IsTextPresent, "Approval granted.")
@@ -82,7 +94,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.Click("css=tr:contains('has granted you access') a")
 
     # Enable OSBreakDown cron job (it should be selected by default).
-    self.Click("css=td:contains('OSBreakDown')")
+    self.Click("css=td:contains('%s')" % cron_job_id)
 
     # Click on Enable and wait for dialog again.
     self.Click("css=button[name=EnableCronJob]:not([disabled])")
@@ -98,7 +110,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     # Lets add another approver.
     approval_id = self.ListCronJobApprovals(requestor=self.token.username)[0].id
     self.GrantCronJobApproval(
-        "OSBreakDown",
+        cron_job_id,
         approval_id=approval_id,
         approver="approver",
         requestor=self.token.username,
@@ -136,7 +148,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget=crons]")
 
     # Select and enable OSBreakDown cron job.
-    self.Click("css=td:contains('OSBreakDown')")
+    self.Click("css=td:contains('%s')" % cron_job_id)
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=EnableCronJob]:not([disabled])")

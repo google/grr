@@ -7,7 +7,6 @@ import unittest
 from grr_response_core.lib import flags
 from grr_response_server import foreman_rules
 from grr_response_server.gui import gui_test_lib
-from grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
 
 
@@ -125,12 +124,11 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
 
     # Select newly created cron job.
-    self.Click("css=td:contains('CreateAndRunGenericHuntFlow_')")
+    self.Click("css=td:contains('FileFinder_')")
 
     # Check that correct details are displayed in cron job details tab.
-    self.WaitUntil(self.IsTextPresent,
-                   standard.CreateAndRunGenericHuntFlow.__name__)
-    self.WaitUntil(self.IsTextPresent, "Flow Arguments")
+    self.WaitUntil(self.IsTextPresent, "FileFinder")
+    self.WaitUntil(self.IsTextPresent, "Cron Arguments")
 
     self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))

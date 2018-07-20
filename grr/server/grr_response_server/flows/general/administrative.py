@@ -45,65 +45,59 @@ class AdministrativeInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_client_crashes")
 
 
-class CrashHandlingMixin(object):
-  """A mixin containing methods to store client crash information."""
+def ExtractHuntId(flow_session_id):
+  hunt_str, hunt_id, _ = flow_session_id.Split(3)
+  if hunt_str == "hunts":
+    return aff4.ROOT_URN.Add("hunts").Add(hunt_id)
 
-  def _AppendCrashDetails(self, path, crash_details):
-    with data_store.DB.GetMutationPool() as pool:
-      grr_collections.CrashCollection.StaticAdd(
-          path, crash_details, mutation_pool=pool)
 
-  def _ExtractHuntId(self, flow_session_id):
-    hunt_str, hunt_id, _ = flow_session_id.Split(3)
-    if hunt_str == "hunts":
-      return aff4.ROOT_URN.Add("hunts").Add(hunt_id)
+def WriteAllCrashDetails(client_id,
+                         crash_details,
+                         flow_session_id=None,
+                         hunt_session_id=None,
+                         token=None):
+  """Updates the last crash attribute of the client."""
 
-  def WriteAllCrashDetails(self,
-                           client_id,
-                           crash_details,
-                           flow_session_id=None,
-                           hunt_session_id=None,
-                           token=None):
-    """Updates the last crash attribute of the client."""
+  # AFF4.
+  with aff4.FACTORY.Create(
+      client_id, aff4_grr.VFSGRRClient, token=token) as client_obj:
+    client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
 
-    # AFF4.
-    with aff4.FACTORY.Create(
-        client_id, aff4_grr.VFSGRRClient, token=token) as client_obj:
-      client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
+  # Relational db.
+  if data_store.RelationalDBWriteEnabled():
+    try:
+      data_store.REL_DB.WriteClientCrashInfo(client_id.Basename(),
+                                             crash_details)
+    except db.UnknownClientError:
+      pass
 
-    # Relational db.
-    if data_store.RelationalDBWriteEnabled():
-      try:
-        data_store.REL_DB.WriteClientCrashInfo(client_id.Basename(),
-                                               crash_details)
-      except db.UnknownClientError:
-        pass
+  # Duplicate the crash information in a number of places so we can find it
+  # easily.
+  client_crashes = aff4_grr.VFSGRRClient.CrashCollectionURNForCID(client_id)
+  with data_store.DB.GetMutationPool() as pool:
+    grr_collections.CrashCollection.StaticAdd(
+        client_crashes, crash_details, mutation_pool=pool)
 
-    # Duplicate the crash information in a number of places so we can find it
-    # easily.
-    client_crashes = aff4_grr.VFSGRRClient.CrashCollectionURNForCID(client_id)
-    self._AppendCrashDetails(client_crashes, crash_details)
+  if flow_session_id:
+    with aff4.FACTORY.Open(
+        flow_session_id,
+        flow.GRRFlow,
+        mode="rw",
+        age=aff4.NEWEST_TIME,
+        token=token) as aff4_flow:
+      aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
 
-    if flow_session_id:
-      with aff4.FACTORY.Open(
-          flow_session_id,
-          flow.GRRFlow,
+    hunt_session_id = ExtractHuntId(flow_session_id)
+    if hunt_session_id and hunt_session_id != flow_session_id:
+      hunt_obj = aff4.FACTORY.Open(
+          hunt_session_id,
+          aff4_type=implementation.GRRHunt,
           mode="rw",
-          age=aff4.NEWEST_TIME,
-          token=token) as aff4_flow:
-        aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
-
-      hunt_session_id = self._ExtractHuntId(flow_session_id)
-      if hunt_session_id and hunt_session_id != flow_session_id:
-        hunt_obj = aff4.FACTORY.Open(
-            hunt_session_id,
-            aff4_type=implementation.GRRHunt,
-            mode="rw",
-            token=token)
-        hunt_obj.RegisterCrash(crash_details)
+          token=token)
+      hunt_obj.RegisterCrash(crash_details)
 
 
-class ClientCrashHandler(CrashHandlingMixin, events.EventListener):
+class ClientCrashHandler(events.EventListener):
   """A listener for client crashes."""
 
   EVENTS = ["ClientCrash"]
@@ -158,14 +152,14 @@ P.S. The state of the failing flow was:
       crash_details.client_info = client_info
       crash_details.crash_type = "Client Crash"
 
-      self.WriteAllCrashDetails(
+      WriteAllCrashDetails(
           client_id, crash_details, flow_session_id=session_id, token=token)
 
       # Also send email.
       to_send = []
 
       try:
-        hunt_session_id = self._ExtractHuntId(session_id)
+        hunt_session_id = ExtractHuntId(session_id)
         if hunt_session_id and hunt_session_id != session_id:
           hunt_obj = aff4.FACTORY.Open(
               hunt_session_id, aff4_type=implementation.GRRHunt, token=token)
@@ -688,7 +682,7 @@ class UpdateClient(flow.GRRFlow):
     self.Log("Client update completed, new version: %s" % info.client_version)
 
 
-class NannyMessageHandler(CrashHandlingMixin, flow.WellKnownFlow):
+class NannyMessageHandler(flow.WellKnownFlow):
   """A listener for nanny messages."""
 
   well_known_session_id = rdfvalue.SessionID(flow_name="NannyMessage")
@@ -736,7 +730,7 @@ Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
         timestamp=int(time.time() * 1e6),
         crash_type="Nanny Message")
 
-    self.WriteAllCrashDetails(client_id, crash_details, token=self.token)
+    WriteAllCrashDetails(client_id, crash_details, token=self.token)
 
     # Also send email.
     if config.CONFIG["Monitoring.alert_email"]:

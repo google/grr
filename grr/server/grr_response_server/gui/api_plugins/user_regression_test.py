@@ -440,8 +440,9 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
       self.CreateAdminUser("approver")
 
       cron_manager = aff4_cronjobs.GetCronManager()
-      cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
-          periodicity="1d", allow_overruns=False)
+      cron_args = rdf_cronjobs.CreateCronJobArgs(
+          frequency="1d", allow_overruns=False)
+
       cron1_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
       cron2_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
@@ -492,8 +493,8 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
       self.CreateAdminUser("requestor")
 
       cron_manager = aff4_cronjobs.GetCronManager()
-      cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
-          periodicity="1d", allow_overruns=False)
+      cron_args = rdf_cronjobs.CreateCronJobArgs(
+          frequency="1d", allow_overruns=False)
       cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
     with test_lib.FakeTime(44):
@@ -528,8 +529,8 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
       self.CreateUser("approver")
 
     cron_manager = aff4_cronjobs.GetCronManager()
-    cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
-        periodicity="1d", allow_overruns=False)
+    cron_args = rdf_cronjobs.CreateCronJobArgs(
+        frequency="1d", allow_overruns=False)
     cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
 
     def ReplaceCronAndApprovalIds():

@@ -5,15 +5,19 @@ import bisect
 import logging
 import time
 
+
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_server import aff4
+from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import export_utils
 from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.general import discovery as flows_discovery
 from grr_response_server.hunts import implementation as hunts_implementation
@@ -84,7 +88,174 @@ class _ActiveCounter(object):
       # pylint: enable=protected-access
 
 
-class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
+class AbstractClientStatsCronJob(cronjobs.CronJobBase):
+  """Base class for all stats processing cron jobs."""
+
+  CLIENT_STATS_URN = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
+
+  def BeginProcessing(self):
+    pass
+
+  def ProcessClientFullInfo(self, client_full_info):
+    raise NotImplementedError()
+
+  def FinishProcessing(self):
+    pass
+
+  def _GetClientLabelsList(self, client):
+    """Get set of labels applied to this client."""
+    return set(["All"] + list(client.GetLabelsNames(owner="GRR")))
+
+  def _StatsForLabel(self, label):
+    if label not in self.stats:
+      self.stats[label] = aff4.FACTORY.Create(
+          self.CLIENT_STATS_URN.Add(label),
+          aff4_stats.ClientFleetStats,
+          mode="w",
+          token=self.token)
+    return self.stats[label]
+
+  def _IterateClients(self):
+    for c in data_store.REL_DB.IterateAllClientsFullInfo():
+      yield c
+
+  def Run(self):
+    """Retrieve all the clients for the AbstractClientStatsCollectors."""
+    try:
+
+      self.stats = {}
+
+      self.BeginProcessing()
+
+      clients = self._IterateClients()
+
+      processed_count = 0
+      for c in clients:
+        self.ProcessClientFullInfo(c)
+        processed_count += 1
+
+        # This flow is not dead: we don't want to run out of lease time.
+        self.HeartBeat()
+
+      self.FinishProcessing()
+      for fd in self.stats.values():
+        fd.Close()
+
+      logging.info("%s: processed %d clients.", self.__class__.__name__,
+                   processed_count)
+    except Exception as e:  # pylint: disable=broad-except
+      logging.exception("Error while calculating stats: %s", e)
+      raise
+
+
+class GRRVersionBreakDownCronJob(AbstractClientStatsCronJob):
+  """Records relative ratios of GRR versions in 7 day actives."""
+
+  frequency = rdfvalue.Duration("4h")
+
+  def BeginProcessing(self):
+    self.counter = _ActiveCounter(
+        aff4_stats.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM)
+
+  def FinishProcessing(self):
+    self.counter.Save(self)
+
+  def ProcessClientFullInfo(self, client_full_info):
+    c_info = client_full_info.last_startup_info.client_info
+    ping = client_full_info.metadata.ping
+    labels = self._GetClientLabelsList(client_full_info)
+
+    if not (c_info and ping):
+      return
+
+    category = " ".join([
+        c_info.client_description or c_info.client_name,
+        str(c_info.client_version)
+    ])
+
+    for label in labels:
+      self.counter.Add(category, label, ping)
+
+
+class OSBreakDownCronJob(AbstractClientStatsCronJob):
+  """Records relative ratios of OS versions in 7 day actives."""
+
+  def BeginProcessing(self):
+    self.counters = [
+        _ActiveCounter(aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM),
+        _ActiveCounter(aff4_stats.ClientFleetStats.SchemaCls.RELEASE_HISTOGRAM),
+    ]
+
+  def FinishProcessing(self):
+    # Write all the counter attributes.
+    for counter in self.counters:
+      counter.Save(self)
+
+  def ProcessClientFullInfo(self, client_full_info):
+    labels = self._GetClientLabelsList(client_full_info)
+    ping = client_full_info.metadata.ping
+    system = client_full_info.last_snapshot.knowledge_base.os
+    uname = client_full_info.last_snapshot.Uname()
+
+    if not ping:
+      return
+
+    for label in labels:
+      # Windows, Linux, Darwin
+      self.counters[0].Add(system, label, ping)
+
+      # Windows-2008ServerR2-6.1.7601SP1, Linux-Ubuntu-12.04,
+      # Darwin-OSX-10.9.3
+      self.counters[1].Add(uname, label, ping)
+
+
+class LastAccessStatsCronJob(AbstractClientStatsCronJob):
+  """Calculates a histogram statistics of clients last contacted times."""
+
+  # The number of clients fall into these bins (number of hours ago)
+  _bins = [1, 2, 3, 7, 14, 30, 60]
+
+  def _ValuesForLabel(self, label):
+    if label not in self.values:
+      self.values[label] = [0] * len(self._bins)
+    return self.values[label]
+
+  def BeginProcessing(self):
+    self._bins = [long(x * 1e6 * 24 * 60 * 60) for x in self._bins]
+
+    self.values = {}
+
+  def FinishProcessing(self):
+    # Build and store the graph now. Day actives are cumulative.
+    for label in self.values.iterkeys():
+      cumulative_count = 0
+      graph = aff4_stats.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM()
+      for x, y in zip(self._bins, self.values[label]):
+        cumulative_count += y
+        graph.Append(x_value=x, y_value=cumulative_count)
+
+      self._StatsForLabel(label).AddAttribute(graph)
+
+  def ProcessClientFullInfo(self, client_full_info):
+    labels = self._GetClientLabelsList(client_full_info)
+    ping = client_full_info.metadata.ping
+
+    if not ping:
+      return
+
+    now = rdfvalue.RDFDatetime.Now()
+    for label in labels:
+      time_ago = now - ping
+      pos = bisect.bisect(self._bins, time_ago.microseconds)
+
+      # If clients are older than the last bin forget them.
+      try:
+        self._ValuesForLabel(label)[pos] += 1
+      except IndexError:
+        pass
+
+
+class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
   """A cron job which opens every client in the system.
 
   We feed all the client objects to the AbstractClientStatsCollector instances.
@@ -305,15 +476,8 @@ class LastAccessStats(AbstractClientStatsCronFlow):
     self._Process(labels, ping)
 
 
-class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
-  """A cron job which runs an interrogate hunt on all clients.
-
-  Interrogate needs to be run regularly on our clients to keep host information
-  fresh and enable searching by username etc. in the GUI.
-  """
-  frequency = rdfvalue.Duration("1w")
-  # This just starts a hunt, which should be essentially instantantaneous
-  lifetime = rdfvalue.Duration("30m")
+class InterrogationHuntMixin(object):
+  """Mixin that provides logic to start interrogation hunts."""
 
   def GetOutputPlugins(self):
     """Returns list of OutputPluginDescriptor objects to be used in the hunt.
@@ -326,8 +490,8 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
     """
     return []
 
-  @flow.StateHandler()
-  def Start(self):
+  def StartInterrogationHunt(self):
+    """Starts an interrogation hunt on all available clients."""
     with hunts_implementation.StartHunt(
         hunt_name=hunts_standard.GenericHunt.__name__,
         client_limit=0,
@@ -346,7 +510,35 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
       runner.Start()
 
 
-class PurgeClientStats(cronjobs.SystemCronFlow):
+class InterrogateClientsCronFlow(aff4_cronjobs.SystemCronFlow,
+                                 InterrogationHuntMixin):
+  """The legacy cron flow which runs an interrogate hunt on all clients."""
+
+  frequency = rdfvalue.Duration("1w")
+  # This just starts a hunt, which should be essentially instantantaneous
+  lifetime = rdfvalue.Duration("30m")
+
+  @flow.StateHandler()
+  def Start(self):
+    self.StartInterrogationHunt()
+
+
+class InterrogateClientsCronJob(cronjobs.CronJobBase, InterrogationHuntMixin):
+  """A cron job which runs an interrogate hunt on all clients.
+
+  Interrogate needs to be run regularly on our clients to keep host information
+  fresh and enable searching by username etc. in the GUI.
+  """
+
+  frequency = rdfvalue.Duration("1w")
+  # This just starts a hunt, which should be essentially instantantaneous
+  lifetime = rdfvalue.Duration("30m")
+
+  def Run(self):
+    self.StartInterrogationHunt()
+
+
+class PurgeClientStats(aff4_cronjobs.SystemCronFlow):
   """Deletes outdated client statistics."""
 
   frequency = rdfvalue.Duration("1w")
@@ -362,6 +554,30 @@ class PurgeClientStats(cronjobs.SystemCronFlow):
   @flow.StateHandler()
   def ProcessClients(self, unused_responses):
     """Does the work."""
+    self.start = 0
+    self.end = int(1e6 * (time.time() - self.MAX_AGE))
+
+    client_urns = export_utils.GetAllClients(token=self.token)
+
+    for batch in utils.Grouper(client_urns, 10000):
+      with data_store.DB.GetMutationPool() as mutation_pool:
+        for client_urn in batch:
+          mutation_pool.DeleteAttributes(
+              client_urn.Add("stats"), [u"aff4:stats"],
+              start=self.start,
+              end=self.end)
+      self.HeartBeat()
+
+
+class PurgeClientStatsCronJob(cronjobs.CronJobBase):
+  """Deletes outdated client statistics."""
+
+  frequency = rdfvalue.Duration("1w")
+
+  # Keep stats for one month.
+  MAX_AGE = 31 * 24 * 3600
+
+  def Run(self):
     self.start = 0
     self.end = int(1e6 * (time.time() - self.MAX_AGE))
 

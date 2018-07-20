@@ -4,6 +4,7 @@
 import os
 
 
+from builtins import filter  # pylint: disable=redefined-builtin
 from future.utils import with_metaclass
 
 from grr_response_client import client_utils
@@ -216,7 +217,7 @@ class VFSHandler(with_metaclass(registry.MetaclassRegistry, object)):
       return handler(base_fd=fd, pathspec=component)
 
     path_components = client_utils.LocalPathToCanonicalPath(component.path)
-    path_components = ["/"] + filter(None, path_components.split("/"))
+    path_components = ["/"] + list(filter(None, path_components.split("/")))
     for i, path_component in enumerate(path_components):
       try:
         if fd:

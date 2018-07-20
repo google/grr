@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "google/protobuf/any.proto";
 
+import "grr_response_proto/api_utils.proto";
 import "grr_response_proto/flows.proto";
 import "grr_response_proto/semantic.proto";
 
@@ -12,57 +13,42 @@ import "grr_response_proto/semantic.proto";
 
 // Next id: 14
 message ApiCronJob {
-  enum State {
-    ENABLED = 0;
-    DISABLED = 1;
-  };
-
-  optional string cron_job_id = 13 [(sem_type) = {
+  optional string cron_job_id = 1 [(sem_type) = {
       type: "ApiCronJobId",
       description: "Cron job ID."
     }];
-  optional string urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "Cron job URN."
+  optional CronJobAction args = 2;
+  optional uint64 created_at = 3 [(sem_type) = {
+      type: "RDFDatetime"
     }];
-  optional string description = 2 [(sem_type) = {
-      description: "Cron job description."
+  optional string current_run_id = 4;
+  optional bool enabled = 5;
+  optional CronJobRun.CronJobRunStatus last_run_status = 6;
+  optional uint64 last_run_time = 7 [(sem_type) = {
+      type: "RDFDatetime"
+      description: "Last time when this cron job ran."
     }];
-  optional string flow_name = 3 [(sem_type) = {
-      description: "Cron flow name."
+  optional ApiDataObject state = 8 [(sem_type) = {
+      description: "Current job state."
     }];
-  optional google.protobuf.Any flow_args = 4 [(sem_type) = {
-      description: "Cron flow arguments.",
-      dynamic_type: "GetArgsClass"
-    }];
-  optional FlowRunnerArgs flow_runner_args = 5 [(sem_type) = {
-      description: "Flow runner arguments."
-    }];
-  optional uint64 periodicity = 6 [(sem_type) = {
+  optional uint64 frequency = 9 [(sem_type) = {
       type: "Duration",
       description: "Interval between cron runs."
     }];
-  optional uint64 lifetime = 7 [(sem_type) = {
+  optional uint64 lifetime = 10 [(sem_type) = {
       type: "Duration",
       description: "How long each run of the cron should be allowed to run. "
-      "Runs that exceed lifetime will be killed. This is complimentary but"
-      " different to periodicity e.g. it allows us to run jobs weekly that"
-      " should be killed if they take more than a few hours.",
+      "Runs that exceed lifetime will be killed. This is complimentary but "
+      "different to periodicity e.g. it allows us to run jobs weekly that "
+      "should be killed if they take more than a few hours.",
     }];
-  optional bool allow_overruns = 8 [(sem_type) = {
+  optional bool allow_overruns = 11 [(sem_type) = {
       description: "If true, don't kill the previous run if new one starts.",
       label: ADVANCED
     }];
-
-  optional State state = 9 [(sem_type) = {
-      description: "Current flow state."
-    }];
-  optional uint64 last_run_time = 10 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Last time when this cron job ran."
-    }];
-  optional bool is_failing = 11 [(sem_type) = {
-      description: "Is this cron job constantly failing?"
+  optional bool forced_run_requested = 12;
+  optional bool is_failing = 13 [(sem_type) = {
+      description: "Is this cron job currently failing?"
     }];
 }
 
@@ -70,22 +56,19 @@ message ApiCronJobRun {
   optional string run_id = 1 [(sem_type) = {
       type: "ApiCronJobRunId"
     }];
-  optional uint64 started_at = 2 [(sem_type) = {
+  optional string cron_job_id = 2 [(sem_type) = {
+      type: "ApiCronJobId",
+      description: "Cron job ID."
+    }];
+  optional uint64 started_at = 3 [(sem_type) = {
       type: "RDFDatetime"
     }];
-  optional uint64 finished_at = 3 [(sem_type) = {
+  optional uint64 finished_at = 4 [(sem_type) = {
       type: "RDFDatetime"
     }];
-  enum Status {
-    UNSET = 0;
-    RUNNING = 1;
-    FINISHED = 2;
-    ERROR = 3;
-    LIFETIME_EXCEEDED = 4;
-  };
-  optional Status status = 4;
-  optional string log_message = 5;
-  optional string backtrace = 6;
+  optional CronJobRun.CronJobRunStatus status = 5;
+  optional string log_message = 6;
+  optional string backtrace = 7;
 }
 
 //
@@ -161,7 +144,7 @@ message ApiModifyCronJobArgs {
       type: "ApiCronJobId",
       description: "Cron job id."
     }];
-  optional ApiCronJob.State state = 2 [(sem_type) = {
+  optional bool enabled = 2 [(sem_type) = {
       description: "New cron job state value."
     }];
 }

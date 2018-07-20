@@ -28,6 +28,7 @@ const CronJobOverviewController =
   this.cronJobId;
 
   this.scope_.$watch('cronJobId', this.onCronJobIdChange.bind(this));
+
 };
 
 

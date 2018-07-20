@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Execute a Chipsec plugin on the client."""
 
+import io
 import logging
 from logging import handlers
 import os
 import platform
-import StringIO
 
 
 # pylint: disable=g-bad-import-order, g-import-not-at-top
@@ -59,7 +59,9 @@ class DumpFlashImage(actions.ActionPlugin):
       syslog.info("%s: Runnning DumpFlashImage", config.CONFIG["Client.name"])
 
     self.logs = []
-    self.chipsec_log = StringIO.StringIO()
+    # TODO(hanuszczak): This appears to be something that could be made into
+    # `StringIO` instead of `BytesIO`.
+    self.chipsec_log = io.BytesIO()
 
     if args.log_level:
       logger.logger().UTIL_TRACE = True
@@ -135,7 +137,9 @@ class DumpACPITable(actions.ActionPlugin):
 
   def Run(self, args):
     self.logs = []
-    self.chipsec_log = StringIO.StringIO()
+    # TODO(hanuszczak): This appears to be something that could be made into
+    # `StringIO` instead of `BytesIO`.
+    self.chipsec_log = io.BytesIO()
 
     if args.logging:
       self.logs.append("Dumping %s" % args.table_signature)

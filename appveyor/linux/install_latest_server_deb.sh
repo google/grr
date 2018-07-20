@@ -16,14 +16,22 @@ fi
 mkdir "${DEB_TEMPDIR}"
 cd "${DEB_TEMPDIR}"
 
-# Install Google Cloud SDK if not installed.
-if [[ -z "$(type gsutil 2>/dev/null)" ]]; then
-  echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-  curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-  apt update && apt install -y google-cloud-sdk
-fi
+pyscript="
+import ConfigParser
+config = ConfigParser.SafeConfigParser()
+config.read('${APPVEYOR_BUILD_FOLDER}/version.ini')
+print('%s.%s.%s-%s' % (
+    config.get('Version', 'major'),
+    config.get('Version', 'minor'),
+    config.get('Version', 'revision'),
+    config.get('Version', 'release')))
+"
+readonly DEB_VERSION="$(python -c "${pyscript}")"
+readonly GCS_DEB_DIR="https://storage.googleapis.com/autobuilds.grr-response.com/_latest_server_deb"
+wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}_amd64.deb"
+wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}_amd64.changes"
+wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}.tar.gz"
 
-gsutil cp gs://autobuilds.grr-response.com/_latest_server_deb/* .
 echo -e ".changes file for downloaded server deb:\n\n$(cat grr-server_*_amd64.changes)\n"
 DEBIAN_FRONTEND=noninteractive apt install -y ./grr-server_*_amd64.deb
 grr_config_updater initialize --noprompt --external_hostname=localhost --admin_password="${GRR_ADMIN_PASS}"

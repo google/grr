@@ -227,4 +227,32 @@
     "doc": "This one has too many provide specifications for what it returns.",
     "supported_os": [ "Windows" ]
   },
+
+  { "name": "TestEchoArtifact",
+    "sources": [
+      { "type": "COMMAND",
+        "attributes": { "cmd": "/bin/echo",
+          "args": ["1"]
+        },
+        "returned_types": [ "SoftwarePackage" ]
+      }
+    ],
+    "doc": "Test echo command artifact.",
+    "labels": [ "Software" ],
+    "supported_os": [ "Darwin", "Linux" ]
+  },
+
+  { "name": "TestEchoCmdArtifact",
+    "sources": [
+      { "type": "COMMAND",
+        "attributes": { "cmd": "/bin/echo",
+          "args": ["1"]
+        },
+        "returned_types": [ "SoftwarePackage" ]
+      }
+    ],
+    "doc": "Test echo command artifact.",
+    "labels": [ "Software" ],
+    "supported_os": [ "Darwin", "Linux" ]
+  },
 ]

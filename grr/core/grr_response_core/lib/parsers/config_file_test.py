@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Unit test for config files."""
-import StringIO
+
+# TODO(hanuszczak): These tests use the `io` module for configuration file data.
+# While using the `io.BytesIO` class works, a more suitable class would be to
+# use the `io.StringIO` class instead.
+import io
 
 
 from grr_response_core.lib import flags
@@ -38,7 +42,8 @@ class SshdConfigTest(test_lib.GRRBaseTest):
   def GetConfig(self):
     """Read in the test configuration file."""
     parser = config_file.SshdConfigParser()
-    results = list(parser.Parse(None, StringIO.StringIO(CFG), None))
+    # TODO(hanuszczak): Configuration file, consider using `StringIO` instead.
+    results = list(parser.Parse(None, io.BytesIO(CFG), None))
     self.assertEqual(1, len(results))
     return results[0]
 
@@ -145,7 +150,7 @@ class NfsExportParserTests(test_lib.GRRBaseTest):
     /path/to/bar *.example.org(all_squash,ro) \
         192.168.1.0/24 (rw) # Mistake here - space makes this default.
     """
-    exports = StringIO.StringIO(test_data)
+    exports = io.BytesIO(test_data)
     parser = config_file.NfsExportsParser()
     results = list(parser.Parse(None, exports, None))
     self.assertEqual("/path/to/foo", results[0].share)
@@ -171,7 +176,7 @@ class MtabParserTests(test_lib.GRRBaseTest):
     arnie@host.example.org:/users/arnie /home/arnie/remote fuse.sshfs rw,nosuid,nodev,max_read=65536 0 0
     /dev/sr0 /media/USB\040Drive vfat ro,nosuid,nodev
     """
-    exports = StringIO.StringIO(test_data)
+    exports = io.BytesIO(test_data)
     parser = config_file.MtabParser()
     results = list(parser.Parse(None, exports, None))
     self.assertEqual("rootfs", results[0].device)
@@ -244,7 +249,7 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
     *.emerg    *
     mail.*  -/var/log/maillog
     """
-    log_conf = StringIO.StringIO(test_data)
+    log_conf = io.BytesIO(test_data)
     parser = config_file.RsyslogParser()
     results = list(parser.ParseMultiple([None], [log_conf], None))
     self.assertEqual(1, len(results))
@@ -318,7 +323,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     deb-src   [arch=i386]
     deb-src abcdefghijklmnopqrstuvwxyz
     """
-    file_obj = StringIO.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list")
     stat = rdf_client.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
@@ -365,7 +370,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
                  "URIs:        \n"
                  "# comment 2\n")
 
-    file_obj = StringIO.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/test.list")
     stat = rdf_client.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
@@ -416,7 +421,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     [option1]: [option1-value]
 
     """
-    file_obj = StringIO.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/rfc822.list")
     stat = rdf_client.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
@@ -498,7 +503,7 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     gpgkey=http://mirror.centos.org/CentOS/6/os/i386/RPM-GPG-KEY-CentOS-6
 
     """
-    file_obj = StringIO.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/yum.repos.d/test1.repo")
     stat = rdf_client.StatEntry(pathspec=pathspec)
     parser = config_file.YumPackageSourceParser()
@@ -537,7 +542,7 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
                  "baseurl\n"
                  "# comment 2\n")
 
-    file_obj = StringIO.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/yum.repos.d/emptytest.repo")
     stat = rdf_client.StatEntry(pathspec=pathspec)
     parser = config_file.YumPackageSourceParser()
@@ -563,7 +568,7 @@ class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
     hi hello
     user
     pparth"""
-    file_obj = StringIO.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/at.allow")
     stat = rdf_client.StatEntry(pathspec=pathspec)
     parser = config_file.CronAtAllowDenyParser()
@@ -615,7 +620,7 @@ class NtpParserTests(test_lib.GRRBaseTest):
     ttl 127 88
     broadcastdelay 0.01
 """
-    conffile = StringIO.StringIO(test_data)
+    conffile = io.BytesIO(test_data)
     parser = config_file.NtpdParser()
     results = list(parser.Parse(None, conffile, None))
 
@@ -680,7 +685,7 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     #includedir b
     #includeis now a comment
     """
-    contents = StringIO.StringIO(test_data)
+    contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
     result = list(config.Parse(None, contents, None))
 
@@ -694,7 +699,7 @@ class SudoersParserTest(test_lib.GRRBaseTest):
                right = d, e, f
     User_Alias complex = #1000, %group, %#1001, %:nonunix, %:#1002
     """
-    contents = StringIO.StringIO(test_data)
+    contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
     result = list(config.Parse(None, contents, None))
 
@@ -732,7 +737,7 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     Defaults:FULLTIMERS    !lecture
     Defaults@SERVERS       log_year, logfile=/var/log/sudo.log
     """
-    contents = StringIO.StringIO(test_data)
+    contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
     result = list(config.Parse(None, contents, None))
 
@@ -776,7 +781,7 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     bob     SPARC = (OP) ALL : SGI = (OP) ALL
     fred        ALL = (DB) NOPASSWD: ALL
     """
-    contents = StringIO.StringIO(test_data)
+    contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
     result = list(config.Parse(None, contents, None))
 

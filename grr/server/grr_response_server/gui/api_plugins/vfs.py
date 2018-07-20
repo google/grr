@@ -8,6 +8,9 @@ import os
 import re
 import zipfile
 
+
+from builtins import filter  # pylint: disable=redefined-builtin
+
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 
@@ -455,7 +458,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     if args.filter:
       pattern = re.compile(args.filter, re.IGNORECASE)
       is_matching = lambda item: pattern.search(item.name)
-      items = filter(is_matching, items)
+      items = list(filter(is_matching, items))
 
     items.sort(key=lambda item: item.path)
 

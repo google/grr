@@ -1057,6 +1057,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       cutoff_timestamp: This method deletes all runs that were started before
                         cutoff_timestamp.
+    Returns:
+      The number of deleted runs.
     """
 
   @abc.abstractmethod
@@ -1189,6 +1191,14 @@ class DatabaseValidationWrapper(Database):
 
   def _ValidateCronJobId(self, cron_job_id):
     self._ValidateStringId("cron_job_id", cron_job_id)
+
+  def _ValidateCronJobRunId(self, cron_job_id):
+    if cron_job_id is not None:
+      self._ValidateStringId("cron_job_id", cron_job_id)
+      # Raises TypeError if cron_job_id is not a valid hex number.
+      int(cron_job_id, 16)
+      if len(cron_job_id) != 8:
+        raise TypeError("Invalid cron job run id: %s" % cron_job_id)
 
   def _ValidateApprovalId(self, approval_id):
     self._ValidateStringId("approval_id", approval_id)
@@ -1671,6 +1681,8 @@ class DatabaseValidationWrapper(Database):
                     state=Database.unchanged,
                     forced_run_requested=Database.unchanged):
     self._ValidateCronJobId(cronjob_id)
+    if current_run_id != Database.unchanged:
+      self._ValidateCronJobRunId(current_run_id)
     return self.delegate.UpdateCronJob(
         cronjob_id,
         last_run_status=last_run_status,
@@ -1693,12 +1705,12 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReturnLeasedCronJobs(jobs)
 
   def WriteCronJobRun(self, run_object):
-    # TODO(amoser): Reenable once this object exists.
-    # self._ValidateType(run_object, rdf_cronjobs.CronJobRun)
+    self._ValidateType(run_object, rdf_cronjobs.CronJobRun)
     return self.delegate.WriteCronJobRun(run_object)
 
   def ReadCronJobRun(self, job_id, run_id):
     self._ValidateCronJobId(job_id)
+    self._ValidateCronJobRunId(run_id)
     return self.delegate.ReadCronJobRun(job_id, run_id)
 
   def ReadCronJobRuns(self, job_id):
@@ -1707,7 +1719,7 @@ class DatabaseValidationWrapper(Database):
 
   def DeleteOldCronJobRuns(self, cutoff_timestamp):
     self._ValidateTimestamp(cutoff_timestamp)
-    return self.delegate.DeleteCronJobRuns(cutoff_timestamp)
+    return self.delegate.DeleteOldCronJobRuns(cutoff_timestamp)
 
   def WriteClientPathBlobReferences(self, references_by_client_path_id):
     for client_path_id, refs in references_by_client_path_id.iteritems():

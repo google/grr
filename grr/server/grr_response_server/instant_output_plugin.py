@@ -5,6 +5,7 @@ import itertools
 import re
 
 
+from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue

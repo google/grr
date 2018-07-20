@@ -2,8 +2,8 @@
 """Tests for grr.parsers.sqlite_file."""
 
 
+import io
 import os
-import StringIO
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import sqlite_file
@@ -17,7 +17,7 @@ class SQLiteFileTest(test_lib.GRRBaseTest):
 
   def testErrors(self):
     """Test empty files don't raise errors."""
-    database_file = sqlite_file.SQLiteFile(StringIO.StringIO())
+    database_file = sqlite_file.SQLiteFile(io.BytesIO())
     entries = [x for x in database_file.Query(self.query)]
     self.assertEqual(len(entries), 0)
 
@@ -25,7 +25,8 @@ class SQLiteFileTest(test_lib.GRRBaseTest):
   def testTmpFiles(self):
     """This should force a write to a tmp file."""
     filename = os.path.join(self.base_path, "places.sqlite")
-    file_stream = StringIO.StringIO(open(filename, "rb").read())
+    with open(filename, "rb") as fd:
+      file_stream = io.BytesIO(fd.read())
     database_file = sqlite_file.SQLiteFile(file_stream)
     entries = [x for x in database_file.Query(self.query)]
     self.assertEqual(len(entries), 92)

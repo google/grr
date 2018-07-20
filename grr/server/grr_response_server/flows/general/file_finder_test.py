@@ -7,6 +7,8 @@ import glob
 import hashlib
 import os
 
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_client import vfs
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue

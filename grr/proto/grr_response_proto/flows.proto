@@ -4,6 +4,8 @@
 
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
+
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/objects.proto";
@@ -1020,6 +1022,7 @@ message CreateGenericHuntFlowArgs {
   optional GenericHuntArgs hunt_args = 2;
 }
 
+// DEPRECATED: Use CreateCronJobArgs instead.
 // Next field ID: 8
 message CreateCronJobFlowArgs {
   optional string description = 1 [(sem_type) = {
@@ -1046,6 +1049,7 @@ message CreateCronJobFlowArgs {
       " should be killed if they take more than a few hours.",
     }, default=0];
 
+  // DEPRECATED: Start time is not taken into account anymore.
   optional uint64 start_time = 7 [(sem_type) = {
       type: "RDFDatetime",
       description: "Time at which this cron should run for the first time."
@@ -1055,21 +1059,115 @@ message CreateCronJobFlowArgs {
 
 }
 
-//TODO(amoser): This might be better suited for objects.proto but there is a
-//recursive dependency that is not easily broken.
+message CreateCronJobArgs {
+  optional string flow_name = 1 [(sem_type) = {
+      description: "Cron flow name."
+    }];
+  optional google.protobuf.Any flow_args = 2 [(sem_type) = {
+      description: "Cron flow arguments.",
+      dynamic_type: "GetFlowArgsClass"
+    }];
+  optional HuntRunnerArgs hunt_runner_args = 3 [(sem_type) = {
+      description: "Hunt runner arguments."
+    }];
+
+  optional string description = 4 [(sem_type) = {
+      description: "Cron job description."
+    }];
+  optional uint64 frequency = 5 [(sem_type) = {
+      type: "Duration",
+      description: "Interval between cron runs."
+    }];
+  optional uint64 lifetime = 6 [(sem_type) = {
+      type: "Duration",
+      description: "How long each run of the cron should be allowed to run. "
+      "Runs that exceed lifetime will be killed. This is complimentary but"
+      " different to periodicity e.g. it allows us to run jobs weekly that"
+      " should be killed if they take more than a few hours.",
+    }];
+  optional bool allow_overruns = 7 [(sem_type) = {
+      description: "If true, don't kill the previous run if new one starts.",
+      label: ADVANCED
+    }];
+}
+
+//TODO(amoser): This might be better suited for objects.proto but
+// there is a dependency of those protos to Hunt related protos that
+// will cause dependency loops if moved to objects.proto (since we use
+// *Reference protobufs from objecst.proto here).
+
+message SystemCronAction {
+  optional string job_class_name = 1 [(sem_type) = {
+      description: "The class of the cronjob that will be run.",
+    }];
+}
+
+message HuntCronAction {
+  optional HuntRunnerArgs hunt_runner_args = 1;
+  optional string flow_name = 2;
+  optional bytes flow_args = 3 [(sem_type) = {
+      dynamic_type: "GetFlowArgsClass",
+      description: "Arguments to the flow to run. This should be an "
+      "instance of flow.args_type proto.",
+    }];
+}
+
+message CronJobAction {
+  option (semantic) = {
+    union_field: "action_type"
+  };
+  enum ActionType {
+    UNSET = 0;
+    SYSTEM_CRON_ACTION = 1;
+    HUNT_CRON_ACTION = 2;
+  };
+  optional ActionType action_type = 1;
+  optional SystemCronAction system_cron_action = 2;
+  optional HuntCronAction hunt_cron_action = 3;
+}
+
 message CronJob {
-  optional string job_id = 1;
-  optional CreateCronJobFlowArgs cron_args = 2;
-  optional uint64 create_time = 3 [(sem_type) = {
+  optional string cron_job_id = 1;
+  optional CronJobAction args = 2;
+  optional uint64 created_at = 3 [(sem_type) = {
       type: "RDFDatetime"
     }];
-  optional uint64 current_run_id = 4;
-  optional bool disabled = 5;
-  optional CronJobRunStatus.Status last_run_status = 6;
+  optional string current_run_id = 4;
+  optional bool enabled = 5;
+  optional CronJobRun.CronJobRunStatus last_run_status = 6;
   optional uint64 last_run_time = 7 [(sem_type) = {
       type: "RDFDatetime"
     }];
   optional AttributedDict state = 8;
+  optional uint64 frequency = 9 [(sem_type) = {
+      type: "Duration",
+    }];
+  optional uint64 lifetime = 10 [(sem_type) = {
+      type: "Duration",
+    }];
+  optional bool allow_overruns = 11;
+  optional bool forced_run_requested = 12;
+}
+
+message CronJobRun {
+  optional string run_id = 1;
+  optional string cron_job_id = 2;
+  optional uint64 started_at = 3 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+  optional uint64 finished_at = 4 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+  enum CronJobRunStatus {
+    UNSET = 0;
+    RUNNING = 1;
+    FINISHED = 2;
+    ERROR = 3;
+    LIFETIME_EXCEEDED = 4;
+  };
+  optional CronJobRunStatus status = 5 [default = UNSET];
+  optional string log_message = 6;
+  optional string backtrace = 7;
 }
 
 // Next field ID: 2

@@ -2,7 +2,7 @@
 """RDFValues used to communicate with the Rekall memory analysis framework."""
 
 import gzip
-import StringIO
+import io
 import zlib
 
 from grr_response_core.lib import rdfvalue
@@ -20,7 +20,7 @@ class RekallProfile(rdf_structs.RDFProtoStruct):
   @property
   def payload(self):
     if self.compression == "GZIP":
-      return gzip.GzipFile(fileobj=StringIO.StringIO(self.data)).read()
+      return gzip.GzipFile(fileobj=io.BytesIO(self.data)).read()
 
     return self.data
 

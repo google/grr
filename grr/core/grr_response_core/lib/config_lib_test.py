@@ -2,10 +2,10 @@
 """Tests for config_lib classes."""
 
 import __builtin__
+import io
 import ntpath
 import os
 import stat
-import StringIO
 
 
 from past.builtins import long
@@ -740,7 +740,8 @@ Section1.int: 3
       # Using fd with no fd.name should raise because there is no way to resolve
       # the relative path.
       conf = self._GetNewConf()
-      fd = StringIO.StringIO(one)
+      # TODO(hanuszczak): YAML or config, consider using `StringIO` instead.
+      fd = io.BytesIO(one)
       self.assertRaises(
           config_lib.ConfigFileNotFound,
           conf.Initialize,
@@ -819,10 +820,12 @@ SecondaryFileIncluded: true
         raise IOError("Tried to open wrong file %s" % filename)
 
       if basename == "1.yaml":
-        return StringIO.StringIO(one)
+        # TODO(hanuszczak): YAML, consider using `StringIO`.
+        return io.BytesIO(one)
 
       if basename == "2.yaml":
-        return StringIO.StringIO(two)
+        # TODO(hanuszczak): YAML, consider using `StringIO`.
+        return io.BytesIO(two)
 
       raise IOError("File not found %s" % filename)
 

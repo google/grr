@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 """Utility functions and classes for GRR API client library."""
 
-import itertools
 import time
+
+
+from builtins import map  # pylint: disable=redefined-builtin
 
 from google.protobuf import wrappers_pb2
 
@@ -53,7 +55,7 @@ class ItemsIterator(object):
 def MapItemsIterator(function, items):
   """Maps ItemsIterator via given function."""
   return ItemsIterator(
-      items=itertools.imap(function, items), total_count=items.total_count)
+      items=map(function, items), total_count=items.total_count)
 
 
 class BinaryChunkIterator(object):

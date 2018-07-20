@@ -2,8 +2,8 @@
 """Base classes and routines used by all end to end tests."""
 
 import abc
+import io
 import logging
-import StringIO
 import time
 
 
@@ -220,7 +220,7 @@ class EndToEndTest(with_metaclass(EndToEndTestMetaclass, unittest.TestCase)):
 class AbstractFileTransferTest(EndToEndTest):
 
   def ReadFromFile(self, path, num_bytes):
-    s = StringIO.StringIO()
+    s = io.BytesIO()
     self.client.File(path).GetBlob().WriteToStream(s)
     return s.getvalue()[:num_bytes]
 

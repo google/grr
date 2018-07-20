@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Parser testing lib."""
 
-import StringIO
+import io
 
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -36,7 +36,7 @@ def GenTestData(paths, data, st_mode=33188):
     p = rdf_paths.PathSpec(path=path, pathtype="OS")
     stats.append(rdf_client.StatEntry(pathspec=p, st_mode=st_mode))
   for val in data:
-    files.append(StringIO.StringIO(val))
+    files.append(io.BytesIO(val))
   return stats, files
 
 

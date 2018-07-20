@@ -5,10 +5,12 @@ from __future__ import division
 import ctypes
 import ctypes.wintypes
 import exceptions
+import io
 import os
 import stat
-import StringIO
 import _winreg
+
+from builtins import filter  # pylint: disable=redefined-builtin
 
 from grr_response_client import vfs
 from grr_response_core.lib import utils
@@ -334,7 +336,7 @@ class RegistryFile(vfs.VFSHandler):
     else:
       raise IOError("Registry handler can not be stacked on another handler.")
 
-    path_components = filter(None, self.pathspec.last.path.split("/"))
+    path_components = list(filter(None, self.pathspec.last.path.split("/")))
     try:
       # The first component MUST be a hive
       self.hive_name = path_components[0]
@@ -568,10 +570,11 @@ class RegistryFile(vfs.VFSHandler):
 
   def Read(self, length):
     if not self.fd:
-      self.fd = StringIO.StringIO(utils.SmartStr(self.value))
+      self.fd = io.BytesIO(utils.SmartStr(self.value))
+
     return self.fd.read(length)
 
   def Seek(self, offset, whence=0):
     if not self.fd:
-      self.fd = StringIO.StringIO(utils.SmartStr(self.value))
+      self.fd = io.BytesIO(utils.SmartStr(self.value))
     return self.fd.seek(offset, whence)

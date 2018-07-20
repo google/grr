@@ -5,9 +5,17 @@ from grr_response_client import actions
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
 from grr_response_core.lib import artifact_utils
+from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+
+
+def _NotImplemented(args):
+  # TODO(user): Not implemented yet. This method can be deleted once the
+  # missing source types are supported.
+  del args  # Unused
+  raise NotImplementedError()
 
 
 class ArtifactCollector(actions.ActionPlugin):
@@ -22,70 +30,90 @@ class ArtifactCollector(actions.ActionPlugin):
     self.ignore_interpolation_errors = args.ignore_interpolation_errors
     for artifact in args.artifacts:
       self.Progress()
-      artifact_result = rdf_artifacts.CollectedArtifact(name=artifact.name)
-      for source in artifact.sources:
-        for action, request in self._ProcessSource(source):
-          for res in action.Start(request):
-            action_result = rdf_artifacts.ClientActionResult()
-            action_result.type = res.__class__.__name__
-            action_result.value = res
-            artifact_result.action_results.append(action_result)
+      collected_artifact = self._CollectArtifact(
+          artifact, apply_parsers=args.apply_parsers)
+      result.collected_artifacts.append(collected_artifact)
 
-      result.collected_artifacts.append(artifact_result)
     # TODO(user): Limit the number of bytes and send multiple responses.
     # e.g. grr_rekall.py RESPONSE_CHUNK_SIZE
     self.SendReply(result)
 
-  def _ProcessSource(self, args):
-    source_type = args.base_source.type
+  def _CollectArtifact(self, artifact, apply_parsers):
+    artifact_result = rdf_artifacts.CollectedArtifact(name=artifact.name)
+
+    processors = []
+    if apply_parsers:
+      processors = parser.Parser.GetClassesByArtifact(artifact.name)
+
+    for source in artifact.sources:
+      for action, request in self._ParseSourceType(source):
+        responses = self._RunClientAction(action, request, processors)
+        for response in responses:
+          action_result = rdf_artifacts.ClientActionResult()
+          action_result.type = response.__class__.__name__
+          action_result.value = response
+          artifact_result.action_results.append(action_result)
+    return artifact_result
+
+  def _RunClientAction(self, action, request, processors):
+    saved_responses = []
+    for response in action.Start(request):
+
+      if processors:
+        for processor in processors:
+          processor_obj = processor()
+          if processor_obj.process_together:
+            raise NotImplementedError()
+          for res in ParseResponse(processor_obj, response,
+                                   self.knowledge_base):
+            saved_responses.append(res)
+      else:
+        saved_responses.append(response)
+    return saved_responses
+
+  def _ParseSourceType(self, args):
     type_name = rdf_artifacts.ArtifactSource.SourceType
-    if source_type == type_name.COMMAND:
-      yield self._ProcessCommandSource(args)
-    elif source_type == type_name.DIRECTORY:
-      # TODO(user): Not implemented yet.
-      raise NotImplementedError()
-    elif source_type == type_name.FILE:
-      # TODO(user): Not implemented yet.
-      # Created action `Download` in file_finder.py with classmethod Start that
-      # would take FileFinderArgs as input and return a FileFinderResult object.
-      # opts = rdf_file_finder.FileFinderDownloadActionOptions(
-      #     max_size=args.max_bytesize
-      # )
-      # action = rdf_file_finder.FileFinderAction(
-      #     action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
-      #     download=opts
-      # )
-      # request = rdf_file_finder.FileFinderArgs(
-      #     paths=args.paths,
-      #     pathtype=args.pathtype,
-      #     action=action
-      # )
+    switch = {
+        type_name.COMMAND: self._ProcessCommandSource,
+        type_name.DIRECTORY: _NotImplemented,
+        type_name.FILE: self._ProcessFileSource,
+        type_name.GREP: _NotImplemented,
+        type_name.REGISTRY_KEY: _NotImplemented,
+        type_name.REGISTRY_VALUE: self._ProcessRegistryValueSource,
+        type_name.WMI: self._ProcessWmiSource,
+        type_name.ARTIFACT_GROUP: _NotImplemented,
+        type_name.ARTIFACT_FILES: _NotImplemented,
+        type_name.GRR_CLIENT_ACTION: self._ProcessClientActionSource
+    }
+    source_type = args.base_source.type
 
-      # action = subactions.DownloadAction
+    try:
+      source_type_action = switch[source_type]
+    except KeyError:
+      raise ValueError("Incorrect source type: %s" % args.base_source.type)
 
-      raise NotImplementedError()
-    elif source_type == type_name.GREP:
-      # TODO(user): Not implemented yet.
-      raise NotImplementedError()
-    elif source_type == type_name.REGISTRY_KEY:
-      # TODO(user): Not implemented yet.
-      raise NotImplementedError()
-    elif source_type == type_name.REGISTRY_VALUE:
-      for res in self._ProcessRegistryValueSource(args):
-        yield res
-    elif source_type == type_name.WMI:
-      for res in self._ProcessWmiSource(args):
-        yield res
-    elif source_type == type_name.ARTIFACT_GROUP:
-      # TODO(user): Not implemented yet.
-      raise NotImplementedError()
-    elif source_type == type_name.ARTIFACT_FILES:
-      # TODO(user): Not implemented yet.
-      raise NotImplementedError()
-    elif source_type == type_name.GRR_CLIENT_ACTION:
-      yield self._ProcessClientActionSource(args)
-    else:
-      raise ValueError("Incorrect source type: %s" % source_type)
+    for res in source_type_action(args):
+      yield res
+
+  def _ProcessFileSource(self, args):
+    # TODO(user): Not implemented yet.
+    # Created action `Download` in file_finder.py with classmethod Start that
+    # would take FileFinderArgs as input and return a FileFinderResult object.
+    # opts = rdf_file_finder.FileFinderDownloadActionOptions(
+    #     max_size=args.max_bytesize
+    # )
+    # action = rdf_file_finder.FileFinderAction(
+    #     action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
+    #     download=opts
+    # )
+    # request = rdf_file_finder.FileFinderArgs(
+    #     paths=args.paths,
+    #     pathtype=args.pathtype,
+    #     action=action
+    # )
+
+    # action = subactions.DownloadAction
+    raise NotImplementedError()
 
   def _ProcessWmiSource(self, args):
     # pylint: disable= g-import-not-at-top
@@ -104,7 +132,7 @@ class ArtifactCollector(actions.ActionPlugin):
     for action_name in args.base_source.attributes["client_action"].keys():
       if action_name == "GetHostname":
         action = admin.GetHostname
-        return action, {}
+        yield action, {}
       else:
         raise ValueError("Action %s not implemented yet." % action_name)
 
@@ -114,7 +142,7 @@ class ArtifactCollector(actions.ActionPlugin):
         cmd=args.base_source.attributes["cmd"],
         args=args.base_source.attributes["args"],
     )
-    return action, request
+    yield action, request
 
   def _ProcessRegistryValueSource(self, args):
     new_paths = set()
@@ -144,3 +172,51 @@ class ArtifactCollector(actions.ActionPlugin):
             path=new_path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
         request = rdf_client.GetFileStatRequest(pathspec=pathspec)
         yield action, request
+
+
+# TODO(user): Think about a different way to call the Parse method of each
+# supported parser. If the method signature is declared in the parser subtype
+# classes then isinstance has to be used. And if it was declared in Parser then
+# every Parser would have to be changed.
+def ParseResponse(processor_obj, response, knowledge_base):
+  """Call the parser for the response and yield rdf values.
+
+  Args:
+    processor_obj: An instance of the parser.
+    response: An rdf value response from a client action.
+    knowledge_base: containing information about the client.
+  Returns:
+    An iterable of rdf value responses.
+  Raises:
+    ValueError: If the requested parser is not supported.
+  """
+  if processor_obj.process_together:
+    parse_method = processor_obj.ParseMultiple
+  else:
+    parse_method = processor_obj.Parse
+
+  if isinstance(processor_obj, parser.CommandParser):
+    result_iterator = parse_method(
+        cmd=response.request.cmd,
+        args=response.request.args,
+        stdout=response.stdout,
+        stderr=response.stderr,
+        return_val=response.exit_status,
+        time_taken=response.time_used,
+        knowledge_base=knowledge_base)
+  elif isinstance(processor_obj, parser.WMIQueryParser):
+    # At the moment no WMIQueryParser actually uses the passed arguments query
+    # and knowledge_base.
+    result_iterator = parse_method(None, response, None)
+  elif isinstance(processor_obj, parser.FileParser):
+    raise NotImplementedError()
+  elif isinstance(processor_obj,
+                  (parser.RegistryParser, parser.RekallPluginParser,
+                   parser.RegistryValueParser, parser.GenericResponseParser,
+                   parser.GrepParser)):
+    result_iterator = parse_method(response, knowledge_base)
+  elif isinstance(processor_obj, parser.ArtifactFilesParser):
+    raise NotImplementedError()
+  else:
+    raise ValueError("Unsupported parser: %s" % processor_obj)
+  return result_iterator

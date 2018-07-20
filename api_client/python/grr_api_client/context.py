@@ -3,6 +3,9 @@
 
 import itertools
 
+
+from builtins import map  # pylint: disable=redefined-builtin
+
 from grr_api_client import utils
 
 
@@ -48,8 +51,8 @@ class GrrApiContext(object):
       first_page = pages.next()
       total_count = getattr(first_page, "total_count", None)
 
-      next_pages_items = itertools.chain.from_iterable(
-          itertools.imap(lambda p: p.items, pages))
+      page_items = lambda page: page.items
+      next_pages_items = itertools.chain.from_iterable(map(page_items, pages))
       all_items = itertools.chain(first_page.items, next_pages_items)
 
       if args.count:

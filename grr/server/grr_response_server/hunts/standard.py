@@ -13,14 +13,16 @@ from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
+from grr_response_server import access_control
 from grr_response_server import aff4
+from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import grr_collections
 from grr_response_server import output_plugin
 from grr_response_server import queue_manager
-from grr_response_server.aff4_objects import cronjobs
+from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.flows.general import transfer
 from grr_response_server.hunts import implementation
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
@@ -30,6 +32,26 @@ from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
 class Error(Exception):
   pass
+
+
+class RunHunt(cronjobs.CronJobBase):
+  """A cron job that starts a hunt."""
+
+  def Run(self):
+    action = self.job.args.hunt_cron_action
+    token = access_control.ACLToken(username="Cron")
+
+    hunt_args = rdf_hunts.GenericHuntArgs(
+        flow_args=action.flow_args,
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+            flow_name=action.flow_name))
+    with implementation.StartHunt(
+        hunt_name=GenericHunt.__name__,
+        args=hunt_args,
+        runner_args=action.hunt_runner_args,
+        token=token) as hunt:
+
+      hunt.Run()
 
 
 class CreateGenericHuntFlow(flow.GRRFlow):
@@ -62,11 +84,7 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
   """Create and run a GenericHunt with the given name, args and rules.
 
   This flow is different to the CreateGenericHuntFlow in that it
-  immediately runs the hunt it created. This functionality cannot be
-  offered in a SUID flow or every user could run any flow on any
-  client without approval by just running a hunt on just that single
-  client. Thus, this flow must *not* be SUID.
-  """
+  immediately runs the hunt it created. """
 
   args_type = rdf_hunts.CreateGenericHuntFlowArgs
 
@@ -159,7 +177,7 @@ class MultiHuntVerificationSummaryError(HuntVerificationError):
     return "\n".join(str(error) for error in self.errors)
 
 
-class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
+class VerifyHuntOutputPluginsCronFlow(aff4_cronjobs.SystemCronFlow):
   """Runs Verify() method of output plugins of active hunts."""
 
   frequency = rdfvalue.Duration("4h")

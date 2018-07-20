@@ -11,11 +11,11 @@ import copy
 import errno
 import importlib
 import inspect
+import io
 import logging
 import os
 import platform
 import re
-import StringIO
 import sys
 import traceback
 
@@ -364,7 +364,8 @@ class ConfigFileParser(ConfigParser.RawConfigParser, GRRConfigParser):
       self.filename = filename
 
     elif data is not None:
-      fd = StringIO.StringIO(data)
+      # TODO(hanuszczak): Configuration file, consider using `StringIO` instead.
+      fd = io.BytesIO(data)
       self.parsed = self.readfp(fd)
       self.filename = filename
     else:
@@ -528,7 +529,8 @@ class YamlParser(GRRConfigParser):
 
     elif data is not None:
       self.filename = filename
-      fd = StringIO.StringIO(data)
+      # TODO(hanuszczak): YAML, consider using `StringIO` instead.
+      fd = io.BytesIO(data)
       self.parsed = self._ParseYaml(fd=fd)
     else:
       raise Error("Filename not specified.")

@@ -2,11 +2,11 @@
 """Tests for utility classes."""
 
 import datetime
+import io
 import os
 import platform
 import shutil
 import socket
-import StringIO
 import subprocess
 import tarfile
 import threading
@@ -355,10 +355,10 @@ class StreamingZipWriterTest(test_lib.GRRBaseTest):
     """Test the zipfile implementation."""
     compressions = [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED]
     for compression in compressions:
-      outfd = StringIO.StringIO()
+      outfd = io.BytesIO()
 
       # Write the zip into a file like object.
-      infd = StringIO.StringIO("this is a test string")
+      infd = io.BytesIO(b"this is a test string")
       with utils.StreamingZipWriter(outfd, compression=compression) as writer:
         writer.WriteFromFD(infd, "test.txt")
 
@@ -372,11 +372,11 @@ class StreamingZipWriterTest(test_lib.GRRBaseTest):
     """Test the zipfile implementation."""
     compressions = [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED]
     for compression in compressions:
-      outfd = StringIO.StringIO()
+      outfd = io.BytesIO()
 
       # Write the zip into a file like object.
-      infd1 = StringIO.StringIO("this is a test string")
-      infd2 = StringIO.StringIO("this is another test string")
+      infd1 = io.BytesIO(b"this is a test string")
+      infd2 = io.BytesIO(b"this is another test string")
       with utils.StreamingZipWriter(outfd, compression=compression) as writer:
         writer.WriteFromFD(infd1, "test1.txt")
         writer.WriteFromFD(infd2, "test2.txt")
@@ -395,10 +395,10 @@ class StreamingZipWriterTest(test_lib.GRRBaseTest):
 
     compressions = [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED]
     for compression in compressions:
-      outfd = StringIO.StringIO()
+      outfd = io.BytesIO()
 
-      infd1 = StringIO.StringIO("this is a test string")
-      infd2 = StringIO.StringIO("this is another test string")
+      infd1 = io.BytesIO(b"this is a test string")
+      infd2 = io.BytesIO(b"this is another test string")
       with utils.StreamingZipWriter(outfd, compression=compression) as writer:
         writer.WriteFromFD(infd1, "test1.txt")
         writer.WriteFromFD(infd2, "subdir/test2.txt")
@@ -432,16 +432,15 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
   """Tests for StreamingTarWriter."""
 
   def testTarFileWithOneFile(self):
-    infd = StringIO.StringIO("this is a test string")
+    infd = io.BytesIO(b"this is a test string")
     st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd.getvalue()), 0, 0, 0))
 
     # Write the tar into a file like object.
-    outfd = StringIO.StringIO()
+    outfd = io.BytesIO()
     with utils.StreamingTarWriter(outfd, mode="w:gz") as writer:
       writer.WriteFromFD(infd, "test.txt", st=st)
 
-    test_tar = tarfile.open(
-        fileobj=StringIO.StringIO(outfd.getvalue()), mode="r")
+    test_tar = tarfile.open(fileobj=io.BytesIO(outfd.getvalue()), mode="r")
     tinfos = list(test_tar.getmembers())
 
     self.assertEqual(len(tinfos), 1)
@@ -451,12 +450,12 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
     self.assertEqual(fd.read(1024), infd.getvalue())
 
   def testTarFileWithMultipleFiles(self):
-    outfd = StringIO.StringIO()
+    outfd = io.BytesIO()
 
-    infd1 = StringIO.StringIO("this is a test string")
+    infd1 = io.BytesIO(b"this is a test string")
     st1 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd1.getvalue()), 0, 0, 0))
 
-    infd2 = StringIO.StringIO("this is another test string")
+    infd2 = io.BytesIO(b"this is another test string")
     st2 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd2.getvalue()), 0, 0, 0))
 
     # Write the tar into a file like object.
@@ -464,8 +463,7 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
       writer.WriteFromFD(infd1, "test1.txt", st=st1)
       writer.WriteFromFD(infd2, "subdir/test2.txt", st=st2)
 
-    test_tar = tarfile.open(
-        fileobj=StringIO.StringIO(outfd.getvalue()), mode="r")
+    test_tar = tarfile.open(fileobj=io.BytesIO(outfd.getvalue()), mode="r")
     tinfos = sorted(test_tar.getmembers(), key=lambda tinfo: tinfo.name)
 
     self.assertEqual(len(tinfos), 2)
@@ -479,12 +477,12 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
     self.assertEqual(fd.read(1024), infd1.getvalue())
 
   def testTarFileWithSymlink(self):
-    outfd = StringIO.StringIO()
+    outfd = io.BytesIO()
 
-    infd1 = StringIO.StringIO("this is a test string")
+    infd1 = io.BytesIO(b"this is a test string")
     st1 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd1.getvalue()), 0, 0, 0))
 
-    infd2 = StringIO.StringIO("this is another test string")
+    infd2 = io.BytesIO(b"this is another test string")
     st2 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd2.getvalue()), 0, 0, 0))
 
     # Write the zip into a file like object.
@@ -496,7 +494,7 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
       writer.WriteSymlink("subdir/test2.txt", "test2.txt.link")
 
     with tarfile.open(
-        fileobj=StringIO.StringIO(outfd.getvalue()), mode="r") as test_fd:
+        fileobj=io.BytesIO(outfd.getvalue()), mode="r") as test_fd:
       test_fd.extractall(self.temp_dir)
 
       link_path = os.path.join(self.temp_dir, "test1.txt.link")

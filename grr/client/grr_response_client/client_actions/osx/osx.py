@@ -14,6 +14,8 @@ import shutil
 import sys
 
 
+from builtins import map  # pylint: disable=redefined-builtin
+
 import pytsk3
 
 from grr_response_client import actions

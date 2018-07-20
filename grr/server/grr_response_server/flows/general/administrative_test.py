@@ -8,6 +8,7 @@ import sys
 import time
 
 
+from builtins import zip  # pylint: disable=redefined-builtin
 import psutil
 
 from grr_response_client.client_actions import admin

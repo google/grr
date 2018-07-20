@@ -187,9 +187,6 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest,
     self.NotOk("aff4:/C.0000000000000001/fs/os", access)
     self.NotOk("aff4:/C.0000000000000001/flows/F:12345678", access)
 
-    self.Ok("aff4:/tmp", access)
-    self.Ok("aff4:/tmp/C8FAFC0F", access)
-
   def testQuerySomePaths(self):
     """Tests some real world paths."""
     access = "rq"
@@ -230,8 +227,6 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest,
     self.Ok("aff4:/C.0000000000000001", access)
     self.NotOk("aff4:/C.0000000000000001/fs/os", access)
     self.NotOk("aff4:/C.0000000000000001/flows", access)
-
-    self.NotOk("aff4:/tmp", access)
 
   def testSupervisorCanDoAnything(self):
     token = access_control.ACLToken(username="unknown", supervisor=True)

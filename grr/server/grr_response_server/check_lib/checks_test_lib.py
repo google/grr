@@ -6,6 +6,7 @@ import io
 import os
 
 
+from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import with_metaclass
 import yaml
 

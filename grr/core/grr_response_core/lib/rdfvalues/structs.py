@@ -7,6 +7,7 @@ import struct
 
 
 from builtins import chr  # pylint: disable=redefined-builtin
+from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import with_metaclass
 from past.builtins import long
 

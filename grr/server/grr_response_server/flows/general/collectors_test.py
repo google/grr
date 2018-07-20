@@ -15,6 +15,7 @@ from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import flags
+from grr_response_core.lib import parser
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -546,6 +547,24 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     self.assertEqual(len(artifacts_objects), 2)
 
 
+class TestCmdParser(parser.CommandParser):
+
+  output_types = ["SoftwarePackage"]
+  supported_artifacts = ["TestEchoArtifact"]
+
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
+    del cmd, args, stderr, return_val, time_taken, knowledge_base  # Unused
+    installed = rdf_client.SoftwarePackage.InstallState.INSTALLED
+    soft = rdf_client.SoftwarePackage(
+        name="Package",
+        description=stdout,
+        version="1",
+        architecture="amd64",
+        install_state=installed)
+    yield soft
+
+
 class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the clientside artifact collection test artifacts."""
 
@@ -565,13 +584,13 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     self._patcher.stop()
     super(ClientArtifactCollectorFlowTest, self).tearDown()
 
-  def _RunFlow(self, flow_cls, action, artifact_list):
+  def _RunFlow(self, flow_cls, action, artifact_list, apply_parsers):
     session_id = flow_test_lib.TestFlowHelper(
         flow_cls.__name__,
         action_mocks.ActionMock(action),
         artifact_list=artifact_list,
         token=self.token,
-        apply_parsers=False,
+        apply_parsers=apply_parsers,
         client_id=self.client_id)
     return flow.GRRFlow.ResultCollectionForFID(session_id)
 
@@ -581,8 +600,11 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     client_test_lib.Command("/usr/bin/dpkg", args=["--list"], system="Linux")
 
     artifact_list = ["TestCmdArtifact"]
-    results = self._RunFlow(collectors.ClientArtifactCollector,
-                            artifact_collector.ArtifactCollector, artifact_list)
+    results = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=False)
     self.assertEqual(len(results), 1)
 
     result = results[0]
@@ -600,8 +622,11 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     client_test_lib.Command("/usr/bin/dpkg", args=["--list"], system="Linux")
 
     artifact_list = ["TestCmdArtifact", "TestOSAgnostic"]
-    results = self._RunFlow(collectors.ClientArtifactCollector,
-                            artifact_collector.ArtifactCollector, artifact_list)
+    results = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=False)
     self.assertEqual(len(results), 1)
 
     result = results[0]
@@ -641,20 +666,53 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertTrue(artifact_registry.REGISTRY.GetArtifact("LinuxMountCmd"))
 
     # Run the ArtifactCollector to get the expected result.
-    expected = self._RunFlow(collectors.ArtifactCollectorFlow,
-                             standard.ExecuteCommand, artifact_list)
+    expected = self._RunFlow(
+        collectors.ArtifactCollectorFlow,
+        standard.ExecuteCommand,
+        artifact_list,
+        apply_parsers=False)
     # The artifact collector receives the same result twice here.
     # self.assertEqual(len(expected), 1)
     expected = expected[0]
     self.assertIsInstance(expected, rdf_client.ExecuteResponse)
 
     # Run the ClientArtifactCollector to get the actual result.
-    result = self._RunFlow(collectors.ClientArtifactCollector,
-                           artifact_collector.ArtifactCollector,
-                           artifact_list)[0]
+    result = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=False)[0]
     self.assertEqual(len(result.collected_artifacts), 1)
     result = result.collected_artifacts[0].action_results[0].value
     self.assertIsInstance(result, rdf_client.ExecuteResponse)
+
+    self.assertEqual(result, expected)
+
+  def testCmdArtifactWithParser(self):
+
+    client_test_lib.Command("/bin/echo", args=["1"])
+
+    artifact_list = ["TestEchoArtifact"]
+
+    # Run the ArtifactCollector to get the expected result.
+    expected = self._RunFlow(
+        collectors.ArtifactCollectorFlow,
+        standard.ExecuteCommand,
+        artifact_list,
+        apply_parsers=True)
+    self.assertTrue(expected)
+    expected = expected[0]
+    self.assertIsInstance(expected, rdf_client.SoftwarePackage)
+
+    # Run the ClientArtifactCollector to get the actual result.
+    result = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=True)[0]
+    self.assertEqual(len(result.collected_artifacts), 1)
+    result = result.collected_artifacts[0].action_results[0].value
+    self.assertIsInstance(result, rdf_client.SoftwarePackage)
 
     self.assertEqual(result, expected)
 

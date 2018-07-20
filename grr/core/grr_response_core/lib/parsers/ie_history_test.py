@@ -4,8 +4,8 @@ from __future__ import division
 
 
 import datetime
+import io
 import os
-import StringIO
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import ie_history
@@ -39,7 +39,7 @@ class IEHistoryTest(test_lib.GRRBaseTest):
 
   def testErrors(self):
     """Test empty files don't raise errors."""
-    c = ie_history.IEParser(StringIO.StringIO())
+    c = ie_history.IEParser(io.BytesIO())
     entries = [x for x in c.Parse()]
     self.assertEqual(len(entries), 0)
 

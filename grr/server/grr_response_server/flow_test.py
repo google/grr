@@ -4,6 +4,8 @@
 import time
 
 
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_client import vfs
 from grr_response_client.client_actions import standard
 from grr_response_core import config

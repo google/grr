@@ -12,7 +12,7 @@ class InMemoryDBCronjobMixin(object):
   @utils.Synchronized
   def WriteCronJob(self, cronjob):
     """Writes a cronjob to the database."""
-    self.cronjobs[cronjob.job_id] = cronjob.Copy()
+    self.cronjobs[cronjob.cron_job_id] = cronjob.Copy()
 
   @utils.Synchronized
   def ReadCronJobs(self, cronjob_ids=None):
@@ -30,7 +30,7 @@ class InMemoryDBCronjobMixin(object):
               "Cron job with id %s not found." % job_id)
 
     for job in res:
-      lease = self.cronjob_leases.get(job.job_id)
+      lease = self.cronjob_leases.get(job.cron_job_id)
       if lease:
         job.leased_until, job.leased_by = lease
     return res
@@ -65,7 +65,7 @@ class InMemoryDBCronjobMixin(object):
     job = self.cronjobs.get(cronjob_id)
     if job is None:
       raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
-    job.disabled = False
+    job.enabled = True
 
   @utils.Synchronized
   def DisableCronJob(self, cronjob_id):
@@ -73,7 +73,7 @@ class InMemoryDBCronjobMixin(object):
     job = self.cronjobs.get(cronjob_id)
     if job is None:
       raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
-    job.disabled = True
+    job.enabled = False
 
   @utils.Synchronized
   def DeleteCronJob(self, cronjob_id):
@@ -95,14 +95,14 @@ class InMemoryDBCronjobMixin(object):
     expiration_time = now + lease_time
 
     for job in self.cronjobs.values():
-      if cronjob_ids and job.job_id not in cronjob_ids:
+      if cronjob_ids and job.cron_job_id not in cronjob_ids:
         continue
-      existing_lease = self.cronjob_leases.get(job.job_id)
+      existing_lease = self.cronjob_leases.get(job.cron_job_id)
       if existing_lease is None or existing_lease[0] < now:
-        self.cronjob_leases[job.job_id] = (expiration_time,
-                                           utils.ProcessIdString())
+        self.cronjob_leases[job.cron_job_id] = (expiration_time,
+                                                utils.ProcessIdString())
         job = job.Copy()
-        job.leased_until, job.leased_by = self.cronjob_leases[job.job_id]
+        job.leased_until, job.leased_by = self.cronjob_leases[job.cron_job_id]
         leased_jobs.append(job)
 
     return leased_jobs
@@ -113,7 +113,7 @@ class InMemoryDBCronjobMixin(object):
     errored_jobs = []
 
     for returned_job in jobs:
-      existing_lease = self.cronjob_leases.get(returned_job.job_id)
+      existing_lease = self.cronjob_leases.get(returned_job.cron_job_id)
       if existing_lease is None:
         errored_jobs.append(returned_job)
         continue
@@ -123,11 +123,11 @@ class InMemoryDBCronjobMixin(object):
         errored_jobs.append(returned_job)
         continue
 
-      del self.cronjob_leases[returned_job.job_id]
+      del self.cronjob_leases[returned_job.cron_job_id]
 
     if errored_jobs:
       raise ValueError("Some jobs could not be returned: %s" % ",".join(
-          job.job_id for job in errored_jobs))
+          job.cron_job_id for job in errored_jobs))
 
   def WriteCronJobRun(self, run_object):
     """Stores a cron job run object in the database."""
@@ -137,16 +137,22 @@ class InMemoryDBCronjobMixin(object):
 
   def ReadCronJobRuns(self, job_id):
     """Reads all cron job runs for a given job id."""
-    return [run for run in self.cronjob_runs.values() if run.job_id == job_id]
+    return [
+        run for run in self.cronjob_runs.values() if run.cron_job_id == job_id
+    ]
 
   def ReadCronJobRun(self, job_id, run_id):
     """Reads a single cron job run from the db."""
     for run in self.cronjob_runs.values():
-      if run.job_id == job_id and run.run_id == run_id:
+      if run.cron_job_id == job_id and run.run_id == run_id:
         return run
 
   def DeleteOldCronJobRuns(self, cutoff_timestamp):
     """Deletes cron job runs for a given job id."""
+    deleted = 0
     for run in self.cronjob_runs.values():
       if run.timestamp < cutoff_timestamp:
         del self.cronjob_runs[run.run_id]
+        deleted += 1
+
+    return deleted

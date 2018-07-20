@@ -88,6 +88,11 @@ config_lib.DEFINE_list(
     "important. Leave empty unless you are sure that you "
     "know what you are doing.")
 
+config_lib.DEFINE_list(
+    "Cron.disabled_cron_jobs", [],
+    "This is the equivalent setting to disabled_system_jobs "
+    "when using the relational database.")
+
 config_lib.DEFINE_string("Frontend.bind_address", "::",
                          "The ip address to bind.")
 

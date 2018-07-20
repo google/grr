@@ -46,14 +46,14 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
     """Test the basic ExecutePython action."""
 
     python_code = """
-import StringIO
+import io
 import uu
 
 def decode(encoded):
   # Use the import (uu) inside a function. This will fail if the environment
   # for exec is not set up properly.
-  i = StringIO.StringIO(s)
-  o = StringIO.StringIO()
+  i = io.BytesIO(s)
+  o = io.BytesIO()
   uu.decode(i, o)
   return o.getvalue()
 

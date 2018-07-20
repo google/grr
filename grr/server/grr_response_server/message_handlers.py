@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""New style well known flows."""
+"""Message handlers."""
 
 
 class MessageHandler(object):

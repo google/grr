@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """The in memory database methods for path handling."""
 
+
+from builtins import filter  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import db

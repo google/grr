@@ -5,6 +5,8 @@ import logging
 import re
 
 
+from builtins import filter  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import utils
 
 
@@ -449,7 +451,7 @@ class SearchParser(Lexer):
         self.stack[i - 1] = None
         self.stack[i + 1] = None
 
-    self.stack = filter(None, self.stack)
+    self.stack = list(filter(None, self.stack))
 
   def _CombineParenthesis(self):
     for i in range(len(self.stack) - 2):
@@ -458,7 +460,7 @@ class SearchParser(Lexer):
         self.stack[i] = None
         self.stack[i + 2] = None
 
-    self.stack = filter(None, self.stack)
+    self.stack = list(filter(None, self.stack))
 
   def Reduce(self):
     """Reduce the token stack into an AST."""

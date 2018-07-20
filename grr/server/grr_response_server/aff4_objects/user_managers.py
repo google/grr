@@ -15,6 +15,9 @@ import functools
 import logging
 import re
 
+
+from builtins import map  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import stats
@@ -348,12 +351,6 @@ class FullAccessControlManager(access_control.AccessControlManager):
     """Creates a CheckAccessHelper for controlling write access."""
     h = CheckAccessHelper("write")
 
-    # Namespace for temporary scratch space. Note that Querying this area is not
-    # allowed. Users should create files with random names if they want to
-    # prevent other users from reading or modifying them.
-    h.Allow("aff4:/tmp")
-    h.Allow("aff4:/tmp/*")
-
     # Users are allowed to modify artifacts live.
     h.Allow("aff4:/artifact_store")
     h.Allow("aff4:/artifact_store/*")
@@ -450,12 +447,6 @@ class FullAccessControlManager(access_control.AccessControlManager):
     # Namespace for clients.
     h.Allow(self.CLIENT_URN_PATTERN)
     h.Allow(self.CLIENT_URN_PATTERN + "/*", self._HasAccessToClient)
-
-    # Namespace for temporary scratch space. Note that Querying this area is not
-    # allowed. Users should create files with random names if they want to
-    # prevent other users from reading or modifying them.
-    h.Allow("aff4:/tmp")
-    h.Allow("aff4:/tmp/*")
 
     # Allow everyone to read the artifact store.
     h.Allow("aff4:/artifact_store")
@@ -639,7 +630,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     """Allow all access if token and requested access are valid."""
     if any(not x for x in subjects):
       raise ValueError("Subjects list can't contain empty URNs.")
-    subjects = map(rdfvalue.RDFURN, subjects)
+    subjects = list(map(rdfvalue.RDFURN, subjects))
 
     return (ValidateAccessAndSubjects(requested_access, subjects) and
             ValidateToken(token, subjects) and

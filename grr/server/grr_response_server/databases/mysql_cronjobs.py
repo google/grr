@@ -15,32 +15,30 @@ class MySQLDBCronjobMixin(object):
   @mysql_utils.WithTransaction()
   def WriteCronJob(self, cronjob, cursor=None):
     query = ("INSERT IGNORE INTO cron_jobs "
-             "(job_id, job, create_time, disabled) "
+             "(job_id, job, create_time, enabled) "
              "VALUES (%s, %s, %s, %s)")
 
     create_time_str = mysql_utils.RDFDatetimeToMysqlString(
-        cronjob.create_time or rdfvalue.RDFDatetime.Now())
+        cronjob.created_at or rdfvalue.RDFDatetime.Now())
     cursor.execute(query, [
-        cronjob.job_id,
-        cronjob.SerializeToString(), create_time_str, cronjob.disabled
+        cronjob.cron_job_id,
+        cronjob.SerializeToString(), create_time_str, cronjob.enabled
     ])
 
   def _CronjobFromRow(self, row):
     """Creates a cronjob object from a database result row."""
-    (job, create_time, disabled, forced_run_requested, last_run_status,
+    (job, create_time, enabled, forced_run_requested, last_run_status,
      last_run_time, current_run_id, state, leased_until, leased_by) = row
-
-    # This is not yet used.
-    del forced_run_requested
 
     job = rdf_cronjobs.CronJob.FromSerializedString(job)
     job.current_run_id = current_run_id
-    job.disabled = disabled
+    job.enabled = enabled
+    job.forced_run_requested = forced_run_requested
     job.last_run_status = last_run_status
     job.last_run_time = mysql_utils.MysqlToRDFDatetime(last_run_time)
     if state:
       job.state = rdf_protodict.AttributedDict.FromSerializedString(state)
-    job.create_time = mysql_utils.MysqlToRDFDatetime(create_time)
+    job.created_at = mysql_utils.MysqlToRDFDatetime(create_time)
     job.leased_until = mysql_utils.MysqlToRDFDatetime(leased_until)
     job.leased_by = leased_by
     return job
@@ -48,7 +46,7 @@ class MySQLDBCronjobMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadCronJobs(self, cronjob_ids=None, cursor=None):
     """Reads all cronjobs from the database."""
-    query = ("SELECT job, create_time, disabled, forced_run_requested, "
+    query = ("SELECT job, create_time, enabled, forced_run_requested, "
              "last_run_status, last_run_time, current_run_id, state, "
              "leased_until, leased_by "
              "FROM cron_jobs")
@@ -63,25 +61,25 @@ class MySQLDBCronjobMixin(object):
       res.append(self._CronjobFromRow(row))
 
     if len(res) != len(cronjob_ids):
-      missing = set(cronjob_ids) - set([c.job_id for c in res])
+      missing = set(cronjob_ids) - set([c.cron_job_id for c in res])
       raise db.UnknownCronjobError(
           "Cronjob(s) with id(s) %s not found." % missing)
     return res
 
-  def _SetCronDisabledBit(self, cronjob_id, disabled, cursor=None):
+  def _SetCronEnabledBit(self, cronjob_id, enabled, cursor=None):
     res = cursor.execute(
-        "UPDATE cron_jobs SET disabled=%d WHERE job_id=%%s" % int(disabled),
+        "UPDATE cron_jobs SET enabled=%d WHERE job_id=%%s" % int(enabled),
         [cronjob_id])
     if res != 1:
       raise db.UnknownCronjobError("Cronjob with id %s not found." % cronjob_id)
 
   @mysql_utils.WithTransaction()
   def EnableCronJob(self, cronjob_id, cursor=None):
-    self._SetCronDisabledBit(cronjob_id, False, cursor=cursor)
+    self._SetCronEnabledBit(cronjob_id, True, cursor=cursor)
 
   @mysql_utils.WithTransaction()
   def DisableCronJob(self, cronjob_id, cursor=None):
-    self._SetCronDisabledBit(cronjob_id, True, cursor=cursor)
+    self._SetCronEnabledBit(cronjob_id, False, cursor=cursor)
 
   @mysql_utils.WithTransaction()
   def DeleteCronJob(self, cronjob_id, cursor=None):
@@ -109,7 +107,7 @@ class MySQLDBCronjobMixin(object):
       args.append(mysql_utils.RDFDatetimeToMysqlString(last_run_time))
     if current_run_id != db.Database.unchanged:
       updates.append("current_run_id=%s")
-      args.append(current_run_id or 0)
+      args.append(current_run_id)
     if state != db.Database.unchanged:
       updates.append("state=%s")
       args.append(state.SerializeToString())
@@ -150,7 +148,7 @@ class MySQLDBCronjobMixin(object):
       return []
 
     cursor.execute(
-        "SELECT job, create_time, disabled, forced_run_requested, "
+        "SELECT job, create_time, enabled, forced_run_requested, "
         "last_run_status, last_run_time, current_run_id, state, "
         "leased_until, leased_by "
         "FROM cron_jobs WHERE leased_until=%s AND leased_by=%s",
@@ -174,7 +172,7 @@ class MySQLDBCronjobMixin(object):
 
       conditions.append("(job_id=%s AND leased_until=%s AND leased_by=%s)")
       args += [
-          job.job_id,
+          job.cron_job_id,
           mysql_utils.RDFDatetimeToMysqlString(job.leased_until), job.leased_by
       ]
 

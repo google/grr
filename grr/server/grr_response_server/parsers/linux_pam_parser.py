@@ -4,6 +4,8 @@ import os
 import re
 
 
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import parser
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file

@@ -154,7 +154,7 @@ CronJobsListController.prototype.transformItems = function(items) {
     var cronJobId = item['value']['cron_job_id']['value'];
     this.cronJobsById[cronJobId] = item;
 
-    var periodicity = item['value']['periodicity']['value'];
+    var frequency = item['value']['frequency']['value'];
     var currentTime = this.timeService_.getCurrentTimeMs() / 1000;
     var last_run_time;
     if (angular.isDefined(item['value']['last_run_time'])) {
@@ -162,7 +162,7 @@ CronJobsListController.prototype.transformItems = function(items) {
     } else {
       last_run_time = 0;
     }
-    item.isStuck = (currentTime - last_run_time > periodicity * 2);
+    item.isStuck = (currentTime - last_run_time > frequency * 2);
   }.bind(this));
 
   return items;
@@ -215,7 +215,7 @@ CronJobsListController.prototype.enableCronJob = function() {
       function() {
         var promise = this.grrApiService_.patch(
             this.buildCronJobUrl_(this.selectedCronJobId),
-            {state: 'ENABLED'});
+            {enabled: true});
         return this.wrapApiPromise_(promise,
                                     'Cron job was ENABLED successfully!');
       }.bind(this));
@@ -243,7 +243,7 @@ CronJobsListController.prototype.disableCronJob = function() {
       function() {
         var promise = this.grrApiService_.patch(
             this.buildCronJobUrl_(this.selectedCronJobId),
-            {state: 'DISABLED'});
+            {enabled: false});
         return this.wrapApiPromise_(promise,
                                     'Cron job was DISABLED successfully!');
       }.bind(this));

@@ -7,6 +7,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import message_handlers
 
 
 def GetForeman(token=None):
@@ -123,3 +124,18 @@ class Foreman(object):
       data_store.REL_DB.RemoveExpiredForemanRules()
 
     return actions_count
+
+
+class ForemanMessageHandler(message_handlers.MessageHandler):
+  """A handler for Foreman messages."""
+
+  handler_name = "ForemanHandler"
+
+  def ProcessMessages(self, msgs):
+    # TODO(amoser): The foreman reads the rules from the database for each
+    # client. In the old implementation we used to have a cache. If this is a
+    # performance hit, lets consider putting the cache back.
+
+    foreman_obj = Foreman()
+    for msg in msgs:
+      foreman_obj.AssignTasksToClient(msg.client_id)

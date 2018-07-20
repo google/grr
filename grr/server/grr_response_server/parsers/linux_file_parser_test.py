@@ -7,6 +7,8 @@ import operator
 import os
 
 
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import parser as lib_parser
 from grr_response_core.lib import utils

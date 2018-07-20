@@ -14,6 +14,8 @@ import threading
 import time
 import zlib
 
+
+from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import with_metaclass
 
 from grr_response_core import config
@@ -881,7 +883,7 @@ class Factory(object):
 
     if diffs_only:
       versions.insert(0, rdfvalue.RDFDatetime(0))
-      pairs = zip(versions, versions[1:])
+      pairs = list(zip(versions, versions[1:]))
     else:
       pairs = [(rdfvalue.RDFDatetime(0), v) for v in versions]
 

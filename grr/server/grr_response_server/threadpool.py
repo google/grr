@@ -333,7 +333,7 @@ class ThreadPool(object):
 
   def AddTask(self,
               target,
-              args,
+              args=(),
               name="Unnamed task",
               blocking=True,
               inline=True):

@@ -8,7 +8,8 @@ import pdb
 import time
 
 from builtins import chr  # pylint: disable=redefined-builtin
-
+from builtins import map  # pylint: disable=redefined-builtin
+from builtins import zip  # pylint: disable=redefined-builtin
 import mock
 import requests
 
@@ -395,7 +396,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
     # This lease time must be small, as the HandleMessageBundles() call failed,
     # the pending client messages must be put back on the queue.
-    self.assertLess(lease_time, rdfvalue.Duration("1s"))
+    self.assertLess(lease_time, rdfvalue.Duration("2s"))
 
     # Since the server tried to send it, the ttl must be decremented
     self.assertEqual(tasks[0].task_ttl - new_tasks[0].task_ttl, 1)
@@ -446,7 +447,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
     # Should return a client message (ttl-1) times and nothing afterwards.
     self.assertEqual(
-        map(bool, msgs_recvd),
+        list(map(bool, msgs_recvd)),
         [True] * (rdf_flows.GrrMessage().task_ttl - 1) + [False])
 
     # Now we simulate that the workers are overloaded - the client messages
@@ -481,7 +482,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
     # Should return a client message twice and nothing afterwards.
     self.assertEqual(
-        map(bool, msgs_recvd),
+        list(map(bool, msgs_recvd)),
         [True] * 2 + [False] * (rdf_flows.GrrMessage().task_ttl - 2))
 
   def testCrashReport(self):

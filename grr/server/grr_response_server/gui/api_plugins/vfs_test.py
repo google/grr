@@ -6,11 +6,14 @@ import io
 import unittest
 import zipfile
 
-from grr_response_core.lib import flags
 
+from builtins import zip  # pylint: disable=redefined-builtin
+
+from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -22,6 +25,7 @@ from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import vfs as vfs_plugin
 from grr_response_server.rdfvalues import objects as rdf_objects
+
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib

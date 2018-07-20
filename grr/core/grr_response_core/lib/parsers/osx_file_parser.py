@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 """Simple parsers for OS X files."""
 
-import cStringIO
-
+import io
 import os
 import stat
 
@@ -43,7 +42,7 @@ class OSXSPHardwareDataTypeParser(parser.CommandParser):
     _ = stderr, time_taken, args, knowledge_base  # Unused
     self.CheckReturn(cmd, return_val)
 
-    plist = binplist.readPlist(cStringIO.StringIO(stdout))
+    plist = binplist.readPlist(io.BytesIO(stdout))
 
     if len(plist) > 1:
       raise parser.ParseError("SPHardwareDataType plist has too many items.")

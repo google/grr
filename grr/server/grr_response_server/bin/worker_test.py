@@ -19,6 +19,7 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_runner
+from grr_response_server import foreman
 from grr_response_server import frontend_lib
 from grr_response_server import queue_manager
 from grr_response_server import worker_lib
@@ -846,6 +847,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
       self.DeleteNotification.old_target(
           self, arg_session_id, start=start, end=end)
+
     # pylint: enable=invalid-name
 
     with utils.Stubber(queue_manager.QueueManager, "DeleteNotification",
@@ -1108,6 +1110,38 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertIn("CPU limit exceeded", errors[0].log_message)
     # Server side out of cpu.
     self.assertIn("Out of CPU quota", errors[1].backtrace)
+
+  def testForemanMessageHandler(self):
+    with test_lib.ConfigOverrider({
+        "Database.useForReads": True,
+        "Database.useForReads.message_handlers": True
+    }):
+      with mock.patch.object(foreman.Foreman, "AssignTasksToClient") as instr:
+        worker_obj = worker_lib.GRRWorker(token=self.token)
+
+        # Send a message to the Foreman.
+        session_id = administrative.Foreman.well_known_session_id
+        client_id = rdf_client.ClientURN("C.1100110011001100")
+        self.SendResponse(
+            session_id,
+            rdf_protodict.DataBlob(),
+            client_id=client_id,
+            well_known=True)
+
+        done = threading.Event()
+
+        def handle(l):
+          worker_obj._ProcessMessageHandlerRequests(l)
+          done.set()
+
+        data_store.REL_DB.RegisterMessageHandler(
+            handle, worker_obj.well_known_flow_lease_time, limit=1000)
+        self.assertTrue(done.wait(10))
+
+        # Make sure there are no leftover requests.
+        self.assertEqual(data_store.REL_DB.ReadMessageHandlerRequests(), [])
+
+        instr.assert_called_once_with(client_id)
 
 
 def main(argv):

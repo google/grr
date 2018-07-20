@@ -92,6 +92,9 @@ import binascii
 import collections
 import re
 
+
+from builtins import filter  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import lexer
 from grr_response_core.lib import utils
 
@@ -142,7 +145,7 @@ class Filter(object):
 
   def Filter(self, objects):
     """Returns a list of objects that pass the filter."""
-    return filter(self.Matches, objects)
+    return list(filter(self.Matches, objects))
 
   def __str__(self):
     return "%s(%s)" % (self.__class__.__name__,
@@ -824,7 +827,7 @@ class Parser(lexer.SearchParser):
         self.stack[i - 1] = None
         self.stack[i + 1] = None
 
-    self.stack = filter(None, self.stack)
+    self.stack = list(filter(None, self.stack))
 
   def _CombineContext(self):
     # Context can merge from item 0
@@ -836,7 +839,7 @@ class Parser(lexer.SearchParser):
         self.stack[i - 1].SetExpression(expression)
         self.stack[i] = None
 
-    self.stack = filter(None, self.stack)
+    self.stack = list(filter(None, self.stack))
 
 
 # FILTER IMPLEMENTATIONS

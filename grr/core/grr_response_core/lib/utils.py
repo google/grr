@@ -6,10 +6,10 @@ import array
 import base64
 import collections
 import copy
-import cStringIO
 import errno
 import functools
 import getpass
+import io
 import os
 import pipes
 import platform
@@ -888,7 +888,7 @@ class RollingMemoryStream(object):
   """Append-only memory stream that allows writing data in chunks."""
 
   def __init__(self):
-    self._stream = cStringIO.StringIO()
+    self._stream = io.BytesIO()
     self._offset = 0
 
   def write(self, b):  # pylint: disable=invalid-name

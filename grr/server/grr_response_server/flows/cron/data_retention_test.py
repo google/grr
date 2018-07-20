@@ -11,23 +11,23 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server.aff4_objects import cronjobs
-from grr_response_server.aff4_objects import standard as aff4_standard
 from grr_response_server.data_stores import fake_data_store
 from grr_response_server.flows.cron import data_retention
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
+class CleanHuntsFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the CleanHunts flow."""
 
   NUM_HUNTS = 10
 
   def setUp(self):
-    super(CleanHuntsTest, self).setUp()
+    super(CleanHuntsFlowTest, self).setUp()
 
     self.hunts_urns = []
     with test_lib.FakeTime(40):
@@ -39,12 +39,23 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
         hunt.Run()
         self.hunts_urns.append(hunt.urn)
 
+  def _RunCleanup(self):
+    self.cleaner_flow = flow.StartFlow(
+        flow_name=data_retention.CleanHunts.__name__,
+        sync=True,
+        token=self.token)
+
+  def _CheckLog(self, msg):
+    flow_obj = aff4.FACTORY.Open(self.cleaner_flow)
+    log_collection = flow_obj.GetLog()
+    for log_item in log_collection:
+      if msg in log_item.log_message:
+        return
+    raise ValueError("Log message '%s' not found in the flow log." % msg)
+
   def testDoesNothingIfAgeLimitNotSetInConfig(self):
     with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
-      flow.StartFlow(
-          flow_name=data_retention.CleanHunts.__name__,
-          sync=True,
-          token=self.token)
+      self._RunCleanup()
 
     hunts_urns = list(
         aff4.FACTORY.Open("aff4:/hunts", token=self.token).ListChildren())
@@ -55,10 +66,7 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
         "DataRetention.hunts_ttl": rdfvalue.Duration("150s")
     }):
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
-        flow.StartFlow(
-            flow_name=data_retention.CleanHunts.__name__,
-            sync=True,
-            token=self.token)
+        self._RunCleanup()
         latest_timestamp = rdfvalue.RDFDatetime.Now()
 
       hunts_urns = list(
@@ -72,6 +80,7 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
         self.assertLess(runner.context.expires, latest_timestamp)
         self.assertGreaterEqual(runner.context.expires,
                                 latest_timestamp - rdfvalue.Duration("150s"))
+    self._CheckLog("Deleted 8")
 
   def testNoTraceOfDeletedHuntIsLeftInTheDataStore(self):
     # This only works with the test data store (FakeDataStore).
@@ -82,10 +91,7 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
         "DataRetention.hunts_ttl": rdfvalue.Duration("1s")
     }):
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
-        flow.StartFlow(
-            flow_name=data_retention.CleanHunts.__name__,
-            sync=True,
-            token=self.token)
+        self._RunCleanup()
 
       for hunt_urn in self.hunts_urns:
         hunt_id = hunt_urn.Basename()
@@ -117,63 +123,88 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
     }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
-        flow.StartFlow(
-            flow_name=data_retention.CleanHunts.__name__,
-            sync=True,
-            token=self.token)
+        self._RunCleanup()
 
       hunts_urns = list(
           aff4.FACTORY.Open("aff4:/hunts", token=self.token).ListChildren())
       self.assertEqual(len(hunts_urns), 3)
 
 
+class CleanHuntsJobTest(db_test_lib.RelationalDBEnabledMixin,
+                        CleanHuntsFlowTest):
+  """Test the CleanHunts cron job."""
+
+  def _RunCleanup(self):
+    run = rdf_cronjobs.CronJobRun()
+    job = rdf_cronjobs.CronJob()
+    self.cleaner_job = data_retention.CleanHuntsCronJob(run, job)
+    self.cleaner_job.Run()
+
+  def _CheckLog(self, msg):
+    self.assertIn(msg, self.cleaner_job.run_state.log_message)
+
+
 class RetentionTestSystemCronJob(cronjobs.SystemCronFlow):
   """Dummy system cron job."""
 
-  lifetime = rdfvalue.Duration("30m")
-  frequency = rdfvalue.Duration("1h")
+  lifetime = rdfvalue.Duration("30s")
+  frequency = rdfvalue.Duration("30s")
 
   @flow.StateHandler()
   def Start(self):
     self.CallState(next_state="End")
 
 
-class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
+class CleanCronJobsFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the CleanCronJobs flow."""
 
   NUM_CRON_RUNS = 10
 
   def setUp(self):
-    super(CleanCronJobsTest, self).setUp()
+    super(CleanCronJobsFlowTest, self).setUp()
 
     with test_lib.FakeTime(40):
-      cron_args = rdf_cronjobs.CreateCronJobFlowArgs(
-          periodicity=RetentionTestSystemCronJob.frequency)
-      cron_args.flow_runner_args.flow_name = RetentionTestSystemCronJob.__name__
-      cron_args.lifetime = RetentionTestSystemCronJob.lifetime
+      cron_args = rdf_cronjobs.CreateCronJobArgs(
+          frequency=RetentionTestSystemCronJob.frequency,
+          flow_name=RetentionTestSystemCronJob.__name__,
+          lifetime=RetentionTestSystemCronJob.lifetime)
 
       self.cron_jobs_names = []
       self.cron_jobs_names.append(cronjobs.GetCronManager().CreateJob(
-          cron_args=cron_args, job_id="Foo", token=self.token, disabled=False))
+          cron_args=cron_args, job_id="Foo", token=self.token, enabled=True))
       self.cron_jobs_names.append(cronjobs.GetCronManager().CreateJob(
-          cron_args=cron_args, job_id="Bar", token=self.token, disabled=False))
+          cron_args=cron_args, job_id="Bar", token=self.token, enabled=True))
 
+    manager = cronjobs.GetCronManager()
     for i in range(self.NUM_CRON_RUNS):
       with test_lib.FakeTime(40 + 60 * i):
-        cronjobs.GetCronManager().RunOnce(token=self.token, force=True)
+        manager.RunOnce(token=self.token)
+        if data_store.RelationalDBReadEnabled(category="cronjobs"):
+          manager._GetThreadPool().Join()
+
+  def _RunCleanup(self):
+    self.cleaner_flow = flow.StartFlow(
+        flow_name=data_retention.CleanCronJobs.__name__,
+        sync=True,
+        token=self.token)
+
+  def _CheckLog(self, msg):
+    flow_obj = aff4.FACTORY.Open(self.cleaner_flow)
+    log_collection = flow_obj.GetLog()
+    for log_item in log_collection:
+      if msg in log_item.log_message:
+        return
+    raise ValueError("Log message '%s' not found in the flow log." % msg)
 
   def testDoesNothingIfAgeLimitNotSetInConfig(self):
     with test_lib.FakeTime(40 + 60 * self.NUM_CRON_RUNS):
-      flow.StartFlow(
-          flow_name=data_retention.CleanCronJobs.__name__,
-          sync=True,
-          token=self.token)
+      self._RunCleanup()
 
     for name in self.cron_jobs_names:
       runs = cronjobs.GetCronManager().ReadJobRuns(name, token=self.token)
       self.assertEqual(len(runs), self.NUM_CRON_RUNS)
 
-  def testDeletesFlowsOlderThanGivenAge(self):
+  def testDeletesRunsOlderThanGivenAge(self):
     all_children = []
     for cron_name in self.cron_jobs_names:
       all_children.extend(cronjobs.GetCronManager().ReadJobRuns(
@@ -186,10 +217,7 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
       # Only two iterations are supposed to survive, as they were running
       # every minute.
       with test_lib.FakeTime(40 + 60 * self.NUM_CRON_RUNS):
-        flow.StartFlow(
-            flow_name=data_retention.CleanCronJobs.__name__,
-            sync=True,
-            token=self.token)
+        self._RunCleanup()
         latest_timestamp = rdfvalue.RDFDatetime.Now()
 
       remaining_children = []
@@ -215,89 +243,54 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
           for flow_urn in deleted_flows:
             self.assertNotIn(str(flow_urn), subject)
 
+    self._CheckLog("Deleted 16")
 
-class CleanTempTest(flow_test_lib.FlowTestsBaseclass):
-  """Test the CleanTemp flow."""
 
-  NUM_TMP = 10
+class CleanCronJobsJobTest(db_test_lib.RelationalDBEnabledMixin,
+                           CleanCronJobsFlowTest):
+  """Test the CleanCronJobs cron job."""
 
-  def setUp(self):
-    super(CleanTempTest, self).setUp()
+  def _RunCleanup(self):
+    run = rdf_cronjobs.CronJobRun()
+    job = rdf_cronjobs.CronJob()
+    self.cleaner_job = data_retention.CleanCronJobsCronJob(run, job)
+    self.cleaner_job.Run()
 
-    self.tmp_urns = []
-    for i in range(self.NUM_TMP):
-      with test_lib.FakeTime(40 + 60 * i):
-        tmp_obj = aff4.FACTORY.Create(
-            "aff4:/tmp/%s" % i,
-            aff4_standard.TempMemoryFile,
-            mode="rw",
-            token=self.token)
-        self.tmp_urns.append(tmp_obj.urn)
-        tmp_obj.Close()
+  def testDeletesRunsOlderThanGivenAge(self):
+    all_children = []
+    for cron_name in self.cron_jobs_names:
+      all_children.extend(cronjobs.GetCronManager().ReadJobRuns(cron_name))
 
-  def testDoesNothingIfAgeLimitNotSetInConfig(self):
-    with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
-      flow.StartFlow(
-          flow_name=data_retention.CleanTemp.__name__,
-          sync=True,
-          token=self.token)
-
-    tmp_urns = list(
-        aff4.FACTORY.Open("aff4:/tmp", token=self.token).ListChildren())
-    self.assertEqual(len(tmp_urns), 10)
-
-  def testDeletesTempWithAgeOlderThanGivenAge(self):
     with test_lib.ConfigOverrider({
-        "DataRetention.tmp_ttl": rdfvalue.Duration("300s")
+        "DataRetention.cron_jobs_flows_ttl": rdfvalue.Duration("150s")
     }):
 
-      with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
-        flow.StartFlow(
-            flow_name=data_retention.CleanTemp.__name__,
-            sync=True,
-            token=self.token)
+      # Only two iterations are supposed to survive, as they were running
+      # every minute.
+      with test_lib.FakeTime(40 + 60 * self.NUM_CRON_RUNS):
+        self._RunCleanup()
         latest_timestamp = rdfvalue.RDFDatetime.Now()
 
-      tmp_urns = list(
-          aff4.FACTORY.Open("aff4:/tmp", token=self.token).ListChildren())
-      self.assertEqual(len(tmp_urns), 5)
+      for cron_name in self.cron_jobs_names:
+        children = cronjobs.GetCronManager().ReadJobRuns(cron_name)
+        self.assertEqual(len(children), 2)
 
-      for tmp_urn in tmp_urns:
-        self.assertLess(tmp_urn.age, latest_timestamp)
-        self.assertGreaterEqual(tmp_urn.age,
-                                latest_timestamp - rdfvalue.Duration("300s"))
+        for child in children:
+          self.assertLess(child.started_at, latest_timestamp)
+          self.assertGreater(child.started_at,
+                             latest_timestamp - rdfvalue.Duration("150s"))
 
-  def testKeepsTempWithRetainLabel(self):
-    exception_label_name = config.CONFIG[
-        "DataRetention.tmp_ttl_exception_label"]
-
-    for tmp_urn in self.tmp_urns[:3]:
-      with aff4.FACTORY.Open(tmp_urn, mode="rw", token=self.token) as fd:
-        fd.AddLabel(exception_label_name)
-
-    with test_lib.ConfigOverrider({
-        "DataRetention.tmp_ttl": rdfvalue.Duration("10s")
-    }):
-
-      with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
-        flow.StartFlow(
-            flow_name=data_retention.CleanTemp.__name__,
-            sync=True,
-            token=self.token)
-
-      tmp_urns = list(
-          aff4.FACTORY.Open("aff4:/tmp", token=self.token).ListChildren())
-      self.assertEqual(len(tmp_urns), 3)
+    self.assertIn("Deleted 16", self.cleaner_job.run_state.log_message)
 
 
-class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
-  """Test the CleanTemp flow."""
+class CleanInactiveClientsFlowTest(flow_test_lib.FlowTestsBaseclass):
+  """Tests the client cleanup flow."""
 
   NUM_CLIENT = 10
   CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
 
   def setUp(self):
-    super(CleanInactiveClientsTest, self).setUp()
+    super(CleanInactiveClientsFlowTest, self).setUp()
     self.client_regex = re.compile(self.CLIENT_URN_PATTERN)
     self.client_urns = self.SetupClients(self.NUM_CLIENT)
     for i in range(len(self.client_urns)):
@@ -306,12 +299,23 @@ class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
             self.client_urns[i], mode="rw", token=self.token) as client:
           client.Set(client.Schema.LAST(rdfvalue.RDFDatetime.Now()))
 
+  def _RunCleanup(self):
+    self.cleaner_flow = flow.StartFlow(
+        flow_name=data_retention.CleanInactiveClients.__name__,
+        sync=True,
+        token=self.token)
+
+  def _CheckLog(self, msg):
+    flow_obj = aff4.FACTORY.Open(self.cleaner_flow)
+    log_collection = flow_obj.GetLog()
+    for log_item in log_collection:
+      if msg in log_item.log_message:
+        return
+    raise ValueError("Log message '%s' not found in the flow log." % msg)
+
   def testDoesNothingIfAgeLimitNotSetInConfig(self):
     with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
-      flow.StartFlow(
-          flow_name=data_retention.CleanInactiveClients.__name__,
-          sync=True,
-          token=self.token)
+      self._RunCleanup()
 
     aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
     aff4_urns = list(aff4_root.ListChildren())
@@ -325,10 +329,7 @@ class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
     }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
-        flow.StartFlow(
-            flow_name=data_retention.CleanInactiveClients.__name__,
-            sync=True,
-            token=self.token)
+        self._RunCleanup()
         latest_timestamp = rdfvalue.RDFDatetime.Now()
 
       aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
@@ -346,6 +347,8 @@ class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
             client.Get(client.Schema.LAST),
             latest_timestamp - rdfvalue.Duration("300s"))
 
+    self._CheckLog("Deleted 5")
+
   def testKeepsClientsWithRetainLabel(self):
     exception_label_name = config.CONFIG[
         "DataRetention.inactive_client_ttl_exception_label"]
@@ -359,10 +362,7 @@ class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
     }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
-        flow.StartFlow(
-            flow_name=data_retention.CleanInactiveClients.__name__,
-            sync=True,
-            token=self.token)
+        self._RunCleanup()
 
       aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
       aff4_urns = list(aff4_root.ListChildren())
@@ -371,6 +371,19 @@ class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
       ]
 
       self.assertEqual(len(client_urns), 3)
+
+
+class CleanInactiveClientsJobTest(db_test_lib.RelationalDBEnabledMixin,
+                                  CleanInactiveClientsFlowTest):
+
+  def _RunCleanup(self):
+    run = rdf_cronjobs.CronJobRun()
+    job = rdf_cronjobs.CronJob()
+    self.cleaner_job = data_retention.CleanInactiveClientsCronJob(run, job)
+    self.cleaner_job.Run()
+
+  def _CheckLog(self, msg):
+    self.assertIn(msg, self.cleaner_job.run_state.log_message)
 
 
 def main(argv):

@@ -5,7 +5,6 @@ from __future__ import division
 import io
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
@@ -370,23 +369,3 @@ class LabelSet(aff4.AFF4Object):
     if self.to_set or self.to_delete:
       self.Flush()
     return data_store.DB.LabelFetchAll(self.urn)
-
-
-class TempMemoryFile(aff4.AFF4MemoryStream):
-  """A temporary AFF4MemoryStream-based file with a random URN."""
-
-  def __init__(self, urn, **kwargs):
-    if urn is None:
-      urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" % utils.PRNG.GetUInt32())
-
-    super(TempMemoryFile, self).__init__(urn, **kwargs)
-
-
-class TempImageFile(aff4.AFF4Image):
-  """A temporary file AFF4Image-based file with a random URN."""
-
-  def __init__(self, urn, **kwargs):
-    if urn is None:
-      urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" % utils.PRNG.GetUInt32())
-
-    super(TempImageFile, self).__init__(urn, **kwargs)

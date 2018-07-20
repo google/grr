@@ -12,6 +12,9 @@ an __iter__) method, but are serializable as an RDFProto.
 
 import collections
 
+
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client

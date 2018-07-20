@@ -22,6 +22,8 @@ import time
 import zlib
 
 
+from builtins import filter  # pylint: disable=redefined-builtin
+
 import dateutil
 from dateutil import parser
 from future.utils import with_metaclass
@@ -997,14 +999,14 @@ class RDFURN(RDFValue):
       A list of path components of this URN.
     """
     if count:
-      result = filter(None, self._string_urn.split("/", count))
+      result = list(filter(None, self._string_urn.split("/", count)))
       while len(result) < count:
         result.append("")
 
       return result
 
     else:
-      return filter(None, self._string_urn.split("/"))
+      return list(filter(None, self._string_urn.split("/")))
 
   def RelativeName(self, volume):
     """Given a volume URN return the relative URN as a unicode string.

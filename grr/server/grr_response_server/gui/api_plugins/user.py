@@ -1035,6 +1035,7 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
 
 
 class ApiClientApprovalArgsBase(rdf_structs.RDFProtoStruct):
+  """Base class for client approvals."""
 
   __abstract = True  # pylint: disable=g-bad-name
 
@@ -1363,6 +1364,7 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
 
 
 class ApiCronJobApprovalArgsBase(rdf_structs.RDFProtoStruct):
+  """Base class for Cron Job approvals."""
 
   __abstract = True  # pylint: disable=g-bad-name
 

@@ -4,6 +4,8 @@
 import email
 
 
+from builtins import filter  # pylint: disable=redefined-builtin
+
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils

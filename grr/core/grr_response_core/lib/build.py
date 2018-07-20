@@ -4,7 +4,8 @@
 This handles invocations for the build across the supported platforms including
 handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
-import cStringIO
+
+import io
 import logging
 import os
 import re
@@ -422,7 +423,7 @@ class WindowsClientRepacker(ClientRepacker):
     """Repackage the template zip with the installer."""
     context = self.context + ["Client Context"]
 
-    zip_data = cStringIO.StringIO()
+    zip_data = io.BytesIO()
     output_zip = zipfile.ZipFile(
         zip_data, mode="w", compression=zipfile.ZIP_DEFLATED)
 
@@ -538,8 +539,8 @@ class WindowsClientRepacker(ClientRepacker):
     """
     context = self.context + ["Client Context"]
 
-    src_zip = zipfile.ZipFile(cStringIO.StringIO(payload_data), mode="r")
-    zip_data = cStringIO.StringIO()
+    src_zip = zipfile.ZipFile(io.BytesIO(payload_data), mode="r")
+    zip_data = io.BytesIO()
     output_zip = zipfile.ZipFile(
         zip_data, mode="w", compression=zipfile.ZIP_DEFLATED)
 
@@ -560,17 +561,20 @@ class WindowsClientRepacker(ClientRepacker):
         client_config_content,
         compress_type=zipfile.ZIP_STORED)
 
-    # The zip file comment is used by the self extractor to run
-    # the installation script
+    # The zip file comment is used by the self extractor to run the installation
+    # script. Comment has to be `bytes` object because `zipfile` module is not
+    # smart enough to properly handle `unicode` objects. We use the `encode`
+    # method instead of `SmartStr` because we expect this option to be an
+    # `unicode` object and in case it is not, we want it to blow up.
     output_zip.comment = "$AUTORUN$>%s" % config.CONFIG.Get(
-        "ClientBuilder.autorun_command_line", context=context)
+        "ClientBuilder.autorun_command_line", context=context).encode("utf-8")
 
     output_zip.close()
 
     utils.EnsureDirExists(os.path.dirname(output_path))
     with open(output_path, "wb") as fd:
       # First write the installer stub
-      stub_data = cStringIO.StringIO()
+      stub_data = io.BytesIO()
       unzipsfx_stub = config.CONFIG.Get(
           "ClientBuilder.unzipsfx_stub", context=context)
       stub_raw = open(unzipsfx_stub, "rb").read()
@@ -605,7 +609,7 @@ class WindowsClientRepacker(ClientRepacker):
       stub_data.write(struct.pack("<I", end_of_file - start_of_rsrc_section))
 
       # Concatenate stub and zip file.
-      out_data = cStringIO.StringIO()
+      out_data = io.BytesIO()
       out_data.write(stub_data.getvalue())
       out_data.write(zip_data.getvalue())
 

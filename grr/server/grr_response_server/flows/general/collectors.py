@@ -3,6 +3,9 @@
 
 import logging
 
+
+from builtins import map  # pylint: disable=redefined-builtin
+
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
@@ -625,7 +628,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return
 
     with data_store.DB.GetMutationPool() as pool:
-      stat_entries = map(rdf_client.StatEntry, responses)
+      stat_entries = list(map(rdf_client.StatEntry, responses))
       filesystem.WriteStatEntries(
           stat_entries,
           client_id=self.client_id,

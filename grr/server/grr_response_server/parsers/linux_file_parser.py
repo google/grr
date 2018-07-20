@@ -5,6 +5,8 @@ import logging
 import os
 import re
 
+from builtins import zip  # pylint: disable=redefined-builtin
+
 from grr_response_core import config
 from grr_response_core.lib import parser
 from grr_response_core.lib import utils

@@ -53,6 +53,7 @@ import threading
 import time
 
 
+from builtins import zip  # pylint: disable=redefined-builtin
 from past.builtins import long
 
 from grr_response_core.lib import utils
