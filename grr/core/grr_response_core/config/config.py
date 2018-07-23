@@ -3,7 +3,8 @@
 
 from grr_response_core.lib import config_lib
 
-config_lib.DEFINE_string("Config.prefix", "%(.@grr-response-core|resource)",
+config_lib.DEFINE_string("Config.prefix",
+                         "%(grr_response_core@grr-response-core|resource)",
                          "Prefix directory for general file storage.")
 
 config_lib.DEFINE_string("Config.directory",
