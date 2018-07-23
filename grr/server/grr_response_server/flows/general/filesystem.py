@@ -8,6 +8,7 @@ import stat
 
 
 from builtins import map  # pylint: disable=redefined-builtin
+from future.utils import iterkeys
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
@@ -780,7 +781,7 @@ class GlobMixin(object):
           curr_node = curr_node.setdefault(curr_component.SerializeToString(),
                                            {})
 
-    root_path = self.state.component_tree.keys()[0]
+    root_path = next(iterkeys(self.state.component_tree))
     self.CallStateInline(
         messages=[None],
         next_state="ProcessEntry",
@@ -941,7 +942,7 @@ class GlobMixin(object):
       base_node = self.FindNode(base_path)
       for response in stat_responses:
         matching_components = []
-        for next_node in base_node.keys():
+        for next_node in base_node:
           pathspec = rdf_paths.PathSpec.FromSerializedString(next_node)
 
           if self._MatchPath(pathspec, response):

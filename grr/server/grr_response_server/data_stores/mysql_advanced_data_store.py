@@ -12,6 +12,7 @@ import time
 from warnings import filterwarnings
 
 
+from future.utils import itervalues
 import MySQLdb
 from MySQLdb import cursors
 from past.builtins import long
@@ -637,7 +638,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     """Build a mapping between column names and types."""
     self.attribute_types = {}
 
-    for attribute in aff4.Attribute.PREDICATES.values():
+    for attribute in itervalues(aff4.Attribute.PREDICATES):
       self.attribute_types[attribute.predicate] = (
           attribute.attribute_type.data_store_type)
 

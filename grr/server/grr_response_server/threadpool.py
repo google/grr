@@ -31,6 +31,7 @@ import threading
 import time
 
 
+from future.utils import itervalues
 import psutil
 
 from grr_response_core.lib import stats
@@ -282,7 +283,7 @@ class ThreadPool(object):
 
   @property
   def busy_threads(self):
-    return len([x for x in self._workers_ro_copy.values() if not x.idle])
+    return len([x for x in itervalues(self._workers_ro_copy) if not x.idle])
 
   def __len__(self):
     return len(self._workers_ro_copy)
@@ -316,7 +317,7 @@ class ThreadPool(object):
       return
 
     # Remove all workers from the pool.
-    workers = self._workers.values()
+    workers = list(itervalues(self._workers))
     self._workers = {}
     self._workers_ro_copy = {}
 

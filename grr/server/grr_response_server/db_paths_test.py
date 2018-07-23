@@ -1009,3 +1009,134 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(results[0].components, ("foo", "bar", "baz", "norf"))
     self.assertEqual(results[1].components, ("foo", "bar", "baz", "quux"))
     self.assertEqual(results[2].components, ("foo", "bar", "baz", "thud"))
+
+  def testReadPathInfosHistoriesEmpty(self):
+    client_id = self.InitializeClient()
+    result = self.db.ReadPathInfosHistories(
+        client_id, rdf_objects.PathInfo.PathType.OS, [])
+    self.assertEqual(result, {})
+
+  def testReadPathInfosHistoriesRaisesOnUnknownClient(self):
+    with self.assertRaises(db.UnknownClientError):
+      self.db.ReadPathInfosHistories(
+          "C.FFFF111122223333", rdf_objects.PathInfo.PathType.OS, [("foo",)])
+
+  def testReadPathInfosHistoriesWithSingleFileWithSingleHistoryItem(self):
+    client_id = self.InitializeClient()
+
+    path_info = rdf_objects.PathInfo.OS(components=["foo"])
+    path_info.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01")
+
+    self.db.WritePathInfos(client_id, [path_info])
+
+    stat_entries = {path_info: rdf_client.StatEntry(st_size=42)}
+    hash_entries = {path_info: rdf_crypto.Hash(md5=b"quux")}
+
+    self.db.MultiWritePathHistory(client_id, stat_entries, hash_entries)
+
+    path_infos = self.db.ReadPathInfosHistories(
+        client_id, rdf_objects.PathInfo.PathType.OS, [("foo",)])
+    self.assertEqual(len(path_infos), 1)
+
+    pi = path_infos[("foo",)]
+    self.assertEqual(len(pi), 1)
+    self.assertEqual(pi[0].stat_entry.st_size, 42)
+    self.assertEqual(pi[0].hash_entry.md5, b"quux")
+    self.assertEqual(pi[0].timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01"))
+
+  def testReadPathInfosHistoriesWithTwoFilesWithSingleHistoryItemEach(self):
+    client_id = self.InitializeClient()
+
+    path_info_1 = rdf_objects.PathInfo.OS(components=["foo"])
+    path_info_1.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("1999-01-01")
+
+    path_info_2 = rdf_objects.PathInfo.OS(components=["bar"])
+    path_info_2.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("1988-01-01")
+
+    self.db.WritePathInfos(client_id, [path_info_1, path_info_2])
+
+    stat_entries = {
+        path_info_1: rdf_client.StatEntry(st_mode=1337),
+    }
+    hash_entries = {path_info_2: rdf_crypto.Hash(md5=b"quux")}
+    self.db.MultiWritePathHistory(client_id, stat_entries, hash_entries)
+
+    path_infos = self.db.ReadPathInfosHistories(
+        client_id, rdf_objects.PathInfo.PathType.OS, [("foo",), ("bar",)])
+    self.assertEqual(len(path_infos), 2)
+
+    pi = path_infos[("bar",)]
+    self.assertEqual(len(pi), 1)
+
+    self.assertEqual(pi[0].components, ("bar",))
+    self.assertEqual(pi[0].hash_entry.md5, b"quux")
+    self.assertEqual(pi[0].timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("1988-01-01"))
+
+    pi = path_infos[("foo",)]
+    self.assertEqual(len(pi), 1)
+
+    self.assertEqual(pi[0].components, ("foo",))
+    self.assertEqual(pi[0].stat_entry.st_mode, 1337)
+    self.assertEqual(pi[0].timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("1999-01-01"))
+
+  def testReatPathInfosHistoriesWithTwoFilesWithTwoHistoryItems(self):
+    client_id = self.InitializeClient()
+
+    path_info_1_a = rdf_objects.PathInfo.OS(components=["foo"])
+    path_info_1_a.timestamp = rdfvalue.RDFDatetime.FromHumanReadable(
+        "1999-01-01")
+
+    path_info_1_b = rdf_objects.PathInfo.OS(components=["foo"])
+    path_info_1_b.timestamp = rdfvalue.RDFDatetime.FromHumanReadable(
+        "1999-01-02")
+
+    path_info_2_a = rdf_objects.PathInfo.OS(components=["bar"])
+    path_info_2_a.timestamp = rdfvalue.RDFDatetime.FromHumanReadable(
+        "1988-01-01")
+
+    path_info_2_b = rdf_objects.PathInfo.OS(components=["bar"])
+    path_info_2_b.timestamp = rdfvalue.RDFDatetime.FromHumanReadable(
+        "1988-01-02")
+
+    self.db.WritePathInfos(client_id, [path_info_1_a, path_info_2_a])
+
+    stat_entries = {
+        path_info_1_a: rdf_client.StatEntry(st_mode=1337),
+        path_info_1_b: rdf_client.StatEntry(st_mode=1338),
+        path_info_2_a: rdf_client.StatEntry(st_mode=109),
+        path_info_2_b: rdf_client.StatEntry(st_mode=110),
+    }
+    self.db.MultiWritePathHistory(client_id, stat_entries, {})
+
+    path_infos = self.db.ReadPathInfosHistories(
+        client_id, rdf_objects.PathInfo.PathType.OS, [("foo",), ("bar",)])
+    self.assertEqual(len(path_infos), 2)
+
+    pi = path_infos[("bar",)]
+    self.assertEqual(len(pi), 2)
+
+    self.assertEqual(pi[0].components, ("bar",))
+    self.assertEqual(pi[0].stat_entry.st_mode, 109)
+    self.assertEqual(pi[0].timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("1988-01-01"))
+
+    self.assertEqual(pi[1].components, ("bar",))
+    self.assertEqual(pi[1].stat_entry.st_mode, 110)
+    self.assertEqual(pi[1].timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("1988-01-02"))
+
+    pi = path_infos[("foo",)]
+    self.assertEqual(len(pi), 2)
+
+    self.assertEqual(pi[0].components, ("foo",))
+    self.assertEqual(pi[0].stat_entry.st_mode, 1337)
+    self.assertEqual(pi[0].timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("1999-01-01"))
+
+    self.assertEqual(pi[1].components, ("foo",))
+    self.assertEqual(pi[1].stat_entry.st_mode, 1338)
+    self.assertEqual(pi[1].timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("1999-01-02"))

@@ -5,6 +5,9 @@ import logging
 import threading
 import time
 
+
+from future.utils import iterkeys
+
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -284,7 +287,7 @@ def ScheduleSystemCronFlows(names=None, token=None):
                     "a flow inherited from SystemCronFlow: %s" % name)
 
   if names is None:
-    names = registry.FlowRegistry.FLOW_REGISTRY.keys()
+    names = iterkeys(registry.FlowRegistry.FLOW_REGISTRY)
 
   for name in names:
     cls = registry.FlowRegistry.FlowClassByName(name)

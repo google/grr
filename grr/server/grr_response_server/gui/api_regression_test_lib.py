@@ -11,6 +11,7 @@ import socket
 import sys
 
 
+from future.utils import itervalues
 from future.utils import with_metaclass
 import psutil
 import pytest
@@ -46,7 +47,7 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
     registry.MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
     has_mixin = False
-    for mixin in cls.connection_mixins.values():
+    for mixin in itervalues(cls.connection_mixins):
       if issubclass(cls, mixin):
         has_mixin = True
         break
@@ -58,7 +59,7 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
     if name == "ApiRegressionTest" or has_mixin:
       return
 
-    for mixin in ApiRegressionTestMetaclass.connection_mixins.values():
+    for mixin in itervalues(ApiRegressionTestMetaclass.connection_mixins):
       if (mixin.skip_legacy_dynamic_proto_tests and
           getattr(cls, "uses_legacy_dynamic_protos", False)):
         continue
@@ -251,7 +252,7 @@ class ApiRegressionGoldenOutputGenerator(object):
 
   def _GroupRegressionTestsByHandler(self):
     result = {}
-    for cls in ApiRegressionTest.classes.values():
+    for cls in itervalues(ApiRegressionTest.classes):
       if issubclass(cls, ApiRegressionTest) and getattr(cls, "HandleCheck",
                                                         None):
         result.setdefault(cls.handler, []).append(cls)

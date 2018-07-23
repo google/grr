@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """UI report plugins server-side interface."""
 
+
+from future.utils import itervalues
+
 from grr_response_server.gui.api_plugins.report_plugins import client_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import filestore_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import server_report_plugins
@@ -9,8 +12,7 @@ from grr_response_server.gui.api_plugins.report_plugins import server_report_plu
 def GetAvailableReportPlugins():
   """Lists the registered report plugins."""
   return sorted(
-      REGISTRY.GetRegisteredPlugins().itervalues(),
-      key=lambda cls: cls.__name__)
+      itervalues(REGISTRY.GetRegisteredPlugins()), key=lambda cls: cls.__name__)
 
 
 def GetReportByName(name):

@@ -7,6 +7,8 @@ possible to search for those names which match all keywords.
 """
 
 
+from future.utils import itervalues
+
 from grr_response_server import aff4
 from grr_response_server import data_store
 
@@ -44,7 +46,7 @@ class AFF4KeywordIndex(aff4.AFF4Object):
         end_time=end_time,
         last_seen_map=last_seen_map)
 
-    results = posting_lists.values()
+    results = list(itervalues(posting_lists))
     relevant_set = results[0]
 
     for hits in results:

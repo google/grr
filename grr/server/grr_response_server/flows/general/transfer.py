@@ -5,6 +5,8 @@ from __future__ import division
 import logging
 import zlib
 
+from future.utils import itervalues
+
 from grr_response_core.lib import constants
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -512,7 +514,7 @@ class MultiGetFileMixin(object):
         token=self.token)
 
     for file_store_urn, hash_obj in filestore_obj.CheckHashes(
-        file_hashes.values(), external=self.state.use_external_stores):
+        itervalues(file_hashes), external=self.state.use_external_stores):
 
       self.HeartBeat()
 
@@ -638,7 +640,7 @@ class MultiGetFileMixin(object):
 
     # Check what blobs we already have in the blob store.
     blob_hashes = []
-    for file_tracker in self.state.pending_files.itervalues():
+    for file_tracker in itervalues(self.state.pending_files):
       for hash_response in file_tracker.get("hash_list", []):
         blob_hashes.append(hash_response.data.encode("hex"))
 

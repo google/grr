@@ -116,7 +116,7 @@ class AFF4SparseImageTest(aff4_test_lib.AFF4ObjectTest):
 
     fd.Flush()
     # They shouldn't be in cache anymore, so the chunk_cache should be empty.
-    self.assertFalse(fd.chunk_cache._hash.keys())
+    self.assertFalse(fd.chunk_cache._hash)
 
     # Make sure the contents of the file are what we put into it.
     fd.Seek(start_chunk * fd.chunksize)

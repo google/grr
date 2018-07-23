@@ -6,6 +6,8 @@ import datetime
 import os
 import zipfile
 
+
+from future.utils import iterkeys
 import sqlite3
 import yaml
 
@@ -191,7 +193,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     columns = {row[1] for row in self.db_cursor.fetchall()}
     schema = self.plugin._GetSqliteSchema(export.ExportedFile)
     column_types = {k: v.sqlite_type for k, v in schema.items()}
-    self.assertEqual(columns, set(schema.keys()))
+    self.assertEqual(columns, set(iterkeys(schema)))
     self.assertEqual(column_types["metadata.client_urn"], "TEXT")
     self.assertEqual(column_types["st_ino"], "INTEGER")
     self.assertEqual(column_types["st_atime"], "INTEGER")

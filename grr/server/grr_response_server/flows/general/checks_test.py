@@ -2,6 +2,8 @@
 """Test the collector flows."""
 import os
 
+from future.utils import iterkeys
+
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -76,7 +78,7 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
     cfg_dir = os.path.join(config.CONFIG["Test.data_dir"], "checks")
     chk_files = [os.path.join(cfg_dir, f) for f in check_configs]
     checks.LoadChecksFromFiles(chk_files)
-    return checks.CheckRegistry.checks.keys()
+    return list(iterkeys(checks.CheckRegistry.checks))
 
   def testSelectArtifactsForChecks(self):
     self.SetLinuxKB()

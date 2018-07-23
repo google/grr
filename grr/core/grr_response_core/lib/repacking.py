@@ -9,6 +9,9 @@ import platform
 import sys
 import zipfile
 
+
+from future.utils import iterkeys
+
 from grr_response_core import config
 from grr_response_core.lib import build
 from grr_response_core.lib import config_lib
@@ -18,11 +21,11 @@ from grr_response_core.lib.builders import signing
 class RepackConfig(object):
 
   def Validate(self, config_data, template_path):
-    if set(config_data.keys()) != build.ClientBuilder.REQUIRED_BUILD_YAML_KEYS:
+    config_keys = set(iterkeys(config_data))
+    required_keys = build.ClientBuilder.REQUIRED_BUILD_YAML_KEYS
+    if config_keys != required_keys:
       raise RuntimeError("Bad build.yaml from %s: expected %s, got %s" %
-                         (template_path,
-                          build.ClientBuilder.REQUIRED_BUILD_YAML_KEYS,
-                          config_data.keys()))
+                         (template_path, required_keys, config_keys))
 
   def GetConfigFromTemplate(self, template_path):
     """Apply build.yaml settings from the template."""

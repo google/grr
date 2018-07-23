@@ -1016,7 +1016,7 @@ class SudoersParser(parser.FileParser, FieldParser):
     """Parse an entry and add it to the given SudoersConfig rdfvalue."""
 
     key = entry[0]
-    if key in SudoersParser.ALIAS_TYPES.keys():
+    if key in SudoersParser.ALIAS_TYPES:
       # Alias.
       alias_entry = rdf_config_file.SudoersAlias(
           type=SudoersParser.ALIAS_TYPES.get(key), name=entry[1])

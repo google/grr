@@ -11,6 +11,7 @@ and class as value.
 import abc
 import logging
 import threading
+from future.utils import itervalues
 from future.utils import with_metaclass
 
 
@@ -198,7 +199,9 @@ class HookRegistry(object):
       self.already_run_once.add(hook_cls)
 
   def _RunAllHooks(self, executed_hooks, skip_set):
-    for hook_cls in self.__class__.classes.values():
+    # A copy of list of classes is needed because running a hook might modify
+    # the list.
+    for hook_cls in list(itervalues(self.__class__.classes)):
       if skip_set and hook_cls.__name__ in skip_set:
         continue
       self._RunSingleHook(hook_cls, executed_hooks)

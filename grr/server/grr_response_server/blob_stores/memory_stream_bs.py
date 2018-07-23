@@ -4,6 +4,10 @@
 import hashlib
 
 import logging
+
+
+from future.utils import iterkeys
+
 from grr_response_core.lib import rdfvalue
 from grr_response_server import aff4
 from grr_response_server import blob_store
@@ -50,7 +54,7 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
 
     mutation_pool.Flush()
 
-    return contents_by_digest.keys()
+    return list(iterkeys(contents_by_digest))
 
   def ReadBlobs(self, digests, token=None):
     res = {digest: None for digest in digests}

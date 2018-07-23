@@ -2,6 +2,10 @@
 """The MySQL database methods for client handling."""
 
 import datetime
+
+
+from future.utils import iterkeys
+from future.utils import itervalues
 import MySQLdb
 
 from grr_response_core.lib import rdfvalue
@@ -425,12 +429,12 @@ class MySQLDBClientMixin(object):
     keyword_mapping = {utils.SmartUnicode(kw): kw for kw in keywords}
 
     result = {}
-    for kw in keyword_mapping.values():
+    for kw in itervalues(keyword_mapping):
       result[kw] = []
 
     query = ("SELECT DISTINCT keyword, client_id FROM client_keywords WHERE "
              "keyword IN ({})".format(",".join(["%s"] * len(keyword_mapping))))
-    args = keyword_mapping.keys()
+    args = list(iterkeys(keyword_mapping))
     if start_time:
       query += " AND timestamp >= %s"
       args.append(mysql_utils.RDFDatetimeToMysqlString(start_time))
@@ -469,7 +473,7 @@ class MySQLDBClientMixin(object):
       ret[mysql_utils.IntToClientID(client_id)].append(
           rdf_objects.ClientLabel(name=utils.SmartUnicode(label), owner=owner))
 
-    for r in ret.values():
+    for r in itervalues(ret):
       r.sort(key=lambda label: (label.owner, label.name))
     return ret
 

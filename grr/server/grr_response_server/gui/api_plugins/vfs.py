@@ -3,6 +3,7 @@
 
 import csv
 import io
+import itertools
 import logging
 import os
 import re
@@ -10,6 +11,7 @@ import zipfile
 
 
 from builtins import filter  # pylint: disable=redefined-builtin
+from future.utils import iterkeys
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -23,6 +25,7 @@ from grr_response_proto.api import vfs_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
+from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
@@ -769,7 +772,7 @@ class ApiListKnownEncodingsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
 
-    encodings = sorted(ApiGetFileTextArgs.Encoding.enum_dict.keys())
+    encodings = sorted(iterkeys(ApiGetFileTextArgs.Encoding.enum_dict))
 
     return ApiListKnownEncodingsResult(encodings=encodings)
 
@@ -866,6 +869,130 @@ class ApiGetVfsRefreshOperationStateHandler(
     return result
 
 
+def _GetTimelineStatEntriesLegacy(client_id, file_path, with_history=True):
+  """Gets timeline entries from AFF4."""
+
+  folder_urn = aff4.ROOT_URN.Add(str(client_id)).Add(file_path)
+
+  child_urns = []
+  for _, children in aff4.FACTORY.RecursiveMultiListChildren(folder_urn):
+    child_urns.extend(children)
+
+  if with_history:
+    timestamp = aff4.ALL_TIMES
+  else:
+    timestamp = aff4.NEWEST_TIME
+
+  for fd in aff4.FACTORY.MultiOpen(child_urns, age=timestamp):
+    file_path = "/".join(str(fd.urn).split("/")[2:])
+
+    if not with_history:
+      yield file_path, fd.Get(fd.Schema.STAT), fd.Get(fd.Schema.HASH)
+      continue
+
+    result = {}
+
+    stats = fd.GetValuesForAttribute(fd.Schema.STAT)
+    for s in stats:
+      result[s.age] = [s, None]
+
+    hashes = fd.GetValuesForAttribute(fd.Schema.HASH)
+    for h in hashes:
+      prev = result.setdefault(h.age, [None, None])
+      prev[1] = h
+
+    for ts in sorted(result):
+      v = result[ts]
+      yield file_path, v[0], v[1]
+
+
+def _GetTimelineStatEntriesRelDB(client_id, file_path, with_history=True):
+  """Gets timeline entries from REL_DB."""
+
+  path_type, components = rdf_objects.ParseCategorizedPath(file_path)
+
+  try:
+    root_path_info = data_store.REL_DB.ReadPathInfo(
+        str(client_id), path_type, components)
+  except db.UnknownPathError:
+    return
+
+  path_infos = []
+  for path_info in itertools.chain(
+      [root_path_info],
+      data_store.REL_DB.ListDescendentPathInfos(
+          str(client_id), path_type, components),
+  ):
+    # TODO(user): this is to keep the compatibility with current
+    # AFF4 implementation. Check if this check is needed.
+    if path_info.directory:
+      continue
+
+    categorized_path = rdf_objects.ToCategorizedPath(path_info.path_type,
+                                                     path_info.components)
+    if with_history:
+      path_infos.append(path_info)
+    else:
+      yield categorized_path, path_info.stat_entry, path_info.hash_entry
+
+  if with_history:
+    hist_path_infos = data_store.REL_DB.ReadPathInfosHistories(
+        str(client_id), path_type, [tuple(pi.components) for pi in path_infos])
+    for path_info in itertools.chain(*hist_path_infos.itervalues()):
+      categorized_path = rdf_objects.ToCategorizedPath(path_info.path_type,
+                                                       path_info.components)
+      yield categorized_path, path_info.stat_entry, path_info.hash_entry
+
+
+def _GetTimelineStatEntries(client_id, file_path, with_history=True):
+  """Gets timeline entries from the appropriate data source (AFF4 or REL_DB)."""
+
+  if data_store.RelationalDBReadEnabled(category="vfs"):
+    fn = _GetTimelineStatEntriesRelDB
+  else:
+    fn = _GetTimelineStatEntriesLegacy
+
+  for v in fn(client_id, file_path, with_history=with_history):
+    yield v
+
+
+def _GetTimelineItems(client_id, file_path):
+  """Gets timeline items for a given client id and path."""
+
+  items = []
+
+  for file_path, stat, _ in _GetTimelineStatEntries(
+      client_id, file_path, with_history=True):
+
+    # It may be that for a given timestamp only hash entry is available, we're
+    # skipping those.
+    if stat is None:
+      continue
+
+    # Add a new event for each MAC time if it exists.
+    for c in "mac":
+      timestamp = getattr(stat, "st_%stime" % c)
+      if timestamp is None:
+        continue
+
+      item = ApiVfsTimelineItem()
+      item.timestamp = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(timestamp)
+
+      # Remove aff4:/<client_id> to have a more concise path to the
+      # subject.
+      item.file_path = file_path
+      if c == "m":
+        item.action = ApiVfsTimelineItem.FileActionType.MODIFICATION
+      elif c == "a":
+        item.action = ApiVfsTimelineItem.FileActionType.ACCESS
+      elif c == "c":
+        item.action = ApiVfsTimelineItem.FileActionType.METADATA_CHANGED
+
+      items.append(item)
+
+  return sorted(items, key=lambda x: x.timestamp, reverse=True)
+
+
 class ApiVfsTimelineItem(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiVfsTimelineItem
   rdf_deps = [
@@ -896,61 +1023,8 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    folder_urn = args.client_id.ToClientURN().Add(args.file_path)
-    items = self.GetTimelineItems(folder_urn, token=token)
+    items = _GetTimelineItems(args.client_id, args.file_path)
     return ApiGetVfsTimelineResult(items=items)
-
-  @staticmethod
-  def GetTimelineItems(folder_urn, token=None):
-    """Retrieves the timeline items for a given folder.
-
-    The timeline consists of items indicating a state change of a file. To
-    construct the timeline, MAC times are used. Whenever a timestamp on a
-    file changes, a corresponding timeline item is created.
-
-    Args:
-      folder_urn: The urn of the target folder.
-      token: The user token.
-
-    Returns:
-      A list of timeline items, each consisting of a file path, a timestamp
-      and an action describing the nature of the file change.
-    """
-    child_urns = []
-    for _, children in aff4.FACTORY.RecursiveMultiListChildren(folder_urn):
-      child_urns.extend(children)
-
-    # Get the stats attributes for all clients.
-    attribute = aff4.Attribute.GetAttributeByName("stat")
-    items = []
-    for subject, values in data_store.DB.MultiResolvePrefix(
-        child_urns, attribute.predicate,
-        timestamp=data_store.DB.ALL_TIMESTAMPS):
-      for _, serialized, _ in values:
-        stat = rdf_client.StatEntry.FromSerializedString(serialized)
-
-        # Add a new event for each MAC time if it exists.
-        for c in "mac":
-          timestamp = getattr(stat, "st_%stime" % c)
-          if timestamp is None:
-            continue
-
-          item = ApiVfsTimelineItem()
-          item.timestamp = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(timestamp)
-
-          # Remove aff4:/<client_id> to have a more concise path to the
-          # subject.
-          item.file_path = "/".join(str(subject).split("/")[2:])
-          if c == "m":
-            item.action = ApiVfsTimelineItem.FileActionType.MODIFICATION
-          elif c == "a":
-            item.action = ApiVfsTimelineItem.FileActionType.ACCESS
-          elif c == "c":
-            item.action = ApiVfsTimelineItem.FileActionType.METADATA_CHANGED
-
-          items.append(item)
-
-    return sorted(items, key=lambda x: x.timestamp, reverse=True)
 
 
 class ApiGetVfsTimelineAsCsvArgs(rdf_structs.RDFProtoStruct):
@@ -966,7 +1040,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetVfsTimelineAsCsvArgs
   CHUNK_SIZE = 1000
 
-  def _GenerateExport(self, items):
+  def _GenerateDefaultExport(self, items):
     fd = io.BytesIO()
     writer = csv.writer(fd)
 
@@ -986,16 +1060,58 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
       fd.seek(0)
       fd.truncate()
 
+  def _HandleDefaultFormat(self, args):
+    items = _GetTimelineItems(args.client_id, args.file_path)
+    return api_call_handler_base.ApiBinaryStream(
+        "%s_%s_timeline" % (args.client_id, os.path.basename(args.file_path)),
+        content_generator=self._GenerateDefaultExport(items))
+
+  def _GenerateBodyExport(self, file_infos):
+    fd = io.BytesIO()
+    writer = csv.writer(fd, delimiter="|")
+
+    for path, st, hash_v in file_infos:
+      hash_str = ""
+      if hash_v and hash_v.md5:
+        hash_str = hash_v.md5.HexDigest()
+
+      # Details about Body format:
+      # https://wiki.sleuthkit.org/index.php?title=Body_file
+      # MD5|name|inode|mode_as_string|UID|GID|size|atime|mtime|ctime|crtime
+      writer.writerow([
+          hash_str,
+          utils.SmartStr(path),
+          st.st_ino,
+          utils.SmartStr(st.st_mode),
+          st.st_uid,
+          st.st_gid,
+          st.st_size,
+          int(st.st_atime or 0),
+          int(st.st_mtime or 0),
+          int(st.st_ctime or 0),
+          int(st.st_crtime or 0),
+      ])
+
+      yield fd.getvalue()
+      fd.seek(0)
+      fd.truncate()
+
+  def _HandleBodyFormat(self, args):
+    file_infos = _GetTimelineStatEntries(
+        args.client_id, args.file_path, with_history=False)
+    return api_call_handler_base.ApiBinaryStream(
+        "%s_%s_timeline" % (args.client_id, os.path.basename(args.file_path)),
+        content_generator=self._GenerateBodyExport(file_infos))
+
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    folder_urn = args.client_id.ToClientURN().Add(args.file_path)
-    items = ApiGetVfsTimelineHandler.GetTimelineItems(folder_urn, token=token)
-
-    return api_call_handler_base.ApiBinaryStream(
-        "%s_%s_timeline" % (args.client_id, utils.SmartStr(
-            folder_urn.Basename())),
-        content_generator=self._GenerateExport(items))
+    if args.format == args.Format.UNSET or args.format == args.Format.GRR:
+      return self._HandleDefaultFormat(args)
+    elif args.format == args.Format.BODY:
+      return self._HandleBodyFormat(args)
+    else:
+      raise ValueError("Unexpected file format: %s" % args.format)
 
 
 class ApiUpdateVfsFileContentArgs(rdf_structs.RDFProtoStruct):

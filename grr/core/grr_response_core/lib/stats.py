@@ -54,6 +54,7 @@ import time
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iterkeys
 from past.builtins import long
 
 from grr_response_core.lib import utils
@@ -163,7 +164,7 @@ class _Metric(object):
   def ListFieldsValues(self):
     """Lists all fields values that were used with this metric."""
     if self.fields_defs:
-      return self._values.iterkeys()
+      return iterkeys(self._values)
     else:
       return []
 

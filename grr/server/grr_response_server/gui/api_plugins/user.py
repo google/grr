@@ -6,6 +6,8 @@ import functools
 import itertools
 import logging
 
+
+from future.utils import itervalues
 import jinja2
 
 from grr_response_core import config
@@ -268,7 +270,7 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
       else:
         if notification.subject:
           path = notification.subject.Path()
-          for prefix in rdf_paths.PathSpec.AFF4_PREFIXES.values():
+          for prefix in itervalues(rdf_paths.PathSpec.AFF4_PREFIXES):
             part = "/%s%s" % (components[0], prefix)
             if path.startswith(part):
               self.reference.type = reference_type_enum.VFS

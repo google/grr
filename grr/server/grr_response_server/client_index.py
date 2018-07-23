@@ -6,6 +6,7 @@ An index of client machines, associating likely identifiers to client IDs.
 
 
 from builtins import map  # pylint: disable=redefined-builtin
+from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -370,8 +371,8 @@ class ClientIndex(object):
         list(map(self._NormalizeKeyword, filtered_keywords)),
         start_time=start_time)
 
-    results = keyword_map.values()
-    relevant_set = set(results[0])
+    results = itervalues(keyword_map)
+    relevant_set = set(next(results))
 
     for hits in results:
       relevant_set &= set(hits)

@@ -8,6 +8,7 @@ import struct
 
 from builtins import chr  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import itervalues
 from future.utils import with_metaclass
 from past.builtins import long
 
@@ -721,7 +722,7 @@ class ProtoEnum(ProtoSignedInteger):
     if isinstance(enum, EnumContainer):
       enum = enum.enum_dict
 
-    for v in enum.itervalues():
+    for v in itervalues(enum):
       if not (v.__class__ is int or v.__class__ is long):
         raise type_info.TypeValueError("Enum values must be integers.")
 
@@ -868,7 +869,7 @@ class ProtoEmbedded(ProtoType):
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
-    output = SerializeEntries(value.GetRawData().itervalues())
+    output = SerializeEntries(itervalues(value.GetRawData()))
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
   def LateBind(self, target=None):
@@ -901,7 +902,7 @@ class ProtoEmbedded(ProtoType):
     if proto.dirty:
       return True
 
-    for python_format, _, type_descriptor in proto.GetRawData().itervalues():
+    for python_format, _, type_descriptor in itervalues(proto.GetRawData()):
       if python_format is not None and type_descriptor.IsDirty(python_format):
         proto.dirty = True
         return True
@@ -1052,7 +1053,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
           "Can't convert value %s to an protobuf.Any value." % value)
 
     any_value = AnyValue(type_url=type_name, value=data)
-    output = SerializeEntries(any_value.GetRawData().itervalues())
+    output = SerializeEntries(itervalues(any_value.GetRawData()))
 
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
@@ -1682,7 +1683,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     self.dirty = True
 
   def SerializeToString(self):
-    return SerializeEntries(self._data.itervalues())
+    return SerializeEntries(itervalues(self._data))
 
   def ParseFromString(self, string):
     ReadIntoObject(string, 0, self)
@@ -2097,11 +2098,11 @@ class RDFProtoStruct(RDFStruct):
           field.label = descriptor_pb2.FieldDescriptorProto.LABEL_OPTIONAL
 
     # Find all dependent files.
-    files = dict((d.file.name, d.file) for d in descriptors.values())
+    files = dict((d.file.name, d.file) for d in itervalues(descriptors))
     while True:
       dependency_added = False
 
-      for fd in files.values():
+      for fd in list(itervalues(files)):
         for fd_dep in fd.dependencies:
           if fd_dep.name not in files:
             files[fd_dep.name] = fd_dep
@@ -2121,7 +2122,7 @@ class RDFProtoStruct(RDFStruct):
       return deps
 
     deps_matrix = {}
-    for f in files.values():
+    for f in itervalues(files):
       deps_matrix[f.name] = BuildDeps(f)
 
     # Sort files by their dependencies (this is similar to sorting imports:
@@ -2135,7 +2136,7 @@ class RDFProtoStruct(RDFStruct):
       else:
         return 0
 
-    sorted_deps = sorted(files.values(), cmp=CmpFiles)
+    sorted_deps = sorted(itervalues(files), cmp=CmpFiles)
 
     # Add all dependent files to the pool.
     dependencies = []

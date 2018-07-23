@@ -8,6 +8,7 @@ import hashlib
 import os
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import itervalues
 
 from grr_response_client import vfs
 from grr_response_core.lib import flags
@@ -339,7 +340,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
 
   CONDITION_TESTS_ACTIONS = sorted(
-      set(rdf_file_finder.FileFinderAction.Action.enum_dict.values()))
+      set(itervalues(rdf_file_finder.FileFinderAction.Action.enum_dict)))
 
   def testLiteralMatchConditionWithDifferentActions(self):
     expected_files = ["auth.log"]

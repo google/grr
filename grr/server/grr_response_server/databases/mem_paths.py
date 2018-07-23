@@ -3,6 +3,9 @@
 
 
 from builtins import filter  # pylint: disable=redefined-builtin
+from future.utils import iteritems
+from future.utils import iterkeys
+from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -33,8 +36,14 @@ class _PathRecord(object):
   def AddStatEntry(self, stat_entry, timestamp):
     self._stat_entries[timestamp] = stat_entry.Copy()
 
+  def GetStatEntries(self):
+    return self._stat_entries.items()
+
   def AddHashEntry(self, hash_entry, timestamp):
     self._hash_entries[timestamp] = hash_entry.Copy()
+
+  def GetHashEntries(self):
+    return self._hash_entries.items()
 
   def AddPathHistory(self, path_info):
     """Extends the path record history and updates existing information."""
@@ -100,7 +109,7 @@ class _PathRecord(object):
     return set(self._children)
 
   def GetBlobReferences(self):
-    return self._blob_references.values()
+    return itervalues(self._blob_references)
 
   @staticmethod
   def _LastEntryTimestamp(collection, upper_bound_timestamp):
@@ -120,7 +129,7 @@ class _PathRecord(object):
     upper_bound = lambda key: key <= upper_bound_timestamp
 
     try:
-      return max(filter(upper_bound, collection.keys()))
+      return max(filter(upper_bound, iterkeys(collection)))
     except ValueError:  # Thrown if `max` input (result of filtering) is empty.
       return None
 
@@ -163,7 +172,7 @@ class InMemoryDBPathMixin(object):
     """Lists path info records that correspond to children of given path."""
     result = []
 
-    for path_idx, path_record in self.path_records.iteritems():
+    for path_idx, path_record in iteritems(self.path_records):
       other_client_id, other_path_type, other_components = path_idx
       if client_id != other_client_id or path_type != other_path_type:
         continue
@@ -230,11 +239,11 @@ class InMemoryDBPathMixin(object):
     if client_id not in self.metadatas:
       raise db.UnknownClientError(client_id)
 
-    for path_info, stat_entry in stat_entries.iteritems():
+    for path_info, stat_entry in iteritems(stat_entries):
       path_record = self._GetPathRecord(client_id, path_info)
       path_record.AddStatEntry(stat_entry, path_info.timestamp)
 
-    for path_info, hash_entry in hash_entries.iteritems():
+    for path_info, hash_entry in iteritems(hash_entries):
       path_record = self._GetPathRecord(client_id, path_info)
       path_record.AddHashEntry(hash_entry, path_info.timestamp)
 
@@ -244,3 +253,39 @@ class InMemoryDBPathMixin(object):
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):
     raise NotImplementedError()
+
+  @utils.Synchronized
+  def ReadPathInfosHistories(self, client_id, path_type, components_list):
+    """Reads a collection of hash and stat entries for given paths."""
+
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError(client_id)
+
+    results = {}
+    for components in components_list:
+      path_record = self.path_records[(client_id, path_type, components)]
+
+      entries_by_ts = {}
+      for ts, stat_entry in path_record.GetStatEntries():
+        pi = rdf_objects.PathInfo(
+            path_type=path_type,
+            components=components,
+            timestamp=ts,
+            stat_entry=stat_entry)
+        entries_by_ts[ts] = pi
+
+      for ts, hash_entry in path_record.GetHashEntries():
+        try:
+          pi = entries_by_ts[ts]
+        except KeyError:
+          pi = rdf_objects.PathInfo(
+              path_type=path_type, components=components, timestamp=ts)
+          entries_by_ts[ts] = pi
+
+        pi.hash_entry = hash_entry
+
+      results[components] = [
+          entries_by_ts[k] for k in sorted(entries_by_ts.iterkeys())
+      ]
+
+    return results

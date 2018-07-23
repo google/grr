@@ -20,6 +20,7 @@ import sys
 import traceback
 
 
+from future.utils import itervalues
 from future.utils import with_metaclass
 import pkg_resources
 import yaml
@@ -1138,7 +1139,7 @@ class GrrConfigManager(object):
     """Returns the appropriate parser class from the filename."""
     # Find the configuration parser.
     handler_name = path.split("://")[0]
-    for parser_cls in GRRConfigParser.classes.values():
+    for parser_cls in itervalues(GRRConfigParser.classes):
       if parser_cls.name == handler_name:
         return parser_cls
 

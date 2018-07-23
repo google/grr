@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for MultiTypeCollection."""
 
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -146,7 +147,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
     self.collection.Delete()
 
-    for urn in data_store.DB.subjects.keys():
+    for urn in data_store.DB.subjects:
       self.assertFalse(utils.SmartStr(self.collection.collection_id) in urn)
 
 

@@ -46,6 +46,7 @@ import time
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iterkeys
 from future.utils import with_metaclass
 
 from grr_response_core import config
@@ -493,7 +494,7 @@ class MutationPool(object):
       raise ValueError("Can't use NEWEST_TIMESTAMP in DeleteStats.")
 
     predicates = []
-    for key in stats.STATS.GetAllMetricsMetadata().keys():
+    for key in stats.STATS.GetAllMetricsMetadata():
       predicates.append(DataStore.STATS_STORE_PREFIX + key)
 
     start = None
@@ -956,7 +957,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
       yield (s, ts, v)
 
   def ReadBlob(self, identifier, token=None):
-    return self.ReadBlobs([identifier], token=token).values()[0]
+    return self.ReadBlobs([identifier], token=token)[identifier]
 
   def ReadBlobs(self, identifiers, token=None):
     return self.blobstore.ReadBlobs(identifiers, token=token)
@@ -968,7 +969,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     return self.blobstore.StoreBlobs(contents, token=token)
 
   def BlobExists(self, identifier, token=None):
-    return self.BlobsExist([identifier], token=token).values()[0]
+    return self.BlobsExist([identifier], token=token)[identifier]
 
   def BlobsExist(self, identifiers, token=None):
     return self.blobstore.BlobsExist(identifiers, token=token)
@@ -1055,7 +1056,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     # And the responses for them.
     response_data = dict(
         self.MultiResolvePrefix(
-            requests.keys(),
+            list(iterkeys(requests)),
             self.FLOW_RESPONSE_PREFIX,
             limit=response_limit,
             timestamp=timestamp))
@@ -1335,7 +1336,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
       result[kw] = set()
 
     for keyword_urn, value in self.MultiResolvePrefix(
-        keyword_urns.keys(),
+        list(iterkeys(keyword_urns)),
         self._INDEX_PREFIX,
         timestamp=(start_time, end_time + 1)):
       for column, _, ts in value:

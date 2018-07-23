@@ -49,6 +49,7 @@ import logging
 import operator
 
 
+from future.utils import itervalues
 from future.utils import with_metaclass
 
 from grr_response_core.lib import queues
@@ -1116,7 +1117,7 @@ class WellKnownFlow(GRRFlow):
   def GetAllWellKnownFlows(cls, token=None):
     """Get instances of all well known flows."""
     well_known_flows = {}
-    for cls in registry.FlowRegistry.FLOW_REGISTRY.values():
+    for cls in itervalues(registry.FlowRegistry.FLOW_REGISTRY):
       if aff4.issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
         well_known_flow = cls(cls.well_known_session_id, mode="rw", token=token)
         well_known_flows[cls.well_known_session_id.FlowName()] = well_known_flow

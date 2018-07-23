@@ -7,6 +7,8 @@ import threading
 import time
 
 
+from future.utils import iterkeys
+from future.utils import itervalues
 import mock
 
 from grr_response_core.lib import flags
@@ -1351,7 +1353,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
 
     children = dict(aff4.FACTORY.MultiListChildren([client1_urn, client2_urn]))
 
-    self.assertListEqual(sorted(children.keys()), [client1_urn, client2_urn])
+    self.assertListEqual(sorted(iterkeys(children)), [client1_urn, client2_urn])
     self.assertListEqual(children[client1_urn], [client1_urn.Add("some1")])
     self.assertListEqual(children[client2_urn], [client2_urn.Add("some2")])
 
@@ -1778,7 +1780,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     blacklist = set([aff4.AFF4Stream, aff4_grr.VFSGRRClient])
     factory = aff4.FACTORY
 
-    for cls in aff4.AFF4Object.classes.values():
+    for cls in itervalues(aff4.AFF4Object.classes):
       if cls not in blacklist:
         with utils.Stubber(aff4, "FACTORY", None):
           try:

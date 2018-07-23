@@ -2,6 +2,8 @@
 """Unit test for the linux sysctl parser."""
 
 
+from future.utils import itervalues
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.parsers import parsers_test_lib
@@ -16,7 +18,7 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
   def testParseLSBInit(self):
     """Init entries return accurate LinuxServiceInformation values."""
     configs = parsers_test_lib.GenInit("sshd", "OpenBSD Secure Shell server")
-    stats, files = parsers_test_lib.GenTestData(configs, configs.values())
+    stats, files = parsers_test_lib.GenTestData(configs, itervalues(configs))
 
     parser = linux_service_parser.LinuxLSBInitParser()
     results = list(parser.ParseMultiple(stats, files, None))
@@ -58,7 +60,7 @@ class LinuxXinetdParserTest(test_lib.GRRBaseTest):
     """Xinetd entries return accurate LinuxServiceInformation values."""
     configs = parsers_test_lib.GenXinetd("telnet", "yes")
     configs.update(parsers_test_lib.GenXinetd("forwarder", "no"))
-    stats, files = parsers_test_lib.GenTestData(configs, configs.values())
+    stats, files = parsers_test_lib.GenTestData(configs, itervalues(configs))
 
     parser = linux_service_parser.LinuxXinetdParser()
     results = list(parser.ParseMultiple(stats, files, None))

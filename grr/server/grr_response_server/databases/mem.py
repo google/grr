@@ -4,6 +4,7 @@
 import sys
 import threading
 
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import db
@@ -78,7 +79,7 @@ class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
   def _AllPathIDs(self):
     result = set()
 
-    for client_id, path_type, components in self.path_records.iterkeys():
+    for client_id, path_type, components in self.path_records:
       path_id = rdf_objects.PathID.FromComponents(components)
       result.add((client_id, path_type, path_id))
 

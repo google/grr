@@ -2,6 +2,9 @@
 """rdf value representation for artifact collector parameters."""
 
 import json
+
+
+from future.utils import iterkeys
 import yaml
 
 from grr_response_core.lib import rdfvalue
@@ -204,7 +207,7 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
 
   def _ValidateRequiredAttributes(self):
     required = set(self.TYPE_MAP[self.type].get("required_attributes", []))
-    provided = self.attributes.keys()
+    provided = set(iterkeys(self.attributes))
     missing = required.difference(provided)
 
     if missing:

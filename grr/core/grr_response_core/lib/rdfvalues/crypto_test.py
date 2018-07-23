@@ -6,6 +6,7 @@ import hashlib
 import os
 
 from builtins import chr  # pylint: disable=redefined-builtin
+from future.utils import iterkeys
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
@@ -108,7 +109,7 @@ certificate = -----BEGIN CERTIFICATE-----
     config.CONFIG.context = []
 
     errors = config.CONFIG.Validate("Frontend")
-    self.assertItemsEqual(errors.keys(), ["Frontend.certificate"])
+    self.assertItemsEqual(list(iterkeys(errors)), ["Frontend.certificate"])
 
   def testInvalidRSAPrivateKey(self):
     """Deliberately try to parse invalid RSA keys."""
@@ -153,8 +154,8 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
     config.CONFIG.context = []
 
     errors = config.CONFIG.Validate("Client")
-    self.assertItemsEqual(errors.keys(),
-                          ["Client.executable_signing_public_key"])
+    self.assertItemsEqual(
+        list(iterkeys(errors)), ["Client.executable_signing_public_key"])
 
   def testRSAPrivate(self):
     """Tests parsing an RSA private key."""

@@ -5,6 +5,9 @@ import logging
 import os
 import re
 
+
+from future.utils import itervalues
+
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
@@ -239,7 +242,7 @@ class WinUserSpecialDirs(parser.RegistryParser):
               user_dict[sid_str].Set(kb_attr, value)
 
     # Now yield each user we found.
-    return user_dict.itervalues()
+    return itervalues(user_dict)
 
 
 class WinServicesParser(parser.RegistryValueParser):
@@ -324,7 +327,7 @@ class WinServicesParser(parser.RegistryValueParser):
                           stat.pathspec.path, stat.registry_data.GetValue(),
                           dest_type, type(stat.registry_data.GetValue()))
 
-    return services.itervalues()
+    return itervalues(services)
 
 
 class WinTimezoneParser(parser.RegistryValueParser):

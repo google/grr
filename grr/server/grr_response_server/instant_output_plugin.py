@@ -6,6 +6,7 @@ import re
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import itervalues
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
@@ -30,7 +31,7 @@ class InstantOutputPlugin(with_metaclass(registry.MetaclassRegistry, object)):
 
   @classmethod
   def GetPluginClassByPluginName(cls, name):
-    for plugin_cls in cls.classes.values():
+    for plugin_cls in itervalues(cls.classes):
       if plugin_cls.plugin_name == name:
         return plugin_cls
 

@@ -3,6 +3,9 @@
 
 import itertools
 
+
+from future.utils import iterkeys
+
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -63,7 +66,7 @@ class ApiListOutputPluginDescriptorsHandler(
 
   def _GetPlugins(self, base_class):
     items = []
-    for name in sorted(base_class.classes.keys()):
+    for name in sorted(iterkeys(base_class.classes)):
       cls = base_class.classes[name]
       # While technically a valid plugin, UnknownOutputPlugin is only used as
       # a placeholder when unserializing old and now-deleted output plugins.

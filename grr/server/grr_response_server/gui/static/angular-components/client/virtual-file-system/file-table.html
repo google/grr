@@ -59,10 +59,17 @@
           </button>
           <ul class="dropdown-menu">
             <li>
-              <a name="downloadTimeline"
-                 ng-click="controller.downloadTimeline(); $event.preventDefault()"
+              <a name="downloadTimelineGrrFormat"
+                 ng-click="controller.downloadTimeline('GRR'); $event.preventDefault()"
                  href="#">
-                Download timeline as CSV
+                Download timeline as GRR CSV
+              </a>
+            </li>
+            <li>
+              <a name="downloadTimelineBodyFormat"
+                 ng-click="controller.downloadTimeline('BODY'); $event.preventDefault()"
+                 href="#">
+                Download timeline as body CSV
               </a>
             </li>
           </ul>

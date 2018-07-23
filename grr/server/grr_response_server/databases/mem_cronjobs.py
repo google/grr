@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """The in memory database methods for cron job handling."""
 
+from future.utils import itervalues
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import db
@@ -18,7 +20,7 @@ class InMemoryDBCronjobMixin(object):
   def ReadCronJobs(self, cronjob_ids=None):
     """Reads a cronjob from the database."""
     if cronjob_ids is None:
-      res = [job.Copy() for job in self.cronjobs.values()]
+      res = [job.Copy() for job in itervalues(self.cronjobs)]
 
     else:
       res = []
@@ -94,7 +96,7 @@ class InMemoryDBCronjobMixin(object):
     now = rdfvalue.RDFDatetime.Now()
     expiration_time = now + lease_time
 
-    for job in self.cronjobs.values():
+    for job in itervalues(self.cronjobs):
       if cronjob_ids and job.cron_job_id not in cronjob_ids:
         continue
       existing_lease = self.cronjob_leases.get(job.cron_job_id)
@@ -138,19 +140,20 @@ class InMemoryDBCronjobMixin(object):
   def ReadCronJobRuns(self, job_id):
     """Reads all cron job runs for a given job id."""
     return [
-        run for run in self.cronjob_runs.values() if run.cron_job_id == job_id
+        run for run in itervalues(self.cronjob_runs)
+        if run.cron_job_id == job_id
     ]
 
   def ReadCronJobRun(self, job_id, run_id):
     """Reads a single cron job run from the db."""
-    for run in self.cronjob_runs.values():
+    for run in itervalues(self.cronjob_runs):
       if run.cron_job_id == job_id and run.run_id == run_id:
         return run
 
   def DeleteOldCronJobRuns(self, cutoff_timestamp):
     """Deletes cron job runs for a given job id."""
     deleted = 0
-    for run in self.cronjob_runs.values():
+    for run in list(itervalues(self.cronjob_runs)):
       if run.timestamp < cutoff_timestamp:
         del self.cronjob_runs[run.run_id]
         deleted += 1

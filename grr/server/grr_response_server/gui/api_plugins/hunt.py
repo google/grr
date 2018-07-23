@@ -10,6 +10,7 @@ import re
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import itervalues
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -832,8 +833,8 @@ class ApiGetHuntClientCompletionStatsHandler(
     for client in completed_clients:
       fdict.setdefault(client, []).append(client.age)
 
-    cl_age = [min(x).AsSecondsSinceEpoch() for x in cdict.itervalues()]
-    fi_age = [min(x).AsSecondsSinceEpoch() for x in fdict.itervalues()]
+    cl_age = [min(x).AsSecondsSinceEpoch() for x in itervalues(cdict)]
+    fi_age = [min(x).AsSecondsSinceEpoch() for x in itervalues(fdict)]
 
     cl_hist = {}
     fi_hist = {}

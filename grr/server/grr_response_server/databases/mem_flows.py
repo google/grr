@@ -5,6 +5,8 @@ import sys
 import threading
 import time
 
+from future.utils import itervalues
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import db_utils
@@ -28,8 +30,8 @@ class InMemoryDBFlowMixin(object):
     """Reads all message handler requests from the database."""
     res = []
     leases = self.message_handler_leases
-    for requests in self.message_handler_requests.values():
-      for r in requests.values():
+    for requests in itervalues(self.message_handler_requests):
+      for r in itervalues(requests):
         res.append(r.Copy())
         existing_lease = leases.get(r.handler_name, {}).get(r.request_id, None)
         res[-1].leased_until = existing_lease
@@ -88,8 +90,8 @@ class InMemoryDBFlowMixin(object):
     expiration_time = now + lease_time
 
     leases = self.message_handler_leases
-    for requests in self.message_handler_requests.values():
-      for r in requests.values():
+    for requests in itervalues(self.message_handler_requests):
+      for r in itervalues(requests):
         existing_lease = leases.get(r.handler_name, {}).get(r.request_id, zero)
         if existing_lease < now:
           leases.setdefault(r.handler_name, {})[r.request_id] = expiration_time
@@ -105,8 +107,8 @@ class InMemoryDBFlowMixin(object):
   def ReadClientMessages(self, client_id):
     """Reads all client messages available for a given client_id."""
     res = []
-    for msgs_by_id in self.client_messages.values():
-      for orig_msg in msgs_by_id.values():
+    for msgs_by_id in itervalues(self.client_messages):
+      for orig_msg in itervalues(msgs_by_id):
         if db_utils.ClientIdFromGrrMessage(orig_msg) != client_id:
           continue
         msg = orig_msg.Copy()
@@ -149,8 +151,8 @@ class InMemoryDBFlowMixin(object):
     process_id_str = utils.ProcessIdString()
 
     leases = self.client_message_leases
-    for msgs_by_id in self.client_messages.values():
-      for msg in msgs_by_id.values():
+    for msgs_by_id in itervalues(self.client_messages):
+      for msg in itervalues(msgs_by_id):
         if db_utils.ClientIdFromGrrMessage(msg) != client_id:
           continue
 

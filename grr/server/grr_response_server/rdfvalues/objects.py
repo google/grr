@@ -6,6 +6,7 @@ objects defined by objects.proto.
 """
 import functools
 import hashlib
+import itertools
 import os
 import re
 import stat
@@ -509,7 +510,7 @@ def ToCategorizedPath(path_type, components):
   except KeyError:
     raise ValueError("Unknown path type: `%s`" % path_type)
 
-  return "/".join(prefix + components)
+  return "/".join(itertools.chain(prefix, components))
 
 
 class ClientReference(rdf_structs.RDFProtoStruct):

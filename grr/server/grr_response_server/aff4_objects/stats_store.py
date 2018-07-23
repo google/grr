@@ -40,6 +40,8 @@ import threading
 import time
 
 
+from future.utils import itervalues
+
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -70,7 +72,7 @@ class StatsStoreProcessData(aff4.AFF4Object):
 
     if current_metadata.AsDict() != metrics_metadata:
       store_metadata = stats_values.StatsStoreMetricsMetadata(
-          metrics=metrics_metadata.values())
+          metrics=list(itervalues(metrics_metadata)))
       self.AddAttribute(
           self.Schema.METRICS_METADATA, store_metadata, age=timestamp)
       self.Flush()

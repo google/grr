@@ -4,6 +4,9 @@
 import logging
 import pdb
 
+
+from future.utils import iterkeys
+
 # pylint: disable=unused-import
 from grr_response_client import client_plugins
 # pylint: enable=unused-import
@@ -40,7 +43,7 @@ def main(unused_args):
 
   errors = config.CONFIG.Validate(["Client", "CA", "Logging"])
 
-  if errors and errors.keys() != ["Client.private_key"]:
+  if errors and list(iterkeys(errors.keys)) != ["Client.private_key"]:
     raise config_lib.ConfigFormatError(errors)
 
   if config.CONFIG["Client.fleetspeak_enabled"]:

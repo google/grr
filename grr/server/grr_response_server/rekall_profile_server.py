@@ -133,7 +133,7 @@ class GRRRekallProfileServer(CachingProfileServer,
     inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
     inventory = json.loads(inventory_json)
 
-    for profile in inventory["$INVENTORY"].keys():
+    for profile in inventory["$INVENTORY"]:
       logging.info("Getting profile: %s", profile)
       try:
         self.GetProfileByName(profile, ignore_cache=True, version=version)

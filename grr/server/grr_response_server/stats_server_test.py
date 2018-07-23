@@ -5,6 +5,8 @@
 import json
 
 
+from future.utils import iterkeys
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import stats
 from grr_response_server import stats_server
@@ -23,9 +25,9 @@ class StatsServerTest(test_lib.GRRBaseTest):
     self.assertEqual(varz_json["api_method_latency"]["info"],
                      {"metric_type": "EVENT",
                       "value_type": "DISTRIBUTION"})
-    self.assertEqual(
-        set(varz_json["api_method_latency"]["value"].keys()),
-        set(["sum", "bins_heights", "counter"]))
+    self.assertItemsEqual(
+        iterkeys(varz_json["api_method_latency"]["value"]),
+        ["sum", "bins_heights", "counter"])
 
   def testMetricWithMultipleFieldsGetsRendered(self):
     stats.STATS.RegisterEventMetric(
@@ -43,11 +45,13 @@ class StatsServerTest(test_lib.GRRBaseTest):
         "fields_defs": [["method_name", "STR"], ["protocol", "STR"],
                         ["status", "STR"]]
     })
-    self.assertEqual(varz_json["api_method_latency"]["value"].keys(),
-                     ["Foo:http:SUCCESS"])
+
+    api_method_latency_value = varz_json["api_method_latency"]["value"]
     self.assertEqual(
-        set(varz_json["api_method_latency"]["value"]["Foo:http:SUCCESS"]
-            .keys()), set(["sum", "bins_heights", "counter"]))
+        list(iterkeys(api_method_latency_value)), ["Foo:http:SUCCESS"])
+    self.assertItemsEqual(
+        iterkeys(api_method_latency_value["Foo:http:SUCCESS"]),
+        ["sum", "bins_heights", "counter"])
 
 
 def main(args):

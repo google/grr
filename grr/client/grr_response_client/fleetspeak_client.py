@@ -13,6 +13,9 @@ import struct
 import threading
 import time
 
+
+from future.utils import itervalues
+
 from fleetspeak.src.client.daemonservice.client import client as fs_client
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from grr_response_client import comms
@@ -99,7 +102,7 @@ class GRRFleetspeakClient(object):
 
   def Run(self):
     """The main run method of the client."""
-    for thread in self._threads.values():
+    for thread in itervalues(self._threads):
       thread.start()
     logging.info(START_STRING)
 

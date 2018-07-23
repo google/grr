@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """API handler for rendering descriptors of GRR data structures."""
 
+
+from future.utils import iterkeys
+from future.utils import itervalues
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
@@ -87,7 +91,7 @@ class ApiListAff4AttributeDescriptorsHandler(
     _ = token
 
     result = ApiListAff4AttributeDescriptorsResult()
-    for name in sorted(aff4.Attribute.NAMES.keys()):
+    for name in sorted(iterkeys(aff4.Attribute.NAMES)):
       result.items.append(ApiAff4AttributeDescriptor(name=name))
 
     return result
@@ -121,7 +125,7 @@ class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):
     router_methods = self.router.__class__.GetAnnotatedMethods()
 
     result = ApiListApiMethodsResult()
-    for router_method in router_methods.values():
+    for router_method in itervalues(router_methods):
       api_method = ApiMethod(
           name=router_method.name,
           category=router_method.category,

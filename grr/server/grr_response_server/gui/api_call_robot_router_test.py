@@ -2,6 +2,8 @@
 """Tests for ApiCallRobotRouter."""
 
 
+from future.utils import iterkeys
+
 from grr_response_core.lib import artifact_utils
 
 from grr_response_core.lib import flags
@@ -452,7 +454,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
     router = self._CreateRouter()
 
     unchecked_methods = (
-        set(router.__class__.GetAnnotatedMethods().keys()) - set(
+        set(iterkeys(router.__class__.GetAnnotatedMethods())) - set(
             self.IMPLEMENTED_METHODS))
     self.assertTrue(unchecked_methods)
 

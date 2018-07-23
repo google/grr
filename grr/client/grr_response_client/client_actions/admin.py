@@ -232,7 +232,7 @@ class UpdateConfiguration(actions.ActionPlugin):
     smart_arg = {utils.SmartStr(field): value for field, value in arg.items()}
 
     disallowed_fields = [
-        field for field in smart_arg.keys()
+        field for field in smart_arg
         if field not in UpdateConfiguration.UPDATABLE_FIELDS
     ]
 

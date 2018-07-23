@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """API handlers for stats."""
 
+
+from future.utils import iterkeys
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
@@ -122,7 +125,7 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
     if not data:
       return result
 
-    pid = data.keys()[0]
+    pid = next(iterkeys(data))
     metadata = stats_store.ReadMetadata(process_id=pid)
     metric_metadata = metadata.AsDict()[args.metric_name]
 

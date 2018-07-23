@@ -3,6 +3,8 @@
 
 import os
 
+from future.utils import itervalues
+
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import flags
 from grr_response_core.lib import parser
@@ -243,7 +245,7 @@ class ArtifactParserTest(test_lib.GRRBaseTest):
 
   def testParsersRetrieval(self):
     """Check the parsers are valid."""
-    for processor in parser.Parser.classes.values():
+    for processor in itervalues(parser.Parser.classes):
       if (not hasattr(processor, "output_types") or
           not isinstance(processor.output_types, (list, tuple))):
         raise parser.ParserDefinitionError(

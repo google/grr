@@ -20,6 +20,9 @@ import thread
 import threading
 import time
 
+
+from future.utils import iterkeys
+from future.utils import itervalues
 import mock
 import pytest
 
@@ -401,8 +404,7 @@ class DataStoreTestMixin(object):
     subjects = dict(
         data_store.DB.MultiResolvePrefix(rows, ["metadata:3", "metadata:7"]))
 
-    subject_names = subjects.keys()
-    subject_names.sort()
+    subject_names = sorted(iterkeys(subjects))
 
     self.assertEqual(len(subjects), 2)
     self.assertEqual(subject_names, [u"aff4:/row:3", u"aff4:/row:7"])
@@ -417,13 +419,13 @@ class DataStoreTestMixin(object):
             row_name, "metadata:%s" % ("X" * i), str(i), timestamp=timestamp)
 
     subjects = dict(data_store.DB.MultiResolvePrefix(rows, ["metadata:"]))
-    self.assertItemsEqual(subjects.keys(), rows)
+    self.assertItemsEqual(list(iterkeys(subjects)), rows)
     row = subjects["aff4:/prefix_row_4"]
     self.assertEqual(len(row), 5)
 
     subjects = dict(data_store.DB.MultiResolvePrefix(rows, ["metadata:XXX"]))
-    self.assertItemsEqual(subjects.keys(), rows)
-    for row in subjects.values():
+    self.assertItemsEqual(list(iterkeys(subjects)), rows)
+    for row in itervalues(subjects):
       # Those with 3-5 X's.
       self.assertEqual(len(row), 3)
       self.assertIn((u"metadata:XXX", "3", 3000), row)
@@ -463,7 +465,7 @@ class DataStoreTestMixin(object):
 
   def _CheckResultTimestamps(self, result, expected_timestamps):
     timestamps = []
-    for predicates in result.itervalues():
+    for predicates in itervalues(result):
       for predicate in predicates:
         timestamps.append(predicate[2])
 
@@ -1303,7 +1305,7 @@ class DataStoreTestMixin(object):
       results = dict(
           data_store.DB.MultiResolvePrefix(subjects, "metadata:", limit=limit))
       all_results = []
-      for subect_res in results.itervalues():
+      for subect_res in itervalues(results):
         all_results.extend(subect_res)
 
       self.assertEqual(len(all_results), min(limit, 100))
@@ -1313,7 +1315,7 @@ class DataStoreTestMixin(object):
           data_store.DB.MultiResolvePrefix(
               subjects, "metadata:limittest_7", limit=limit))
       all_results = []
-      for subect_res in results.itervalues():
+      for subect_res in itervalues(results):
         all_results.extend(subect_res)
 
       self.assertEqual(len(all_results), min(limit, 10))
@@ -1697,7 +1699,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     if change_test:
       self.test_name = "read random %d%%" % fraction
     for _ in range(0, int(len(subjects) * fraction / 100.0)):
-      i = self.rand.choice(subjects.keys())
+      i = self.rand.choice(list(iterkeys(subjects)))
       subject = subjects[i]["name"]
       predicates = subjects[i]["attrs"]
       self._RandomlyReadSubject(subject, predicates)
@@ -1860,7 +1862,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self.test_name = "add +attrs %d" % many
     new_value = os.urandom(100)
     for _ in range(0, many):
-      i = self.rand.choice(subjects.keys())
+      i = self.rand.choice(list(iterkeys(subjects)))
       subject = subjects[i]["name"]
       predicates = subjects[i]["attrs"]
       how_many = self.rand.randint(self.BIG_NUM_ATTRIBUTES,
@@ -1895,7 +1897,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
         count += 1
         if count == often:
           count = 0
-          predicates_to_delete = [j for j in predicates.keys()[1:]]
+          predicates_to_delete = list(iterkeys(predicates))[1:]
           values_deleted = sum(len(predicates[x]) for x in predicates_to_delete)
           self.values -= values_deleted
           self.predicates -= len(predicates_to_delete)

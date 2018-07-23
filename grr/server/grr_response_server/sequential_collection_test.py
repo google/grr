@@ -4,6 +4,9 @@
 import threading
 import time
 
+
+from future.utils import iterkeys
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -163,7 +166,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       # It is too soon to build an index, check that we don't.
       self.assertEqual(collection._index, None)
       self.assertEqual(collection.CalculateLength(), 10 * spacing)
-      self.assertEqual(sorted(collection._index.keys()), [0])
+      self.assertEqual(list(iterkeys(collection._index)), [0])
 
       now = time.time() * 1e6
       twenty_seconds_ago = (time.time() - 20) * 1e6
@@ -173,11 +176,12 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
                              rdfvalue.Duration("10m")):
         # Read from start doesn't rebuild index (lazy rebuild)
         _ = collection[0]
-        self.assertEqual(sorted(collection._index.keys()), [0])
+        self.assertEqual(list(iterkeys(collection._index)), [0])
 
         self.assertEqual(collection.CalculateLength(), 10 * spacing)
         self.assertEqual(
-            sorted(collection._index.keys()), [i * spacing for i in xrange(10)])
+            sorted(iterkeys(collection._index)),
+            [i * spacing for i in xrange(10)])
         for index in collection._index:
           if not index:
             continue
@@ -195,7 +199,8 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       self.assertEqual(collection._index, None)
       _ = collection[0]
       self.assertEqual(
-          sorted(collection._index.keys()), [i * spacing for i in xrange(10)])
+          sorted(iterkeys(collection._index)),
+          [i * spacing for i in xrange(10)])
       for index in collection._index:
         if not index:
           continue

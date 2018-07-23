@@ -3,6 +3,7 @@
 
 import hashlib
 
+
 from grr_response_core.lib import fingerprint
 from grr_response_client import vfs
 from grr_response_client.client_actions import standard
@@ -51,7 +52,7 @@ class FingerprintFile(standard.ReadBuffer):
       else:
         # There are none selected -- we will cover everything
         tuples = list()
-        for k in self._fingerprint_types.iterkeys():
+        for k in self._fingerprint_types:
           tuples.append(rdf_client.FingerprintTuple(fp_type=k))
 
       for finger in tuples:

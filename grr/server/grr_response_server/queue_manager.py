@@ -5,6 +5,9 @@ import collections
 import logging
 import random
 
+
+from future.utils import itervalues
+
 from grr_response_core import config
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
@@ -331,10 +334,10 @@ class QueueManager(object):
       if data_store.RelationalDBReadEnabled(category="client_messages"):
         if self.client_messages_to_delete:
           data_store.REL_DB.DeleteClientMessages(
-              self.client_messages_to_delete.values())
+              list(itervalues(self.client_messages_to_delete)))
       else:
         messages_by_queue = utils.GroupBy(
-            self.client_messages_to_delete.values(),
+            list(itervalues(self.client_messages_to_delete)),
             lambda request: request.queue)
         for queue, messages in messages_by_queue.items():
           self.Delete(queue, messages, mutation_pool=mutation_pool)
@@ -349,7 +352,7 @@ class QueueManager(object):
               mutation_pool=mutation_pool)
 
     if self.notifications:
-      for notification in self.notifications.itervalues():
+      for notification in itervalues(self.notifications):
         self.NotifyQueue(notification, mutation_pool=mutation_pool)
 
       mutation_pool.Flush()
@@ -481,7 +484,7 @@ class QueueManager(object):
     # Read all the sessions that have notifications.
     queue_shard = self.GetNotificationShard(queue)
     return self._SortByPriority(
-        self._GetUnsortedNotifications(queue_shard).values(), queue)
+        list(itervalues(self._GetUnsortedNotifications(queue_shard))), queue)
 
   def GetNotificationsByPriorityForAllShards(self, queue):
     """Same as GetNotificationsByPriority but for all shards.
@@ -498,15 +501,15 @@ class QueueManager(object):
       self._GetUnsortedNotifications(
           queue_shard, notifications_by_session_id=output_dict)
 
-    return self._SortByPriority(output_dict.values(), queue)
+    return self._SortByPriority(list(itervalues(output_dict)), queue)
 
   def GetNotifications(self, queue):
     """Returns all queue notifications sorted by priority."""
     queue_shard = self.GetNotificationShard(queue)
-    notifications = self._GetUnsortedNotifications(queue_shard).values()
-    notifications.sort(
-        key=lambda notification: notification.priority, reverse=True)
-    return notifications
+    return sorted(
+        itervalues(self._GetUnsortedNotifications(queue_shard)),
+        key=lambda notification: notification.priority,
+        reverse=True)
 
   def GetNotificationsForAllShards(self, queue):
     """Returns notifications for all shards of a queue at once.
@@ -523,10 +526,10 @@ class QueueManager(object):
       self._GetUnsortedNotifications(
           queue_shard, notifications_by_session_id=notifications_by_session_id)
 
-    notifications = notifications_by_session_id.values()
-    notifications.sort(
-        key=lambda notification: notification.priority, reverse=True)
-    return notifications
+    return sorted(
+        itervalues(notifications_by_session_id),
+        key=lambda notification: notification.priority,
+        reverse=True)
 
   def _GetUnsortedNotifications(self,
                                 queue_shard,

@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 """GRR authorization manager."""
 
-
 import collections
 import logging
+
+
+from future.utils import iterkeys
+from future.utils import itervalues
 import yaml
+
 from grr_response_server.authorization import groups
 
 
@@ -47,10 +51,12 @@ class AuthorizationReader(object):
     return self.auth_objects[subject]
 
   def GetAllAuthorizationObjects(self):
-    return self.auth_objects.values()
+    return itervalues(self.auth_objects)
 
+  # TODO(hanuszczak): This appears to be used only in tests. Maybe it should be
+  # removed.
   def GetAuthSubjects(self):
-    return self.auth_objects.keys()
+    return iterkeys(self.auth_objects)
 
 
 class AuthorizationManager(object):
@@ -107,8 +113,10 @@ class AuthorizationManager(object):
     # grant/not grant permissions to the user in question.
     raise InvalidSubject("Subject %s was not found." % subject)
 
+  # TODO(hanuszczak): This appears to be used only in tests. Maybe it should be
+  # removed.
   def GetAuthSubjects(self):
-    return self.authorized_users.keys()
+    return iterkeys(self.authorized_users)
 
   def HasAuthSubject(self, subject):
     return subject in self.authorized_users

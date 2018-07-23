@@ -8,6 +8,7 @@ import logging
 import numbers
 
 
+from future.utils import itervalues
 from future.utils import with_metaclass
 from past.builtins import long
 
@@ -98,7 +99,7 @@ class ApiValueRenderer(with_metaclass(registry.MetaclassRegistry, object)):
       renderer_cls = cls._renderers_cache[cache_key]
     except KeyError:
       candidates = []
-      for candidate in ApiValueRenderer.classes.values():
+      for candidate in itervalues(ApiValueRenderer.classes):
         if candidate.value_class:
           candidate_class = candidate.value_class
         else:

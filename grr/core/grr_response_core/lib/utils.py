@@ -28,6 +28,9 @@ import weakref
 import zipfile
 import zlib
 
+
+from future.utils import iterkeys
+from future.utils import itervalues
 import psutil
 
 
@@ -385,7 +388,7 @@ class TimeBasedCache(FastStore):
           # pylint: disable=protected-access
           # We need to take a copy of the value list because we are changing
           # this dict during the iteration.
-          for node in cache._hash.values():
+          for node in list(itervalues(cache._hash)):
             timestamp, obj = node.data
 
             # Expire the object if it is too old.
@@ -1489,7 +1492,7 @@ class DataObject(dict):
       raise AttributeError(e)
 
   def __dir__(self):
-    return sorted(self.keys()) + dir(self.__class__)
+    return sorted(iterkeys(self)) + dir(self.__class__)
 
   def __str__(self):
     result = []

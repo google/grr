@@ -4,6 +4,9 @@
 import abc
 import logging
 
+
+from future.utils import iterkeys
+
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -315,7 +318,7 @@ def ScheduleSystemCronJobs(names=None):
       continue
 
   if names is None:
-    names = registry.CronJobRegistry.CRON_REGISTRY.keys()
+    names = iterkeys(registry.CronJobRegistry.CRON_REGISTRY)
 
   for name in names:
     cls = registry.CronJobRegistry.CronJobClassByName(name)

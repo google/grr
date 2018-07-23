@@ -15,6 +15,9 @@ import subprocess
 import tempfile
 import zipfile
 
+
+from future.utils import iterkeys
+from future.utils import itervalues
 import yaml
 
 # pylint: disable=g-import-not-at-top,unused-import
@@ -207,9 +210,10 @@ class ClientBuilder(BuilderBase):
 
     output["Template.build_context"] = self.context
 
-    if set(output.keys()) != self.REQUIRED_BUILD_YAML_KEYS:
+    output_keys = set(iterkeys(output))
+    if output_keys != self.REQUIRED_BUILD_YAML_KEYS:
       raise RuntimeError("Bad build.yaml: expected %s, got %s" %
-                         (self.REQUIRED_BUILD_YAML_KEYS, output.keys()))
+                         (self.REQUIRED_BUILD_YAML_KEYS, output_keys))
     fd.write(yaml.dump(output))
 
   def CopyMissingModules(self):
@@ -982,9 +986,9 @@ def CreateNewZipWithSignedLibs(z_in,
     temp_files[filename] = path
 
   try:
-    signer.SignFiles(temp_files.values())
+    signer.SignFiles(itervalues(temp_files))
   except AttributeError:
-    for f in temp_files.values():
+    for f in itervalues(temp_files):
       signer.SignFile(f)
 
   for filename, tempfile_path in temp_files.items():

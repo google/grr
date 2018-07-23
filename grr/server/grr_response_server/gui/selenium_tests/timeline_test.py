@@ -214,20 +214,46 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
       "GetVfsTimelineAsCsv",
       return_value=api_vfs.ApiGetVfsTimelineAsCsvHandler())
-  def testClickingOnDownloadTimelineButtonInitiatesDownload(self, mock_method):
+  def testClickingOnDownloadTimelineInGrrFormatButtonInitiatesDownload(
+      self, mock_method):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
 
     self.Click("css=button[name=timelineDropdown]:not([disabled])")
-    self.Click("css=a[name=downloadTimeline]")
+    self.Click("css=a[name=downloadTimelineGrrFormat]")
 
     self.WaitUntil(lambda: mock_method.call_count)
     # Mock method will be called twice: once for HEAD request (to check
     # permissions) and once for GET request.
     mock_method.assert_called_with(
         api_vfs.ApiGetVfsTimelineAsCsvArgs(
-            client_id="C.0000000000000001", file_path="fs/os/c/proc"),
+            client_id="C.0000000000000001",
+            file_path="fs/os/c/proc",
+            format=api_vfs.ApiGetVfsTimelineAsCsvArgs.Format.GRR),
+        token=mock.ANY)
+
+  @mock.patch.object(
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+      "GetVfsTimelineAsCsv",
+      return_value=api_vfs.ApiGetVfsTimelineAsCsvHandler())
+  def testClickingOnDownloadTimelineInBodyFormatButtonInitiatesDownload(
+      self, mock_method):
+    # Open VFS view for client 1 on a specific location.
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
+              "&t=_fs-os-c-proc")
+
+    self.Click("css=button[name=timelineDropdown]:not([disabled])")
+    self.Click("css=a[name=downloadTimelineBodyFormat]")
+
+    self.WaitUntil(lambda: mock_method.call_count > 0)
+    # Mock method will be called twice: once for HEAD request (to check
+    # permissions) and once for GET request.
+    mock_method.assert_called_with(
+        api_vfs.ApiGetVfsTimelineAsCsvArgs(
+            client_id="C.0000000000000001",
+            file_path="fs/os/c/proc",
+            format=api_vfs.ApiGetVfsTimelineAsCsvArgs.Format.BODY),
         token=mock.ANY)
 
 

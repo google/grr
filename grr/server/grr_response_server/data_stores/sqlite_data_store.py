@@ -6,7 +6,6 @@ SQLite database files are created by taking the root of each AFF4 object.
 from __future__ import division
 from __future__ import print_function
 
-
 import itertools
 import logging
 import os
@@ -19,6 +18,8 @@ import threading
 import time
 
 
+from future.utils import iterkeys
+from future.utils import itervalues
 from past.builtins import long
 import sqlite3
 
@@ -624,7 +625,7 @@ class SqliteDataStore(data_store.DataStore):
     """Build a mapping between column names and types."""
     self._attribute_types = {}
 
-    for attribute in aff4.Attribute.PREDICATES.values():
+    for attribute in itervalues(aff4.Attribute.PREDICATES):
       self._attribute_types[attribute.predicate] = (
           attribute.attribute_type.data_store_type)
 
@@ -667,7 +668,7 @@ class SqliteDataStore(data_store.DataStore):
 
     with self.cache.Get(subject) as sqlite_connection:
       if replace:
-        to_delete.update(values.keys())
+        to_delete.update(iterkeys(values))
 
       # Delete attribute if needed.
       if to_delete:

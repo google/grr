@@ -305,6 +305,21 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testReadPathInfoOlder(self):
     pass
 
+  def testReadPathInfosHistoriesEmpty(self):
+    pass
+
+  def testReadPathInfosHistoriesRaisesOnUnknownClient(self):
+    pass
+
+  def testReadPathInfosHistoriesWithSingleFileWithSingleHistoryItem(self):
+    pass
+
+  def testReadPathInfosHistoriesWithTwoFilesWithSingleHistoryItemEach(self):
+    pass
+
+  def testReatPathInfosHistoriesWithTwoFilesWithTwoHistoryItems(self):
+    pass
+
 
 if __name__ == "__main__":
   unittest.main()

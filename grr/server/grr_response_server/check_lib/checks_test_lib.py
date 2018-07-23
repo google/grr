@@ -7,6 +7,7 @@ import os
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iterkeys
 from future.utils import with_metaclass
 import yaml
 
@@ -324,11 +325,11 @@ class HostCheckTest(
 
   def assertRanChecks(self, check_ids, results):
     """Tests that the specified checks were run."""
-    self.assertTrue(set(check_ids).issubset(set(results.keys())))
+    self.assertTrue(set(check_ids).issubset(set(iterkeys(results))))
 
   def assertChecksNotRun(self, check_ids, results):
     """Tests that the specified checks were not run."""
-    self.assertFalse(set(check_ids).intersection(set(results.keys())))
+    self.assertFalse(set(check_ids).intersection(set(iterkeys(results))))
 
   def assertResultEqual(self, rslt1, rslt2):
     """Tests whether two check results are identical."""
@@ -347,10 +348,7 @@ class HostCheckTest(
       anoms = rslt2_anoms.setdefault(a.symptom, [])
       anoms.extend(a.finding)
 
-    self.assertItemsEqual(
-        rslt1_anoms, rslt2_anoms,
-        "Results have different anomaly items.:\n%s\n%s" % (rslt1_anoms.keys(),
-                                                            rslt2_anoms.keys()))
+    self.assertItemsEqual(rslt1_anoms, rslt2_anoms)
 
     # Now check that the anomalies are the same, modulo newlines.
     for symptom, findings in rslt1_anoms.iteritems():

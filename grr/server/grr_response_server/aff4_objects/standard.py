@@ -4,6 +4,9 @@ from __future__ import division
 
 import io
 
+
+from future.utils import itervalues
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -118,7 +121,8 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
     chunk_nrs = {}
     for k, v in chunk_hashes.iteritems():
       chunk_nrs.setdefault(v, []).append(k)
-    res = data_store.DB.ReadBlobs(chunk_hashes.values(), token=self.token)
+    res = data_store.DB.ReadBlobs(
+        list(itervalues(chunk_hashes)), token=self.token)
     for blob_hash, content in res.iteritems():
       for chunk_nr in chunk_nrs[blob_hash]:
         fd = io.BytesIO(content)

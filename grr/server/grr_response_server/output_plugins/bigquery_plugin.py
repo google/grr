@@ -8,6 +8,8 @@ import os
 import tempfile
 
 
+from future.utils import itervalues
+
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -188,7 +190,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
     urn_str = self.state.source_urn.RelativeName("aff4:/").replace(
         "/", "_").replace(":", "").replace(".", "-")
 
-    for tracker in self.temp_output_trackers.values():
+    for tracker in itervalues(self.temp_output_trackers):
       # Close out the gzip handle and pass the original file handle to the
       # bigquery client so it sees the gzip'd content.
       tracker.gzip_filehandle.write("\n")
@@ -310,5 +312,5 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
         self._WriteJSONValue(
             output_tracker.gzip_filehandle, value, delimiter="\n")
 
-    for output_tracker in self.temp_output_trackers.values():
+    for output_tracker in itervalues(self.temp_output_trackers):
       output_tracker.gzip_filehandle.flush()

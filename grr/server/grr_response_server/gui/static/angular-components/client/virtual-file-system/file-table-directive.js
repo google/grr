@@ -208,15 +208,16 @@ FileTableController.prototype.updateFilter = function() {
 /**
  * Downloads the timeline for the current directory.
  *
+ * @param {string} format to use ('GRR' or 'BODY').
  * @export
  */
-FileTableController.prototype.downloadTimeline = function() {
+FileTableController.prototype.downloadTimeline = function(format) {
   var clientId = this.fileContext['clientId'];
   var selectedFilePath = this.fileContext['selectedFilePath'] || '';
   var selectedFolderPath = getFolderFromPath(selectedFilePath);
 
   var url = 'clients/' + clientId + '/vfs-timeline-csv/' + selectedFolderPath;
-  this.grrApiService_.downloadFile(url).then(
+  this.grrApiService_.downloadFile(url, {'format': format}).then(
       function success() {}.bind(this),
       function failure(response) {
         if (angular.isUndefined(response.status)) {

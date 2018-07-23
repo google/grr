@@ -13,6 +13,8 @@ import re
 import time
 
 
+from future.utils import iterkeys
+from future.utils import itervalues
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
@@ -287,7 +289,7 @@ class ExportConverter(with_metaclass(registry.MetaclassRegistry, object)):
       return ExportConverter.converters_cache[value_cls.__name__]
     except KeyError:
       results = [
-          cls for cls in ExportConverter.classes.itervalues()
+          cls for cls in itervalues(ExportConverter.classes)
           if cls.input_rdf_type == value_cls.__name__
       ]
       if not results:
@@ -891,7 +893,7 @@ class RDFURNConverter(ExportConverter):
         urn_metadata_pairs.append((value, metadata))
 
     urns_dict = dict(urn_metadata_pairs)
-    fds = aff4.FACTORY.MultiOpen(urns_dict.iterkeys(), mode="r", token=token)
+    fds = aff4.FACTORY.MultiOpen(iterkeys(urns_dict), mode="r", token=token)
 
     batch = []
     for fd in fds:
@@ -1090,7 +1092,7 @@ class GrrMessageConverter(ExportConverter):
     metadata_to_fetch = []
 
     # Open the clients we don't have metadata for and fetch metadata.
-    for client_urn in msg_dict.iterkeys():
+    for client_urn in msg_dict:
       try:
         metadata_objects.append(self.cached_metadata[client_urn])
       except KeyError:
@@ -1137,7 +1139,7 @@ class GrrMessageConverter(ExportConverter):
 
     # Run all converters against all objects of the relevant type
     converted_batch = []
-    for dataset in data_by_type.values():
+    for dataset in itervalues(data_by_type):
       for converter in dataset["converters"]:
         converted_batch.extend(
             converter.BatchConvert(dataset["batch_data"], token=token))

@@ -3,6 +3,8 @@
 
 import os
 
+from future.utils import itervalues
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import db
@@ -47,7 +49,7 @@ class InMemoryDBUsersMixin(object):
   @utils.Synchronized
   def ReadAllGRRUsers(self):
     """Reads all GRR users."""
-    for u in self.users.values():
+    for u in itervalues(self.users):
       yield rdf_objects.GRRUser(
           username=u["username"],
           password=u.get("password"),
@@ -86,8 +88,9 @@ class InMemoryDBUsersMixin(object):
                            include_expired=False):
     """Reads approval requests of a given type for a given user."""
     now = rdfvalue.RDFDatetime.Now()
-    for approval in self.approvals_by_username.get(requestor_username,
-                                                   {}).values():
+
+    approvals = self.approvals_by_username.get(requestor_username, {})
+    for approval in itervalues(approvals):
       if approval.approval_type != approval_type:
         continue
 

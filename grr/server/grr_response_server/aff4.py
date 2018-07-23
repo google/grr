@@ -16,6 +16,7 @@ import zlib
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import itervalues
 from future.utils import with_metaclass
 
 from grr_response_core import config
@@ -223,7 +224,7 @@ class DeletionPool(object):
     """Marks multiple urns (and their children) for deletion."""
     all_children_urns = self.RecursiveMultiListChildren(urns)
 
-    urns += list(itertools.chain.from_iterable(all_children_urns.values()))
+    urns += list(itertools.chain.from_iterable(itervalues(all_children_urns)))
     self._urns_for_deletion.update(urns)
 
     for obj in self.MultiOpen(urns):

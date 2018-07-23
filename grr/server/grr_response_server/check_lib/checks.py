@@ -6,6 +6,9 @@ import itertools
 import logging
 import os
 
+
+from future.utils import iterkeys
+from future.utils import itervalues
 import yaml
 
 from grr_response_core import config
@@ -645,7 +648,7 @@ class CheckRegistry(object):
     results = set()
     for condition in cls.Conditions(None, os_name, cpe, labels):
       trigger = condition[1:]
-      for chk in cls.checks.values():
+      for chk in itervalues(cls.checks):
         if restrict_checks and chk.check_id not in restrict_checks:
           continue
         results.update(chk.triggers.Artifacts(*trigger))
@@ -674,7 +677,7 @@ class CheckRegistry(object):
       A CheckResult message for each check that was performed.
     """
     # All the conditions that apply to this host.
-    artifacts = host_data.keys()
+    artifacts = list(iterkeys(host_data))
     check_ids = cls.FindChecks(artifacts, os_name, cpe, labels)
     conditions = list(cls.Conditions(artifacts, os_name, cpe, labels))
     for check_id in check_ids:
@@ -769,7 +772,7 @@ def LoadChecksFromFiles(file_paths, overwrite_if_exists=True):
   loaded = []
   for file_path in file_paths:
     configs = LoadConfigsFromFile(file_path)
-    for conf in configs.values():
+    for conf in itervalues(configs):
       check = Check(**conf)
       # Validate will raise if the check doesn't load.
       check.Validate()

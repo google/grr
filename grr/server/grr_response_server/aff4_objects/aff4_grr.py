@@ -3,9 +3,12 @@
 
 import io
 import logging
+import operator
 import re
 import time
 
+
+from builtins import map  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -694,8 +697,8 @@ class VFSBlobImage(VFSFile):
     missing_blobs_fd_pairs = []
     for chunk_fd_pairs in utils.Grouper(
         cls._GenerateChunkIds(fds), cls.MULTI_STREAM_CHUNKS_READ_AHEAD):
-      results_map = data_store.DB.ReadBlobs(
-          dict(chunk_fd_pairs).keys(), token=fds[0].token)
+      chunk_fds = list(map(operator.itemgetter(0), chunk_fd_pairs))
+      results_map = data_store.DB.ReadBlobs(chunk_fds, token=fds[0].token)
 
       for chunk_id, fd in chunk_fd_pairs:
         if chunk_id not in results_map or results_map[chunk_id] is None:

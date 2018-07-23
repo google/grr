@@ -10,6 +10,7 @@ WIP, will eventually replace datastore.py.
 import abc
 
 
+from future.utils import itervalues
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
@@ -582,7 +583,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     for batch in utils.Grouper(all_client_ids, batch_size):
       res = self.MultiReadClientFullInfo(batch, min_last_ping=min_last_ping)
-      for full_info in res.values():
+      for full_info in itervalues(res):
         yield full_info
 
   def IterateAllClientSnapshots(self, batch_size=50000):
@@ -597,7 +598,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     for batch in utils.Grouper(all_client_ids, batch_size):
       res = self.MultiReadClientSnapshot(batch)
-      for snapshot in res.values():
+      for snapshot in itervalues(res):
         if snapshot:
           yield snapshot
 
@@ -687,9 +688,10 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     result_path_ids = self.FindDescendentPathIDs(
         client_id, path_type, path_id, max_depth=max_depth)
     result_path_infos = self.FindPathInfosByPathIDs(client_id, path_type,
-                                                    result_path_ids).values()
+                                                    result_path_ids)
 
-    return sorted(result_path_infos, key=lambda _: tuple(_.components))
+    return sorted(
+        itervalues(result_path_infos), key=lambda _: tuple(_.components))
 
   @abc.abstractmethod
   def FindPathInfoByPathID(self, client_id, path_type, path_id, timestamp=None):
@@ -802,6 +804,20 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       rhash_entries[rpath_info] = hash_entry
 
     self.MultiWritePathHistory(client_id, {}, rhash_entries)
+
+  @abc.abstractmethod
+  def ReadPathInfosHistories(self, client_id, path_type, components_list):
+    """Reads a collection of hash and stat entries for given paths.
+
+    Args:
+      client_id: An identifier string for a client.
+      path_type: A type of a path to retrieve path history information for.
+      components_list: An iterable of tuples of path components corresponding to
+                       paths to retrieve path information for.
+    Returns:
+      A dictionary mapping path components to lists of `rdf_objects.PathInfo`
+      ordered by timestamp in ascending order.
+    """
 
   @abc.abstractmethod
   def WriteUserNotification(self, notification):
@@ -1613,6 +1629,15 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.ReadUserNotifications(
         username, state=state, timerange=timerange)
+
+  def ReadPathInfosHistories(self, client_id, path_type, components_list):
+    self._ValidateClientId(client_id)
+    self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    for components in components_list:
+      self._ValidatePathComponents(components)
+
+    return self.delegate.ReadPathInfosHistories(client_id, path_type,
+                                                components_list)
 
   def UpdateUserNotifications(self, username, timestamps, state=None):
     self._ValidateNotificationState(state)

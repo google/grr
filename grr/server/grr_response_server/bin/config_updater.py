@@ -16,6 +16,7 @@ import sys
 
 from builtins import input  # pylint: disable=redefined-builtin
 from future.moves.urllib import parse as urlparse
+from future.utils import iterkeys
 import pkg_resources
 import yaml
 
@@ -264,7 +265,7 @@ set_global_notification = subparsers.add_parser(
 
 set_global_notification.add_argument(
     "--type",
-    choices=aff4_users.GlobalNotification.Type.enum_dict.keys(),
+    choices=list(iterkeys(aff4_users.GlobalNotification.Type.enum_dict)),
     default="INFO",
     help="Global notification type.")
 
@@ -319,7 +320,7 @@ def ImportConfig(filename, config):
   old_config = grr_config.CONFIG.MakeNewConfig()
   old_config.Initialize(filename)
 
-  for entry in old_config.raw_data.keys():
+  for entry in old_config.raw_data:
     try:
       section = entry.split(".")[0]
       if section in sections_to_import or entry in entries_to_import:

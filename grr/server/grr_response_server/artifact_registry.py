@@ -3,6 +3,9 @@
 
 import logging
 import os
+
+
+from future.utils import itervalues
 import yaml
 
 from grr_response_core import config
@@ -352,7 +355,7 @@ class ArtifactRegistry(object):
     """
     self._CheckDirty(reload_datastore_artifacts=reload_datastore_artifacts)
     results = set()
-    for artifact in self._artifacts.values():
+    for artifact in itervalues(self._artifacts):
 
       # artifact.supported_os = [] matches all OSes
       if os_name and artifact.supported_os and (

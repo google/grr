@@ -4,6 +4,7 @@
 import collections
 
 
+from future.utils import itervalues
 from past.builtins import long
 
 from grr_response_core.lib import rdfvalue
@@ -195,7 +196,7 @@ class Dict(rdf_structs.RDFProtoStruct):
 
   def ToDict(self):
     result = {}
-    for x in self._values.values():
+    for x in itervalues(self._values):
       key = x.k.GetValue()
       result[key] = x.v.GetValue()
       try:
@@ -213,7 +214,7 @@ class Dict(rdf_structs.RDFProtoStruct):
       self._values[key] = KeyValue(
           k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
           v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
-    self.dat = self._values.values()
+    self.dat = itervalues(self._values)
     return self
 
   def __getitem__(self, key):
@@ -228,15 +229,15 @@ class Dict(rdf_structs.RDFProtoStruct):
     return default
 
   def Items(self):
-    for x in self._values.itervalues():
+    for x in itervalues(self._values):
       yield x.k.GetValue(), x.v.GetValue()
 
   def Values(self):
-    for x in self._values.itervalues():
+    for x in itervalues(self._values):
       yield x.v.GetValue()
 
   def Keys(self):
-    for x in self._values.itervalues():
+    for x in itervalues(self._values):
       yield x.k.GetValue()
 
   get = utils.Proxy("GetItem")
@@ -276,7 +277,7 @@ class Dict(rdf_structs.RDFProtoStruct):
         k=DataBlob().SetValue(key), v=DataBlob().SetValue(value))
 
   def __iter__(self):
-    for x in self._values.itervalues():
+    for x in itervalues(self._values):
       yield x.k.GetValue()
 
   def __eq__(self, other):
@@ -288,11 +289,11 @@ class Dict(rdf_structs.RDFProtoStruct):
       return False
 
   def GetRawData(self):
-    self.dat = self._values.values()
+    self.dat = itervalues(self._values)
     return super(Dict, self).GetRawData()
 
   def _CopyRawData(self):
-    self.dat = self._values.values()
+    self.dat = itervalues(self._values)
     return super(Dict, self)._CopyRawData()
 
   def SetRawData(self, raw_data):
@@ -302,7 +303,7 @@ class Dict(rdf_structs.RDFProtoStruct):
       self._values[d.k.GetValue()] = d
 
   def SerializeToString(self):
-    self.dat = self._values.values()
+    self.dat = itervalues(self._values)
     return super(Dict, self).SerializeToString()
 
   def ParseFromString(self, value):

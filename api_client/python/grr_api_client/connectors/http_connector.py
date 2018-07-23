@@ -4,7 +4,10 @@
 import collections
 import json
 import logging
+
+
 from future.moves.urllib import parse as urlparse
+from future.utils import iterkeys
 
 import requests
 
@@ -159,7 +162,7 @@ class HttpConnector(connector.Connector):
     if not method:
       raise RuntimeError("Can't find method for %s" % handler_name)
 
-    return method, url, path_params.keys()
+    return method, url, list(iterkeys(path_params))
 
   def _ArgsToQueryParams(self, args, exclude_names):
     if not args:

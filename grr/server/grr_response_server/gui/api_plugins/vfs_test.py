@@ -12,6 +12,7 @@ from builtins import zip  # pylint: disable=redefined-builtin
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 from grr_response_server import access_control
@@ -717,17 +718,24 @@ class VfsTimelineTestMixin(object):
       with test_lib.FakeTime(i):
         stat_entry = rdf_client.StatEntry()
         stat_entry.st_mtime = rdfvalue.RDFDatetimeSeconds.Now()
-        stat_entry.pathspec.path = self.folder_path[len(self.category_path):]
+        stat_entry.pathspec.path = self.file_path[len(self.category_path):]
         stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+
+        hash_entry = rdf_crypto.Hash(
+            sha256=("0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
+                    "e4f06017acdb5").decode("hex"))
 
         with aff4.FACTORY.Create(
             file_urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
           fd.Set(fd.Schema.STAT, stat_entry)
+          fd.Set(fd.Schema.HASH, hash_entry)
 
         if data_store.RelationalDBWriteEnabled():
           cid = client_id.Basename()
           path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+          path_info.hash_entry = hash_entry
           data_store.REL_DB.WritePathInfos(cid, [path_info])
+
     return client_id
 
 
@@ -785,12 +793,23 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testEmptyTimelineIsReturnedOnNonexistantPath(self):
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
-        client_id=self.client_id, file_path="fs/non-existant/file/path")
+        client_id=self.client_id, file_path="fs/os/non-existent/file/path")
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
     with self.assertRaises(StopIteration):
       next(result.GenerateContent())
+
+  def testTimelineInBodyFormatCorrectlyReturned(self):
+    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
+        client_id=self.client_id,
+        file_path=self.folder_path,
+        format=vfs_plugin.ApiGetVfsTimelineAsCsvArgs.Format.BODY)
+    result = self.handler.Handle(args, token=self.token)
+
+    content = "".join(result.GenerateContent())
+    self.assertEqual(content,
+                     "|%s|0|----------|0|0|0|0|4|0|0\r\n" % self.file_path)
 
 
 @db_test_lib.DualDBTest

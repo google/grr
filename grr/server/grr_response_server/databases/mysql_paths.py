@@ -23,3 +23,8 @@ class MySQLDBPathMixin(object):
   def FindDescendentPathIDs(self, client_id, path_id, max_depth=None):
     """Finds all path_ids seen on a client descent from path_id."""
     raise NotImplementedError()
+
+  def ReadPathInfosHistories(self, client_id, path_type, components_list):
+    """Reads a collection of hash and stat entries for given paths."""
+
+    raise NotImplementedError()

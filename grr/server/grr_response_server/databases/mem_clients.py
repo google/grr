@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """The in memory database methods for client handling."""
 
+
+from future.utils import iterkeys
+from future.utils import itervalues
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -124,7 +128,7 @@ class InMemoryDBClientMixin(object):
 
   @utils.Synchronized
   def ReadAllClientIDs(self):
-    return self.metadatas.keys()
+    return list(iterkeys(self.metadatas))
 
   @utils.Synchronized
   def WriteClientSnapshotHistory(self, clients):
@@ -232,7 +236,7 @@ class InMemoryDBClientMixin(object):
   def ReadAllClientLabels(self):
     """Lists all client labels known to the system."""
     result = set()
-    for labels_dict in self.labels.values():
+    for labels_dict in itervalues(self.labels):
       for owner, names in labels_dict.items():
         for name in names:
           result.add(rdf_objects.ClientLabel(owner=owner, name=name))

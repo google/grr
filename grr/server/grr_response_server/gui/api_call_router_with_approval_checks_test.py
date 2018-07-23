@@ -2,6 +2,7 @@
 """Tests for an ApiCallRouterWithChecks."""
 
 
+from future.utils import iterkeys
 import mock
 
 from grr_response_core.lib import flags
@@ -354,8 +355,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   def testAllOtherMethodsAreNotAccessChecked(self):
     unchecked_methods = (
-        set(self.router.__class__.GetAnnotatedMethods().keys()) -
-        set(self.ACCESS_CHECKED_METHODS))
+        set(iterkeys(self.router.__class__.GetAnnotatedMethods())) - set(
+            self.ACCESS_CHECKED_METHODS))
     self.assertTrue(unchecked_methods)
 
     for method_name in unchecked_methods:

@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 """Tests for service state checks."""
 
+from future.utils import itervalues
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.parsers import parsers_test_lib
@@ -29,14 +31,14 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
                      should_detect=True):
     host_data = self.SetKnowledgeBase()
     cfgs = parsers_test_lib.GenXinetd(svc, disabled)
-    stats, files = parsers_test_lib.GenTestData(cfgs, cfgs.values())
+    stats, files = parsers_test_lib.GenTestData(cfgs, itervalues(cfgs))
     data = list(self.parser(stats, files, None))
 
     # create entries on whether xinetd itself is setup to start or not
     if xinetd:
       cfgs = parsers_test_lib.GenInit("xinetd",
                                       "the extended Internet services daemon")
-      stats, files = parsers_test_lib.GenTestData(cfgs, cfgs.values())
+      stats, files = parsers_test_lib.GenTestData(cfgs, itervalues(cfgs))
       lsb_parser = linux_service_parser.LinuxLSBInitParser()
       data.extend(list(lsb_parser.ParseMultiple(stats, files, None)))
 

@@ -9,6 +9,7 @@ starting flows and for validating arguments.
 import logging
 
 
+from future.utils import itervalues
 from future.utils import with_metaclass
 from past.builtins import long
 
@@ -264,7 +265,7 @@ class TypeDescriptorSet(object):
 
   def HasDescriptor(self, descriptor_name):
     """Checks wheter this set has an element with the given name."""
-    return descriptor_name in self.descriptor_map.keys()
+    return descriptor_name in self.descriptor_map
 
   def Remove(self, *descriptor_names):
     """Returns a copy of this set without elements with given names."""
@@ -274,7 +275,7 @@ class TypeDescriptorSet(object):
 
     new_descriptors = [
         desc for desc in self.descriptors
-        if desc in new_descriptor_map.values()
+        if desc in itervalues(new_descriptor_map)
     ]
     return TypeDescriptorSet(*new_descriptors)
 

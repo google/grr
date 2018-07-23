@@ -15,6 +15,7 @@ import stat
 import struct
 
 
+from future.utils import itervalues
 import ipaddr
 from past.builtins import long
 import psutil
@@ -253,7 +254,7 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
 
   def _CreateNewUser(self, kb_user):
     self.users.Append(kb_user)
-    return ["users.%s" % k for k in kb_user.AsDict().keys()]
+    return ["users.%s" % k for k in kb_user.AsDict()]
 
   def MergeOrAddUser(self, kb_user):
     """Merge a user into existing users or add new if it doesn't exist.
@@ -635,7 +636,7 @@ class ClientStats(rdf_structs.RDFProtoStruct):
       bucket = buckets.setdefault(sample.timestamp.Floor(interval), [])
       bucket.append(sample)
 
-    for bucket in buckets.itervalues():
+    for bucket in itervalues(buckets):
       yield kind.FromMany(bucket)
 
 

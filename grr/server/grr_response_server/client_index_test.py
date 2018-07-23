@@ -3,6 +3,9 @@
 
 import socket
 
+
+from future.utils import iterkeys
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import ipv6_utils
 from grr_response_core.lib import utils
@@ -403,7 +406,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(len(index.LookupClients([".", "start_date:XXX"])), 0)
 
   def testRemoveLabels(self):
-    client_id = self._SetupClients(1).keys()[0]
+    client_id = next(iterkeys(self._SetupClients(1)))
     data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
     data_store.REL_DB.AddClientLabels(client_id, "owner",
                                       ["testlabel_1", "testlabel_2"])

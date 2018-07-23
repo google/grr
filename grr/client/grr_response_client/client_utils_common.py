@@ -10,6 +10,8 @@ import threading
 import time
 
 
+from future.utils import itervalues
+
 from grr_response_client.local import binary_whitelist
 from grr_response_core import config
 from grr_response_core.lib import constants
@@ -252,7 +254,7 @@ class MultiHasher(object):
     Args:
       buf: A byte buffer (string object) that is going to be fed to the hashers.
     """
-    for hasher in self._hashers.values():
+    for hasher in itervalues(self._hashers):
       hasher.update(buf)
       if self._progress:
         self._progress()

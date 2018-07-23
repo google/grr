@@ -7,6 +7,8 @@ import math
 import os
 import time
 
+
+from future.utils import itervalues
 import mock
 
 from grr_response_core.lib import flags
@@ -1256,7 +1258,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
       result[field_value[0]] = stats.STATS.GetMetricValue(
           "hunt_output_plugin_verifications", fields=field_value)
 
-    return sum(result.values()), result
+    return sum(itervalues(result)), result
 
   def testDoesNothingWithNonGenericHunts(self):
     implementation.StartHunt(

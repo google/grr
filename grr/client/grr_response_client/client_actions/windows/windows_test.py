@@ -4,6 +4,8 @@ import platform
 import stat
 import unittest
 
+
+from future.utils import iterkeys
 import mock
 
 from grr_response_client import vfs
@@ -125,7 +127,7 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
     self.assertEqual(nest["five"], "astring")
     self.assertEqual(nest["six"], [None, None, ""])
     self.assertEqual(nest["seven"], None)
-    self.assertItemsEqual(nest["rdfvalue"].keys(), ["a"])
+    self.assertItemsEqual(iterkeys(nest["rdfvalue"]), ["a"])
 
     self.assertEqual(result["GatewayCostMetric"], [0, 256])
     self.assertTrue(isinstance(result["OpaqueObject"], basestring))

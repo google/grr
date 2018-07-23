@@ -3,6 +3,8 @@
 """Tests for checks."""
 import os
 
+
+from future.utils import iterkeys
 import yaml
 
 from grr_response_core import config
@@ -302,7 +304,7 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
 
   def setUp(self):
     super(ProcessHostDataTests, self).setUp()
-    registered = checks.CheckRegistry.checks.keys()
+    registered = set(iterkeys(checks.CheckRegistry.checks))
     if "SW-CHECK" not in registered:
       checks.LoadChecksFromFiles([os.path.join(CHECKS_DIR, "sw.yaml")])
     if "SSHD-CHECK" not in registered:

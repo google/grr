@@ -14,10 +14,10 @@ class Blobstore(with_metaclass(registry.MetaclassRegistry, object)):
     return self.StoreBlobs([content], token=token)[0]
 
   def ReadBlob(self, identifier, token=None):
-    return self.ReadBlobs([identifier], token=token).values()[0]
+    return self.ReadBlobs([identifier], token=token)[identifier]
 
   def BlobExists(self, identifier, token=None):
-    return self.BlobsExist([identifier], token=token).values()[0]
+    return self.BlobsExist([identifier], token=token)[identifier]
 
   def StoreBlobs(self, contents, token=None):
     """Creates or overwrites blobs.

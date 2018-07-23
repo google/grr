@@ -2,6 +2,8 @@
 """Tests for the stats_store classes."""
 
 
+from future.utils import iterkeys
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats
@@ -126,7 +128,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.stats_store.WriteStats(process_id="pid1", timestamp=43)
 
     results = self.stats_store.MultiReadStats()
-    self.assertEqual(sorted(results.keys()), ["pid1", "pid2"])
+    self.assertEqual(sorted(iterkeys(results)), ["pid1", "pid2"])
     self.assertEqual(results["pid1"]["counter"], [(1, 42), (2, 43)])
     self.assertEqual(results["pid2"]["counter"], [(1, 42), (1, 43)])
 
@@ -142,7 +144,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.stats_store.WriteStats(process_id="pid1", timestamp=44)
 
     results = self.stats_store.MultiReadStats(timestamp=(43, 100))
-    self.assertEqual(sorted(results.keys()), ["pid1", "pid2"])
+    self.assertEqual(sorted(iterkeys(results)), ["pid1", "pid2"])
     self.assertEqual(results["pid1"]["counter"], [(2, 44)])
     self.assertEqual(results["pid2"]["counter"], [(1, 44)])
 

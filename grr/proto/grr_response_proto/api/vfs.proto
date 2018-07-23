@@ -355,6 +355,15 @@ message ApiGetVfsTimelineAsCsvArgs {
   optional string file_path = 2 [(sem_type) = {
       description: "File path."
     }];
+
+  enum Format {
+    UNSET = 0;
+    GRR = 1;
+    BODY = 2;
+  }
+  optional Format format  = 3 [(sem_type) = {
+      description: "Generated timeline format."
+    }];
 }
 
 message ApiCreateVfsRefreshOperationResult {

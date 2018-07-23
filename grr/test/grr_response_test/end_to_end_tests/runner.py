@@ -7,8 +7,10 @@ import logging
 import os
 import time
 import unittest
-from future.moves.urllib import parse as urlparse
 
+
+from future.moves.urllib import parse as urlparse
+from future.utils import itervalues
 import requests
 
 from grr_api_client import api
@@ -241,7 +243,7 @@ class E2ETestRunner(object):
   def _GetApplicableTests(self, client):
     """Returns all e2e test methods that should be run against the client."""
     applicable_tests = {}
-    for test_class in test_base.REGISTRY.values():
+    for test_class in itervalues(test_base.REGISTRY):
       if client.data.os_info.system not in test_class.platforms:
         continue
       test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)

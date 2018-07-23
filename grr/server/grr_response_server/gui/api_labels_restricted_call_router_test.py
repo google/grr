@@ -2,6 +2,8 @@
 """Tests for an ApiLabelsRestrictedCallRouter."""
 
 
+from future.utils import iterkeys
+
 from grr_response_core.lib import flags
 
 from grr_response_server import access_control
@@ -265,7 +267,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     self.CheckMethod(c.ListApiMethods)
 
     non_checked_methods = (
-        set(self.checks.keys()) - set(c.GetAnnotatedMethods().keys()))
+        set(iterkeys(self.checks)) - set(iterkeys(c.GetAnnotatedMethods())))
     if non_checked_methods:
       raise RuntimeError("Not all methods are covered with CheckMethod() "
                          "checks: " + ", ".join(non_checked_methods))

@@ -3,6 +3,8 @@
 
 import logging
 
+from future.utils import itervalues
+
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 
@@ -186,7 +188,8 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
     roots = _GetSignedBlobsRoots()
 
     binary_urns = []
-    for _, children in aff4.FACTORY.RecursiveMultiListChildren(roots.values()):
+    for _, children in aff4.FACTORY.RecursiveMultiListChildren(
+        itervalues(roots)):
       binary_urns.extend(children)
 
     binary_fds = list(

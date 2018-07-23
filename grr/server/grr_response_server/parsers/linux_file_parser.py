@@ -6,6 +6,7 @@ import os
 import re
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import itervalues
 
 from grr_response_core import config
 from grr_response_core.lib import parser
@@ -519,7 +520,7 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
       yield anom
     # Then add shadow group members to the group membership.
     self.MergeMembers()
-    for group in self.entry.values():
+    for group in itervalues(self.entry):
       yield group
 
 
@@ -596,21 +597,21 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
 
   def AddGroupMemberships(self):
     """Adds aggregate group membership from group, gshadow and passwd."""
-    self.groups = {g.name: self._Members(g) for g in self.groups.itervalues()}
+    self.groups = {g.name: self._Members(g) for g in itervalues(self.groups)}
     # Map the groups a user is a member of, irrespective of primary/extra gid.
-    for g in self.groups.itervalues():
+    for g in itervalues(self.groups):
       for user in g.members:
         membership = self.memberships.setdefault(user, set())
         membership.add(g.gid)
     # Now add the completed membership to the user account.
-    for user in self.entry.itervalues():
+    for user in itervalues(self.entry):
       user.gids = self.memberships.get(user.username)
 
   def FindAnomalies(self):
     """Identify anomalies in the password/shadow and group/gshadow data."""
     # Find anomalous group entries.
     findings = []
-    group_entries = {g.gid for g in self.groups.itervalues()}
+    group_entries = {g.gid for g in itervalues(self.groups)}
     for gid in set(self.gids) - group_entries:
       undefined = ",".join(self.gids.get(gid, []))
       findings.append(
@@ -685,9 +686,9 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
       else:
         yield rdf
     self.AddGroupMemberships()
-    for user in self.entry.values():
+    for user in itervalues(self.entry):
       yield user
-    for grp in self.groups.values():
+    for grp in itervalues(self.groups):
       yield grp
     for anom in self.FindAnomalies():
       yield anom

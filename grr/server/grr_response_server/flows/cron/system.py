@@ -8,6 +8,8 @@ import time
 
 from builtins import zip  # pylint: disable=redefined-builtin
 
+from future.utils import itervalues
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
@@ -71,7 +73,7 @@ class _ActiveCounter(object):
     """Generate a histogram object and store in the specified attribute."""
     histograms = {}
     for active_time in self.active_days:
-      for label in self.categories[active_time].keys():
+      for label in self.categories[active_time]:
         histograms.setdefault(label, self.attribute())
         graph = rdf_stats.Graph(title="%s day actives for %s label" %
                                 (active_time, label))
@@ -138,7 +140,7 @@ class AbstractClientStatsCronJob(cronjobs.CronJobBase):
         self.HeartBeat()
 
       self.FinishProcessing()
-      for fd in self.stats.values():
+      for fd in itervalues(self.stats):
         fd.Close()
 
       logging.info("%s: processed %d clients.", self.__class__.__name__,
@@ -227,7 +229,7 @@ class LastAccessStatsCronJob(AbstractClientStatsCronJob):
 
   def FinishProcessing(self):
     # Build and store the graph now. Day actives are cumulative.
-    for label in self.values.iterkeys():
+    for label in self.values:
       cumulative_count = 0
       graph = aff4_stats.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM()
       for x, y in zip(self._bins, self.values[label]):
@@ -328,7 +330,7 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
         self.HeartBeat()
 
       self.FinishProcessing()
-      for fd in self.stats.values():
+      for fd in itervalues(self.stats):
         fd.Close()
 
       logging.info("%s: processed %d clients.", self.__class__.__name__,
@@ -439,7 +441,7 @@ class LastAccessStats(AbstractClientStatsCronFlow):
 
   def FinishProcessing(self):
     # Build and store the graph now. Day actives are cumulative.
-    for label in self.values.iterkeys():
+    for label in self.values:
       cumulative_count = 0
       graph = aff4_stats.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM()
       for x, y in zip(self._bins, self.values[label]):

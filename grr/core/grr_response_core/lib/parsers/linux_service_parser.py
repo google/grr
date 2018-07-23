@@ -8,6 +8,7 @@ import stat
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import itervalues
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
@@ -264,7 +265,7 @@ class LinuxXinetdParser(parser.FileParser):
     self.default = {}
     paths = [s.pathspec.path for s in stats]
     files = dict(zip(paths, file_objs))
-    for v in files.values():
+    for v in itervalues(files):
       self._ProcessEntries(v)
     for name, cfg in self.entries.iteritems():
       yield self._GenService(name, cfg)
@@ -327,5 +328,5 @@ class LinuxSysVInitParser(parser.FileParser):
               type="PARSER_ANOMALY",
               finding=[path],
               explanation="Startup script is not a symlink.")
-    for svc in services.itervalues():
+    for svc in itervalues(services):
       yield svc

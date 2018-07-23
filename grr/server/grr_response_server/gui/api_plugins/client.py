@@ -4,8 +4,11 @@ from __future__ import division
 
 import shlex
 import sys
-from future.moves.urllib import parse as urlparse
 
+
+from future.moves.urllib import parse as urlparse
+from future.utils import iterkeys
+from future.utils import itervalues
 import ipaddr
 
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
@@ -51,7 +54,7 @@ def UpdateClientsFromFleetspeak(clients):
   if not id_map:
     return
   res = fleetspeak_connector.CONN.outgoing.ListClients(
-      admin_pb2.ListClientsRequest(client_ids=id_map.keys()))
+      admin_pb2.ListClientsRequest(client_ids=list(iterkeys(id_map))))
   for read in res.clients:
     api_client = id_map[read.client_id]
     api_client.last_seen_at = fleetspeak_utils.TSToRDFDatetime(
@@ -303,7 +306,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
           index.LookupClients(keywords))[args.offset:args.offset + end]
 
       client_infos = data_store.REL_DB.MultiReadClientFullInfo(clients)
-      for client_info in client_infos.itervalues():
+      for client_info in itervalues(client_infos):
         api_clients.append(ApiClient().InitFromClientInfo(client_info))
 
     else:

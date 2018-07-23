@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """DB mixin for blobs-related methods."""
 
+from future.utils import itervalues
+
 from grr_response_core.lib import utils
 from grr_response_server import db
 
@@ -14,7 +16,7 @@ class _BlobRecord(object):
     self._blob_refs[blob_ref.offset] = blob_ref.Copy()
 
   def GetBlobReferences(self):
-    return self._blob_refs.values()
+    return list(itervalues(self._blob_refs))
 
 
 class InMemoryDBBlobsMixin(object):
@@ -31,7 +33,7 @@ class InMemoryDBBlobsMixin(object):
 
       if path_idx not in all_path_ids:
         raise db.AtLeastOneUnknownPathError(
-            references_by_client_path_id.values())
+            itervalues(references_by_client_path_id))
 
       blob_record = self.blob_records.setdefault(path_idx, _BlobRecord())
 

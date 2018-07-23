@@ -6,6 +6,7 @@ import sys
 import threading
 import time
 
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import data_store
@@ -194,7 +195,7 @@ class FakeDataStore(data_store.DataStore):
     if after_urn:
       after_urn = utils.SmartUnicode(after_urn)
     subjects = []
-    for s in self.subjects.keys():
+    for s in self.subjects:
       if s.startswith(subject_prefix) and s > after_urn:
         subjects.append(s)
     subjects.sort()

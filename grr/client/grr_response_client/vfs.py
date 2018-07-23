@@ -5,6 +5,7 @@ import os
 
 
 from builtins import filter  # pylint: disable=redefined-builtin
+from future.utils import itervalues
 from future.utils import with_metaclass
 
 from grr_response_client import client_utils
@@ -267,7 +268,7 @@ class VFSInit(registry.InitHook):
 
   def Run(self):
     VFS_HANDLERS.clear()
-    for handler in VFSHandler.classes.values():
+    for handler in itervalues(VFSHandler.classes):
       if handler.auto_register:
         VFS_HANDLERS[handler.supported_pathtype] = handler
 

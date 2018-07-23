@@ -4,6 +4,9 @@
 
 import logging
 
+
+from future.utils import itervalues
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
@@ -66,7 +69,7 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     used_plugins = []
     unused_plugins = []
 
-    for plugin_def, state in output_plugins.itervalues():
+    for plugin_def, state in itervalues(output_plugins):
       if not hasattr(plugin_def, "GetPluginForState"):
         logging.error("Invalid plugin_def: %s", plugin_def)
         continue

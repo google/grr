@@ -6,6 +6,9 @@ import io
 import os
 import zipfile
 
+
+from future.utils import iterkeys
+from future.utils import itervalues
 import sqlite3
 import yaml
 
@@ -161,10 +164,10 @@ class SqliteInstantOutputPlugin(
     sql_dict = self._ConvertToCanonicalSqlDict(schema, value.ToPrimitiveDict())
     buf = io.StringIO()
     buf.write(u"INSERT INTO \"%s\" (\n  " % table_name)
-    buf.write(u",\n  ".join(["\"%s\"" % k for k in sql_dict.keys()]))
+    buf.write(u",\n  ".join(["\"%s\"" % k for k in iterkeys(sql_dict)]))
     buf.write(u"\n)")
     buf.write(u"VALUES (%s);" % u",".join([u"?"] * len(sql_dict)))
-    db_cursor.execute(buf.getvalue(), sql_dict.values())
+    db_cursor.execute(buf.getvalue(), list(itervalues(sql_dict)))
 
   def _ConvertToCanonicalSqlDict(self, schema, raw_dict, prefix=""):
     """Converts a dict of RDF values into a SQL-ready form."""

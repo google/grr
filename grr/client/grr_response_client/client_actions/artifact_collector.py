@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The client artifact collector."""
 
+
 from grr_response_client import actions
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
@@ -129,7 +130,7 @@ class ArtifactCollector(actions.ActionPlugin):
       yield action, request
 
   def _ProcessClientActionSource(self, args):
-    for action_name in args.base_source.attributes["client_action"].keys():
+    for action_name in args.base_source.attributes["client_action"]:
       if action_name == "GetHostname":
         action = admin.GetHostname
         yield action, {}

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """System cron flows tests."""
 
+
+from future.utils import iterkeys
+
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -98,7 +101,7 @@ class SystemCronTestMixin(object):
     for item in histogram[2]:
       all_labels.append(item.label)
       self.assertEqual(item.y_value, counts[2][item.label])
-    self.assertItemsEqual(all_labels, counts[2].keys())
+    self.assertItemsEqual(all_labels, list(iterkeys(counts[2])))
 
     # There should be counts[3] instances in 30 day actives for linux and
     # windows.
@@ -107,7 +110,7 @@ class SystemCronTestMixin(object):
     for item in histogram[3]:
       all_labels.append(item.label)
       self.assertEqual(item.y_value, counts[3][item.label])
-    self.assertItemsEqual(all_labels, counts[3].keys())
+    self.assertItemsEqual(all_labels, list(iterkeys(counts[3])))
 
   def _CheckOSBreakdown(self):
     histogram = aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM

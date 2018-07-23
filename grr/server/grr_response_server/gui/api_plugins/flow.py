@@ -4,6 +4,9 @@
 import itertools
 import re
 
+
+from future.utils import itervalues
+
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -792,7 +795,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         aff4.FACTORY.RecursiveMultiListChildren(
             [fd.urn for fd in root_children]))
     nested_children = aff4.FACTORY.MultiOpen(
-        set(itertools.chain(*nested_children_urns.values())),
+        set(itertools.chain.from_iterable(itervalues(nested_children_urns))),
         aff4_type=flow.GRRFlow,
         token=token)
     nested_children_map = dict((x.urn, x) for x in nested_children)

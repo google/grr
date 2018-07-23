@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """Tests for grr_response_server.checks.filters."""
 import collections
+
+
+from future.utils import itervalues
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -253,7 +257,8 @@ class StatFilterTests(test_lib.GRRBaseTest):
     filt = filters.StatFilter()
     for file_type, expected in all_types.iteritems():
       filt._Flush()
-      results = filt.Parse(all_types.values(), "file_type:%s" % file_type)
+      results = filt.Parse(
+          list(itervalues(all_types)), "file_type:%s" % file_type)
       self.assertEqual(1, len(results), "Expected exactly 1 %s" % file_type)
       self.assertEqual(expected, results[0],
                        "Expected stat %s, got %s" % (expected, results[0]))

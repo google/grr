@@ -417,7 +417,7 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
     -----END PUBLIC KEY-----
 """)
     errors = conf.Validate(["Client"])
-    self.assertItemsEqual(errors.keys(), [])
+    self.assertEqual(errors, {})
     self.assertIsInstance(conf["Client.executable_signing_public_key"],
                           rdf_crypto.RSAPublicKey)
     self.assertIsInstance(conf["Client.private_key"], rdf_crypto.RSAPrivateKey)

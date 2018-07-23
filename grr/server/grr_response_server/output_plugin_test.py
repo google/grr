@@ -2,6 +2,8 @@
 """Tests for grr.lib.output_plugin."""
 
 
+from future.utils import itervalues
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
@@ -87,8 +89,10 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
   def _GetPlugin(self, hunt):
     results_metadata = aff4.FACTORY.Open(
         hunt.urn.Add("ResultsMetadata"), token=self.token)
-    descriptor, state = next(
-        results_metadata.Get(results_metadata.Schema.OUTPUT_PLUGINS).values())
+
+    plugins = results_metadata.Get(results_metadata.Schema.OUTPUT_PLUGINS)
+    descriptor, state = next(itervalues(plugins))
+
     return descriptor.GetPluginForState(state)
 
   def setUp(self):
