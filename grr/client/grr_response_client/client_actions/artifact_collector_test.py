@@ -123,22 +123,17 @@ class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
     self.test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                             "artifacts", "test_artifacts.json")
 
+    windows_mock = mock.MagicMock()
     modules = {
         ("grr_response_client.client_actions"
          ".windows"):
-            mock.MagicMock()
+            windows_mock
     }
 
     self.module_patcher = mock.patch.dict("sys.modules", modules)
     self.module_patcher.start()
 
-    # TODO(user): Find a way to move the import statement to the top of the
-    # file.
-    # pylint: disable= g-import-not-at-top
-    from grr_response_client.client_actions.windows import windows
-    # pylint: enable=g-import-not-at-top
-
-    self.action = windows.WmiQuery
+    self.windows = windows_mock.windows
 
   def tearDown(self):
     super(WindowsArtifactCollectorTests, self).tearDown()
@@ -170,8 +165,8 @@ class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
 
     for action, request in coll._ProcessWmiSource(ext_src):
       self.assertEqual(request, expected)
-      self.assertEqual(action, self.action)
-      self.action.Start.assert_called_with(request)
+      self.assertEqual(action, self.windows.WmiQuery)
+      self.windows.WmiQuery.Start.assert_called_with(request)
 
 
 class TestEchoCmdParser(parser.CommandParser):
