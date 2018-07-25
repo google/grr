@@ -10,6 +10,7 @@ environment:
 install:
 - lsb_release -a
 - echo "${PATH}"
+- sudo -EH ./appveyor/linux/install_mem_usage_cron.sh
 - sudo -EH ./appveyor/linux/install_latest_server_deb.sh
 
 # Appveyor will try to build any Visual Studio projects it finds

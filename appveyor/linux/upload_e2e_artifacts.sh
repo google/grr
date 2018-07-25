@@ -18,11 +18,15 @@ sudo cp /usr/lib/grr/grr_*_amd64/grrd.yaml client-configs/ || true # Primary cli
 sudo cp /etc/grr.local.yaml client-configs/ || true # Secondary client config.
 sudo cp /var/log/GRRlog.txt client-logs/ || true
 sudo cp /var/log/syslog* machine-logs/ || true
+sudo cp /var/log/grr_e2e_mem_usage.log machine-logs/ || true
 
 # Give read permissions to the non-root user.
 sudo chown -R "$(whoami):$(whoami)" server-configs server-logs client-configs client-logs machine-logs
 
 cd "${INITIAL_DIR}"
+
+# Keep going if there are any missing files.
+set +e
 
 # Artifact paths must be relative to the root of the GRR repo.
 appveyor PushArtifact e2e.log -DeploymentName 'Test Output'

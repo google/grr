@@ -3,6 +3,7 @@
 
 import logging
 import os
+import threading
 
 
 from future.utils import iteritems
@@ -123,6 +124,8 @@ class ArtifactRegistry(object):
     self._artifacts = {}
     self._sources = ArtifactRegistrySources()
     self._dirty = False
+    # Field required by the utils.Synchronized annotation.
+    self.lock = threading.RLock()
 
   def _LoadArtifactsFromDatastore(self):
     """Load artifacts from the data store."""
@@ -181,6 +184,7 @@ class ArtifactRegistry(object):
           loaded_artifacts.remove(artifact_obj)
           revalidate = True
 
+  @utils.Synchronized
   def ArtifactsFromYaml(self, yaml_content):
     """Get a list of Artifacts from yaml."""
     raw_list = list(yaml.safe_load_all(yaml_content))
@@ -240,33 +244,41 @@ class ArtifactRegistry(object):
     for artifact_value in loaded_artifacts:
       Validate(artifact_value)
 
+  @utils.Synchronized
   def ClearSources(self):
     self._sources.Clear()
     self._dirty = True
 
+  @utils.Synchronized
   def AddFileSource(self, filename):
     self._dirty |= self._sources.AddFile(filename)
 
+  @utils.Synchronized
   def AddDirSource(self, dirname):
     self._dirty |= self._sources.AddDir(dirname)
 
+  @utils.Synchronized
   def AddDirSources(self, dirnames):
     for dirname in dirnames:
       self.AddDirSource(dirname)
 
+  @utils.Synchronized
   def AddDatastoreSource(self, urn):
     self._dirty |= self._sources.AddDatastore(urn)
 
+  @utils.Synchronized
   def AddDatastoreSources(self, urns):
     for urn in urns:
       self.AddDatastoreSource(urn)
 
+  @utils.Synchronized
   def AddDefaultSources(self):
     for path in config.CONFIG["Artifacts.artifact_dirs"]:
       self.AddDirSource(path)
 
     self.AddDatastoreSources([aff4.ROOT_URN.Add("artifact_store")])
 
+  @utils.Synchronized
   def RegisterArtifact(self,
                        artifact_rdfvalue,
                        source="datastore",
@@ -292,12 +304,14 @@ class ArtifactRegistry(object):
     artifact_rdfvalue.error_message = None
     self._artifacts[artifact_rdfvalue.name] = artifact_rdfvalue
 
+  @utils.Synchronized
   def UnregisterArtifact(self, artifact_name):
     try:
       del self._artifacts[artifact_name]
     except KeyError:
       raise ValueError("Artifact %s unknown." % artifact_name)
 
+  @utils.Synchronized
   def ClearRegistry(self):
     self._artifacts = {}
     self._dirty = True
@@ -317,6 +331,7 @@ class ArtifactRegistry(object):
     for key in to_remove:
       self._artifacts.pop(key)
 
+  @utils.Synchronized
   def ReloadDatastoreArtifacts(self):
     # Make sure artifacts deleted by the UI don't reappear.
     self._UnregisterDatastoreArtifacts()
@@ -330,6 +345,7 @@ class ArtifactRegistry(object):
       if reload_datastore_artifacts:
         self.ReloadDatastoreArtifacts()
 
+  @utils.Synchronized
   def GetArtifacts(self,
                    os_name=None,
                    name_list=None,
@@ -382,9 +398,11 @@ class ArtifactRegistry(object):
 
     return results
 
+  @utils.Synchronized
   def GetRegisteredArtifactNames(self):
     return [utils.SmartStr(x) for x in self._artifacts]
 
+  @utils.Synchronized
   def GetArtifact(self, name):
     """Get artifact by name.
 
@@ -401,7 +419,7 @@ class ArtifactRegistry(object):
     if not result:
       # If we don't have an artifact, things shouldn't have passed validation
       # so we assume its a new one in the datastore.
-      REGISTRY.ReloadDatastoreArtifacts()
+      self.ReloadDatastoreArtifacts()
       result = self._artifacts.get(name)
       if not result:
         raise rdf_artifacts.ArtifactNotRegisteredError(
@@ -410,9 +428,11 @@ class ArtifactRegistry(object):
             "directory." % name)
     return result
 
+  @utils.Synchronized
   def GetArtifactNames(self, *args, **kwargs):
     return set([a.name for a in self.GetArtifacts(*args, **kwargs)])
 
+  @utils.Synchronized
   def SearchDependencies(self,
                          os_name,
                          artifact_name_list,
@@ -463,6 +483,7 @@ class ArtifactRegistry(object):
 
     return artifact_deps, expansion_deps
 
+  @utils.Synchronized
   def DumpArtifactsToYaml(self, sort_by_os=True):
     """Dump a list of artifacts into a yaml string."""
     artifact_list = self.GetArtifacts()
