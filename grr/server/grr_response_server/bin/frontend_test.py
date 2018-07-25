@@ -7,6 +7,7 @@ import socket
 import threading
 
 
+from future.utils import iteritems
 import ipaddr
 import portpicker
 import requests
@@ -211,9 +212,9 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     }
     collections = {
         c: flow.GRRFlow.ResultCollectionForFID(session_id)
-        for c, session_id in session_ids.iteritems()
+        for c, session_id in iteritems(session_ids)
     }
-    for client_id, collection in collections.iteritems():
+    for client_id, collection in iteritems(collections):
       results = list(collection)
       self.assertEqual(len(results), 4)
       relpaths = [

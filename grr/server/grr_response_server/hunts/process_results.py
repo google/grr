@@ -5,6 +5,7 @@
 import logging
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
@@ -32,8 +33,8 @@ class ResultsProcessingError(Exception):
 
   def __repr__(self):
     messages = []
-    for hunt_urn, exceptions_by_plugin in self.exceptions_by_hunt.items():
-      for plugin_name, exception in exceptions_by_plugin.items():
+    for hunt_urn, exceptions_by_plugin in iteritems(self.exceptions_by_hunt):
+      for plugin_name, exception in iteritems(exceptions_by_plugin):
         messages.append("Exception for hunt %s (plugin %s): %s" %
                         (hunt_urn, plugin_name, exception))
 
@@ -164,7 +165,7 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
       return 0
 
     if exceptions_by_plugin:
-      for plugin, exceptions in exceptions_by_plugin.items():
+      for plugin, exceptions in iteritems(exceptions_by_plugin):
         exceptions_by_hunt.setdefault(hunt_urn, {}).setdefault(
             plugin, []).extend(exceptions)
 
@@ -185,8 +186,8 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
 
     if exceptions_by_hunt:
       e = ResultsProcessingError()
-      for hunt_urn, exceptions_by_plugin in exceptions_by_hunt.items():
-        for plugin, exceptions in exceptions_by_plugin.items():
+      for hunt_urn, exceptions_by_plugin in iteritems(exceptions_by_hunt):
+        for plugin, exceptions in iteritems(exceptions_by_plugin):
           for exception in exceptions:
             e.RegisterSubException(hunt_urn, plugin, exception)
       raise e

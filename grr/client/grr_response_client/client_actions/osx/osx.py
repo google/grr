@@ -15,7 +15,7 @@ import sys
 
 
 from builtins import map  # pylint: disable=redefined-builtin
-
+from future.utils import iteritems
 import pytsk3
 
 from grr_response_client import actions
@@ -303,11 +303,11 @@ class OSXEnumerateRunningServices(actions.ActionPlugin):
       service.args.Append(unicode(arg))
 
     mach_dict = job.get("MachServices", {}, stringify=False)
-    for key, value in mach_dict.iteritems():
+    for key, value in iteritems(mach_dict):
       service.machservice.Append("%s:%s" % (key, value))
 
     job_mach_dict = job.get("PerJobMachServices", {}, stringify=False)
-    for key, value in job_mach_dict.iteritems():
+    for key, value in iteritems(job_mach_dict):
       service.perjobmachservice.Append("%s:%s" % (key, value))
 
     if "PID" in job:

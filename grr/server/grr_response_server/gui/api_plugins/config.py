@@ -3,6 +3,8 @@
 
 import logging
 
+
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core import config
@@ -201,7 +203,7 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
 
     items = []
     for fd in sorted(binary_fds, key=lambda f: f.urn):
-      for binary_type, root in roots.items():
+      for binary_type, root in iteritems(roots):
         rel_name = fd.urn.RelativeName(root)
         if rel_name:
           api_binary = ApiGrrBinary(

@@ -9,6 +9,7 @@ import socket
 import threading
 
 
+from future.utils import iteritems
 from http import server as http_server
 
 from grr_response_core import config
@@ -31,7 +32,7 @@ def BuildVarzJsonString():
   """Builds Varz JSON string from all stats metrics."""
 
   results = {}
-  for name, metric_info in stats.STATS.GetAllMetricsMetadata().iteritems():
+  for name, metric_info in iteritems(stats.STATS.GetAllMetricsMetadata()):
     info_dict = dict(metric_type=metric_info.metric_type.name)
     if metric_info.value_type:
       info_dict["value_type"] = metric_info.value_type.name

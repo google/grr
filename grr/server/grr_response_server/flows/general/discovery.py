@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """These are flows designed to discover information about the host."""
 
+
+from future.utils import iteritems
+
 from grr_response_core import config
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
@@ -442,7 +445,7 @@ class Interrogate(flow.GRRFlow):
       client.Set(client.Schema.GRR_CONFIGURATION(response))
 
     # rdf_objects.ClientSnapshot.
-    for k, v in response.items():
+    for k, v in iteritems(response):
       self.state.client.grr_configuration.Append(key=k, value=utils.SmartStr(v))
 
   @flow.StateHandler()
@@ -457,7 +460,7 @@ class Interrogate(flow.GRRFlow):
       client.Set(client.Schema.LIBRARY_VERSIONS(response))
 
     # rdf_objects.ClientSnapshot.
-    for k, v in response.items():
+    for k, v in iteritems(response):
       self.state.client.library_versions.Append(key=k, value=utils.SmartStr(v))
 
   def NotifyAboutEnd(self):

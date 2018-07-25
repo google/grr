@@ -2,6 +2,7 @@
 """The GRR event publishing classes."""
 
 
+from future.utils import iteritems
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
@@ -59,7 +60,7 @@ class Events(object):
         Value (instance of RDFValue) or a full GrrMessage.
     """
     event_name_map = registry.EventRegistry.EVENT_NAME_MAP
-    for event_name, messages in events.iteritems():
+    for event_name, messages in iteritems(events):
       if not isinstance(event_name, basestring):
         raise ValueError(
             "Event names should be string, got: %s" % type(event_name))

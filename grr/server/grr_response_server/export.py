@@ -13,6 +13,7 @@ import re
 import time
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 from future.utils import with_metaclass
@@ -343,7 +344,7 @@ class DataAgnosticExportConverter(ExportConverter):
         rdf_structs.ProtoEmbedded(
             name="metadata", field_number=1, nested=ExportedMetadata))
 
-    for number, desc in sorted(value.type_infos_by_field_number.items()):
+    for number, desc in sorted(iteritems(value.type_infos_by_field_number)):
       # Name 'metadata' is reserved to store ExportedMetadata value.
       if desc.name == "metadata":
         logging.debug("Ignoring 'metadata' field in %s.",
@@ -372,7 +373,7 @@ class DataAgnosticExportConverter(ExportConverter):
     for descriptor in descriptors:
       output_class.AddDescriptor(descriptor)
 
-    for name, container in enums.iteritems():
+    for name, container in iteritems(enums):
       setattr(output_class, name, container)
 
     return output_class
@@ -448,7 +449,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
             auth.counter_chain_head[2])
 
       certs = []
-      for (issuer, serial), cert in auth.certificates.items():
+      for (issuer, serial), cert in iteritems(auth.certificates):
         subject = cert[0][0]["subject"]
         subject_dn = str(dn.DistinguishedName.TraverseRdn(subject[0]))
         not_before = cert[0][0]["validity"]["notBefore"]
@@ -1574,7 +1575,7 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
   def _HandleTableRow(self, metadata, context_dict, message, output_class):
     """Handles a single row in one of the tables in RekallResponse."""
     attrs = {}
-    for key, value in message[1].iteritems():
+    for key, value in iteritems(message[1]):
       if hasattr(output_class, key):
         # ProtoString expects a unicode object, so let's convert
         # everything to unicode strings.
@@ -2016,9 +2017,9 @@ def ConvertValuesWithMetadata(metadata_value_pairs, token=None, options=None):
                       exception message.
   """
   no_converter_found_error = None
-  for _, metadata_values_group in utils.GroupBy(
-      metadata_value_pairs,
-      lambda pair: pair[1].__class__.__name__).iteritems():
+  for metadata_values_group in itervalues(
+      utils.GroupBy(metadata_value_pairs,
+                    lambda pair: pair[1].__class__.__name__)):
 
     _, first_value = metadata_values_group[0]
     converters_classes = ExportConverter.GetConvertersByValue(first_value)

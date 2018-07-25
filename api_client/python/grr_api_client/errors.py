@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API errors definitions."""
+from __future__ import unicode_literals
 
 
 class Error(RuntimeError):

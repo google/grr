@@ -8,7 +8,7 @@ from grr_response_core.lib import utils
 from grr_response_server import db
 
 
-class InMemoryDBCronjobMixin(object):
+class InMemoryDBCronJobMixin(object):
   """InMemoryDB mixin for cronjob related functions."""
 
   @utils.Synchronized
@@ -28,7 +28,7 @@ class InMemoryDBCronjobMixin(object):
         try:
           res.append(self.cronjobs[job_id].Copy())
         except KeyError:
-          raise db.UnknownCronjobError(
+          raise db.UnknownCronJobError(
               "Cron job with id %s not found." % job_id)
 
     for job in res:
@@ -48,7 +48,7 @@ class InMemoryDBCronjobMixin(object):
     """Updates run information for an existing cron job."""
     job = self.cronjobs.get(cronjob_id)
     if job is None:
-      raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
+      raise db.UnknownCronJobError("Cron job %s not known." % cronjob_id)
 
     if last_run_status != db.Database.unchanged:
       job.last_run_status = last_run_status
@@ -66,7 +66,7 @@ class InMemoryDBCronjobMixin(object):
     """Enables a cronjob."""
     job = self.cronjobs.get(cronjob_id)
     if job is None:
-      raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
+      raise db.UnknownCronJobError("Cron job %s not known." % cronjob_id)
     job.enabled = True
 
   @utils.Synchronized
@@ -74,14 +74,14 @@ class InMemoryDBCronjobMixin(object):
     """Disables a cronjob."""
     job = self.cronjobs.get(cronjob_id)
     if job is None:
-      raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
+      raise db.UnknownCronJobError("Cron job %s not known." % cronjob_id)
     job.enabled = False
 
   @utils.Synchronized
   def DeleteCronJob(self, cronjob_id):
     """Deletes a cronjob."""
     if cronjob_id not in self.cronjobs:
-      raise db.UnknownCronjobError("Cron job %s not known." % cronjob_id)
+      raise db.UnknownCronJobError("Cron job %s not known." % cronjob_id)
     del self.cronjobs[cronjob_id]
     try:
       del self.cronjob_leases[cronjob_id]
@@ -133,9 +133,13 @@ class InMemoryDBCronjobMixin(object):
 
   def WriteCronJobRun(self, run_object):
     """Stores a cron job run object in the database."""
+    if run_object.cron_job_id not in self.cronjobs:
+      raise db.UnknownCronJobError(
+          "Job with id %s not found." % run_object.cron_job_id)
+
     clone = run_object.Copy()
     clone.timestamp = rdfvalue.RDFDatetime.Now()
-    self.cronjob_runs[clone.run_id] = clone
+    self.cronjob_runs[(clone.cron_job_id, clone.run_id)] = clone
 
   def ReadCronJobRuns(self, job_id):
     """Reads all cron job runs for a given job id."""
@@ -149,13 +153,15 @@ class InMemoryDBCronjobMixin(object):
     for run in itervalues(self.cronjob_runs):
       if run.cron_job_id == job_id and run.run_id == run_id:
         return run
+    raise db.UnknownCronJobRunError(
+        "Run with job id %s and run id %s not found." % (job_id, run_id))
 
   def DeleteOldCronJobRuns(self, cutoff_timestamp):
     """Deletes cron job runs for a given job id."""
     deleted = 0
     for run in list(itervalues(self.cronjob_runs)):
       if run.timestamp < cutoff_timestamp:
-        del self.cronjob_runs[run.run_id]
+        del self.cronjob_runs[(run.cron_job_id, run.run_id)]
         deleted += 1
 
     return deleted

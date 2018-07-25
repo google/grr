@@ -128,6 +128,14 @@ CREATE TABLE IF NOT EXISTS cron_jobs(
     leased_by VARCHAR(128),
     PRIMARY KEY (job_id)
 )""", """
+CREATE TABLE IF NOT EXISTS cron_job_runs(
+    job_id VARCHAR(128),
+    run_id VARCHAR(128),
+    write_time DATETIME(6),
+    run MEDIUMBLOB,
+    PRIMARY KEY (job_id, run_id),
+    FOREIGN KEY (job_id) REFERENCES cron_jobs (job_id)
+)""", """
 CREATE TABLE IF NOT EXISTS client_messages(
     client_id BIGINT UNSIGNED,
     message_id BIGINT UNSIGNED,

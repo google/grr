@@ -4,6 +4,9 @@
 import logging
 import operator
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import stats
@@ -221,9 +224,8 @@ class VerifyHuntOutputPluginsCronFlow(aff4_cronjobs.SystemCronFlow):
       hunt_urn = rdfvalue.RDFURN(mdata.urn.Dirname())
       hunt = hunts_by_urns[hunt_urn]
 
-      for plugin_id, (plugin_descriptor, plugin_state) in mdata.Get(
-          mdata.Schema.OUTPUT_PLUGINS, {}).items():
-
+      plugins = iteritems(mdata.Get(mdata.Schema.OUTPUT_PLUGINS, {}))
+      for plugin_id, (plugin_descriptor, plugin_state) in plugins:
         plugin_obj = plugin_descriptor.GetPluginForState(plugin_state)
         opv = output_plugin.OutputPluginVerifier
         plugin_verifiers_classes = opv.VerifierClassesForPlugin(
@@ -249,7 +251,7 @@ class VerifyHuntOutputPluginsCronFlow(aff4_cronjobs.SystemCronFlow):
     results_by_hunt = {}
 
     errors = []
-    for verifier_cls, hunts_plugins in hunts_plugins_by_verifier.items():
+    for verifier_cls, hunts_plugins in iteritems(hunts_plugins_by_verifier):
 
       if verifier_cls == self.NON_VERIFIABLE:
         for plugin_id, plugin_descriptor, plugin_obj, hunt in hunts_plugins:
@@ -288,7 +290,7 @@ class VerifyHuntOutputPluginsCronFlow(aff4_cronjobs.SystemCronFlow):
         stats.STATS.IncrementCounter(
             "hunt_output_plugin_verification_errors", delta=len(e.errors))
 
-    for hunt_urn, results in results_by_hunt.items():
+    for hunt_urn, results in iteritems(results_by_hunt):
       yield hunt_urn, results
 
     if errors:

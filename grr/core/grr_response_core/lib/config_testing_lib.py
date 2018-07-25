@@ -5,6 +5,8 @@ import copy
 import logging
 
 
+from future.utils import iteritems
+
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
@@ -59,7 +61,7 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
 
         if errors:
           logging.info("Validation of %s returned errors:", config_file)
-          for config_entry, error in errors.iteritems():
+          for config_entry, error in iteritems(errors):
             logging.info("%s:", config_entry)
             logging.info("%s", error)
 

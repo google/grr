@@ -23,11 +23,12 @@ import zlib
 
 
 from builtins import filter  # pylint: disable=redefined-builtin
-
 import dateutil
 from dateutil import parser
+from future.utils import iteritems
 from future.utils import with_metaclass
 from past.builtins import long
+from typing import cast
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
@@ -71,6 +72,10 @@ class RDFValueMetaclass(registry.MetaclassRegistry):
       callback(target=cls, **kwargs)
 
 
+# TODO(user):pytype RDFValueMetaclass inherits MetaclassRegistry that
+# inherits abc.ABCMeta, but type checker can't infer this, apparently because
+# with_metaclass is used.
+# pytype: disable=ignored-abstractmethod
 class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   """Baseclass for values.
 
@@ -113,8 +118,11 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     self._age = age
 
     # Allow an RDFValue to be initialized from an identical RDFValue.
+    # TODO(user):pytype: type checker can't infer that the initializer
+    # is not None after the check below.
     if initializer.__class__ == self.__class__:
-      self.ParseFromString(initializer.SerializeToString())
+      self.ParseFromString(
+          cast(self.__class__, initializer).SerializeToString())
 
   def Copy(self):
     """Make a new copy of this RDFValue."""
@@ -211,6 +219,9 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     # Note %r, which prevents nasty nonascii characters from being printed,
     # including dangerous terminal escape sequences.
     return "<%s(%r)>" % (self.__class__.__name__, content)
+
+
+# pytype: enable=ignored-abstractmethod
 
 
 class RDFBytes(RDFValue):
@@ -454,19 +465,17 @@ class RDFDatetime(RDFInteger):
   converter = MICROSECONDS
   data_store_type = "unsigned_integer"
 
-  # A value of 0 means this object is not initialized.
-  _value = 0
-
   def __init__(self, initializer=None, age=None):
     super(RDFDatetime, self).__init__(None, age)
 
-    if isinstance(initializer, RDFInteger):
-      self._value = initializer._value  # pylint: disable=protected-access
+    self._value = 0
 
-    elif isinstance(initializer, (int, long, float)):
+    if initializer is None:
+      return
+
+    if isinstance(initializer, (RDFInteger, int, long, float)):
       self._value = int(initializer)
-
-    elif initializer is not None:
+    else:
       raise InitializeError(
           "Unknown initializer for RDFDateTime: %s." % type(initializer))
 
@@ -681,7 +690,7 @@ class Duration(RDFInteger):
 
   def __str__(self):
     time_secs = self._value
-    for label, divider in self.DIVIDERS.items():
+    for label, divider in iteritems(self.DIVIDERS):
       if time_secs % divider == 0:
         return "%d%s" % (time_secs // divider, label)
 

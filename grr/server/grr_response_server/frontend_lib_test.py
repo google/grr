@@ -670,16 +670,16 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """Check client ping stats are updated."""
     self._MakeClientRecord()
     current_pings = stats.STATS.GetMetricValue(
-        "client_pings_by_label", fields=["testlabel"])
+        "client_pings_by_label", fields=[u"testlabel"])
 
-    self._LabelClient(self.client_id, "testlabel")
+    self._LabelClient(self.client_id, u"testlabel")
 
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now):
       self.ClientServerCommunicate(timestamp=now)
 
     new_pings = stats.STATS.GetMetricValue(
-        "client_pings_by_label", fields=["testlabel"])
+        "client_pings_by_label", fields=[u"testlabel"])
     self.assertEqual(new_pings, current_pings + 1)
 
   def testServerReplayAttack(self):

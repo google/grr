@@ -11,6 +11,7 @@ import zipfile
 
 
 from builtins import filter  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 from future.utils import iterkeys
 
 from grr_response_core import config
@@ -121,7 +122,7 @@ class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
     self.attributes = []
 
     schema = aff4_cls.SchemaCls
-    for name, attribute in sorted(schema.__dict__.items()):
+    for name, attribute in sorted(iteritems(schema.__dict__)):
       if not isinstance(attribute, aff4.Attribute):
         continue
 

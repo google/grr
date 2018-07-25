@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """HTTP API connector implementation."""
+from __future__ import unicode_literals
 
 import collections
 import json

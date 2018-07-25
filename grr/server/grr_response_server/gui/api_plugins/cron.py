@@ -294,7 +294,7 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
           str(args.cron_job_id), token=token)
 
       return ApiCronJob().InitFromObject(cron_job)
-    except (aff4.InstantiationError, db.UnknownCronjobError):
+    except (aff4.InstantiationError, db.UnknownCronJobError):
       raise CronJobNotFoundError(
           "Cron job with id %s could not be found" % args.cron_job_id)
 

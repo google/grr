@@ -11,6 +11,8 @@ import stat
 import sys
 
 
+from future.utils import iteritems
+
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server.flows.general import filesystem
 from grr_response_server import server_plugins
@@ -485,7 +487,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
     relevant_chunks = xrange(start_chunk, end_chunk + 1)
 
     missing_chunks = set(relevant_chunks)
-    for idx, metadata in fd.ChunksMetadata(relevant_chunks).iteritems():
+    for idx, metadata in iteritems(fd.ChunksMetadata(relevant_chunks)):
       if not self.DataRefreshRequired(last=metadata.get("last", None)):
         missing_chunks.remove(idx)
 

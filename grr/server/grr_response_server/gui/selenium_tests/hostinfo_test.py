@@ -163,7 +163,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
                         "css=div.danger em:contains('a big warning message')")
 
   def testSidebarWarningIsNotShownIfClientHasNonMatchingLabels(self):
-    self.AddClientLabel(self.client_id, self.token.username, "another")
+    self.AddClientLabel(self.client_id, self.token.username, u"another")
 
     with test_lib.ConfigOverrider({
         "AdminUI.client_warnings": self.WARNINGS_OPTION
@@ -176,7 +176,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
                         "css=div.danger em:contains('a big warning message')")
 
   def testSidebarWarningIsShownIfClientMatchesLabels(self):
-    self.AddClientLabel(self.client_id, self.token.username, "blah")
+    self.AddClientLabel(self.client_id, self.token.username, u"blah")
 
     with test_lib.ConfigOverrider({
         "AdminUI.client_warnings": self.WARNINGS_OPTION

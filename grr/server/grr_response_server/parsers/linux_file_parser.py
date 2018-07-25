@@ -6,6 +6,7 @@ import os
 import re
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core import config
@@ -63,7 +64,7 @@ class PCIDevicesInfoParser(parser.FileParser):
 
     # Now that we've captured all information for each PCI device. Let's convert
     # the dictionary into a list of PCIDevice protos.
-    for bdf, bdf_filedata in data.iteritems():
+    for bdf, bdf_filedata in iteritems(data):
       pci_device = rdf_client.PCIDevice()
       bdf_split = bdf.split(":")
       df_split = bdf_split[2].split(".")
@@ -189,7 +190,7 @@ class LinuxWtmpParser(parser.FileParser):
       except KeyError:
         users[record.user] = record.sec
 
-    for user, last_login in users.iteritems():
+    for user, last_login in iteritems(users):
       yield rdf_client.User(
           username=utils.SmartUnicode(user), last_logon=last_login * 1000000)
 
@@ -370,7 +371,7 @@ class LinuxBaseShadowParser(parser.FileParser):
       store_type: The type of password store that should be used (e.g.
         /etc/shadow or /etc/gshadow)
     """
-    for k, v in self.entry.iteritems():
+    for k, v in iteritems(self.entry):
       if v.pw_entry.store == store_type:
         shadow_entry = self.shadow.get(k)
         if shadow_entry:
@@ -465,14 +466,14 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
     Normally group and shadow should be in sync, but no guarantees. Merges the
     two stores as membership in either file may confer membership.
     """
-    for group_name, members in self.gshadow_members.iteritems():
+    for group_name, members in iteritems(self.gshadow_members):
       group = self.entry.get(group_name)
       if group and group.pw_entry.store == self.shadow_store:
         group.members = members.union(group.members)
 
   def FindAnomalies(self):
     """Identify any anomalous group attributes or memberships."""
-    for grp_name, group in self.entry.iteritems():
+    for grp_name, group in iteritems(self.entry):
       shadow = self.shadow.get(grp_name)
       gshadows = self.gshadow_members.get(grp_name, [])
       if shadow:
@@ -621,7 +622,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
 
     # Find any shared user IDs.
     findings = []
-    for uid, names in self.uids.iteritems():
+    for uid, names in iteritems(self.uids):
       if len(names) > 1:
         findings.append("uid %d assigned to multiple accounts: %s" %
                         (uid, ",".join(sorted(names))))
@@ -853,6 +854,6 @@ class PathParser(parser.FileParser):
       paths = self._ParseCshVariables(lines)
     else:
       paths = self._ParseShVariables(lines)
-    for path_name, path_vals in paths.iteritems():
+    for path_name, path_vals in iteritems(paths):
       yield rdf_protodict.AttributedDict(
           config=stat.pathspec.path, name=path_name, vals=path_vals)

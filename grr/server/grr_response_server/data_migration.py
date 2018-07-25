@@ -7,6 +7,9 @@ from multiprocessing import pool
 import sys
 import threading
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
@@ -198,7 +201,7 @@ def _WriteClientHistory(client):
 
   for version in _GetClientVersions(client):
     clone_attrs = {}
-    for key, values in client.synced_attributes.iteritems():
+    for key, values in iteritems(client.synced_attributes):
       clone_attrs[key] = [value for value in values if value.age <= version.age]
 
     synced_client = aff4_grr.VFSGRRClient(
@@ -216,7 +219,7 @@ def _WriteClientLabels(client):
   for label in client.Get(client.Schema.LABELS) or []:
     labels.setdefault(label.owner, []).append(label.name)
 
-  for owner, names in labels.iteritems():
+  for owner, names in iteritems(labels):
     data_store.REL_DB.AddClientLabels(client.urn.Basename(), owner, names)
 
 

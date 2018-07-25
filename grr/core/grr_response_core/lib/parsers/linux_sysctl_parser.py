@@ -3,6 +3,7 @@
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from grr_response_core.lib import parser
 from grr_response_core.lib.parsers import config_file
@@ -51,7 +52,7 @@ class SysctlCmdParser(parser.CommandParser):
     result = rdf_protodict.AttributedDict()
     # The KeyValueParser generates an ordered dict by default. The sysctl vals
     # aren't ordering dependent, but there's no need to un-order it.
-    for k, v in self.lexer.ParseToOrderedDict(stdout).iteritems():
+    for k, v in iteritems(self.lexer.ParseToOrderedDict(stdout)):
       key = k.replace(".", "_")
       if len(v) == 1:
         v = v[0]

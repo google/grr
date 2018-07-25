@@ -32,11 +32,12 @@ class SystemCronTestMixin(object):
     for i in range(0, 10):
       client_id = "C.1%015x" % i
       with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
-        client.AddLabels(["Label1", "Label2"], owner="GRR")
-        client.AddLabel("UserLabel", owner="jim")
+        client.AddLabels([u"Label1", u"Label2"], owner="GRR")
+        client.AddLabel(u"UserLabel", owner="jim")
 
-      data_store.REL_DB.AddClientLabels(client_id, "GRR", ["Label1", "Label2"])
-      data_store.REL_DB.AddClientLabels(client_id, "jim", ["UserLabel"])
+      data_store.REL_DB.AddClientLabels(client_id, "GRR",
+                                        [u"Label1", u"Label2"])
+      data_store.REL_DB.AddClientLabels(client_id, "jim", [u"UserLabel"])
 
   def _CheckVersionStats(self, label, attribute, counts):
 
@@ -70,9 +71,9 @@ class SystemCronTestMixin(object):
     # All machines should be in All once. Windows machines should be in Label1
     # and Label2. There should be no stats for UserLabel.
     histogram = aff4_stats.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
-    self._CheckVersionStats("All", histogram, [0, 0, 20, 20])
-    self._CheckVersionStats("Label1", histogram, [0, 0, 10, 10])
-    self._CheckVersionStats("Label2", histogram, [0, 0, 10, 10])
+    self._CheckVersionStats(u"All", histogram, [0, 0, 20, 20])
+    self._CheckVersionStats(u"Label1", histogram, [0, 0, 10, 10])
+    self._CheckVersionStats(u"Label2", histogram, [0, 0, 10, 10])
 
     # This shouldn't exist since it isn't a system label
     aff4.FACTORY.Open(
@@ -115,7 +116,7 @@ class SystemCronTestMixin(object):
   def _CheckOSBreakdown(self):
     histogram = aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM
     self._CheckOSStats(
-        "All", histogram,
+        u"All", histogram,
         [0, 0, {
             "Linux": 10,
             "Windows": 10
@@ -123,13 +124,13 @@ class SystemCronTestMixin(object):
             "Linux": 10,
             "Windows": 10
         }])
-    self._CheckOSStats("Label1", histogram,
+    self._CheckOSStats(u"Label1", histogram,
                        [0, 0, {
                            "Windows": 10
                        }, {
                            "Windows": 10
                        }])
-    self._CheckOSStats("Label2", histogram,
+    self._CheckOSStats(u"Label2", histogram,
                        [0, 0, {
                            "Windows": 10
                        }, {
@@ -152,13 +153,13 @@ class SystemCronTestMixin(object):
   def _CheckLastAccessStats(self):
 
     # All our clients appeared at the same time (and did not appear since).
-    self._CheckAccessStats("All", count=20)
+    self._CheckAccessStats(u"All", count=20)
 
     # All our clients appeared at the same time but this label is only half.
-    self._CheckAccessStats("Label1", count=10)
+    self._CheckAccessStats(u"Label1", count=10)
 
     # All our clients appeared at the same time but this label is only half.
-    self._CheckAccessStats("Label2", count=10)
+    self._CheckAccessStats(u"Label2", count=10)
 
   def testPurgeClientStats(self):
     client_id = test_lib.TEST_CLIENT_ID

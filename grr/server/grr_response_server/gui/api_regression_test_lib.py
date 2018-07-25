@@ -11,6 +11,7 @@ import socket
 import sys
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 import psutil
@@ -265,7 +266,7 @@ class ApiRegressionGoldenOutputGenerator(object):
     sample_data = {}
 
     tests = self._GroupRegressionTestsByHandler()
-    for handler, test_classes in tests.items():
+    for handler, test_classes in iteritems(tests):
       for test_class in sorted(test_classes, key=lambda cls: cls.__name__):
         if getattr(test_class, "connection_type", "") != self.connection_type:
           continue

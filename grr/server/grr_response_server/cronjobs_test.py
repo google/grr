@@ -110,10 +110,15 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertTrue(cron_manager.JobDueToRun(cron_job))
 
     cron_manager.RunOnce(token=self.token)
+    cron_manager._GetThreadPool().Join()
 
     runs = cron_manager.ReadJobRuns(job_id, token=self.token)
     self.assertEqual(len(runs), 1)
-    self.assertTrue(runs[0].run_id)
+    run = runs[0]
+    self.assertTrue(run.run_id)
+    self.assertTrue(run.started_at)
+    self.assertTrue(run.finished_at)
+    self.assertEqual(run.status, "FINISHED")
 
   def testDisabledCronJobDoesNotCreateJobs(self):
     cron_manager = cronjobs.CronManager()

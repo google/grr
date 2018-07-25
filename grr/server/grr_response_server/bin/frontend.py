@@ -11,6 +11,7 @@ import SocketServer
 import threading
 
 
+from future.utils import iteritems
 from http import server as http_server
 import ipaddr
 
@@ -60,7 +61,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
     if additional_headers:
       header_strings = [
           "%s: %s\r\n" % (name, val)
-          for name, val in additional_headers.iteritems()
+          for name, val in iteritems(additional_headers)
       ]
     else:
       header_strings = []

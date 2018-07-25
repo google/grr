@@ -2,6 +2,9 @@
 """This module tests the RDFValue implementation for performance."""
 from __future__ import division
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -79,7 +82,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
 
     def RDFStructCreateAndSerializeSetValue():
       s = rdf_client.User()
-      for k, v in self.USER_ACCOUNT.iteritems():
+      for k, v in iteritems(self.USER_ACCOUNT):
         setattr(s, k, v)
 
       s.SerializeToString()
@@ -94,7 +97,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
 
     def ProtoCreateAndSerializeSetValue():
       s = knowledge_base_pb2.User()
-      for k, v in self.USER_ACCOUNT.iteritems():
+      for k, v in iteritems(self.USER_ACCOUNT):
         setattr(s, k, v)
 
       s.SerializeToString()

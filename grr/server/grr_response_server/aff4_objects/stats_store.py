@@ -40,6 +40,7 @@ import threading
 import time
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core import config
@@ -280,7 +281,7 @@ class StatsStoreDataQuery(object):
 
     new_current_dicts = []
     for current_dict in self.current_dicts:
-      for key, value in current_dict.iteritems():
+      for key, value in iteritems(current_dict):
         m = re.match(regex, key)
         if m and m.string == m.group(0):
           new_current_dicts.append(value)
@@ -303,7 +304,7 @@ class StatsStoreDataQuery(object):
     """
     new_dicts = []
     for current_dict in dicts:
-      for _, value in current_dict.iteritems():
+      for _, value in iteritems(current_dict):
         new_dicts.append(value)
 
     sub_dicts = [x for x in new_dicts if hasattr(x, "iteritems")]

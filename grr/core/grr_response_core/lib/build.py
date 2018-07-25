@@ -16,6 +16,7 @@ import tempfile
 import zipfile
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 import yaml
@@ -24,7 +25,9 @@ import yaml
 # This is a workaround so we don't need to maintain the whole PyInstaller
 # codebase as a full-fledged dependency.
 try:
+  # pytype: disable=import-error
   from PyInstaller import __main__ as PyInstallerMain
+  # pytype: enable=import-error
 except ImportError:
   # We ignore this failure since most people running the code don't build their
   # own clients and printing an error message causes confusion.  Those building
@@ -107,6 +110,10 @@ class ClientBuilder(BuilderBase):
       "Template.version_minor", "Template.version_revision",
       "Template.version_release", "Template.arch"
   ])
+
+  def __init__(self, context=None):
+    super(ClientBuilder, self).__init__(context=context)
+    self.build_dir = ""
 
   def MakeBuildDirectory(self):
     """Prepares the build directory."""
@@ -205,7 +212,7 @@ class ClientBuilder(BuilderBase):
     else:
       self.REQUIRED_BUILD_YAML_KEYS.remove("Client.build_time")
 
-    for key, value in output.iteritems():
+    for key, value in iteritems(output):
       output[key] = str(value)
 
     output["Template.build_context"] = self.context
@@ -250,8 +257,11 @@ class ClientBuilder(BuilderBase):
     """
     logging.info("Generating zip template file at %s", output_file)
     basename, _ = os.path.splitext(output_file)
+    # TODO(user):pytype: incorrect make_archive() definition in typeshed.
+    # pytype: disable=wrong-arg-types
     shutil.make_archive(
         basename, "zip", base_dir=".", root_dir=input_dir, verbose=True)
+    # pytype: enable=wrong-arg-types
 
 
 class ClientRepacker(BuilderBase):
@@ -648,6 +658,8 @@ class DarwinClientRepacker(ClientRepacker):
 class LinuxClientRepacker(ClientRepacker):
   """Repackage Linux templates."""
 
+  # TODO(user):pytype: incorrect shutil.move() definition in typeshed.
+  # pytype: disable=wrong-arg-types
   def GenerateDPKGFiles(self, template_path):
     """Generates the files needed by dpkg-buildpackage."""
 
@@ -711,6 +723,8 @@ class LinuxClientRepacker(ClientRepacker):
     shutil.rmtree(os.path.join(template_path, "dist/debian/upstart.in"))
     shutil.rmtree(os.path.join(template_path, "dist/debian/initd.in"))
     shutil.rmtree(os.path.join(template_path, "dist/debian/systemd.in"))
+
+  # pytype: enable=wrong-arg-types
 
   def MakeDeployableBinary(self, template_path, output_path):
     """This will add the config to the client template and create a .deb."""
@@ -800,9 +814,12 @@ class LinuxClientRepacker(ClientRepacker):
         input_name = "%s%s" % (filename_base, extension)
         output_name = "%s%s" % (output_base, extension)
 
+        # TODO(user):pytype: incorrect move() definition in typeshed.
+        # pytype: disable=wrong-arg-types
         shutil.move(
             os.path.join(tmp_dir, input_name),
             os.path.join(os.path.dirname(output_path), output_name))
+        # pytype: enable=wrong-arg-types
 
       logging.info("Created package %s", output_path)
       return output_path
@@ -861,14 +878,21 @@ class CentosClientRepacker(LinuxClientRepacker):
         shutil.rmtree(target_binary_dir)
       except OSError:
         pass
+      # TODO(user):pytype: incorrect move() definition in typeshed.
+      # pytype: disable=wrong-arg-types
       shutil.move(template_binary_dir, target_binary_dir)
+      # pytype: enable=wrong-arg-types
+
       client_name = config.CONFIG.Get("Client.name", context=self.context)
       client_binary_name = config.CONFIG.Get(
           "Client.binary_name", context=self.context)
       if client_binary_name != "grr-client":
+        # TODO(user):pytype: incorrect move() definition in typeshed.
+        # pytype: disable=wrong-arg-types
         shutil.move(
             os.path.join(target_binary_dir, "grr-client"),
             os.path.join(target_binary_dir, client_binary_name))
+        # pytype: enable=wrong-arg-types
 
       # Generate spec
       spec_filename = os.path.join(rpm_specs_dir, "%s.spec" % client_name)
@@ -991,7 +1015,7 @@ def CreateNewZipWithSignedLibs(z_in,
     for f in itervalues(temp_files):
       signer.SignFile(f)
 
-  for filename, tempfile_path in temp_files.items():
+  for filename, tempfile_path in iteritems(temp_files):
     z_out.writestr(filename, open(tempfile_path, "rb").read())
 
 

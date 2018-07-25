@@ -90,8 +90,10 @@ class MetaclassRegistry(abc.ABCMeta):
 
 
 class EventRegistry(MetaclassRegistry):
+  """Event registry."""
 
   EVENT_NAME_MAP = {}
+  EVENTS = []
 
   def __init__(cls, name, bases, env_dict):
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
@@ -201,10 +203,14 @@ class HookRegistry(object):
   def _RunAllHooks(self, executed_hooks, skip_set):
     # A copy of list of classes is needed because running a hook might modify
     # the list.
+    # TODO(user): HookRegistry is expected to be mixed in to a class with
+    # a "classes" attribute.
+    # pytype: disable=attribute-error
     for hook_cls in list(itervalues(self.__class__.classes)):
       if skip_set and hook_cls.__name__ in skip_set:
         continue
       self._RunSingleHook(hook_cls, executed_hooks)
+    # pytype: enable=attribute-error
 
   def Init(self, skip_set=None):
     with InitHook.lock:

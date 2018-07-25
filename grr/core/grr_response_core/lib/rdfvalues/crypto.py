@@ -319,6 +319,7 @@ class RSAPublicKey(rdfvalue.RDFValue):
     if hash_algorithm is None:
       hash_algorithm = hashes.SHA256()
 
+    last_e = None
     for padding_algorithm in [
         padding.PSS(
             mgf=padding.MGF1(hash_algorithm),
@@ -331,9 +332,9 @@ class RSAPublicKey(rdfvalue.RDFValue):
         return True
 
       except exceptions.InvalidSignature as e:
-        pass
+        last_e = e
 
-    raise VerificationError(e)
+    raise VerificationError(last_e)
 
 
 class RSAPrivateKey(rdfvalue.RDFValue):

@@ -2,6 +2,8 @@
 """Tests for server stubs for client actions."""
 
 
+from future.utils import iteritems
+
 from grr_response_client import actions
 # pylint: disable=unused-import
 from grr_response_client import client_actions
@@ -21,7 +23,7 @@ class ClientActionStubTest(test_lib.GRRBaseTest):
     # Check that there's >0 server stubs.
     self.assertTrue(server_stubs.ClientActionStub.classes)
 
-    for name, cls in actions.ActionPlugin.classes.items():
+    for name, cls in iteritems(actions.ActionPlugin.classes):
       # Skip actions defined in tests.
       if "_test" in cls.__module__ or "test_lib" in cls.__module__:
         continue

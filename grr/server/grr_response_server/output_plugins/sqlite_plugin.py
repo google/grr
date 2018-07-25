@@ -7,6 +7,7 @@ import os
 import zipfile
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 import sqlite3
@@ -121,7 +122,7 @@ class SqliteInstantOutputPlugin(
     with db_connection:
       buf = io.StringIO()
       buf.write(u"CREATE TABLE \"%s\" (\n  " % table_name)
-      column_types = [(k, v.sqlite_type) for k, v in schema.items()]
+      column_types = [(k, v.sqlite_type) for k, v in iteritems(schema)]
       buf.write(u",\n  ".join([u"\"%s\" %s" % (k, v) for k, v in column_types]))
       buf.write(u"\n);")
       db_cursor.execute(buf.getvalue())
@@ -172,7 +173,7 @@ class SqliteInstantOutputPlugin(
   def _ConvertToCanonicalSqlDict(self, schema, raw_dict, prefix=""):
     """Converts a dict of RDF values into a SQL-ready form."""
     flattened_dict = {}
-    for k, v in raw_dict.items():
+    for k, v in iteritems(raw_dict):
       if isinstance(v, dict):
         flattened_dict.update(
             self._ConvertToCanonicalSqlDict(

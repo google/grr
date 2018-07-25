@@ -2,6 +2,7 @@
 """The in memory database methods for client handling."""
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 
@@ -188,7 +189,7 @@ class InMemoryDBClientMixin(object):
     res = {}
     for k in keyword_mapping:
       res.setdefault(keyword_mapping[k], [])
-      for client_id, timestamp in self.keywords.get(k, {}).items():
+      for client_id, timestamp in iteritems(self.keywords.get(k, {})):
         if start_time is not None:
           rdf_ts = timestamp
           if rdf_ts < start_time:
@@ -219,7 +220,7 @@ class InMemoryDBClientMixin(object):
     for client_id in client_ids:
       res[client_id] = []
       owner_dict = self.labels.get(client_id, {})
-      for owner, labels in owner_dict.items():
+      for owner, labels in iteritems(owner_dict):
         for l in labels:
           res[client_id].append(rdf_objects.ClientLabel(owner=owner, name=l))
       res[client_id].sort(key=lambda label: (label.owner, label.name))
@@ -237,7 +238,7 @@ class InMemoryDBClientMixin(object):
     """Lists all client labels known to the system."""
     result = set()
     for labels_dict in itervalues(self.labels):
-      for owner, names in labels_dict.items():
+      for owner, names in iteritems(labels_dict):
         for name in names:
           result.add(rdf_objects.ClientLabel(owner=owner, name=name))
 

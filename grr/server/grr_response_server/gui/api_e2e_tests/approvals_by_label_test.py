@@ -38,21 +38,21 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
         aff4_type=aff4_grr.VFSGRRClient,
         mode="rw",
         token=self.token) as client_obj:
-      client_obj.AddLabel("legal_approval")
+      client_obj.AddLabel(u"legal_approval")
 
     with aff4.FACTORY.Open(
         client_prod,
         aff4_type=aff4_grr.VFSGRRClient,
         mode="rw",
         token=self.token) as client_obj:
-      client_obj.AddLabels(["legal_approval", "prod_admin_approval"])
+      client_obj.AddLabels([u"legal_approval", u"prod_admin_approval"])
 
   def SetUpRelationalDB(self):
     self.client_nolabel_id = self.SetupTestClientObject(0).client_id
     self.client_legal_id = self.SetupTestClientObject(
-        1, labels=["legal_approval"]).client_id
+        1, labels=[u"legal_approval"]).client_id
     self.client_prod_id = self.SetupTestClientObject(
-        2, labels=["legal_approval", "prod_admin_approval"]).client_id
+        2, labels=[u"legal_approval", u"prod_admin_approval"]).client_id
 
   def TouchFile(self, client_id, path):
     gui_test_lib.CreateFileVersion(

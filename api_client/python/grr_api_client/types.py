@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Types-related part of GRR API client library."""
+from __future__ import unicode_literals
 
 from grr_api_client import errors
 from grr_api_client import utils

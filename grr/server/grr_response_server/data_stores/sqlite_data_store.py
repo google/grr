@@ -18,6 +18,7 @@ import threading
 import time
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 from past.builtins import long
@@ -675,7 +676,7 @@ class SqliteDataStore(data_store.DataStore):
         for attribute in to_delete:
           sqlite_connection.DeleteAttribute(subject, attribute)
 
-      for attribute, seq in values.items():
+      for attribute, seq in iteritems(values):
         for v in seq:
           element_timestamp = None
           if isinstance(v, (list, tuple)):
@@ -738,11 +739,11 @@ class SqliteDataStore(data_store.DataStore):
         if limit:
           if len(values) >= remaining_limit:
             result[subject] = values[:remaining_limit]
-            return result.iteritems()
+            return iteritems(result)
           remaining_limit -= len(values)
         result[subject] = values
 
-    return result.iteritems()
+    return iteritems(result)
 
   def _GetStartEndTimestamp(self, timestamp):
     if timestamp == self.ALL_TIMESTAMPS or timestamp is None:
@@ -787,7 +788,7 @@ class SqliteDataStore(data_store.DataStore):
             results.setdefault(attribute, []).append((value, ts))
 
       res = []
-      for attribute, values in sorted(results.items()):
+      for attribute, values in sorted(iteritems(results)):
         values.sort(key=lambda x: x[1], reverse=True)
         for value, ts in values:
           res.append((attribute, value, ts))

@@ -138,8 +138,9 @@ class Fingerprinter(object):
     Returns:
       Next range of interest in a Range namedtuple.
     """
-    starts = set([x.CurrentRange().start for x in self.fingers if x.ranges])
-    ends = set([x.CurrentRange().end for x in self.fingers if x.ranges])
+    ranges = [x.CurrentRange() for x in self.fingers]
+    starts = set([r.start for r in ranges if r])
+    ends = set([r.end for r in ranges if r])
     if not starts:
       return None
     min_start = min(starts)

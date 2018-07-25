@@ -3,6 +3,9 @@
 
 import re
 
+
+from future.utils import iteritems
+
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -96,7 +99,7 @@ class CleanHuntsFlowTest(flow_test_lib.FlowTestsBaseclass):
       for hunt_urn in self.hunts_urns:
         hunt_id = hunt_urn.Basename()
 
-        for subject, subject_data in data_store.DB.subjects.items():
+        for subject, subject_data in iteritems(data_store.DB.subjects):
           # Foreman rules are versioned, so hunt ids will be mentioned
           # there. Ignoring audit events as well.
           if subject == "aff4:/foreman" or subject.startswith("aff4:/audit"):
@@ -104,7 +107,7 @@ class CleanHuntsFlowTest(flow_test_lib.FlowTestsBaseclass):
 
           self.assertNotIn(hunt_id, subject)
 
-          for column_name, values in subject_data.items():
+          for column_name, values in iteritems(subject_data):
             self.assertNotIn(hunt_id, column_name)
 
             for value, _ in values:

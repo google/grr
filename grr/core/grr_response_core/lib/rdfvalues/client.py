@@ -15,6 +15,7 @@ import stat
 import struct
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 import ipaddr
 from past.builtins import long
@@ -42,7 +43,9 @@ from grr_response_proto import sysinfo_pb2
 # We try to support PEP 425 style component names if possible. This makes it
 # possible to have wheel as an optional dependency.
 try:
+  # pytype: disable=import-error
   from wheel import pep425tags  # pylint: disable=g-import-not-at-top
+  # pytype: enable=import-error
 except ImportError:
   pep425tags = None
 
@@ -273,7 +276,7 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
     if not user:
       new_attrs = self._CreateNewUser(kb_user)
     else:
-      for key, val in kb_user.AsDict().items():
+      for key, val in iteritems(kb_user.AsDict()):
         if user.Get(key) and user.Get(key) != val:
           merge_conflicts.append((key, user.Get(key), val))
         user.Set(key, val)

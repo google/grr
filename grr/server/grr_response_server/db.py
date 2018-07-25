@@ -10,6 +10,7 @@ WIP, will eventually replace datastore.py.
 import abc
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 
@@ -100,11 +101,11 @@ class UnknownApprovalRequestError(NotFoundError):
   pass
 
 
-class UnknownCronjobError(NotFoundError):
+class UnknownCronJobError(NotFoundError):
   pass
 
 
-class UnknownCronjobRunError(NotFoundError):
+class UnknownCronJobRunError(NotFoundError):
   pass
 
 
@@ -646,7 +647,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     by_path_id = self.FindPathInfosByPathIDs(client_id, path_type, path_ids)
 
     by_components = dict()
-    for path_id, path_info in by_path_id.iteritems():
+    for path_id, path_info in iteritems(by_path_id):
       by_components[path_ids[path_id]] = path_info
     return by_components
 
@@ -779,7 +780,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
                     instances as values.
     """
     rstat_entries = {}
-    for timestamp, stat_entry in stat_entries.iteritems():
+    for timestamp, stat_entry in iteritems(stat_entries):
       rpath_info = path_info.Copy()
       rpath_info.timestamp = timestamp
       rstat_entries[rpath_info] = stat_entry
@@ -798,7 +799,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
                     as values.
     """
     rhash_entries = {}
-    for timestamp, hash_entry in hash_entries.iteritems():
+    for timestamp, hash_entry in iteritems(hash_entries):
       rpath_info = path_info.Copy()
       rpath_info.timestamp = timestamp
       rhash_entries[rpath_info] = hash_entry
@@ -935,7 +936,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       A list of cronjobs.CronJob objects.
 
     Raises:
-      UnknownCronjobError: A cron job with the given id does not exist.
+      UnknownCronJobError: A cron job with the given id does not exist.
     """
     return self.ReadCronJobs(cronjob_ids=[cronjob_id])[0]
 
@@ -951,7 +952,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       A list of cronjobs.CronJob objects.
 
     Raises:
-      UnknownCronjobError: A cron job for at least one of the given ids
+      UnknownCronJobError: A cron job for at least one of the given ids
                            does not exist.
     """
 
@@ -963,7 +964,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       cronjob_id: The id of the cron job to enable.
 
     Raises:
-      UnknownCronjobError: A cron job with the given id does not exist.
+      UnknownCronJobError: A cron job with the given id does not exist.
     """
 
   @abc.abstractmethod
@@ -974,7 +975,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       cronjob_id: The id of the cron job to disable.
 
     Raises:
-      UnknownCronjobError: A cron job with the given id does not exist.
+      UnknownCronJobError: A cron job with the given id does not exist.
     """
 
   @abc.abstractmethod
@@ -985,7 +986,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       cronjob_id: The id of the cron job to delete.
 
     Raises:
-      UnknownCronjobError: A cron job with the given id does not exist.
+      UnknownCronJobError: A cron job with the given id does not exist.
     """
 
   @abc.abstractmethod
@@ -1007,7 +1008,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       forced_run_requested: A boolean indicating if a forced run is pending
                             for this job.
     Raises:
-      UnknownCronjobError: A cron job with the given id does not exist.
+      UnknownCronJobError: A cron job with the given id does not exist.
     """
 
   @abc.abstractmethod
@@ -1227,6 +1228,12 @@ class DatabaseValidationWrapper(Database):
   def _ValidateUsername(self, username):
     self._ValidateStringId("username", username)
 
+  def _ValidateLabel(self, label):
+    if not isinstance(label, unicode):
+      message = "Expected `%s` instance but got `%s` of type `%s` instead"
+      message %= (unicode, label, type(label))
+      raise TypeError(message)
+
   def _ValidatePathInfo(self, path_info):
     self._ValidateType(path_info, rdf_objects.PathInfo)
     if not path_info.path_type:
@@ -1420,9 +1427,8 @@ class DatabaseValidationWrapper(Database):
 
   def AddClientLabels(self, client_id, owner, labels):
     self._ValidateClientId(client_id)
-
-    if isinstance(labels, basestring):
-      raise TypeError("Expected iterable, got string.")
+    for label in labels:
+      self._ValidateLabel(label)
 
     return self.delegate.AddClientLabels(client_id, owner, labels)
 
@@ -1434,9 +1440,8 @@ class DatabaseValidationWrapper(Database):
 
   def RemoveClientLabels(self, client_id, owner, labels):
     self._ValidateClientId(client_id)
-
-    if isinstance(labels, basestring):
-      raise TypeError("Expected iterable, got string.")
+    for label in labels:
+      self._ValidateLabel(label)
 
     return self.delegate.RemoveClientLabels(client_id, owner, labels)
 
@@ -1596,11 +1601,11 @@ class DatabaseValidationWrapper(Database):
   def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
     self._ValidateClientId(client_id)
 
-    for path_info, stat_entry in stat_entries.iteritems():
+    for path_info, stat_entry in iteritems(stat_entries):
       self._ValidateType(path_info, rdf_objects.PathInfo)
       self._ValidateType(stat_entry, rdf_client.StatEntry)
 
-    for path_info, hash_entry in hash_entries.iteritems():
+    for path_info, hash_entry in iteritems(hash_entries):
       self._ValidateType(path_info, rdf_objects.PathInfo)
       self._ValidateType(hash_entry, rdf_crypto.Hash)
 
@@ -1747,7 +1752,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.DeleteOldCronJobRuns(cutoff_timestamp)
 
   def WriteClientPathBlobReferences(self, references_by_client_path_id):
-    for client_path_id, refs in references_by_client_path_id.iteritems():
+    for client_path_id, refs in iteritems(references_by_client_path_id):
       self._ValidateClientPathID(client_path_id)
       for ref in refs:
         self._ValidateBlobReference(ref)
@@ -1761,7 +1766,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadClientPathBlobReferences(client_path_ids)
 
   def WriteBlobs(self, blob_id_data_pairs):
-    for bid, data in blob_id_data_pairs.items():
+    for bid, data in iteritems(blob_id_data_pairs):
       self._ValidateBlobID(bid)
       self._ValidateBytes(data)
 

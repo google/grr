@@ -17,7 +17,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
     self.client_ids = [u.Basename() for u in self.SetupClients(10)]
 
   def testUserLabelIsShownAsBootstrapSuccessLabel(self):
-    self.AddClientLabel(self.client_ids[0], self.token.username, "foo")
+    self.AddClientLabel(self.client_ids[0], self.token.username, u"foo")
 
     self.Open("/#/search?q=.")
 
@@ -26,7 +26,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         "span.label-success:contains('foo')" % self.client_ids[0])
 
   def testSystemLabelIsShownAsRegularBootstrapLabel(self):
-    self.AddClientLabel(self.client_ids[0], "GRR", "bar")
+    self.AddClientLabel(self.client_ids[0], "GRR", u"bar")
 
     self.Open("/#/search?q=.")
     self.WaitUntil(

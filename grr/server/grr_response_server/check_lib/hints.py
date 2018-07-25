@@ -3,6 +3,9 @@
 import collections
 import string
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib import objectfilter
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -59,7 +62,7 @@ class RdfFormatter(string.Formatter):
     elif isinstance(obj, (collections.Mapping, rdf_protodict.Dict)):
       results = []
       # rdf_protodict.Dict only has items, not iteritems.
-      for k, v in obj.items():
+      for k, v in iteritems(obj):
         expanded_v = [utils.SmartUnicode(r) for r in self.FanOut(v)]
         results.append("%s:%s" % (utils.SmartUnicode(k), ",".join(expanded_v)))
     elif isinstance(obj, (collections.Iterable,

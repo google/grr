@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Client fixture-related test classes."""
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -83,7 +86,7 @@ class LegacyClientFixture(object):
             data_store.REL_DB.WritePathInfos(
                 client_id=self.client_id.Basename(), path_infos=[path_info])
 
-        for attribute_name, value in attributes.items():
+        for attribute_name, value in iteritems(attributes):
           attribute = aff4.Attribute.PREDICATES[attribute_name]
           if isinstance(value, (str, unicode)):
             # Interpolate the value

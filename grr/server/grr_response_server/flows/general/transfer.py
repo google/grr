@@ -5,6 +5,7 @@ from __future__ import division
 import logging
 import zlib
 
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import constants
@@ -492,7 +493,7 @@ class MultiGetFileMixin(object):
     # Store a mapping of hash to tracker. Keys are hashdigest objects,
     # values are arrays of tracker dicts.
     hash_to_tracker = {}
-    for index, tracker in self.state.pending_hashes.iteritems():
+    for index, tracker in iteritems(self.state.pending_hashes):
 
       # We might not have gotten this hash yet
       if tracker.get("hash_obj") is None:
@@ -531,7 +532,7 @@ class MultiGetFileMixin(object):
     # Now that the check is done, reset our counter
     self.state.files_hashed_since_check = 0
     # Now copy all existing files to the client aff4 space.
-    for filestore_file_urn, hash_obj in files_in_filestore.iteritems():
+    for filestore_file_urn, hash_obj in iteritems(files_in_filestore):
 
       for file_tracker in hash_to_tracker.get(hash_obj.sha256, []):
         stat_entry = file_tracker["stat_entry"]
@@ -649,7 +650,7 @@ class MultiGetFileMixin(object):
     self.state.blob_hashes_pending = 0
 
     # Now iterate over all the blobs and add them directly to the blob image.
-    for index, file_tracker in self.state.pending_files.iteritems():
+    for index, file_tracker in iteritems(self.state.pending_files):
       for hash_response in file_tracker.get("hash_list", []):
         # Make sure we read the correct pathspec on the client.
         hash_response.pathspec = file_tracker["stat_entry"].pathspec

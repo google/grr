@@ -19,6 +19,7 @@ import time
 import unittest
 
 
+from future.utils import iteritems
 import mock
 import pkg_resources
 
@@ -487,7 +488,7 @@ class ConfigOverrider(object):
     self.Start()
 
   def Start(self):
-    for k, v in self._overrides.iteritems():
+    for k, v in iteritems(self._overrides):
       self._saved_values[k] = config.CONFIG.GetRaw(k)
       try:
         config.CONFIG.SetRaw.old_target(k, v)
@@ -498,7 +499,7 @@ class ConfigOverrider(object):
     self.Stop()
 
   def Stop(self):
-    for k, v in self._saved_values.iteritems():
+    for k, v in iteritems(self._saved_values):
       try:
         config.CONFIG.SetRaw.old_target(k, v)
       except AttributeError:

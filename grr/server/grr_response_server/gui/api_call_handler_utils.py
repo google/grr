@@ -11,6 +11,7 @@ import sys
 import zipfile
 
 
+from future.utils import iteritems
 import yaml
 
 from grr_response_core.lib import rdfvalue
@@ -256,7 +257,7 @@ class ApiDataObject(rdf_structs.RDFProtoStruct):
   ]
 
   def InitFromDataObject(self, data_object):
-    for key, value in sorted(data_object.iteritems()):
+    for key, value in sorted(iteritems(data_object)):
       item = ApiDataObjectKeyValuePair().InitFromKeyValue(key, value)
       self.items.append(item)
 

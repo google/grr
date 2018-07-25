@@ -6,6 +6,7 @@ An index of client machines, associating likely identifiers to client IDs.
 
 
 from builtins import map  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
@@ -117,7 +118,7 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
           last_seen_map=universal_last_seen_raw)
 
       universal_last_seen = {}
-      for (_, client_id), ts in universal_last_seen_raw.iteritems():
+      for (_, client_id), ts in iteritems(universal_last_seen_raw):
         universal_last_seen[client_id] = ts
 
       old_results = set()
@@ -303,7 +304,7 @@ def GetClientURNsForHostnames(hostnames, token=None):
   results = index.ReadClientPostingLists(keywords)
 
   result = {}
-  for keyword, hits in results.iteritems():
+  for keyword, hits in iteritems(results):
     result[keyword[len("host:"):]] = hits
   return result
 

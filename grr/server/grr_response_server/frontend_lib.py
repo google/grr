@@ -5,6 +5,9 @@ import logging
 import operator
 import time
 
+
+from future.utils import iteritems
+
 from grr_response_core import config
 from grr_response_core.lib import communicator
 from grr_response_core.lib import queues
@@ -526,8 +529,8 @@ class FrontEndServer(object):
     """
     now = time.time()
     with queue_manager.QueueManager(token=self.token) as manager:
-      for session_id, msgs in utils.GroupBy(
-          messages, operator.attrgetter("session_id")).iteritems():
+      for session_id, msgs in iteritems(
+          utils.GroupBy(messages, operator.attrgetter("session_id"))):
 
         # Remove and handle messages to WellKnownFlows
         leftover_msgs = self.HandleWellKnownFlows(msgs)
@@ -621,7 +624,7 @@ class FrontEndServer(object):
         # Queue the message in the data store.
         result.append(msg)
 
-    for flow_name, msg_list in msgs_by_wkf.iteritems():
+    for flow_name, msg_list in iteritems(msgs_by_wkf):
       wkf = self.well_known_flows[flow_name]
       wkf.ProcessMessages(msg_list)
 

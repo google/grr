@@ -5,6 +5,7 @@ import logging
 import os
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 import yaml
 
@@ -310,7 +311,7 @@ class ArtifactRegistry(object):
   def _UnregisterDatastoreArtifacts(self):
     """Remove artifacts that came from the datastore."""
     to_remove = []
-    for name, artifact in self._artifacts.iteritems():
+    for name, artifact in iteritems(self._artifacts):
       if artifact.loaded_from.startswith("datastore"):
         to_remove.append(name)
     for key in to_remove:
@@ -689,7 +690,7 @@ def GetArtifactPathDependencies(rdf_artifact):
   """
   deps = set()
   for source in rdf_artifact.sources:
-    for arg, value in source.attributes.items():
+    for arg, value in iteritems(source.attributes):
       paths = []
       if arg in ["path", "query"]:
         paths.append(value)

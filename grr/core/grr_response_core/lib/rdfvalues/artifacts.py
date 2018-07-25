@@ -4,6 +4,7 @@
 import json
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 import yaml
 
@@ -324,7 +325,7 @@ class Artifact(rdf_structs.RDFProtoStruct):
       if "key_value_pairs" in source["attributes"]:
         outarray = []
         for indict in source["attributes"]["key_value_pairs"]:
-          outarray.append(dict(indict.items()))
+          outarray.append(dict(indict))
         source["attributes"]["key_value_pairs"] = outarray
 
     # Repeated fields that have not been set should return as empty lists.
@@ -339,7 +340,7 @@ class Artifact(rdf_structs.RDFProtoStruct):
     # Remove redundant empty defaults.
 
     def ReduceDict(in_dict):
-      return dict((k, v) for (k, v) in in_dict.items() if v)
+      return dict((k, v) for (k, v) in iteritems(in_dict) if v)
 
     artifact_dict = ReduceDict(artifact_dict)
     sources_dict = artifact_dict.get("sources")

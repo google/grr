@@ -3,6 +3,9 @@
 
 import re
 
+
+from future.utils import iteritems
+
 from grr_response_core.path_detection import core
 
 
@@ -84,7 +87,7 @@ class EnvVarsPostProcessor(core.PostProcessor):
     super(core.PostProcessor, self).__init__()
 
     self.vars_map = {}
-    for var_name, value in vars_map.items():
+    for var_name, value in iteritems(vars_map):
       var_regex = re.compile(
           re.escape("%" + var_name + "%"), flags=re.IGNORECASE)
       self.vars_map[var_name.lower()] = (var_regex, value)

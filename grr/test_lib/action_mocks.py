@@ -3,6 +3,9 @@
 
 import socket
 
+
+from future.utils import iteritems
+
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
@@ -268,7 +271,7 @@ class InterrogatedClient(ActionMock):
       self.response_count += 1
       rdf_dict = rdf_protodict.Dict()
       mock = client_test_lib.WMIWin32NetworkAdapterConfigurationMock
-      wmi_properties = mock.__dict__.iteritems()
+      wmi_properties = iteritems(mock.__dict__)
       for key, value in wmi_properties:
         if not key.startswith("__"):
           try:

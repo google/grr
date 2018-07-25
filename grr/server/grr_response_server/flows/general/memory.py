@@ -8,6 +8,9 @@ performing basic analysis.
 import json
 import logging
 
+
+from future.utils import iteritems
+
 from grr_response_core import config
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -202,7 +205,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
         response.client_urn = self.client_id
         if self.state.rekall_context_messages:
           response.json_context_messages = json.dumps(
-              self.state.rekall_context_messages.items(), separators=(",", ":"))
+              list(iteritems(self.state.rekall_context_messages)),
+              separators=(",", ":"))
 
         json_data = json.loads(response.json_messages)
         for message in json_data:

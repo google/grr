@@ -5,6 +5,7 @@ import itertools
 import re
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core import config
@@ -941,7 +942,7 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
     """Renders list of descriptors for all the flows."""
 
     result = []
-    for name, cls in sorted(registry.FlowRegistry.FLOW_REGISTRY.items()):
+    for name, cls in sorted(iteritems(registry.FlowRegistry.FLOW_REGISTRY)):
 
       # Flows without a category do not show up in the GUI.
       if not getattr(cls, "category", None):

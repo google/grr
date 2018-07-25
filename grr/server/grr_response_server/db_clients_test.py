@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
+from __future__ import unicode_literals
+
+
+from future.utils import iteritems
+
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-CERT = rdf_crypto.RDFX509Cert("""-----BEGIN CERTIFICATE-----
+CERT = rdf_crypto.RDFX509Cert(b"""-----BEGIN CERTIFICATE-----
 MIIF7zCCA9egAwIBAgIBATANBgkqhkiG9w0BAQUFADA+MQswCQYDVQQGEwJVUzEM
 MAoGA1UECBMDQ0FMMQswCQYDVQQHEwJTRjEUMBIGA1UEAxMLR1JSIFRlc3QgQ0Ew
 HhcNMTEwNTI3MTIxNTExWhcNMTIwNTI2MTIxNTExWjBCMQswCQYDVQQGEwJVUzEM
@@ -563,11 +567,11 @@ class DatabaseTestClientsMixin(object):
     # Typical keywords are usernames and prefixes of hostnames.
     d.AddClientKeywords(client_id_1, [
         "joe", "machine.test.example1.com", "machine.test.example1",
-        "machine.test", "machine", u"⊙_ʘ"
+        "machine.test", "machine", "⊙_ʘ"
     ])
     d.AddClientKeywords(client_id_2, [
         "fred", "machine.test.example2.com", "machine.test.example2",
-        "machine.test", "machine", u"ಠ_ಠ"
+        "machine.test", "machine", "ಠ_ಠ"
     ])
     d.AddClientKeywords(client_id_3, ["foo", "bar", "baz"])
 
@@ -576,8 +580,7 @@ class DatabaseTestClientsMixin(object):
     self.assertItemsEqual(res["machine"], [client_id_1, client_id_2])
     self.assertEqual(res["missing"], [])
 
-    for kw, client_id in [(u"⊙_ʘ", client_id_1), (u"ಠ_ಠ", client_id_2),
-                          (utils.SmartStr(u"⊙_ʘ"), client_id_1)]:
+    for kw, client_id in [("⊙_ʘ", client_id_1), ("ಠ_ಠ", client_id_2)]:
       res = d.ListClientsForKeywords([kw])
       self.assertEqual(
           res[kw], [client_id], "Expected [%s] when reading keyword %s, got %s"
@@ -652,14 +655,14 @@ class DatabaseTestClientsMixin(object):
 
     self.assertEqual(d.ReadClientLabels(client_id), [])
 
-    d.AddClientLabels(client_id, "owner1", [u"⛄࿄1"])
-    d.AddClientLabels(client_id, "owner2", [u"⛄࿄2"])
-    d.AddClientLabels(client_id, "owner2", [utils.SmartStr(u"⛄࿄3")])
+    d.AddClientLabels(client_id, "owner1", ["⛄࿄1"])
+    d.AddClientLabels(client_id, "owner2", ["⛄࿄2"])
+    d.AddClientLabels(client_id, "owner2", ["⛄࿄3"])
 
     all_labels = [
-        rdf_objects.ClientLabel(name=u"⛄࿄1", owner="owner1"),
-        rdf_objects.ClientLabel(name=u"⛄࿄2", owner="owner2"),
-        rdf_objects.ClientLabel(name=u"⛄࿄3", owner="owner2")
+        rdf_objects.ClientLabel(name="⛄࿄1", owner="owner1"),
+        rdf_objects.ClientLabel(name="⛄࿄2", owner="owner2"),
+        rdf_objects.ClientLabel(name="⛄࿄3", owner="owner2")
     ]
 
     self.assertEqual(d.ReadClientLabels(client_id), all_labels)
@@ -668,14 +671,14 @@ class DatabaseTestClientsMixin(object):
     self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
     # This label is actually owned by owner2.
-    d.RemoveClientLabels(client_id, "owner1", [u"⛄࿄3"])
+    d.RemoveClientLabels(client_id, "owner1", ["⛄࿄3"])
     self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
-    d.RemoveClientLabels(client_id, "owner2", [u"⛄࿄3"])
+    d.RemoveClientLabels(client_id, "owner2", ["⛄࿄3"])
     self.assertEqual(
         d.ReadClientLabels(client_id), [
-            rdf_objects.ClientLabel(name=u"⛄࿄1", owner="owner1"),
-            rdf_objects.ClientLabel(name=u"⛄࿄2", owner="owner2")
+            rdf_objects.ClientLabel(name="⛄࿄1", owner="owner1"),
+            rdf_objects.ClientLabel(name="⛄࿄2", owner="owner2")
         ])
 
   def testReadAllLabelsReturnsLabelsFromSingleClient(self):
@@ -683,7 +686,7 @@ class DatabaseTestClientsMixin(object):
 
     client_id = self.InitializeClient()
 
-    d.AddClientLabels(client_id, "owner1", [u"foo"])
+    d.AddClientLabels(client_id, "owner1", ["foo"])
 
     all_labels = d.ReadAllClientLabels()
     self.assertEqual(all_labels,
@@ -695,10 +698,10 @@ class DatabaseTestClientsMixin(object):
     client_id_1 = self.InitializeClient()
     client_id_2 = self.InitializeClient()
 
-    d.AddClientLabels(client_id_1, "owner1", [u"foo"])
-    d.AddClientLabels(client_id_2, "owner1", [u"foo"])
-    d.AddClientLabels(client_id_1, "owner2", [u"bar"])
-    d.AddClientLabels(client_id_2, "owner2", [u"bar"])
+    d.AddClientLabels(client_id_1, "owner1", ["foo"])
+    d.AddClientLabels(client_id_2, "owner1", ["foo"])
+    d.AddClientLabels(client_id_1, "owner2", ["bar"])
+    d.AddClientLabels(client_id_2, "owner2", ["bar"])
 
     all_labels = sorted(d.ReadAllClientLabels(), key=lambda l: l.name)
     self.assertEqual(all_labels, [
@@ -1009,7 +1012,7 @@ class DatabaseTestClientsMixin(object):
     client_ids_to_ping = self._SetupLastPingClients(base_time)
 
     expected_client_ids = [
-        cid for cid, ping in client_ids_to_ping.items() if ping == base_time
+        cid for cid, ping in iteritems(client_ids_to_ping) if ping == base_time
     ]
     full_infos = d.MultiReadClientFullInfo(
         client_ids_to_ping, min_last_ping=cutoff_time)

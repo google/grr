@@ -76,13 +76,13 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.handler.Handle(
         client_plugin.ApiAddClientsLabelsArgs(
-            client_ids=[self.client_ids[0]], labels=["foo"]),
+            client_ids=[self.client_ids[0]], labels=[u"foo"]),
         token=self.token)
 
     # AFF4 labels.
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
     self.assertEqual(len(labels), 1)
-    self.assertEqual(labels[0].name, "foo")
+    self.assertEqual(labels[0].name, u"foo")
     self.assertEqual(labels[0].owner, self.token.username)
 
     for client_id in self.client_ids[1:]:
@@ -93,7 +93,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     cid = self.client_ids[0].Basename()
     labels = data_store.REL_DB.ReadClientLabels(cid)
     self.assertEqual(len(labels), 1)
-    self.assertEqual(labels[0].name, "foo")
+    self.assertEqual(labels[0].name, u"foo")
     self.assertEqual(labels[0].owner, self.token.username)
 
     for client_id in self.client_ids[1:]:
@@ -109,16 +109,16 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler.Handle(
         client_plugin.ApiAddClientsLabelsArgs(
             client_ids=[self.client_ids[0], self.client_ids[1]],
-            labels=["foo", "bar"]),
+            labels=[u"foo", u"bar"]),
         token=self.token)
 
     # AFF4 labels.
     for client_id in self.client_ids[:2]:
       labels = aff4.FACTORY.Open(client_id, token=self.token).GetLabels()
       self.assertEqual(len(labels), 2)
-      self.assertEqual(labels[0].name, "foo")
+      self.assertEqual(labels[0].name, u"foo")
       self.assertEqual(labels[0].owner, self.token.username)
-      self.assertEqual(labels[1].name, "bar")
+      self.assertEqual(labels[1].name, u"bar")
       self.assertEqual(labels[1].owner, self.token.username)
 
     self.assertFalse(
@@ -130,7 +130,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
       self.assertEqual(len(labels), 2)
       self.assertEqual(labels[0].owner, self.token.username)
       self.assertEqual(labels[1].owner, self.token.username)
-      self.assertItemsEqual([labels[0].name, labels[1].name], ["bar", "foo"])
+      self.assertItemsEqual([labels[0].name, labels[1].name], [u"bar", u"foo"])
 
     self.assertFalse(
         data_store.REL_DB.ReadClientLabels(self.client_ids[2].Basename()))
@@ -146,7 +146,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testAuditEntryIsCreatedForEveryClient(self):
     self.handler.Handle(
         client_plugin.ApiAddClientsLabelsArgs(
-            client_ids=self.client_ids, labels=["drei", "ein", "zwei"]),
+            client_ids=self.client_ids, labels=[u"drei", u"ein", u"zwei"]),
         token=self.token)
 
     # We need to run .Simulate() so that the appropriate event is fired,
@@ -173,43 +173,43 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testRemovesUserLabelFromSingleClient(self):
     with aff4.FACTORY.Open(
         self.client_ids[0], mode="rw", token=self.token) as grr_client:
-      grr_client.AddLabels(["foo", "bar"])
+      grr_client.AddLabels([u"foo", u"bar"])
       data_store.REL_DB.WriteClientMetadata(
           self.client_ids[0].Basename(), fleetspeak_enabled=False)
       data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(),
-                                        self.token.username, ["foo", "bar"])
+                                        self.token.username, [u"foo", u"bar"])
 
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
-            client_ids=[self.client_ids[0]], labels=["foo"]),
+            client_ids=[self.client_ids[0]], labels=[u"foo"]),
         token=self.token)
 
     # AFF4 labels.
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
     self.assertEqual(len(labels), 1)
-    self.assertEqual(labels[0].name, "bar")
+    self.assertEqual(labels[0].name, u"bar")
     self.assertEqual(labels[0].owner, self.token.username)
 
     # Relational labels.
     labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0].Basename())
     self.assertEqual(len(labels), 1)
-    self.assertEqual(labels[0].name, "bar")
+    self.assertEqual(labels[0].name, u"bar")
     self.assertEqual(labels[0].owner, self.token.username)
 
   def testDoesNotRemoveSystemLabelFromSingleClient(self):
     idx = client_index.ClientIndex()
     with aff4.FACTORY.Open(
         self.client_ids[0], mode="rw", token=self.token) as grr_client:
-      grr_client.AddLabel("foo", owner="GRR")
+      grr_client.AddLabel(u"foo", owner="GRR")
       data_store.REL_DB.WriteClientMetadata(
           self.client_ids[0].Basename(), fleetspeak_enabled=False)
       data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(), "GRR",
-                                        ["foo"])
-      idx.AddClientLabels(self.client_ids[0].Basename(), ["foo"])
+                                        [u"foo"])
+      idx.AddClientLabels(self.client_ids[0].Basename(), [u"foo"])
 
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
-            client_ids=[self.client_ids[0]], labels=["foo"]),
+            client_ids=[self.client_ids[0]], labels=[u"foo"]),
         token=self.token)
 
     # AFF4 labels.
@@ -227,31 +227,31 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     idx = client_index.ClientIndex()
     with aff4.FACTORY.Open(
         self.client_ids[0], mode="rw", token=self.token) as grr_client:
-      grr_client.AddLabel("foo")
-      grr_client.AddLabel("foo", owner="GRR")
+      grr_client.AddLabel(u"foo")
+      grr_client.AddLabel(u"foo", owner="GRR")
       data_store.REL_DB.WriteClientMetadata(
           self.client_ids[0].Basename(), fleetspeak_enabled=False)
       data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(),
-                                        self.token.username, ["foo"])
+                                        self.token.username, [u"foo"])
       data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(), "GRR",
-                                        ["foo"])
-      idx.AddClientLabels(self.client_ids[0].Basename(), ["foo"])
+                                        [u"foo"])
+      idx.AddClientLabels(self.client_ids[0].Basename(), [u"foo"])
 
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
-            client_ids=[self.client_ids[0]], labels=["foo"]),
+            client_ids=[self.client_ids[0]], labels=[u"foo"]),
         token=self.token)
 
     # AFF4 labels.
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
     self.assertEqual(len(labels), 1)
-    self.assertEqual(labels[0].name, "foo")
+    self.assertEqual(labels[0].name, u"foo")
     self.assertEqual(labels[0].owner, "GRR")
 
     # Relational labels.
     labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0].Basename())
     self.assertEqual(len(labels), 1)
-    self.assertEqual(labels[0].name, "foo")
+    self.assertEqual(labels[0].name, u"foo")
     self.assertEqual(labels[0].owner, "GRR")
     # The label is still in the index.
     self.assertEqual(
@@ -349,13 +349,13 @@ class ApiLabelsRestrictedSearchClientsHandlerTestAFF4(
         grr_client.AddLabel(label, owner=owner)
         index.AddClient(grr_client)
 
-    LabelClient(0, "foo", "david")
-    LabelClient(1, "not-foo", "david")
-    LabelClient(2, "bar", "peter_another")
-    LabelClient(3, "bar", "peter")
+    LabelClient(0, u"foo", "david")
+    LabelClient(1, u"not-foo", "david")
+    LabelClient(2, u"bar", "peter_another")
+    LabelClient(3, u"bar", "peter")
 
     self.handler = client_plugin.ApiLabelsRestrictedSearchClientsHandler(
-        labels_whitelist=["foo", "bar"],
+        labels_whitelist=[u"foo", u"bar"],
         labels_owners_whitelist=["david", "peter"])
 
   def _Setup100Clients(self):
@@ -365,7 +365,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestAFF4(
     for client in aff4.FACTORY.MultiOpen(
         self.client_urns, mode="rw", token=self.token):
       with client:
-        client.AddLabel("foo", owner="david")
+        client.AddLabel(u"foo", owner="david")
         index.AddClient(client)
 
 
@@ -379,27 +379,27 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
 
     self.client_ids = sorted(self.SetupTestClientObjects(4))
 
-    data_store.REL_DB.AddClientLabels(self.client_ids[0], "david", ["foo"])
-    data_store.REL_DB.AddClientLabels(self.client_ids[1], "david", ["not-foo"])
-    data_store.REL_DB.AddClientLabels(self.client_ids[2], "peter_oth", ["bar"])
-    data_store.REL_DB.AddClientLabels(self.client_ids[3], "peter", ["bar"])
+    data_store.REL_DB.AddClientLabels(self.client_ids[0], "david", [u"foo"])
+    data_store.REL_DB.AddClientLabels(self.client_ids[1], "david", [u"not-foo"])
+    data_store.REL_DB.AddClientLabels(self.client_ids[2], "peter_oth", [u"bar"])
+    data_store.REL_DB.AddClientLabels(self.client_ids[3], "peter", [u"bar"])
 
     index = client_index.ClientIndex()
-    index.AddClientLabels(self.client_ids[0], ["foo"])
-    index.AddClientLabels(self.client_ids[1], ["not-foo"])
-    index.AddClientLabels(self.client_ids[2], ["bar"])
-    index.AddClientLabels(self.client_ids[3], ["bar"])
+    index.AddClientLabels(self.client_ids[0], [u"foo"])
+    index.AddClientLabels(self.client_ids[1], [u"not-foo"])
+    index.AddClientLabels(self.client_ids[2], [u"bar"])
+    index.AddClientLabels(self.client_ids[3], [u"bar"])
 
     self.handler = client_plugin.ApiLabelsRestrictedSearchClientsHandler(
-        labels_whitelist=["foo", "bar"],
+        labels_whitelist=[u"foo", u"bar"],
         labels_owners_whitelist=["david", "peter"])
 
   def _Setup100Clients(self):
     self.client_ids = sorted(self.SetupTestClientObjects(100))
     index = client_index.ClientIndex()
     for client_id in self.client_ids:
-      data_store.REL_DB.AddClientLabels(client_id, "david", ["foo"])
-      index.AddClientLabels(client_id, ["foo"])
+      data_store.REL_DB.AddClientLabels(client_id, "david", [u"foo"])
+      index.AddClientLabels(client_id, [u"foo"])
 
 
 class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):

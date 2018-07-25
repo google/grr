@@ -9,6 +9,7 @@ import traceback
 
 
 from future.moves.urllib import parse as urlparse
+from future.utils import iteritems
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
 from werkzeug import wrappers as werkzeug_wrappers
@@ -71,7 +72,7 @@ class RouterMatcher(object):
     # potential problems caused by child router classes using the @Http
     # annotation (thus adding additional unforeseen HTTP paths/methods). We
     # don't want the HTTP API to depend on a particular router implementation.
-    for _, metadata in router_cls.GetAnnotatedMethods().items():
+    for _, metadata in iteritems(router_cls.GetAnnotatedMethods()):
       for http_method, path, unused_options in metadata.http_methods:
         routing_map.add(
             routing.Rule(path, methods=[http_method], endpoint=metadata))
@@ -140,7 +141,7 @@ class RouterMatcher(object):
           payload = json.loads(request.form["_params_"])
           args.FromDict(payload)
 
-          for name, fd in request.files.items():
+          for name, fd in iteritems(request.files):
             args.Set(name, fd.read())
         elif format_mode == JsonMode.PROTO3_JSON_MODE:
           # NOTE: Arguments rdfvalue has to be a protobuf-based RDFValue.
@@ -340,7 +341,7 @@ class HttpRequestHandler(object):
     if no_audit_log:
       response.headers["X-No-Log"] = "True"
 
-    for key, value in (headers or {}).items():
+    for key, value in iteritems(headers or {}):
       response.headers[key] = value
 
     if content_length is not None:

@@ -4,6 +4,8 @@
 from __future__ import print_function
 
 
+from future.utils import iteritems
+
 import unittest
 from grr_response_core.lib import objectfilter
 
@@ -206,7 +208,7 @@ class ObjectFilterTest(unittest.TestCase):
   }
 
   def testBinaryOperators(self):
-    for operator, test_data in self.operator_tests.items():
+    for operator, test_data in iteritems(self.operator_tests):
       for test_unit in test_data:
         print("Testing %s with %s and %s" % (operator, test_unit[0],
                                              test_unit[1]))

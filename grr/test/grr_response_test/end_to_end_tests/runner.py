@@ -10,6 +10,7 @@ import unittest
 
 
 from future.moves.urllib import parse as urlparse
+from future.utils import iteritems
 from future.utils import itervalues
 import requests
 
@@ -147,7 +148,7 @@ class E2ETestRunner(object):
     unittest_runner = unittest.TextTestRunner()
 
     results = collections.OrderedDict()
-    for test_name, test in self._GetApplicableTests(client).iteritems():
+    for test_name, test in iteritems(self._GetApplicableTests(client)):
       result, millis_elapsed = self._RetryTest(test_name, test, unittest_runner)
       results[test_name] = result
       if not self._appveyor_tests_endpoint:
@@ -262,7 +263,7 @@ class E2ETestRunner(object):
           continue
         else:
           applicable_tests[test_name] = test
-    return collections.OrderedDict(sorted(applicable_tests.iteritems()))
+    return collections.OrderedDict(sorted(iteritems(applicable_tests)))
 
   def _RetryTest(self, test_name, test, unittest_runner):
     """Runs the given test with the given test runner, retrying on failure."""
@@ -307,7 +308,7 @@ class E2ETestRunner(object):
     report_lines = []
     max_test_name_len = max(len(test_name) for test_name in results_dict)
     report_lines.append("Results for %s:" % client_id)
-    for test_name, result in results_dict.iteritems():
+    for test_name, result in iteritems(results_dict):
       pretty_result = self.LOGFILE_SUCCESS_RESULT
       if result.errors or result.failures:
         pretty_result = self.LOGFILE_FAILURE_RESULT

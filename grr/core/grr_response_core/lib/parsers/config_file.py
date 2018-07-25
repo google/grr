@@ -6,6 +6,7 @@ import re
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
@@ -579,7 +580,7 @@ class MtabParser(parser.FileParser, FieldParser):
       options = KeyValueParser(term=",").ParseToOrderedDict(entry[3])
       # Keys without values get assigned [] by default. Because these keys are
       # actually true, if declared, change any [] values to True.
-      for k, v in options.iteritems():
+      for k, v in iteritems(options):
         options[k] = v or [True]
       result.options = rdf_protodict.AttributedDict(**options)
       yield result
@@ -612,7 +613,7 @@ class MountCmdParser(parser.CommandParser, FieldParser):
         options = KeyValueParser(term=",").ParseToOrderedDict(option_str)
         # Keys without values get assigned [] by default. Because these keys are
         # actually true, if declared, change any [] values to True.
-        for k, v in options.iteritems():
+        for k, v in iteritems(options):
           options[k] = v or [True]
         result.options = rdf_protodict.AttributedDict(**options)
         yield result
@@ -658,7 +659,7 @@ class RsyslogParser(parser.FileParser, FieldParser):
       a rdfvalue.LogTarget message.
     """
     rslt = rdf_config_file.LogTarget()
-    for dst_str, dst_re in self.destinations.iteritems():
+    for dst_str, dst_re in iteritems(self.destinations):
       dst = dst_re.match(action)
       if dst:
         rslt.transport = dst_str
@@ -738,7 +739,7 @@ class PackageSourceParser(parser.FileParser):
     uris = []
     check_uri_on_next_line = False
     for kv_entry, sp_entry in zip(kv_entries, spaced_entries):
-      for k, v in kv_entry.iteritems():
+      for k, v in iteritems(kv_entry):
         # This line could be a URL if a) from  key:value, value is empty OR
         # b) if separator is : and first character of v starts with /.
         if (check_uri_on_next_line and

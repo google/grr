@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """VFS-related part of GRR API client library."""
+from __future__ import unicode_literals
 
 from grr_api_client import utils
 from grr_response_proto.api import vfs_pb2

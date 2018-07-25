@@ -21,6 +21,9 @@ import itertools
 import posixpath
 import re
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -56,13 +59,15 @@ class PathSpec(rdf_structs.RDFProtoStruct):
   def __len__(self):
     """Return the total number of path components."""
     i = -1
-    for i, _ in enumerate(self):
+    # TODO(user):pytype: type checker doesn't treat self as iterable.
+    for i, _ in enumerate(self):  # pytype: disable=wrong-arg-types
       pass
 
     return i + 1
 
   def __getitem__(self, item):
-    for i, element in enumerate(self):
+    # TODO(user):pytype: type checker doesn't treat self as iterable.
+    for i, element in enumerate(self):  # pytype: disable=wrong-arg-types
       if i == item:
         return element
 
@@ -108,7 +113,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     if self.HasField("pathtype"):
       self.last.nested_path = component
     else:
-      for k, v in kwarg.items():
+      for k, v in iteritems(kwarg):
         setattr(self, k, v)
 
       self.SetRawData(component.GetRawData())
@@ -149,7 +154,8 @@ class PathSpec(rdf_structs.RDFProtoStruct):
   @property
   def last(self):
     if self.HasField("pathtype") and self.pathtype != self.PathType.UNSET:
-      return list(self)[-1]
+      # TODO(user):pytype: type checker doesn't treat self as iterable.
+      return list(self)[-1]  # pytype: disable=wrong-arg-types
 
     return self
 
@@ -171,7 +177,8 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     return result
 
   def Basename(self):
-    for component in reversed(self):
+    # TODO(user):pytype: type checker doesn't treat self as reversible.
+    for component in reversed(self):  # pytype: disable=wrong-arg-types
       basename = posixpath.basename(component.path)
       if basename:
         return basename

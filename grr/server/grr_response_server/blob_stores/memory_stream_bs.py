@@ -2,10 +2,10 @@
 """A blob store based on memory stream objects."""
 
 import hashlib
-
 import logging
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 
 from grr_response_core.lib import rdfvalue
@@ -35,7 +35,7 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
     existing = aff4.FACTORY.MultiOpen(
         urns, aff4_type=aff4.AFF4MemoryStreamBase, mode="r", token=token)
 
-    for blob_urn, digest in urns.iteritems():
+    for blob_urn, digest in iteritems(urns):
       if blob_urn in existing:
         logging.debug("Blob %s already stored.", digest)
         continue

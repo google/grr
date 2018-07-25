@@ -71,7 +71,7 @@ class CronJobBase(object):
       self.run_state.finished_at = rdfvalue.RDFDatetime.Now()
       elapsed = self.run_state.finished_at - self.run_state.started_at
       stats.STATS.RecordEvent(
-          "cron_job_latency", elapsed, fields=[self.job.cron_job_id])
+          "cron_job_latency", elapsed.seconds, fields=[self.job.cron_job_id])
       if self.job.lifetime:
         expiration_time = self.run_state.started_at + self.job.lifetime
         if self.run_state.finished_at > expiration_time:
@@ -204,18 +204,21 @@ class CronManager(object):
 
     leased_jobs = data_store.REL_DB.LeaseCronJobs(
         cronjob_ids=names, lease_time=rdfvalue.Duration("10m"))
+    logging.info("Leased %d cron jobs for processing.", len(leased_jobs))
     if not leased_jobs:
       return
 
+    processed_count = 0
     for job in leased_jobs:
-      logging.info("Running cron job: %s", job.cron_job_id)
-      self.RunJob(job)
+      if self.RunJob(job):
+        processed_count += 1
 
+    logging.info("Processed %d cron jobs.", processed_count)
     data_store.REL_DB.ReturnLeasedCronJobs(leased_jobs)
 
   def _GetThreadPool(self):
     pool = threadpool.ThreadPool.Factory(
-        "CronjobPool", min_threads=1, max_threads=10)
+        "CronJobPool", min_threads=1, max_threads=10)
     pool.Start()
     return pool
 
@@ -225,15 +228,22 @@ class CronManager(object):
     Args:
       job: The cronjob rdfvalue that should be run. Must be leased.
 
+    Returns:
+      A boolean indicating if this cron job was due to run.
+
     Raises:
       LockError: if the object is not locked.
       ValueError: If the job argument is invalid.
     """
-    if not job.leased_until or job.leased_until < rdfvalue.RDFDatetime.Now():
+    if not job.leased_until:
       raise LockError("CronJob must be leased for Run() to be called.")
+    if job.leased_until < rdfvalue.RDFDatetime.Now():
+      raise LockError("CronJob lease expired for %s." % job.cron_job_id)
 
     if not self.JobDueToRun(job):
-      return
+      return False
+
+    logging.info("Running cron job: %s", job.cron_job_id)
 
     run_state = rdf_cronjobs.CronJobRun(
         cron_job_id=job.cron_job_id, status="RUNNING")
@@ -260,6 +270,7 @@ class CronManager(object):
 
     run_obj = job_cls(run_state, job)
     self._GetThreadPool().AddTask(target=run_obj.StartRun, name=name)
+    return True
 
   def JobIsRunning(self, job, token=None):
     """Returns True if there's a currently running iteration of this job."""

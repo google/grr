@@ -14,6 +14,7 @@ import threading
 import time
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 
 from fleetspeak.src.client.daemonservice.client import client as fs_client
@@ -108,7 +109,7 @@ class GRRFleetspeakClient(object):
 
     while True:
       dead_threads = [
-          tn for (tn, t) in self._threads.iteritems() if not t.isAlive()
+          tn for (tn, t) in iteritems(self._threads) if not t.isAlive()
       ]
       if dead_threads:
         raise FatalError(

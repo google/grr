@@ -10,6 +10,7 @@ import re
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core import config
@@ -577,7 +578,7 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
     plugins = metadata.Get(metadata.Schema.OUTPUT_PLUGINS, {})
 
     result = []
-    for plugin_name, (plugin_descriptor, plugin_state) in plugins.items():
+    for plugin_name, (plugin_descriptor, plugin_state) in iteritems(plugins):
       api_plugin = api_output_plugin.ApiOutputPlugin(
           id=plugin_name,
           plugin_descriptor=plugin_descriptor,

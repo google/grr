@@ -2,6 +2,8 @@
 """This modules contains tests for config API handler."""
 
 
+from future.utils import iteritems
+
 from grr_response_core import config
 from grr_response_core.lib import flags
 
@@ -34,8 +36,8 @@ def GetConfigMockClass(sections=None):
   raw_values = {}
   default_values = {}
 
-  for section_name, section in sections.iteritems():
-    for parameter_name, parameter_data in section.iteritems():
+  for section_name, section in iteritems(sections):
+    for parameter_name, parameter_data in iteritems(section):
       name = "%s.%s" % (section_name, parameter_name)
       descriptor = utils.DataObject(section=section_name, name=name)
       type_infos.append(descriptor)

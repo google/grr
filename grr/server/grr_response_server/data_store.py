@@ -46,6 +46,7 @@ import time
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import with_metaclass
 
@@ -372,8 +373,8 @@ class MutationPool(object):
     self.DeleteAttributes(queue, predicates)
 
   def QueueScheduleTasks(self, tasks, timestamp):
-    for queue, queued_tasks in utils.GroupBy(tasks,
-                                             lambda x: x.queue).iteritems():
+    for queue, queued_tasks in iteritems(
+        utils.GroupBy(tasks, lambda x: x.queue)):
       to_schedule = {}
       for task in queued_tasks:
         to_schedule[DataStore.QueueTaskIdToColumn(
@@ -462,7 +463,7 @@ class MutationPool(object):
   def StatsWriteMetrics(self, subject, metrics_metadata, timestamp=None):
     """Writes stats for the given metrics to the data-store."""
     to_set = {}
-    for name, metadata in metrics_metadata.iteritems():
+    for name, metadata in iteritems(metrics_metadata):
       if metadata.fields_defs:
         for fields_values in stats.STATS.GetMetricFields(name):
           value = stats.STATS.GetMetricValue(name, fields=fields_values)
@@ -1061,7 +1062,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
             limit=response_limit,
             timestamp=timestamp))
 
-    for urn, request_data in sorted(requests.items()):
+    for urn, request_data in sorted(iteritems(requests)):
       request = rdf_flow_runner.RequestState.FromSerializedString(request_data)
       responses = []
       for _, serialized, timestamp in response_data.get(urn, []):
@@ -1089,7 +1090,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
       else:
         requests[request_id] = serialized
 
-    for request_id, serialized in sorted(requests.items()):
+    for request_id, serialized in sorted(iteritems(requests)):
       if request_id in status:
         yield (rdf_flow_runner.RequestState.FromSerializedString(serialized),
                rdf_flows.GrrMessage.FromSerializedString(status[request_id]))
@@ -1130,7 +1131,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
         self.MultiResolvePrefix(
             response_subjects, self.FLOW_RESPONSE_PREFIX, timestamp=timestamp))
 
-    for response_urn, request in sorted(response_subjects.items()):
+    for response_urn, request in sorted(iteritems(response_subjects)):
       responses = []
       for _, serialized, timestamp in response_data.get(response_urn, []):
         msg = rdf_flows.GrrMessage.FromSerializedString(serialized)
@@ -1660,7 +1661,7 @@ class DataStoreInit(registry.InitHook):
   """
 
   def _ListStorageOptions(self):
-    for name, cls in DataStore.classes.items():
+    for name, cls in iteritems(DataStore.classes):
       print("%s\t\t%s" % (name, cls.__doc__))
 
   def Run(self):

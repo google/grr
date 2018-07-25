@@ -5,7 +5,9 @@ import logging
 import re
 
 
+# pytype: disable=import-error
 from builtins import filter  # pylint: disable=redefined-builtin
+# pytype: enable=import-error
 
 from grr_response_core.lib import utils
 
@@ -191,32 +193,6 @@ class Lexer(object):
         return
 
 
-class SelfFeederMixIn(Lexer):
-  """This mixin is used to make a lexer which feeds itself.
-
-  Note that self.fd must be the fd we read from.
-  """
-
-  def __init__(self, fd=""):
-    self.fd = fd
-    super(SelfFeederMixIn, self).__init__()
-
-  def NextToken(self, end=True):
-    # If we dont have enough data - feed ourselves: We assume
-    # that we must have at least one sector in our buffer.
-    if len(self.buffer) < 512:
-      if self.Feed() == 0 and not self.buffer:
-        return None
-
-    return Lexer.next_token(self, end)
-
-  def Feed(self, size=512):
-    data = self.fd.read(size)
-    Lexer.feed(self, data)
-
-    return len(data)
-
-
 class Expression(object):
   """A class representing an expression."""
   attribute = None
@@ -288,8 +264,8 @@ class BinaryExpression(Expression):
       self.args.insert(0, lhs)
       self.args.append(rhs)
     else:
-      raise ParseError("Expected expression, got %s %s %s" %
-                       (lhs, self.operator, rhs))
+      raise ParseError(
+          "Expected expression, got %s %s %s" % (lhs, self.operator, rhs))
 
   def PrintTree(self, depth=""):
     result = "%s%s\n" % (depth, self.operator)
@@ -447,7 +423,7 @@ class SearchParser(Lexer):
         lhs = self.stack[i - 1]
         rhs = self.stack[i + 1]
 
-        self.stack[i].AddOperands(lhs, rhs)
+        item.AddOperands(lhs, rhs)
         self.stack[i - 1] = None
         self.stack[i + 1] = None
 

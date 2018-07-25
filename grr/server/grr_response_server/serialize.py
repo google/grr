@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 """This module serializes AFF4 objects in various ways."""
 
+
+from future.utils import iteritems
 import yaml
+
 from grr_response_core.lib import rdfvalue
 from grr_response_server import aff4
 
@@ -11,7 +14,7 @@ def YamlDumper(aff4object):
   aff4object.Flush()
 
   result = {}
-  for attribute, values in aff4object.synced_attributes.items():
+  for attribute, values in iteritems(aff4object.synced_attributes):
     result[attribute.predicate] = []
     for value in values:
       # This value is really a LazyDecoder() instance. We need to get at the
@@ -36,7 +39,7 @@ def YamlLoader(string):
   representation = yaml.load(string)
   result_cls = aff4.FACTORY.AFF4Object(representation["aff4_class"])
   aff4_attributes = {}
-  for predicate, values in representation["attributes"].items():
+  for predicate, values in iteritems(representation["attributes"]):
     attribute = aff4.Attribute.PREDICATES[predicate]
     tmp = aff4_attributes[attribute] = []
 

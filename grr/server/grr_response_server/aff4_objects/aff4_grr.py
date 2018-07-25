@@ -9,6 +9,7 @@ import time
 
 
 from builtins import map  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -716,7 +717,7 @@ class VFSBlobImage(VFSFile):
       for chunk_id, fd in missing_blobs_fd_pairs:
         missing_blobs_by_fd.setdefault(fd, []).append(chunk_id)
 
-      for fd, missing_blobs in missing_blobs_by_fd.iteritems():
+      for fd, missing_blobs in iteritems(missing_blobs_by_fd):
         e = MissingBlobsError(
             "%d missing blobs (multi-stream)" % len(missing_blobs),
             missing_chunks=missing_blobs)
@@ -780,7 +781,7 @@ class VFSBlobImage(VFSFile):
 
   def _ReadChunks(self, chunks):
     res = data_store.DB.ReadBlobs(chunks, token=self.token)
-    for blob_hash, content in res.iteritems():
+    for blob_hash, content in iteritems(res):
       fd = io.BytesIO(content)
       fd.dirty = False
       fd.chunk = blob_hash

@@ -65,7 +65,7 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
   def testReportsDontIncludeTimerangesInUrlsOfReportsThatDontUseThem(self):
     client_id = self.SetupClient(0)
 
-    self.AddClientLabel(client_id, "owner", "bar")
+    self.AddClientLabel(client_id, "owner", u"bar")
 
     self.Open("/#/stats/")
 

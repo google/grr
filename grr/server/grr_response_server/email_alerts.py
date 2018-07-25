@@ -13,6 +13,7 @@ import smtplib
 import socket
 
 
+from future.utils import iteritems
 from future.utils import with_metaclass
 
 from grr_response_core import config
@@ -103,7 +104,7 @@ class SMTPEmailAlerter(EmailAlerterBase):
       msg.attach(part1)
 
     if attachments:
-      for file_name, file_data in attachments.iteritems():
+      for file_name, file_data in iteritems(attachments):
         part = MIMEBase("application", "octet-stream")
         part.set_payload(file_data)
         encoders.encode_base64(part)
@@ -125,7 +126,7 @@ class SMTPEmailAlerter(EmailAlerterBase):
     if message_id:
       msg.add_header("Message-ID", message_id)
 
-    for header, value in headers.iteritems():
+    for header, value in iteritems(headers):
       msg.add_header(header, value)
 
     try:

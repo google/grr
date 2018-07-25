@@ -5,6 +5,8 @@ import logging
 import os
 import time
 
+
+from future.utils import iteritems
 import mock
 
 from grr_response_client import client_utils
@@ -185,7 +187,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
     This avoids us having to put in useless intermediate directories to the
     client fixture.
     """
-    for dirname, (_, stat) in self.paths.items():
+    for dirname, (_, stat) in list(iteritems(self.paths)):
       pathspec = stat.pathspec
       while 1:
         dirname = os.path.dirname(dirname)
@@ -208,7 +210,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
     del ext_attrs  # Unused.
 
     # First return exact matches
-    for k, (_, stat) in self.paths.items():
+    for k, (_, stat) in iteritems(self.paths):
       dirname = os.path.dirname(k)
       if dirname == self._NormalizeCaseForPath(self.path, None):
         yield stat

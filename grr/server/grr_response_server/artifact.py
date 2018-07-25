@@ -4,6 +4,7 @@
 import logging
 
 
+from future.utils import iteritems
 from future.utils import with_metaclass
 
 from grr_response_core import config
@@ -272,7 +273,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
                            "multiple provides clauses without using Dict."
                            ": %s" % artifact_obj)
 
-        for provides, value in kb_dict.iteritems():
+        for provides, value in iteritems(kb_dict):
           if provides not in artifact_provides:
             raise ValueError("Attempt to provide knowledge base value %s "
                              "without this being set in the artifact "

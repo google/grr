@@ -7,6 +7,8 @@ import threading
 import time
 
 
+from future.utils import iteritems
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import data_store
@@ -129,7 +131,7 @@ class FakeDataStore(data_store.DataStore):
     if to_delete:
       self.DeleteAttributes(subject, to_delete, sync=sync)
 
-    for k, seq in values.items():
+    for k, seq in iteritems(values):
       for v in seq:
         if isinstance(v, (list, tuple)):
           v, element_timestamp = v
@@ -160,7 +162,7 @@ class FakeDataStore(data_store.DataStore):
     try:
       record = self.subjects[subject]
       keys_to_delete = []
-      for name, values in record.iteritems():
+      for name, values in iteritems(record):
         if name not in attributes:
           continue
 
@@ -240,7 +242,7 @@ class FakeDataStore(data_store.DataStore):
     # are lists of timestamped data.
     results = {}
     for attribute in attributes:
-      for attr, values in record.iteritems():
+      for attr, values in iteritems(record):
         if attr == attribute:
           for value, ts in values:
             results_list = results.setdefault(attribute, [])
@@ -279,7 +281,7 @@ class FakeDataStore(data_store.DataStore):
                          limit=None):
     unicode_to_orig = {utils.SmartUnicode(s): s for s in subjects}
     result = {}
-    for unicode_subject, orig_subject in unicode_to_orig.iteritems():
+    for unicode_subject, orig_subject in iteritems(unicode_to_orig):
 
       values = self.ResolvePrefix(
           unicode_subject, attribute_prefix, timestamp=timestamp, limit=limit)
@@ -293,11 +295,11 @@ class FakeDataStore(data_store.DataStore):
         result[orig_subject] = values
         limit -= len(values)
         if limit <= 0:
-          return result.iteritems()
+          return iteritems(result)
       else:
         result[orig_subject] = values
 
-    return result.iteritems()
+    return iteritems(result)
 
   def Flush(self):
     pass
@@ -332,7 +334,7 @@ class FakeDataStore(data_store.DataStore):
     results = {}
     nr_results = 0
     for prefix in attribute_prefix:
-      for attribute, values in record.iteritems():
+      for attribute, values in iteritems(record):
         if limit and nr_results >= limit:
           break
         if utils.SmartStr(attribute).startswith(prefix):
@@ -354,7 +356,7 @@ class FakeDataStore(data_store.DataStore):
               break
 
     result = []
-    for attribute_name, values in sorted(results.items()):
+    for attribute_name, values in sorted(iteritems(results)):
       # Values are triples of (attribute_name, timestamp, data). We want to
       # sort by timestamp.
       for _, ts, data in sorted(values, key=lambda x: x[1], reverse=True):
@@ -364,10 +366,10 @@ class FakeDataStore(data_store.DataStore):
 
   def Size(self):
     total_size = sys.getsizeof(self.subjects)
-    for subject, record in self.subjects.iteritems():
+    for subject, record in iteritems(self.subjects):
       total_size += sys.getsizeof(subject)
       total_size += sys.getsizeof(record)
-      for attribute, values in record.iteritems():
+      for attribute, values in iteritems(record):
         total_size += sys.getsizeof(attribute)
         total_size += sys.getsizeof(values)
         for value, timestamp in values:

@@ -2,6 +2,9 @@
 """Filestore stats crons."""
 from __future__ import division
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats as stats_lib
 from grr_response_core.lib import utils
@@ -25,7 +28,7 @@ class ClassCounter(object):
     self.value_dict[classname] = self.value_dict.get(classname, 0) + 1
 
   def Save(self, fd):
-    for classname, count in self.value_dict.items():
+    for classname, count in iteritems(self.value_dict):
       self.graph.Append(label=classname, y_value=count)
     fd.Set(self.attribute, self.graph)
 
@@ -41,7 +44,7 @@ class ClassFileSizeCounter(ClassCounter):
         classname, 0) + fd.Get(fd.Schema.SIZE)
 
   def Save(self, fd):
-    for classname, count in self.value_dict.items():
+    for classname, count in iteritems(self.value_dict):
       self.graph.Append(label=classname, y_value=count / self.GB)
     fd.Set(self.attribute, self.graph)
 
@@ -60,7 +63,7 @@ class GraphDistribution(stats_lib.Distribution):
     raise NotImplementedError()
 
   def Save(self, fd):
-    for x, y in sorted(self.bins_heights.items()):
+    for x, y in sorted(iteritems(self.bins_heights)):
       if x >= 0:
         self.graph.Append(x_value=int(x), y_value=y)
 

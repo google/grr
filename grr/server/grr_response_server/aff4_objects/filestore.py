@@ -6,8 +6,10 @@ under aff4:/files to handle new file hash and new file creations.
 """
 
 import hashlib
-
 import logging
+
+
+from future.utils import iteritems
 
 from grr_response_core.lib import fingerprint
 from grr_response_core.lib import rdfvalue
@@ -281,7 +283,7 @@ class HashFileStore(FileStore):
     hashes = data_store_utils.GetFileHashEntry(fd)
     if hashes:
       found_all = True
-      for fingerprint_type, hash_types in self.HASH_TYPES.iteritems():
+      for fingerprint_type, hash_types in iteritems(self.HASH_TYPES):
         for hash_type in hash_types:
           if fingerprint_type == "pecoff":
             hash_type = "pecoff_%s" % hash_type
@@ -440,7 +442,7 @@ class HashFileStore(FileStore):
       raise ValueError("age==aff4.ALL_TIMES is not allowed.")
 
     urns = []
-    for fingerprint_type, hash_types in HashFileStore.HASH_TYPES.iteritems():
+    for fingerprint_type, hash_types in iteritems(HashFileStore.HASH_TYPES):
       for hash_type in hash_types:
         urns.append(HashFileStore.PATH.Add(fingerprint_type).Add(hash_type))
 

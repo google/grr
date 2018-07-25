@@ -2,10 +2,13 @@
 """Abstracts encryption and authentication."""
 from __future__ import division
 
+import abc
 import struct
 import time
 import zlib
 
+
+from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -257,7 +260,10 @@ class ReceivedCipher(Cipher):
       return True
 
 
-class Communicator(object):
+# TODO(user):pytype Communicator inherits abc.ABCMeta, but type checker
+# can't infer this, apparently because with_metaclass is used.
+# pytype: disable=ignored-abstractmethod
+class Communicator(with_metaclass(abc.ABCMeta, object)):
   """A class responsible for encoding and decoding comms."""
   server_name = None
 
@@ -274,6 +280,10 @@ class Communicator(object):
 
     # A cache for encrypted ciphers
     self.encrypted_cipher_cache = utils.FastStore(max_size=50000)
+
+  @abc.abstractmethod
+  def _GetRemotePublicKey(self, server_name):
+    raise NotImplementedError()
 
   @classmethod
   def EncodeMessageList(cls, message_list, packed_message_list):
@@ -559,3 +569,6 @@ class Communicator(object):
           source=packed_message_list.source)
 
     return result
+
+
+# pytype: enable=ignored-abstractmethod

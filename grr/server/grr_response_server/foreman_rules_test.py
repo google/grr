@@ -371,7 +371,7 @@ class ForemanLabelClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
     client = self.SetupTestClientObject(0)
 
     data_store.REL_DB.AddClientLabels(client.client_id, "GRR",
-                                      ["hello", "world"])
+                                      [u"hello", u"world"])
 
     client_info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
     return rule.Evaluate(client_info)
@@ -486,7 +486,7 @@ class ForemanRegexClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
     client = self.SetupTestClientObject(0, system="Linux")
 
     data_store.REL_DB.AddClientLabels(client.client_id, "GRR",
-                                      ["hello", "world"])
+                                      [u"hello", u"world"])
 
     info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 

@@ -7,6 +7,7 @@ import pdb
 import traceback
 
 
+from future.utils import iteritems
 from future.utils import with_metaclass
 
 from grr_response_client.client_actions import standard
@@ -360,7 +361,7 @@ class MockClient(object):
     message.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Update kw args
-    for k, v in kw.items():
+    for k, v in iteritems(kw):
       setattr(message, k, v)
 
     # Handle well known flows

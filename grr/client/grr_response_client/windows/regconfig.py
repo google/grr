@@ -12,6 +12,7 @@ import logging
 import _winreg
 
 from future.moves.urllib import parse as urlparse
+from future.utils import iteritems
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
@@ -66,7 +67,7 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
 
     # Ensure intermediate directories exist.
     try:
-      for key, value in raw_data.items():
+      for key, value in iteritems(raw_data):
         _winreg.SetValueEx(self.root_key, key, 0, _winreg.REG_SZ,
                            utils.SmartStr(value))
 

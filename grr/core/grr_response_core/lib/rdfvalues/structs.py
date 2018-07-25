@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Semantic Protobufs are serialization agnostic, rich data types."""
 
+
 import base64
 import copy
 import struct
@@ -8,9 +9,11 @@ import struct
 
 from builtins import chr  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 from past.builtins import long
+from typing import cast, Type
 
 # pylint: disable=g-import-not-at-top
 try:
@@ -769,7 +772,7 @@ class ProtoEnum(ProtoSignedInteger):
     result = self._FormatDescriptionComment()
 
     result += "  enum %s {\n" % self.enum_name
-    for k, v in sorted(self.reverse_enum.items()):
+    for k, v in sorted(iteritems(self.reverse_enum)):
       result += "    %s = %s;\n" % (v, k)
 
     result += "  }\n"
@@ -1064,8 +1067,6 @@ class RepeatedFieldHelper(with_metaclass(registry.MetaclassRegistry, object)):
   This helper is intended to only be constructed from the RDFProto class.
   """
 
-  dirty = False
-
   def __init__(self, wrapped_list=None, type_descriptor=None, container=None):
     """Constructor.
 
@@ -1078,11 +1079,15 @@ class RepeatedFieldHelper(with_metaclass(registry.MetaclassRegistry, object)):
     Raises:
       AttributeError: If parameters are not valid.
     """
+    self.dirty = False
+
     if wrapped_list is None:
       self.wrapped_list = []
 
+    # TODO(user): type checker doesn't respect the check below
+    # and doesn't use it to infer the type for wrapped_list.
     elif wrapped_list.__class__ is RepeatedFieldHelper:
-      self.wrapped_list = wrapped_list.wrapped_list
+      self.wrapped_list = cast(RepeatedFieldHelper, wrapped_list).wrapped_list
 
     else:
       self.wrapped_list = wrapped_list
@@ -1479,9 +1484,16 @@ class ProtoRDFValue(ProtoType):
 class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
   """A metaclass which registers new RDFProtoStruct instances."""
 
-  def __init__(cls, name, bases, env_dict):  # pylint: disable=no-self-argument
-    super(RDFStructMetaclass, cls).__init__(name, bases, env_dict)
+  def __init__(untyped_cls, name, bases, env_dict):  # pylint: disable=no-self-argument
+    super(RDFStructMetaclass, untyped_cls).__init__(name, bases, env_dict)
 
+    # TODO(user):pytype: find a more elegant solution (if possible).
+    # cast() doesn't accept forward references and argument annotations
+    # like Type["RDFStruct"] are not accepted by the type checker. The
+    # biggest caveat here is that RDFStruct is defined *with the help*
+    # of RDFStructMetaclass, so its name is not defined at the time
+    # this code is evaluated.
+    cls = untyped_cls  # type: Type[RDFStruct]
     cls.type_infos = type_info.TypeDescriptorSet()
 
     # Keep track of the late bound fields.
@@ -1503,7 +1515,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
     if cls.suppressions:
       cls.type_infos = cls.type_infos.Remove(*cls.suppressions)
 
-    cls._class_attributes = set(dir(cls))
+    cls._class_attributes = set(dir(cls))  # pylint: disable=protected-access
 
 
 class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
@@ -1564,7 +1576,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     self._data = {}
     self._age = age
 
-    for arg, value in kwargs.iteritems():
+    for arg, value in iteritems(kwargs):
       if not hasattr(self.__class__, arg):
         if arg in self.late_bound_type_infos:
           raise AttributeError(
@@ -1601,7 +1613,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
 
     """
     self._data = {}
-    for name, (obj, serialized, t_info) in other.GetRawData().iteritems():
+    for name, (obj, serialized, t_info) in iteritems(other.GetRawData()):
       if serialized is None:
         serialized = t_info.ConvertToWireFormat(obj)
 
@@ -1627,7 +1639,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     # If it is, someone else might have changed the subobject and the
     # serialization is not accurate anymore. This is indicated by the dirty
     # flag. Type_infos can be just copied by reference.
-    for name, (obj, serialized, t_info) in self._data.iteritems():
+    for name, (obj, serialized, t_info) in iteritems(self._data):
       if serialized is None:
         obj = copy.copy(obj)
       else:
@@ -1709,8 +1721,8 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     """Format a message in a human readable way."""
     yield "message %s {" % self.__class__.__name__
 
-    for k, (python_format, wire_format,
-            type_descriptor) in sorted(self.GetRawData().items()):
+    for k, (python_format, wire_format, type_descriptor) in sorted(
+        iteritems(self.GetRawData())):
       if python_format is None:
         python_format = type_descriptor.ConvertFromWireFormat(
             wire_format, container=self)
@@ -1875,7 +1887,7 @@ class EnumContainer(object):
     self.reverse_enum = {}
     self.name = name
 
-    for k, v in kwargs.items():
+    for k, v in iteritems(kwargs):
       v = EnumNamedValue(
           v,
           name=k,
@@ -1932,7 +1944,7 @@ class RDFProtoStruct(RDFStruct):
     """Initializes itself from a given dictionary."""
     dynamic_fields = []
 
-    for key, value in dictionary.items():
+    for key, value in iteritems(dictionary):
       field_type_info = self.type_infos.get(key)
       if isinstance(field_type_info, ProtoEmbedded):
         nested_value = field_type_info.GetDefault(container=self)
@@ -1979,12 +1991,14 @@ class RDFProtoStruct(RDFStruct):
     elif "Dict" in rdfvalue.RDFValue.classes and isinstance(
         value, rdfvalue.RDFValue.classes["Dict"]):
       primitive_dict = {}
-      for k, v in value.ToDict().items():
+      # TODO(user):pytype: get rid of a dependency loop described above and
+      # do a proper type check.
+      for k, v in iteritems(value.ToDict()):  # pytype: disable=attribute-error
         primitive_dict[k] = self._ToPrimitive(v, serialize_leaf_fields)
       return primitive_dict
     elif isinstance(value, dict):
       primitive_dict = {}
-      for k, v in value.items():
+      for k, v in iteritems(value):
         primitive_dict[k] = self._ToPrimitive(v, serialize_leaf_fields)
       return primitive_dict
     elif isinstance(value, RDFProtoStruct):
@@ -2006,7 +2020,7 @@ class RDFProtoStruct(RDFStruct):
   def EmitProto(cls):
     """Emits .proto file definitions."""
     result = "message %s {\n" % cls.__name__
-    for _, desc in sorted(cls.type_infos_by_field_number.items()):
+    for _, desc in sorted(iteritems(cls.type_infos_by_field_number)):
       result += desc.Definition()
 
     result += "}\n"
@@ -2033,7 +2047,7 @@ class RDFProtoStruct(RDFStruct):
     message_type = file_descriptor.message_type.add()
     message_type.name = cls.__name__
 
-    for number, desc in sorted(cls.type_infos_by_field_number.items()):
+    for number, desc in sorted(iteritems(cls.type_infos_by_field_number)):
       # Name 'metadata' is reserved to store ExportedMetadata value.
       field = None
       if isinstance(desc, ProtoEnum) and not isinstance(desc, ProtoBoolean):
@@ -2044,7 +2058,7 @@ class RDFProtoStruct(RDFStruct):
         if desc.enum_name not in [x.name for x in message_type.enum_type]:
           enum_type = message_type.enum_type.add()
           enum_type.name = desc.enum_name
-          for key, value in desc.enum.iteritems():
+          for key, value in iteritems(desc.enum):
             enum_type_value = enum_type.value.add()
             enum_type_value.name = key
             enum_type_value.number = int(value)

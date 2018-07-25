@@ -8,6 +8,9 @@ import re
 import sys
 
 
+from future.utils import iteritems
+
+
 
 # A global flags parser
 class GRRArgParser(argparse.ArgumentParser):
@@ -98,7 +101,7 @@ def FlagOverrider(**flag_kwargs):
 
       old_flags = copy.copy(FLAGS)
 
-      for k, v in flag_kwargs.items():
+      for k, v in iteritems(flag_kwargs):
         setattr(FLAGS, k, v)
 
       try:

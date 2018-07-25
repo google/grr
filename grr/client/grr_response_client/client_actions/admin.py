@@ -12,7 +12,7 @@ import traceback
 from builtins import map  # pylint: disable=redefined-builtin
 import cryptography
 from cryptography.hazmat.backends import openssl
-
+from future.utils import iteritems
 import pkg_resources
 import psutil
 import pytsk3
@@ -191,7 +191,7 @@ class GetLibraryVersions(actions.ActionPlugin):
 
   def Run(self, unused_arg):
     result = self.out_rdfvalues[0]()
-    for lib, f in self.library_map.iteritems():
+    for lib, f in iteritems(self.library_map):
       try:
         result[lib] = f(self)
       except Exception:  # pylint: disable=broad-except
@@ -213,7 +213,7 @@ class UpdateConfiguration(actions.ActionPlugin):
                       "Client.rss_max"}  # pyformat: disable
 
   def _UpdateConfig(self, filtered_arg, config_obj):
-    for field, value in filtered_arg.items():
+    for field, value in iteritems(filtered_arg):
       config_obj.Set(field, value)
 
     try:
@@ -229,7 +229,9 @@ class UpdateConfiguration(actions.ActionPlugin):
     except AttributeError:
       pass
 
-    smart_arg = {utils.SmartStr(field): value for field, value in arg.items()}
+    smart_arg = {
+        utils.SmartStr(field): value for field, value in iteritems(arg)
+    }
 
     disallowed_fields = [
         field for field in smart_arg

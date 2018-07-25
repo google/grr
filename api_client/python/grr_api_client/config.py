@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Functions and objects to access config-related GRR API methods."""
+from __future__ import unicode_literals
 
 from grr_api_client import utils
 from grr_response_proto.api import config_pb2

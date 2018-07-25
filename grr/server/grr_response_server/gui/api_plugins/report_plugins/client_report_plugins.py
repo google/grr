@@ -4,6 +4,9 @@ from __future__ import division
 
 import time
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib import rdfvalue
 from grr_response_server import aff4
 
@@ -58,7 +61,7 @@ class GRRVersion1ReportPlugin(report_plugin_base.ReportPluginBase):
         self._ProcessGraphSeries(graph_series, categories)
 
       graphs = []
-      for k, v in categories.items():
+      for k, v in iteritems(categories):
         graph = dict(label=k, data=v)
         graphs.append(graph)
 
@@ -67,7 +70,7 @@ class GRRVersion1ReportPlugin(report_plugin_base.ReportPluginBase):
               label=label,
               points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
                       for x, y in points))
-           for label, points in categories.iteritems()),
+           for label, points in iteritems(categories)),
           key=lambda series: series.label)
 
     except IOError:
@@ -137,7 +140,7 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
         self._ProcessGraphSeries(graph_series, categories)
 
       graphs = []
-      for k, v in categories.items():
+      for k, v in iteritems(categories):
         graph = dict(label=k, data=v)
         graphs.append(graph)
 
@@ -146,7 +149,7 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
               label=label,
               points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
                       for x, y in points))
-           for label, points in categories.iteritems()),
+           for label, points in iteritems(categories)),
           key=lambda series: int(series.label.split()[0]),
           reverse=True)
 

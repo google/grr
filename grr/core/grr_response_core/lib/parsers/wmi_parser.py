@@ -8,6 +8,7 @@ import time
 
 from builtins import chr  # pylint: disable=redefined-builtin
 from builtins import map  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
@@ -95,7 +96,7 @@ class WMIEventConsumerParser(parser.WMIQueryParser):
       anomalies = []
 
       output = rdfvalue.RDFValue.classes[output_type]()
-      for k, v in wmi_dict.iteritems():
+      for k, v in iteritems(wmi_dict):
         try:
           output.Set(k, v)
         except AttributeError as e:
@@ -209,7 +210,7 @@ class WMIUserParser(parser.WMIQueryParser):
     """Parse the WMI Win32_UserAccount output."""
     _ = query, knowledge_base
     kb_user = rdf_client.User()
-    for wmi_key, kb_key in self.account_mapping.items():
+    for wmi_key, kb_key in iteritems(self.account_mapping):
       try:
         kb_user.Set(kb_key, result[wmi_key])
       except KeyError:

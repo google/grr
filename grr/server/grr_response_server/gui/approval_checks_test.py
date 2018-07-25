@@ -102,7 +102,7 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
   @mock.patch(client_approval_auth.__name__ + ".CLIENT_APPROVAL_AUTH_MGR")
   def testWhenAuthMgrActiveChecksApproversForEachClientLabel(self, mock_mgr):
     data_store.REL_DB.AddClientLabels(self.client.client_id, "GRR",
-                                      ["foo", "bar"])
+                                      [u"foo", u"bar"])
 
     approval_request = self._CreateRequest(grants=[
         rdf_objects.ApprovalGrant(grantor_username="grantor1"),
@@ -120,16 +120,16 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(
         args, (access_control.ACLToken(username="requestor"),
                rdfvalue.RDFURN(self.client.client_id), "requestor",
-               set(["grantor1", "grantor2"]), "bar"))
+               set(["grantor1", "grantor2"]), u"bar"))
     args = mock_mgr.CheckApproversForLabel.mock_calls[1][1]
     self.assertEqual(
         args, (access_control.ACLToken(username="requestor"),
                rdfvalue.RDFURN(self.client.client_id), "requestor",
-               set(["grantor1", "grantor2"]), "foo"))
+               set(["grantor1", "grantor2"]), u"foo"))
 
   @mock.patch(client_approval_auth.__name__ + ".CLIENT_APPROVAL_AUTH_MGR")
   def testWhenAuthMgrActiveRaisesIfAuthMgrRaises(self, mock_mgr):
-    data_store.REL_DB.AddClientLabels(self.client.client_id, "GRR", ["foo"])
+    data_store.REL_DB.AddClientLabels(self.client.client_id, "GRR", [u"foo"])
 
     approval_request = self._CreateRequest(grants=[
         rdf_objects.ApprovalGrant(grantor_username="grantor1"),

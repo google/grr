@@ -7,6 +7,8 @@ import time
 import traceback
 
 
+from future.utils import iteritems
+
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import queues as queues_config
@@ -142,7 +144,7 @@ class GRRWorker(object):
     logging.debug("Leased message handler request ids: %s", ",".join(
         str(r.request_id) for r in requests))
     grouped_requests = utils.GroupBy(requests, lambda r: r.handler_name)
-    for handler_name, requests_for_handler in grouped_requests.items():
+    for handler_name, requests_for_handler in iteritems(grouped_requests):
       handler_cls = handler_registry.handler_name_map.get(handler_name)
       if not handler_cls:
         logging.error("Unknown message handler: %s", handler_name)

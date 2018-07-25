@@ -3,6 +3,7 @@
 
 This handles opening and parsing of config files.
 """
+
 from __future__ import print_function
 
 import collections
@@ -20,6 +21,7 @@ import sys
 import traceback
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 import pkg_resources
@@ -400,7 +402,7 @@ class ConfigFileParser(ConfigParser.RawConfigParser, GRRConfigParser):
 
   def SaveDataToFD(self, raw_data, fd):
     """Merge the raw data with the config file and store it."""
-    for key, value in raw_data.items():
+    for key, value in iteritems(raw_data):
       self.set("", key, value=value)
 
     self.write(fd)
@@ -424,7 +426,7 @@ class OrderedYamlDict(yaml.YAMLObject, collections.OrderedDict):
   def to_yaml(cls, dumper, data):
     value = []
     node = yaml.nodes.MappingNode(cls.yaml_tag, value)
-    for key, item in data.iteritems():
+    for key, item in iteritems(data):
       # Keys are forced to be strings and not unicode.
       node_key = dumper.represent_data(utils.SmartStr(key))
       node_value = dumper.represent_data(item)
@@ -460,7 +462,7 @@ class OrderedYamlDict(yaml.YAMLObject, collections.OrderedDict):
     """Parse the yaml file into an OrderedDict so we can preserve order."""
     fields = cls.construct_mapping(loader, node, deep=True)
     result = cls()
-    for k, v in fields.items():
+    for k, v in iteritems(fields):
       result[k] = v
 
     return result
@@ -587,7 +589,7 @@ class YamlParser(GRRConfigParser):
       return data
 
     result = OrderedYamlDict()
-    for k, v in data.items():
+    for k, v in iteritems(data):
       result[k] = self._RawData(v)
 
     return result
@@ -1107,7 +1109,7 @@ class GrrConfigManager(object):
     if raw_data is None:
       raw_data = self.raw_data
 
-    for k, v in merge_data.items():
+    for k, v in iteritems(merge_data):
       # A context clause.
       if isinstance(v, OrderedYamlDict) and k not in self.type_infos:
         if k not in self.valid_contexts:
@@ -1172,6 +1174,7 @@ class GrrConfigManager(object):
       The parser used to parse this configuration source.
 
     Raises:
+      ValueError: if both filename and parser arguments are None.
       ConfigFileNotFound: If a specified included file was not found.
 
     """
@@ -1183,6 +1186,8 @@ class GrrConfigManager(object):
       parser = parser_cls(filename=filename)
       logging.debug("Loading configuration from %s", filename)
       self.secondary_config_parsers.append(parser)
+    elif parser is None:
+      raise ValueError("Must provide either a filename or a parser.")
 
     clone = self.MakeNewConfig()
     clone.MergeData(parser.RawData())

@@ -6,6 +6,7 @@ import re
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -80,7 +81,7 @@ class YumRepolistCmdParser(parser.CommandParser):
         repo_info = rdf_client.PackageRepository()
         setattr(repo_info, "id", match.group(1).strip())
         while line:
-          for attr, regex in repo_regexes.iteritems():
+          for attr, regex in iteritems(repo_regexes):
             match = regex.match(line)
             if match:
               setattr(repo_info, attr, match.group(1).strip())
@@ -213,7 +214,7 @@ class DmidecodeCmdParser(parser.CommandParser):
       if sys_info_re.match(line):
         # Collect all System Information until we hit a blank line.
         while line:
-          for attr, regex in sys_regexes.iteritems():
+          for attr, regex in iteritems(sys_regexes):
             match = regex.match(line)
             if match:
               setattr(dmi_info, attr, match.group(1).strip())
@@ -223,7 +224,7 @@ class DmidecodeCmdParser(parser.CommandParser):
       elif bios_info_re.match(line):
         # Collect all BIOS Information until we hit a blank line.
         while line:
-          for attr, regex in bios_regexes.iteritems():
+          for attr, regex in iteritems(bios_regexes):
             match = regex.match(line)
             if match:
               setattr(dmi_info, attr, match.group(1).strip())

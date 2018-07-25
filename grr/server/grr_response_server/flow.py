@@ -49,6 +49,7 @@ import logging
 import operator
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 
@@ -1027,7 +1028,7 @@ class GRRFlow(FlowBase):
   def GetArgsHelpAsString(cls):
     """Get a string description of the calling prototype for this function."""
     output = ["  Call Spec:", "    %s" % cls.GetCallingPrototypeAsString(), ""]
-    arg_list = sorted(cls.GetArgs().items(), key=lambda x: x[0])
+    arg_list = sorted(iteritems(cls.GetArgs()), key=lambda x: x[0])
     if not arg_list:
       output.append("  Args: None")
     else:

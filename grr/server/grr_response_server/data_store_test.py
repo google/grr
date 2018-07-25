@@ -21,6 +21,7 @@ import threading
 import time
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 import mock
@@ -1666,7 +1667,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   def _RandomlyReadSubject(self, subject, predicates):
     """Read certain parts of a given subject."""
-    for j, timestamps in predicates.items():
+    for j, timestamps in iteritems(predicates):
       which = self.rand.randint(0, 2)
       if which == 0:
         # Read all timestamps.
@@ -1716,7 +1717,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
         continue
       which = self.rand.randint(0, 2)
       if which == 0 or which == 1:
-        for j, timestamp_info in predicates.items():
+        for j, timestamp_info in iteritems(predicates):
           number_timestamps = len(timestamp_info)
           if which == 0 and len(timestamp_info):
             # Update one timestamp'ed value.
@@ -1758,7 +1759,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     if change_test:
       self.test_name = "delete %d%%" % fraction
     subjects_to_delete = []
-    for i, info in subjects.items():
+    for i, info in iteritems(subjects):
       subject = info["name"]
       predicates = info["attrs"]
       number_predicates = len(predicates)
@@ -1766,7 +1767,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
       which = self.rand.randint(0, 2)
       count_values = 0
       predicates_to_delete = []
-      for j, timestamp_info in predicates.items():
+      for j, timestamp_info in iteritems(predicates):
         number_timestamps = len(timestamp_info)
         count_values += number_timestamps
         if do_it:
@@ -1810,7 +1811,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
       self.test_name = "add %d%%" % fraction
     how_many = int(len(subjects) * fraction / 100)
     new_value = os.urandom(100)
-    new_subject = max(subjects.iteritems(), key=operator.itemgetter(0))[0] + 1
+    new_subject = max(iteritems(subjects), key=operator.itemgetter(0))[0] + 1
     # Generate client names.
     clients = [self._GenerateRandomClient() for _ in xrange(nclients)]
     for i in xrange(new_subject, new_subject + how_many):
@@ -1869,7 +1870,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
                                    self.BIG_NUM_ATTRIBUTES + 1000)
       self.predicates += how_many
       new_predicate = max(
-          predicates.iteritems(), key=operator.itemgetter(0))[0] + 1
+          iteritems(predicates), key=operator.itemgetter(0))[0] + 1
       for j in xrange(new_predicate, new_predicate + how_many):
         number_timestamps = self.rand.randrange(1, 3)
         ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]

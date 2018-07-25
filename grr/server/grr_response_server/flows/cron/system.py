@@ -7,6 +7,7 @@ import time
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from future.utils import itervalues
 
@@ -77,12 +78,12 @@ class _ActiveCounter(object):
         histograms.setdefault(label, self.attribute())
         graph = rdf_stats.Graph(title="%s day actives for %s label" %
                                 (active_time, label))
-        for k, v in sorted(self.categories[active_time][label].items()):
+        for k, v in sorted(iteritems(self.categories[active_time][label])):
           graph.Append(label=k, y_value=v)
 
         histograms[label].Append(graph)
 
-    for label, histogram in histograms.items():
+    for label, histogram in iteritems(histograms):
       # Add an additional instance of this histogram (without removing previous
       # instances).
       # pylint: disable=protected-access

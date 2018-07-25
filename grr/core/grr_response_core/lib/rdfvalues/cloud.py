@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Cloud-related rdfvalues."""
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
@@ -58,7 +61,7 @@ class CloudInstance(rdf_structs.RDFProtoStruct):
 def _MakeArgs(amazon_collection_map, google_collection_map):
   """Build metadata requests list from collection maps."""
   request_list = []
-  for url, label in amazon_collection_map.iteritems():
+  for url, label in iteritems(amazon_collection_map):
     request_list.append(
         CloudMetadataRequest(
             bios_version_regex=AMAZON_BIOS_REGEX,
@@ -67,7 +70,7 @@ def _MakeArgs(amazon_collection_map, google_collection_map):
             timeout=1.0,
             url=url,
             label=label))
-  for url, label in google_collection_map.iteritems():
+  for url, label in iteritems(google_collection_map):
     request_list.append(
         CloudMetadataRequest(
             bios_version_regex=GOOGLE_BIOS_REGEX,

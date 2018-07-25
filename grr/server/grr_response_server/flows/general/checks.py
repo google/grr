@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 """A flow to run checks for a host."""
+
+
+from future.utils import iteritems
+
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -129,7 +133,7 @@ class CheckRunner(flow.GRRFlow):
             self._ProcessData(processor, response, artifact_name, source)
 
     # If we were saving responses, process them now:
-    for processor_name, responses_list in saved_responses.items():
+    for processor_name, responses_list in iteritems(saved_responses):
       processor = parser.Parser.classes[processor_name]()
       self._ProcessData(processor, responses_list, artifact_name, source)
 

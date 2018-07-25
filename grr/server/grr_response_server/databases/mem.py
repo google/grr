@@ -22,7 +22,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 # pyformat: disable
 class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
                  mem_clients.InMemoryDBClientMixin,
-                 mem_cronjobs.InMemoryDBCronjobMixin,
+                 mem_cronjobs.InMemoryDBCronJobMixin,
                  mem_events.InMemoryDBEventMixin,
                  mem_flows.InMemoryDBFlowMixin,
                  mem_foreman_rules.InMemoryDBForemanRulesMixin,

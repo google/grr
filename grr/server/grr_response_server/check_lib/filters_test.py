@@ -3,6 +3,7 @@
 import collections
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import flags
@@ -255,7 +256,7 @@ class StatFilterTests(test_lib.GRRBaseTest):
         "SymLink": self._GenStat(st_mode=0o120777),
     }
     filt = filters.StatFilter()
-    for file_type, expected in all_types.iteritems():
+    for file_type, expected in iteritems(all_types):
       filt._Flush()
       results = filt.Parse(
           list(itervalues(all_types)), "file_type:%s" % file_type)

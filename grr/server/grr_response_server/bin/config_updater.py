@@ -16,6 +16,7 @@ import sys
 
 from builtins import input  # pylint: disable=redefined-builtin
 from future.moves.urllib import parse as urlparse
+from future.utils import iteritems
 from future.utils import iterkeys
 import pkg_resources
 import yaml
@@ -783,7 +784,7 @@ def InitializeNoPrompt(config=None, token=None):
       "grr-emergency@%s" % hostname)
   config_dict["Rekall.enabled"] = flags.FLAGS.enable_rekall
   print("Setting configuration as:\n\n%s" % config_dict)
-  for key, value in config_dict.iteritems():
+  for key, value in iteritems(config_dict):
     config.Set(key, value)
   config.Set("Server.initialized", True)
   config.Write()

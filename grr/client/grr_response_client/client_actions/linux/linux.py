@@ -10,6 +10,7 @@ import time
 
 
 from builtins import map  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from grr_response_client import actions
 from grr_response_client import client_utils_common
@@ -244,7 +245,7 @@ class EnumerateUsers(actions.ActionPlugin):
   def Run(self, unused_args):
     """Enumerates all the users on this system."""
     users = self.ParseWtmp()
-    for user, last_login in users.iteritems():
+    for user, last_login in iteritems(users):
 
       # Lose the null termination
       username = user.split("\x00", 1)[0]
@@ -310,7 +311,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
     self.CheckMounts("/proc/mounts")
     self.CheckMounts("/etc/mtab")
 
-    for device, (fs_type, mnt_point) in self.devices.items():
+    for device, (fs_type, mnt_point) in iteritems(self.devices):
       self.SendReply(
           rdf_client.Filesystem(
               mount_point=mnt_point, type=fs_type, device=device))

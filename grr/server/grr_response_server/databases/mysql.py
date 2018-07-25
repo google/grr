@@ -48,7 +48,7 @@ def _IsRetryable(error):
 # pyformat: disable
 class MysqlDB(mysql_blobs.MySQLDBBlobsMixin,
               mysql_clients.MySQLDBClientMixin,
-              mysql_cronjobs.MySQLDBCronjobMixin,
+              mysql_cronjobs.MySQLDBCronJobMixin,
               mysql_events.MySQLDBEventMixin,
               mysql_flows.MySQLDBFlowMixin,
               mysql_foreman_rules.MySQLDBForemanRulesMixin,

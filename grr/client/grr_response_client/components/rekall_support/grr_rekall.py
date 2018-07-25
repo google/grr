@@ -10,6 +10,7 @@ import sys
 import traceback
 
 
+from future.utils import iteritems
 import psutil
 
 # Initialize the Rekall plugins, so pylint: disable=unused-import
@@ -125,7 +126,7 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
       response_msg = rdf_rekall_types.RekallResponse(
           json_messages=self.robust_encoder.encode(self.data),
           json_context_messages=self.robust_encoder.encode(
-              self.context_messages.items()),
+              list(iteritems(self.context_messages))),
           plugin=self.plugin)
 
       self.context_messages = self.new_context_messages
@@ -176,10 +177,10 @@ class GrrRekallSession(session.Session):
     # Apply default configuration options to the session state, unless
     # explicitly overridden by the session_args.
     with self.state:
-      for k, v in session_args.iteritems():
+      for k, v in iteritems(session_args):
         self.state.Set(k, v)
 
-      for name, options in rekall_config.OPTIONS.args.iteritems():
+      for name, options in iteritems(rekall_config.OPTIONS.args):
         # We don't want to override configuration options passed via
         # **session_args.
         if name not in session_args:

@@ -4,8 +4,10 @@
 import collections
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 from past.builtins import long
+from typing import cast, List, Union
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -178,6 +180,8 @@ class Dict(rdf_structs.RDFProtoStruct):
   def __init__(self, initializer=None, age=None, **kwarg):
     super(Dict, self).__init__(initializer=None, age=age)
 
+    self.dat = None  # type: Union[List[KeyValue], rdf_structs.RepeatedFieldHelper]
+
     # Support initializing from a mapping
     if isinstance(initializer, dict):
       self.FromDict(initializer)
@@ -210,7 +214,7 @@ class Dict(rdf_structs.RDFProtoStruct):
   def FromDict(self, dictionary, raise_on_error=True):
     # First clear and then set the dictionary.
     self._values = {}
-    for key, value in dictionary.iteritems():
+    for key, value in iteritems(dictionary):
       self._values[key] = KeyValue(
           k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
           v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
@@ -246,7 +250,13 @@ class Dict(rdf_structs.RDFProtoStruct):
   values = utils.Proxy("Values")
 
   def __delitem__(self, key):
-    self.dat.dirty = True
+    # TODO(user):pytype: assigning "dirty" here is a hack. The assumption
+    # that self.dat is RepeatedFieldHelper may not hold. For some reason the
+    # type checker doesn not respect the isinstance check below and explicit
+    # cast is required.
+    if not isinstance(self.dat, rdf_structs.RepeatedFieldHelper):
+      raise TypeError("self.dat has an unexpected type %s" % self.dat.__class__)
+    cast(rdf_structs.RepeatedFieldHelper, self.dat).dirty = True
     del self._values[key]
 
   def __len__(self):
@@ -266,13 +276,25 @@ class Dict(rdf_structs.RDFProtoStruct):
       raise_on_error: if True, raise if we can't serialize.  If False, set the
         key to an error string.
     """
-    self.dat.dirty = True
+    # TODO(user):pytype: assigning "dirty" here is a hack. The assumption
+    # that self.dat is RepeatedFieldHelper may not hold. For some reason the
+    # type checker doesn not respect the isinstance check below and explicit
+    # cast is required.
+    if not isinstance(self.dat, rdf_structs.RepeatedFieldHelper):
+      raise TypeError("self.dat has an unexpected type %s" % self.dat.__class__)
+    cast(rdf_structs.RepeatedFieldHelper, self.dat).dirty = True
     self._values[key] = KeyValue(
         k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
         v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
 
   def __setitem__(self, key, value):
-    self.dat.dirty = True
+    # TODO(user):pytype: assigning "dirty" here is a hack. The assumption
+    # that self.dat is RepeatedFieldHelper may not hold. For some reason the
+    # type checker doesn not respect the isinstance check below and explicit
+    # cast is required.
+    if not isinstance(self.dat, rdf_structs.RepeatedFieldHelper):
+      raise TypeError("self.dat has an unexpected type %s" % self.dat.__class__)
+    cast(rdf_structs.RepeatedFieldHelper, self.dat).dirty = True
     self._values[key] = KeyValue(
         k=DataBlob().SetValue(key), v=DataBlob().SetValue(value))
 
@@ -437,4 +459,6 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
     return self.content.Pop(index).GetValue()
 
 
-collections.Mapping.register(Dict)
+# TODO(user):pytype: Mapping is likely using abc.ABCMeta that provides a
+# "register" method. Type checker doesn't see this, unfortunately.
+collections.Mapping.register(Dict)  # pytype: disable=attribute-error

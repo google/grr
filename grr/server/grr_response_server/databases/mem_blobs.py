@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """DB mixin for blobs-related methods."""
 
+
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import utils
@@ -27,7 +29,7 @@ class InMemoryDBBlobsMixin(object):
     """Writes blob references for given client path ids."""
     all_path_ids = self._AllPathIDs()
 
-    for client_path_id, blob_refs in references_by_client_path_id.items():
+    for client_path_id, blob_refs in iteritems(references_by_client_path_id):
       path_idx = (client_path_id.client_id, client_path_id.path_type,
                   client_path_id.path_id)
 

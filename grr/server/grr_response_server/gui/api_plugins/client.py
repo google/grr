@@ -7,6 +7,7 @@ import sys
 
 
 from future.moves.urllib import parse as urlparse
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 import ipaddr
@@ -380,7 +381,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
       for cid_batch in utils.Grouper(sorted(all_client_ids), batch_size):
         client_infos = data_store.REL_DB.MultiReadClientFullInfo(cid_batch)
 
-        for _, client_info in sorted(client_infos.items()):
+        for _, client_info in sorted(iteritems(client_infos)):
           if not self._VerifyLabels(client_info.labels):
             continue
           if index >= args.offset and index < end:

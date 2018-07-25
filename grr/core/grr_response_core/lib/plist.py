@@ -6,6 +6,8 @@ import datetime
 
 
 from binplist import binplist
+from future.utils import iteritems
+
 from grr_response_core.lib import lexer
 from grr_response_core.lib import objectfilter
 
@@ -131,7 +133,7 @@ def PlistValueToPlainValue(plist):
 
   if isinstance(plist, dict):
     ret_value = dict()
-    for key, value in plist.items():
+    for key, value in iteritems(plist):
       ret_value[key] = PlistValueToPlainValue(value)
     return ret_value
   elif isinstance(plist, list):

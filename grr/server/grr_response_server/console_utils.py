@@ -15,6 +15,7 @@ import time
 
 
 from builtins import input  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -348,7 +349,7 @@ def FindClonedClients(token=None):
   # machine might just have new hardware. We need to search for clients that
   # alternate between different IDs.
   clients_with_multiple_serials = [
-      client_id for client_id, serials in hw_infos.iteritems()
+      client_id for client_id, serials in iteritems(hw_infos)
       if len(serials) > 1
   ]
 

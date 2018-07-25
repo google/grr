@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """GRR API shell utility functions."""
+from __future__ import unicode_literals
 
 
 def IPShell(argv=None, user_ns=None, banner=None):

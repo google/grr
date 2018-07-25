@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This file contains various utility classes used by GRR."""
+
 from __future__ import print_function
 
 import array
@@ -29,9 +30,12 @@ import zipfile
 import zlib
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 import psutil
+
+from typing import Any, List, Text
 
 
 class Error(Exception):
@@ -146,6 +150,9 @@ class Node(object):
     return SmartStr(self)
 
 
+# TODO(user):pytype: self.next and self.prev are assigned to self but then
+# are used in AppendNode in a very different way. Should be redesigned.
+# pytype: disable=attribute-error
 class LinkedList(object):
   """A simple doubly linked list used for fast caches."""
 
@@ -214,6 +221,9 @@ class LinkedList(object):
       p = p.next
 
 
+# pytype: enable=attribute-error
+
+
 class FastStore(object):
   """This is a cache which expires objects in oldest first manner.
 
@@ -244,7 +254,7 @@ class FastStore(object):
 
   @Synchronized
   def __iter__(self):
-    return iter([(key, n.data) for key, n in self._hash.iteritems()])
+    return iter([(key, n.data) for key, n in iteritems(self._hash)])
 
   @Synchronized
   def Expire(self):
@@ -457,7 +467,7 @@ class Memoize(object):
       # We keep args and kwargs separate to avoid confusing an arg which is a
       # pair with a kwarg. Also, we don't try to match calls when an argument
       # moves between args and kwargs.
-      key = tuple(args), tuple(sorted(kwargs.items(), key=lambda x: x[0]))
+      key = tuple(args), tuple(sorted(iteritems(kwargs), key=lambda x: x[0]))
       if key not in f.memo_pad:
         f.memo_pad[key] = f(self, *args, **kwargs)
       if f.memo_deep_copy:
@@ -500,7 +510,7 @@ class MemoizeFunction(object):
 
     @functools.wraps(f)
     def Wrapped(*args, **kwargs):
-      key = tuple(args), tuple(sorted(kwargs.items(), key=lambda x: x[0]))
+      key = tuple(args), tuple(sorted(iteritems(kwargs), key=lambda x: x[0]))
       if key not in f.memo_pad:
         f.memo_pad[key] = f(*args, **kwargs)
       if f.memo_deep_copy:
@@ -621,7 +631,7 @@ def SmartUnicode(string):
   """
   if type(string) != unicode:  # pylint: disable=unidiomatic-typecheck
     try:
-      return string.__unicode__()
+      return string.__unicode__()  # pytype: disable=attribute-error
     except (AttributeError, UnicodeError):
       return str(string).decode("utf8", "ignore")
 
@@ -631,7 +641,9 @@ def SmartUnicode(string):
 def Xor(bytestr, key):
   """Returns a `bytes` object where each byte has been xored with key."""
   # TODO(hanuszczak): Remove this import when string migration is done.
+  # pytype: disable=import-error
   from builtins import bytes  # pylint: disable=redefined-builtin, g-import-not-at-top
+  # pytype: enable=import-error
 
   if not isinstance(bytestr, bytes):
     raise TypeError("Expected `%s` but got `%s`" % (type(bytestr), bytes))
@@ -823,7 +835,7 @@ def PassphraseCallback(verify=False,
 class PRNG(object):
   """An optimized PRNG."""
 
-  random_list = []
+  random_list = []  # type: List[int]
 
   @classmethod
   def GetUInt16(cls):
@@ -927,6 +939,9 @@ class ArchiveAlreadyClosedError(Error):
   pass
 
 
+# TODO(user):pytype: we use a lot of zipfile internals that type checker is
+# not aware of.
+# pytype: disable=attribute-error,wrong-arg-types
 class StreamingZipGenerator(object):
   """A streaming zip generator that can archive file-like objects."""
 
@@ -969,7 +984,10 @@ class StreamingZipGenerator(object):
     """
     # Fake stat response.
     if st is None:
+      # TODO(user):pytype: stat_result typing is not correct.
+      # pytype: disable=wrong-arg-count
       st = os.stat_result((0o100644, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+      # pytype: enable=wrong-arg-count
 
     mtime = time.localtime(st.st_mtime or time.time())
     date_time = mtime[0:6]
@@ -1082,7 +1100,10 @@ class StreamingZipGenerator(object):
           "Attempting to write to a ZIP archive that was already closed.")
 
     self.cur_file_size += len(chunk)
+    # TODO(user):pytype: crc32 is not visible outside of zipfile.
+    # pytype: disable=module-attr
     self.cur_crc = zipfile.crc32(chunk, self.cur_crc) & 0xffffffff
+    # pytype: enable=module-attr
 
     if self.cur_cmpr:
       chunk = self.cur_cmpr.compress(chunk)
@@ -1179,6 +1200,9 @@ class StreamingZipGenerator(object):
     return self._stream.tell()
 
 
+# pytype: enable=attribute-error,wrong-arg-types
+
+
 class StreamingZipWriter(object):
   """A streaming zip file writer which can copy from file like objects.
 
@@ -1245,8 +1269,11 @@ class StreamingTarGenerator(object):
     super(StreamingTarGenerator, self).__init__()
 
     self._stream = RollingMemoryStream()
+    # TODO(user):pytype: self._stream should be a valid IO object.
+    # pytype: disable=wrong-arg-types
     self._tar_fd = tarfile.open(
         mode="w:gz", fileobj=self._stream, encoding="utf-8")
+    # pytype: enable=wrong-arg-types
 
     self._ResetState()
 
@@ -1316,11 +1343,15 @@ class StreamingTarGenerator(object):
       raise IOError("Incorrect file size: st_size=%d, but written %d bytes." %
                     (self.cur_info.size, self.cur_file_size))
 
+    # TODO(user):pytype: BLOCKSIZE/NUL constants are not visible to type
+    # checker.
+    # pytype: disable=module-attr
     blocks, remainder = divmod(self.cur_file_size, tarfile.BLOCKSIZE)
     if remainder > 0:
       self._tar_fd.fileobj.write(tarfile.NUL * (tarfile.BLOCKSIZE - remainder))
       blocks += 1
     self._tar_fd.offset += blocks * tarfile.BLOCKSIZE
+    # pytype: enable=module-attr
 
     self._ResetState()
 
@@ -1496,7 +1527,7 @@ class DataObject(dict):
 
   def __str__(self):
     result = []
-    for k, v in self.items():
+    for k, v in iteritems(self):
       tmp = "  %s = " % k
       try:
         for line in SmartUnicode(v).splitlines():
@@ -1634,7 +1665,10 @@ class Stat(object):
       # This import is Linux-specific.
       import fcntl  # pylint: disable=g-import-not-at-top
       buf = array.array("l", [0])
+      # TODO(user):pytype: incorrect type spec for fcntl.ioctl
+      # pytype: disable=wrong-arg-types
       fcntl.ioctl(fd, self.FS_IOC_GETFLAGS, buf)
+      # pytype: enable=wrong-arg-types
       return buf[0]
     except (IOError, OSError):
       # File system does not support extended attributes.

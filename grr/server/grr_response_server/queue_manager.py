@@ -6,6 +6,7 @@ import logging
 import random
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core import config
@@ -339,12 +340,12 @@ class QueueManager(object):
         messages_by_queue = utils.GroupBy(
             list(itervalues(self.client_messages_to_delete)),
             lambda request: request.queue)
-        for queue, messages in messages_by_queue.items():
+        for queue, messages in iteritems(messages_by_queue):
           self.Delete(queue, messages, mutation_pool=mutation_pool)
 
       if self.new_client_messages:
-        for timestamp, messages in utils.GroupBy(self.new_client_messages,
-                                                 lambda x: x[1]).iteritems():
+        for timestamp, messages in iteritems(
+            utils.GroupBy(self.new_client_messages, lambda x: x[1])):
 
           self.Schedule(
               [x[0] for x in messages],
@@ -438,8 +439,8 @@ class QueueManager(object):
   def Schedule(self, tasks, mutation_pool, timestamp=None):
     """Schedule a set of Task() instances."""
     non_fleetspeak_tasks = []
-    for queue, queued_tasks in utils.GroupBy(tasks,
-                                             lambda x: x.queue).iteritems():
+    for queue, queued_tasks in iteritems(
+        utils.GroupBy(tasks, lambda x: x.queue)):
       if not queue:
         continue
 
@@ -584,8 +585,8 @@ class QueueManager(object):
       RuntimeError: An invalid session_id was passed.
     """
     extract_queue = lambda notification: notification.session_id.Queue()
-    for queue, notifications in utils.GroupBy(notifications,
-                                              extract_queue).iteritems():
+    for queue, notifications in iteritems(
+        utils.GroupBy(notifications, extract_queue)):
       self._MultiNotifyQueue(queue, notifications, mutation_pool=mutation_pool)
 
   def _MultiNotifyQueue(self, queue, notifications, mutation_pool=None):
@@ -629,8 +630,8 @@ class QueueManager(object):
     if end is None:
       end = self.frozen_timestamp or rdfvalue.RDFDatetime.Now()
 
-    for queue, ids in utils.GroupBy(
-        session_ids, lambda session_id: session_id.Queue()).iteritems():
+    for queue, ids in iteritems(
+        utils.GroupBy(session_ids, lambda session_id: session_id.Queue())):
       queue_shards = self.GetAllNotificationShards(queue)
       self.data_store.DeleteNotifications(queue_shards, ids, start, end)
 

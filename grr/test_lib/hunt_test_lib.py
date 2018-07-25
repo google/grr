@@ -3,6 +3,9 @@
 
 import time
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -123,7 +126,7 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
 
   client_mocks = [
       flow_test_lib.MockClient(client_id, client_mock, token=token)
-      for client_id, client_mock in client_mocks.iteritems()
+      for client_id, client_mock in iteritems(client_mocks)
   ]
   worker_mock = worker_test_lib.MockWorker(
       check_flow_errors=check_flow_errors, token=token)

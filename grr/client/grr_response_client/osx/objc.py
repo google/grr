@@ -7,6 +7,7 @@ import logging
 import subprocess
 
 
+from future.utils import iteritems
 from past.builtins import long
 
 # kCFStringEncodingUTF8
@@ -423,7 +424,7 @@ class CFDictionary(CFType):
 
   def __repr__(self):
     representation = '{'
-    for key, value in self.iteritems():
+    for key, value in iteritems(self):
       representation += '{0}:{1},'.format(str(key), str(value))
     representation += '}'
     return representation

@@ -5,6 +5,7 @@ import stat
 import unittest
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 import mock
 
@@ -104,7 +105,7 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
     mock_query_result = mock.MagicMock()
     mock_query_result.Properties_ = []
     mock_config = client_test_lib.WMIWin32NetworkAdapterConfigurationMock
-    wmi_properties = mock_config.__dict__.iteritems()
+    wmi_properties = iteritems(mock_config.__dict__)
     for key, value in wmi_properties:
       keyval = mock.MagicMock()
       keyval.Name, keyval.Value = key, value

@@ -12,6 +12,7 @@ import time
 from warnings import filterwarnings
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 import MySQLdb
 from MySQLdb import cursors
@@ -296,7 +297,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       if limit is not None and limit <= 0:
         break
 
-    return result.iteritems()
+    return iteritems(result)
 
   def ResolvePrefix(self, subject, attribute_prefix, timestamp=None,
                     limit=None):
@@ -405,7 +406,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     transaction = []
 
     # Build a document for each unique timestamp.
-    for attribute, sequence in values.items():
+    for attribute, sequence in iteritems(values):
       for value in sequence:
         if isinstance(value, tuple):
           value, entry_timestamp = value

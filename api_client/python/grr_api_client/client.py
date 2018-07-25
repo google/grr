@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Clients-related part of GRR API client library."""
+from __future__ import unicode_literals
 
 from grr_api_client import flow
 from grr_api_client import utils

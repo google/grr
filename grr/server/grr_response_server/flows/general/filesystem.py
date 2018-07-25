@@ -8,6 +8,7 @@ import stat
 
 
 from builtins import map  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 from future.utils import iterkeys
 
 from grr_response_core.lib import artifact_utils
@@ -975,7 +976,7 @@ class GlobMixin(object):
         return
 
       # There are further components in the tree - iterate over them.
-      for component_str, next_node in node.items():
+      for component_str, next_node in iteritems(node):
         component = rdf_paths.PathSpec.FromSerializedString(component_str)
         next_component = component_path + [component_str]
 
@@ -1055,7 +1056,7 @@ class GlobMixin(object):
         if not base_pathspec:
           base_pathspec = rdf_paths.PathSpec(path="/", pathtype="OS")
 
-        for depth, recursions in recursions_to_get.iteritems():
+        for depth, recursions in iteritems(recursions_to_get):
           path_regex = "(?i)^" + "$|^".join(set([c.path for c in recursions
                                                 ])) + "$"
 

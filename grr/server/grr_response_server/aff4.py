@@ -16,6 +16,7 @@ import zlib
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 
@@ -902,10 +903,10 @@ class Factory(object):
         # appending additional_aff4object to the end (since it corresponds
         # to the earliest version of the object).
         attributes = itertools.chain(
-            aff4object.synced_attributes.iteritems(),
-            additional_aff4object.synced_attributes.iteritems())
+            iteritems(aff4object.synced_attributes),
+            iteritems(additional_aff4object.synced_attributes))
       else:
-        attributes = aff4object.synced_attributes.iteritems()
+        attributes = iteritems(aff4object.synced_attributes)
 
       for k, values in attributes:
         reduced_v = []
@@ -1886,7 +1887,7 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
       raise ValueError("Storing of anonymous AFF4 objects not supported.")
 
     to_set = {}
-    for attribute_name, value_array in self.new_attributes.iteritems():
+    for attribute_name, value_array in iteritems(self.new_attributes):
       to_set_list = to_set.setdefault(attribute_name, [])
       for value in value_array:
         to_set_list.append((value.SerializeToDataStore(), value.age))
@@ -1922,7 +1923,7 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
     """
     # This effectively moves all the values from the new_attributes to the
     # synced_attributes caches.
-    for attribute, value_array in self.new_attributes.iteritems():
+    for attribute, value_array in iteritems(self.new_attributes):
       if not attribute.versioned or self.age_policy == NEWEST_TIME:
         # Store the latest version if there are multiple unsynced versions.
         value = value_array[-1]
@@ -2545,7 +2546,7 @@ class AFF4Stream(with_metaclass(abc.ABCMeta, AFF4Object)):
     for fd in fds:
       classes_map.setdefault(fd.__class__, []).append(fd)
 
-    for fd_class, fds in classes_map.items():
+    for fd_class, fds in iteritems(classes_map):
       # pylint: disable=protected-access
       for fd, chunk, exception in fd_class._MultiStream(fds):
         yield fd, chunk, exception
@@ -2804,7 +2805,7 @@ class AFF4ImageBase(AFF4Stream):
 
         yield fd, contents_map[chunk_urn], None
 
-    for fd, missing_chunks in missing_chunks_by_fd.iteritems():
+    for fd, missing_chunks in iteritems(missing_chunks_by_fd):
       e = MissingChunksError(
           "%d missing chunks (multi-stream)." % len(missing_chunks),
           missing_chunks=missing_chunks)

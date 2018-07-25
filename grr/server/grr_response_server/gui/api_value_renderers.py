@@ -8,6 +8,7 @@ import logging
 import numbers
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 from past.builtins import long
@@ -70,7 +71,7 @@ def StripTypeInfo(rendered_data):
       return StripTypeInfo(rendered_data["value"])
     else:
       result = {}
-      for k, v in rendered_data.items():
+      for k, v in iteritems(rendered_data):
         result[k] = StripTypeInfo(v)
       return result
   else:
@@ -220,7 +221,7 @@ class ApiDictRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     result = {}
-    for k, v in value.items():
+    for k, v in iteritems(value):
       result[utils.SmartUnicode(k)] = self._PassThrough(v)
 
     return self._IncludeTypeInfo(result, value)
@@ -446,7 +447,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     result = value.AsDict()
-    for k, v in result.items():
+    for k, v in iteritems(result):
       result[k] = self._PassThrough(v)
 
     for processor in self.value_processors:

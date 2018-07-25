@@ -8,6 +8,7 @@ import zipfile
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -177,7 +178,7 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     attributes_by_type["AFF4Object"] = ["LAST", "SUBJECT", "TYPE"]
 
     details = result.file.details
-    for type_name, attrs in attributes_by_type.iteritems():
+    for type_name, attrs in iteritems(attributes_by_type):
       type_obj = next(t for t in details.types if t.name == type_name)
       all_attrs = set([a.name for a in type_obj.attributes])
       self.assertTrue(set(attrs).issubset(all_attrs))

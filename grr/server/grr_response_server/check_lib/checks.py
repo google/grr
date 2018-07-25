@@ -7,6 +7,7 @@ import logging
 import os
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 import yaml
@@ -619,7 +620,7 @@ class CheckRegistry(object):
     """
     check_ids = set()
     conditions = list(cls.Conditions(artifact, os_name, cpe, labels))
-    for chk_id, chk in cls.checks.iteritems():
+    for chk_id, chk in iteritems(cls.checks):
       if restrict_checks and chk_id not in restrict_checks:
         continue
       for condition in conditions:

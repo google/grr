@@ -7,6 +7,7 @@ import threading
 import time
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 import mock
@@ -1018,10 +1019,10 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
         ["aff4:/%s%d" % (unique_token, i) for i in range(5)], token=self.token)
 
     if isinstance(data_store.DB, fake_data_store.FakeDataStore):
-      for subject, subject_data in data_store.DB.subjects.items():
+      for subject, subject_data in iteritems(data_store.DB.subjects):
         self.assertFalse(unique_token in subject)
 
-        for column_name, values in subject_data.items():
+        for column_name, values in iteritems(subject_data):
           self.assertFalse(unique_token in column_name)
 
           for value, _ in values:

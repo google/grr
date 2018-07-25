@@ -14,6 +14,7 @@ import collections
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -43,7 +44,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(value.ToDict(), sample.ToDict())
 
   def CheckTestDict(self, test_dict, sample):
-    for k, v in test_dict.items():
+    for k, v in iteritems(test_dict):
       # Test access through getitem.
       self.assertEqual(sample[k], v)
 
@@ -144,7 +145,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.assertRaises(TypeError, rdf_protodict.Dict, **test_dict)
 
     sample = rdf_protodict.Dict()
-    for key, value in test_dict.iteritems():
+    for key, value in iteritems(test_dict):
       sample.SetItem(key, value, raise_on_error=False)
 
     # Need to do some manual checking here since this is a lossy conversion.
@@ -170,16 +171,16 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
   def testOverwriting(self):
     req = rdf_client.Iterator(client_state=rdf_protodict.Dict({"A": 1}))
     # There should be one element now.
-    self.assertEqual(len(list(req.client_state.items())), 1)
+    self.assertEqual(len(list(iteritems(req.client_state))), 1)
 
     req.client_state = rdf_protodict.Dict({"B": 2})
     # Still one element.
-    self.assertEqual(len(list(req.client_state.items())), 1)
+    self.assertEqual(len(list(iteritems(req.client_state))), 1)
 
     req.client_state = rdf_protodict.Dict({})
 
     # And now it's gone.
-    self.assertEqual(len(list(req.client_state.items())), 0)
+    self.assertEqual(len(list(iteritems(req.client_state))), 0)
 
 
 class AttributedDictTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):

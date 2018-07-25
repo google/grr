@@ -6,6 +6,7 @@ import os
 import re
 
 
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import artifact_utils
@@ -292,7 +293,7 @@ class WinServicesParser(parser.RegistryValueParser):
     # Field map key should be converted to lowercase because key aquired through
     # self._GetKeyName could have some  characters in different case than the
     # field map, e.g. ServiceDLL and ServiceDll.
-    field_map = {k.lower(): v for k, v in field_map.items()}
+    field_map = {k.lower(): v for k, v in iteritems(field_map)}
     for stat in stats:
 
       # Ignore subkeys

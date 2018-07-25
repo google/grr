@@ -7,6 +7,7 @@ import os
 
 
 from builtins import zip  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import with_metaclass
 import yaml
@@ -153,7 +154,7 @@ class HostCheckTest(
     rdfs = []
     stats = []
     files = []
-    for path, lines in data.items():
+    for path, lines in iteritems(data):
       stat = self.CreateStat(path)
       stats.append(stat)
       file_obj = io.BytesIO(lines)
@@ -254,7 +255,7 @@ class HostCheckTest(
     """Gen a tuple of list of stats and list of file contents from a dict."""
     paths = []
     contents = []
-    for path, content in data.iteritems():
+    for path, content in iteritems(data):
       paths.append(path)
       contents.append(content)
     return cls._GenFileData(paths, contents, modes=modes)
@@ -351,7 +352,7 @@ class HostCheckTest(
     self.assertItemsEqual(rslt1_anoms, rslt2_anoms)
 
     # Now check that the anomalies are the same, modulo newlines.
-    for symptom, findings in rslt1_anoms.iteritems():
+    for symptom, findings in iteritems(rslt1_anoms):
       rslt1_found = [f.strip() for f in findings]
       rslt2_found = [f.strip() for f in rslt2_anoms[symptom]]
       self.assertItemsEqual(rslt1_found, rslt2_found)
@@ -379,14 +380,14 @@ class HostCheckTest(
       self.fail("File %s could not be parsed: %s\n" % (relpath, e))
     # Otherwise, check all the configs and pass/fail at the end.
     errors = collections.OrderedDict()
-    for check_id, check_spec in configs.iteritems():
+    for check_id, check_spec in iteritems(configs):
       check_errors = self.GetCheckErrors(check_spec)
       if check_errors:
         msg = errors.setdefault(relpath, ["check_id: %s" % check_id])
         msg.append(check_errors)
     if errors:
       message = ""
-      for k, v in errors.iteritems():
+      for k, v in iteritems(errors):
         message += "File %s errors:\n" % k
         message += "  %s\n" % v[0]
         for err in v[1]:

@@ -22,7 +22,7 @@ from grr_response_server import db_users_test
 class DatabaseTestMixin(
     with_metaclass(abc.ABCMeta, db_blobs_test.DatabaseTestBlobsMixin,
                    db_clients_test.DatabaseTestClientsMixin,
-                   db_cronjob_test.DatabaseTestCronjobMixin,
+                   db_cronjob_test.DatabaseTestCronJobMixin,
                    db_events_test.DatabaseEventsTestMixin,
                    db_flows_test.DatabaseTestFlowMixin,
                    db_foreman_rules_test.DatabaseTestForemanRulesMixin,

@@ -16,7 +16,6 @@ from setuptools.command.develop import develop
 from setuptools.command.install import install
 from setuptools.command.sdist import sdist
 
-
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 os.chdir(THIS_DIRECTORY)
 
@@ -137,6 +136,7 @@ setup_args = dict(
         "pytz==2017.3",
         "PyYAML==3.12",
         "requests==2.9.1",
+        "typing==3.6.4",
         "virtualenv==15.0.3",
         "wheel==0.30",
         "yara-python==3.6.3",

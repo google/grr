@@ -8,6 +8,8 @@ import hashlib
 import os
 
 
+from future.utils import iteritems
+
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -39,7 +41,7 @@ class FilehashTest(client_test_lib.EmptyActionTest):
         rdf_client.FingerprintTuple.Type.FPT_GENERIC: "generic",
         rdf_client.FingerprintTuple.Type.FPT_PE_COFF: "pecoff"
     }
-    ti_map = dict((v, k) for k, v in t_map.iteritems())
+    ti_map = dict((v, k) for k, v in iteritems(t_map))
     for t in types:
       self.assertTrue(t_map[t] in fingers)
     for f in fingers:

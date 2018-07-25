@@ -86,7 +86,6 @@ filter is easy. Three basic filter implementations are given:
   to the given object. So "a.b" expands the object obj to obj["a"]["b"]
 """
 
-
 import abc
 import binascii
 import collections
@@ -94,6 +93,8 @@ import re
 
 
 from builtins import filter  # pylint: disable=redefined-builtin
+from future.utils import iteritems
+from future.utils import with_metaclass
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import utils
@@ -115,7 +116,10 @@ class InvalidNumberOfOperands(Error):
   """The number of operands provided to this operator is wrong."""
 
 
-class Filter(object):
+# TODO(user):pytype: Type checker doesn't see the metaclass, apparently
+# because with_metaclass is used.
+# pytype: disable=ignored-abstractmethod
+class Filter(with_metaclass(abc.ABCMeta, object)):
   """Base class for every filter."""
 
   def __init__(self, arguments=None, value_expander=None):
@@ -134,8 +138,8 @@ class Filter(object):
     self.value_expander_cls = value_expander
     if self.value_expander_cls:
       if not issubclass(self.value_expander_cls, ValueExpander):
-        raise Error("%s is not a valid value expander" %
-                    (self.value_expander_cls))
+        raise Error(
+            "%s is not a valid value expander" % (self.value_expander_cls))
       self.value_expander = self.value_expander_cls()
     self.args = arguments or []
 
@@ -148,8 +152,11 @@ class Filter(object):
     return list(filter(self.Matches, objects))
 
   def __str__(self):
-    return "%s(%s)" % (self.__class__.__name__,
-                       ", ".join([str(arg) for arg in self.args]))
+    return "%s(%s)" % (self.__class__.__name__, ", ".join(
+        [str(arg) for arg in self.args]))
+
+
+# pytype: enable=ignored-abstractmethod
 
 
 class AndFilter(Filter):
@@ -198,9 +205,9 @@ class UnaryOperator(Operator):
 
     super(UnaryOperator, self).__init__(arguments=[operand], **kwargs)
     if len(self.args) != 1:
-      raise InvalidNumberOfOperands("Only one operand is accepted by %s. "
-                                    "Received %d." % (self.__class__.__name__,
-                                                      len(self.args)))
+      raise InvalidNumberOfOperands(
+          "Only one operand is accepted by %s. "
+          "Received %d." % (self.__class__.__name__, len(self.args)))
 
 
 class BinaryOperator(Operator):
@@ -214,9 +221,9 @@ class BinaryOperator(Operator):
   def __init__(self, arguments=None, **kwargs):
     super(BinaryOperator, self).__init__(arguments=arguments, **kwargs)
     if len(self.args) != 2:
-      raise InvalidNumberOfOperands("Only two operands are accepted by %s. "
-                                    "Received %d." % (self.__class__.__name__,
-                                                      len(self.args)))
+      raise InvalidNumberOfOperands(
+          "Only two operands are accepted by %s. "
+          "Received %d." % (self.__class__.__name__, len(self.args)))
     self.left_operand = self.args[0]
     self.right_operand = self.args[1]
 
@@ -478,7 +485,7 @@ class ValueExpander(object):
     """Called when at a leaf value. Should yield a value."""
     if isinstance(attr_value, collections.Mapping):
       # If the result is a dict, return each key/value pair as a new dict.
-      for k, v in attr_value.items():
+      for k, v in iteritems(attr_value):
         yield {k: v}
     else:
       yield attr_value
@@ -497,7 +504,7 @@ class ValueExpander(object):
           yield sub_obj
         elif isinstance(sub_obj, collections.Mapping):
           # If the result is a dict, return each key/value pair as a new dict.
-          for k, v in sub_obj.items():
+          for k, v in iteritems(sub_obj):
             yield {k: v}
         else:
           for value in sub_obj:
@@ -836,7 +843,7 @@ class Parser(lexer.SearchParser):
       if (isinstance(item, ContextExpression) and
           isinstance(self.stack[i], lexer.Expression)):
         expression = self.stack[i]
-        self.stack[i - 1].SetExpression(expression)
+        item.SetExpression(expression)
         self.stack[i] = None
 
     self.stack = list(filter(None, self.stack))

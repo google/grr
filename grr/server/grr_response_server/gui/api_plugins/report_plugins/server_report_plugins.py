@@ -3,6 +3,9 @@
 
 import operator
 
+
+from future.utils import iteritems
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_server import aff4
@@ -231,7 +234,7 @@ class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
 
       ret.pie_chart.data = sorted(
           (rdf_report_plugins.ApiReportDataPoint1D(x=count, label=user)
-           for user, count in counts.iteritems()
+           for user, count in iteritems(counts)
            if user not in aff4_users.GRRUser.SYSTEM_USERS),
           key=lambda series: series.label)
 
@@ -280,12 +283,11 @@ class SystemFlowsReportPlugin(report_plugin_base.ReportPluginBase):
         pass
 
       for i, (flow, countdict) in enumerate(
-          sorted(counts.iteritems(), key=lambda x: x[1]["total"],
-                 reverse=True)):
+          sorted(iteritems(counts), key=lambda x: x[1]["total"], reverse=True)):
         total_count = countdict["total"]
         countdict.pop("total")
         topusercounts = sorted(
-            countdict.iteritems(), key=operator.itemgetter(1), reverse=True)[:3]
+            iteritems(countdict), key=operator.itemgetter(1), reverse=True)[:3]
         topusers = ", ".join("%s (%s)" % (user, count)
                              for user, count in topusercounts)
 
@@ -343,7 +345,7 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
               label=user,
               points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
                       for x, y in data))
-           for user, data in user_activity.iteritems()
+           for user, data in iteritems(user_activity)
            if user not in aff4_users.GRRUser.SYSTEM_USERS),
           key=lambda series: series.label)
 
@@ -392,12 +394,11 @@ class UserFlowsReportPlugin(report_plugin_base.ReportPluginBase):
         pass
 
       for i, (flow, countdict) in enumerate(
-          sorted(counts.iteritems(), key=lambda x: x[1]["total"],
-                 reverse=True)):
+          sorted(iteritems(counts), key=lambda x: x[1]["total"], reverse=True)):
         total_count = countdict["total"]
         countdict.pop("total")
         topusercounts = sorted(
-            countdict.iteritems(), key=operator.itemgetter(1), reverse=True)[:3]
+            iteritems(countdict), key=operator.itemgetter(1), reverse=True)[:3]
         topusers = ", ".join("%s (%s)" % (user, count)
                              for user, count in topusercounts)
 

@@ -5,6 +5,7 @@ import platform
 import unittest
 
 from builtins import chr  # pylint: disable=redefined-builtin
+from future.utils import iteritems
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import wmi_parser
@@ -27,7 +28,7 @@ class WMIParserTest(flow_test_lib.FlowTestsBaseclass):
     parser = wmi_parser.WMIInterfacesParser()
     rdf_dict = rdf_protodict.Dict()
     mock_config = client_test_lib.WMIWin32NetworkAdapterConfigurationMock
-    wmi_properties = mock_config.__dict__.iteritems()
+    wmi_properties = iteritems(mock_config.__dict__)
     for key, value in wmi_properties:
       if not key.startswith("__"):
         try:

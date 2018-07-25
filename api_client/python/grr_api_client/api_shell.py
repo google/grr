@@ -7,6 +7,8 @@ import logging
 import sys
 
 
+from builtins import str  # pylint: disable=redefined-builtin
+
 from grr_api_client import api
 from grr_api_client import api_shell_lib
 

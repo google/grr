@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """Tests for grr.lib.client_index."""
+from __future__ import unicode_literals
 
 import socket
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 
 from grr_response_core.lib import flags
@@ -346,7 +348,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     index = client_index.ClientIndex()
 
     clients = self._SetupClients(2)
-    for client_id, client in clients.items():
+    for client_id, client in iteritems(clients):
       data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
       index.AddClient(client)
 
@@ -392,7 +394,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
 
     # 1413807132 = Mon, 20 Oct 2014 12:12:12 GMT
     with test_lib.FakeTime(1413807132):
-      for client_id, client in clients.items():
+      for client_id, client in iteritems(clients):
         data_store.REL_DB.WriteClientMetadata(
             client_id, fleetspeak_enabled=False)
         index.AddClient(client)

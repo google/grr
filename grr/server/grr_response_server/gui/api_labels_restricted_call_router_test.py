@@ -2,6 +2,7 @@
 """Tests for an ApiLabelsRestrictedCallRouter."""
 
 
+from future.utils import iteritems
 from future.utils import iterkeys
 
 from grr_response_core.lib import flags
@@ -137,7 +138,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
   def RunChecks(self, router):
     result = {}
 
-    for method_name, args in self.checks.items():
+    for method_name, args in iteritems(self.checks):
       try:
         handler = getattr(router, method_name)(args, token=self.token)
         result[method_name] = (True, handler)
@@ -274,7 +275,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
 
   def CheckOnlyFollowingMethodsArePermitted(self, router, method_names):
     result = self.RunChecks(router)
-    for method_name, (status, _) in result.items():
+    for method_name, (status, _) in iteritems(result):
       if method_name in method_names:
         self.assertTrue(status, "%s is permitted" % method_name)
       else:

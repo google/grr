@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API connector base class definition."""
+from __future__ import unicode_literals
 
 
 class Connector(object):

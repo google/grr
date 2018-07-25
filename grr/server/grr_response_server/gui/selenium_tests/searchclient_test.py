@@ -28,11 +28,11 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self.client_ids = self.SetupClients(15)
 
     self.AddClientLabel(self.client_ids[0], self.token.username,
-                        "common_test_label")
+                        u"common_test_label")
     self.AddClientLabel(self.client_ids[0], self.token.username,
-                        "unique_test_label")
+                        u"unique_test_label")
     self.AddClientLabel(self.client_ids[1], self.token.username,
-                        "common_test_label")
+                        u"common_test_label")
 
     if data_store.RelationalDBReadEnabled():
       snapshot = data_store.REL_DB.ReadClientSnapshot(
@@ -48,8 +48,8 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
       # SetupClients adds no labels or user names.
       with aff4.FACTORY.Open(
           self.client_ids[0], mode="rw", token=self.token) as client_obj:
-        client_obj.AddLabel("common_test_label", owner=self.token.username)
-        client_obj.AddLabel("unique_test_label", owner=self.token.username)
+        client_obj.AddLabel(u"common_test_label", owner=self.token.username)
+        client_obj.AddLabel(u"unique_test_label", owner=self.token.username)
 
         # Add user in knowledge base.
         kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
