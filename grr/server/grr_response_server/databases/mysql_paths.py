@@ -5,23 +5,27 @@
 class MySQLDBPathMixin(object):
   """MySQLDB mixin for path related functions."""
 
-  def FindPathInfoByPathID(self, client_id, path_type, path_ids,
-                           timestamp=None):
+  def ReadPathInfo(self, client_id, path_type, components, timestamp=None):
+    """Retrieves a path info record for a given path."""
     raise NotImplementedError()
 
-  def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
-    """Returns path info records for a client."""
+  def ReadPathInfos(self, client_id, path_type, components_list):
+    """Retrieves path info records for given paths."""
     raise NotImplementedError()
 
   def WritePathInfos(self, client_id, path_infos):
     """Writes a collection of path_info records for a client."""
     raise NotImplementedError()
 
-  def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
+  def ListDescendentPathInfos(self,
+                              client_id,
+                              path_type,
+                              components,
+                              max_depth=None):
+    """Lists path info records that correspond to descendants of given path."""
     raise NotImplementedError()
 
-  def FindDescendentPathIDs(self, client_id, path_id, max_depth=None):
-    """Finds all path_ids seen on a client descent from path_id."""
+  def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
     raise NotImplementedError()
 
   def ReadPathInfosHistories(self, client_id, path_type, components_list):

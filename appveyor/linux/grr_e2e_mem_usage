@@ -1,0 +1,4 @@
+# crontab file which is installed in Appveyor VMs to enable monitoring of
+# available memory in the VM.
+
+* * * * *	root	echo "$(date) $(free -hmw | grep 'Mem:')" >> /var/log/grr_e2e_mem_usage.log

@@ -189,18 +189,6 @@ class InMemoryDBPathMixin(object):
     result.sort(key=lambda _: tuple(_.components))
     return result
 
-  # TODO(hanuszczak): This should never be called anymore. Remove it once this
-  # method is gone from the database interface.
-  @utils.Synchronized
-  def FindPathInfoByPathID(self, client_id, path_type, path_id, timestamp=None):
-    raise NotImplementedError()
-
-  # TODO(hanuszczak): This should never be called anymore. Remove it once this
-  # method is gone from the database interface.
-  @utils.Synchronized
-  def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
-    raise NotImplementedError()
-
   def _GetPathRecord(self, client_id, path_info):
     components = tuple(path_info.components)
 
@@ -246,13 +234,6 @@ class InMemoryDBPathMixin(object):
     for path_info, hash_entry in iteritems(hash_entries):
       path_record = self._GetPathRecord(client_id, path_info)
       path_record.AddHashEntry(hash_entry, path_info.timestamp)
-
-  # TODO(hanuszczak): This should never be called anymore. Remove it once this
-  # method is gone from the database interface.
-  @utils.Synchronized
-  def FindDescendentPathIDs(self, client_id, path_type, path_id,
-                            max_depth=None):
-    raise NotImplementedError()
 
   @utils.Synchronized
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
