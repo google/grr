@@ -29,7 +29,8 @@ from grr_response_server.gui import api_call_handler_utils
 # when new sensitive option is added, but these lists are not updated.
 REDACTED_OPTIONS = [
     "AdminUI.django_secret_key", "AdminUI.csrf_secret_key",
-    "Mysql.database_password", "Worker.smtp_password"
+    "BigQuery.service_acct_json", "Mysql.database_password", 
+    "Worker.smtp_password"
 ]
 REDACTED_SECTIONS = ["PrivateKeys", "Users"]
 
