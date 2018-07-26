@@ -12,7 +12,7 @@ from grr_response_core.lib import stats
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import server_logging
-from grr_response_server.blob_stores import memory_stream_bs
+from grr_response_server.blob_stores import db_blob_store
 from grr_response_server.data_stores import fake_data_store
 
 # Make sure we do not reinitialize multiple times.
@@ -58,11 +58,11 @@ def TestInit():
   if test_ds is None:
     test_ds = fake_data_store.FakeDataStore.__name__
 
-  if not INIT_RAN:
-    config.CONFIG.Set("Datastore.implementation", test_ds)
-    config.CONFIG.Set("Blobstore.implementation",
-                      memory_stream_bs.MemoryStreamBlobstore.__name__)
+  config.CONFIG.Set("Datastore.implementation", test_ds)
+  config.CONFIG.Set("Blobstore.implementation",
+                    db_blob_store.DbBlobstore.__name__)
 
+  if not INIT_RAN:
     server_logging.ServerLoggingStartupInit()
     server_logging.SetTestVerbosity()
 

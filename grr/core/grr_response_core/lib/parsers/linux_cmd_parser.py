@@ -11,7 +11,6 @@ from future.utils import iteritems
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_server import artifact_registry
 
 
 # TODO(user): Extend this to resolve repo/publisher to its baseurl.
@@ -241,17 +240,16 @@ class PsCmdParser(parser.CommandParser):
   supported_artifacts = ["ListProcessesPsCommand"]
 
   @classmethod
-  def Validate(cls):
+  def Validate(cls, supported_artifact_objects):
     """Perform some extra sanity checks on the ps arguments."""
-    super(PsCmdParser, cls).Validate()
-    for artifact_name in cls.supported_artifacts:
-      artifact = artifact_registry.REGISTRY.GetArtifact(artifact_name)
+    super(PsCmdParser, cls).Validate(supported_artifact_objects)
+    for artifact in supported_artifact_objects:
       for source in artifact.sources:
         if not cls._FindPsOutputFormat(source.attributes["cmd"],
                                        source.attributes["args"]):
           raise parser.ParserDefinitionError(
               "Artifact parser %s can't process artifact %s. 'ps' command has "
-              "unacceptable arguments." % (cls.__name__, artifact_name))
+              "unacceptable arguments." % (cls.__name__, artifact.name))
 
   @classmethod
   def _FindPsOutputFormat(cls, cmd, args):

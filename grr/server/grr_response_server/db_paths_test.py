@@ -1016,10 +1016,11 @@ class DatabaseTestPathsMixin(object):
         client_id, rdf_objects.PathInfo.PathType.OS, [])
     self.assertEqual(result, {})
 
-  def testReadPathInfosHistoriesRaisesOnUnknownClient(self):
-    with self.assertRaises(db.UnknownClientError):
-      self.db.ReadPathInfosHistories(
-          "C.FFFF111122223333", rdf_objects.PathInfo.PathType.OS, [("foo",)])
+  def testReadPathInfosHistoriesDoesNotRaiseOnUnknownClient(self):
+    results = self.db.ReadPathInfosHistories(
+        "C.FFFF111122223333", rdf_objects.PathInfo.PathType.OS, [("foo",)])
+
+    self.assertEqual(results[("foo",)], [])
 
   def testReadPathInfosHistoriesWithSingleFileWithSingleHistoryItem(self):
     client_id = self.InitializeClient()

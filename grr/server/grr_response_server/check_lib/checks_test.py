@@ -10,13 +10,13 @@ import yaml
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import config_file as config_file_parsers
+from grr_response_core.lib.parsers import linux_cmd_parser
 from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server.check_lib import checks
 from grr_response_server.check_lib import checks_test_lib
 from grr_response_server.check_lib import filters
-from grr_response_server.parsers import linux_cmd_parser
 from grr.test_lib import test_lib
 
 CHECKS_DIR = os.path.join(config.CONFIG["Test.data_dir"], "checks")

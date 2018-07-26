@@ -7,10 +7,9 @@ import os
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import parser as lib_parser
+from grr_response_core.lib.parsers import linux_cmd_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_server import artifact
-from grr_response_server.parsers import linux_cmd_parser
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
@@ -191,7 +190,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     parser = linux_cmd_parser.PsCmdParser
 
     # Test with no ps cmd artifact.
-    parser.Validate()
+    parser.Validate([])
 
     # Test with good ps artifacts.
     content_good1 = """name: GoodPsArgs1
@@ -212,11 +211,12 @@ sources:
     args: ["h", "-ewwo", "pid,ppid,uid,comm,cmd"]
 supported_os: [Linux]
 """
-    artifact.UploadArtifactYamlFile(content_good1)
-    artifact.UploadArtifactYamlFile(content_good2)
-    # Add these new artifacts to the supported ones for the parser.
-    parser.supported_artifacts.extend(["GoodPsArgs1", "GoodPsArgs2"])
-    parser.Validate()
+
+    supported_artifacts = []
+    supported_artifacts.extend(registry.ArtifactsFromYaml(content_good1))
+    supported_artifacts.extend(registry.ArtifactsFromYaml(content_good2))
+
+    parser.Validate(supported_artifacts)
 
     # Now add a bad ones. This should cause the validator to raise an error.
     content_bad1 = """name: BadPsArgsDuplicateCmd
@@ -237,15 +237,19 @@ sources:
     args: ["-ewwo", "pid,ppid,uid,cmd,comm"]
 supported_os: [Linux]
 """
-    artifact.UploadArtifactYamlFile(content_bad1)
-    artifact.UploadArtifactYamlFile(content_bad2)
-    orig = parser.supported_artifacts
-    for bad_artifact in ["BadPsArgsDuplicateCmd", "BadPsArgsCmdNotAtEnd"]:
+
+    bad_artifacts = [content_bad1, content_bad2]
+
+    for bad_artifact in bad_artifacts:
+      # Reset and add the new artifacts to the supported ones for the parser.
+      supported_artifacts = []
       with self.assertRaises(lib_parser.ParserDefinitionError):
-        # Reset and add the new artifacts to the supported ones for the parser.
-        parser.supported_artifacts = list(orig)
-        parser.supported_artifacts.append(bad_artifact)
-        parser.Validate()
+        for artifact_name in parser.supported_artifacts:
+          supported_artifacts.append(registry.GetArtifact(artifact_name))
+
+        supported_artifacts.extend(registry.ArtifactsFromYaml(bad_artifact))
+
+        parser.Validate(supported_artifacts)
 
 
 def main(args):

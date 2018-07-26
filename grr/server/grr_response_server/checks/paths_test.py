@@ -4,8 +4,8 @@
 
 
 from grr_response_core.lib import flags
+from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_server.check_lib import checks_test_lib
-from grr_response_server.parsers import linux_file_parser
 from grr.test_lib import test_lib
 
 

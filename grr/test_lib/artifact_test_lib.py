@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 """Decorators and helper functions for artifacts-related tests."""
 
+import io
 import os
+
+from future.utils import iteritems
+
 import mock
 
 from grr_response_core import config
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import artifact_registry
 
@@ -137,3 +143,32 @@ def CreateTestArtifactRegistry():
   r.AddDirSource(os.path.join(config.CONFIG["Test.data_dir"], "artifacts"))
   r.AddDatastoreSources([aff4.ROOT_URN.Add("artifact_store")])
   return r
+
+
+def GenFileData(paths, data, stats=None, files=None, modes=None):
+  """Generate a tuple of list of stats and list of file contents."""
+  if stats is None:
+    stats = []
+  if files is None:
+    files = []
+  if modes is None:
+    modes = {}
+  modes.setdefault("st_uid", 0)
+  modes.setdefault("st_gid", 0)
+  modes.setdefault("st_mode", 0o0100644)
+  for path in paths:
+    p = rdf_paths.PathSpec(path=path, pathtype="OS")
+    stats.append(rdf_client.StatEntry(pathspec=p, **modes))
+  for val in data:
+    files.append(io.BytesIO(val))
+  return stats, files
+
+
+def GenStatFileData(data, modes=None):
+  """Gen a tuple of list of stats and list of file contents from a dict."""
+  paths = []
+  contents = []
+  for path, content in iteritems(data):
+    paths.append(path)
+    contents.append(content)
+  return GenFileData(paths, contents, modes=modes)

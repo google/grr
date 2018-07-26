@@ -68,7 +68,7 @@ class Parser(with_metaclass(registry.MetaclassRegistry, object)):
   # Additional validation code can be put in this function. This will only be
   # run in tests.
   @classmethod
-  def Validate(cls):
+  def Validate(cls, supported_artifact_objects):
     pass
 
 

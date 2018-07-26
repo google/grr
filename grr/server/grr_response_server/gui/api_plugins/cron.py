@@ -92,6 +92,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
 
     return self.status_map[status.status]
 
+  # TODO(hanuszczak): Why is this an instance method?
   def InitFromAff4Object(self, cron_job):
     cron_args = cron_job.Get(cron_job.Schema.CRON_ARGS)
 
@@ -148,6 +149,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
         rdf_cronjobs.CronJobRun.CronJobRunStatus.LIFETIME_EXCEEDED
     ]
 
+  # TODO(hanuszczak): Why is this an instance method?
   def InitFromCronObject(self, cron_job):
     api_cron_job = ApiCronJob(
         cron_job_id=cron_job.cron_job_id,

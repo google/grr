@@ -238,13 +238,14 @@ class InMemoryDBPathMixin(object):
   @utils.Synchronized
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
     """Reads a collection of hash and stat entries for given paths."""
-
-    if client_id not in self.metadatas:
-      raise db.UnknownClientError(client_id)
-
     results = {}
+
     for components in components_list:
-      path_record = self.path_records[(client_id, path_type, components)]
+      try:
+        path_record = self.path_records[(client_id, path_type, components)]
+      except KeyError:
+        results[components] = []
+        continue
 
       entries_by_ts = {}
       for ts, stat_entry in path_record.GetStatEntries():
@@ -266,7 +267,7 @@ class InMemoryDBPathMixin(object):
         pi.hash_entry = hash_entry
 
       results[components] = [
-          entries_by_ts[k] for k in sorted(entries_by_ts.iterkeys())
+          entries_by_ts[k] for k in sorted(iterkeys(entries_by_ts))
       ]
 
     return results

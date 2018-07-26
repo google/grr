@@ -22,6 +22,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.check_lib import checks
 from grr_response_server.check_lib import filters
 from grr_response_server.check_lib import hints
+from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
 
@@ -233,32 +234,11 @@ class HostCheckTest(
 
   @classmethod
   def _GenFileData(cls, paths, data, stats=None, files=None, modes=None):
-    """Generate a tuple of list of stats and list of file contents."""
-    if stats is None:
-      stats = []
-    if files is None:
-      files = []
-    if modes is None:
-      modes = {}
-    modes.setdefault("st_uid", 0)
-    modes.setdefault("st_gid", 0)
-    modes.setdefault("st_mode", 0o0100644)
-    for path in paths:
-      p = rdf_paths.PathSpec(path=path, pathtype="OS")
-      stats.append(rdf_client.StatEntry(pathspec=p, **modes))
-    for val in data:
-      files.append(io.BytesIO(val))
-    return stats, files
+    return artifact_test_lib.GenFileData(paths, data, stats, files, modes)
 
   @classmethod
   def GenStatFileData(cls, data, modes=None):
-    """Gen a tuple of list of stats and list of file contents from a dict."""
-    paths = []
-    contents = []
-    for path, content in iteritems(data):
-      paths.append(path)
-      contents.append(content)
-    return cls._GenFileData(paths, contents, modes=modes)
+    return artifact_test_lib.GenStatFileData(data, modes)
 
   def GenFileData(self, artifact, data, parser=None, modes=None, include=None):
     """Create a set of host_data results based on file parser results.

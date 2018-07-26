@@ -1064,6 +1064,18 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def CheckBlobsExist(self, blob_ids):
+    """Checks if given blobs exist.
+
+    Args:
+      blob_ids: An iterable with blob hashes expressed as bytes.
+
+    Returns:
+      A map of {blob_id: status} where status is a boolean (True if blob exists,
+      False if it doesn't).
+    """
+
+  @abc.abstractmethod
   def WriteClientMessages(self, messages):
     """Writes messages that should go to the client to the db.
 
@@ -1708,6 +1720,12 @@ class DatabaseValidationWrapper(Database):
       self._ValidateBlobID(bid)
 
     return self.delegate.ReadBlobs(blob_ids)
+
+  def CheckBlobsExist(self, blob_ids):
+    for bid in blob_ids:
+      self._ValidateBlobID(bid)
+
+    return self.delegate.CheckBlobsExist(blob_ids)
 
   def WriteClientMessages(self, messages):
     for message in messages:

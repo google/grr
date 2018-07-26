@@ -7,9 +7,6 @@ from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import parser as lib_parser
 from grr_response_core.lib import rdfvalue
-# pylint: disable=unused-import
-from grr_response_server.parsers import registry_init
-# pylint: enable=unused-import
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
@@ -39,7 +36,10 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
             "has not defined a ParseMultiple method." % parser.__name__)
 
     # Additional, parser specific validation.
-    parser.Validate()
+    supported_artifact_objects = []
+    for artifact_to_parse in parser.supported_artifacts:
+      supported_artifact_objects.append(registry.GetArtifact(artifact_to_parse))
+    parser.Validate(supported_artifact_objects)
 
   @artifact_test_lib.PatchDefaultArtifactRegistry
   def testValidation(self, registry):

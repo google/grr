@@ -21,6 +21,7 @@ from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 _CLIENT_BATCH_SIZE = 200
+_BLOB_BATCH_SIZE = 1000
 _CLIENT_VERSION_THRESHOLD = rdfvalue.Duration("24h")
 _PROGRESS_INTERVAL = rdfvalue.Duration("1s")
 
@@ -350,3 +351,73 @@ def MigrateClientVfs(client_urn):
 
     data_store.REL_DB.MultiWritePathHistory(client_urn.Basename(), stat_entries,
                                             hash_entries)
+
+
+class BlobsMigrator(object):
+  """Blob store migrator."""
+
+  def __init__(self):
+    self._lock = threading.Lock()
+
+    self._total_count = 0
+    self._migrated_count = 0
+    self._start_time = None
+
+  def _MigrateBatch(self, batch):
+    """Migrates a batch of blobs."""
+
+    blobs = {}
+    for stream in aff4.FACTORY.MultiOpen(
+        batch, mode="r", aff4_type=aff4.AFF4UnversionedMemoryStream):
+      if stream.size > 0:
+        content_bytes = stream.Read(stream.size)
+        bid = rdf_objects.BlobID.FromBlobData(content_bytes)
+        blobs[bid] = content_bytes
+
+    data_store.REL_DB.WriteBlobs(blobs)
+
+    with self._lock:
+      self._migrated_count += len(batch)
+      self._Progress()
+
+  def _Progress(self):
+    """Prints the migration progress."""
+
+    elapsed = rdfvalue.RDFDatetime.Now() - self._start_time
+    if elapsed.seconds > 0:
+      bps = self._migrated_count / elapsed.seconds
+    else:
+      bps = 0.0
+
+    fraction = self._migrated_count / self._total_count
+    message = "\rMigrating blobs... {:>9}/{} ({:.2%}, bps: {:.2f})".format(
+        self._migrated_count, self._total_count, fraction, bps)
+    sys.stdout.write(message)
+    sys.stdout.flush()
+
+  def Execute(self, thread_count):
+    """Runs the migration with a given thread count."""
+
+    blob_urns = list(aff4.FACTORY.ListChildren("aff4:/blobs"))
+    sys.stdout.write("Blobs to migrate: {}\n".format(len(blob_urns)))
+    sys.stdout.write("Threads to use: {}\n".format(thread_count))
+
+    self._total_count = len(blob_urns)
+    self._migrated_count = 0
+    self._start_time = rdfvalue.RDFDatetime.Now()
+
+    batches = utils.Grouper(blob_urns, _BLOB_BATCH_SIZE)
+
+    self._Progress()
+    tp = pool.ThreadPool(processes=thread_count)
+    tp.map(self._MigrateBatch, list(batches))
+    self._Progress()
+
+    if self._migrated_count == self._total_count:
+      message = "\nMigration has been finished (migrated {} blobs).\n".format(
+          self._migrated_count)
+      sys.stdout.write(message)
+    else:
+      message = "Not all blobs have been migrated ({}/{})".format(
+          self._migrated_count, self._total_count)
+      raise AssertionError(message)

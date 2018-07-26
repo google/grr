@@ -117,3 +117,15 @@ class DatabaseTestBlobsMixin(object):
 
     read_refs = d.ReadClientPathBlobReferences(paths)
     self.assertEqual(read_refs, dict(zip(paths, refs)))
+
+  def testCheckBlobsExistCorrectlyReportsPresentAndMissingBlobs(self):
+    d = self.db
+
+    blob_id = rdf_objects.BlobID(b"01234567" * 4)
+    blob_data = b"abcdef"
+
+    d.WriteBlobs({blob_id: blob_data})
+
+    other_blob_id = rdf_objects.BlobID(b"abcdefgh" * 4)
+    result = d.CheckBlobsExist([blob_id, other_blob_id])
+    self.assertEqual(result, {blob_id: True, other_blob_id: False})

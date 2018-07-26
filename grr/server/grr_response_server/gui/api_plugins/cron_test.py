@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """This module contains tests for cron-related API handlers."""
-
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.aff4_objects import cronjobs
 from grr_response_server.flows.cron import system as cron_system
@@ -14,6 +14,78 @@ from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+
+
+class ApiCronJobTest(test_lib.GRRBaseTest):
+
+  _DATETIME = rdfvalue.RDFDatetime.FromHumanReadable
+
+  def testInitFromAff4Object(self):
+    state = rdf_protodict.AttributedDict()
+    state["quux"] = "norf"
+    state["thud"] = "blargh"
+
+    with aff4.FACTORY.Create(
+        "aff4:/cron/foo",
+        aff4_type=cronjobs.CronJob,
+        mode="w",
+        token=self.token) as fd:
+      args = rdf_cronjobs.CreateCronJobFlowArgs()
+      args.periodicity = rdfvalue.Duration("1d")
+      args.lifetime = rdfvalue.Duration("30d")
+
+      status = rdf_cronjobs.CronJobRunStatus(status="OK")
+
+      fd.Set(fd.Schema.CURRENT_FLOW_URN, rdfvalue.RDFURN("aff4:/flow/bar"))
+      fd.Set(fd.Schema.CRON_ARGS, args)
+      fd.Set(fd.Schema.LAST_RUN_TIME, self._DATETIME("2001-01-01"))
+      fd.Set(fd.Schema.LAST_RUN_STATUS, status)
+      fd.Set(fd.Schema.DISABLED, rdfvalue.RDFBool(True))
+      fd.Set(fd.Schema.STATE_DICT, state)
+
+    with aff4.FACTORY.Open("aff4:/cron/foo", mode="r", token=self.token) as fd:
+      api_cron_job = cron_plugin.ApiCronJob().InitFromAff4Object(fd)
+
+    self.assertEqual(api_cron_job.cron_job_id, "foo")
+    self.assertEqual(api_cron_job.current_run_id, "bar")
+    self.assertEqual(api_cron_job.last_run_time, self._DATETIME("2001-01-01"))
+    self.assertEqual(api_cron_job.last_run_status, "FINISHED")
+    self.assertEqual(api_cron_job.frequency, rdfvalue.Duration("1d"))
+    self.assertEqual(api_cron_job.lifetime, rdfvalue.Duration("30d"))
+    self.assertFalse(api_cron_job.enabled)
+
+    api_state_items = {_.key: _.value for _ in api_cron_job.state.items}
+    self.assertEqual(api_state_items, {"quux": "norf", "thud": "blargh"})
+
+  def testInitFromCronObject(self):
+    state = rdf_protodict.AttributedDict()
+    state["quux"] = "norf"
+    state["thud"] = "blargh"
+
+    cron_job = rdf_cronjobs.CronJob()
+    cron_job.cron_job_id = "foo"
+    cron_job.current_run_id = "bar"
+    cron_job.last_run_time = self._DATETIME("2001-01-01")
+    cron_job.last_run_status = "FINISHED"
+    cron_job.frequency = rdfvalue.Duration("1d")
+    cron_job.lifetime = rdfvalue.Duration("30d")
+    cron_job.enabled = False
+    cron_job.forced_run_requested = True
+    cron_job.state = state
+
+    api_cron_job = cron_plugin.ApiCronJob().InitFromCronObject(cron_job)
+
+    self.assertEqual(api_cron_job.cron_job_id, "foo")
+    self.assertEqual(api_cron_job.current_run_id, "bar")
+    self.assertEqual(api_cron_job.last_run_time, self._DATETIME("2001-01-01"))
+    self.assertEqual(api_cron_job.last_run_status, "FINISHED")
+    self.assertEqual(api_cron_job.frequency, rdfvalue.Duration("1d"))
+    self.assertEqual(api_cron_job.lifetime, rdfvalue.Duration("30d"))
+    self.assertFalse(api_cron_job.enabled)
+    self.assertTrue(api_cron_job.forced_run_requested)
+
+    api_state_items = {_.key: _.value for _ in api_cron_job.state.items}
+    self.assertEqual(api_state_items, {"quux": "norf", "thud": "blargh"})
 
 
 class CronJobsTestMixin(object):

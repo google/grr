@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import mock
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -7,6 +9,8 @@ from grr_response_server import aff4
 from grr_response_server import data_migration
 from grr_response_server import data_store
 from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.blob_stores import db_blob_store
+from grr_response_server.blob_stores import memory_stream_bs
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
@@ -202,6 +206,28 @@ class VfsMigrationTest(test_lib.GRRBaseTest):
         components=("bar",),
         timestamp=datetime("2030-12-31"))
     self.assertEqual(path_info.hash_entry.md5, b"blargh")
+
+
+@mock.patch.object(data_migration, "_BLOB_BATCH_SIZE", 1)
+class BlobStoreMigratorTest(test_lib.GRRBaseTest):
+
+  def testBlobsAreCorrectlyMigrated(self):
+    mem_bs = memory_stream_bs.MemoryStreamBlobstore()
+    db_bs = db_blob_store.DbBlobstore()
+
+    blob_contents_1 = "A" * 1024
+    blob_hash_1 = mem_bs.StoreBlob(blob_contents_1)
+
+    blob_contents_2 = "B" * 1024
+    blob_hash_2 = mem_bs.StoreBlob(blob_contents_2)
+
+    data_migration.BlobsMigrator().Execute(2)
+
+    contents = db_bs.ReadBlob(blob_hash_1)
+    self.assertEqual(contents, blob_contents_1)
+
+    contents = db_bs.ReadBlob(blob_hash_2)
+    self.assertEqual(contents, blob_contents_2)
 
 
 if __name__ == "__main__":

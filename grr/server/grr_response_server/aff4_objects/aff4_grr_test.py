@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the grr aff4 objects."""
 
+import hashlib
 import io
 import time
 
@@ -291,6 +292,11 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         self.assertEqual(summary.system_uuid, system_uuid)
 
 
+def StoreBlobStub(blob, token=None):
+  del token  # Unused.
+  return hashlib.sha256(blob).hexdigest()
+
+
 class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for cron functionality."""
 
@@ -409,12 +415,13 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(io.BytesIO(b"123456789"))
+      # Patching StoreBlob prevents the blobs from actually being written.
+      with mock.patch.object(
+          data_store.DB, "StoreBlob", side_effect=StoreBlobStub):
+        fd.AppendContent(io.BytesIO(b"123456789"))
 
       fd.index.seek(0)
       blob_id = fd.index.read(fd._HASH_SIZE).encode("hex")
-
-    data_store.DB.DeleteBlob(blob_id, token=self.token)
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     returned_fd, _, e = list(aff4.AFF4Stream.MultiStream([fd]))[0]
@@ -426,13 +433,12 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(io.BytesIO(b"*" * 10 + b"123456789"))
+      fd.AppendContent(io.BytesIO(b"*" * 10))
 
-      fd.index.seek(0)
-      unused_blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
-      blob_id_2 = fd.index.read(fd._HASH_SIZE).encode("hex")
-
-    data_store.DB.DeleteBlob(blob_id_2, token=self.token)
+      # Patching StoreBlob prevents the blobs from actually being written.
+      with mock.patch.object(
+          data_store.DB, "StoreBlob", side_effect=StoreBlobStub):
+        fd.AppendContent(io.BytesIO(b"123456789"))
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     count = 0
@@ -450,13 +456,12 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(io.BytesIO(b"*" * 10 + b"123456789"))
+      fd.AppendContent(io.BytesIO(b"*" * 10))
 
-      fd.index.seek(0)
-      unused_blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
-      blob_id_2 = fd.index.read(fd._HASH_SIZE).encode("hex")
-
-    data_store.DB.DeleteBlob(blob_id_2, token=self.token)
+      # Patching StoreBlob prevents the blobs from actually being written.
+      with mock.patch.object(
+          data_store.DB, "StoreBlob", side_effect=StoreBlobStub):
+        fd.AppendContent(io.BytesIO(b"123456789"))
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     content = []
@@ -477,12 +482,13 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.AppendContent(io.BytesIO(b"*" * 10 + b"123456789"))
 
-      fd.index.seek(0)
-      blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
+      # Patching StoreBlob prevents the blobs from actually being written.
+      with mock.patch.object(
+          data_store.DB, "StoreBlob", side_effect=StoreBlobStub):
+        fd.AppendContent(io.BytesIO(b"*" * 10))
 
-    data_store.DB.DeleteBlob(blob_id_1, token=self.token)
+      fd.AppendContent(io.BytesIO(b"123456789"))
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     count = 0

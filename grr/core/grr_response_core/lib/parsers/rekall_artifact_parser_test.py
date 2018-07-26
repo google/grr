@@ -5,9 +5,9 @@ import gzip
 import os
 from grr_response_core import config
 from grr_response_core.lib import flags
+from grr_response_core.lib.parsers import rekall_artifact_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
-from grr_response_server.parsers import rekall_artifact_parser
 from grr.test_lib import test_lib
 
 

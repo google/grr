@@ -12,6 +12,10 @@ from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+# For file collection artifacts. pylint: disable=unused-import
+from grr_response_core.lib.parsers import registry_init
+# pylint: enable=unused-import
+from grr_response_core.lib.parsers import windows_persistence
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -30,10 +34,6 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import memory
 from grr_response_server.flows.general import transfer
-# For file collection artifacts. pylint: disable=unused-import
-from grr_response_server.parsers import registry_init
-# pylint: enable=unused-import
-from grr_response_server.parsers import windows_persistence
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):

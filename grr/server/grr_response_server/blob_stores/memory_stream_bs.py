@@ -24,8 +24,7 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
     """Creates or overwrites blobs."""
 
     contents_by_digest = {
-        hashlib.sha256(content).hexdigest(): content
-        for content in contents
+        hashlib.sha256(content).hexdigest(): content for content in contents
     }
 
     urns = {self._BlobUrn(digest): digest for digest in contents_by_digest}
@@ -80,7 +79,3 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
       res[urns[blob.urn]] = True
 
     return res
-
-  def DeleteBlobs(self, digests, token=None):
-    aff4.FACTORY.MultiDelete(
-        [self._BlobUrn(digest) for digest in digests], token=token)

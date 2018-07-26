@@ -4,10 +4,10 @@
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
+from grr_response_core.lib.parsers import windows_registry_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_server.parsers import windows_registry_parser
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -22,8 +22,9 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
 
     if registry_type == rdf_client.StatEntry.RegistryType.REG_MULTI_SZ:
-      reg_data = rdf_protodict.DataBlob(list=rdf_protodict.BlobArray(
-          content=rdf_protodict.DataBlob(string=value)))
+      reg_data = rdf_protodict.DataBlob(
+          list=rdf_protodict.BlobArray(
+              content=rdf_protodict.DataBlob(string=value)))
     else:
       reg_data = rdf_protodict.DataBlob().SetValue(value)
 

@@ -60,7 +60,6 @@ class InMemoryDBBlobsMixin(object):
   @utils.Synchronized
   def WriteBlobs(self, blob_id_data_pairs):
     """Writes given blobs."""
-
     self.blobs.update(blob_id_data_pairs)
 
   @utils.Synchronized
@@ -70,5 +69,15 @@ class InMemoryDBBlobsMixin(object):
     result = {}
     for blob_id in blob_ids:
       result[blob_id] = self.blobs.get(blob_id, None)
+
+    return result
+
+  @utils.Synchronized
+  def CheckBlobsExist(self, blob_ids):
+    """Checks if given blobs exit."""
+
+    result = {}
+    for blob_id in blob_ids:
+      result[blob_id] = blob_id in self.blobs
 
     return result

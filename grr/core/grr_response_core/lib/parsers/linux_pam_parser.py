@@ -23,7 +23,8 @@ class PAMParser(parser.FileParser, config_file.FieldParser):
 
   PAMDIR = "/etc/pam.d"
   OLD_PAMCONF_FILENAME = "/etc/pam.conf"
-  PAMCONF_RE = re.compile(r"""
+  PAMCONF_RE = re.compile(
+      r"""
       (\S+)          # The "type".
       \s+            # separator
       (              # Now match the "control" argument.

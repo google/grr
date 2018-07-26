@@ -290,6 +290,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testMultipleBlobsCanBeWrittenAndThenRead(self):
     pass
 
+  def testCheckBlobsExistCorrectlyReportsPresentAndMissingBlobs(self):
+    pass
+
   def testWritingBlobReferenceToNonExistentPathRaises(self):
     pass
 
@@ -308,7 +311,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testReadPathInfosHistoriesEmpty(self):
     pass
 
-  def testReadPathInfosHistoriesRaisesOnUnknownClient(self):
+  def testReadPathInfosHistoriesDoesNotRaiseOnUnknownClient(self):
     pass
 
   def testReadPathInfosHistoriesWithSingleFileWithSingleHistoryItem(self):

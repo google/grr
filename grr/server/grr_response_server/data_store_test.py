@@ -1142,19 +1142,6 @@ class DataStoreTestMixin(object):
     self.assertFalse(data_store.DB.BlobExists(empty_digest))
     self.assertIsNone(data_store.DB.ReadBlob(empty_digest))
 
-  @DeletionTest
-  def testBlobDeletion(self):
-    data = "randomdata" * 50
-
-    identifier = data_store.DB.StoreBlob(data)
-
-    self.assertTrue(data_store.DB.BlobExists(identifier))
-    self.assertEqual(data_store.DB.ReadBlob(identifier), data)
-
-    data_store.DB.DeleteBlob(identifier, token=self.token)
-    self.assertFalse(data_store.DB.BlobExists(identifier))
-    self.assertEqual(data_store.DB.ReadBlob(identifier), None)
-
   def testAFF4BlobImage(self):
     # 500k
     data = "randomdata" * 50 * 1024
@@ -1340,8 +1327,6 @@ class DataStoreTestMixin(object):
         "CreateNotifications",
         "DBSubjectLock",
         "DeleteAttributes",
-        "DeleteBlob",
-        "DeleteBlobs",
         "DeleteNotifications",
         "DeleteRequest",
         "DeleteRequests",

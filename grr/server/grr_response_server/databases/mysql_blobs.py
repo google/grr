@@ -16,3 +16,6 @@ class MySQLDBBlobsMixin(object):
 
   def ReadBlobs(self, blob_ids):
     raise NotImplementedError()
+
+  def CheckBlobsExist(self, blob_ids):
+    raise NotImplementedError()
