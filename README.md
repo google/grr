@@ -4,11 +4,12 @@
 <p align="center">
 GRR Rapid Response is an incident response framework focused on remote live forensics.
 
-| Build Type       | Status |
-| :--------------- | :----- |
-| Linux & MacOS    | [![Build Status](https://travis-ci.org/google/grr.svg?branch=master)](https://travis-ci.org/google/grr) |
-| Windows          | [![Build status](https://ci.appveyor.com/api/projects/status/o30jv69p5muc12r5?svg=true)](https://ci.appveyor.com/project/destijl/grr) |
-| End-to-end Tests | [![Build status](https://ci.appveyor.com/api/projects/status/ir4bq9577xwxt6t3?svg=true)](https://ci.appveyor.com/project/grr/grr) |
+| Build Type              | Status |
+| :---------------------- | :----- |
+| Tests                   | [![Build status](https://ci.appveyor.com/api/projects/status/f17x9okek7su5myp?svg=true)](https://ci.appveyor.com/project/grr/grr-ia94e) |
+| End-to-end Tests        | [![Build status](https://ci.appveyor.com/api/projects/status/ir4bq9577xwxt6t3?svg=true)](https://ci.appveyor.com/project/grr/grr) |
+| Windows Templates       | [![Build status](https://ci.appveyor.com/api/projects/status/o6y6svl9cu0j3u4x?svg=true)](https://ci.appveyor.com/project/grr/grr-5wmt5) |
+| Linux & MacOS Templates | [![Build Status](https://travis-ci.org/google/grr.svg?branch=master)](https://travis-ci.org/google/grr) |
 
 GRR is a python client (agent) that is installed on target systems, and
 python server infrastructure that can manage and talk to clients.<br>
