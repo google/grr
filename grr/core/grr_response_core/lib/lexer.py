@@ -7,6 +7,7 @@ import re
 
 # pytype: disable=import-error
 from builtins import filter  # pylint: disable=redefined-builtin
+from builtins import range  # pylint: disable=redefined-builtin
 # pytype: enable=import-error
 
 from grr_response_core.lib import utils

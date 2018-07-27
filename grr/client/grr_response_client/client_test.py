@@ -2,6 +2,8 @@
 """Tests for the client."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 # Need to import client to add the flags.
 from grr_response_client import actions
 

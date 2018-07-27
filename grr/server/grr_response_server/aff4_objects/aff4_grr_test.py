@@ -5,6 +5,7 @@ import hashlib
 import io
 import time
 
+from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
 from grr_response_core.lib import flags

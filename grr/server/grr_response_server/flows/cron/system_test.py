@@ -2,6 +2,7 @@
 """System cron flows tests."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iterkeys
 
 from grr_response_core import config

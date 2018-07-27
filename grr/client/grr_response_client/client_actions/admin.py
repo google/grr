@@ -10,6 +10,7 @@ import traceback
 
 
 from builtins import map  # pylint: disable=redefined-builtin
+from builtins import range  # pylint: disable=redefined-builtin
 import cryptography
 from cryptography.hazmat.backends import openssl
 from future.utils import iteritems

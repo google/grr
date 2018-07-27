@@ -2,6 +2,8 @@
 """Tests the queue manager."""
 
 import time
+
+from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
 from grr_response_core.lib import flags

@@ -2,6 +2,8 @@
 """Tests for AuthorizationManager."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_server.authorization import auth_manager

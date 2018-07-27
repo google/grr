@@ -3,6 +3,8 @@
 
 import Queue
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 

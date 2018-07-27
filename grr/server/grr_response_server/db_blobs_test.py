@@ -2,6 +2,7 @@
 """Mixin tests for blobs in the relational db."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
 
 from grr_response_server import db

@@ -5,6 +5,8 @@ import hashlib
 import itertools
 import time
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for mysql_pool.py."""
 
+from builtins import range  # pylint: disable=redefined-builtin
 import mock
 import MySQLdb
 

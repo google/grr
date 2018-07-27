@@ -2,6 +2,8 @@
 """Tests for Windows Volume Shadow Copy flow."""
 import stat
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths

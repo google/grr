@@ -6,6 +6,7 @@ import logging
 import random
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
 

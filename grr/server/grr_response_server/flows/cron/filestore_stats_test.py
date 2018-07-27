@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for the filestore stats."""
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_server import aff4
 from grr_response_server.aff4_objects import filestore as aff4_filestore

@@ -6,6 +6,8 @@ import hashlib
 import os
 import platform
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue

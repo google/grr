@@ -2,6 +2,8 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test RDFStruct implementations."""
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from google.protobuf import descriptor_pool
 from google.protobuf import message_factory
 

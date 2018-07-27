@@ -8,6 +8,7 @@ import SocketServer
 import ssl
 from wsgiref import simple_server
 
+from builtins import range  # pylint: disable=redefined-builtin
 import ipaddr
 
 from grr_response_core import config

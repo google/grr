@@ -8,6 +8,8 @@ import os
 import platform
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 # pylint: disable=g-bad-import-order, g-import-not-at-top
 # Import Chipsec configuration first so we can hook onto its internal path
 # resolution.

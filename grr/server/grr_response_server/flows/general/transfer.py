@@ -5,6 +5,7 @@ from __future__ import division
 import logging
 import zlib
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
 

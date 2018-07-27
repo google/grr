@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for email output plugin."""
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils

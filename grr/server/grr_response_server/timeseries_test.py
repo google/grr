@@ -2,6 +2,8 @@
 """Tests for grr.lib.timeseries."""
 from __future__ import division
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_server import timeseries
 from grr.test_lib import test_lib

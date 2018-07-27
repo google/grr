@@ -8,6 +8,8 @@ import threading
 import time
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
@@ -94,7 +96,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
 
     self.test_pool.Join()
     test_list.sort()
-    self.assertEqual(range(self.NUMBER_OF_TASKS), test_list)
+    self.assertEqual(list(range(self.NUMBER_OF_TASKS)), test_list)
 
   def testRunRaisingTask(self):
     """Tests the behavior of the pool if a task throws an exception."""
@@ -220,7 +222,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
         self.test_pool.AddTask(Insert, (res, i), "Insert", inline=True)
 
       res.sort()
-      self.assertEqual(res, range(10, 20))
+      self.assertEqual(res, list(range(10, 20)))
 
       # This should release all the busy tasks. It will also cause the workers
       # to process all the Insert tasks in the queue.
@@ -229,7 +231,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       self.test_pool.Join()
 
       # Now the rest of the tasks should have been processed as well.
-      self.assertEqual(sorted(res[10:]), range(20))
+      self.assertEqual(sorted(res[10:]), list(range(20)))
 
   def testThreadsReaped(self):
     """Check that threads are reaped when too old."""

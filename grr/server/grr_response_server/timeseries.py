@@ -5,6 +5,8 @@ from __future__ import division
 
 import copy
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import rdfvalue
 
 NORMALIZE_MODE_GAUGE = 1

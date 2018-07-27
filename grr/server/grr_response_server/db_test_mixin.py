@@ -5,6 +5,7 @@ import abc
 import random
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import with_metaclass
 
 from grr_response_server import db

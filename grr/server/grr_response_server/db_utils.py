@@ -5,6 +5,8 @@ import functools
 import logging
 import time
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import registry
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils

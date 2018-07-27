@@ -8,6 +8,7 @@ import shutil
 import stat
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 import psutil
 
 # pylint: disable=unused-import,g-bad-import-order

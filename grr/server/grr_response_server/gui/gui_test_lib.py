@@ -10,6 +10,7 @@ import threading
 import time
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.moves.urllib import parse as urlparse
 import portpicker
 from selenium import webdriver

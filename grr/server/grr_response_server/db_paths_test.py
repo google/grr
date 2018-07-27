@@ -602,11 +602,15 @@ class DatabaseTestPathsMixin(object):
   def testReadPathInfoNonExistent(self):
     client_id = self.InitializeClient()
 
-    with self.assertRaises(db.UnknownPathError):
+    with self.assertRaises(db.UnknownPathError) as ctx:
       self.db.ReadPathInfo(
           client_id,
           rdf_objects.PathInfo.PathType.OS,
           components=("foo", "bar", "baz"))
+
+    self.assertEqual(ctx.exception.client_id, client_id)
+    self.assertEqual(ctx.exception.path_type, rdf_objects.PathInfo.PathType.OS)
+    self.assertEqual(ctx.exception.components, ("foo", "bar", "baz"))
 
   def testReadPathInfoTimestampStatEntry(self):
     client_id = self.InitializeClient()

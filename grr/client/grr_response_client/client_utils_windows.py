@@ -7,7 +7,9 @@ import logging
 import os
 import re
 import time
+
 import _winreg
+from builtins import range  # pylint: disable=redefined-builtin
 import ntsecuritycon
 import pywintypes
 import win32api

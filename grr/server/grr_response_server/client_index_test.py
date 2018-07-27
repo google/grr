@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import socket
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import iterkeys
 

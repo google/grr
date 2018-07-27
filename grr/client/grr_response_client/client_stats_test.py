@@ -2,6 +2,7 @@
 import collections
 import itertools
 
+from builtins import range  # pylint: disable=redefined-builtin
 import mock
 import psutil
 

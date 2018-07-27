@@ -2,6 +2,8 @@
 """Tests for grr_response_server.hunts.results."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -46,7 +48,7 @@ class ResultTest(aff4_test_lib.AFF4ObjectTest):
     for message in collection.MultiResolve(
         [r.value.ResultRecord() for r in results[1]]):
       values_read.append(message.request_id)
-    self.assertEqual(sorted(values_read), range(5))
+    self.assertEqual(sorted(values_read), list(range(5)))
 
   def testNotificationClaimsTimeout(self):
     collection_urn = rdfvalue.RDFURN(
@@ -139,7 +141,7 @@ class ResultTest(aff4_test_lib.AFF4ObjectTest):
         [r.value.ResultRecord() for r in results_2[1]]):
       values_read.append(message.request_id)
 
-    self.assertEqual(sorted(values_read), range(100, 200))
+    self.assertEqual(sorted(values_read), list(range(100, 200)))
 
 
 def main(argv):

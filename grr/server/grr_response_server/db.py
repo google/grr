@@ -65,14 +65,14 @@ class UnknownPathError(NotFoundError):
     path_id: An id of the path.
   """
 
-  def __init__(self, client_id, path_type, path_id, cause=None):
-    message = "Path of type '%s' with id '%s' on client '%s' does not exist"
-    message %= (path_type, path_id, client_id)
+  def __init__(self, client_id, path_type, components, cause=None):
+    message = "Path '%s' of type '%s' on client '%s' does not exist"
+    message %= ("/".join(components), path_type, client_id)
     super(UnknownPathError, self).__init__(message, cause=cause)
 
     self.client_id = client_id
     self.path_type = path_type
-    self.path_id = path_id
+    self.components = components
 
 
 class AtLeastOneUnknownPathError(NotFoundError):

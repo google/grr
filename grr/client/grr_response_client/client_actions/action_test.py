@@ -7,6 +7,7 @@ import posix
 import stat
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
 import psutil
 

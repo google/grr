@@ -2,6 +2,8 @@
 """Tests core paths detection logic."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.path_detection import core
 from grr.test_lib import test_lib

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """This tests the performance of the AFF4 subsystem."""
 
-
+from builtins import range  # pylint: disable=redefined-builtin
 import pytest
 
 from grr_response_core.lib import flags

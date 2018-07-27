@@ -7,6 +7,7 @@ import tarfile
 import zipfile
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 import yaml
 
 from grr_response_core.lib import flags

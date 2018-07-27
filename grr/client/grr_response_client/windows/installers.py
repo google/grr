@@ -20,7 +20,9 @@ import shutil
 import subprocess
 import sys
 import time
+
 import _winreg
+from builtins import range  # pylint: disable=redefined-builtin
 import pywintypes
 import win32process
 import win32service

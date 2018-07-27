@@ -6,6 +6,7 @@ An index of client machines, associating likely identifiers to client IDs.
 
 
 from builtins import map  # pylint: disable=redefined-builtin
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
 

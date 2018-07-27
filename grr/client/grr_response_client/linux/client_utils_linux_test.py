@@ -7,6 +7,7 @@ import tempfile
 import time
 import unittest
 
+from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
 import unittest

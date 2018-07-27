@@ -6,8 +6,8 @@ import string
 import threading
 import unittest
 
-# TODO(hanuszczak): This should be imported conditionally.
-import MySQLdb
+from builtins import range  # pylint: disable=redefined-builtin
+import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 
 import unittest
 from grr_response_server import db_test_mixin

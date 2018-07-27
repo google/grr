@@ -7,6 +7,7 @@ import unittest
 import zipfile
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 

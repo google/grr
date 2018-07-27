@@ -4,6 +4,7 @@
 import re
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 
 from grr_response_core import config

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """User dashboard tests."""
 
+
+from builtins import range  # pylint: disable=redefined-builtin
+
 import unittest
 from grr_response_core.lib import flags
 

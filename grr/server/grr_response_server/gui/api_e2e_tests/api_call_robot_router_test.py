@@ -6,6 +6,8 @@ import os
 import zipfile
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 

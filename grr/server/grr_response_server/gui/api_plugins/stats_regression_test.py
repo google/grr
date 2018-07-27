@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This module contains regression tests for stats API handlers."""
 
+from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue

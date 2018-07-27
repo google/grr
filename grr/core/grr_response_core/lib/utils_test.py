@@ -13,6 +13,8 @@ import threading
 import unittest
 import zipfile
 
+
+from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
 import unittest
@@ -80,7 +82,7 @@ class StoreTests(test_lib.GRRBaseTest):
       s.Put(i, i)
 
     # Only the first 5 messages have been expired (and hence called)
-    self.assertEqual(results, range(0, 5))
+    self.assertEqual(results, list(range(0, 5)))
 
   def test05TimeBasedCache(self):
 

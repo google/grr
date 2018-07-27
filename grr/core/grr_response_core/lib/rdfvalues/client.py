@@ -15,6 +15,7 @@ import stat
 import struct
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
 import ipaddr

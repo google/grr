@@ -10,6 +10,8 @@ import math
 import random
 import time
 import warnings
+
+from builtins import range  # pylint: disable=redefined-builtin
 import MySQLdb
 
 from grr_response_server import db as db_module

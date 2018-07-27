@@ -4,6 +4,7 @@
 import time
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
 
 from grr_response_client import vfs
@@ -597,7 +598,7 @@ class FlowTest(BasicFlowTest):
     # message to complete the transaction (Well known flows do not
     # have transactions or states - all messages always get to the
     # ProcessMessage method):
-    self.assertEqual(test_flow.messages, range(10))
+    self.assertEqual(test_flow.messages, list(range(10)))
 
   def testArgParsing(self):
     """Test that arguments can be extracted and annotated successfully."""

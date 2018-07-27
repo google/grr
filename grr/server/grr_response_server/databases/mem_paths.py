@@ -144,10 +144,8 @@ class InMemoryDBPathMixin(object):
       path_record = self.path_records[(client_id, path_type, components)]
       return path_record.GetPathInfo(timestamp=timestamp)
     except KeyError:
-      # TODO(hanuszczak): Refactor `db.UnknownPathError` to contain `components`
-      # field instead of `path_id`.
       raise db.UnknownPathError(
-          client_id=client_id, path_type=path_type, path_id=None)
+          client_id=client_id, path_type=path_type, components=components)
 
   @utils.Synchronized
   def ReadPathInfos(self, client_id, path_type, components_list):

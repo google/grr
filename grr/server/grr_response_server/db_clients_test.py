@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue

@@ -2,6 +2,7 @@
 """This modules contains regression tests for clients API handlers."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 import psutil
 
 from grr_response_core.lib import flags

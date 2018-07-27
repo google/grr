@@ -2,6 +2,8 @@
 """Tests for grr.lib.keyword_index."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_server import aff4
 from grr_response_server import keyword_index

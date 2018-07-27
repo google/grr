@@ -19,6 +19,7 @@ import time
 import unittest
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 import mock
 import pkg_resources

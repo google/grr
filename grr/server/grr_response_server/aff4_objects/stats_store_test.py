@@ -2,6 +2,7 @@
 """Tests for the stats_store classes."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iterkeys
 
 from grr_response_core.lib import flags

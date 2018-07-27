@@ -5,6 +5,8 @@ import threading
 import time
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_api_client import errors as grr_api_errors
 from grr_api_client import utils as grr_api_utils
 from grr_response_core.lib import flags

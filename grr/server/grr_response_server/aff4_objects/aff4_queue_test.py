@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for Queue."""
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_server import aff4

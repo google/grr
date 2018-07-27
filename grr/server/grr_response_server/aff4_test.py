@@ -7,6 +7,7 @@ import threading
 import time
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
