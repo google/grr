@@ -1,0 +1,26 @@
+branches:
+  only:
+    - master
+
+image: ubuntu
+
+environment:
+  GRR_ADMIN_PASS: 'e2e_tests'
+
+install:
+- lsb_release -a
+- echo "${PATH}"
+- lscpu
+- sudo -EH ./appveyor/e2e_tests/install_mem_usage_cron.sh
+- sudo -EH ./appveyor/e2e_tests/install_latest_server_deb.sh
+
+# Appveyor will try to build any Visual Studio projects it finds
+# if we do not disable this.
+build: off
+
+test_script:
+- sudo -EH ./appveyor/e2e_tests/run_e2e_tests.sh
+- sudo -EH ./appveyor/e2e_tests/test_repack.sh
+
+on_finish:
+- ./appveyor/e2e_tests/upload_e2e_artifacts.sh

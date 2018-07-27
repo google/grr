@@ -1,0 +1,37 @@
+branches:
+  only:
+    - master
+
+image: ubuntu
+
+environment:
+  PROTOC: "${HOME}/protobuf/bin/protoc"
+  GRR_VENV: "${HOME}/INSTALL"
+  CHROME_DEB: google-chrome-stable_current_amd64.deb
+
+install:
+- lsb_release -a
+- python --version
+- echo "${PATH}"
+- free -hmw
+- lscpu
+- sudo apt update
+- sudo apt install -y libmysqlclient-dev
+# Install chrome if absent.
+- >-
+  [[ -z "$(type google-chrome 2>/dev/null)" ]] &&
+  wget "https://dl.google.com/linux/direct/${CHROME_DEB}" &&
+  sudo apt install -y "./${CHROME_DEB}"
+- travis/install_protobuf.sh linux
+- virtualenv "${GRR_VENV}"
+- ${GRR_VENV}/bin/pip install pytest-xdist
+- travis/install.sh
+
+# Appveyor will try to build any Visual Studio projects it finds
+# if we do not disable this.
+build: off
+
+test_script:
+- source "${GRR_VENV}/bin/activate"
+- pytest -n 2 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/
+- (cd grr/server/grr_response_server/gui/static/ && gulp test)

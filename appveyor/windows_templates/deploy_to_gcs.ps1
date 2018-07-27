@@ -1,9 +1,11 @@
+$ErrorActionPreference = 'Stop'
+
 $env:PATH += ';C:\grr_deps\google-cloud-sdk\bin'
 
-gcloud auth activate-service-account --key-file C:\grr_src\appveyor\appveyor_uploader_service_account.json
+gcloud auth activate-service-account --key-file C:\grr_src\appveyor\windows_templates\appveyor_uploader_service_account.json
 
 if (!$?) {
-  exit 1
+  throw 'Failed to activate GCE service account.'
 }
 
 # Parse appveyor IS0 8601 commit date string (e.g 2017-07-26T16:49:31.0000000Z)
@@ -25,7 +27,7 @@ Write-Output "Uploading templates to $gcs_dest"
 $stop_watch = [Diagnostics.Stopwatch]::StartNew()
 gsutil cp 'C:\grr_src\output\*' $gcs_dest
 if (!$?) {
-  exit 2
+  throw 'Failed to upload templates.'
 }
 $stop_watch.Stop()
 $upload_duration = $stop_watch.Elapsed.TotalSeconds

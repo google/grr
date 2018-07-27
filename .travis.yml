@@ -26,11 +26,9 @@ matrix:
         - pip install --upgrade virtualenv
         - virtualenv "${HOME}/INSTALL"
       install:
-        - travis/install.sh
+        - travis/install_client_only.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
-        - pytest grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/
-        - (cd grr/server/grr_response_server/gui/static/ && gulp test)
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh
 
@@ -59,8 +57,6 @@ matrix:
         - travis/install_client_only.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
-        # TODO(ogaro): Uncomment when we have a final solution for testing on MacOS.
-        #- pytest grr/client/grr_response_client/ --ignore grr/server/grr_response_server/gui/selenium_tests/ --ignore grr/client/grr_response_client/linux/ --ignore grr/client/grr_response_client/client_actions/linux/
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh
 

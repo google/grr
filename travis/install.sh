@@ -2,7 +2,7 @@
 
 # Install grr into a virtualenv
 
-set -e
+set -ex
 
 source "${HOME}/INSTALL/bin/activate"
 pip install --upgrade pip wheel six setuptools nodeenv
@@ -32,6 +32,9 @@ fi
 
 # Get around a Travis bug: https://github.com/travis-ci/travis-ci/issues/8315#issuecomment-327951718
 unset _JAVA_OPTIONS
+
+# This causes 'gulp compile' to fail.
+unset JAVA_TOOL_OPTIONS
 
 # Install grr packages as links pointing to code in the
 # checked-out repository.

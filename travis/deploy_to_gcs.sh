@@ -2,11 +2,16 @@
 #
 # Script that uploads artifacts built by Travis to GCS.
 
-set -e
+set -ex
 
 # API token for account belonging to username 'grr'.
 # See 'https://ci.appveyor.com/api-token'
 readonly APPVEYOR_TOKEN='3nsovp2rs3o7j272awfv'
+
+function fatal() {
+  >&2 echo "Error: ${1}"
+  exit 1
+}
 
 function delete_gcs_keys() {
   if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -31,6 +36,24 @@ gcs_dest="gs://${GCS_BUCKET}/${commit_timestamp}_${TRAVIS_COMMIT}/travis_job_${T
 echo Uploading templates to "${gcs_dest}"
 gsutil -m cp gcs_upload_dir/* "${gcs_dest}"
 
+# Trigger Appveyor job that builds Windows templates.
+if [[ "${GCS_TAG}" == 'ubuntu_64bit' ]]; then
+  curl --write-out %{http_code} \
+    --output win_template_response.txt \
+    --header "Authorization: Bearer ${APPVEYOR_TOKEN}" \
+    --header 'Content-Type: application/json' \
+    --data '{"accountName":"grr", "projectSlug":"grr-5wmt5", "branch":"master", "commitId":"'"${TRAVIS_COMMIT}"'"}' \
+    --request POST \
+    https://ci.appveyor.com/api/builds 1>win_template_response_code.txt
+
+  cat win_template_response.txt
+  response_code="$(cat win_template_response_code.txt)"
+  if [[ "${response_code}" != '200' ]]; then
+    delete_gcs_keys
+    fatal "Failed to trigger Appveyor build. Response code: ${response_code}."
+  fi
+fi
+
 # No more work to do if the currently-running job is not the one that builds
 # server debs.
 if [[ "${GCS_TAG}" != 'server_deb' ]]; then
@@ -44,9 +67,8 @@ backup_dir="gs://${GCS_BUCKET}/.latest_server_deb"
 # Copy the server deb to its backup location.
 original_deb_exists="$( ( gsutil --quiet stat "${gcs_dest}/*.deb" && echo true ) || echo false )"
 if [[ "${original_deb_exists}" != 'true' ]]; then
-  echo "Server deb not found in ${gcs_dest}"
   delete_gcs_keys
-  exit 1
+  fatal "Server deb not found in ${gcs_dest}"
 fi
 gsutil rm -r "${backup_dir}" || true
 gsutil -m cp "${gcs_dest}/*" "${backup_dir}"
@@ -54,9 +76,8 @@ gsutil -m cp "${gcs_dest}/*" "${backup_dir}"
 # Copy the server deb from its backup location to its expected location.
 backup_deb_exists="$( ( gsutil --quiet stat "${backup_dir}/*.deb" && echo true ) || echo false )"
 if [[ "${backup_deb_exists}" != 'true' ]]; then
-  echo "Server deb not found in ${backup_dir}"
   delete_gcs_keys
-  exit 2
+  fatal "Server deb not found in ${backup_dir}"
 fi
 gsutil rm -r "${latest_dir}" || true
 gsutil -m cp "${backup_dir}/*" "${latest_dir}"
@@ -71,8 +92,15 @@ curl --header 'Content-Type: application/json' \
   https://registry.hub.docker.com/u/grrdocker/grr/trigger/4499c4d4-4a8b-48da-bc95-5dbab39be545/
 
 # Run end-to-end tests on the server deb.
-curl --header "Authorization: Bearer ${APPVEYOR_TOKEN}" \
+curl --write-out %{http_code} \
+  --output e2e_response.txt \
+  --header "Authorization: Bearer ${APPVEYOR_TOKEN}" \
   --header 'Content-Type: application/json' \
-  --data '{"accountName":"grr", "projectSlug": "grr"}' \
+  --data '{"accountName":"grr", "projectSlug":"grr", "branch":"master", "commitId":"'"${TRAVIS_COMMIT}"'"}' \
   --request POST \
-  https://ci.appveyor.com/api/builds
+  https://ci.appveyor.com/api/builds 1>e2e_response_code.txt
+response_code="$(cat e2e_response_code.txt)"
+if [[ "${response_code}" != '200' ]]; then
+  delete_gcs_keys
+  fatal "Failed to trigger Appveyor build. Response code: ${response_code}."
+fi
