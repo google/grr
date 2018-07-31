@@ -41,7 +41,7 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
     client_id = self.SetupClient(0)
 
     approval = self.api.Client(client_id.Basename()).CreateApproval(
-        reason="blah", notified_users=["foo"])
+        reason="blah", notified_users=[u"foo"])
     self.assertEqual(approval.client_id, client_id.Basename())
     self.assertEqual(approval.data.subject.client_id, client_id.Basename())
     self.assertEqual(approval.data.reason, "blah")
@@ -51,7 +51,7 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
     client_id = self.SetupClient(0)
 
     approval = self.api.Client(client_id.Basename()).CreateApproval(
-        reason="blah", notified_users=["foo"])
+        reason="blah", notified_users=[u"foo"])
     self.assertFalse(approval.data.is_valid)
 
     def ProcessApproval():
@@ -60,7 +60,7 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
           client_id.Basename(),
           requestor=self.token.username,
           approval_id=approval.approval_id,
-          approver="foo")
+          approver=u"foo")
 
     threading.Thread(target=ProcessApproval).start()
 
@@ -71,7 +71,7 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
     h = self.CreateHunt()
 
     approval = self.api.Hunt(h.urn.Basename()).CreateApproval(
-        reason="blah", notified_users=["foo"])
+        reason="blah", notified_users=[u"foo"])
     self.assertEqual(approval.hunt_id, h.urn.Basename())
     self.assertEqual(approval.data.subject.hunt_id, h.urn.Basename())
     self.assertEqual(approval.data.reason, "blah")
@@ -81,7 +81,7 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
     h = self.CreateHunt()
 
     approval = self.api.Hunt(h.urn.Basename()).CreateApproval(
-        reason="blah", notified_users=["approver"])
+        reason="blah", notified_users=[u"approver"])
     self.assertFalse(approval.data.is_valid)
 
     def ProcessApproval():
@@ -90,7 +90,7 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
           h.urn.Basename(),
           requestor=self.token.username,
           approval_id=approval.approval_id,
-          approver="approver")
+          approver=u"approver")
 
     ProcessApproval()
     threading.Thread(target=ProcessApproval).start()

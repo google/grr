@@ -3780,7 +3780,7 @@ st_mtime: 1247546054
 registry_type: REG_EXPAND_SZ
 pathspec {
   pathtype: REGISTRY
-  path: "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/Sidebar"
+  path: "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/MctAdmin"
 }
 registry_data {
   string: "%%TEMP%%\\Sidebar.exe"

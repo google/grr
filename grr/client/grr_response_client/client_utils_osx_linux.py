@@ -6,6 +6,7 @@ import os
 import threading
 import time
 
+from builtins import range  # pylint: disable=redefined-builtin
 import psutil
 import xattr
 
@@ -133,7 +134,7 @@ class NannyThread(threading.Thread):
       MemoryError: if the process exceeds memory quota.
     """
     time.sleep(seconds - int(seconds))
-    for _ in xrange(int(seconds)):
+    for _ in range(int(seconds)):
       time.sleep(1)
       # Check that we do not exceeded our memory allowance.
       if self.GetMemoryUsage() > self.memory_quota:

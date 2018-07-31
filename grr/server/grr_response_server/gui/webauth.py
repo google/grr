@@ -177,7 +177,7 @@ class NullWebAuthManager(BaseWebAuthManager):
 
   def __init__(self, *args, **kwargs):
     super(NullWebAuthManager, self).__init__(*args, **kwargs)
-    self.username = "gui_user"
+    self.username = u"gui_user"
 
   def SetUserName(self, username):
     self.username = username

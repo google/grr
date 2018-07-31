@@ -1143,6 +1143,13 @@ class DatabaseValidationWrapper(Database):
     if not id_value:
       raise ValueError("Expected %s to be non-empty." % id_type)
 
+  @classmethod
+  def _ValidateString(cls, typename, value):
+    if not isinstance(value, unicode):
+      message = "Expected %s as a unicode string, got '%s' of type '%s' instead"
+      message %= (typename, value, type(value))
+      raise TypeError(message)
+
   def _ValidateClientId(self, client_id):
     self._ValidateStringId("client_id", client_id)
 
@@ -1169,13 +1176,10 @@ class DatabaseValidationWrapper(Database):
       raise ValueError("Unexpected approval type: %s" % approval_type)
 
   def _ValidateUsername(self, username):
-    self._ValidateStringId("username", username)
+    self._ValidateString("username", username)
 
   def _ValidateLabel(self, label):
-    if not isinstance(label, unicode):
-      message = "Expected `%s` instance but got `%s` of type `%s` instead"
-      message %= (unicode, label, type(label))
-      raise TypeError(message)
+    self._ValidateString("label", label)
 
   def _ValidatePathInfo(self, path_info):
     self._ValidateType(path_info, rdf_objects.PathInfo)
@@ -1370,6 +1374,7 @@ class DatabaseValidationWrapper(Database):
 
   def AddClientLabels(self, client_id, owner, labels):
     self._ValidateClientId(client_id)
+    self._ValidateUsername(owner)
     for label in labels:
       self._ValidateLabel(label)
 

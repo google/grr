@@ -26,7 +26,7 @@ from grr.test_lib import db_test_lib
 class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
   APPROVAL_REASON = "Please please let me"
-  GRANTOR_USERNAME = "igrantapproval"
+  GRANTOR_USERNAME = u"igrantapproval"
 
   def setUp(self):
     super(TestEmailLinks, self).setUp()

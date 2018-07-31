@@ -3,6 +3,8 @@
 
 import io
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -44,7 +46,7 @@ class GRRSignedBlob(aff4.AFF4Stream):
     with data_store.DB.GetMutationPool() as pool:
       with aff4.FACTORY.Create(
           urn, cls, mode="w", mutation_pool=pool, token=token) as fd:
-        for start_of_chunk in xrange(0, len(content), chunk_size):
+        for start_of_chunk in range(0, len(content), chunk_size):
           chunk = content[start_of_chunk:start_of_chunk + chunk_size]
           blob_rdf = rdf_crypto.SignedBlob()
           blob_rdf.Sign(chunk, private_key, public_key)

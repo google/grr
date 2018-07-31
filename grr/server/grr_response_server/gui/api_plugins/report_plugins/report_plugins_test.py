@@ -5,6 +5,8 @@ import itertools
 import math
 import os
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -381,7 +383,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
-      for i in xrange(10):
+      for i in range(10):
         AddFakeAuditLog(
             action=rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST,
             user="User%d" % i,
@@ -477,7 +479,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
-      for i in xrange(10):
+      for i in range(10):
         AddFakeAuditLog(
             action=rdf_events.AuditEvent.Action.HUNT_MODIFIED,
             user="User%d" % i,
@@ -575,7 +577,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
-      for i in xrange(10):
+      for i in range(10):
         AddFakeAuditLog(
             action=rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
             user="User%d" % i,
@@ -670,7 +672,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
-      for i in xrange(10):
+      for i in range(10):
         AddFakeAuditLog(
             action=rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
             user="User%d" % i,
@@ -766,7 +768,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
-      for _ in xrange(10):
+      for _ in range(10):
         AddFakeAuditLog(
             "Fake audit description 22 Dec.",
             "C.123",
@@ -847,7 +849,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
-      for _ in xrange(10):
+      for _ in range(10):
         AddFakeAuditLog(
             action=rdf_events.AuditEvent.Action.RUN_FLOW,
             user="GRR",
@@ -925,7 +927,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
-      for _ in xrange(10):
+      for _ in range(10):
         AddFakeAuditLog(
             "Fake audit description 22 Dec.",
             "C.123",
@@ -1033,7 +1035,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
-      for _ in xrange(10):
+      for _ in range(10):
         AddFakeAuditLog(
             action=rdf_events.AuditEvent.Action.RUN_FLOW,
             user="User123",

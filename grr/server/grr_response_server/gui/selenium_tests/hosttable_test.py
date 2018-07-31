@@ -26,7 +26,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         "span.label-success:contains('foo')" % self.client_ids[0])
 
   def testSystemLabelIsShownAsRegularBootstrapLabel(self):
-    self.AddClientLabel(self.client_ids[0], "GRR", u"bar")
+    self.AddClientLabel(self.client_ids[0], u"GRR", u"bar")
 
     self.Open("/#/search?q=.")
     self.WaitUntil(

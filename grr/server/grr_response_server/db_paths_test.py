@@ -570,6 +570,38 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(path_info.last_hash_entry_timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11"))
 
+  def testMultiWriteHistoryDoesNotAllowOverridingStat(self):
+    datetime = rdfvalue.RDFDatetime.FromHumanReadable
+
+    client_id = self.InitializeClient()
+
+    path_info = rdf_objects.PathInfo.OS(components=("foo", "bar", "baz"))
+    self.db.WritePathInfos(client_id, path_info)
+
+    path_info.timestamp = datetime("2001-01-01")
+    stat_entry = rdf_client.StatEntry(st_size=42)
+    self.db.MultiWritePathHistory(client_id, {path_info: stat_entry}, {})
+
+    with self.assertRaises(db.Error):
+      stat_entry = rdf_client.StatEntry(st_size=108)
+      self.db.MultiWritePathHistory(client_id, {path_info: stat_entry}, {})
+
+  def testMultiWriteHistoryDoesNotAllowOverridingHash(self):
+    datetime = rdfvalue.RDFDatetime.FromHumanReadable
+
+    client_id = self.InitializeClient()
+
+    path_info = rdf_objects.PathInfo.OS(components=("foo", "bar", "baz"))
+    self.db.WritePathInfos(client_id, path_info)
+
+    path_info.timestamp = datetime("2002-02-02")
+    hash_entry = rdf_crypto.Hash(md5=b"quux")
+    self.db.MultiWritePathHistory(client_id, {}, {path_info: hash_entry})
+
+    with self.assertRaises(db.Error):
+      hash_entry = rdf_crypto.Hash(sha256=b"norf")
+      self.db.MultiWritePathHistory(client_id, {}, {path_info: hash_entry})
+
   def testReadPathInfosNonExistent(self):
     client_id = self.InitializeClient()
 

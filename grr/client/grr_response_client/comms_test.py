@@ -3,6 +3,9 @@
 
 import Queue
 import time
+
+
+from builtins import range  # pylint: disable=redefined-builtin
 import mock
 import requests
 
@@ -248,7 +251,7 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
     msg_b = rdf_flows.GrrMessage(name="B")
     msg_c = rdf_flows.GrrMessage(name="C")
 
-    for _ in xrange(10):
+    for _ in range(10):
       queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
       queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
       queue.Put(msg_c, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
@@ -257,7 +260,7 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
     self.assertEqual(list(result.job), [msg_c] * 10 + [msg_a, msg_b] * 10)
 
     # Tests a partial Get().
-    for _ in xrange(7):
+    for _ in range(7):
       queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
       queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
       queue.Put(msg_c, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
@@ -267,7 +270,7 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
 
     self.assertEqual(list(result.job), [msg_c] * 5)
 
-    for _ in xrange(3):
+    for _ in range(3):
       queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
       queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
       queue.Put(msg_c, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)

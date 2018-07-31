@@ -3,6 +3,8 @@
 """Test the fileview interface."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 import unittest
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -197,7 +199,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
       downloaded_files.append((aff4_path, age))
 
       return api_call_handler_base.ApiBinaryStream(
-          filename=aff4_path.Basename(), content_generator=xrange(42))
+          filename=aff4_path.Basename(), content_generator=range(42))
 
     with utils.Stubber(api_vfs.ApiGetFileBlobHandler, "Handle",
                        FakeDownloadHandle):

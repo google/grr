@@ -6,6 +6,7 @@ import hashlib
 import os
 
 from builtins import chr  # pylint: disable=redefined-builtin
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iterkeys
 
 from grr_response_core import config
@@ -210,7 +211,7 @@ class CryptoUtilTest(CryptoTestBase):
         it = iter(plaintext)
         out = []
         for n in partition:
-          next_partition = "".join([it.next() for _ in xrange(n)])
+          next_partition = "".join([it.next() for _ in range(n)])
           out.append(streaming_cbc.Update(next_partition))
         out.append(streaming_cbc.Finalize())
 

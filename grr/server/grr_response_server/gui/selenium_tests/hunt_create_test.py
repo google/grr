@@ -496,8 +496,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   def testLabelsHuntRuleDisplaysAvailableLabels(self):
     client_id = self.SetupClient(0).Basename()
 
-    self.AddClientLabel(client_id, "owner1", u"foo")
-    self.AddClientLabel(client_id, "owner2", u"bar")
+    self.AddClientLabel(client_id, u"owner1", u"foo")
+    self.AddClientLabel(client_id, u"owner2", u"bar")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
@@ -533,9 +533,9 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   def testLabelsHuntRuleMatchesCorrectClients(self):
     client_ids = self.SetupClients(10)
 
-    self.AddClientLabel(client_ids[1], "owner1", u"foo")
-    self.AddClientLabel(client_ids[1], "owner2", u"bar")
-    self.AddClientLabel(client_ids[7], "GRR", u"bar")
+    self.AddClientLabel(client_ids[1], u"owner1", u"foo")
+    self.AddClientLabel(client_ids[1], u"owner2", u"bar")
+    self.AddClientLabel(client_ids[7], u"GRR", u"bar")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")

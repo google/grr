@@ -119,7 +119,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.GrantHuntApproval(
         hunt_id.Basename(),
         approval_id=approval_id,
-        approver="approver",
+        approver=u"approver",
         requestor=self.token.username,
         admin=False)
 
@@ -148,7 +148,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
                            self.GetText, "css=grr-request-approval-dialog")
 
     # Let's make "approver" an admin.
-    self.CreateAdminUser("approver")
+    self.CreateAdminUser(u"approver")
 
     # Check if we see that the approval has already been granted.
     self.Open("/")
@@ -182,20 +182,20 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     # Create 2 hunts. Hunt1 by "otheruser" and hunt2 by us.
     # Both hunts will be approved by user "approver".
     hunt1_id = self.CreateSampleHunt(
-        token=access_control.ACLToken(username="otheruser"))
+        token=access_control.ACLToken(username=u"otheruser"))
     hunt2_id = self.CreateSampleHunt(
         token=access_control.ACLToken(username=self.token.username))
-    self.CreateAdminUser("approver")
+    self.CreateAdminUser(u"approver")
 
     self.RequestAndGrantHuntApproval(
         hunt1_id.Basename(),
         reason=self.reason,
-        approver="approver",
-        requestor="otheruser")
+        approver=u"approver",
+        requestor=u"otheruser")
     self.RequestAndGrantHuntApproval(
         hunt2_id.Basename(),
         reason=self.reason,
-        approver="approver",
+        approver=u"approver",
         requestor=self.token.username)
 
   def testHuntApprovalsArePerHunt(self):

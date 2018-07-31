@@ -5,6 +5,7 @@ import functools
 import os
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
 
 from grr_response_client import vfs
@@ -661,7 +662,7 @@ class GrepTest(client_test_lib.EmptyActionTest):
   @SearchParams(1000, 100)
   def testBufferBoundaries(self):
 
-    for offset in xrange(-20, 20):
+    for offset in range(-20, 20):
 
       data = "X" * (1000 + offset) + "HIT" + "X" * 100
       MockVFSHandlerFind.filesystem[self.filename] = data
@@ -708,7 +709,7 @@ class GrepTest(client_test_lib.EmptyActionTest):
   @SearchParams(100, 50)
   def testGrepEverywhere(self):
 
-    for offset in xrange(500):
+    for offset in range(500):
       data = "X" * offset + "HIT" + "X" * (500 - offset)
       MockVFSHandlerFind.filesystem[self.filename] = data
 

@@ -72,7 +72,7 @@ class GRRBaseTest(unittest.TestCase):
     """
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
     self.base_path = config.CONFIG["Test.data_dir"]
-    test_user = "test"
+    test_user = u"test"
     users.GRRUser.SYSTEM_USERS.add(test_user)
     self.token = access_control.ACLToken(
         username=test_user, reason="Running tests")
@@ -334,7 +334,7 @@ class GRRBaseTest(unittest.TestCase):
             kernel=kernel,
             os_version=os_version,
             ping=ping,
-            system=system) for client_nr in xrange(nr_clients)
+            system=system) for client_nr in range(nr_clients)
     ]
 
   def _TestClientInfo(self):
@@ -418,8 +418,8 @@ class GRRBaseTest(unittest.TestCase):
     client.knowledge_base.fqdn = fqdn or "Host-%x.example.com" % client_nr
     client.knowledge_base.os = system
     client.knowledge_base.users = [
-        rdf_client.User(username="user1"),
-        rdf_client.User(username="user2"),
+        rdf_client.User(username=u"user1"),
+        rdf_client.User(username=u"user2"),
     ]
     client.os_version = os_version
     client.arch = arch
@@ -448,7 +448,7 @@ class GRRBaseTest(unittest.TestCase):
     client_index.ClientIndex().AddClient(client)
 
     if labels:
-      data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
+      data_store.REL_DB.AddClientLabels(client_id, u"GRR", labels)
       client_index.ClientIndex().AddClientLabels(
           client_id, data_store.REL_DB.ReadClientLabels(client_id))
 

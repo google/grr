@@ -143,7 +143,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
     request.path = path
     request.scheme = "http"
     request.environ = {"SERVER_NAME": "foo.bar", "SERVER_PORT": 1234}
-    request.user = "test"
+    request.user = u"test"
     request.args = query_parameters or {}
     request.headers = {}
     request.get_data = lambda as_text=False: ""
@@ -191,7 +191,10 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
                              stats_test_lib.StatsTestMixin):
   """Test for HttpRequestHandler."""
 
-  def _CreateRequest(self, method, path, username="test",
+  def _CreateRequest(self,
+                     method,
+                     path,
+                     username=u"test",
                      query_parameters=None):
     request = utils.DataObject()
     request.method = method
@@ -240,7 +243,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
 
   def testSystemUsernameIsNotAllowed(self):
     response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/some/path", username="GRR"))
+        self._CreateRequest("GET", "/test_sample/some/path", username=u"GRR"))
     self.assertEqual(response.status_code, 403)
 
   def testRendersGetHandlerCorrectly(self):

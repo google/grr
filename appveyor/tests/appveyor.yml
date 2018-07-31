@@ -9,6 +9,9 @@ environment:
   GRR_VENV: "${HOME}/INSTALL"
   CHROME_DEB: google-chrome-stable_current_amd64.deb
 
+cache:
+ - ${HOME}/.cache/pip
+
 install:
 - lsb_release -a
 - python --version
@@ -33,5 +36,5 @@ build: off
 
 test_script:
 - source "${GRR_VENV}/bin/activate"
-- pytest -n 2 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/
+- pytest -n 4 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/
 - (cd grr/server/grr_response_server/gui/static/ && gulp test)

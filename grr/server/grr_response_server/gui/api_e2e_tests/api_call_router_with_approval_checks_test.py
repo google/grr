@@ -49,13 +49,13 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
         hunt_urn.Basename(),
         approval_id=approval_id,
         requestor=token.username,
-        approver="Approver1",
+        approver=u"Approver1",
         admin=admin)
     self.GrantHuntApproval(
         hunt_urn.Basename(),
         approval_id=approval_id,
         requestor=token.username,
-        approver="Approver2",
+        approver=u"Approver2",
         admin=False)
 
   def CreateSampleHunt(self):

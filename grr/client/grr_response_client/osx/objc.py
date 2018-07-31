@@ -7,6 +7,7 @@ import logging
 import subprocess
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from past.builtins import long
 
@@ -415,7 +416,7 @@ class CFDictionary(CFType):
     keys = (ctypes.c_void_p * size)()
     values = (ctypes.c_void_p * size)()
     self.dll.CFDictionaryGetKeysAndValues(self.ref, keys, values)
-    for index in xrange(size):
+    for index in range(size):
       key = self.WrapCFTypeInPython(keys[index])
       value = self.WrapCFTypeInPython(values[index])
       yield key, value

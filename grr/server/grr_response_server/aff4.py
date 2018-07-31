@@ -2762,7 +2762,7 @@ class AFF4ImageBase(AFF4Stream):
   def _GenerateChunkPaths(cls, fds):
     for fd in fds:
       num_chunks = fd.size // fd.chunksize + 1
-      for chunk in xrange(num_chunks):
+      for chunk in range(num_chunks):
         yield fd.urn.Add(fd.CHUNK_ID_TEMPLATE % chunk), fd
 
   MULTI_STREAM_CHUNKS_READ_AHEAD = 1000

@@ -7,6 +7,8 @@ import os
 import platform
 import unittest
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import constants
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
@@ -282,7 +284,7 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
 
     pathspecs = []
     # Make 30 files to download.
-    for i in xrange(30):
+    for i in range(30):
       path = os.path.join(self.temp_dir, "test_%s.txt" % i)
       with open(path, "wb") as fd:
         fd.write("Hello")
@@ -327,7 +329,7 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
 
     pathspecs = []
     # Make 10 files to download.
-    for i in xrange(10):
+    for i in range(10):
       path = os.path.join(self.temp_dir, "test_%s.txt" % i)
       with open(path, "wb") as fd:
         fd.write("Hello")

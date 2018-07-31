@@ -10,6 +10,7 @@ import time
 
 
 from builtins import map  # pylint: disable=redefined-builtin
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 
 from grr_response_client import actions
@@ -224,7 +225,7 @@ class EnumerateUsers(actions.ActionPlugin):
       except IOError:
         continue
 
-      for offset in xrange(0, len(wtmp), wtmp_struct_size):
+      for offset in range(0, len(wtmp), wtmp_struct_size):
         try:
           record = UtmpStruct(wtmp[offset:offset + wtmp_struct_size])
         except utils.ParsingError:

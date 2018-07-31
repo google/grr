@@ -7,6 +7,7 @@ import logging
 import time
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import with_metaclass
 import pytest
 
@@ -87,7 +88,7 @@ class AverageMicroBenchmarks(MicroBenchmarks):
       pre()
 
     start = time.time()
-    for _ in xrange(repetitions):
+    for _ in range(repetitions):
       return_value = callback(**kwargs)
 
     time_taken = (time.time() - start) / repetitions

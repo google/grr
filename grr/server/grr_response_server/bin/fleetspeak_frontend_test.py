@@ -2,6 +2,9 @@
 """Unittest for GRR<->Fleetspeak server side glue code."""
 
 import itertools
+
+
+from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
@@ -93,7 +96,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             request_id=1,
             response_id=i,
             session_id=session_id,
-            payload=rdfvalue.RDFInteger(i)) for i in xrange(1, num_msgs + 1)
+            payload=rdfvalue.RDFInteger(i)) for i in range(1, num_msgs + 1)
     ]
 
     fs_client_id = "\x10\x00\x00\x00\x00\x00\x00\xab"
@@ -107,7 +110,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             message_type="GrrMessage",
             source=fs_common_pb2.Address(
                 client_id=fs_client_id, service_name=service_name))
-        for _ in xrange(num_msgs)
+        for _ in range(num_msgs)
     ]
     for fs_message, message in itertools.izip(fs_messages, messages):
       fs_message.data.Pack(message.AsPrimitiveProto())
@@ -161,7 +164,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             request_id=1,
             response_id=i,
             session_id=session_id,
-            payload=rdfvalue.RDFInteger(i)) for i in xrange(1, num_msgs + 1)
+            payload=rdfvalue.RDFInteger(i)) for i in range(1, num_msgs + 1)
     ]
 
     fs_client_id = "\x10\x00\x00\x00\x00\x00\x00\xab"

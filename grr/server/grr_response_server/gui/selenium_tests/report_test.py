@@ -45,7 +45,7 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
           token=self.token)
 
     # Make "test" user an admin.
-    self.CreateAdminUser("test")
+    self.CreateAdminUser(u"test")
 
     self.Open("/#/stats/")
 
@@ -65,7 +65,7 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
   def testReportsDontIncludeTimerangesInUrlsOfReportsThatDontUseThem(self):
     client_id = self.SetupClient(0)
 
-    self.AddClientLabel(client_id, "owner", u"bar")
+    self.AddClientLabel(client_id, u"owner", u"bar")
 
     self.Open("/#/stats/")
 

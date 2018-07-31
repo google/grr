@@ -11,6 +11,7 @@ import stat
 import _winreg
 
 from builtins import filter  # pylint: disable=redefined-builtin
+from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_client import vfs
 from grr_response_core.lib import utils
@@ -430,7 +431,7 @@ class RegistryFile(vfs.VFSHandler):
            unused_last_modified) = QueryInfoKey(key)
 
           # First keys
-          for i in xrange(number_of_keys):
+          for i in range(number_of_keys):
             try:
               keys.append(EnumKey(key, i))
             except exceptions.WindowsError:
@@ -439,7 +440,7 @@ class RegistryFile(vfs.VFSHandler):
           keys.sort()
 
           # Now Values
-          for i in xrange(number_of_values):
+          for i in range(number_of_values):
             try:
               name, unused_value, unused_value_type = EnumValue(key, i)
               value_names.append(name)
@@ -486,14 +487,14 @@ class RegistryFile(vfs.VFSHandler):
          self.last_modified) = QueryInfoKey(key)
 
         # First keys
-        for i in xrange(self.number_of_keys):
+        for i in range(self.number_of_keys):
           try:
             yield EnumKey(key, i)
           except exceptions.WindowsError:
             pass
 
         # Now Values
-        for i in xrange(self.number_of_values):
+        for i in range(self.number_of_values):
           try:
             name, unused_value, unused_value_type = EnumValue(key, i)
 
@@ -529,7 +530,7 @@ class RegistryFile(vfs.VFSHandler):
          self.last_modified) = QueryInfoKey(key)
 
         # First keys - These will look like directories.
-        for i in xrange(self.number_of_keys):
+        for i in range(self.number_of_keys):
           try:
             name = EnumKey(key, i)
             key_name = utils.JoinPath(self.local_path, name)
@@ -550,7 +551,7 @@ class RegistryFile(vfs.VFSHandler):
             pass
 
         # Now Values - These will look like files.
-        for i in xrange(self.number_of_values):
+        for i in range(self.number_of_values):
           try:
             name, value, value_type = EnumValue(key, i)
             response = self._Stat(name, value, value_type)

@@ -11,6 +11,7 @@ import stat
 import sys
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -484,7 +485,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
     start_chunk = offset // fd.chunksize
     end_chunk = (offset + length - 1) // fd.chunksize
 
-    relevant_chunks = xrange(start_chunk, end_chunk + 1)
+    relevant_chunks = range(start_chunk, end_chunk + 1)
 
     missing_chunks = set(relevant_chunks)
     for idx, metadata in iteritems(fd.ChunksMetadata(relevant_chunks)):

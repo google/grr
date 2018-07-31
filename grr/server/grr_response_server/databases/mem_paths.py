@@ -34,12 +34,28 @@ class _PathRecord(object):
     self._blob_references[blob_ref.offset] = blob_ref.Copy()
 
   def AddStatEntry(self, stat_entry, timestamp):
+    if timestamp in self._stat_entries:
+      message = ("Duplicated stat entry write for path '%s' of type '%s' at "
+                 "timestamp '%s'. Old: %s. New: %s.")
+      message %= ("/".join(self._path_info.components),
+                  self._path_info.path_type, timestamp,
+                  self._stat_entries[timestamp], stat_entry)
+      raise db.Error(message)
+
     self._stat_entries[timestamp] = stat_entry.Copy()
 
   def GetStatEntries(self):
     return self._stat_entries.items()
 
   def AddHashEntry(self, hash_entry, timestamp):
+    if timestamp in self._hash_entries:
+      message = ("Duplicated hash entry write for path '%s' of type '%s' at "
+                 "timestamp '%s'. Old: %s. New: %s.")
+      message %= ("/".join(self._path_info.components),
+                  self._path_info.path_type, timestamp,
+                  self._hash_entries[timestamp], hash_entry)
+      raise db.Error(message)
+
     self._hash_entries[timestamp] = hash_entry.Copy()
 
   def GetHashEntries(self):

@@ -355,7 +355,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     delay = flow_runner.FlowRunner.notification_retry_interval
 
     ttl = notification.ttl
-    for i in xrange(ttl - 1):
+    for i in range(ttl - 1):
       with test_lib.FakeTime(10000 + 100 + delay * (i + 1)):
         # Process all messages.
         worker_obj.RunOnce()
@@ -1003,7 +1003,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
   def testCPULimitForHunts(self):
     worker_obj = worker_lib.GRRWorker(token=self.token)
 
-    client_ids = ["C.%016X" % i for i in xrange(10, 20)]
+    client_ids = ["C.%016X" % i for i in range(10, 20)]
     result = {}
     client_mocks = []
     for client_id in client_ids:

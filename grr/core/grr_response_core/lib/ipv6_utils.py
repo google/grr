@@ -8,6 +8,10 @@ because those functions are not available on windows before python 3.4.
 import re
 import socket
 
+# pytype: disable=import-error
+from builtins import range  # pylint: disable=redefined-builtin
+# pytype: enable=import-error
+
 # ntop does not exist on Windows.
 # pylint: disable=g-socket-inet-aton,g-socket-inet-ntoa
 
@@ -148,7 +152,7 @@ def InetNtoP(protocol, packed_bytes):
     return "::" + socket.inet_ntoa(packed_bytes[-4:])
 
   # Split into quads
-  chunked = [hex_encoded[i:i + 4] for i in xrange(0, len(hex_encoded), 4)]
+  chunked = [hex_encoded[i:i + 4] for i in range(0, len(hex_encoded), 4)]
 
   output = []
   for chunk in chunked:

@@ -39,7 +39,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
 
   def WaitUntil(self, condition_cb, timeout=5):
     """Wait a fixed time until the condition is true."""
-    for _ in xrange(int(timeout / self.sleep_time)):
+    for _ in range(int(timeout / self.sleep_time)):
       res = condition_cb()
       if res:
         return res

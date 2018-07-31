@@ -4,6 +4,7 @@
 import operator
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
@@ -330,12 +331,12 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
       try:
         for fd in audit.AuditLogsForTimespan(start_time, now, token):
           for event in fd.GenerateItems():
-            for week in xrange(self.__class__.WEEKS):
+            for week in range(self.__class__.WEEKS):
               start = now - week * week_duration
               if start < event.timestamp < (start + week_duration):
                 weekly_activity = user_activity.setdefault(
-                    event.user, [[x, 0]
-                                 for x in xrange(-self.__class__.WEEKS, 0, 1)])
+                    event.user,
+                    [[x, 0] for x in range(-self.__class__.WEEKS, 0, 1)])
                 weekly_activity[-week][1] += 1
       except ValueError:  # Couldn't find any logs..
         pass

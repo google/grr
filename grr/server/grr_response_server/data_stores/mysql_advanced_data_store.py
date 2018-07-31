@@ -572,7 +572,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     return result_queries
 
   def _RetryWrapper(self, action_fn):
-    for _ in xrange(self.max_retries):
+    for _ in range(self.max_retries):
       # Connectivity issues and deadlocks should not cause threads to die and
       # create inconsistency.  Any MySQL errors here should be temporary in
       # nature and GRR should be able to recover when the server is available or

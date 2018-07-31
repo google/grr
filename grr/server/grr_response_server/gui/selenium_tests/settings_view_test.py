@@ -48,7 +48,7 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
         "css=li[grr-nav-link]:contains('Manage Binaries') i.fa-lock")
 
   def testEachBinaryIsCorrectlyShown(self):
-    self.CreateAdminUser("gui_user")
+    self.CreateAdminUser(u"gui_user")
 
     self.Open("/#/manage-binaries")
 

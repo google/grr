@@ -158,7 +158,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
     self.RequestClientApproval(
         client_id.Basename(),
         reason=self.token.reason,
-        approver="approver",
+        approver=u"approver",
         requestor=self.token.username)
 
     self.Open("/")

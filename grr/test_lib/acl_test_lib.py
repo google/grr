@@ -42,7 +42,7 @@ class AclTestMixin(object):
                             reason=None,
                             requestor=None,
                             email_cc_address=None,
-                            approver="approver"):
+                            approver=u"approver"):
     """Create an approval request to be sent to approver."""
     if hasattr(client_id, "Basename"):
       client_id = client_id.Basename()
@@ -73,7 +73,7 @@ class AclTestMixin(object):
                           client_id,
                           requestor=None,
                           approval_id=None,
-                          approver="approver",
+                          approver=u"approver",
                           admin=True):
     """Grant an approval from approver to delegate.
 
@@ -113,7 +113,7 @@ class AclTestMixin(object):
                                     client_id,
                                     requestor=None,
                                     reason=None,
-                                    approver="approver",
+                                    approver=u"approver",
                                     admin=True):
     """Request and grant client approval for a given client."""
 
@@ -139,7 +139,7 @@ class AclTestMixin(object):
                           requestor=None,
                           reason=None,
                           email_cc_address=None,
-                          approver="approver"):
+                          approver=u"approver"):
     """Request hunt approval for a given hunt."""
 
     if not requestor:
@@ -168,7 +168,7 @@ class AclTestMixin(object):
                         hunt_id,
                         requestor=None,
                         approval_id=None,
-                        approver="approver",
+                        approver=u"approver",
                         admin=True):
     """Grants an approval for a given hunt."""
 
@@ -194,7 +194,7 @@ class AclTestMixin(object):
                                   requestor=None,
                                   reason=None,
                                   email_cc_address=None,
-                                  approver="approver",
+                                  approver=u"approver",
                                   admin=True):
     """Requests and grants hunt approval for a given hunt."""
 
@@ -224,7 +224,7 @@ class AclTestMixin(object):
                              requestor=None,
                              reason=None,
                              email_cc_address=None,
-                             approver="approver"):
+                             approver=u"approver"):
     """Request cron job approval for a given cron job."""
 
     if not requestor:
@@ -278,7 +278,7 @@ class AclTestMixin(object):
                                      requestor=None,
                                      reason=None,
                                      email_cc_address=None,
-                                     approver="approver",
+                                     approver=u"approver",
                                      admin=True):
     """Requests and grants an approval for a given cron job."""
     approval_id = self.RequestCronJobApproval(

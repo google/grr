@@ -17,7 +17,7 @@ class ApiCallHandlerTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(ApiCallHandlerTest, self).setUp()
     # The user we use for API tests.
-    self.token.username = "api_test_user"
+    self.token.username = u"api_test_user"
     acl_test_lib.CreateUser(self.token.username)
 
 

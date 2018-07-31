@@ -116,7 +116,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
         self.client_id_1,
         approval_id=approval_id,
         requestor=self.token.username,
-        approver="approver")
+        approver=u"approver")
 
     # Check if we see that the approval has already been granted.
     self.Open("/")

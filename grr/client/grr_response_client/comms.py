@@ -84,6 +84,7 @@ import time
 import traceback
 
 
+from builtins import range  # pylint: disable=redefined-builtin
 import psutil
 import requests
 
@@ -427,7 +428,7 @@ class HTTPManager(object):
     time.sleep(timeout - int(timeout))
 
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
-    for _ in xrange(int(timeout)):
+    for _ in range(int(timeout)):
       time.sleep(1)
 
       if self.heart_beat_cb:
@@ -464,7 +465,7 @@ class Timer(object):
     time.sleep(self.sleep_time - int(self.sleep_time))
 
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
-    for _ in xrange(int(self.sleep_time)):
+    for _ in range(int(self.sleep_time)):
       time.sleep(1)
 
     # Back off slowly at first and fast if no answer.

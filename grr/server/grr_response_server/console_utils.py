@@ -15,6 +15,7 @@ import time
 
 
 from builtins import input  # pylint: disable=redefined-builtin
+from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
@@ -382,7 +383,7 @@ def FindClonedClients(token=None):
     # Sort ranges by first occurrence time.
     ranges.sort()
 
-    for i in xrange(len(ranges) - 1):
+    for i in range(len(ranges) - 1):
       if ranges[i][1] > ranges[i + 1][0]:
         cloned_clients.append(c)
 

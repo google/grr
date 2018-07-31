@@ -128,7 +128,7 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
         self.client_legal_id,
         requestor=self.token.username,
         approval_id=approval_id,
-        approver="legal1")
+        approver=u"legal1")
 
     # Check we now have access
     self.api.Client(self.client_legal_id).File("fs/os/foo").Get()
@@ -141,7 +141,7 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
     """
     self.TouchFile(rdf_client.ClientURN(self.client_prod_id), "fs/os/foo")
 
-    self.token.username = "prod1"
+    self.token.username = u"prod1"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
     # No approvals yet, this should fail.
@@ -163,7 +163,7 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
         self.client_prod_id,
         requestor=self.token.username,
         approval_id=approval_id,
-        approver="legal1")
+        approver=u"legal1")
 
     # We have "approver", "legal1": not enough.
     self.assertRaises(
@@ -176,7 +176,7 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
         self.client_prod_id,
         requestor=self.token.username,
         approval_id=approval_id,
-        approver="prod2")
+        approver=u"prod2")
 
     # We have "approver", "legal1", "prod2": not enough.
     self.assertRaises(
@@ -187,7 +187,7 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
         self.client_prod_id,
         requestor=self.token.username,
         approval_id=approval_id,
-        approver="prod3")
+        approver=u"prod3")
 
     # We have "approver", "legal1", "prod2", "prod3": we should have
     # access.
@@ -209,17 +209,17 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
         self.client_prod_id,
         requestor=self.token.username,
         approval_id=approval_id,
-        approver="legal1")
+        approver=u"legal1")
     self.GrantClientApproval(
         self.client_prod_id,
         requestor=self.token.username,
         approval_id=approval_id,
-        approver="prod2")
+        approver=u"prod2")
     self.GrantClientApproval(
         self.client_prod_id,
         requestor=self.token.username,
         approval_id=approval_id,
-        approver="prod3")
+        approver=u"prod3")
 
     # We have "approver", "legal1", "prod2", "prod3" approvals but because
     # "notprod" user isn't in prod_admin_approval and

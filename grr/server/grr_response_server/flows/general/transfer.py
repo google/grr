@@ -847,7 +847,7 @@ class GetMBR(flow.GRRFlow):
 
     bytes_we_need = self.args.length
 
-    for i in xrange(buffers_we_need):
+    for i in range(buffers_we_need):
       request = rdf_client.BufferReference(
           pathspec=pathspec,
           offset=i * buffer_size,

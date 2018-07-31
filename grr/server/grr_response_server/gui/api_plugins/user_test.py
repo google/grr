@@ -236,8 +236,8 @@ class ApiCreateApprovalHandlerTestMixin(
   """Base class for tests testing Create*ApprovalHandlers."""
 
   def SetUpApprovalTest(self):
-    self.CreateUser("test")
-    self.CreateUser("approver")
+    self.CreateUser(u"test")
+    self.CreateUser(u"approver")
 
     self.handler = None
     self.args = None
@@ -257,7 +257,7 @@ class ApiCreateApprovalHandlerTestMixin(
     # It shouldn't be possible to specify list of approvers when creating
     # an approval. List of approvers contains names of GRR users who
     # approved the approval.
-    self.args.approval.approvers = [self.token.username, "approver"]
+    self.args.approval.approvers = [self.token.username, u"approver"]
 
     approval_id = self.handler.Handle(self.args, token=self.token).id
     approval_obj = self.ReadApproval(approval_id)
@@ -273,7 +273,7 @@ class ApiCreateApprovalHandlerTestMixin(
   def testNotifiesGrrUsers(self):
     self.handler.Handle(self.args, token=self.token)
 
-    notifications = self.GetUserNotifications("approver")
+    notifications = self.GetUserNotifications(u"approver")
     self.assertEqual(len(notifications), 1)
 
   def testSendsEmailsToGrrUsersAndCcAddresses(self):
@@ -292,7 +292,7 @@ class ApiCreateApprovalHandlerTestMixin(
 
     self.assertEqual(len(addresses), 1)
     self.assertEqual(addresses[0],
-                     ("approver", self.token.username, "test@example.com"))
+                     (u"approver", self.token.username, "test@example.com"))
 
 
 @db_test_lib.DualDBTest
@@ -310,7 +310,7 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
         self.client_id.Basename(),
         requestor=self.token.username,
         reason="blah",
-        approver="approver",
+        approver=u"approver",
         email_cc_address="test@example.com")
 
     args = user_plugin.ApiGetClientApprovalArgs(
@@ -325,7 +325,7 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
     self.assertEqual(result.is_valid_message,
                      "Need at least 1 additional approver for access.")
 
-    self.assertEqual(result.notified_users, ["approver"])
+    self.assertEqual(result.notified_users, [u"approver"])
     self.assertEqual(result.email_cc_addresses, ["test@example.com"])
 
     # Every approval is self-approved by default.
@@ -334,8 +334,8 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
   def testIncludesApproversInResultWhenApprovalIsGranted(self):
     approval_id = self.RequestAndGrantClientApproval(
         self.client_id.Basename(),
-        reason="blah",
-        approver="approver",
+        reason=u"blah",
+        approver=u"approver",
         requestor=self.token.username)
 
     args = user_plugin.ApiGetClientApprovalArgs(
@@ -346,7 +346,7 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
 
     self.assertTrue(result.is_valid)
     self.assertEqual(
-        sorted(result.approvers), sorted([self.token.username, "approver"]))
+        sorted(result.approvers), sorted([self.token.username, u"approver"]))
 
   def testRaisesWhenApprovalIsNotFound(self):
     args = user_plugin.ApiGetClientApprovalArgs(
@@ -380,7 +380,7 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.args = user_plugin.ApiCreateClientApprovalArgs(client_id=client_id)
     self.args.approval.reason = self.token.reason
-    self.args.approval.notified_users = ["approver"]
+    self.args.approval.notified_users = [u"approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
   def testKeepAliveFlowIsStartedWhenFlagIsSet(self):
@@ -570,7 +570,7 @@ class ApiListHuntApprovalsHandlerTest(acl_test_lib.AclTestMixin,
     self.RequestHuntApproval(
         hunt.urn.Basename(),
         reason=self.token.reason,
-        approver="approver",
+        approver=u"approver",
         requestor=self.token.username)
 
     args = user_plugin.ApiListHuntApprovalsArgs()
@@ -606,7 +606,7 @@ class ApiCreateCronJobApprovalHandlerTest(
 
     self.args = user_plugin.ApiCreateCronJobApprovalArgs(cron_job_id=cron_id)
     self.args.approval.reason = self.token.reason
-    self.args.approval.notified_users = ["approver"]
+    self.args.approval.notified_users = [u"approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
@@ -628,7 +628,7 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
     self.RequestCronJobApproval(
         cron_job_id,
         reason=self.token.reason,
-        approver="approver",
+        approver=u"approver",
         requestor=self.token.username)
 
     args = user_plugin.ApiListCronJobApprovalsArgs()
@@ -662,19 +662,20 @@ class ApiGetOwnGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
                   ))
 
     result = self.handler.Handle(
-        None, token=access_control.ACLToken(username="foo"))
+        None, token=access_control.ACLToken(username=u"foo"))
     self.assertEqual(result.settings.mode, "ADVANCED")
     self.assertEqual(result.settings.canary_mode, True)
 
   def testRendersTraitsPassedInConstructor(self):
     result = self.handler.Handle(
-        None, token=access_control.ACLToken(username="foo"))
+        None, token=access_control.ACLToken(username=u"foo"))
     self.assertFalse(result.interface_traits.create_hunt_action_enabled)
 
     handler = user_plugin.ApiGetOwnGrrUserHandler(
         interface_traits=user_plugin.ApiGrrUserInterfaceTraits(
             create_hunt_action_enabled=True))
-    result = handler.Handle(None, token=access_control.ACLToken(username="foo"))
+    result = handler.Handle(
+        None, token=access_control.ACLToken(username=u"foo"))
     self.assertTrue(result.interface_traits.create_hunt_action_enabled)
 
 
@@ -686,32 +687,32 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = user_plugin.ApiUpdateGrrUserHandler()
 
   def testRaisesIfUsernameSetInRequest(self):
-    user = user_plugin.ApiGrrUser(username="foo")
+    user = user_plugin.ApiGrrUser(username=u"foo")
     with self.assertRaises(ValueError):
-      self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
+      self.handler.Handle(user, token=access_control.ACLToken(username=u"foo"))
 
-    user = user_plugin.ApiGrrUser(username="bar")
+    user = user_plugin.ApiGrrUser(username=u"bar")
     with self.assertRaises(ValueError):
-      self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
+      self.handler.Handle(user, token=access_control.ACLToken(username=u"foo"))
 
   def testRaisesIfTraitsSetInRequest(self):
     user = user_plugin.ApiGrrUser(
         interface_traits=user_plugin.ApiGrrUserInterfaceTraits())
     with self.assertRaises(ValueError):
-      self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
+      self.handler.Handle(user, token=access_control.ACLToken(username=u"foo"))
 
   def testSetsSettingsForUserCorrespondingToToken(self):
     settings = aff4_users.GUISettings(mode="ADVANCED", canary_mode=True)
     user = user_plugin.ApiGrrUser(settings=settings)
 
-    self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
+    self.handler.Handle(user, token=access_control.ACLToken(username=u"foo"))
 
     # Check that settings for user "foo" were applied.
     fd = aff4.FACTORY.Open("aff4:/users/foo", token=self.token)
     self.assertEqual(fd.Get(fd.Schema.GUI_SETTINGS), settings)
 
     # Check that settings were applied in relational db.
-    u = data_store.REL_DB.ReadGRRUser("foo")
+    u = data_store.REL_DB.ReadGRRUser(u"foo")
     self.assertEqual(settings.mode, u.ui_mode)
     self.assertEqual(settings.canary_mode, u.canary_mode)
 

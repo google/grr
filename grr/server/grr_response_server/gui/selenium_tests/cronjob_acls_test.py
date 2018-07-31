@@ -112,7 +112,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.GrantCronJobApproval(
         cron_job_id,
         approval_id=approval_id,
-        approver="approver",
+        approver=u"approver",
         requestor=self.token.username,
         admin=False)
 
@@ -141,7 +141,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
                            self.GetText, "css=grr-request-approval-dialog")
 
     # Let's make "approver" an admin.
-    self.CreateAdminUser("approver")
+    self.CreateAdminUser(u"approver")
 
     # And try again
     self.Open("/")

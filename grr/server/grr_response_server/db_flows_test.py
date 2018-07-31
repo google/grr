@@ -44,7 +44,7 @@ class DatabaseTestFlowMixin(object):
     ttl = msg.ttl
     self.assertGreater(ttl, 5)
 
-    for _ in xrange(5):
+    for _ in range(5):
       msg.ttl -= 1
       self.db.WriteClientMessages([msg])
       read_msgs = self.db.ReadClientMessages(client_id)

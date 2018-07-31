@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
+from __future__ import unicode_literals
+
 from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import rdfvalue
@@ -22,7 +24,8 @@ class DatabaseTestUsersMixin(object):
         ui_mode="ADVANCED",
         canary_mode=True,
         user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
-    u_expected.password.SetPassword("blah")
+    # TODO(hanuszczak): Passwords should be required to be unicode strings.
+    u_expected.password.SetPassword(b"blah")
     d.WriteGRRUser(
         "foo",
         password=u_expected.password,

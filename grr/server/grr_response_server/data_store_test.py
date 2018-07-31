@@ -381,7 +381,7 @@ class DataStoreTestMixin(object):
   @DeletionTest
   def testDeleteSubjects(self):
     row_template = "aff4:/deletesubjectstest%d"
-    rows = [row_template % i for i in xrange(100)]
+    rows = [row_template % i for i in range(100)]
     predicate = "metadata:tspredicate"
 
     for i, row in enumerate(rows):
@@ -391,7 +391,7 @@ class DataStoreTestMixin(object):
     data_store.DB.DeleteSubjects(rows[20:80], sync=True)
 
     res = dict(data_store.DB.MultiResolvePrefix(rows, predicate))
-    for i in xrange(100):
+    for i in range(100):
       if 20 <= i < 80:
         # These rows have been deleted.
         self.assertNotIn(row_template % i, res)
@@ -762,7 +762,7 @@ class DataStoreTestMixin(object):
     attribute_name = "metadata:test_attribute"
     attributes_to_set = {
         attribute_name: [
-            (i, rdfvalue.RDFDatetime(i)) for i in xrange(1000, 11000, 1000)
+            (i, rdfvalue.RDFDatetime(i)) for i in range(1000, 11000, 1000)
         ]
     }
     data_store.DB.MultiSet(row_name, attributes_to_set, replace=False)
@@ -1205,7 +1205,7 @@ class DataStoreTestMixin(object):
     self.results = []
 
     def ParallelThread():
-      for _ in xrange(self.OPEN_WITH_LOCK_TRIES_PER_THREAD):
+      for _ in range(self.OPEN_WITH_LOCK_TRIES_PER_THREAD):
         t = time.time()
         try:
           with aff4.FACTORY.OpenWithLock(
@@ -1273,8 +1273,8 @@ class DataStoreTestMixin(object):
 
   def testLimits(self):
     # Create 10 rows with 10 attributes each.
-    subjects = ["aff4:limittest_%d" % i for i in xrange(10)]
-    attributes = ["metadata:limittest_%d" % i for i in xrange(10)]
+    subjects = ["aff4:limittest_%d" % i for i in range(10)]
+    attributes = ["metadata:limittest_%d" % i for i in range(10)]
 
     value_idx = 0
     for subject in subjects:
@@ -1728,7 +1728,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
         # Add an extra predicate.
         j = len(predicates)
         number_timestamps = self.rand.randrange(1, 3)
-        ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]
+        ts = [100 * (ts + 1) for ts in range(number_timestamps)]
         predicates[j] = ts
         self.values += number_timestamps
         self.predicates += 1
@@ -1799,8 +1799,8 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     new_value = os.urandom(100)
     new_subject = max(iteritems(subjects), key=operator.itemgetter(0))[0] + 1
     # Generate client names.
-    clients = [self._GenerateRandomClient() for _ in xrange(nclients)]
-    for i in xrange(new_subject, new_subject + how_many):
+    clients = [self._GenerateRandomClient() for _ in range(nclients)]
+    for i in range(new_subject, new_subject + how_many):
       client = clients[self.rand.randint(0, nclients - 1)]
       self._AddNewSubject(client, subjects, i, new_value)
     data_store.DB.Flush()
@@ -1808,7 +1808,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
   def _GenerateRandomSubject(self):
     n = self.rand.randint(1, 5)
     seps = [
-        self._GenerateRandomString(self.rand.randint(5, 10)) for _ in xrange(n)
+        self._GenerateRandomString(self.rand.randint(5, 10)) for _ in range(n)
     ]
     return "/".join(seps)
 
@@ -1816,13 +1816,13 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     """Add a new subject to the database."""
     number_predicates = self.rand.randrange(1, max_attributes)
     self.subjects += 1
-    predicates = dict.fromkeys(xrange(number_predicates))
+    predicates = dict.fromkeys(range(number_predicates))
     self.predicates += number_predicates
     subject = str(client.Add(self._GenerateRandomSubject()))
-    for j in xrange(number_predicates):
+    for j in range(number_predicates):
       number_timestamps = self.rand.randrange(1, 3)
       self.values += number_timestamps
-      ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]
+      ts = [100 * (ts + 1) for ts in range(number_timestamps)]
       predicates[j] = ts
       values = [(value, t) for t in ts]
       data_store.DB.MultiSet(
@@ -1857,9 +1857,9 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
       self.predicates += how_many
       new_predicate = max(
           iteritems(predicates), key=operator.itemgetter(0))[0] + 1
-      for j in xrange(new_predicate, new_predicate + how_many):
+      for j in range(new_predicate, new_predicate + how_many):
         number_timestamps = self.rand.randrange(1, 3)
-        ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]
+        ts = [100 * (ts + 1) for ts in range(number_timestamps)]
         self.values += number_timestamps
         values = [(new_value, t) for t in ts]
         predicates[j] = ts
@@ -1916,7 +1916,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
   def _DoMix(self, subjects):
     """Do a mix of database operations."""
     self.test_name = "mix"
-    for _ in xrange(0, len(subjects) // 2000):
+    for _ in range(0, len(subjects) // 2000):
       # Do random operations.
       op = self.rand.randint(0, 3)
       if op == 0:
@@ -1937,9 +1937,9 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self.test_name = "fill"
     self.AddResult(self.test_name, 0, self.steps, data_store.DB.Size(), 0, 0, 0,
                    0)
-    subjects = dict.fromkeys(xrange(nsubjects))
+    subjects = dict.fromkeys(range(nsubjects))
     value = os.urandom(100)
-    clients = [self._GenerateRandomClient() for _ in xrange(nclients)]
+    clients = [self._GenerateRandomClient() for _ in range(nclients)]
     for i in subjects:
       client = self.rand.choice(clients)
       self._AddNewSubject(client, subjects, i, value, max_attributes)
@@ -1948,7 +1948,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   def _GenerateRandomString(self, chars):
     return "".join(
-        [self.rand.choice(string.ascii_letters) for _ in xrange(chars)])
+        [self.rand.choice(string.ascii_letters) for _ in range(chars)])
 
   def _AddBlobs(self, howmany, size):
     """Adds 'howmany' blobs with size 'size' kbs."""
@@ -1956,7 +1956,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     count = 0
     often = howmany // 10
 
-    for count in xrange(howmany):
+    for count in range(howmany):
       data = self._GenerateRandomString(1024 * size)
       data_store.DB.StoreBlob(data)
 
@@ -2065,7 +2065,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   def GenerateFiles(self, client_id, n, directory="dir/dir"):
     res = []
-    for i in xrange(n):
+    for i in range(n):
       res.append(
           rdf_client.StatEntry(
               aff4path="aff4:/%s/fs/os/%s/file%d" % (client_id, directory, i),
@@ -2122,7 +2122,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   def _GenerateRandomString(self, chars):
     return "".join(
-        [self.rand.choice(string.ascii_letters) for _ in xrange(chars)])
+        [self.rand.choice(string.ascii_letters) for _ in range(chars)])
 
   # Constants to control the size of testCollections. These numbers run in a
   # reasonable amount of time for a unit test [O(20s)] on most data stores.
@@ -2252,7 +2252,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     large_value = os.urandom(10 * 1024 * 1024)
 
     start_time = time.time()
-    for i in xrange(self.n):
+    for i in range(self.n):
       data_store.DB.Set(subject_template % i, "task:flow", value)
     data_store.DB.Flush()
     end_time = time.time()
@@ -2260,7 +2260,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self.AddResult("Set rows", (end_time - start_time) / self.n, self.n)
 
     start_time = time.time()
-    for i in xrange(self.n):
+    for i in range(self.n):
       data_store.DB.Set("aff4:/somerow", predicate_template % i, value)
     data_store.DB.Flush()
     end_time = time.time()
@@ -2268,7 +2268,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self.AddResult("Set attributes", (end_time - start_time) / self.n, self.n)
 
     start_time = time.time()
-    for i in xrange(self.n):
+    for i in range(self.n):
       data_store.DB.Set("aff4:/somerow", "task:someflow", value, replace=False)
     data_store.DB.Flush()
     end_time = time.time()
@@ -2276,7 +2276,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self.AddResult("Set versions", (end_time - start_time) / self.n, self.n)
 
     start_time = time.time()
-    for i in xrange(self.small_n):
+    for i in range(self.small_n):
       data_store.DB.Set(
           "aff4:/largerow%d" % i, "task:largeflow", large_value, replace=False)
     data_store.DB.Flush()
@@ -2291,7 +2291,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     predicate_template = "task:flow%d"
 
     start_time = time.time()
-    for i in xrange(self.n):
+    for i in range(self.n):
       data_store.DB.Resolve(subject_template % i, "task:flow")
     data_store.DB.Flush()
     end_time = time.time()
@@ -2299,7 +2299,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self.AddResult("Get rows", (end_time - start_time) / self.n, self.n)
 
     start_time = time.time()
-    for i in xrange(self.n):
+    for i in range(self.n):
       data_store.DB.Resolve("aff4:/somerow", predicate_template % i)
     data_store.DB.Flush()
     end_time = time.time()
@@ -2307,7 +2307,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self.AddResult("Get attributes", (end_time - start_time) / self.n, self.n)
 
     start_time = time.time()
-    for i in xrange(self.small_n):
+    for i in range(self.small_n):
       data_store.DB.ResolvePrefix(
           "aff4:/somerow",
           "task:someflow",
@@ -2319,7 +2319,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
                    self.small_n)
 
     start_time = time.time()
-    for i in xrange(self.small_n):
+    for i in range(self.small_n):
       res = data_store.DB.ResolvePrefix(
           "aff4:/largerow%d" % i,
           "task:largeflow",
@@ -2341,7 +2341,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     large_value = os.urandom(10 * 1024 * 1024)
 
     start_time = time.time()
-    for i in xrange(self.n):
+    for i in range(self.n):
       self.tp.AddTask(data_store.DB.Set,
                       (subject_template % i, "task:threadedflow", value, None))
     self.tp.Join()
@@ -2352,7 +2352,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
                    self.n)
 
     start_time = time.time()
-    for i in xrange(self.n):
+    for i in range(self.n):
       self.tp.AddTask(
           data_store.DB.Set,
           ("aff4:/somerowthreaded", predicate_template % i, value, None))
@@ -2364,7 +2364,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
                    (end_time - start_time) / self.n, self.n)
 
     start_time = time.time()
-    for i in xrange(self.n):
+    for i in range(self.n):
       self.tp.AddTask(data_store.DB.Set,
                       ("aff4:/somerowthreaded", "task:someflowthreaded", value,
                        None, False))
@@ -2376,7 +2376,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
                    (end_time - start_time) / self.n, self.n)
 
     start_time = time.time()
-    for i in xrange(self.small_n):
+    for i in range(self.small_n):
       self.tp.AddTask(data_store.DB.Set,
                       ("aff4:/threadedlargerow%d" % i, "task:largeflowthreaded",
                        large_value, None, False))
@@ -2398,7 +2398,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     predicate_template = "task:threadedflow%d"
 
     start_time = time.time()
-    for i in xrange(self.n):
+    for i in range(self.n):
       self.tp.AddTask(data_store.DB.Resolve,
                       (subject_template % i, "task:threadedflow"))
     self.tp.Join()
@@ -2409,7 +2409,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
                    self.n)
 
     start_time = time.time()
-    for i in xrange(self.n):
+    for i in range(self.n):
       self.tp.AddTask(data_store.DB.Resolve,
                       ("aff4:/somerowthreaded", predicate_template % i))
     self.tp.Join()
@@ -2420,7 +2420,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
                    (end_time - start_time) / self.n, self.n)
 
     start_time = time.time()
-    for i in xrange(self.small_n):
+    for i in range(self.small_n):
       self.tp.AddTask(self.ResolvePrefixAndCheck,
                       ("aff4:/somerowthreaded", "task:someflowthreaded"))
     self.tp.Join()
@@ -2431,7 +2431,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
                    (end_time - start_time) / self.small_n, self.small_n)
 
     start_time = time.time()
-    for i in xrange(self.small_n):
+    for i in range(self.small_n):
       self.tp.AddTask(
           self.ResolvePrefixAndCheck,
           ("aff4:/threadedlargerow%d" % i, "task:largeflowthreaded", 1))
@@ -2472,7 +2472,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
         self.fails.append(e)
 
     start_time = time.time()
-    for _ in xrange(self.n):
+    for _ in range(self.n):
       Thread()
     end_time = time.time()
 
@@ -2481,7 +2481,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self.assertEqual(len(self.fails), 0)
 
     start_time = time.time()
-    for _ in xrange(self.n):
+    for _ in range(self.n):
       self.tp.AddTask(Thread, ())
     self.tp.Join()
     end_time = time.time()

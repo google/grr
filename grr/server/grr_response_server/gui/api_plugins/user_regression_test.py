@@ -33,7 +33,7 @@ class ApiGetClientApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
+      self.CreateAdminUser(u"approver")
 
       clients = self.SetupClients(2)
       for client_id in clients:
@@ -47,21 +47,21 @@ class ApiGetClientApprovalHandlerRegressionTest(
       approval1_id = self.RequestClientApproval(
           clients[0].Basename(),
           reason="foo",
-          approver="approver",
+          approver=u"approver",
           requestor=self.token.username)
 
     with test_lib.FakeTime(45):
       approval2_id = self.RequestClientApproval(
           clients[1].Basename(),
           reason="bar",
-          approver="approver",
+          approver=u"approver",
           requestor=self.token.username)
 
     with test_lib.FakeTime(84):
       self.GrantClientApproval(
           clients[1].Basename(),
           approval_id=approval2_id,
-          approver="approver",
+          approver=u"approver",
           requestor=self.token.username)
 
     with test_lib.FakeTime(126):
@@ -90,7 +90,7 @@ class ApiGrantClientApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateAdminUser("requestor")
+      self.CreateAdminUser(u"requestor")
 
       client_id = self.SetupClient(0)
       # Delete the certificate as it's being regenerated every time the
@@ -104,7 +104,7 @@ class ApiGrantClientApprovalHandlerRegressionTest(
           client_id.Basename(),
           reason="foo",
           approver=self.token.username,
-          requestor="requestor")
+          requestor=u"requestor")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -112,7 +112,7 @@ class ApiGrantClientApprovalHandlerRegressionTest(
           args=user_plugin.ApiGrantClientApprovalArgs(
               client_id=client_id.Basename(),
               approval_id=approval_id,
-              username="requestor"),
+              username=u"requestor"),
           replace={approval_id: "approval:111111"})
 
 
@@ -125,7 +125,7 @@ class ApiCreateClientApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateUser("approver")
+      self.CreateUser(u"approver")
 
       client_id = self.SetupClient(0)
 
@@ -146,7 +146,7 @@ class ApiCreateClientApprovalHandlerRegressionTest(
               client_id=client_id.Basename(),
               approval=user_plugin.ApiClientApproval(
                   reason="really important reason!",
-                  notified_users=["approver1", "approver2"],
+                  notified_users=[u"approver1", u"approver2"],
                   email_cc_addresses=["test@example.com"])),
           replace=ReplaceApprovalId)
 
@@ -160,7 +160,7 @@ class ApiListClientApprovalsHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
+      self.CreateAdminUser(u"approver")
 
       clients = self.SetupClients(2)
       for client_id in clients:
@@ -174,14 +174,14 @@ class ApiListClientApprovalsHandlerRegressionTest(
       approval1_id = self.RequestClientApproval(
           clients[0].Basename(),
           reason=self.token.reason,
-          approver="approver",
+          approver=u"approver",
           requestor=self.token.username)
 
     with test_lib.FakeTime(45):
       approval2_id = self.RequestClientApproval(
           clients[1].Basename(),
           reason=self.token.reason,
-          approver="approver",
+          approver=u"approver",
           requestor=self.token.username)
 
     with test_lib.FakeTime(84):
@@ -189,7 +189,7 @@ class ApiListClientApprovalsHandlerRegressionTest(
           clients[1].Basename(),
           requestor=self.token.username,
           approval_id=approval2_id,
-          approver="approver")
+          approver=u"approver")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -219,7 +219,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
 
   def _RunTestForNormalApprovals(self):
     with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
+      self.CreateAdminUser(u"approver")
 
       with self.CreateHunt(description="hunt1") as hunt_obj:
         hunt1_id = hunt_obj.urn.Basename()
@@ -229,15 +229,15 @@ class ApiGetHuntApprovalHandlerRegressionTest(
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestHuntApproval(
-          hunt1_id, approver="approver", reason="foo")
+          hunt1_id, approver=u"approver", reason="foo")
 
     with test_lib.FakeTime(45):
       approval2_id = self.RequestHuntApproval(
-          hunt2_id, approver="approver", reason="bar")
+          hunt2_id, approver=u"approver", reason="bar")
 
     with test_lib.FakeTime(84):
       self.GrantHuntApproval(
-          hunt2_id, approver="approver", approval_id=approval2_id)
+          hunt2_id, approver=u"approver", approval_id=approval2_id)
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -263,7 +263,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
 
   def _RunTestForApprovalForHuntCopiedFromAnotherHunt(self):
     with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
+      self.CreateAdminUser(u"approver")
 
       with self.CreateHunt(description="original hunt") as hunt_obj:
         hunt1_urn = hunt_obj.urn
@@ -277,7 +277,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
-          hunt2_id, reason="foo", approver="approver")
+          hunt2_id, reason="foo", approver=u"approver")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -294,7 +294,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
 
   def _RunTestForApprovalForHuntCopiedFromFlow(self):
     with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
+      self.CreateAdminUser(u"approver")
 
       client_urn = self.SetupClient(0)
       flow_urn = flow.StartFlow(
@@ -312,7 +312,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
-          hunt_id, reason="foo", approver="approver")
+          hunt_id, reason="foo", approver=u"approver")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -343,7 +343,7 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateAdminUser("requestor")
+      self.CreateAdminUser(u"requestor")
 
       with self.CreateHunt(description="a hunt") as hunt_obj:
         hunt_urn = hunt_obj.urn
@@ -352,7 +352,7 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
           hunt_id,
-          requestor="requestor",
+          requestor=u"requestor",
           reason="foo",
           approver=self.token.username)
 
@@ -360,7 +360,7 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
       self.Check(
           "GrantHuntApproval",
           args=user_plugin.ApiGrantHuntApprovalArgs(
-              hunt_id=hunt_id, approval_id=approval_id, username="requestor"),
+              hunt_id=hunt_id, approval_id=approval_id, username=u"requestor"),
           replace={
               hunt_id: "H:123456",
               approval_id: "approval:111111"
@@ -377,7 +377,7 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateUser("approver")
+      self.CreateUser(u"approver")
 
       with self.CreateHunt(description="foo") as hunt_obj:
         hunt_id = hunt_obj.urn.Basename()
@@ -393,7 +393,7 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
               hunt_id=hunt_id,
               approval=user_plugin.ApiHuntApproval(
                   reason="really important reason!",
-                  notified_users=["approver1", "approver2"],
+                  notified_users=[u"approver1", u"approver2"],
                   email_cc_addresses=["test@example.com"])),
           replace=ReplaceHuntAndApprovalIds)
 
@@ -407,7 +407,7 @@ class ApiListHuntApprovalsHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
+      self.CreateAdminUser(u"approver")
 
       hunt = implementation.StartHunt(
           hunt_name=standard.GenericHunt.__name__, token=self.token)
@@ -416,7 +416,7 @@ class ApiListHuntApprovalsHandlerRegressionTest(
       approval_id = self.RequestHuntApproval(
           hunt.urn.Basename(),
           reason=self.token.reason,
-          approver="approver",
+          approver=u"approver",
           requestor=self.token.username)
 
     with test_lib.FakeTime(126):
@@ -437,7 +437,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
+      self.CreateAdminUser(u"approver")
 
       cron_manager = aff4_cronjobs.GetCronManager()
       cron_args = rdf_cronjobs.CreateCronJobArgs(
@@ -448,15 +448,15 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestCronJobApproval(
-          cron1_id, reason="foo", approver="approver")
+          cron1_id, reason="foo", approver=u"approver")
 
     with test_lib.FakeTime(45):
       approval2_id = self.RequestCronJobApproval(
-          cron2_id, reason="bar", approver="approver")
+          cron2_id, reason="bar", approver=u"approver")
 
     with test_lib.FakeTime(84):
       self.GrantCronJobApproval(
-          cron2_id, approval_id=approval2_id, approver="approver")
+          cron2_id, approval_id=approval2_id, approver=u"approver")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -490,7 +490,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateAdminUser("requestor")
+      self.CreateAdminUser(u"requestor")
 
       cron_manager = aff4_cronjobs.GetCronManager()
       cron_args = rdf_cronjobs.CreateCronJobArgs(
@@ -501,7 +501,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
       approval_id = self.RequestCronJobApproval(
           cron_id,
           approver=self.token.username,
-          requestor="requestor",
+          requestor=u"requestor",
           reason="foo")
 
     with test_lib.FakeTime(126):
@@ -510,7 +510,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
           args=user_plugin.ApiGrantCronJobApprovalArgs(
               cron_job_id=cron_id,
               approval_id=approval_id,
-              username="requestor"),
+              username=u"requestor"),
           replace={
               cron_id: "CronJob_123456",
               approval_id: "approval:111111"
@@ -526,7 +526,7 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateUser("approver")
+      self.CreateUser(u"approver")
 
     cron_manager = aff4_cronjobs.GetCronManager()
     cron_args = rdf_cronjobs.CreateCronJobArgs(

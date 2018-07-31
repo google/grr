@@ -324,7 +324,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def WaitUntil(self, condition_cb, *args):
     self.CheckBrowserErrors()
 
-    for _ in xrange(int(self.duration / self.sleep_time)):
+    for _ in range(int(self.duration / self.sleep_time)):
       try:
         res = condition_cb(*args)
         if res:
@@ -574,7 +574,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def WaitUntilEqual(self, target, condition_cb, *args):
     condition_value = None
-    for _ in xrange(int(self.duration / self.sleep_time)):
+    for _ in range(int(self.duration / self.sleep_time)):
       try:
         condition_value = condition_cb(*args)
         if condition_value == target:
@@ -597,7 +597,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     data = ""
     target = utils.SmartUnicode(target)
 
-    for _ in xrange(int(self.duration / self.sleep_time)):
+    for _ in range(int(self.duration / self.sleep_time)):
       try:
         data = condition_cb(*args)
         if target in data:
@@ -623,7 +623,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # Used by CheckHttpErrors
     self.ignore_http_errors = False
 
-    self.token.username = "gui_user"
+    self.token.username = u"gui_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
     # Make the user use the advanced gui so we can test it.
@@ -663,7 +663,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def WaitForNotification(self, user):
     sleep_time = 0.2
     iterations = 50
-    for _ in xrange(iterations):
+    for _ in range(iterations):
       try:
         fd = aff4.FACTORY.Open(user, users.GRRUser, mode="r", token=self.token)
         pending_notifications = fd.Get(fd.Schema.PENDING_NOTIFICATIONS)

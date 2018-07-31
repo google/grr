@@ -422,7 +422,7 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
             file_finder.FileFinder.__name__: file_finder.FileFinder,
         }):
       # RunReport flow is only shown for admins.
-      self.CreateAdminUser("test")
+      self.CreateAdminUser(u"test")
 
       self.Check("ListFlowDescriptors")
 

@@ -2,6 +2,8 @@
 """Tests for grr_response_server.aff4_objects.standard."""
 
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -97,7 +99,7 @@ class AFF4SparseImageTest(aff4_test_lib.AFF4ObjectTest):
     blob_hashes = []
     blobs = []
     num_chunks = 5
-    for chunk in xrange(start_chunk, start_chunk + num_chunks):
+    for chunk in range(start_chunk, start_chunk + num_chunks):
       # Make sure the blobs have unique content.
       blob_contents = str(chunk % 10) * fd.chunksize
       blobs.append(blob_contents)
@@ -138,7 +140,7 @@ class AFF4SparseImageTest(aff4_test_lib.AFF4ObjectTest):
 
     start_chunk = 1000
     num_chunks = 5
-    for chunk in xrange(start_chunk, start_chunk + num_chunks):
+    for chunk in range(start_chunk, start_chunk + num_chunks):
       # Make sure the blobs have unique content.
       blob_contents = str(chunk % 10) * fd.chunksize
       blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")

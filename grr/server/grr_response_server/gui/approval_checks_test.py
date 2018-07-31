@@ -26,7 +26,7 @@ def _CreateApprovalRequest(approval_type,
       approval_type=approval_type,
       approval_id="1234",
       subject_id=subject_id,
-      requestor_username="requestor",
+      requestor_username=u"requestor",
       reason="reason",
       timestamp=rdfvalue.RDFDatetime.Now(),
       expiration_time=expiration_time,
@@ -60,7 +60,7 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testRaisesWhenJustOneGrant(self):
     approval_request = self._CreateRequest(
-        grants=[rdf_objects.ApprovalGrant(grantor_username="grantor")])
+        grants=[rdf_objects.ApprovalGrant(grantor_username=u"grantor")])
 
     with self.assertRaisesRegexp(
         access_control.UnauthorizedAccess,
@@ -71,8 +71,8 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
     approval_request = self._CreateRequest(
         expiration_time=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1m"),
         grants=[
-            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-            rdf_objects.ApprovalGrant(grantor_username="grantor2")
+            rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
+            rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
         ])
 
     with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
@@ -81,8 +81,8 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testReturnsIfApprovalIsNotExpiredAndHasTwoGrants(self):
     approval_request = self._CreateRequest(grants=[
-        rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-        rdf_objects.ApprovalGrant(grantor_username="grantor2")
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
     ])
 
     approval_checks.CheckApprovalRequest(approval_request)
@@ -90,8 +90,8 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
   @mock.patch(client_approval_auth.__name__ + ".CLIENT_APPROVAL_AUTH_MGR")
   def testWhenAuthMgrActiveReturnsIfClientHasNoLabels(self, mock_mgr):
     approval_request = self._CreateRequest(grants=[
-        rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-        rdf_objects.ApprovalGrant(grantor_username="grantor2")
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
     ])
 
     # Make sure approval manager is active.
@@ -101,12 +101,12 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
 
   @mock.patch(client_approval_auth.__name__ + ".CLIENT_APPROVAL_AUTH_MGR")
   def testWhenAuthMgrActiveChecksApproversForEachClientLabel(self, mock_mgr):
-    data_store.REL_DB.AddClientLabels(self.client.client_id, "GRR",
+    data_store.REL_DB.AddClientLabels(self.client.client_id, u"GRR",
                                       [u"foo", u"bar"])
 
     approval_request = self._CreateRequest(grants=[
-        rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-        rdf_objects.ApprovalGrant(grantor_username="grantor2")
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
     ])
 
     # Make sure approval manager is active.
@@ -118,22 +118,22 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
 
     args = mock_mgr.CheckApproversForLabel.mock_calls[0][1]
     self.assertEqual(
-        args, (access_control.ACLToken(username="requestor"),
-               rdfvalue.RDFURN(self.client.client_id), "requestor",
+        args, (access_control.ACLToken(username=u"requestor"),
+               rdfvalue.RDFURN(self.client.client_id), u"requestor",
                set(["grantor1", "grantor2"]), u"bar"))
     args = mock_mgr.CheckApproversForLabel.mock_calls[1][1]
     self.assertEqual(
-        args, (access_control.ACLToken(username="requestor"),
-               rdfvalue.RDFURN(self.client.client_id), "requestor",
+        args, (access_control.ACLToken(username=u"requestor"),
+               rdfvalue.RDFURN(self.client.client_id), u"requestor",
                set(["grantor1", "grantor2"]), u"foo"))
 
   @mock.patch(client_approval_auth.__name__ + ".CLIENT_APPROVAL_AUTH_MGR")
   def testWhenAuthMgrActiveRaisesIfAuthMgrRaises(self, mock_mgr):
-    data_store.REL_DB.AddClientLabels(self.client.client_id, "GRR", [u"foo"])
+    data_store.REL_DB.AddClientLabels(self.client.client_id, u"GRR", [u"foo"])
 
     approval_request = self._CreateRequest(grants=[
-        rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-        rdf_objects.ApprovalGrant(grantor_username="grantor2")
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
     ])
 
     # Make sure approval manager is active.
@@ -165,8 +165,8 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(
 
   def setUp(self):
     super(CheckHuntAndCronJobApprovalRequestTestMixin, self).setUp()
-    self.CreateUser("grantor1")
-    self.CreateUser("grantor2")
+    self.CreateUser(u"grantor1")
+    self.CreateUser(u"grantor2")
 
   def testRaisesWhenNoGrants(self):
     approval_request = self._CreateRequest(grants=[])
@@ -178,7 +178,7 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(
 
   def testRaisesWhenJustOneGrant(self):
     approval_request = self._CreateRequest(
-        grants=[rdf_objects.ApprovalGrant(grantor_username="grantor1")])
+        grants=[rdf_objects.ApprovalGrant(grantor_username=u"grantor1")])
 
     with self.assertRaisesRegexp(
         access_control.UnauthorizedAccess,
@@ -187,8 +187,8 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(
 
   def testRaisesWhenNoGrantsFromAdmins(self):
     approval_request = self._CreateRequest(grants=[
-        rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-        rdf_objects.ApprovalGrant(grantor_username="grantor2")
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
     ])
 
     with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
@@ -197,13 +197,13 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(
 
   def testRaisesIfApprovalExpired(self):
     # Make sure that approval is otherwise valid.
-    self.CreateAdminUser("grantor2")
+    self.CreateAdminUser(u"grantor2")
 
     approval_request = self._CreateRequest(
         expiration_time=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1m"),
         grants=[
-            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-            rdf_objects.ApprovalGrant(grantor_username="grantor2")
+            rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
+            rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
         ])
 
     with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
@@ -211,11 +211,11 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(
       approval_checks.CheckApprovalRequest(approval_request)
 
   def testReturnsIfApprovalIsNotExpiredAndHasTwoGrantsIncludingAdmin(self):
-    self.CreateAdminUser("grantor2")
+    self.CreateAdminUser(u"grantor2")
 
     approval_request = self._CreateRequest(grants=[
-        rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-        rdf_objects.ApprovalGrant(grantor_username="grantor2")
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
+        rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
     ])
 
     approval_checks.CheckApprovalRequest(approval_request)

@@ -503,7 +503,7 @@ class Interrogate(flow.GRRFlow):
         index.AddClient(self.state.client)
         labels = self.state.client.startup_info.client_info.labels
         if labels:
-          data_store.REL_DB.AddClientLabels(self.state.client.client_id, "GRR",
+          data_store.REL_DB.AddClientLabels(self.state.client.client_id, u"GRR",
                                             labels)
       except db.UnknownClientError:
         # TODO(amoser): Remove after data migration.

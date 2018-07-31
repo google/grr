@@ -69,10 +69,7 @@ class RelDBChecker(object):
       stats.STATS.IncrementCounter("approval_searches", fields=["-", "reldb"])
 
     approvals = data_store.REL_DB.ReadApprovalRequests(
-        utils.SmartStr(username),
-        approval_type,
-        subject_id=subject_id,
-        include_expired=False)
+        username, approval_type, subject_id=subject_id, include_expired=False)
 
     errors = []
     for approval in approvals:

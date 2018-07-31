@@ -33,12 +33,12 @@ class SystemCronTestMixin(object):
     for i in range(0, 10):
       client_id = "C.1%015x" % i
       with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
-        client.AddLabels([u"Label1", u"Label2"], owner="GRR")
-        client.AddLabel(u"UserLabel", owner="jim")
+        client.AddLabels([u"Label1", u"Label2"], owner=u"GRR")
+        client.AddLabel(u"UserLabel", owner=u"jim")
 
-      data_store.REL_DB.AddClientLabels(client_id, "GRR",
+      data_store.REL_DB.AddClientLabels(client_id, u"GRR",
                                         [u"Label1", u"Label2"])
-      data_store.REL_DB.AddClientLabels(client_id, "jim", [u"UserLabel"])
+      data_store.REL_DB.AddClientLabels(client_id, u"jim", [u"UserLabel"])
 
   def _CheckVersionStats(self, label, attribute, counts):
 

@@ -4,6 +4,8 @@
 import itertools
 import math
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_server import aff4
 from grr_response_server.aff4_objects import stats as aff4_stats
 
@@ -50,7 +52,7 @@ class FileSizeDistributionReportPlugin(report_plugin_base.ReportPluginBase):
   def GetReportData(self, get_report_args, token):
     """Report file frequency by client count."""
     x_ticks = []
-    for e in xrange(15):
+    for e in range(15):
       x = 32**e
 
       x_ticks.append(

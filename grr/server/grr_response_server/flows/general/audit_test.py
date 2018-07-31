@@ -37,7 +37,7 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
           client_mock,
           client_id=client_id,
           pathspec=rdf_paths.PathSpec(
-              path=os.path.join(self.base_path, "test_img.dd/test directory"),
+              path=os.path.join(self.base_path, "test_img.dd/glob_test"),
               pathtype=rdf_paths.PathSpec.PathType.OS),
           token=self.token)
 

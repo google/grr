@@ -2,6 +2,8 @@
 """Test for the foreman client rule classes."""
 from __future__ import division
 
+from builtins import range  # pylint: disable=redefined-builtin
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
@@ -27,7 +29,7 @@ class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
 
     # Generate a sequence of rules using all other bits
     ret.rules = [
-        ForemanClientRuleTest.GenerateSample(n) for n in xrange(number // 2)
+        ForemanClientRuleTest.GenerateSample(n) for n in range(number // 2)
     ]
 
     return ret
@@ -278,7 +280,7 @@ class ForemanLabelClientRuleTest(rdf_test_base.RDFValueTestMixin,
     client_id = self.SetupClient(0)
 
     client_obj = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
-    client_obj.SetLabels(["hello", "world"], owner="GRR")
+    client_obj.SetLabels(["hello", "world"], owner=u"GRR")
 
     return rule.Evaluate(client_obj)
 
@@ -370,7 +372,7 @@ class ForemanLabelClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
   def _Evaluate(self, rule):
     client = self.SetupTestClientObject(0)
 
-    data_store.REL_DB.AddClientLabels(client.client_id, "GRR",
+    data_store.REL_DB.AddClientLabels(client.client_id, u"GRR",
                                       [u"hello", u"world"])
 
     client_info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
@@ -427,7 +429,7 @@ class ForemanRegexClientRuleTest(rdf_test_base.RDFValueTestMixin,
     client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
     self.assertFalse(r.Evaluate(client))
 
-    client.SetLabels(["hello", "world"], owner="GRR")
+    client.SetLabels(["hello", "world"], owner=u"GRR")
     self.assertTrue(r.Evaluate(client))
 
 
@@ -485,7 +487,7 @@ class ForemanRegexClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
   def testLabels(self):
     client = self.SetupTestClientObject(0, system="Linux")
 
-    data_store.REL_DB.AddClientLabels(client.client_id, "GRR",
+    data_store.REL_DB.AddClientLabels(client.client_id, u"GRR",
                                       [u"hello", u"world"])
 
     info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
