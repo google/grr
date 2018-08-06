@@ -30,6 +30,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.rdfvalues import aff4 as rdf_aff4
@@ -1508,11 +1509,8 @@ class LazyDecoder(object):
 
   def ToRDFValue(self):
     if self.decoded is None:
-      try:
-        self.decoded = self.rdfvalue_cls.FromSerializedString(
-            self.serialized, age=self.age)
-      except rdfvalue.DecodeError:
-        return None
+      self.decoded = self.rdfvalue_cls.FromDatastoreValue(
+          self.serialized, age=self.age)
 
     return self.decoded
 
@@ -3086,6 +3084,42 @@ class AFF4Filter(with_metaclass(registry.MetaclassRegistry, object)):
   @classmethod
   def GetFilter(cls, filter_name):
     return cls.classes[filter_name]
+
+
+class ValueConverter(object):
+  """An utility class for converting attribute values."""
+
+  def __init__(self):
+    self._attribute_types = {}
+    for attribute in itervalues(Attribute.PREDICATES):
+      data_store_type = attribute.attribute_type.data_store_type
+      self._attribute_types[attribute.predicate] = data_store_type
+
+  def Encode(self, attribute, value):
+    """Encode the value for the attribute."""
+    required_type = self._attribute_types.get(attribute, "bytes")
+
+    if required_type == "integer":
+      return rdf_structs.SignedVarintEncode(int(value))
+    elif required_type == "unsigned_integer":
+      return rdf_structs.VarintEncode(int(value))
+    elif hasattr(value, "SerializeToString"):
+      return value.SerializeToString()
+    else:
+      # Types "string" and "bytes" are stored as strings here.
+      return utils.SmartStr(value)
+
+  def Decode(self, attribute, value):
+    """Decode the value to the required type."""
+    required_type = self._attribute_types.get(attribute, "bytes")
+    if required_type == "integer":
+      return rdf_structs.SignedVarintReader(value, 0)[0]
+    elif required_type == "unsigned_integer":
+      return rdf_structs.VarintReader(value, 0)[0]
+    elif required_type == "string":
+      return utils.SmartUnicode(value)
+    else:
+      return value
 
 
 # A global registry of all AFF4 classes

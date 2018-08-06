@@ -14,20 +14,25 @@ import threading
 from future.utils import itervalues
 from future.utils import with_metaclass
 
+# Metaclasses confuse the linter so: pylint: disable=no-value-for-parameter
+
 
 class MetaclassRegistry(abc.ABCMeta):
   """Automatic Plugin Registration through metaclasses."""
 
-  def __init__(cls, name, bases, env_dict):
-    abc.ABCMeta.__init__(cls, name, bases, env_dict)
-
+  def IsAbstract(cls):
     # Abstract classes should not be registered. We define classes as abstract
     # by giving them the __abstract attribute (this is not inheritable) or by
     # naming them Abstract<ClassName>.
-    abstract_attribute = "_%s__abstract" % name
+    abstract_attribute = "_%s__abstract" % cls.__name__
 
-    if (not cls.__name__.startswith("Abstract") and
-        not hasattr(cls, abstract_attribute)):
+    return (cls.__name__.startswith("Abstract") or
+            hasattr(cls, abstract_attribute))
+
+  def __init__(cls, name, bases, env_dict):
+    abc.ABCMeta.__init__(cls, name, bases, env_dict)
+
+    if not cls.IsAbstract():
       # Attach the classes dict to the baseclass and have all derived classes
       # use the same one:
       for base in bases:
@@ -98,9 +103,10 @@ class EventRegistry(MetaclassRegistry):
   def __init__(cls, name, bases, env_dict):
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
-    # Register ourselves as listeners for the events in cls.EVENTS.
-    for ev in cls.EVENTS:
-      EventRegistry.EVENT_NAME_MAP.setdefault(ev, set()).add(cls)
+    if not cls.IsAbstract():
+      # Register ourselves as listeners for the events in cls.EVENTS.
+      for ev in cls.EVENTS:
+        EventRegistry.EVENT_NAME_MAP.setdefault(ev, set()).add(cls)
 
 
 class FlowRegistry(MetaclassRegistry):
@@ -111,7 +117,8 @@ class FlowRegistry(MetaclassRegistry):
   def __init__(cls, name, bases, env_dict):
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
-    cls.FLOW_REGISTRY[name] = cls
+    if not cls.IsAbstract():
+      cls.FLOW_REGISTRY[name] = cls
 
   @classmethod
   def FlowClassByName(mcs, flow_name):
@@ -130,11 +137,32 @@ class CronJobRegistry(MetaclassRegistry):
   def __init__(cls, name, bases, env_dict):
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
-    cls.CRON_REGISTRY[name] = cls
+    if not cls.IsAbstract():
+      cls.CRON_REGISTRY[name] = cls
 
   @classmethod
   def CronJobClassByName(mcs, job_name):
     job_cls = mcs.CRON_REGISTRY.get(job_name)
+    if job_cls is None:
+      raise ValueError("CronJob '%s' not known." % job_name)
+
+    return job_cls
+
+
+class SystemCronJobRegistry(CronJobRegistry):
+  """A dedicated registry that only contains cron jobs."""
+
+  SYSTEM_CRON_REGISTRY = {}
+
+  def __init__(cls, name, bases, env_dict):
+    super(SystemCronJobRegistry, cls).__init__(name, bases, env_dict)
+
+    if not cls.IsAbstract():
+      cls.SYSTEM_CRON_REGISTRY[name] = cls
+
+  @classmethod
+  def CronJobClassByName(mcs, job_name):
+    job_cls = mcs.SYSTEM_CRON_REGISTRY.get(job_name)
     if job_cls is None:
       raise ValueError("CronJob '%s' not known." % job_name)
 
@@ -149,7 +177,8 @@ class OutputPluginRegistry(MetaclassRegistry):
   def __init__(cls, name, bases, env_dict):
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
-    cls.PLUGIN_REGISTRY[name] = cls
+    if not cls.IsAbstract():
+      cls.PLUGIN_REGISTRY[name] = cls
 
   @classmethod
   def PluginClassByName(mcs, plugin_name):

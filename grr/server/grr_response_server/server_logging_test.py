@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for logging classes."""
+from __future__ import unicode_literals
 
 import logging
 

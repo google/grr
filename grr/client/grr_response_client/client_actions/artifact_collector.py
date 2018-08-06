@@ -3,12 +3,15 @@
 
 
 from grr_response_client import actions
+from grr_response_client import vfs
 from grr_response_client.client_actions import admin
+from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import standard
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
@@ -97,24 +100,14 @@ class ArtifactCollector(actions.ActionPlugin):
       yield res
 
   def _ProcessFileSource(self, args):
-    # TODO(user): Not implemented yet.
-    # Created action `Download` in file_finder.py with classmethod Start that
-    # would take FileFinderArgs as input and return a FileFinderResult object.
-    # opts = rdf_file_finder.FileFinderDownloadActionOptions(
-    #     max_size=args.max_bytesize
-    # )
-    # action = rdf_file_finder.FileFinderAction(
-    #     action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
-    #     download=opts
-    # )
-    # request = rdf_file_finder.FileFinderArgs(
-    #     paths=args.paths,
-    #     pathtype=args.pathtype,
-    #     action=action
-    # )
+    file_finder_action = rdf_file_finder.FileFinderAction.Stat()
+    request = rdf_file_finder.FileFinderArgs(
+        paths=args.base_source.attributes["paths"],
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        action=file_finder_action)
+    action = file_finder.FileFinderOS
 
-    # action = subactions.DownloadAction
-    raise NotImplementedError()
+    yield action, request
 
   def _ProcessWmiSource(self, args):
     # pylint: disable= g-import-not-at-top
@@ -210,7 +203,12 @@ def ParseResponse(processor_obj, response, knowledge_base):
     # and knowledge_base.
     result_iterator = parse_method(None, response, None)
   elif isinstance(processor_obj, parser.FileParser):
-    raise NotImplementedError()
+    if processor_obj.process_together:
+      raise NotImplementedError()
+    else:
+      file_obj = vfs.VFSOpen(response.pathspec)
+      stat = rdf_client.StatEntry(pathspec=response.pathspec)
+      result_iterator = parse_method(stat, file_obj, None)
   elif isinstance(processor_obj,
                   (parser.RegistryParser, parser.RekallPluginParser,
                    parser.RegistryValueParser, parser.GenericResponseParser,

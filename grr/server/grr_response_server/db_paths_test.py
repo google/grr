@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
+from __future__ import unicode_literals
 
 import hashlib
 
@@ -1177,3 +1178,153 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(pi[1].stat_entry.st_mode, 1338)
     self.assertEqual(pi[1].timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("1999-01-02"))
+
+  def testInitPathInfosValidatesClient(self):
+    client_id = "C.4815162342108ABC"
+
+    with self.assertRaises(db.UnknownClientError) as ctx:
+      path_info = rdf_objects.PathInfo.OS(components=(), directory=True)
+      self.db.InitPathInfos(client_id, [path_info])
+
+    self.assertEqual(ctx.exception.client_id, client_id)
+
+  def testInitPathInfosWriteSingle(self):
+    client_id = self.InitializeClient()
+
+    path_info = rdf_objects.PathInfo.OS(components=("foo",), directory=True)
+    self.db.InitPathInfos(client_id, [path_info])
+
+    path_info = self.db.ReadPathInfo(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
+    self.assertEqual(path_info.components, ("foo",))
+    self.assertTrue(path_info.directory)
+
+  def testInitPathInfosWriteMany(self):
+    client_id = self.InitializeClient()
+
+    path_info_1 = rdf_objects.PathInfo.OS(components=("foo",), directory=False)
+    path_info_2 = rdf_objects.PathInfo.OS(components=("bar",), directory=True)
+    self.db.InitPathInfos(client_id, [path_info_1, path_info_2])
+
+    path_info = self.db.ReadPathInfo(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
+    self.assertEqual(path_info.components, ("foo",))
+    self.assertFalse(path_info.directory)
+
+    path_info = self.db.ReadPathInfo(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=("bar",))
+    self.assertEqual(path_info.components, ("bar",))
+    self.assertTrue(path_info.directory)
+
+  def testInitPathInfosTree(self):
+    client_id = self.InitializeClient()
+
+    path_info = rdf_objects.PathInfo.OS(components=("foo", "bar", "baz"))
+    self.db.InitPathInfos(client_id, [path_info])
+
+    path_info = self.db.ReadPathInfo(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
+    self.assertEqual(path_info.components, ("foo",))
+    self.assertTrue(path_info.directory)
+
+    path_info = self.db.ReadPathInfo(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=("foo", "bar"))
+    self.assertEqual(path_info.components, ("foo", "bar"))
+    self.assertTrue(path_info.directory)
+
+    path_info = self.db.ReadPathInfo(
+        client_id,
+        rdf_objects.PathInfo.PathType.OS,
+        components=("foo", "bar", "baz"))
+    self.assertEqual(path_info.components, ("foo", "bar", "baz"))
+    self.assertFalse(path_info.directory)
+
+  def testInitPathInfosClearsStatHistory(self):
+    datetime = rdfvalue.RDFDatetime.FromHumanReadable
+
+    client_id = self.InitializeClient()
+
+    path_info = rdf_objects.PathInfo.OS(components=("foo",))
+
+    self.db.WritePathInfos(client_id, [path_info])
+    self.db.WritePathStatHistory(
+        client_id,
+        path_info, {
+            datetime("2001-01-01"): rdf_client.StatEntry(st_size=42),
+            datetime("2002-02-02"): rdf_client.StatEntry(st_size=108),
+            datetime("2003-03-03"): rdf_client.StatEntry(st_size=1337),
+        })
+
+    self.db.InitPathInfos(client_id, [path_info])
+
+    history = self.db.ReadPathInfoHistory(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
+    self.assertEqual(history, [])
+
+  def testInitPathInfosClearsHashHistory(self):
+    datetime = rdfvalue.RDFDatetime.FromHumanReadable
+
+    client_id = self.InitializeClient()
+
+    path_info = rdf_objects.PathInfo.OS(components=("foo",))
+
+    self.db.WritePathInfos(client_id, [path_info])
+    self.db.WritePathHashHistory(
+        client_id,
+        path_info, {
+            datetime("2011-01-01"): rdf_crypto.Hash(md5=b"quux"),
+            datetime("2012-02-02"): rdf_crypto.Hash(md5=b"norf"),
+            datetime("2013-03-03"): rdf_crypto.Hash(md5=b"thud"),
+        })
+
+    self.db.InitPathInfos(client_id, [path_info])
+
+    history = self.db.ReadPathInfoHistory(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
+    self.assertEqual(history, [])
+
+  def testInitPathInfosRetainsIndirectPathHistory(self):
+    datetime = rdfvalue.RDFDatetime.FromHumanReadable
+
+    client_id = self.InitializeClient()
+
+    path_info = rdf_objects.PathInfo.OS(components=(
+        "foo",
+        "bar",
+    ))
+    self.db.WritePathInfos(client_id, [path_info])
+
+    parent_path_info = rdf_objects.PathInfo.OS(components=("foo",))
+    self.db.WritePathStatHistory(
+        client_id,
+        parent_path_info, {
+            datetime("2015-05-05"): rdf_client.StatEntry(st_mode=1337),
+            datetime("2016-06-06"): rdf_client.StatEntry(st_mode=8888),
+        })
+    self.db.WritePathHashHistory(
+        client_id,
+        parent_path_info, {
+            datetime("2016-06-06"): rdf_crypto.Hash(sha256=b"quux"),
+            datetime("2017-07-07"): rdf_crypto.Hash(sha256=b"norf"),
+        })
+
+    self.db.InitPathInfos(client_id, [path_info])
+
+    history = self.db.ReadPathInfoHistory(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
+
+    self.assertEqual(history[0].timestamp, datetime("2015-05-05"))
+    self.assertEqual(history[0].stat_entry.st_mode, 1337)
+
+    self.assertEqual(history[1].timestamp, datetime("2016-06-06"))
+    self.assertEqual(history[1].stat_entry.st_mode, 8888)
+    self.assertEqual(history[1].hash_entry.sha256, b"quux")
+
+    self.assertEqual(history[2].timestamp, datetime("2017-07-07"))
+    self.assertEqual(history[2].hash_entry.sha256, b"norf")
+
+    self.db.InitPathInfos(client_id, [parent_path_info])
+
+    history = self.db.ReadPathInfoHistory(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
+    self.assertEqual(history, [])

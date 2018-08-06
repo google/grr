@@ -239,6 +239,9 @@ class FetchMoreLink(rdfvalue.RDFValue):
   def ParseFromString(self, unused_string):
     pass
 
+  def ParseFromDatastore(self, value):
+    del value  # Unused.
+
   def SerializeToString(self):
     return ""
 

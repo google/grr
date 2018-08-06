@@ -2,16 +2,23 @@
 """Tests the client artifactor collection."""
 import os
 
+from builtins import filter  # pylint: disable=redefined-builtin
 import mock
 
+from grr_response_client import client_utils
 from grr_response_client import client_utils_common
 from grr_response_client.client_actions import artifact_collector
+from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import parser
+from grr_response_core.lib import utils
+from grr_response_core.lib.parsers import config_file
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifact
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
@@ -187,6 +194,25 @@ class TestEchoCmdParser(parser.CommandParser):
     yield soft
 
 
+class FakeFileParser(parser.FileParser):
+
+  output_types = ["AttributedDict"]
+  supported_artifacts = ["FakeFileArtifact"]
+
+  def Parse(self, stat, file_obj, knowledge_base):
+
+    del knowledge_base  # Unused.
+
+    lines = set([l.strip() for l in file_obj.read().splitlines()])
+
+    users = list(filter(None, lines))
+
+    filename = stat.pathspec.path
+    cfg = {"filename": filename, "users": users}
+
+    yield rdf_protodict.AttributedDict(**cfg)
+
+
 class ParseResponsesTest(client_test_lib.EmptyActionTest):
 
   def testCmdArtifact(self):
@@ -240,6 +266,70 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
     res = result.collected_artifacts[0].action_results[0].value
     self.assertIsInstance(res, rdf_client.SoftwarePackage)
     self.assertEqual(res.description, "1\n")
+
+  def testFileArtifactParser(self):
+    """Test parsing a fake file artifact with a file parser."""
+
+    processor = config_file.CronAtAllowDenyParser()
+
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.FILE,
+        attributes={
+            "paths": ["VFSFixture/etc/passwd", "numbers.txt"],
+        })
+
+    paths = []
+    for path in source.attributes["paths"]:
+      paths.append(os.path.join(self.base_path, path))
+
+    stat_cache = utils.StatCache()
+
+    expanded_paths = []
+    opts = globbing.PathOpts(follow_links=True)
+    for path in paths:
+      for expanded_path in globbing.ExpandPath(path, opts):
+        expanded_paths.append(expanded_path)
+
+    results = []
+    for path in expanded_paths:
+      stat = stat_cache.Get(path, follow_symlink=True)
+      pathspec = rdf_paths.PathSpec(
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          path=client_utils.LocalPathToCanonicalPath(stat.GetPath()),
+          path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
+      response = rdf_client.FindSpec(pathspec=pathspec)
+
+      for res in artifact_collector.ParseResponse(processor, response, {}):
+        results.append(res)
+
+    self.assertEqual(len(results), 3)
+    self.assertTrue(
+        results[0]["filename"].endswith("test_data/VFSFixture/etc/passwd"))
+    self.assertIsInstance(results[0], rdf_protodict.AttributedDict)
+    self.assertEqual(len(results[0]["users"]), 3)
+    self.assertIsInstance(results[1], rdf_anomaly.Anomaly)
+    self.assertEqual(len(results[2]["users"]), 1000)
+
+  def testFakeFileArtifactAction(self):
+    file_path = os.path.join(self.base_path, "numbers.txt")
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.FILE,
+        attributes={"paths": [file_path]})
+
+    ext_src = rdf_artifact.ExtendedSource(base_source=source)
+    ext_art = rdf_artifact.ExtendedArtifact(
+        name="FakeFileArtifact", sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=[ext_art],
+        knowledge_base=None,
+        ignore_interpolation_errors=True,
+        apply_parsers=True)
+    result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
+    self.assertEqual(len(result.collected_artifacts[0].action_results), 1)
+    res = result.collected_artifacts[0].action_results[0].value
+    self.assertIsInstance(res, rdf_protodict.AttributedDict)
+    self.assertEqual(len(res.users), 1000)
+    self.assertEqual(res.filename, file_path)
 
 
 def main(argv):

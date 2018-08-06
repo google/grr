@@ -6,6 +6,7 @@ import sys
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 # pylint: disable=g-import-not-at-top
 if sys.platform == "win32":
@@ -86,6 +87,14 @@ def StatEntryFromStat(stat, pathspec, ext_attrs=True):
     result.ext_attrs = list(GetExtAttrs(stat.GetPath()))
 
   return result
+
+
+def StatEntryFromStatPathSpec(stat, ext_attrs):
+  pathspec = rdf_paths.PathSpec(
+      pathtype=rdf_paths.PathSpec.PathType.OS,
+      path=LocalPathToCanonicalPath(stat.GetPath()),
+      path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
+  return StatEntryFromStat(stat, pathspec, ext_attrs=ext_attrs)
 
 
 _STAT_ATTRS = [

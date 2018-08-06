@@ -5,6 +5,7 @@ from __future__ import division
 import binascii
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -14,6 +15,7 @@ from grr_response_server import fleetspeak_connector
 
 
 def IsFleetspeakEnabledClient(grr_id, token):
+  """Returns whether the provided GRR id is a Fleetspeak client."""
   if grr_id is None:
     return False
 
@@ -54,3 +56,19 @@ def GRRIDToFleetspeakID(grr_id):
 def TSToRDFDatetime(ts):
   """Convert a protobuf.Timestamp to an RDFDatetime."""
   return rdfvalue.RDFDatetime(ts.seconds * 1000000 + ts.nanos // 1000)
+
+
+def GetLabelFromFleetspeak(client_id):
+  """Returns the primary GRR label to use for a fleetspeak client."""
+  res = fleetspeak_connector.CONN.outgoing.ListClients(
+      admin_pb2.ListClientsRequest(client_ids=[GRRIDToFleetspeakID(client_id)]))
+  if not res.clients or not res.clients[0].labels:
+    return fleetspeak_connector.unknown_label
+
+  for label in res.clients[0].labels:
+    if label.service_name != "client":
+      continue
+    if label.label in fleetspeak_connector.label_map:
+      return fleetspeak_connector.label_map[label.label]
+
+  return fleetspeak_connector.unknown_label

@@ -294,7 +294,10 @@ def GetClientURNsForHostnames(hostnames, token=None):
     A dict with a list of all known GRR client_ids for each hostname.
   """
 
-  index = CreateClientIndex(token=token)
+  if data_store.RelationalDBReadEnabled():
+    index = ClientIndex()
+  else:
+    index = CreateClientIndex(token=token)
 
   keywords = set()
   for hostname in hostnames:

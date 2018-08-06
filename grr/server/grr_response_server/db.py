@@ -687,6 +687,19 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       path_infos: A list of rdfvalue.objects.PathInfo records.
     """
 
+  @abc.abstractmethod
+  def InitPathInfos(self, client_id, path_infos):
+    """Initializes a collection of path info records for a client.
+
+    Unlike `WritePathInfo`, this method clears stat and hash histories of paths
+    associated with path info records. This method is intended to be used only
+    in the data migration scripts.
+
+    Args:
+      client_id: A client idenitfier for which the paths are to be initialized.
+      path_infos: A list of `rdf_objects.PathInfo` objects to write.
+    """
+
   # TODO(hanuszczak): Having a dictionary with mutable key as an argument is not
   # a good idea. The signature should be changed to something saner.
   @abc.abstractmethod
@@ -750,6 +763,21 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       A dictionary mapping path components to lists of `rdf_objects.PathInfo`
       ordered by timestamp in ascending order.
     """
+
+  def ReadPathInfoHistory(self, client_id, path_type, components):
+    """Reads a collection of hash and stat entry for given path.
+
+    Args:
+      client_id: An identifier string for a client.
+      path_type: A type of a path to retrieve path history for.
+      components: A tuple of path components corresponding to path to retrieve
+                  information for.
+
+    Returns:
+      A list of `rdf_objects.PathInfo` ordered by timestamp in ascending order.
+    """
+    histories = self.ReadPathInfosHistories(client_id, path_type, [components])
+    return histories[components]
 
   @abc.abstractmethod
   def WriteUserNotification(self, notification):
@@ -1154,21 +1182,21 @@ class DatabaseValidationWrapper(Database):
     self._ValidateStringId("client_id", client_id)
 
   def _ValidateHuntId(self, hunt_id):
-    self._ValidateStringId("hunt_id", hunt_id)
+    self._ValidateString("hunt_id", hunt_id)
 
   def _ValidateCronJobId(self, cron_job_id):
-    self._ValidateStringId("cron_job_id", cron_job_id)
+    self._ValidateString("cron_job_id", cron_job_id)
 
-  def _ValidateCronJobRunId(self, cron_job_id):
-    if cron_job_id is not None:
-      self._ValidateStringId("cron_job_id", cron_job_id)
+  def _ValidateCronJobRunId(self, cron_job_run_id):
+    if cron_job_run_id is not None:
+      self._ValidateString("cron_job_run_id", cron_job_run_id)
       # Raises TypeError if cron_job_id is not a valid hex number.
-      int(cron_job_id, 16)
-      if len(cron_job_id) != 8:
-        raise TypeError("Invalid cron job run id: %s" % cron_job_id)
+      int(cron_job_run_id, 16)
+      if len(cron_job_run_id) != 8:
+        raise TypeError("Invalid cron job run id: %s" % cron_job_run_id)
 
   def _ValidateApprovalId(self, approval_id):
-    self._ValidateStringId("approval_id", approval_id)
+    self._ValidateString("approval_id", approval_id)
 
   def _ValidateApprovalType(self, approval_type):
     if (approval_type ==
@@ -1187,10 +1215,24 @@ class DatabaseValidationWrapper(Database):
       raise ValueError(
           "Expected path_type to be set, got: %s" % str(path_info.path_type))
 
+  def _ValidatePathInfos(self, path_infos):
+    validated = set()
+    for path_info in path_infos:
+      self._ValidatePathInfo(path_info)
+
+      path_key = (path_info.path_type, path_info.GetPathID())
+      if path_key in validated:
+        message = "Conflicting writes for path: '{path}' ({path_type})"
+        message.format(
+            path="/".join(path_info.components), path_type=path_info.path_type)
+        raise ValueError(message)
+
+      validated.add(path_key)
+
   def _ValidatePathComponents(self, components):
     self._ValidateType(components, tuple)
     for component in components:
-      self._ValidateType(component, (str, unicode))
+      self._ValidateType(component, unicode)
 
   def _ValidateNotificationType(self, notification_type):
     if notification_type is None:
@@ -1529,22 +1571,13 @@ class DatabaseValidationWrapper(Database):
 
   def WritePathInfos(self, client_id, path_infos):
     self._ValidateClientId(client_id)
-
-    validated = set()
-    for path_info in path_infos:
-      self._ValidatePathInfo(path_info)
-
-      path_key = (path_info.path_type, path_info.GetPathID())
-      if path_key in validated:
-        message = "Conflicting writes for path: '{path}' ({path_type})"
-        raise ValueError(
-            message.format(
-                path="/".join(path_info.components),
-                path_type=path_info.path_type))
-
-      validated.add(path_key)
-
+    self._ValidatePathInfos(path_infos)
     return self.delegate.WritePathInfos(client_id, path_infos)
+
+  def InitPathInfos(self, client_id, path_infos):
+    self._ValidateClientId(client_id)
+    self._ValidatePathInfos(path_infos)
+    return self.delegate.InitPathInfos(client_id, path_infos)
 
   def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
     self._ValidateClientId(client_id)

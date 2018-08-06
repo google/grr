@@ -4,6 +4,7 @@
 import psutil
 
 from grr_response_client import actions
+from grr_response_client import client_utils
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_client.client_actions.file_finder_utils import subactions
@@ -25,7 +26,7 @@ class FileFinderOS(actions.ActionPlugin):
     self.stat_cache = utils.StatCache()
 
     action = self._ParseAction(args)
-    for path in self._GetExpandedPaths(args):
+    for path in _GetExpandedPaths(args):
       self.Progress()
       try:
         matches = self._Validate(args, path)
@@ -33,6 +34,21 @@ class FileFinderOS(actions.ActionPlugin):
         result.matches = matches
         action.Execute(path, result)
         self.SendReply(result)
+      except _SkipFileException:
+        pass
+
+  @classmethod
+  def Start(cls, args):
+    stat_cache = utils.StatCache()
+
+    opts = args.action.stat
+
+    for path in _GetExpandedPaths(args):
+      try:
+        stat = stat_cache.Get(path, follow_symlink=opts.resolve_links)
+        stat_entry = client_utils.StatEntryFromStatPathSpec(
+            stat, ext_attrs=opts.collect_ext_attrs)
+        yield stat_entry
       except _SkipFileException:
         pass
 
@@ -45,24 +61,6 @@ class FileFinderOS(actions.ActionPlugin):
     if action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
       return subactions.DownloadAction(self, args.action.download)
     raise ValueError("Incorrect action type: %s" % action_type)
-
-  def _GetExpandedPaths(self, args):
-    """Expands given path patterns.
-
-    Args:
-      args: A `FileFinderArgs` instance that dictates the behaviour of the path
-          expansion.
-
-    Yields:
-      Absolute paths (as string objects) derived from input patterns.
-    """
-    opts = globbing.PathOpts(
-        follow_links=args.follow_links,
-        recursion_blacklist=_GetMountpointBlacklist(args.xdev))
-
-    for path in args.paths:
-      for expanded_path in globbing.ExpandPath(utils.SmartStr(path), opts):
-        yield expanded_path
 
   def _GetStat(self, filepath, follow_symlink=True):
     try:
@@ -105,6 +103,25 @@ def _ParseMetadataConditions(args):
 
 def _ParseContentConditions(args):
   return conditions.ContentCondition.Parse(args.conditions)
+
+
+def _GetExpandedPaths(args):
+  """Expands given path patterns.
+
+  Args:
+    args: A `FileFinderArgs` instance that dictates the behaviour of the path
+        expansion.
+
+  Yields:
+    Absolute paths (as string objects) derived from input patterns.
+  """
+  opts = globbing.PathOpts(
+      follow_links=args.follow_links,
+      recursion_blacklist=_GetMountpointBlacklist(args.xdev))
+
+  for path in args.paths:
+    for expanded_path in globbing.ExpandPath(utils.SmartStr(path), opts):
+      yield expanded_path
 
 
 def _GetMountpoints(only_physical=True):

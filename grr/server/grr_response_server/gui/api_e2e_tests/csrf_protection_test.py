@@ -149,7 +149,7 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
     # This changes the default test username, meaning that encoded CSRF
     # token and the token corresponding to the next requests's user won't
     # match.
-    webauth.WEBAUTH_MANAGER.SetUserName("someotheruser")
+    webauth.WEBAUTH_MANAGER.SetUserName(u"someotheruser")
     response = requests.post(
         self.base_url + "/api/clients/labels/add",
         headers=headers,

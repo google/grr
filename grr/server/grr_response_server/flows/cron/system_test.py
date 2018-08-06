@@ -3,7 +3,10 @@
 
 
 from builtins import range  # pylint: disable=redefined-builtin
-from future.utils import iterkeys
+import mock
+
+from google.protobuf import timestamp_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 from grr_response_core import config
 from grr_response_core.lib import flags
@@ -11,6 +14,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.cron import system
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
@@ -24,11 +29,20 @@ class SystemCronTestMixin(object):
   def setUp(self):
     super(SystemCronTestMixin, self).setUp()
 
-    # This is not optimal, we create clients 0-19 with Linux, then
-    # overwrite clients 0-9 with Windows, leaving 10-19 for Linux.
-    client_ping_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
-    self.SetupClients(20, system="Linux", ping=client_ping_time)
-    self.SetupClients(10, system="Windows", ping=client_ping_time)
+    recent_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
+    # Simulate Fleetspeak clients with last-ping timestamps in the GRR DB
+    # that haven't been updated in a while. Last-contact timestamps reported
+    # by Fleetspeak should be used instead of this value.
+    ancient_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("999d")
+    self.SetupClientsWithIndices(
+        range(0, 10), system="Windows", ping=recent_ping)
+    self.SetupClientsWithIndices(
+        range(10, 20), system="Linux", ping=recent_ping)
+    fs_urns = self.SetupClientsWithIndices(
+        range(20, 22),
+        system="Darwin",
+        fleetspeak_enabled=True,
+        ping=ancient_ping)
 
     for i in range(0, 10):
       client_id = "C.1%015x" % i
@@ -40,39 +54,59 @@ class SystemCronTestMixin(object):
                                         [u"Label1", u"Label2"])
       data_store.REL_DB.AddClientLabels(client_id, u"jim", [u"UserLabel"])
 
-  def _CheckVersionStats(self, label, attribute, counts):
+    fs_connector_patcher = mock.patch.object(fleetspeak_connector, "CONN")
+    self._fs_conn = fs_connector_patcher.start()
+    self.addCleanup(fs_connector_patcher.stop)
+    last_fs_contact = timestamp_pb2.Timestamp()
+    # Have Fleetspeak report that the last contact with the Fleetspeak clients
+    # happened an hour ago.
+    last_ping_rdf = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1h")
+    last_fs_contact.FromMicroseconds(last_ping_rdf.AsMicrosecondsSinceEpoch())
+    fs_clients = [
+        admin_pb2.Client(
+            client_id=fleetspeak_utils.GRRIDToFleetspeakID(fs_urns[0]
+                                                           .Basename()),
+            last_contact_time=last_fs_contact),
+        admin_pb2.Client(
+            client_id=fleetspeak_utils.GRRIDToFleetspeakID(fs_urns[1]
+                                                           .Basename()),
+            last_contact_time=last_fs_contact),
+    ]
+    self._fs_conn.outgoing.ListClients.return_value = (
+        admin_pb2.ListClientsResponse(clients=fs_clients))
 
+  def _CheckVersionGraph(self, graph, expected_title, expected_count):
+    self.assertEqual(graph.title, expected_title)
+    if expected_count == 0:
+      self.assertEqual(len(graph), 0)
+      return
+    sample = graph[0]
+    self.assertEqual(sample.label,
+                     "GRR Monitor %s" % config.CONFIG["Source.version_numeric"])
+    self.assertEqual(sample.y_value, expected_count)
+
+  def _CheckVersionStats(self, label, attribute, counts):
     fd = aff4.FACTORY.Open(
         "aff4:/stats/ClientFleetStats/%s" % label, token=self.token)
+    # We expect to have 1, 7, 14 and 30-day graphs for every label.
     histogram = fd.Get(attribute)
 
-    # There should be counts[0] instances in 1 day actives.
-    self.assertEqual(histogram[0].title, "1 day actives for %s label" % label)
-    self.assertEqual(len(histogram[0]), counts[0])
-
-    # There should be counts[1] instances in 7 day actives.
-    self.assertEqual(histogram[1].title, "7 day actives for %s label" % label)
-    self.assertEqual(len(histogram[1]), counts[1])
-
-    # There should be counts[2] instances in 14 day actives.
-    self.assertEqual(histogram[2].title, "14 day actives for %s label" % label)
-    self.assertEqual(histogram[2][0].label,
-                     "GRR Monitor %s" % config.CONFIG["Source.version_numeric"])
-    self.assertEqual(histogram[2][0].y_value, counts[2])
-
-    # There should be counts[3] instances in 30 day actives.
-    self.assertEqual(histogram[3].title, "30 day actives for %s label" % label)
-    self.assertEqual(histogram[3][0].label,
-                     "GRR Monitor %s" % config.CONFIG["Source.version_numeric"])
-    self.assertEqual(histogram[3][0].y_value, counts[3])
+    self._CheckVersionGraph(histogram[0], "1 day actives for %s label" % label,
+                            counts[0])
+    self._CheckVersionGraph(histogram[1], "7 day actives for %s label" % label,
+                            counts[1])
+    self._CheckVersionGraph(histogram[2], "14 day actives for %s label" % label,
+                            counts[2])
+    self._CheckVersionGraph(histogram[3], "30 day actives for %s label" % label,
+                            counts[3])
 
   def _CheckGRRVersionBreakDown(self):
     """Checks the result of the GRRVersionBreakDown cron job."""
-
+    self._fs_conn.outgoing.ListClients.assert_called_once()
     # All machines should be in All once. Windows machines should be in Label1
     # and Label2. There should be no stats for UserLabel.
     histogram = aff4_stats.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
-    self._CheckVersionStats(u"All", histogram, [0, 0, 20, 20])
+    self._CheckVersionStats(u"All", histogram, [2, 2, 22, 22])
     self._CheckVersionStats(u"Label1", histogram, [0, 0, 10, 10])
     self._CheckVersionStats(u"Label2", histogram, [0, 0, 10, 10])
 
@@ -82,63 +116,53 @@ class SystemCronTestMixin(object):
         aff4.AFF4Volume,
         token=self.token)
 
-  def _CheckOSStats(self, label, attribute, counts):
+  def _CheckOSGraph(self, graph, expected_title, expected_counts):
+    actual_counts = {s.label: s.y_value for s in graph}
+    self.assertEqual(graph.title, expected_title)
+    self.assertDictEqual(actual_counts, expected_counts)
 
+  def _CheckOSStats(self, label, attribute, counts):
+    self._fs_conn.outgoing.ListClients.assert_called_once()
     fd = aff4.FACTORY.Open(
         "aff4:/stats/ClientFleetStats/%s" % label, token=self.token)
+    # We expect to have 1, 7, 14 and 30-day graphs for every label.
     histogram = fd.Get(attribute)
-
-    # There should be counts[0] instances in 1 day actives.
-    self.assertEqual(histogram[0].title, "1 day actives for %s label" % label)
-    self.assertEqual(len(histogram[0]), counts[0])
-
-    # There should be counts[1] instances in 7 day actives.
-    self.assertEqual(histogram[1].title, "7 day actives for %s label" % label)
-    self.assertEqual(len(histogram[1]), counts[1])
-
-    # There should be counts[2] instances in 14 day actives for linux and
-    # windows.
-    self.assertEqual(histogram[2].title, "14 day actives for %s label" % label)
-    all_labels = []
-    for item in histogram[2]:
-      all_labels.append(item.label)
-      self.assertEqual(item.y_value, counts[2][item.label])
-    self.assertItemsEqual(all_labels, list(iterkeys(counts[2])))
-
-    # There should be counts[3] instances in 30 day actives for linux and
-    # windows.
-    self.assertEqual(histogram[3].title, "30 day actives for %s label" % label)
-    all_labels = []
-    for item in histogram[3]:
-      all_labels.append(item.label)
-      self.assertEqual(item.y_value, counts[3][item.label])
-    self.assertItemsEqual(all_labels, list(iterkeys(counts[3])))
+    self._CheckOSGraph(histogram[0], "1 day actives for %s label" % label,
+                       counts[0])
+    self._CheckOSGraph(histogram[1], "7 day actives for %s label" % label,
+                       counts[1])
+    self._CheckOSGraph(histogram[2], "14 day actives for %s label" % label,
+                       counts[2])
+    self._CheckOSGraph(histogram[3], "30 day actives for %s label" % label,
+                       counts[3])
 
   def _CheckOSBreakdown(self):
+    self._fs_conn.outgoing.ListClients.assert_called_once()
     histogram = aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM
-    self._CheckOSStats(
-        u"All", histogram,
-        [0, 0, {
+    all_stats = [
+        {
+            "Darwin": 2
+        },
+        {
+            "Darwin": 2
+        },
+        {
             "Linux": 10,
-            "Windows": 10
-        }, {
+            "Windows": 10,
+            "Darwin": 2
+        },
+        {
             "Linux": 10,
-            "Windows": 10
-        }])
-    self._CheckOSStats(u"Label1", histogram,
-                       [0, 0, {
-                           "Windows": 10
-                       }, {
-                           "Windows": 10
-                       }])
-    self._CheckOSStats(u"Label2", histogram,
-                       [0, 0, {
-                           "Windows": 10
-                       }, {
-                           "Windows": 10
-                       }])
+            "Windows": 10,
+            "Darwin": 2
+        },
+    ]
+    label_stats = [{}, {}, {"Windows": 10}, {"Windows": 10}]
+    self._CheckOSStats(u"All", histogram, all_stats)
+    self._CheckOSStats(u"Label1", histogram, label_stats)
+    self._CheckOSStats(u"Label2", histogram, label_stats)
 
-  def _CheckAccessStats(self, label, count):
+  def _CheckAccessStats(self, label, expected):
     fd = aff4.FACTORY.Open(
         "aff4:/stats/ClientFleetStats/%s" % label, token=self.token)
 
@@ -146,21 +170,43 @@ class SystemCronTestMixin(object):
 
     data = [(x.x_value, x.y_value) for x in histogram]
 
-    self.assertEqual(data,
-                     [(86400000000, 0), (172800000000, 0), (259200000000, 0),
-                      (604800000000, 0), (1209600000000, count),
-                      (2592000000000, count), (5184000000000, count)])
+    self.assertEqual(data, expected)
+
+  def _ToMicros(self, duration_str):
+    return rdfvalue.Duration(duration_str).microseconds
 
   def _CheckLastAccessStats(self):
+    self._fs_conn.outgoing.ListClients.assert_called_once()
+
+    # pyformat: disable
+    all_counts = [
+        (self._ToMicros("1d"), 2),
+        (self._ToMicros("2d"), 2),
+        (self._ToMicros("3d"), 2),
+        (self._ToMicros("7d"), 2),
+        (self._ToMicros("14d"), 22),
+        (self._ToMicros("30d"), 22),
+        (self._ToMicros("60d"), 22)
+    ]
+    label_counts = [
+        (self._ToMicros("1d"), 0),
+        (self._ToMicros("2d"), 0),
+        (self._ToMicros("3d"), 0),
+        (self._ToMicros("7d"), 0),
+        (self._ToMicros("14d"), 10),
+        (self._ToMicros("30d"), 10),
+        (self._ToMicros("60d"), 10)
+    ]
+    # pyformat: enable
 
     # All our clients appeared at the same time (and did not appear since).
-    self._CheckAccessStats(u"All", count=20)
+    self._CheckAccessStats(u"All", expected=all_counts)
 
     # All our clients appeared at the same time but this label is only half.
-    self._CheckAccessStats(u"Label1", count=10)
+    self._CheckAccessStats(u"Label1", expected=label_counts)
 
     # All our clients appeared at the same time but this label is only half.
-    self._CheckAccessStats(u"Label2", count=10)
+    self._CheckAccessStats(u"Label2", expected=label_counts)
 
   def testPurgeClientStats(self):
     client_id = test_lib.TEST_CLIENT_ID

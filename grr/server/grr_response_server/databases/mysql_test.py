@@ -329,6 +329,27 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testReatPathInfosHistoriesWithTwoFilesWithTwoHistoryItems(self):
     pass
 
+  def testInitPathInfosValidatesClient(self):
+    pass
+
+  def testInitPathInfosWriteSingle(self):
+    pass
+
+  def testInitPathInfosWriteMany(self):
+    pass
+
+  def testInitPathInfosTree(self):
+    pass
+
+  def testInitPathInfosClearsStatHistory(self):
+    pass
+
+  def testInitPathInfosClearsHashHistory(self):
+    pass
+
+  def testInitPathInfosRetainsIndirectPathHistory(self):
+    pass
+
 
 if __name__ == "__main__":
   unittest.main()

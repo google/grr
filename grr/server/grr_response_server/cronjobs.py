@@ -31,23 +31,12 @@ class CronJobBase(object):
 
   __metaclass__ = registry.CronJobRegistry
 
-  # TODO(amoser): Maybe it would be better to not have a default here and have
-  # all subclasses define their own frequency.
-  frequency = rdfvalue.Duration("1d")
-  lifetime = rdfvalue.Duration("20h")
-  allow_overruns = False
-  enabled = True
+  __abstract = True  # pylint: disable=g-bad-name
 
   def __init__(self, run_state, job):
     self.run_state = run_state
     self.job = job
     self.token = access_control.ACLToken(username="Cron")
-
-  def HeartBeat(self):
-    if self.job.lifetime:
-      expiration_time = self.run_state.started_at + self.job.lifetime
-      if self.run_state.finished_at > expiration_time:
-        raise Error("Lifetime exceeded")
 
   @abc.abstractmethod
   def Run(self):
@@ -89,6 +78,33 @@ class CronJobBase(object):
           self.job.cron_job_id,
           current_run_id=None,
           last_run_status=self.run_state.status)
+
+
+class SystemCronJobBase(CronJobBase):
+  """The base class for all system cron jobs."""
+
+  __metaclass__ = registry.SystemCronJobRegistry
+
+  __abstract = True  # pylint: disable=g-bad-name
+
+  frequency = None
+  lifetime = None
+
+  allow_overruns = False
+  enabled = True
+
+  def __init__(self, *args, **kw):
+    super(SystemCronJobBase, self).__init__(*args, **kw)
+
+    if self.frequency is None or self.lifetime is None:
+      raise ValueError(
+          "SystemCronJob without frequency or lifetime encountered: %s" % self)
+
+  def HeartBeat(self):
+    if self.job.lifetime:
+      expiration_time = self.run_state.started_at + self.job.lifetime
+      if self.run_state.finished_at > expiration_time:
+        raise Error("Lifetime exceeded")
 
   def Log(self, message):
     if self.run_state.log_message:
@@ -251,7 +267,7 @@ class CronManager(object):
 
     if job.args.action_type == job.args.ActionType.SYSTEM_CRON_ACTION:
       cls_name = job.args.system_cron_action.job_class_name
-      job_cls = registry.CronJobRegistry.CronJobClassByName(cls_name)
+      job_cls = registry.SystemCronJobRegistry.CronJobClassByName(cls_name)
       name = "%s runner" % cls_name
     elif job.args.action_type == job.args.ActionType.HUNT_CRON_ACTION:
       job_cls = registry.CronJobRegistry.CronJobClassByName("RunHunt")
@@ -323,16 +339,17 @@ def ScheduleSystemCronJobs(names=None):
   disabled_classes = config.CONFIG["Cron.disabled_cron_jobs"]
   for name in disabled_classes:
     try:
-      cls = registry.CronJobRegistry.CronJobClassByName(name)
+      cls = registry.SystemCronJobRegistry.CronJobClassByName(name)
     except ValueError:
       errors.append("Cron job not found: %s." % name)
       continue
 
   if names is None:
-    names = iterkeys(registry.CronJobRegistry.CRON_REGISTRY)
+    names = iterkeys(registry.SystemCronJobRegistry.SYSTEM_CRON_REGISTRY)
 
   for name in names:
-    cls = registry.CronJobRegistry.CronJobClassByName(name)
+
+    cls = registry.SystemCronJobRegistry.CronJobClassByName(name)
 
     enabled = cls.enabled and name not in disabled_classes
     system = rdf_cronjobs.CronJobAction.ActionType.SYSTEM_CRON_ACTION

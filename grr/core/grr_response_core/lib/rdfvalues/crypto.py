@@ -100,6 +100,10 @@ class RDFX509Cert(rdfvalue.RDFValue):
     # This can also raise if there isn't exactly one CN entry.
     self.GetCN()
 
+  def ParseFromDatastore(self, value):
+    utils.AssertType(value, bytes)
+    self.ParseFromString(value)
+
   def SerializeToString(self):
     if self._value is None:
       return ""
@@ -218,6 +222,10 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
   def ParseFromString(self, csr_as_pem):
     self._value = x509.load_pem_x509_csr(csr_as_pem, backend=openssl.backend)
 
+  def ParseFromDatastore(self, value):
+    utils.AssertType(value, bytes)
+    self.ParseFromString(value)
+
   def SerializeToString(self):
     if self._value is None:
       return ""
@@ -275,6 +283,10 @@ class RSAPublicKey(rdfvalue.RDFValue):
           pem_string, backend=openssl.backend)
     except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
       raise type_info.TypeValueError("Public key invalid: %s" % e)
+
+  def ParseFromDatastore(self, value):
+    utils.AssertType(value, bytes)
+    self.ParseFromString(value)
 
   def SerializeToString(self):
     if self._value is None:
@@ -427,6 +439,10 @@ class RSAPrivateKey(rdfvalue.RDFValue):
           pem_string, password=password, backend=openssl.backend)
     except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
       raise type_info.TypeValueError("Unable to load private key: %s" % e)
+
+  def ParseFromDatastore(self, value):
+    utils.AssertType(value, bytes)
+    self.ParseFromString(value)
 
   def SerializeToString(self):
     if self._value is None:

@@ -120,4 +120,4 @@ class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
     """Finalize the flow."""
     super(FingerprintFile, self).End()
 
-    self.Status("Finished fingerprinting %s", self.args.pathspec.path)
+    self.Log("Finished fingerprinting %s", self.args.pathspec.path)

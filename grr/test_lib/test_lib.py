@@ -190,6 +190,7 @@ class GRRBaseTest(unittest.TestCase):
                        client_nr,
                        index=None,
                        arch="x86_64",
+                       fqdn=None,
                        install_time=None,
                        last_boot_time=None,
                        kernel="4.0.0",
@@ -197,7 +198,8 @@ class GRRBaseTest(unittest.TestCase):
                        ping=None,
                        system="Linux",
                        memory_size=None,
-                       add_cert=True):
+                       add_cert=True,
+                       fleetspeak_enabled=False):
     client_id_urn = rdf_client.ClientURN("C.1%015x" % client_nr)
 
     with aff4.FACTORY.Create(
@@ -210,8 +212,12 @@ class GRRBaseTest(unittest.TestCase):
 
       fd.Set(fd.Schema.CLIENT_INFO, self._TestClientInfo())
       fd.Set(fd.Schema.PING, ping or rdfvalue.RDFDatetime.Now())
-      fd.Set(fd.Schema.HOSTNAME("Host-%x" % client_nr))
-      fd.Set(fd.Schema.FQDN("Host-%x.example.com" % client_nr))
+      if fqdn is not None:
+        fd.Set(fd.Schema.HOSTNAME(fqdn.split(".", 1)[0]))
+        fd.Set(fd.Schema.FQDN(fqdn))
+      else:
+        fd.Set(fd.Schema.HOSTNAME("Host-%x" % client_nr))
+        fd.Set(fd.Schema.FQDN("Host-%x.example.com" % client_nr))
       fd.Set(
           fd.Schema.MAC_ADDRESS(
               "aabbccddee%02x\nbbccddeeff%02x" % (client_nr, client_nr)))
@@ -234,9 +240,11 @@ class GRRBaseTest(unittest.TestCase):
         fd.Set(fd.Schema.LAST_BOOT_TIME(last_boot_time))
       if install_time:
         fd.Set(fd.Schema.INSTALL_DATE(install_time))
+      if fleetspeak_enabled:
+        fd.Set(fd.Schema.FLEETSPEAK_ENABLED, rdfvalue.RDFBool(True))
 
       kb = rdf_client.KnowledgeBase()
-      kb.fqdn = "Host-%x.example.com" % client_nr
+      kb.fqdn = fqdn or "Host-%x.example.com" % client_nr
       kb.users = [
           rdf_client.User(username="user1"),
           rdf_client.User(username="user2"),
@@ -260,6 +268,7 @@ class GRRBaseTest(unittest.TestCase):
   def SetupClient(self,
                   client_nr,
                   arch="x86_64",
+                  fqdn=None,
                   last_boot_time=None,
                   install_time=None,
                   kernel="4.0.0",
@@ -267,13 +276,15 @@ class GRRBaseTest(unittest.TestCase):
                   ping=None,
                   system="Linux",
                   memory_size=None,
-                  add_cert=True):
+                  add_cert=True,
+                  fleetspeak_enabled=False):
     """Prepares a test client mock to be used.
 
     Args:
       client_nr: int The GRR ID to be used. 0xABCD maps to C.100000000000abcd
                      in canonical representation.
       arch: string
+      fqdn: string
       last_boot_time: RDFDatetime
       install_time: RDFDatetime
       kernel: string
@@ -282,6 +293,7 @@ class GRRBaseTest(unittest.TestCase):
       system: string
       memory_size: bytes
       add_cert: boolean
+      fleetspeak_enabled: boolean
 
     Returns:
       rdf_client.ClientURN
@@ -291,19 +303,22 @@ class GRRBaseTest(unittest.TestCase):
         client_nr,
         add_cert=add_cert,
         arch=arch,
+        fqdn=fqdn,
         install_time=install_time,
         last_boot_time=last_boot_time,
         kernel=kernel,
         memory_size=memory_size,
         os_version=os_version,
         ping=ping or rdfvalue.RDFDatetime.Now(),
-        system=system)
+        system=system,
+        fleetspeak_enabled=fleetspeak_enabled)
 
     with client_index.CreateClientIndex(token=self.token) as index:
       client_id_urn = self._SetupClientImpl(
           client_nr,
           index=index,
           arch=arch,
+          fqdn=fqdn,
           install_time=install_time,
           last_boot_time=last_boot_time,
           kernel=kernel,
@@ -311,31 +326,18 @@ class GRRBaseTest(unittest.TestCase):
           ping=ping,
           system=system,
           memory_size=memory_size,
-          add_cert=add_cert)
+          add_cert=add_cert,
+          fleetspeak_enabled=fleetspeak_enabled)
 
     return client_id_urn
 
-  def SetupClients(self,
-                   nr_clients,
-                   arch="x86_64",
-                   install_time=None,
-                   last_boot_time=None,
-                   kernel="4.0.0",
-                   os_version="buster/sid",
-                   ping=None,
-                   system="Linux"):
+  def SetupClients(self, nr_clients, *args, **kwargs):
     """Prepares nr_clients test client mocks to be used."""
-    return [
-        self.SetupClient(
-            client_nr,
-            arch=arch,
-            install_time=install_time,
-            last_boot_time=last_boot_time,
-            kernel=kernel,
-            os_version=os_version,
-            ping=ping,
-            system=system) for client_nr in range(nr_clients)
-    ]
+    return self.SetupClientsWithIndices(range(nr_clients), *args, **kwargs)
+
+  def SetupClientsWithIndices(self, indices, *args, **kwargs):
+    """Sets up mock clients, one for each numerical index in 'indices'."""
+    return [self.SetupClient(i, *args, **kwargs) for i in indices]
 
   def _TestClientInfo(self):
     return rdf_client.ClientInformation(
@@ -367,30 +369,32 @@ class GRRBaseTest(unittest.TestCase):
                              client_count,
                              add_cert=True,
                              arch="x86_64",
+                             fqdn=None,
                              install_time=None,
                              last_boot_time=None,
-                             fqdn=None,
                              kernel="4.0.0",
                              memory_size=None,
                              os_version="buster/sid",
                              ping=None,
                              system="Linux",
-                             labels=None):
+                             labels=None,
+                             fleetspeak_enabled=False):
     res = {}
     for client_nr in range(client_count):
       client = self.SetupTestClientObject(
           client_nr,
           add_cert=add_cert,
           arch=arch,
+          fqdn=fqdn,
           install_time=install_time,
           last_boot_time=last_boot_time,
-          fqdn=fqdn,
           kernel=kernel,
           memory_size=memory_size,
           os_version=os_version,
           ping=ping,
           system=system,
-          labels=labels)
+          labels=labels,
+          fleetspeak_enabled=fleetspeak_enabled)
       res[client.client_id] = client
     return res
 
@@ -398,15 +402,16 @@ class GRRBaseTest(unittest.TestCase):
                             client_nr,
                             add_cert=True,
                             arch="x86_64",
+                            fqdn=None,
                             install_time=None,
                             last_boot_time=None,
-                            fqdn=None,
                             kernel="4.0.0",
                             memory_size=None,
                             os_version="buster/sid",
                             ping=None,
                             system="Linux",
-                            labels=None):
+                            labels=None,
+                            fleetspeak_enabled=False):
     """Prepares a test client object."""
     client_id = "C.1%015x" % client_nr
 
@@ -442,7 +447,10 @@ class GRRBaseTest(unittest.TestCase):
       cert = None
 
     data_store.REL_DB.WriteClientMetadata(
-        client_id, last_ping=ping, certificate=cert, fleetspeak_enabled=False)
+        client_id,
+        last_ping=ping,
+        certificate=cert,
+        fleetspeak_enabled=fleetspeak_enabled)
     data_store.REL_DB.WriteClientSnapshot(client)
 
     client_index.ClientIndex().AddClient(client)

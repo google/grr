@@ -4,6 +4,8 @@
 This package contains the rdfvalue wrappers around the top level datastore
 objects defined by objects.proto.
 """
+from __future__ import unicode_literals
+
 import functools
 import hashlib
 import itertools
@@ -12,7 +14,7 @@ import re
 import stat
 
 
-from builtins import map  # pylint: disable=redefined-builtin
+from future.utils import python_2_unicode_compatible
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -203,6 +205,7 @@ class ApprovalRequest(rdf_structs.RDFProtoStruct):
     return self.expiration_time < rdfvalue.RDFDatetime.Now()
 
 
+@python_2_unicode_compatible
 @functools.total_ordering
 class HashID(rdfvalue.RDFValue):
   """An unique hash identifier."""
@@ -221,7 +224,7 @@ class HashID(rdfvalue.RDFValue):
     super(HashID, self).__init__(initializer=initializer, age=age)
     if not self._value:
       if initializer is None:
-        initializer = "\x00" * self.__class__.hash_id_length
+        initializer = b"\x00" * self.__class__.hash_id_length
       self.ParseFromString(initializer)
 
   def ParseFromString(self, string):
@@ -236,6 +239,10 @@ class HashID(rdfvalue.RDFValue):
       self._value = string.SerializeToString()
     else:
       self._value = string
+
+  def ParseFromDatastore(self, value):
+    utils.AssertType(value, bytes)
+    self.ParseFromString(value)
 
   def SerializeToString(self):
     return self.AsBytes()
@@ -283,18 +290,15 @@ class PathID(HashID):
   def FromComponents(cls, components):
     _ValidatePathComponents(components)
 
-    # TODO(hanuszczak): `SmartStr` is terrible, lets not do that.
-    components = tuple(map(utils.SmartStr, components))
-
     if components:
       # We need a string to hash, based on components. If we simply concatenated
       # them, or used a separator that could appear in some component, odd data
       # could force a hash collision. So we explicitly include the lengths of
       # the components.
       string = "{lengths}:{path}".format(
-          lengths=",".join(str(len(component)) for component in components),
+          lengths=",".join(unicode(len(component)) for component in components),
           path="/".join(components))
-      result = hashlib.sha256(string).digest()
+      result = hashlib.sha256(string.encode("utf-8")).digest()
     else:
       # For an empty list of components (representing `/`, i.e. the root path),
       # we use special value: zero represented as a 256-bit number.
@@ -462,9 +466,10 @@ class PathInfo(rdf_structs.RDFProtoStruct):
 
 
 def _ValidatePathComponent(component):
+  if not isinstance(component, unicode):
+    raise TypeError("Non-unicode path component")
   if not component:
     raise ValueError("Empty path component")
-
   if component == "." or component == "..":
     raise ValueError("Incorrect path component: '%s'" % component)
 

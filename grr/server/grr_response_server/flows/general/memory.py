@@ -105,7 +105,7 @@ class MemoryCollector(flow.GRRFlow):
       for download in response.downloaded_files:
         self.state.output_urn = download
         self.SendReply(download)
-        self.Status("Memory imaged successfully")
+        self.Log("Memory imaged successfully")
         return
 
     raise flow.FlowError("Rekall flow did not return any files.")

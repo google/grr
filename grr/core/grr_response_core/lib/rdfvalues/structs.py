@@ -1512,10 +1512,6 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
       for field_desc in cls.type_description:
         cls.AddDescriptor(field_desc)
 
-    # Allow the class to suppress some fields.
-    if cls.suppressions:
-      cls.type_infos = cls.type_infos.Remove(*cls.suppressions)
-
     cls._class_attributes = set(dir(cls))  # pylint: disable=protected-access
 
 
@@ -1566,10 +1562,6 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
 
   # Stores the raw data here.
   _data = None
-
-  # A list of fields which will be removed from this class's type descriptor
-  # set.
-  suppressions = []
 
   def __init__(self, initializer=None, age=None, **kwargs):
     # Maintain the order so that parsing and serializing a proto does not change
@@ -1701,6 +1693,10 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   def ParseFromString(self, string):
     ReadIntoObject(string, 0, self)
     self.dirty = True
+
+  def ParseFromDatastore(self, value):
+    utils.AssertType(value, bytes)
+    self.ParseFromString(value)
 
   def __eq__(self, other):
     if not isinstance(other, self.__class__):

@@ -9,6 +9,7 @@ import mock
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.src.server.grpcservice.client import client as fs_client
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2 as fs_admin_pb2
 
 from grr_response_core.lib import communicator
 from grr_response_core.lib import flags
@@ -26,9 +27,13 @@ from grr_response_server.bin import fleetspeak_frontend as fs_frontend_tool
 from grr_response_server.flows.general import processes as flow_processes
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
+from grr.test_lib import fleetspeak_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import frontend_test_lib
 from grr.test_lib import test_lib
+
+
+FS_SERVICE_NAME = "GRR"
 
 
 class _FakeGRPCServiceClient(fs_client.ServiceClient):
@@ -41,6 +46,21 @@ class _FakeGRPCServiceClient(fs_client.ServiceClient):
     def InsertMessage(self, message, timeout=None):
       del timeout
       self._send_callback(message)
+
+    def ListClients(self, request):
+      clients = []
+      for client_id in request.client_ids:
+        clients.append(
+            fs_admin_pb2.Client(
+                client_id=client_id,
+                labels=[
+                    fs_common_pb2.Label(
+                        service_name="client", label="alphabet"),
+                    fs_common_pb2.Label(
+                        service_name="client", label="alphabet-google-corp"),
+                    fs_common_pb2.Label(service_name="client", label="linux"),
+                ]))
+      return fs_admin_pb2.ListClientsResponse(clients=clients)
 
   def __init__(self, service_name, send_callback=lambda _: None):
     super(_FakeGRPCServiceClient, self).__init__(service_name)
@@ -73,13 +93,17 @@ def SetAFF4FSEnabledFlag(grr_id, token):
 class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
   """Tests the Fleetspeak based GRRFEServer."""
 
+  def setUp(self):
+    super(FleetspeakGRRFEServerTest, self).setUp()
+    fake_conn = _FakeGRPCServiceClient(FS_SERVICE_NAME)
+    self._conn_overrider = fleetspeak_test_lib.ConnectionOverrider(fake_conn)
+    self._conn_overrider.Start()
+
+  def tearDown(self):
+    super(FleetspeakGRRFEServerTest, self).tearDown()
+    self._conn_overrider.Stop()
+
   def testReceiveMessagesFleetspeak(self):
-    service_name = "GRR"
-    fake_service_client = _FakeGRPCServiceClient(service_name)
-
-    fleetspeak_connector.Reset()
-    fleetspeak_connector.Init(service_client=fake_service_client)
-
     fsd = fs_frontend_tool.GRRFSServer()
 
     grr_client_nr = 0xab
@@ -109,7 +133,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
         fs_common_pb2.Message(
             message_type="GrrMessage",
             source=fs_common_pb2.Address(
-                client_id=fs_client_id, service_name=service_name))
+                client_id=fs_client_id, service_name=FS_SERVICE_NAME))
         for _ in range(num_msgs)
     ]
     for fs_message, message in itertools.izip(fs_messages, messages):
@@ -142,12 +166,6 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
       self.assertRDFValuesEqual(stored_message, want_message)
 
   def testReceiveMessageListFleetspeak(self):
-    service_name = "GRR"
-    fake_service_client = _FakeGRPCServiceClient(service_name)
-
-    fleetspeak_connector.Reset()
-    fleetspeak_connector.Init(service_client=fake_service_client)
-
     fsd = fs_frontend_tool.GRRFSServer()
 
     grr_client_nr = 0xab
@@ -180,7 +198,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     fs_message = fs_common_pb2.Message(
         message_type="MessageList",
         source=fs_common_pb2.Address(
-            client_id=fs_client_id, service_name=service_name))
+            client_id=fs_client_id, service_name=FS_SERVICE_NAME))
     fs_message.data.Pack(message_list.AsPrimitiveProto())
     fsd.Process(fs_message, None)
 
@@ -239,34 +257,31 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
           pb_msg.SerializeToString())
       client_mock.mock_task_queue.append(msg)
 
-    service_name = "GRR"
-    fake_service_client = _FakeGRPCServiceClient(
-        service_name, send_callback=SendCallback)
+    fake_conn = _FakeGRPCServiceClient(
+        FS_SERVICE_NAME, send_callback=SendCallback)
 
-    fleetspeak_connector.Reset()
-    fleetspeak_connector.Init(service_client=fake_service_client)
+    with fleetspeak_test_lib.ConnectionOverrider(fake_conn):
+      with mock.patch.object(
+          fake_conn.outgoing,
+          "InsertMessage",
+          wraps=fake_conn.outgoing.InsertMessage):
+        flow_urn = flow.StartFlow(
+            client_id=self.client_id,
+            flow_name=flow_processes.ListProcesses.__name__,
+            token=self.token)
+        session_id = flow_test_lib.TestFlowHelper(
+            flow_urn, client_mock, client_id=self.client_id, token=self.token)
 
-    with mock.patch.object(
-        fake_service_client.outgoing,
-        "InsertMessage",
-        wraps=fake_service_client.outgoing.InsertMessage):
-      flow_urn = flow.StartFlow(
-          client_id=self.client_id,
-          flow_name=flow_processes.ListProcesses.__name__,
-          token=self.token)
-      session_id = flow_test_lib.TestFlowHelper(
-          flow_urn, client_mock, client_id=self.client_id, token=self.token)
+        fleetspeak_connector.CONN.outgoing.InsertMessage.assert_called()
 
-      fleetspeak_connector.CONN.outgoing.InsertMessage.assert_called()
+      # Check the output collection
+      processes = flow.GRRFlow.ResultCollectionForFID(session_id)
 
-    # Check the output collection
-    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
+      self.assertEqual(len(processes), 1)
+      process, = processes
 
-    self.assertEqual(len(processes), 1)
-    process, = processes
-
-    self.assertEqual(process.ctime, 1333718907167083)
-    self.assertEqual(process.cmdline, ["cmd.exe"])
+      self.assertEqual(process.ctime, 1333718907167083)
+      self.assertEqual(process.cmdline, ["cmd.exe"])
 
 
 def main(args):

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Mixin tests for blobs in the relational db."""
+from __future__ import unicode_literals
 
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -52,7 +53,7 @@ class DatabaseTestBlobsMixin(object):
         path_type=rdf_objects.PathInfo.PathType.OS,
         path_id=rdf_objects.PathID.FromComponents(["foo", "bar"]))
     blob_ref = rdf_objects.BlobReference(
-        offset=0, size=3, blob_id=rdf_objects.BlobID.FromBlobData("foo"))
+        offset=0, size=3, blob_id=rdf_objects.BlobID.FromBlobData(b"foo"))
 
     with self.assertRaises(db.AtLeastOneUnknownPathError):
       d.WriteClientPathBlobReferences({path: [blob_ref]})
@@ -81,7 +82,7 @@ class DatabaseTestBlobsMixin(object):
         path_type=rdf_objects.PathInfo.PathType.OS,
         path_id=rdf_objects.PathID.FromComponents(["foo", "bar"]))
     blob_ref = rdf_objects.BlobReference(
-        offset=0, size=3, blob_id=rdf_objects.BlobID.FromBlobData("foo"))
+        offset=0, size=3, blob_id=rdf_objects.BlobID.FromBlobData(b"foo"))
 
     d.WriteClientPathBlobReferences({path: [blob_ref]})
 

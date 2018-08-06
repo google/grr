@@ -11,6 +11,7 @@ from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_server import aff4
 from grr_response_server import data_store
 
 
@@ -49,32 +50,7 @@ class FakeDataStore(data_store.DataStore):
     # The set of all transactions in flight.
     self.transactions = {}
 
-  def _Encode(self, value):
-    """Encode the value into a Binary BSON object.
-
-    The data store only supports the following values:
-      -Integer
-      -Unicode
-      -Bytes (python string)
-
-    We preserve integers and unicode objects, but serialize anything else.
-
-    Args:
-       value: The value to be encoded.
-
-    Returns:
-      An encoded value.
-    """
-    if isinstance(value, (basestring, int, float)):
-      return value
-
-    try:
-      return value.SerializeToDataStore()
-    except AttributeError:
-      try:
-        return value.SerializeToString()
-      except AttributeError:
-        return utils.SmartStr(value)
+    self._value_converter = aff4.ValueConverter()
 
   @utils.Synchronized
   def DeleteSubject(self, subject, sync=False):
@@ -115,8 +91,8 @@ class FakeDataStore(data_store.DataStore):
     if replace or attribute not in self.subjects[subject]:
       self.subjects[subject][attribute] = []
 
-    self.subjects[subject][attribute].append(
-        [self._Encode(value), int(timestamp)])
+    encoded_value = self._value_converter.Encode(attribute, value)
+    self.subjects[subject][attribute].append([encoded_value, int(timestamp)])
     self.subjects[subject][attribute].sort(key=lambda x: x[1])
 
   @utils.Synchronized
@@ -211,7 +187,8 @@ class FakeDataStore(data_store.DataStore):
       for attribute in attributes:
         attribute_list = r.get(attribute)
         if attribute_list:
-          value, timestamp = attribute_list[-1]
+          encoded_value, timestamp = attribute_list[-1]
+          value = self._value_converter.Decode(attribute, encoded_value)
           results[attribute] = (timestamp, value)
       if results:
         return_count += 1
@@ -244,7 +221,7 @@ class FakeDataStore(data_store.DataStore):
     for attribute in attributes:
       for attr, values in iteritems(record):
         if attr == attribute:
-          for value, ts in values:
+          for encoded_value, ts in values:
             results_list = results.setdefault(attribute, [])
             # If we are always after the latest ts we clear older ones.
             if (results_list and timestamp == self.NEWEST_TIMESTAMP and
@@ -256,6 +233,7 @@ class FakeDataStore(data_store.DataStore):
             elif ts < start or ts > end:
               continue
 
+            value = self._value_converter.Decode(attribute, encoded_value)
             results_list.append((attribute, ts, value))
 
     # Return the results in the same order they requested.
@@ -338,7 +316,7 @@ class FakeDataStore(data_store.DataStore):
         if limit and nr_results >= limit:
           break
         if utils.SmartStr(attribute).startswith(prefix):
-          for value, ts in values:
+          for encoded_value, ts in values:
             results_list = results.setdefault(attribute, [])
             # If we are always after the latest ts we clear older ones.
             if (results_list and timestamp in [self.NEWEST_TIMESTAMP, None] and
@@ -350,6 +328,7 @@ class FakeDataStore(data_store.DataStore):
             elif ts < start or ts > end:
               continue
 
+            value = self._value_converter.Decode(attribute, encoded_value)
             results_list.append((attribute, ts, value))
             nr_results += 1
             if limit and nr_results >= limit:

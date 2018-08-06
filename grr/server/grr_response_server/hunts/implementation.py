@@ -540,9 +540,6 @@ class HuntRunner(object):
   def QueueNotification(self, *args, **kw):
     self.queue_manager.QueueNotification(*args, **kw)
 
-  def SetStatus(self, status):
-    self.context.status = status
-
   def Status(self, format_str, *args):
     """Flows can call this method to set a status message visible to users."""
     self.Log(format_str, *args)
@@ -647,7 +644,7 @@ class HuntRunner(object):
 
     logging.info("%s: %s", self.session_id, status)
 
-    self.SetStatus(utils.SmartUnicode(status))
+    self.context.status = utils.SmartUnicode(status)
 
     log_entry = rdf_flows.FlowLog(
         client_id=None,
@@ -925,10 +922,6 @@ class HuntRunner(object):
             "Bad message %s of type %s." % (payload, type(payload)))
 
       self.QueueResponse(msg, timestamp=start_time)
-
-    # Add the status message if needed.
-    if not messages or not isinstance(messages[-1], rdf_flows.GrrStatus):
-      messages.append(rdf_flows.GrrStatus())
 
     # Notify the worker about it.
     self.QueueNotification(session_id=self.session_id, timestamp=start_time)

@@ -165,10 +165,10 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
   def _CreateOSBreakDownCronJobApproval(self):
     if data_store.RelationalDBReadEnabled():
-      job_name = cron_system.OSBreakDownCronJob.__name__
+      job_name = unicode(cron_system.OSBreakDownCronJob.__name__)
       cronjobs.ScheduleSystemCronJobs(names=[job_name])
     else:
-      job_name = cron_system.OSBreakDown.__name__
+      job_name = unicode(cron_system.OSBreakDown.__name__)
       aff4_cronjobs.ScheduleSystemCronFlows(names=[job_name], token=self.token)
 
     aff4_cronjobs.GetCronManager().DisableJob(job_id=job_name)

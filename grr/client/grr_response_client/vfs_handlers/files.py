@@ -233,13 +233,17 @@ class File(vfs.VFSHandler):
   def ListNames(self):
     return self.files or []
 
-  def Read(self, length):
+  def Read(self, length=None):
     """Read from the file."""
+
     if self.progress_callback:
       self.progress_callback()
 
     available_to_read = max(0, (self.size or 0) - self.offset)
-    to_read = min(length, available_to_read)
+    if length is None:
+      to_read = available_to_read
+    else:
+      to_read = min(length, available_to_read)
 
     with FileHandleManager(self.filename) as fd:
       offset = self.file_offset + self.offset

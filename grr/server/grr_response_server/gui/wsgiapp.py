@@ -139,6 +139,11 @@ class HttpRequest(werkzeug_wrappers.Request):
 
   @user.setter
   def user(self, value):
+    if not isinstance(value, unicode):
+      message = "Expected instance of '%s' but got value '%s' of type '%s'"
+      message %= (unicode, value, type(value))
+      raise TypeError(message)
+
     self._user = value
 
 

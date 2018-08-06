@@ -139,7 +139,7 @@ class ListDirectory(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError(str(responses.status))
 
-    self.Status("Listed %s", self.state.urn)
+    self.Log("Listed %s", self.state.urn)
 
     with data_store.DB.GetMutationPool() as pool:
       with aff4.FACTORY.Create(
@@ -351,9 +351,9 @@ class RecursiveListDirectory(flow.GRRFlow):
               next_state="ProcessDirectory")
           self.state.dir_count += 1
           if self.state.dir_count % 100 == 0:  # Log every 100 directories
-            self.Status("Reading %s. (%d nodes, %d directories done)",
-                        urn.RelativeName(self.state.first_directory),
-                        self.state.file_count, self.state.dir_count)
+            self.Log("Reading %s. (%d nodes, %d directories done)",
+                     urn.RelativeName(self.state.first_directory),
+                     self.state.file_count, self.state.dir_count)
 
       self.state.file_count += len(responses)
 
@@ -404,7 +404,7 @@ class RecursiveListDirectory(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
-    self.Status(status_text, self.state.file_count, self.state.dir_count)
+    self.Log(status_text, self.state.file_count, self.state.dir_count)
 
 
 class UpdateSparseImageChunksArgs(rdf_structs.RDFProtoStruct):

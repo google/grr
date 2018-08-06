@@ -8,9 +8,10 @@ import time
 
 from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems
-
 from future.utils import itervalues
+from future.utils import viewkeys
 
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
@@ -18,6 +19,8 @@ from grr_response_server import aff4
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import export_utils
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
@@ -91,7 +94,77 @@ class _ActiveCounter(object):
       # pylint: enable=protected-access
 
 
-class AbstractClientStatsCronJob(cronjobs.CronJobBase):
+def _GetLastContactFromFleetspeak(client_ids):
+  """Fetches last contact times for the given clients from Fleetspeak.
+
+  Args:
+    client_ids: Iterable containing GRR client ids.
+
+  Returns:
+    A dict mapping the given client ids to timestamps representing when
+    Fleetspeak last contacted the clients.
+  """
+  if not fleetspeak_connector.CONN or not fleetspeak_connector.CONN.outgoing:
+    logging.warning(
+        "Tried to get last-contact timestamps for Fleetspeak clients "
+        "without an active connection to Fleetspeak.")
+    return {}
+  fs_ids = [fleetspeak_utils.GRRIDToFleetspeakID(cid) for cid in client_ids]
+  fs_result = fleetspeak_connector.CONN.outgoing.ListClients(
+      admin_pb2.ListClientsRequest(client_ids=fs_ids))
+  if len(client_ids) != len(fs_result.clients):
+    logging.error("Expected %d results from Fleetspeak; got %d instead.",
+                  len(client_ids), len(fs_result.clients))
+  last_contact_times = {}
+  for fs_client in fs_result.clients:
+    grr_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_client.client_id)
+    last_contact_times[grr_id] = fleetspeak_utils.TSToRDFDatetime(
+        fs_client.last_contact_time)
+  return last_contact_times
+
+
+CLIENT_READ_BATCH_SIZE = 50000
+
+
+def _IterateAllClients():
+  """Fetches client data from the relational db."""
+  all_client_ids = data_store.REL_DB.ReadAllClientIDs()
+  for batch in utils.Grouper(all_client_ids, CLIENT_READ_BATCH_SIZE):
+    client_map = data_store.REL_DB.MultiReadClientFullInfo(batch)
+    fs_client_ids = [
+        cid for (cid, client) in iteritems(client_map)
+        if client.metadata.fleetspeak_enabled
+    ]
+    last_contact_times = _GetLastContactFromFleetspeak(fs_client_ids)
+    for cid, last_contact in iteritems(last_contact_times):
+      client_map[cid].metadata.ping = last_contact
+    for client in itervalues(client_map):
+      yield client
+
+
+def _IterateAllLegacyClients(token):
+  """Fetches client data from the legacy db."""
+  root_children = aff4.FACTORY.Open(
+      aff4.ROOT_URN, token=token).OpenChildren(mode="r")
+  for batch in utils.Grouper(root_children, CLIENT_READ_BATCH_SIZE):
+    fs_client_map = {}
+    non_fs_clients = []
+    for child in batch:
+      if not isinstance(child, aff4_grr.VFSGRRClient):
+        continue
+      if child.Get(child.Schema.FLEETSPEAK_ENABLED):
+        fs_client_map[child.urn.Basename()] = child
+      else:
+        non_fs_clients.append(child)
+    last_contact_times = _GetLastContactFromFleetspeak(viewkeys(fs_client_map))
+    for client in non_fs_clients:
+      yield client.Get(client.Schema.PING), client
+    for cid, client in iteritems(fs_client_map):
+      last_contact = last_contact_times.get(cid, client.Get(client.Schema.PING))
+      yield last_contact, client
+
+
+class AbstractClientStatsCronJob(cronjobs.SystemCronJobBase):
   """Base class for all stats processing cron jobs."""
 
   CLIENT_STATS_URN = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
@@ -118,10 +191,6 @@ class AbstractClientStatsCronJob(cronjobs.CronJobBase):
           token=self.token)
     return self.stats[label]
 
-  def _IterateClients(self):
-    for c in data_store.REL_DB.IterateAllClientsFullInfo():
-      yield c
-
   def Run(self):
     """Retrieve all the clients for the AbstractClientStatsCollectors."""
     try:
@@ -130,11 +199,9 @@ class AbstractClientStatsCronJob(cronjobs.CronJobBase):
 
       self.BeginProcessing()
 
-      clients = self._IterateClients()
-
       processed_count = 0
-      for c in clients:
-        self.ProcessClientFullInfo(c)
+      for client in _IterateAllClients():
+        self.ProcessClientFullInfo(client)
         processed_count += 1
 
         # This flow is not dead: we don't want to run out of lease time.
@@ -155,6 +222,7 @@ class GRRVersionBreakDownCronJob(AbstractClientStatsCronJob):
   """Records relative ratios of GRR versions in 7 day actives."""
 
   frequency = rdfvalue.Duration("4h")
+  lifetime = rdfvalue.Duration("4h")
 
   def BeginProcessing(self):
     self.counter = _ActiveCounter(
@@ -182,6 +250,9 @@ class GRRVersionBreakDownCronJob(AbstractClientStatsCronJob):
 
 class OSBreakDownCronJob(AbstractClientStatsCronJob):
   """Records relative ratios of OS versions in 7 day actives."""
+
+  frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
 
   def BeginProcessing(self):
     self.counters = [
@@ -215,7 +286,10 @@ class OSBreakDownCronJob(AbstractClientStatsCronJob):
 class LastAccessStatsCronJob(AbstractClientStatsCronJob):
   """Calculates a histogram statistics of clients last contacted times."""
 
-  # The number of clients fall into these bins (number of hours ago)
+  frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
+
+  # The number of clients fall into these bins (number of days ago)
   _bins = [1, 2, 3, 7, 14, 30, 60]
 
   def _ValuesForLabel(self, label):
@@ -269,7 +343,7 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
   def BeginProcessing(self):
     pass
 
-  def ProcessLegacyClient(self, client):
+  def ProcessLegacyClient(self, ping, client):
     raise NotImplementedError()
 
   def ProcessClientFullInfo(self, client_full_info):
@@ -291,20 +365,6 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
           token=self.token)
     return self.stats[label]
 
-  def _IterateLegacyClients(self):
-    root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
-    children_urns = list(root.ListChildren())
-    logging.debug("Found %d children.", len(children_urns))
-
-    for child in aff4.FACTORY.MultiOpen(
-        children_urns, mode="r", token=self.token, age=aff4.NEWEST_TIME):
-      if isinstance(child, aff4_grr.VFSGRRClient):
-        yield child
-
-  def _IterateClients(self):
-    for c in data_store.REL_DB.IterateAllClientsFullInfo():
-      yield c
-
   @flow.StateHandler()
   def Start(self):
     """Retrieve all the clients for the AbstractClientStatsCollectors."""
@@ -314,21 +374,19 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
 
       self.BeginProcessing()
 
-      if data_store.RelationalDBReadEnabled():
-        clients = self._IterateClients()
-      else:
-        clients = self._IterateLegacyClients()
-
       processed_count = 0
-      for c in clients:
-        if data_store.RelationalDBReadEnabled():
-          self.ProcessClientFullInfo(c)
-        else:
-          self.ProcessLegacyClient(c)
-        processed_count += 1
-
-        # This flow is not dead: we don't want to run out of lease time.
-        self.HeartBeat()
+      if data_store.RelationalDBReadEnabled():
+        for client in _IterateAllClients():
+          self.ProcessClientFullInfo(client)
+          processed_count += 1
+          # This flow is not dead: we don't want to run out of lease time.
+          self.HeartBeat()
+      else:
+        for ping, client in _IterateAllLegacyClients(self.token):
+          self.ProcessLegacyClient(ping, client)
+          processed_count += 1
+          # This flow is not dead: we don't want to run out of lease time.
+          self.HeartBeat()
 
       self.FinishProcessing()
       for fd in itervalues(self.stats):
@@ -365,8 +423,7 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
     for label in labels:
       self.counter.Add(category, label, ping)
 
-  def ProcessLegacyClient(self, client):
-    ping = client.Get(client.Schema.PING)
+  def ProcessLegacyClient(self, ping, client):
     c_info = client.Get(client.Schema.CLIENT_INFO)
     labels = self._GetClientLabelsList(client)
 
@@ -406,10 +463,9 @@ class OSBreakDown(AbstractClientStatsCronFlow):
       # Darwin-OSX-10.9.3
       self.counters[1].Add(uname, label, ping)
 
-  def ProcessLegacyClient(self, client):
+  def ProcessLegacyClient(self, ping, client):
     """Update counters for system, version and release attributes."""
     labels = self._GetClientLabelsList(client)
-    ping = client.Get(client.Schema.PING)
     system = client.Get(client.Schema.SYSTEM, "Unknown")
     uname = client.Get(client.Schema.UNAME, "Unknown")
 
@@ -466,10 +522,8 @@ class LastAccessStats(AbstractClientStatsCronFlow):
       except IndexError:
         pass
 
-  def ProcessLegacyClient(self, client):
+  def ProcessLegacyClient(self, ping, client):
     labels = self._GetClientLabelsList(client)
-    ping = client.Get(client.Schema.PING)
-
     self._Process(labels, ping)
 
   def ProcessClientFullInfo(self, client_full_info):
@@ -526,7 +580,8 @@ class InterrogateClientsCronFlow(aff4_cronjobs.SystemCronFlow,
     self.StartInterrogationHunt()
 
 
-class InterrogateClientsCronJob(cronjobs.CronJobBase, InterrogationHuntMixin):
+class InterrogateClientsCronJob(cronjobs.SystemCronJobBase,
+                                InterrogationHuntMixin):
   """A cron job which runs an interrogate hunt on all clients.
 
   Interrogate needs to be run regularly on our clients to keep host information
@@ -572,10 +627,11 @@ class PurgeClientStats(aff4_cronjobs.SystemCronFlow):
       self.HeartBeat()
 
 
-class PurgeClientStatsCronJob(cronjobs.CronJobBase):
+class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
   """Deletes outdated client statistics."""
 
   frequency = rdfvalue.Duration("1w")
+  lifetime = rdfvalue.Duration("20h")
 
   # Keep stats for one month.
   MAX_AGE = 31 * 24 * 3600

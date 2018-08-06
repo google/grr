@@ -228,15 +228,6 @@ class StatefulSystemCronFlow(SystemCronFlow):
 
   def ReadCronState(self):
     # TODO(amoser): This is pretty bad, there is no locking for state.
-    if data_store.RelationalDBReadEnabled(category="cronjobs"):
-      runner_args = self.Get(self.Schema.FLOW_RUNNER_ARGS)
-      if not runner_args:
-        return flow.AttributedDict()
-
-      job_id = runner_args.base_session_id.Basename()
-      cronjob = data_store.REL_DB.ReadCronJob(job_id)
-      return cronjob.state or flow.AttributedDict()
-
     try:
       cron_job = aff4.FACTORY.Open(
           self.cron_job_urn, aff4_type=CronJob, token=self.token)
@@ -249,15 +240,6 @@ class StatefulSystemCronFlow(SystemCronFlow):
 
   def WriteCronState(self, state):
     if not state:
-      return
-
-    if data_store.RelationalDBReadEnabled(category="cronjobs"):
-      runner_args = self.Get(self.Schema.FLOW_RUNNER_ARGS)
-      if not runner_args:
-        return flow.AttributedDict()
-
-      job_id = runner_args.base_session_id.Basename()
-      data_store.REL_DB.UpdateCronJob(job_id, state=state)
       return
 
     try:

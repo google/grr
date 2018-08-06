@@ -20,6 +20,8 @@ from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import db
 from grr_response_server import events
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import notification
 from grr_response_server import server_stubs
@@ -423,6 +425,16 @@ class Interrogate(flow.GRRFlow):
       self.Log("Could not get ClientInfo.")
       return
     response = responses.First()
+
+    if fleetspeak_utils.IsFleetspeakEnabledClient(
+        self.client_id.Basename(), token=self.token):
+      label = fleetspeak_utils.GetLabelFromFleetspeak(self.client_id)
+      # A FS enabled GRR shouldn't provide a label, but if it does prefer
+      # it to an unrecognized FS label.
+      #
+      # TODO(user): Remove condition once we are confident in FS labeling.
+      if label != fleetspeak_connector.unknown_label or not response.labels:
+        response.labels = [label]
 
     # AFF4 client.
     with self._OpenClient(mode="rw") as client:

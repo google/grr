@@ -7,6 +7,8 @@ into collectors_*_test.py files.
 
 import os
 
+
+from builtins import filter  # pylint: disable=redefined-builtin
 import mock
 import psutil
 
@@ -20,6 +22,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import aff4
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
@@ -565,6 +568,25 @@ class TestCmdParser(parser.CommandParser):
     yield soft
 
 
+class TestFileParser(parser.FileParser):
+
+  output_types = ["AttributedDict"]
+  supported_artifacts = ["TestFileArtifact"]
+
+  def Parse(self, stat, file_obj, knowledge_base):
+
+    del knowledge_base  # Unused.
+
+    lines = set([l.strip() for l in file_obj.read().splitlines()])
+
+    users = list(filter(None, lines))
+
+    filename = stat.pathspec.path
+    cfg = {"filename": filename, "users": users}
+
+    yield rdf_protodict.AttributedDict(**cfg)
+
+
 class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the clientside artifact collection test artifacts."""
 
@@ -713,6 +735,42 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(len(result.collected_artifacts), 1)
     result = result.collected_artifacts[0].action_results[0].value
     self.assertIsInstance(result, rdf_client.SoftwarePackage)
+
+    self.assertEqual(result, expected)
+
+  def testFileArtifactWithParser(self):
+
+    artifact_list = ["TestFileArtifact"]
+
+    file_path = os.path.join(self.base_path, "numbers.txt")
+    source = rdf_artifacts.ArtifactSource(
+        type=rdf_artifacts.ArtifactSource.SourceType.FILE,
+        attributes={"paths": [file_path]})
+    artifact_obj = artifact_registry.REGISTRY.GetArtifact("TestFileArtifact")
+    artifact_obj.sources.append(source)
+
+    # Run the ArtifactCollector to get the expected result.
+    session_id = flow_test_lib.TestFlowHelper(
+        collectors.ArtifactCollectorFlow.__name__,
+        action_mocks.FileFinderClientMock(),
+        artifact_list=artifact_list,
+        token=self.token,
+        apply_parsers=True,
+        client_id=self.client_id)
+    expected = flow.GRRFlow.ResultCollectionForFID(session_id)[0]
+
+    self.assertIsInstance(expected, rdf_protodict.AttributedDict)
+    self.assertEquals(expected.filename, file_path)
+    self.assertEqual(len(expected.users), 1000)
+
+    # Run the ClientArtifactCollector to get the actual result.
+    result = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=True)[0]
+    self.assertEqual(len(result.collected_artifacts), 1)
+    result = result.collected_artifacts[0].action_results[0].value
 
     self.assertEqual(result, expected)
 

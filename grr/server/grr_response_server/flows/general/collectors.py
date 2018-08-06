@@ -1091,6 +1091,8 @@ def _ExtendArtifact(knowledge_base, use_tsk, max_file_size, processed_artifacts,
     rdf value representation of extended artifact containing the name of the
     artifact and the extended sources
   """
+  source_type = rdf_artifacts.ArtifactSource.SourceType
+
   ext_art = rdf_artifacts.ExtendedArtifact()
   ext_art.name = art_obj.name
   for source in art_obj.sources:
@@ -1100,18 +1102,17 @@ def _ExtendArtifact(knowledge_base, use_tsk, max_file_size, processed_artifacts,
       ext_src = rdf_artifacts.ExtendedSource()
       ext_src.base_source = source
       type_name = source.type
-      source_type = rdf_artifacts.ArtifactSource.SourceType
-      if type_name == source_type.DIRECTORY:
-        ext_src.path_type = _GetPathType(use_tsk)
-      elif type_name == source_type.FILE:
+
+      if type_name == source_type.FILE:
         ext_src.path_type = _GetPathType(use_tsk)
         ext_src.max_bytesize = max_file_size
-      elif type_name == source_type.GREP:
+
+      elif type_name in (source_type.DIRECTORY, source_type.GREP,
+                         source_type.REGISTRY_KEY):
         ext_src.path_type = _GetPathType(use_tsk)
-      elif type_name == source_type.REGISTRY_KEY:
-        ext_src.path_type = _GetPathType(use_tsk)
-      elif (type_name == source_type.ARTIFACT_GROUP or
-            type_name == source_type.ARTIFACT_FILES):
+
+      elif type_name in (source_type.ARTIFACT_GROUP,
+                         source_type.ARTIFACT_FILES):
         extended_sources = []
         artifact_list = []
         if "names" in source.attributes:

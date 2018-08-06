@@ -698,16 +698,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, aff4.AFF4Volume)):
 
     getattr(self, next_state)(self.runner, direct_response=responses)
 
-  def CallState(self,
-                messages=None,
-                next_state="",
-                request_data=None,
-                start_time=None):
-    return self.runner.CallState(
-        messages=messages,
-        next_state=next_state,
-        request_data=request_data,
-        start_time=start_time)
+  def CallState(self, next_state="", start_time=None):
+    return self.runner.CallState(next_state=next_state, start_time=start_time)
 
   def CallFlow(self, flow_name, next_state=None, request_data=None, **kwargs):
     return self.runner.CallFlow(
@@ -870,10 +862,6 @@ class GRRFlow(FlowBase):
       self.Set(self.Schema.FLOW_RUNNER_ARGS(self.runner_args))
       protodict = rdf_protodict.AttributedDict().FromDict(self.state)
       self.Set(self.Schema.FLOW_STATE_DICT(protodict))
-
-  def Status(self, format_str, *args):
-    """Flows can call this method to set a status message visible to users."""
-    self.GetRunner().Status(format_str, *args)
 
   def SendReply(self, response):
     return self.runner.SendReply(response)
@@ -1132,10 +1120,6 @@ class WellKnownFlow(GRRFlow):
       logging.exception("Error in WellKnownFlow.ProcessMessage: %s", e)
       stats.STATS.IncrementCounter(
           "well_known_flow_errors", fields=[str(self.session_id)])
-
-  def CallState(self, messages=None, next_state=None, delay=0):
-    """Well known flows have no states to call."""
-    pass
 
   @property
   def session_id(self):

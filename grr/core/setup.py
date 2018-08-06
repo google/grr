@@ -122,7 +122,7 @@ setup_args = dict(
     },
     install_requires=[
         "binplist==0.1.4",
-        "cryptography==2.0.3",
+        "cryptography==2.3",
         "fleetspeak==0.0.7",
         "future==0.16.0",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
@@ -135,7 +135,7 @@ setup_args = dict(
         "pytsk3==20170802",
         "pytz==2017.3",
         "PyYAML==3.12",
-        "requests==2.9.1",
+        "requests==2.19.1",
         "typing==3.6.4",
         "virtualenv==15.0.3",
         "wheel==0.30",

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the web auth managers."""
+from __future__ import unicode_literals
 
 
 import mock

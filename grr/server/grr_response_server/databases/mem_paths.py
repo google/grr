@@ -71,6 +71,10 @@ class _PathRecord(object):
     if path_info.HasField("hash_entry"):
       self.AddHashEntry(path_info.hash_entry, timestamp)
 
+  def ClearHistory(self):
+    self._stat_entries = {}
+    self._hash_entries = {}
+
   def AddPathInfo(self, path_info):
     """Updates existing path information of the path record."""
     if self._path_info.path_type != path_info.path_type:
@@ -234,6 +238,15 @@ class InMemoryDBPathMixin(object):
       self._WritePathInfo(client_id, path_info, ancestor=False)
       for ancestor_path_info in path_info.GetAncestors():
         self._WritePathInfo(client_id, ancestor_path_info, ancestor=True)
+
+  @utils.Synchronized
+  def InitPathInfos(self, client_id, path_infos):
+    """Initializes a collection of path info records for a client."""
+    for path_info in path_infos:
+      path_record = self._GetPathRecord(client_id, path_info)
+      path_record.ClearHistory()
+
+    self.WritePathInfos(client_id, path_infos)
 
   @utils.Synchronized
   def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):

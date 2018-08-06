@@ -306,3 +306,13 @@ config_lib.DEFINE_string(
     "Server.fleetspeak_server", "",
     "The Fleetspeak server address, formatted like localhost:6062.")
 
+config_lib.DEFINE_list(
+    "Server.fleetspeak_label_map", [],
+    "Used to map fleetspeak labels to GRR labels. "
+    "A list of entries of the form '<fleetspeak-label>:<grr-primary-label>.")
+
+config_lib.DEFINE_string(
+    "Server.fleetspeak_unknown_label", "fleetspeak-unknown",
+    "The primary GRR label to use for FS clients which do not match any entry "
+    "of fleetspeak_label_map.")
+

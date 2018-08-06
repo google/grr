@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This module contains regression tests for cron-related API handlers."""
+from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -95,12 +96,12 @@ def _SetupAndRunVersionBreakDownCronjob(token=None):
     manager = aff4_cronjobs.GetCronManager()
 
     if data_store.RelationalDBReadEnabled():
-      cron_job_name = cron_system.GRRVersionBreakDownCronJob.__name__
+      cron_job_name = unicode(cron_system.GRRVersionBreakDownCronJob.__name__)
       cronjobs.ScheduleSystemCronJobs(names=[cron_job_name])
       manager.RunOnce()
       manager._GetThreadPool().Join()
     else:
-      cron_job_name = cron_system.GRRVersionBreakDown.__name__
+      cron_job_name = unicode(cron_system.GRRVersionBreakDown.__name__)
       aff4_cronjobs.ScheduleSystemCronFlows(names=[cron_job_name], token=token)
       manager.RunOnce(token=token)
       run_id = _GetRunId(cron_job_name, token=token)

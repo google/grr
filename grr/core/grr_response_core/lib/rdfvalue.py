@@ -155,10 +155,15 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     """Given a string, parse ourselves from it."""
     pass
 
+  @abc.abstractmethod
+  def ParseFromDatastore(self, value):
+    """Initialize the RDF object from the datastore value."""
+    pass
+
   @classmethod
   def FromDatastoreValue(cls, value, age=None):
     res = cls()
-    res.ParseFromString(value)
+    res.ParseFromDatastore(value)
     if age:
       res.age = age
     return res
@@ -243,6 +248,10 @@ class RDFBytes(RDFValue):
     else:
       self._value = string
 
+  def ParseFromDatastore(self, value):
+    utils.AssertType(value, bytes)
+    self._value = value
+
   def AsBytes(self):
     return self._value
 
@@ -307,6 +316,13 @@ class RDFString(RDFBytes):
     # This handles the cases when we're initialized from Unicode strings.
     self._value = utils.SmartStr(string)
 
+  def ParseFromDatastore(self, value):
+    utils.AssertType(value, unicode)
+    # TODO(hanuszczak): It feels like unicode strings should be internally
+    # represented as unicode objects instead of bytes and encoded only during
+    # the serialization.
+    self._value = value.encode("utf-8")
+
   def SerializeToString(self):
     return utils.SmartStr(self._value)
 
@@ -361,6 +377,10 @@ class RDFInteger(RDFValue):
         self._value = int(string)
       except TypeError as e:
         raise DecodeError(e)
+
+  def ParseFromDatastore(self, value):
+    utils.AssertType(value, int)
+    self._value = value
 
   def __str__(self):
     return str(self._value)
@@ -908,6 +928,14 @@ class RDFURN(RDFValue):
       initializer = initializer[5:]
 
     self._string_urn = utils.NormalizePath(initializer)
+
+  def ParseFromDatastore(self, value):
+    utils.AssertType(value, unicode)
+    # TODO(hanuszczak): We should just assign the `self._string_urn` here
+    # instead of including all of the parsing magic since the data store values
+    # should be normalized already. But sadly this is not the case and for now
+    # we have to deal with unnormalized values as well.
+    self.ParseFromString(value)
 
   def SerializeToString(self):
     return str(self)

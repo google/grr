@@ -11,7 +11,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def _IntToApprovalID(approval_id):
-  return "%016x" % approval_id
+  return u"%016x" % approval_id
 
 
 def _ApprovalIDToInt(approval_id):

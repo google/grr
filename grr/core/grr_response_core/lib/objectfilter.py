@@ -831,7 +831,7 @@ class Parser(lexer.SearchParser):
         lhs = self.stack[i - 1]
         rhs = self.stack[i + 1]
 
-        self.stack[i].AddOperands(lhs, rhs)
+        self.stack[i].AddOperands(lhs, rhs)  # pytype: disable=attribute-error
         self.stack[i - 1] = None
         self.stack[i + 1] = None
 

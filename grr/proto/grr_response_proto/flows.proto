@@ -193,10 +193,11 @@ message FlowRunnerArgs {
       label: HIDDEN,
     }, default="F"];
 
-  optional string event_id = 7 [(sem_type) = {
-      description: "A logging event id for issuing further logs."
-      label: HIDDEN,
-    }];
+  // DEPRECATED.
+  // optional string event_id = 7 [(sem_type) = {
+  //     description: "A logging event id for issuing further logs."
+  //     label: HIDDEN,
+  //   }];
 
   optional uint64 cpu_limit = 9 [(sem_type) = {
       description: "A limit on the client cpu seconds used by this flow.",

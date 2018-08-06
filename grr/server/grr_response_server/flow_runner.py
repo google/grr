@@ -267,11 +267,7 @@ class FlowRunner(object):
     """
     return self.context.outstanding_requests
 
-  def CallState(self,
-                messages=None,
-                next_state="",
-                request_data=None,
-                start_time=None):
+  def CallState(self, next_state="", start_time=None):
     """This method is used to schedule a new state on a different worker.
 
     This is basically the same as CallFlow() except we are calling
@@ -279,15 +275,7 @@ class FlowRunner(object):
     messages we send.
 
     Args:
-       messages: A list of rdfvalues to send. If the last one is not a
-            GrrStatus, we append an OK Status.
-
        next_state: The state in this flow to be invoked with the responses.
-
-       request_data: Any dict provided here will be available in the
-             RequestState protobuf. The Responses object maintains a reference
-             to this protobuf for use in the execution of the state method. (so
-             you can access this data by responses.request).
 
        start_time: Start the flow at this time. This Delays notification for
          flow processing into the future. Note that the flow may still be
@@ -296,9 +284,6 @@ class FlowRunner(object):
     Raises:
        FlowRunnerError: if the next state is not valid.
     """
-    if messages is None:
-      messages = []
-
     # Check if the state is valid
     if not getattr(self.flow_obj, next_state):
       raise FlowRunnerError("Next state %s is invalid.")
@@ -309,33 +294,18 @@ class FlowRunner(object):
         session_id=self.context.session_id,
         client_id=self.runner_args.client_id,
         next_state=next_state)
-    if request_data:
-      request_state.data = rdf_protodict.Dict().FromDict(request_data)
 
     self.QueueRequest(request_state, timestamp=start_time)
 
-    # Add the status message if needed.
-    if not messages or not isinstance(messages[-1], rdf_flows.GrrStatus):
-      messages.append(rdf_flows.GrrStatus())
-
-    # Send all the messages
-    for i, payload in enumerate(messages):
-      if isinstance(payload, rdfvalue.RDFValue):
-        msg = rdf_flows.GrrMessage(
-            session_id=self.session_id,
-            request_id=request_state.id,
-            response_id=1 + i,
-            auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
-            payload=payload,
-            type=rdf_flows.GrrMessage.Type.MESSAGE)
-
-        if isinstance(payload, rdf_flows.GrrStatus):
-          msg.type = rdf_flows.GrrMessage.Type.STATUS
-      else:
-        raise FlowRunnerError(
-            "Bad message %s of type %s." % (payload, type(payload)))
-
-      self.QueueResponse(msg, start_time)
+    # Send a fake reply.
+    msg = rdf_flows.GrrMessage(
+        session_id=self.session_id,
+        request_id=request_state.id,
+        response_id=1,
+        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
+        payload=rdf_flows.GrrStatus(),
+        type=rdf_flows.GrrMessage.Type.STATUS)
+    self.QueueResponse(msg, start_time)
 
     # Notify the worker about it.
     self.QueueNotification(session_id=self.session_id, timestamp=start_time)
@@ -616,9 +586,7 @@ class FlowRunner(object):
                  action_cls,
                  request=None,
                  next_state=None,
-                 client_id=None,
                  request_data=None,
-                 start_time=None,
                  **kwargs):
     """Calls the client asynchronously.
 
@@ -637,16 +605,11 @@ class FlowRunner(object):
        next_state: The state in this flow, that responses to this
              message should go to.
 
-       client_id: rdf_client.ClientURN to send the request to.
-
        request_data: A dict which will be available in the RequestState
              protobuf. The Responses object maintains a reference to this
              protobuf for use in the execution of the state method. (so you can
              access this data by responses.request). Valid values are
              strings, unicode and protobufs.
-
-       start_time: Call the client at this time. This Delays the client request
-         for into the future.
 
        **kwargs: These args will be used to construct the client action semantic
          protobuf.
@@ -656,9 +619,7 @@ class FlowRunner(object):
        ValueError: The request passed to the client does not have the correct
                      type.
     """
-    if client_id is None:
-      client_id = self.runner_args.client_id
-
+    client_id = self.runner_args.client_id
     if client_id is None:
       raise FlowRunnerError("CallClient() is used on a flow which was not "
                             "started with a client.")
@@ -721,7 +682,7 @@ class FlowRunner(object):
         raise FlowRunnerError("Network limit exceeded.")
 
     state.request = msg
-    self.QueueRequest(state, timestamp=start_time)
+    self.QueueRequest(state)
 
   def CallFlow(self,
                flow_name=None,
@@ -796,17 +757,11 @@ class FlowRunner(object):
         kwargs.pop("write_intermediate_results", False) or
         self.runner_args.write_intermediate_results)
 
-    try:
-      event_id = self.runner_args.event_id
-    except AttributeError:
-      event_id = None
-
     # Create the new child flow but do not notify the user about it.
     child_urn = self.flow_obj.StartFlow(
         client_id=client_id,
         flow_name=flow_name,
         base_session_id=base_session_id or self.session_id,
-        event_id=event_id,
         request_state=state,
         token=self.token,
         notify_to_user=False,
@@ -1095,9 +1050,6 @@ class FlowRunner(object):
     else:
       self.sent_replies.append(response)
 
-  def SetStatus(self, status):
-    self.context.status = status
-
   def Log(self, format_str, *args):
     """Logs the message using the flow's standard logging.
 
@@ -1121,7 +1073,7 @@ class FlowRunner(object):
 
     logging.info("%s: %s", self.session_id, status)
 
-    self.SetStatus(utils.SmartUnicode(status))
+    self.context.status = utils.SmartUnicode(status)
 
     log_entry = rdf_flows.FlowLog(
         client_id=self.runner_args.client_id,
@@ -1136,7 +1088,3 @@ class FlowRunner(object):
 
   def GetLog(self):
     return self.OpenLogCollection(self.runner_args.logs_collection_urn)
-
-  def Status(self, format_str, *args):
-    """Flows can call this method to set a status message visible to users."""
-    self.Log(format_str, *args)

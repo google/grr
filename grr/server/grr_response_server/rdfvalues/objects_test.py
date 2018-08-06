@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
+from __future__ import unicode_literals
 
 import os
 import tempfile
@@ -23,7 +24,7 @@ def MakeClient():
   base_pb = objects_pb2.ClientSnapshot()
   # pylint: disable=line-too-long
   text_format.Merge(
-      """
+      r"""
     os_release: "Ubuntu"
     os_version: "14.4"
     interfaces: {

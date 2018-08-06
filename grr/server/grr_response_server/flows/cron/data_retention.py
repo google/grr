@@ -59,7 +59,7 @@ class CleanHunts(aff4_cronjobs.SystemCronFlow, CleanHuntsMixin):
     self.CleanAff4Hunts()
 
 
-class CleanHuntsCronJob(cronjobs.CronJobBase, CleanHuntsMixin):
+class CleanHuntsCronJob(cronjobs.SystemCronJobBase, CleanHuntsMixin):
 
   frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("1d")
@@ -97,8 +97,11 @@ class CleanCronJobs(aff4_cronjobs.SystemCronFlow):
     self.Log("Deleted %d cron job runs." % deletion_count)
 
 
-class CleanCronJobsCronJob(cronjobs.CronJobBase):
+class CleanCronJobsCronJob(cronjobs.SystemCronJobBase):
   """Cron job that deletes old cron job data."""
+
+  frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
 
   def Run(self):
     cron_jobs_ttl = config.CONFIG["DataRetention.cron_jobs_flows_ttl"]
@@ -169,8 +172,11 @@ class CleanInactiveClients(aff4_cronjobs.SystemCronFlow,
     self.CleanClients()
 
 
-class CleanInactiveClientsCronJob(cronjobs.CronJobBase,
+class CleanInactiveClientsCronJob(cronjobs.SystemCronJobBase,
                                   CleanInactiveClientsMixin):
+
+  frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
 
   def Run(self):
     self.CleanClients()

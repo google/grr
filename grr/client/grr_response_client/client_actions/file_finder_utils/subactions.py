@@ -9,7 +9,6 @@ from future.utils import with_metaclass
 from grr_response_client import client_utils
 from grr_response_client import client_utils_common
 from grr_response_client.client_actions.file_finder_utils import uploading
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
 class Action(with_metaclass(abc.ABCMeta, object)):
@@ -55,7 +54,8 @@ class StatAction(Action):
     stat_cache = self.flow.stat_cache
 
     stat = stat_cache.Get(filepath, follow_symlink=self.opts.resolve_links)
-    result.stat_entry = _StatEntry(stat, ext_attrs=self.opts.collect_ext_attrs)
+    result.stat_entry = client_utils.StatEntryFromStatPathSpec(
+        stat, ext_attrs=self.opts.collect_ext_attrs)
 
 
 class HashAction(Action):
@@ -76,7 +76,8 @@ class HashAction(Action):
 
   def Execute(self, filepath, result):
     stat = self.flow.stat_cache.Get(filepath, follow_symlink=True)
-    result.stat_entry = _StatEntry(stat, ext_attrs=self.opts.collect_ext_attrs)
+    result.stat_entry = client_utils.StatEntryFromStatPathSpec(
+        stat, ext_attrs=self.opts.collect_ext_attrs)
 
     if stat.IsDirectory():
       return
@@ -111,7 +112,8 @@ class DownloadAction(Action):
 
   def Execute(self, filepath, result):
     stat = self.flow.stat_cache.Get(filepath, follow_symlink=True)
-    result.stat_entry = _StatEntry(stat, ext_attrs=self.opts.collect_ext_attrs)
+    result.stat_entry = client_utils.StatEntryFromStatPathSpec(
+        stat, ext_attrs=self.opts.collect_ext_attrs)
 
     if stat.IsDirectory():
       return
@@ -135,14 +137,6 @@ class DownloadAction(Action):
 
     uploader = uploading.TransferStoreUploader(self.flow, chunk_size=chunk_size)
     return uploader.UploadFilePath(filepath, amount=max_size)
-
-
-def _StatEntry(stat, ext_attrs):
-  pathspec = rdf_paths.PathSpec(
-      pathtype=rdf_paths.PathSpec.PathType.OS,
-      path=client_utils.LocalPathToCanonicalPath(stat.GetPath()),
-      path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
-  return client_utils.StatEntryFromStat(stat, pathspec, ext_attrs=ext_attrs)
 
 
 def _HashEntry(stat, flow, max_size=None):

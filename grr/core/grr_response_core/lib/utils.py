@@ -1751,3 +1751,10 @@ def IterableStartsWith(this, that):
 
     if this_value != that_value:
       return False
+
+
+def AssertType(value, expected_type):
+  if not isinstance(value, expected_type):
+    message = "Expected type `%s`, but got value `%s` of type `%s`"
+    message %= (expected_type, value, type(value))
+    raise TypeError(message)
