@@ -54,7 +54,7 @@ class BasicWebAuthManager(BaseWebAuthManager):
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     """Wrapping function."""
-    request.user = ""
+    request.user = u""
 
     authorized = False
     try:
@@ -62,7 +62,8 @@ class BasicWebAuthManager(BaseWebAuthManager):
                                                      " ").split(" ", 1)
 
       if auth_type == "Basic":
-        user, password = authorization.decode("base64").split(":", 1)
+        authorization_string = authorization.decode("base64").decode("utf-8")
+        user, password = authorization_string.split(":", 1)
         token = access_control.ACLToken(username=user)
 
         fd = aff4.FACTORY.Open(
