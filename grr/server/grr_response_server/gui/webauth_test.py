@@ -1,6 +1,9 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests for the web auth managers."""
 from __future__ import unicode_literals
+
+import base64
 
 
 import mock
@@ -11,6 +14,8 @@ from werkzeug import wrappers as werkzeug_wrappers
 from google.oauth2 import id_token
 
 from grr_response_core.lib import flags
+from grr_response_server import aff4
+from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp
 from grr.test_lib import test_lib
@@ -205,6 +210,44 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 
     self.assertTrue(self.checked_request)
     self.assertEqual(self.checked_request.user, "foo@bar.com")
+
+
+class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
+
+  def testSecurityCheckUnicode(self):
+    user = "żymścimił"
+    # TODO(hanuszczak): Test password with unicode characters as well. Currently
+    # this will not work because `CryptedPassword` is broken and does not work
+    # with unicode objects.
+    password = "quux"
+
+    with aff4.FACTORY.Open(
+        "aff4:/users/%s" % user,
+        aff4_type=aff4_users.GRRUser,
+        mode="w",
+        token=self.token) as fd:
+      crypted_password = aff4_users.CryptedPassword()
+      crypted_password.SetPassword(password.encode("utf-8"))
+      fd.Set(fd.Schema.PASSWORD, crypted_password)
+
+    token = base64.b64encode(("%s:%s" % (user, password)).encode("utf-8"))
+    environ = werkzeug_test.EnvironBuilder(
+        path="/foo", headers={
+            "Authorization": "Basic %s" % token,
+        }).get_environ()
+    request = wsgiapp.HttpRequest(environ)
+
+    def Handler(request, *args, **kwargs):
+      del args, kwargs  # Unused.
+
+      self.assertEqual(request.user, user)
+      return werkzeug_wrappers.Response("foobar", status=200)
+
+    manager = webauth.BasicWebAuthManager()
+    response = manager.SecurityCheck(Handler, request)
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.get_data(), "foobar")
 
 
 def main(argv):
