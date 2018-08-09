@@ -43,11 +43,9 @@ from grr.test_lib import test_lib
 class InfiniteFlow(flow.GRRFlow):
   """Flow that never ends."""
 
-  @flow.StateHandler()
   def Start(self):
     self.CallState(next_state="NextState")
 
-  @flow.StateHandler()
   def NextState(self):
     self.CallState(next_state="Start")
 

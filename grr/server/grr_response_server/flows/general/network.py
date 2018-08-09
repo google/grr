@@ -18,7 +18,6 @@ class Netstat(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
   args_type = NetstatArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Start processing."""
     self.CallClient(
@@ -26,7 +25,6 @@ class Netstat(flow.GRRFlow):
         listening_only=self.args.listening_only,
         next_state="ValidateListNetworkConnections")
 
-  @flow.StateHandler()
   def ValidateListNetworkConnections(self, responses):
     if not responses.success:
       # Most likely the client is old and doesn't have ListNetworkConnections.
@@ -37,7 +35,6 @@ class Netstat(flow.GRRFlow):
     else:
       self.CallStateInline(next_state="StoreNetstat", responses=responses)
 
-  @flow.StateHandler()
   def StoreNetstat(self, responses):
     """Collects the connections.
 
@@ -58,6 +55,6 @@ class Netstat(flow.GRRFlow):
 
     self.state.conn_count = len(responses)
 
-  @flow.StateHandler()
-  def End(self):
+  def End(self, responses):
+    del responses
     self.Log("Successfully wrote %d connections.", self.state.conn_count)

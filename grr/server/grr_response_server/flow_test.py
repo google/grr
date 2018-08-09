@@ -45,14 +45,12 @@ from grr.test_lib import worker_test_lib
 class FlowResponseSerialization(flow.GRRFlow):
   """Demonstrate saving responses in the flow."""
 
-  @flow.StateHandler()
-  def Start(self, unused_message=None):
+  def Start(self):
     self.CallClient(
         server_stubs.ClientActionStub.classes["ReturnBlob"],
         rdf_client.EchoRequest(data="test"),
         next_state="Response1")
 
-  @flow.StateHandler()
   def Response1(self, messages):
     """Record the message id for testing."""
     self.state.messages = list(messages)
@@ -61,7 +59,6 @@ class FlowResponseSerialization(flow.GRRFlow):
         rdf_client.EchoRequest(data="test"),
         next_state="Response2")
 
-  @flow.StateHandler()
   def Response2(self, messages):
     # We need to receive one response and it must be the same as that stored in
     # the previous state.
@@ -74,16 +71,14 @@ class FlowResponseSerialization(flow.GRRFlow):
 class NoRequestChildFlow(flow.GRRFlow):
   """This flow just returns and does not generate any requests."""
 
-  @flow.StateHandler()
-  def Start(self, unused_message):
+  def Start(self):
     return
 
 
 class CallClientChildFlow(flow.GRRFlow):
   """This flow just returns and does not generate any requests."""
 
-  @flow.StateHandler()
-  def Start(self, unused_message):
+  def Start(self):
     self.CallClient(server_stubs.GetClientStats, next_state="End")
 
 
@@ -91,13 +86,11 @@ class NoRequestParentFlow(flow.GRRFlow):
 
   child_flow = "NoRequestChildFlow"
 
-  @flow.StateHandler()
-  def Start(self, unused_message):
+  def Start(self):
     self.CallFlow(self.child_flow, next_state="End")
 
-  @flow.StateHandler()
-  def End(self, unused_message):
-    pass
+  def End(self, responses):
+    del responses
 
 
 class CallClientParentFlow(NoRequestParentFlow):
@@ -114,11 +107,9 @@ class BasicFlowTest(flow_test_lib.FlowTestsBaseclass):
 class FlowWithMultipleResultTypes(flow.GRRFlow):
   """This flow will be called by our parent."""
 
-  @flow.StateHandler()
   def Start(self):
     self.CallState(next_state="End")
 
-  @flow.StateHandler()
   def End(self, responses):
     self.SendReply(rdfvalue.RDFInteger(42))
     self.SendReply(rdfvalue.RDFString("foo bar"))
@@ -131,14 +122,12 @@ class FlowWithMultipleResultTypes(flow.GRRFlow):
 class MultiEndedFlow(flow.GRRFlow):
   """This flow will end - call the End state - multiple times."""
 
-  @flow.StateHandler()
   def Start(self):
     self.state.counter = 0
     self.CallState(next_state="End")
 
-  @flow.StateHandler()
-  def End(self, unused_responses):
-    super(MultiEndedFlow, self).End()
+  def End(self, responses):
+    super(MultiEndedFlow, self).End(responses)
 
     self.state.counter += 1
     if self.state.counter < 3:
@@ -300,18 +289,6 @@ class FlowCreationTest(BasicFlowTest):
 
     self.assertTrue("user test" in runner.context.status)
     self.assertTrue("Parent flow terminated." in runner.context.status)
-
-  def testSendRepliesAttribute(self):
-    # Run the flow in the simulated way. Child's send_replies is set to False.
-    # Parent flow will raise if number of responses is > 0.
-    flow_test_lib.TestFlowHelper(
-        "ParentFlowWithoutResponses",
-        ClientMock(),
-        client_id=self.client_id,
-        check_flow_errors=False,
-        token=self.token)
-
-    self.assertEqual(ParentFlowWithoutResponses.success, True)
 
   notifications = {}
 
@@ -652,14 +629,16 @@ class DummyFlowOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
 class FailingDummyFlowOutputPlugin(output_plugin.OutputPlugin):
 
-  def ProcessResponses(self, unused_responses):
+  def ProcessResponses(self, responses):
+    del responses
     raise RuntimeError("Oh no!")
 
 
 class LongRunningDummyFlowOutputPlugin(output_plugin.OutputPlugin):
   num_calls = 0
 
-  def ProcessResponses(self, unused_responses):
+  def ProcessResponses(self, responses):
+    del responses
     LongRunningDummyFlowOutputPlugin.num_calls += 1
     time.time = lambda: 100
 
@@ -887,102 +866,6 @@ class GeneralFlowsTest(BasicFlowTest):
         self.assertEqual(x.st_mode, y.st_mode)
         self.assertRDFValuesEqual(x, y)
 
-  def testClientPrioritization(self):
-    """Test that flow priorities work on the client side."""
-
-    result = []
-    client_mock = PriorityClientMock(result)
-    client_mock = flow_test_lib.MockClient(
-        self.client_id, client_mock, token=self.token)
-    worker_mock = worker_test_lib.MockWorker(
-        check_flow_errors=True, token=self.token)
-
-    # Start some flows with different priorities.
-    # pyformat: disable
-    args = [(rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority"),
-            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-             "medium priority"), (rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
-                                  "low priority2"),
-            (rdf_flows.GrrMessage.Priority.HIGH_PRIORITY,
-             "high priority"), (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-                                "medium priority2")]
-    # pyformat: enable
-
-    for (priority, msg) in args:
-      flow.StartFlow(
-          client_id=self.client_id,
-          flow_name="PriorityFlow",
-          msg=msg,
-          priority=priority,
-          token=self.token)
-
-    while True:
-      client_processed = client_mock.Next()
-      flows_run = []
-      for flow_run in worker_mock.Next():
-        flows_run.append(flow_run)
-
-      if client_processed == 0 and not flows_run:
-        break
-
-    # The flows should be run in order of priority.
-    self.assertEqual(result[0:1], [u"high priority"])
-    self.assertEqual(
-        sorted(result[1:3]), [u"medium priority", u"medium priority2"])
-    self.assertEqual(sorted(result[3:5]), [u"low priority", u"low priority2"])
-
-  def testWorkerPrioritization(self):
-    """Test that flow priorities work on the worker side."""
-
-    result = []
-    client_mock = PriorityClientMock(result)
-    client_mock = flow_test_lib.MockClient(
-        self.client_id, client_mock, token=self.token)
-    worker_mock = worker_test_lib.MockWorker(
-        check_flow_errors=True, token=self.token)
-
-    # Start some flows with different priorities.
-    # pyformat: disable
-    args = [(rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority"),
-            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-             "medium priority"), (rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
-                                  "low priority2"),
-            (rdf_flows.GrrMessage.Priority.HIGH_PRIORITY,
-             "high priority"), (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-                                "medium priority2")]
-    # pyformat: enable
-
-    server_result = []
-    PriorityFlow.storage = server_result
-
-    for (priority, msg) in args:
-      flow.StartFlow(
-          client_id=self.client_id,
-          flow_name="PriorityFlow",
-          msg=msg,
-          priority=priority,
-          token=self.token)
-
-    while True:
-      # Run all the clients first so workers have messages to choose from.
-      client_processed = 1
-      while client_processed:
-        client_processed = client_mock.Next()
-      # Now process the results, this should happen in the correct order.
-      flows_run = []
-      for flow_run in worker_mock.Next():
-        flows_run.append(flow_run)
-
-      if not flows_run:
-        break
-
-    # The flows should be run in order of priority.
-    self.assertEqual(server_result[0:1], [u"high priority"])
-    self.assertEqual(
-        sorted(server_result[1:3]), [u"medium priority", u"medium priority2"])
-    self.assertEqual(
-        sorted(server_result[3:5]), [u"low priority", u"low priority2"])
-
 
 class ResourcedWorker(worker_test_lib.MockWorker):
   USER_CPU = [1, 20, 5, 16]
@@ -1059,71 +942,31 @@ class MockVFSHandler(vfs.VFSHandler):
     return self.pathspec.path == "/"
 
 
-class PriorityClientMock(object):
-
-  in_rdfvalue = rdf_protodict.DataBlob
-
-  def __init__(self, storage):
-    # Register us as an action plugin.
-    # TODO(user): This is a hacky shortcut and should be fixed.
-    server_stubs.ClientActionStub.classes["Store"] = self
-    self.storage = storage
-    self.__name__ = "Store"
-
-  def Store(self, data):
-    self.storage.append(self.in_rdfvalue(data).string)
-    return [rdf_protodict.DataBlob(string="Hello World")]
-
-
-class PriorityFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.PriorityFlowArgs
-
-
-class PriorityFlow(flow.GRRFlow):
-  """This flow is used to test priorities."""
-  args_type = PriorityFlowArgs
-  storage = []
-
-  @flow.StateHandler()
-  def Start(self):
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
-        string=self.args.msg,
-        next_state="Done")
-
-  @flow.StateHandler()
-  def Done(self, responses):
-    _ = responses
-    self.storage.append(self.args.msg)
-
-
 class NetworkLimitFlow(flow.GRRFlow):
   """This flow is used to test the network bytes limit."""
 
-  @flow.StateHandler()
   def Start(self):
     self.CallClient(
         server_stubs.ClientActionStub.classes["Store"], next_state="State1")
 
-  @flow.StateHandler()
-  def State1(self):
+  def State1(self, responses):
+    del responses
     # The mock worker doesn't track usage so we add it here.
     self.CallClient(
         server_stubs.ClientActionStub.classes["Store"], next_state="State2")
 
-  @flow.StateHandler()
-  def State2(self):
+  def State2(self, responses):
+    del responses
     self.CallClient(
         server_stubs.ClientActionStub.classes["Store"], next_state="State3")
 
-  @flow.StateHandler()
-  def State3(self):
+  def State3(self, responses):
+    del responses
     self.CallClient(
         server_stubs.ClientActionStub.classes["Store"], next_state="Done")
 
-  @flow.StateHandler()
   def Done(self, responses):
-    pass
+    del responses
 
 
 class ClientMock(object):
@@ -1145,13 +988,11 @@ class ClientMock(object):
 class ChildFlow(flow.GRRFlow):
   """This flow will be called by our parent."""
 
-  @flow.StateHandler()
   def Start(self):
     self.CallClient(
         server_stubs.ClientActionStub.classes["ReturnHello"],
         next_state="ReceiveHello")
 
-  @flow.StateHandler()
   def ReceiveHello(self, responses):
     # Relay the client's message to our parent
     for response in responses:
@@ -1162,7 +1003,6 @@ class ChildFlow(flow.GRRFlow):
 class BrokenChildFlow(ChildFlow):
   """A broken flow which raises."""
 
-  @flow.StateHandler()
   def ReceiveHello(self, responses):
     raise IOError("Boo")
 
@@ -1173,12 +1013,10 @@ class ParentFlow(flow.GRRFlow):
   # This is a global flag which will be set when the flow runs.
   success = False
 
-  @flow.StateHandler()
   def Start(self):
     # Call the child flow.
     self.CallFlow("ChildFlow", next_state="ParentReceiveHello")
 
-  @flow.StateHandler()
   def ParentReceiveHello(self, responses):
     responses = list(responses)
     if (len(responses) != 2 or "Child" not in unicode(responses[0]) or
@@ -1188,37 +1026,16 @@ class ParentFlow(flow.GRRFlow):
     ParentFlow.success = True
 
 
-class ParentFlowWithoutResponses(flow.GRRFlow):
-  """This flow will launch a child flow."""
-
-  success = False
-
-  @flow.StateHandler()
-  def Start(self):
-    # Call the child flow.
-    self.CallFlow(
-        "ChildFlow", send_replies=False, next_state="ParentReceiveHello")
-
-  @flow.StateHandler()
-  def ParentReceiveHello(self, responses):
-    if responses:
-      raise RuntimeError("Messages are not expected to be passed to parent")
-
-    ParentFlowWithoutResponses.success = True
-
-
 class BrokenParentFlow(flow.GRRFlow):
   """This flow will launch a broken child flow."""
 
   # This is a global flag which will be set when the flow runs.
   success = False
 
-  @flow.StateHandler()
   def Start(self):
     # Call the child flow.
     self.CallFlow("BrokenChildFlow", next_state="ReceiveHello")
 
-  @flow.StateHandler()
   def ReceiveHello(self, responses):
     if (responses or
         responses.status.status == rdf_flows.GrrStatus.ReturnedStatus.OK):
@@ -1233,12 +1050,10 @@ class CallStateFlow(flow.GRRFlow):
   # This is a global flag which will be set when the flow runs.
   success = False
 
-  @flow.StateHandler()
   def Start(self):
     # Call the receive state.
     self.CallState(next_state="ReceiveHello")
 
-  @flow.StateHandler()
   def ReceiveHello(self, responses):
 
     CallStateFlow.success = True
@@ -1250,12 +1065,10 @@ class DelayedCallStateFlow(flow.GRRFlow):
   # This is a global flag which will be set when the flow runs.
   flow_ran = 0
 
-  @flow.StateHandler()
   def Start(self):
     # Call the child flow.
     self.CallState(next_state="ReceiveHello")
 
-  @flow.StateHandler()
   def ReceiveHello(self, responses):
     DelayedCallStateFlow.flow_ran = 1
 
@@ -1263,7 +1076,6 @@ class DelayedCallStateFlow(flow.GRRFlow):
     self.CallState(
         next_state="DelayedHello", start_time=rdfvalue.RDFDatetime.Now() + 100)
 
-  @flow.StateHandler()
   def DelayedHello(self, responses):
     DelayedCallStateFlow.flow_ran = 2
 
@@ -1301,7 +1113,6 @@ class FlowPropertiesTest(flow_test_lib.FlowTestsBaseclass):
 
     class IdCheckerFlow(flow.GRRFlow):
 
-      @flow.StateHandler()
       def Start(self):
         test.assertEqual(self.client_id, client_id)
 
@@ -1314,7 +1125,6 @@ class FlowPropertiesTest(flow_test_lib.FlowTestsBaseclass):
 
     class VersionCheckerFlow(flow.GRRFlow):
 
-      @flow.StateHandler()
       def Start(self):
         version = config.CONFIG["Source.version_numeric"]
         test.assertEqual(self.client_version, version)
@@ -1329,7 +1139,6 @@ class FlowPropertiesTest(flow_test_lib.FlowTestsBaseclass):
 
     class OsCheckerFlow(flow.GRRFlow):
 
-      @flow.StateHandler()
       def Start(self):
         test.assertEqual(self.client_os, "Windows")
         test.assertEqual(self.client_os, "Windows")  # Force cache usage.

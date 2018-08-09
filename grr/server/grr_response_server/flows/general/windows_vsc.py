@@ -14,8 +14,7 @@ class ListVolumeShadowCopies(flow.GRRFlow):
   category = "/Filesystem/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler()
-  def Start(self, unused_response):
+  def Start(self):
     """Query the client for available Volume Shadow Copies using a WMI query."""
     self.state.shadows = []
     self.state.raw_device = None
@@ -25,7 +24,6 @@ class ListVolumeShadowCopies(flow.GRRFlow):
         query="SELECT * FROM Win32_ShadowCopy",
         next_state="ListDeviceDirectories")
 
-  @flow.StateHandler()
   def ListDeviceDirectories(self, responses):
     if not responses.success:
       raise flow.FlowError("Unable to query Volume Shadow Copy information.")
@@ -51,12 +49,11 @@ class ListVolumeShadowCopies(flow.GRRFlow):
             pathspec=path_spec,
             next_state="ProcessListDirectory")
 
-        aff4path = path_spec.AFF4Path(self.client_id)
+        aff4path = path_spec.AFF4Path(self.client_urn)
         self.state.raw_device = aff4path.Dirname()
 
         self.state.shadows.append(aff4path)
 
-  @flow.StateHandler()
   def ProcessListDirectory(self, responses):
     """Processes the results of the ListDirectory client action.
 
@@ -70,11 +67,11 @@ class ListVolumeShadowCopies(flow.GRRFlow):
       for response in responses:
         stat_entry = rdf_client.StatEntry(response)
         filesystem.CreateAFF4Object(
-            stat_entry, self.client_id, pool, token=self.token)
+            stat_entry, self.client_urn, pool, token=self.token)
         self.SendReply(stat_entry)
 
-  @flow.StateHandler()
-  def End(self):
+  def End(self, responses):
+    del responses
     if not self.state.shadows:
       raise flow.FlowError("No Volume Shadow Copies were found.\n"
                            "The volume could have no Volume Shadow Copies "

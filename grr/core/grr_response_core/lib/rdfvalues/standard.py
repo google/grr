@@ -6,7 +6,6 @@ from future.moves.urllib import parse as urlparse
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
@@ -18,14 +17,9 @@ class RegularExpression(rdfvalue.RDFString):
   context_help_url = ("investigating-with-grr/flows/"
                       "literal-and-regex-matching.html#regex-matches")
 
-  def ParseFromString(self, value):
-    super(RegularExpression, self).ParseFromString(value)
-
-    # Check that this is a valid regex.
-    try:
-      self._regex = re.compile(self._value, flags=re.I | re.S | re.M)
-    except re.error:
-      raise type_info.TypeValueError("Not a valid regular expression.")
+  def __init__(self, initializer=None, age=None):
+    super(RegularExpression, self).__init__(initializer=initializer, age=age)
+    self._regex = re.compile(self._value, flags=re.I | re.S | re.M)
 
   def Search(self, text):
     """Search the text for our value."""

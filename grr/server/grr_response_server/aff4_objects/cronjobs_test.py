@@ -19,7 +19,6 @@ class FakeCronJob(flow.GRRFlow):
   """A Cron job which does nothing."""
   lifetime = rdfvalue.Duration("1d")
 
-  @flow.StateHandler()
   def Start(self):
     self.CallState(next_state="End")
 
@@ -27,7 +26,6 @@ class FakeCronJob(flow.GRRFlow):
 class FailingFakeCronJob(aff4_cronjobs.SystemCronFlow):
   """A Cron job that only fails."""
 
-  @flow.StateHandler()
   def Start(self):
     raise RuntimeError("Oh, no!")
 
@@ -37,7 +35,6 @@ class OccasionallyFailingFakeCronJob(aff4_cronjobs.SystemCronFlow):
 
   frequency = rdfvalue.Duration("30s")
 
-  @flow.StateHandler()
   def Start(self):
     if time.time() > 30:
       raise RuntimeError("Oh, no!")
@@ -49,7 +46,6 @@ class DummySystemCronJob(aff4_cronjobs.SystemCronFlow):
   lifetime = rdfvalue.Duration("42h")
   frequency = rdfvalue.Duration("42d")
 
-  @flow.StateHandler()
   def Start(self):
     self.CallState(next_state="End")
 
@@ -59,7 +55,6 @@ class DummyStatefulSystemCronJob(aff4_cronjobs.StatefulSystemCronFlow):
 
   VALUES = []
 
-  @flow.StateHandler()
   def Start(self):
     state = self.ReadCronState()
     value = state.get("value", 0)

@@ -21,7 +21,6 @@ from grr_response_server import data_store
 from grr_response_server import export_utils
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
-from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.aff4_objects import stats as aff4_stats
@@ -365,7 +364,6 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
           token=self.token)
     return self.stats[label]
 
-  @flow.StateHandler()
   def Start(self):
     """Retrieve all the clients for the AbstractClientStatsCollectors."""
     try:
@@ -575,7 +573,6 @@ class InterrogateClientsCronFlow(aff4_cronjobs.SystemCronFlow,
   # This just starts a hunt, which should be essentially instantantaneous
   lifetime = rdfvalue.Duration("30m")
 
-  @flow.StateHandler()
   def Start(self):
     self.StartInterrogationHunt()
 
@@ -604,14 +601,13 @@ class PurgeClientStats(aff4_cronjobs.SystemCronFlow):
   # Keep stats for one month.
   MAX_AGE = 31 * 24 * 3600
 
-  @flow.StateHandler()
   def Start(self):
     """Calls "Process" state to avoid spending too much time in Start."""
     self.CallState(next_state="ProcessClients")
 
-  @flow.StateHandler()
-  def ProcessClients(self, unused_responses):
+  def ProcessClients(self, responses):
     """Does the work."""
+    del responses
     self.start = 0
     self.end = int(1e6 * (time.time() - self.MAX_AGE))
 

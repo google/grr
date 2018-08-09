@@ -21,7 +21,8 @@ def _GetAllTypes():
   # they may be used within FlowState objects.
   all_types = rdfvalue.RDFValue.classes.copy()
   # We shouldn't render base RDFValue class.
-  all_types.pop("RDFValue", None)
+  all_types.pop(rdfvalue.RDFValue.__name__, None)
+  all_types.pop(rdfvalue.RDFPrimitive.__name__, None)
 
   for cls in [bool, int, float, long, str, unicode, list, tuple]:
     all_types[cls.__name__] = cls

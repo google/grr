@@ -3,7 +3,6 @@
 
 import collections
 import logging
-import random
 
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -98,8 +97,6 @@ class QueueManager(object):
     ...
     queue_manager.UnfreezeTimestamp()
   """
-
-  STUCK_PRIORITY = "Flow stuck"
 
   request_limit = 1000000
   response_limit = 1000000
@@ -459,59 +456,10 @@ class QueueManager(object):
       timestamp = timestamp or self.frozen_timestamp
       mutation_pool.QueueScheduleTasks(non_fleetspeak_tasks, timestamp)
 
-  def _SortByPriority(self, notifications, queue, output_dict=None):
-    """Sort notifications by priority into output_dict."""
-    if output_dict is None:
-      output_dict = {}
-
-    for notification in notifications:
-      priority = notification.priority
-      if notification.in_progress:
-        priority = self.STUCK_PRIORITY
-
-      output_dict.setdefault(priority, []).append(notification)
-
-    for priority in output_dict:
-      stats.STATS.SetGaugeValue(
-          "notification_queue_count",
-          len(output_dict[priority]),
-          fields=[queue.Basename(), str(priority)])
-      random.shuffle(output_dict[priority])
-
-    return output_dict
-
-  def GetNotificationsByPriority(self, queue):
-    """Retrieves session ids for processing grouped by priority."""
-    # Check which sessions have new data.
-    # Read all the sessions that have notifications.
-    queue_shard = self.GetNotificationShard(queue)
-    return self._SortByPriority(
-        list(itervalues(self._GetUnsortedNotifications(queue_shard))), queue)
-
-  def GetNotificationsByPriorityForAllShards(self, queue):
-    """Same as GetNotificationsByPriority but for all shards.
-
-    Used by worker_test to cover all shards with a single worker.
-
-    Args:
-      queue: usually rdfvalue.RDFURN("aff4:/W")
-    Returns:
-      dict of notifications objects keyed by priority.
-    """
-    output_dict = {}
-    for queue_shard in self.GetAllNotificationShards(queue):
-      self._GetUnsortedNotifications(
-          queue_shard, notifications_by_session_id=output_dict)
-
-    return self._SortByPriority(list(itervalues(output_dict)), queue)
-
   def GetNotifications(self, queue):
-    """Returns all queue notifications sorted by priority."""
+    """Returns all queue notifications."""
     queue_shard = self.GetNotificationShard(queue)
-    return sorted(
-        itervalues(self._GetUnsortedNotifications(queue_shard)),
-        key=lambda notification: notification.priority,
-        reverse=True)
+    return self._GetUnsortedNotifications(queue_shard).values()
 
   def GetNotificationsForAllShards(self, queue):
     """Returns notifications for all shards of a queue at once.
@@ -528,10 +476,7 @@ class QueueManager(object):
       self._GetUnsortedNotifications(
           queue_shard, notifications_by_session_id=notifications_by_session_id)
 
-    return sorted(
-        itervalues(notifications_by_session_id),
-        key=lambda notification: notification.priority,
-        reverse=True)
+    return notifications_by_session_id.values()
 
   def _GetUnsortedNotifications(self,
                                 queue_shard,
@@ -712,7 +657,3 @@ class QueueManagerInit(registry.InitHook):
     # Counters used by the QueueManager.
     stats.STATS.RegisterCounterMetric("grr_task_retransmission_count")
     stats.STATS.RegisterCounterMetric("grr_task_ttl_expired_count")
-    stats.STATS.RegisterGaugeMetric(
-        "notification_queue_count",
-        int,
-        fields=[("queue_name", str), ("priority", str)])

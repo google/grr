@@ -555,8 +555,7 @@ class FrontEndServer(object):
           # Messages for well known flows should notify even though they don't
           # have a status.
           if msg.request_id == 0:
-            manager.QueueNotification(
-                session_id=msg.session_id, priority=msg.priority)
+            manager.QueueNotification(session_id=msg.session_id)
             # Those messages are all the same, one notification is enough.
             break
           elif msg.type == rdf_flows.GrrMessage.Type.STATUS:
@@ -569,9 +568,7 @@ class FrontEndServer(object):
               manager.DeQueueClientRequest(msg)
 
             manager.QueueNotification(
-                session_id=msg.session_id,
-                priority=msg.priority,
-                last_status=msg.request_id)
+                session_id=msg.session_id, last_status=msg.request_id)
 
             stat = rdf_flows.GrrStatus(msg.payload)
             if stat.status == rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED:

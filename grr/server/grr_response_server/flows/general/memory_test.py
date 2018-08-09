@@ -40,7 +40,6 @@ from grr.test_lib import vfs_test_lib
 class DummyDiskVolumeInfo(flow.GRRFlow):
   args_type = filesystem.DiskVolumeInfoArgs
 
-  @flow.StateHandler()
   def Start(self):
     if "/opt" in self.args.path_list[0]:
       mnt = rdf_client.UnixVolume(mount_point="/opt")

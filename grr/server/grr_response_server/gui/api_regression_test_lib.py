@@ -220,8 +220,6 @@ class ApiRegressionTest(
     creates a public testForRegression method for generated regression
     classes.
     """
-    self.maxDiff = 65536  # pylint: disable=invalid-name
-
     with open(self.output_file_name, "rb") as fd:
       prev_data = json.load(fd)
 

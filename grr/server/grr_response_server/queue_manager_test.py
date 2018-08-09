@@ -315,47 +315,6 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # But the id should not change
     self.assertEqual(tasks[0].task_id, original_id)
 
-  def testPriorityScheduling(self):
-    test_queue = rdfvalue.RDFURN("fooReschedule")
-
-    tasks = []
-    for i in range(10):
-      msg = rdf_flows.GrrMessage(
-          session_id="Test%d" % i,
-          priority=i % 3,
-          queue=test_queue,
-          generate_task_id=True)
-
-      tasks.append(msg)
-
-    manager = queue_manager.QueueManager(token=self.token)
-    with data_store.DB.GetMutationPool() as pool:
-      manager.Schedule(tasks, pool)
-
-    tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=3)
-
-    self.assertEqual(len(tasks), 3)
-    for task in tasks:
-      self.assertEqual(task.priority, 2)
-
-    tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=3)
-
-    self.assertEqual(len(tasks), 3)
-    for task in tasks:
-      self.assertEqual(task.priority, 1)
-
-    tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
-
-    self.assertEqual(len(tasks), 4)
-    for task in tasks:
-      self.assertEqual(task.priority, 0)
-
-    # Now for Query.
-    tasks = manager.Query(test_queue, limit=100)
-    self.assertEqual(len(tasks), 10)
-    self.assertEqual([task.priority for task in tasks],
-                     [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
-
   def testUsesFrozenTimestampWhenDeletingAndFetchingNotifications(self):
     # When used in "with" statement QueueManager uses the frozen timestamp
     # when fetching and deleting data. Test that if we have 2 managers

@@ -1181,6 +1181,11 @@ class DatabaseValidationWrapper(Database):
   def _ValidateClientId(self, client_id):
     self._ValidateStringId("client_id", client_id)
 
+  def _ValidateClientIds(self, client_ids):
+    self._ValidateType(client_ids, list)
+    for client_id in client_ids:
+      self._ValidateClientId(client_id)
+
   def _ValidateHuntId(self, hunt_id):
     self._ValidateString("hunt_id", hunt_id)
 
@@ -1216,6 +1221,8 @@ class DatabaseValidationWrapper(Database):
           "Expected path_type to be set, got: %s" % str(path_info.path_type))
 
   def _ValidatePathInfos(self, path_infos):
+    self._ValidateType(path_infos, list)
+
     validated = set()
     for path_info in path_infos:
       self._ValidatePathInfo(path_info)
@@ -1307,9 +1314,7 @@ class DatabaseValidationWrapper(Database):
         last_foreman=last_foreman)
 
   def MultiReadClientMetadata(self, client_ids):
-    for client_id in client_ids:
-      self._ValidateClientId(client_id)
-
+    self._ValidateClientIds(client_ids)
     return self.delegate.MultiReadClientMetadata(client_ids)
 
   def WriteClientSnapshot(self, client):
@@ -1317,15 +1322,11 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteClientSnapshot(client)
 
   def MultiReadClientSnapshot(self, client_ids):
-    for client_id in client_ids:
-      self._ValidateClientId(client_id)
-
-      return self.delegate.MultiReadClientSnapshot(client_ids)
+    self._ValidateClientIds(client_ids)
+    return self.delegate.MultiReadClientSnapshot(client_ids)
 
   def MultiReadClientFullInfo(self, client_ids, min_last_ping=None):
-    for client_id in client_ids:
-      self._ValidateClientId(client_id)
-
+    self._ValidateClientIds(client_ids)
     return self.delegate.MultiReadClientFullInfo(
         client_ids, min_last_ping=min_last_ping)
 
@@ -1423,9 +1424,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.AddClientLabels(client_id, owner, labels)
 
   def MultiReadClientLabels(self, client_ids):
-    for client_id in client_ids:
-      self._ValidateClientId(client_id)
-
+    self._ValidateClientIds(client_ids)
     return self.delegate.MultiReadClientLabels(client_ids)
 
   def RemoveClientLabels(self, client_id, owner, labels):
@@ -1531,6 +1530,7 @@ class DatabaseValidationWrapper(Database):
   def ReadPathInfos(self, client_id, path_type, components_list):
     self._ValidateClientId(client_id)
     self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    self._ValidateType(components_list, list)
     for components in components_list:
       self._ValidatePathComponents(components)
 
@@ -1619,6 +1619,7 @@ class DatabaseValidationWrapper(Database):
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
     self._ValidateClientId(client_id)
     self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    self._ValidateType(components_list, list)
     for components in components_list:
       self._ValidatePathComponents(components)
 

@@ -21,7 +21,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import vfs_pb2
 from grr_response_server import aff4
@@ -357,7 +356,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFilesResult
 
   def _GetRootChildren(self, args, token=None):
-    client_id = args.client_id.ToClientURN()
+    client_id = str(args.client_id)
 
     items = []
 
@@ -1145,7 +1144,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
     aff4_path = args.client_id.ToClientURN().Add(args.file_path)
     fd = aff4.FACTORY.Open(
         aff4_path, aff4_type=aff4_grr.VFSFile, mode="rw", token=token)
-    flow_urn = fd.Update(priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
+    flow_urn = fd.Update()
 
     return ApiUpdateVfsFileContentResult(operation_id=str(flow_urn))
 

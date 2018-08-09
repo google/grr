@@ -262,7 +262,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         fd.Set(fd.Schema.ARCH(arch))
         fd.Set(fd.Schema.INSTALL_DATE(install_time))
         fd.Set(fd.Schema.KNOWLEDGE_BASE(kb))
-        fd.Set(fd.Schema.USERNAMES([user]))
+        fd.Set(fd.Schema.USERNAMES(user))
         fd.Set(fd.Schema.HARDWARE_INFO(hwinfo))
         fd.Set(fd.Schema.INTERFACES([interface]))
         fd.Set(fd.Schema.CLOUD_INSTANCE(cloud_instance))

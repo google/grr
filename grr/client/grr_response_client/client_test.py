@@ -25,8 +25,8 @@ class MockAction(actions.ActionPlugin):
 
   def Run(self, message):
     self.SendReply(
-        rdf_client.EchoRequest(data="Received Message: %s. Data %s" % (
-            message.data, "x" * 100)))
+        rdf_client.EchoRequest(data="Received Message: %s. Data %s" %
+                               (message.data, "x" * 100)))
 
 
 class RaiseAction(actions.ActionPlugin):
@@ -126,24 +126,21 @@ class BasicContextTests(test_lib.GRRBaseTest):
     self.assertIn("RuntimeError", status.error_message)
     self.assertNotEqual(status.status, rdf_flows.GrrStatus.ReturnedStatus.OK)
 
-  def testPriorityAndFastPoll(self):
-    """Test priority and fast poll settings propagated to status results."""
+  def testFastPoll(self):
+    """Test fast poll settings propagated to status results."""
     for i in range(10):
       message = rdf_flows.GrrMessage(
           name="MockAction",
           session_id=self.session_id.Basename() + str(i),
           auth_state=rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED,
           request_id=1,
-          priority=i % 3,
           require_fastpoll=i % 2,
           generate_task_id=True)
       self.context.HandleMessage(message)
     message_list = self.context.Drain(max_size=1000000).job
     self.assertEqual(len(message_list), 10)
-    self.assertEqual([m.priority for m in message_list],
-                     [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
-    self.assertEqual([m.require_fastpoll for m in message_list],
-                     [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+    self.assertItemsEqual([m.require_fastpoll for m in message_list],
+                          [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
 
 
 def main(argv):

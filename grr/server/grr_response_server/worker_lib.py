@@ -117,7 +117,7 @@ class GRRWorker(object):
               data_store.REL_DB.RegisterMessageHandler(
                   self._ProcessMessageHandlerRequests,
                   self.well_known_flow_lease_time,
-                  limit=1000)
+                  limit=100)
           was_master = True
         else:
           processed = 0
@@ -181,24 +181,24 @@ class GRRWorker(object):
       queue_manager.FreezeTimestamp()
 
       fetch_messages_start = time.time()
-      notifications_by_priority = queue_manager.GetNotificationsByPriority(
-          queue)
+      notifications = queue_manager.GetNotifications(queue)
       stats.STATS.RecordEvent("worker_time_to_retrieve_notifications",
                               time.time() - fetch_messages_start)
 
-      # Process stuck flows first
-      stuck_flows = notifications_by_priority.pop(queue_manager.STUCK_PRIORITY,
-                                                  [])
+      stuck_flows = []
+      for n in notifications:
+        if n.in_progress:
+          stuck_flows.append(n)
 
+      # Process stuck flows first
       if stuck_flows:
         self.ProcessStuckFlows(stuck_flows, queue_manager)
 
       notifications_available = []
-      for priority in sorted(notifications_by_priority, reverse=True):
-        for notification in notifications_by_priority[priority]:
-          # Filter out session ids we already tried to lock but failed.
-          if notification.session_id not in self.queued_flows:
-            notifications_available.append(notification)
+      for notification in notifications:
+        # Filter out session ids we already tried to lock but failed.
+        if notification.session_id not in self.queued_flows:
+          notifications_available.append(notification)
 
       try:
         # If we spent too much time processing what we have so far, the

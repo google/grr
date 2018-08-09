@@ -76,10 +76,7 @@ class Kill(actions.ActionPlugin):
     # Send a message back to the service to say that we are about to shutdown.
     reply = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     # Queue up the response message, jump the queue.
-    self.SendReply(
-        reply,
-        message_type=rdf_flows.GrrMessage.Type.STATUS,
-        priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1)
+    self.SendReply(reply, message_type=rdf_flows.GrrMessage.Type.STATUS)
 
     # Give the http thread some time to send the reply.
     self.grr_worker.Sleep(10)
@@ -333,7 +330,6 @@ class GetClientStatsAuto(GetClientStats):
         session_id=rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"),
         response_id=0,
         request_id=0,
-        priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
         message_type=rdf_flows.GrrMessage.Type.MESSAGE,
         require_fastpoll=False)
 
@@ -357,7 +353,6 @@ class SendStartupInfo(actions.ActionPlugin):
         session_id=self.well_known_session_id,
         response_id=0,
         request_id=0,
-        priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
         message_type=rdf_flows.GrrMessage.Type.MESSAGE,
         require_fastpoll=False,
         ttl=ttl)

@@ -4,7 +4,23 @@
 
 set -e
 
-OS=$1
+OS=''
+case "$(uname -s)" in
+  'Linux')
+    OS='linux'
+    ;;
+  'Darwin')
+    OS='osx'
+    ;;
+esac
+
+OS=${1:-"${OS}"}
+
+if [[ -z "${OS}" ]]; then
+  echo 'Failed to detect OS.'
+  exit 1
+fi
+
 VERSION=3.3.0
 ARCH=$(uname -m)
 # Get arch in the format that the protobuf urls use

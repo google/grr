@@ -90,16 +90,8 @@ message GrrMessage {
   // status message.
   optional Type type = 8 [ default = MESSAGE ];
 
-  enum Priority {
-    LOW_PRIORITY = 0;
-    MEDIUM_PRIORITY = 1;
-    HIGH_PRIORITY = 2;
-  };
-
-  optional Priority priority = 9 [ default = MEDIUM_PRIORITY, (sem_type) = {
-      description: "The priority of this message - allows higher priority "
-      "messages to leap to the front of queues."
-    }];
+  // DEPRECATED
+  // optional Priority priority = 9;
 
   optional uint32 ttl = 10 [default = 10, (sem_type) = {
       description: "Time to live - each time a request is retransmitted this "
@@ -322,7 +314,8 @@ message GrrNotification {
       type: "SessionID"
     }];
 
-  optional GrrMessage.Priority priority = 2 [ default = MEDIUM_PRIORITY ];
+  //DEPRECATED
+  // optional GrrMessage.Priority priority = 2;
 
   optional uint64 first_queued = 3 [(sem_type) = {
       type: "RDFDatetime",

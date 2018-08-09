@@ -39,6 +39,84 @@ class RDFValueTest(unittest.TestCase):
         "sed dictum volutp...')>")
 
 
+class RDFBytesTest(unittest.TestCase):
+
+  def testParseFromHumanReadable(self):
+    string = u"zażółć gęślą jaźń"
+
+    result = rdfvalue.RDFBytes.FromHumanReadable(string)
+    expected = rdfvalue.RDFBytes.FromSerializedString(string.encode("utf-8"))
+    self.assertEqual(result, expected)
+
+
+class RDFStringTest(unittest.TestCase):
+
+  def testParseFromHumanReadable(self):
+    string = u"pchnąć w tę łódź jeża lub ośm skrzyń fig"
+
+    result = rdfvalue.RDFString.FromHumanReadable(string)
+    self.assertEqual(unicode(result), string)
+
+  def testEqualWithBytes(self):
+    self.assertEqual(rdfvalue.RDFString(u"foo"), b"foo")
+    self.assertNotEqual(rdfvalue.RDFString(u"foo"), b"\x80\x81\x82")
+
+  def testLessThanWithBytes(self):
+    self.assertLess(rdfvalue.RDFString(u"abc"), b"def")
+    self.assertGreater(rdfvalue.RDFString(u"xyz"), b"ghi")
+    self.assertLess(rdfvalue.RDFString(u"012"), b"\x80\x81\x81")
+
+
+class RDFIntegerTest(unittest.TestCase):
+
+  def testParseFromHumanReadable(self):
+    result = rdfvalue.RDFInteger.FromHumanReadable(u"42")
+    self.assertEqual(result, rdfvalue.RDFInteger(42))
+
+  def testParseFromHumanReadablePositive(self):
+    result = rdfvalue.RDFInteger.FromHumanReadable(u"+108")
+    self.assertEqual(result, rdfvalue.RDFInteger(108))
+
+  def testParseFromHumanReadableNegative(self):
+    result = rdfvalue.RDFInteger.FromHumanReadable(u"-1337")
+    self.assertEqual(result, rdfvalue.RDFInteger(-1337))
+
+  def testParseFromHumanReadableZero(self):
+    result = rdfvalue.RDFInteger.FromHumanReadable(u"0")
+    self.assertEqual(result, rdfvalue.RDFInteger(0))
+
+  def testParseFromHumanReadableRaisesOnNonInteger(self):
+    with self.assertRaises(ValueError):
+      rdfvalue.RDFInteger.FromHumanReadable(u"12.3")
+
+  def testParseFromHumanReadableRaisesOnNonDecimal(self):
+    with self.assertRaises(ValueError):
+      rdfvalue.RDFInteger.FromHumanReadable(u"12A")
+
+
+class RDFBool(unittest.TestCase):
+
+  def testParseFromHumanReadableTrue(self):
+    self.assertTrue(rdfvalue.RDFBool.FromHumanReadable(u"true"))
+    self.assertTrue(rdfvalue.RDFBool.FromHumanReadable(u"True"))
+    self.assertTrue(rdfvalue.RDFBool.FromHumanReadable(u"TRUE"))
+    self.assertTrue(rdfvalue.RDFBool.FromHumanReadable(u"1"))
+
+  def testParseFromHumanReadableFalse(self):
+    self.assertFalse(rdfvalue.RDFBool.FromHumanReadable(u"false"))
+    self.assertFalse(rdfvalue.RDFBool.FromHumanReadable(u"False"))
+    self.assertFalse(rdfvalue.RDFBool.FromHumanReadable(u"FALSE"))
+    self.assertFalse(rdfvalue.RDFBool.FromHumanReadable(u"0"))
+
+  def testParseFromHumanReadableRaisesOnIncorrectInteger(self):
+    with self.assertRaises(ValueError):
+      rdfvalue.RDFBool.FromHumanReadable(u"2")
+
+  def testParseFromHumanReadableRaisesOnWeirdInput(self):
+    with self.assertRaises(ValueError):
+      rdfvalue.RDFBool.FromHumanReadable(u"yes")
+
+
 class RDFDateTimeTest(unittest.TestCase):
 
   def testLerpMiddle(self):

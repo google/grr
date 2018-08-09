@@ -722,8 +722,7 @@
           },
           "name": "ListProcesses",
           "runner_args": {
-            "notify_to_user": false,
-            "priority": "HIGH_PRIORITY"
+            "notify_to_user": false
           }
         }
       },
@@ -781,10 +780,6 @@
               "original_flow": {
                 "type": "FlowReference",
                 "value": {}
-              },
-              "priority": {
-                "type": "EnumNamedValue",
-                "value": "HIGH_PRIORITY"
               }
             }
           },
@@ -817,8 +812,7 @@
           "client_id": "aff4:/C.1000000000000000",
           "flow_name": "ListProcesses",
           "notify_to_user": false,
-          "original_flow": {},
-          "priority": "HIGH_PRIORITY"
+          "original_flow": {}
         },
         "started_at": 42000000,
         "state": "RUNNING",
@@ -9168,6 +9162,7 @@
         "mro": [
           "Duration",
           "RDFInteger",
+          "RDFPrimitive",
           "RDFValue",
           "object"
         ],
@@ -9181,6 +9176,7 @@
         "mro": [
           "Duration",
           "RDFInteger",
+          "RDFPrimitive",
           "RDFValue",
           "object"
         ],
@@ -13232,10 +13228,6 @@
                       "type": "unicode",
                       "value": "GrrStatus"
                     },
-                    "priority": {
-                      "type": "EnumNamedValue",
-                      "value": "MEDIUM_PRIORITY"
-                    },
                     "queue": {
                       "type": "RDFURN",
                       "value": "aff4:/C.1000000000000000/tasks"
@@ -13304,7 +13296,6 @@
                   "status": "GENERIC_ERROR"
                 },
                 "payload_type": "GrrStatus",
-                "priority": "MEDIUM_PRIORITY",
                 "queue": "aff4:/C.1000000000000000/tasks",
                 "request_id": 1,
                 "require_fastpoll": true,
@@ -15641,10 +15632,6 @@
                         "type": "unicode",
                         "value": "ListProcesses"
                       },
-                      "priority": {
-                        "type": "EnumNamedValue",
-                        "value": "MEDIUM_PRIORITY"
-                      },
                       "queue": {
                         "type": "RDFURN",
                         "value": "aff4:/C.1000000000000000/tasks"
@@ -15710,10 +15697,6 @@
                       "type": "unicode",
                       "value": "GrrStatus"
                     },
-                    "priority": {
-                      "type": "EnumNamedValue",
-                      "value": "MEDIUM_PRIORITY"
-                    },
                     "queue": {
                       "type": "RDFURN",
                       "value": "aff4:/C.1000000000000000/tasks"
@@ -15769,7 +15752,6 @@
               "request": {
                 "cpu_limit": 7200.0,
                 "name": "ListProcesses",
-                "priority": "MEDIUM_PRIORITY",
                 "queue": "aff4:/C.1000000000000000/tasks",
                 "request_id": 1,
                 "require_fastpoll": true,
@@ -15789,7 +15771,6 @@
                   "status": "GENERIC_ERROR"
                 },
                 "payload_type": "GrrStatus",
-                "priority": "MEDIUM_PRIORITY",
                 "queue": "aff4:/C.1000000000000000/tasks",
                 "request_id": 1,
                 "require_fastpoll": true,

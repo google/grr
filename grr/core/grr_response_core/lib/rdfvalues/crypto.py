@@ -86,7 +86,7 @@ class RDFX509Cert(rdfvalue.RDFValue):
     return RSAPublicKey(self._value.public_key())
 
   def GetSerialNumber(self):
-    return self._value.serial
+    return self._value.serial_number
 
   def GetIssuer(self):
     return self._value.issuer

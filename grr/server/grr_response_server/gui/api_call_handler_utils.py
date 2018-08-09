@@ -228,8 +228,10 @@ class ApiDataObjectKeyValuePair(rdf_structs.RDFProtoStruct):
       pass
     elif rdfvalue.RDFInteger.IsNumeric(value):
       value = rdfvalue.RDFInteger(value)
-    elif isinstance(value, basestring):
+    elif isinstance(value, unicode):
       value = rdfvalue.RDFString(value)
+    elif isinstance(value, bytes):
+      value = rdfvalue.RDFBytes(value)
     elif isinstance(value, bool):
       value = rdfvalue.RDFBool(value)
 

@@ -38,7 +38,7 @@ config_lib.DEFINE_integer(
     "this number of datastore subjects.")
 
 config_lib.DEFINE_list(
-    "Frontend.well_known_flows", ["TransferStore", "Stats"],
+    "Frontend.well_known_flows", ["TransferStore"],
     "Allow these well known flows to run directly on the "
     "frontend. Other flows are scheduled as normal.")
 

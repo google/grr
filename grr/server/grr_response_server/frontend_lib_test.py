@@ -49,7 +49,6 @@ from grr.test_lib import worker_mocks
 class SendingTestFlow(flow.GRRFlow):
   """Tests that sent messages are correctly collected."""
 
-  @flow.StateHandler()
   def Start(self):
     for i in range(10):
       self.CallClient(
@@ -936,12 +935,12 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
       # Make sure the messages are correct
       self.assertEqual(source, self.client_cn)
-      for i, message in enumerate(self.messages):
-        # Do not check any status messages.
-        if message.request_id:
-          self.assertEqual(message.response_id, i)
-          self.assertEqual(message.request_id, 1)
-          self.assertEqual(message.session_id, "aff4:/W:session")
+      messages = sorted(
+          [m for m in self.messages if m.session_id == "aff4:/W:session"],
+          key=lambda m: m.response_id)
+      self.assertEqual([m.response_id for m in messages],
+                       list(range(len(messages))))
+      self.assertEqual([m.request_id for m in messages], [1] * len(messages))
 
       # Now prepare a response
       response_comms = rdf_flows.ClientCommunication()
@@ -1045,15 +1044,19 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     status = self.client_communicator.RunOnce()
 
     self.assertEqual(len(self.messages), 11)
-    self.assertEqual(self.messages[-1].session_id,
-                     ca_enroller.Enroler.well_known_session_id)
+    enrolment_messages = []
+    for m in self.messages:
+      if m.session_id == ca_enroller.Enroler.well_known_session_id:
+        enrolment_messages.append(m)
+
+    self.assertEqual(len(enrolment_messages), 1)
 
     # Now we manually run the enroll well known flow with the enrollment
     # request. This will start a new flow for enrolling the client, sign the
     # cert and add it to the data store.
     flow_obj = ca_enroller.Enroler(
         ca_enroller.Enroler.well_known_session_id, mode="rw", token=self.token)
-    flow_obj.ProcessMessage(self.messages[-1])
+    flow_obj.ProcessMessage(enrolment_messages[0])
 
     # The next client communication should be enrolled now.
     status = self.client_communicator.RunOnce()
@@ -1125,7 +1128,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         session_id="aff4:/W:session",
         name="Echo",
         response_id=2,
-        priority="LOW_PRIORITY",
         require_fastpoll=require_fastpoll)
 
     # Make sure we don't have any output messages that might override the

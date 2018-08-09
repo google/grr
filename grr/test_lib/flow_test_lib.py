@@ -56,28 +56,26 @@ class ClientFlowWithCategory(flow.GRRFlow):
 class CPULimitFlow(flow.GRRFlow):
   """This flow is used to test the cpu limit."""
 
-  @flow.StateHandler()
   def Start(self):
     self.CallClient(
         server_stubs.ClientActionStub.classes["Store"],
         string="Hey!",
         next_state="State1")
 
-  @flow.StateHandler()
-  def State1(self):
+  def State1(self, responses):
+    del responses
     self.CallClient(
         server_stubs.ClientActionStub.classes["Store"],
         string="Hey!",
         next_state="State2")
 
-  @flow.StateHandler()
-  def State2(self):
+  def State2(self, responses):
+    del responses
     self.CallClient(
         server_stubs.ClientActionStub.classes["Store"],
         string="Hey!",
         next_state="Done")
 
-  @flow.StateHandler()
   def Done(self, responses):
     pass
 
@@ -85,8 +83,7 @@ class CPULimitFlow(flow.GRRFlow):
 class FlowWithOneClientRequest(flow.GRRFlow):
   """Test flow that does one client request in Start() state."""
 
-  @flow.StateHandler()
-  def Start(self, unused_message=None):
+  def Start(self):
     self.CallClient(client_test_lib.Test, data="test", next_state="End")
 
 
@@ -97,11 +94,9 @@ class FlowOrderTest(flow.GRRFlow):
     self.messages = []
     flow.GRRFlow.__init__(self, *args, **kwargs)
 
-  @flow.StateHandler()
-  def Start(self, unused_message=None):
+  def Start(self):
     self.CallClient(client_test_lib.Test, data="test", next_state="Incoming")
 
-  @flow.StateHandler()
   def Incoming(self, responses):
     """Record the message id for testing."""
     self.messages = []
@@ -123,8 +118,7 @@ class SendingFlow(flow.GRRFlow):
   # externally inaccessible).
   category = "/Test/"
 
-  @flow.StateHandler()
-  def Start(self, unused_response=None):
+  def Start(self):
     """Just send a few messages."""
     for unused_i in range(0, self.args.message_count):
       self.CallClient(
@@ -134,16 +128,14 @@ class SendingFlow(flow.GRRFlow):
 class RaiseOnStart(flow.GRRFlow):
   """A broken flow that raises in the Start method."""
 
-  @flow.StateHandler()
-  def Start(self, unused_message=None):
+  def Start(self):
     raise Exception("Broken Start")
 
 
 class BrokenFlow(flow.GRRFlow):
   """A flow which does things wrongly."""
 
-  @flow.StateHandler()
-  def Start(self, unused_response=None):
+  def Start(self):
     """Send a message to an incorrect state."""
     self.CallClient(standard.ReadBuffer, next_state="WrongProcess")
 
@@ -155,39 +147,35 @@ class DummyFlow(flow.GRRFlow):
 class FlowWithOneNestedFlow(flow.GRRFlow):
   """Flow that calls a nested flow."""
 
-  @flow.StateHandler()
-  def Start(self, unused_response=None):
+  def Start(self):
     self.CallFlow(DummyFlow.__name__, next_state="Done")
 
-  @flow.StateHandler()
-  def Done(self, unused_response=None):
-    pass
+  def Done(self, responses=None):
+    del responses
 
 
 class DummyFlowWithSingleReply(flow.GRRFlow):
   """Just emits 1 reply."""
 
-  @flow.StateHandler()
-  def Start(self, unused_response=None):
+  def Start(self):
     self.CallState(next_state="SendSomething")
 
-  @flow.StateHandler()
-  def SendSomething(self, unused_response=None):
+  def SendSomething(self, responses=None):
+    del responses
     self.SendReply(rdfvalue.RDFString("oh"))
 
 
 class DummyLogFlow(flow.GRRFlow):
   """Just emit logs."""
 
-  @flow.StateHandler()
-  def Start(self, unused_response=None):
+  def Start(self):
     """Log."""
     self.Log("First")
     self.CallFlow(DummyLogFlowChild.__name__, next_state="Done")
     self.Log("Second")
 
-  @flow.StateHandler()
-  def Done(self, unused_response=None):
+  def Done(self, responses=None):
+    del responses
     self.Log("Third")
     self.Log("Fourth")
 
@@ -195,15 +183,14 @@ class DummyLogFlow(flow.GRRFlow):
 class DummyLogFlowChild(flow.GRRFlow):
   """Just emit logs."""
 
-  @flow.StateHandler()
-  def Start(self, unused_response=None):
+  def Start(self):
     """Log."""
     self.Log("Uno")
     self.CallState(next_state="Done")
     self.Log("Dos")
 
-  @flow.StateHandler()
-  def Done(self, unused_response=None):
+  def Done(self, responses=None):
+    del responses
     self.Log("Tres")
     self.Log("Cuatro")
 
@@ -491,8 +478,7 @@ class MockClient(object):
                                "status_message_enforced is False")
 
         # Additionally schedule a task for the worker
-        manager.QueueNotification(
-            session_id=message.session_id, priority=message.priority)
+        manager.QueueNotification(session_id=message.session_id)
 
       return len(request_tasks)
 

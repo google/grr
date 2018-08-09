@@ -67,8 +67,6 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
 
   __abstract = True  # pylint: disable=invalid-name
 
-  priority = rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY
-
   require_fastpoll = True
 
   last_progress_time = 0
@@ -109,7 +107,6 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
     """
     self.message = message
     if message:
-      self.priority = message.priority
       self.require_fastpoll = message.require_fastpoll
 
     args = None
@@ -120,9 +117,9 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
               "Did not expect arguments, got %s." % self.message.args_rdf_name)
 
         if self.in_rdfvalue.__name__ != self.message.args_rdf_name:
-          raise RuntimeError("Unexpected arg type %s != %s." %
-                             (self.message.args_rdf_name,
-                              self.in_rdfvalue.__name__))
+          raise RuntimeError(
+              "Unexpected arg type %s != %s." % (self.message.args_rdf_name,
+                                                 self.in_rdfvalue.__name__))
 
         args = self.message.payload
 
@@ -254,7 +251,6 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
         request_id=request_id,
         message_type=message_type,
         task_id=self.message.task_id,
-        priority=self.priority,
         require_fastpoll=self.require_fastpoll)
 
   def Progress(self):

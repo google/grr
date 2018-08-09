@@ -71,7 +71,6 @@ Examples:
 from __future__ import division
 
 import collections
-import itertools
 import logging
 import os
 import pdb
@@ -558,12 +557,9 @@ class GRRClientWorker(threading.Thread):
 
     self.daemon = True
 
-  def QueueResponse(self,
-                    message,
-                    priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-                    blocking=True):
+  def QueueResponse(self, message, blocking=True):
     """Pushes the Serialized Message on the output queue."""
-    self._out_queue.Put(message, priority=priority, block=blocking)
+    self._out_queue.Put(message, block=blocking)
 
   def Drain(self, max_size=1024):
     """Return a GrrQueue message list from the queue, draining it.
@@ -621,7 +617,6 @@ class GRRClientWorker(threading.Thread):
                 rdf_value=None,
                 request_id=None,
                 response_id=None,
-                priority=None,
                 session_id="W:0",
                 message_type=None,
                 name=None,
@@ -635,7 +630,6 @@ class GRRClientWorker(threading.Thread):
       rdf_value: The RDFvalue to return.
       request_id: The id of the request this is a response to.
       response_id: The id of this response.
-      priority: The priority of this message, used to jump the scheduling queue.
       session_id: The session id of the flow.
       message_type: The contents of this message, MESSAGE, STATUS, ITERATOR or
                     RDF_VALUE.
@@ -658,7 +652,6 @@ class GRRClientWorker(threading.Thread):
         name=name,
         response_id=response_id,
         request_id=request_id,
-        priority=priority,
         require_fastpoll=require_fastpoll,
         ttl=ttl,
         type=message_type)
@@ -676,7 +669,7 @@ class GRRClientWorker(threading.Thread):
       message.payload = rdf_value
 
     try:
-      self.QueueResponse(message, priority=message.priority, blocking=blocking)
+      self.QueueResponse(message, blocking=blocking)
     except Queue.Full:
       # In the case of a non blocking send, we reraise the exception to notify
       # the caller that something went wrong.
@@ -761,7 +754,6 @@ class GRRClientWorker(threading.Thread):
       self.SendReply(
           rdf_protodict.DataBlob(string=msg),
           session_id=rdfvalue.FlowSessionID(flow_name="NannyMessage"),
-          priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
           require_fastpoll=False)
       self.nanny_controller.ClearNannyMessage()
 
@@ -769,7 +761,6 @@ class GRRClientWorker(threading.Thread):
     self.SendReply(
         rdf_protodict.DataBlob(string=msg),
         session_id=rdfvalue.FlowSessionID(flow_name="ClientAlert"),
-        priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
   def Sleep(self, timeout):
@@ -869,35 +860,19 @@ class SizeLimitedQueue(object):
   """
 
   def __init__(self, heart_beat_cb, maxsize=1024):
-    self._queues = {
-        rdf_flows.GrrMessage.Priority.LOW_PRIORITY:
-            collections.deque(),
-        rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY:
-            collections.deque(),
-        rdf_flows.GrrMessage.Priority.HIGH_PRIORITY:
-            collections.deque(),
-        # ClientCommunicator uses messages with priority HIGH_PRIORITY+1
-        rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1:
-            collections.deque()
-    }
-
+    self._queue = collections.deque()
     self._lock = threading.Lock()
     self._total_size = 0
     self._maxsize = maxsize
     self._heart_beat_cb = heart_beat_cb
 
-  def Put(self,
-          message,
-          priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-          block=True,
-          timeout=1000):
+  def Put(self, message, block=True, timeout=1000):
     """Put a message on the queue, blocking if it is too full.
 
     Blocks when the queue contains more than the threshold.
 
     Args:
       message: rdf_flows.GrrMessage The message to put.
-      priority: rdf_flows.GrrMessage.Priority The priority of this message.
       block: bool If True, we block and wait for the queue to have more space.
         Otherwise, if the queue is full, we raise.
       timeout: int Maximum time (in seconds, with 1 sec resolution) we spend
@@ -910,10 +885,7 @@ class SizeLimitedQueue(object):
     # We only queue already serialized objects so we know how large they are.
     message = message.SerializeToString()
 
-    if priority >= rdf_flows.GrrMessage.Priority.HIGH_PRIORITY:
-      pass  # If high priority is set we don't care about the size of the queue.
-
-    elif not block:
+    if not block:
       if self.Full():
         raise Queue.Full
 
@@ -927,29 +899,16 @@ class SizeLimitedQueue(object):
           raise Queue.Full
 
     with self._lock:
-      self._queues[priority].appendleft(message)
+      self._queue.appendleft(message)
       self._total_size += len(message)
 
-  def _GeneratePriority(self, priority):
-    """Yields messages with given priority. Lock should be held by the caller.
-
-    Args:
-      priority: rdf_flows.GrrMessage.Priority
-    """
-    queue = self._queues[priority]
-    while queue:
-      yield queue.pop()
-
   def _Generate(self):
-    """Yields messages in priority order. Lock should be held by the caller."""
-    return itertools.chain(
-        self._GeneratePriority(rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1),
-        self._GeneratePriority(rdf_flows.GrrMessage.Priority.HIGH_PRIORITY),
-        self._GeneratePriority(rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY),
-        self._GeneratePriority(rdf_flows.GrrMessage.Priority.LOW_PRIORITY))
+    """Yields messages from the queue. Lock should be held by the caller."""
+    while self._queue:
+      yield self._queue.pop()
 
   def GetMessages(self, soft_size_limit=None):
-    """Retrieves and removes the messages from the queue in priority order.
+    """Retrieves and removes the messages from the queue.
 
     Args:
       soft_size_limit: int If there is more data in the queue than
@@ -959,8 +918,7 @@ class SizeLimitedQueue(object):
 
     Returns:
       rdf_flows.MessageList A list of messages that were .Put on the queue
-      earlier in priority order; messages with equivalent priority are returned
-      FIFO.
+      earlier.
     """
     with self._lock:
       ret = rdf_flows.MessageList()
@@ -1006,7 +964,7 @@ class GRRHTTPClient(object):
 
     - A status code of 406 means that the server is unable to communicate with
       the client. The client will then prepare an enrollment request CSR and
-      send that as a high priority. Enrollment requests are throttled to a
+      send that. Enrollment requests are throttled to a
       maximum of one every 10 minutes.
 
     - A status code of 500 is an error, the messages are re-queued and the
@@ -1212,13 +1170,10 @@ class GRRHTTPClient(object):
       # Reschedule the tasks back on the queue so they get retried next time.
       messages = list(message_list.job)
       for message in messages:
-        message.priority = rdf_flows.GrrMessage.Priority.HIGH_PRIORITY
         message.require_fastpoll = False
         message.ttl -= 1
         if message.ttl > 0:
-          # Schedule with high priority to make it jump the queue.
-          self.client_worker.QueueResponse(
-              message, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1)
+          self.client_worker.QueueResponse(message)
         else:
           logging.info("Dropped message due to retransmissions.")
 
@@ -1261,7 +1216,6 @@ class GRRHTTPClient(object):
     self.client_worker.SendReply(
         rdf_protodict.DataBlob(),
         session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
-        priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
   def _FetchServerCertificate(self):
@@ -1310,7 +1264,6 @@ class GRRHTTPClient(object):
           self.client_worker.SendReply(
               rdf_protodict.DataBlob(),
               session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
-              priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
               require_fastpoll=False,
               blocking=False)
           self.last_foreman_check = now

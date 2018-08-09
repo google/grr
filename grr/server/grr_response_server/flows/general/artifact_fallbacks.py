@@ -28,7 +28,6 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
       "WindowsEnvironmentVariableSystemDrive"
   ]
 
-  @flow.StateHandler()
   def Start(self):
     self.state.success = False
     system_drive_opts = ["C:", "D:"]
@@ -40,7 +39,6 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
           pathspec=pathspec,
           next_state="ProcessFileStats")
 
-  @flow.StateHandler()
   def ProcessFileStats(self, responses):
     """Extract DataBlob from Stat response."""
     if not responses.success:
@@ -58,14 +56,13 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
         self.state.success = True
         break
 
-  @flow.StateHandler()
   def End(self, responses):
     # If this doesn't work these artifacts are so core to everything that we
     # just want to raise and kill any further collection.
     if not self.state.success:
       raise flow.FlowError("Couldn't guess the system root and drive location")
 
-    super(SystemRootSystemDriveFallbackFlow, self).End()
+    super(SystemRootSystemDriveFallbackFlow, self).End(responses)
 
 
 class WindowsAllUsersProfileFallbackFlow(artifact.ArtifactFallbackCollector):
@@ -78,7 +75,6 @@ class WindowsAllUsersProfileFallbackFlow(artifact.ArtifactFallbackCollector):
 
   artifacts = ["WindowsEnvironmentVariableAllUsersProfile"]
 
-  @flow.StateHandler()
   def Start(self):
     data = rdf_protodict.DataBlob().SetValue("All Users")
     self.SendReply(rdf_client.StatEntry(registry_data=data))

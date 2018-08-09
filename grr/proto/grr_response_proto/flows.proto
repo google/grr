@@ -159,21 +159,16 @@ message FlowLikeObjectReference {
 
 // Next field: 23
 message FlowRunnerArgs {
-  optional GrrMessage.Priority priority = 1 [(sem_type) = {
-      description: "The priority used for this flow.",
-      label: ADVANCED
-    }, default=MEDIUM_PRIORITY];
+  // DEPRECATED
+  // optional GrrMessage.Priority priority = 1;
 
   optional bool notify_to_user = 2 [(sem_type) = {
       description: "Should a notification be sent to the initiator.",
       friendly_name: "Notify at Completion",
     }, default=true];
 
-  optional bool send_replies = 3 [(sem_type) = {
-      description: "Should send replies back to the parent flow or not.",
-      friendly_name: "Send Replies",
-      label: HIDDEN,
-    }, default=true];
+  // DEPRECATED
+  // optional bool send_replies = 3;
 
   // DEPRECATED
   // optional string notification_event = 4;
@@ -288,10 +283,8 @@ message HuntRunnerArgs {
       description: "Rules that trigger this hunt."
     }];
 
-  optional GrrMessage.Priority priority = 5 [(sem_type) = {
-      description: "The priority used for this flow.",
-      label: ADVANCED,
-    }, default=MEDIUM_PRIORITY];
+  // DEPRECATED
+  // optional GrrMessage.Priority priority = 5;
 
   // DEPRECATED
   // optional string notification_event = 6;

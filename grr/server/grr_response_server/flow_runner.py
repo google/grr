@@ -68,6 +68,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 # Note: OutputPluginDescriptor is also needed implicitly by FlowRunnerArgs
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import flow_responses
 from grr_response_server import grr_collections
 from grr_response_server import multi_type_collection
 from grr_response_server import notification as notification_lib
@@ -156,7 +157,7 @@ class FlowRunner(object):
     self.sent_replies = []
 
   def IsWritingResults(self):
-    return (not self.parent_runner or not self.runner_args.send_replies or
+    return (not self.parent_runner or
             self.runner_args.write_intermediate_results)
 
   def _GetLogCollectionURN(self, logs_collection_urn):
@@ -271,13 +272,12 @@ class FlowRunner(object):
     """This method is used to schedule a new state on a different worker.
 
     This is basically the same as CallFlow() except we are calling
-    ourselves. The state will be invoked in a later time and receive all the
-    messages we send.
+    ourselves. The state will be invoked at a later time.
 
     Args:
-       next_state: The state in this flow to be invoked with the responses.
+       next_state: The state in this flow to be invoked.
 
-       start_time: Start the flow at this time. This Delays notification for
+       start_time: Start the flow at this time. This delays notification for
          flow processing into the future. Note that the flow may still be
          processed earlier if there are client responses waiting.
 
@@ -509,51 +509,61 @@ class FlowRunner(object):
         for event in processing:
           event.wait()
 
-  def RunStateMethod(self,
-                     method,
-                     request=None,
-                     responses=None,
-                     event=None,
-                     direct_response=None):
+  def _TerminationPending(self):
+    if "r" in self.flow_obj.mode:
+      pending_termination = self.flow_obj.Get(
+          self.flow_obj.Schema.PENDING_TERMINATION)
+      if pending_termination:
+        self.Error(pending_termination.reason)
+        return True
+    return False
+
+  def RunStateMethod(self, method_name, request=None, responses=None):
     """Completes the request by calling the state method.
 
-    NOTE - we expect the state method to be suitably decorated with a
-     StateHandler (otherwise this will raise because the prototypes
-     are different)
-
     Args:
-      method: The name of the state method to call.
+      method_name: The name of the state method to call.
 
       request: A RequestState protobuf.
 
       responses: A list of GrrMessages responding to the request.
-
-      event: A threading.Event() instance to signal completion of this request.
-
-      direct_response: A flow.Responses() object can be provided to avoid
-        creation of one.
     """
+    if self._TerminationPending():
+      return
+
     client_id = None
     try:
-      self.context.current_state = method
+      self.context.current_state = method_name
       if request and responses:
         client_id = request.client_id or self.runner_args.client_id
         logging.debug("%s Running %s with %d responses from %s",
-                      self.session_id, method, len(responses), client_id)
+                      self.session_id, method_name, len(responses), client_id)
 
       else:
-        logging.debug("%s Running state method %s", self.session_id, method)
+        logging.debug("%s Running state method %s", self.session_id,
+                      method_name)
 
       # Extend our lease if needed.
       self.flow_obj.HeartBeat()
       try:
-        method = getattr(self.flow_obj, method)
+        method = getattr(self.flow_obj, method_name)
       except AttributeError:
         raise FlowRunnerError("Flow %s has no state method %s" %
-                              (self.flow_obj.__class__.__name__, method))
+                              (self.flow_obj.__class__.__name__, method_name))
 
-      method(
-          direct_response=direct_response, request=request, responses=responses)
+      # Prepare a responses object for the state method to use:
+      responses = flow_responses.Responses(request=request, responses=responses)
+
+      self.SaveResourceUsage(responses.status)
+
+      stats.STATS.IncrementCounter("grr_worker_states_run")
+
+      if method_name == "Start":
+        stats.STATS.IncrementCounter(
+            "flow_starts", fields=[self.flow_obj.Name()])
+        method()
+      else:
+        method(responses)
 
       if self.sent_replies:
         self.ProcessRepliesWithOutputPlugins(self.sent_replies)
@@ -571,10 +581,6 @@ class FlowRunner(object):
       logging.exception("Flow %s raised %s.", self.session_id, e)
 
       self.Error(traceback.format_exc(), client_id=client_id)
-
-    finally:
-      if event:
-        event.set()
 
   def GetNextOutboundId(self):
     with self.outbound_lock:
@@ -659,7 +665,6 @@ class FlowRunner(object):
         session_id=utils.SmartUnicode(self.session_id),
         name=action_cls.__name__,
         request_id=outbound_id,
-        priority=self.runner_args.priority,
         require_fastpoll=self.runner_args.require_fastpoll,
         queue=client_id.Queue(),
         payload=request,
@@ -790,10 +795,9 @@ class FlowRunner(object):
     if not isinstance(response, rdfvalue.RDFValue):
       raise ValueError("SendReply can only send a Semantic Value")
 
-    # Only send the reply if we have a parent and if flow's send_replies
-    # attribute is True. We have a parent only if we know our parent's request.
-    if (self.runner_args.request_state.session_id and
-        self.runner_args.send_replies):
+    # Only send the reply if we have a parent, indicated by knowing our parent's
+    # request state.
+    if self.runner_args.request_state.session_id:
 
       request_state = self.runner_args.request_state
 
@@ -1000,10 +1004,8 @@ class FlowRunner(object):
         # We have exceeded our byte limit, stop this flow.
         raise FlowRunnerError("Network bytes limit exceeded.")
 
-  def SaveResourceUsage(self, request, responses):
-    """Method automatically called from the StateHandler to tally resource."""
-    _ = request
-    status = responses.status
+  def SaveResourceUsage(self, status):
+    """Method to tally resources."""
     if status:
       self.UpdateProtoResources(status)
 

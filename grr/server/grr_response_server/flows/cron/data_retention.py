@@ -8,7 +8,6 @@ from grr_response_server import aff4
 from grr_response_server import client_index
 from grr_response_server import cronjobs
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.hunts import implementation
@@ -54,7 +53,6 @@ class CleanHunts(aff4_cronjobs.SystemCronFlow, CleanHuntsMixin):
   frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("1d")
 
-  @flow.StateHandler()
   def Start(self):
     self.CleanAff4Hunts()
 
@@ -74,7 +72,6 @@ class CleanCronJobs(aff4_cronjobs.SystemCronFlow):
   frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("1d")
 
-  @flow.StateHandler()
   def Start(self):
     """Cleans up old cron job data."""
     cron_jobs_ttl = config.CONFIG["DataRetention.cron_jobs_flows_ttl"]
@@ -167,7 +164,6 @@ class CleanInactiveClients(aff4_cronjobs.SystemCronFlow,
   frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("1d")
 
-  @flow.StateHandler()
   def Start(self):
     self.CleanClients()
 

@@ -11,7 +11,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import aff4
 from grr_response_server import events
-from grr_response_server import flow
 from grr_response_server import foreman_rules
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
@@ -34,7 +33,6 @@ class TestHuntListener(events.EventListener):
 
 class BrokenSampleHunt(standard.SampleHunt):
 
-  @flow.StateHandler()
   def StoreResults(self, responses):
     """Stores the responses."""
     client_id = responses.request.client_id
@@ -53,7 +51,6 @@ class DummyHunt(implementation.GRRHunt):
 
   client_ids = []
 
-  @flow.StateHandler()
   def RunClient(self, responses):
     for client_id in responses:
       DummyHunt.client_ids.append(client_id)

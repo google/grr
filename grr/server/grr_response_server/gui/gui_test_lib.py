@@ -787,7 +787,6 @@ class RecursiveTestFlow(flow.GRRFlow):
   # non-supervisor user when FullAccessControlManager is used.
   category = "/Test/"
 
-  @flow.StateHandler()
   def Start(self):
     if self.args.depth < 2:
       for i in range(2):
@@ -801,7 +800,6 @@ class RecursiveTestFlow(flow.GRRFlow):
 class FlowWithOneLogStatement(flow.GRRFlow):
   """Flow that logs a single statement."""
 
-  @flow.StateHandler()
   def Start(self):
     self.Log("I do log.")
 
@@ -809,7 +807,6 @@ class FlowWithOneLogStatement(flow.GRRFlow):
 class FlowWithOneStatEntryResult(flow.GRRFlow):
   """Test flow that calls SendReply once with a StatEntry value."""
 
-  @flow.StateHandler()
   def Start(self):
     self.SendReply(
         rdf_client.StatEntry(
@@ -821,7 +818,6 @@ class FlowWithOneStatEntryResult(flow.GRRFlow):
 class FlowWithOneNetworkConnectionResult(flow.GRRFlow):
   """Test flow that calls SendReply once with a NetworkConnection value."""
 
-  @flow.StateHandler()
   def Start(self):
     self.SendReply(rdf_client.NetworkConnection(pid=42))
 
@@ -829,7 +825,6 @@ class FlowWithOneNetworkConnectionResult(flow.GRRFlow):
 class FlowWithOneHashEntryResult(flow.GRRFlow):
   """Test flow that calls SendReply once with a HashEntry value."""
 
-  @flow.StateHandler()
   def Start(self):
     hash_result = rdf_crypto.Hash(
         sha256=("9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"

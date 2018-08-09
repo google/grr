@@ -46,7 +46,7 @@ class ClientMock(object):
 @db_test_lib.DualDBTest
 class TestTransfer(flow_test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
-  maxDiff = 65 * 1024
+
   mbr = ("123456789" * 1000)[:4096]
 
   def setUp(self):
@@ -351,6 +351,41 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
         args=args)
 
     self.assertEqual(client_mock.action_counts["TransferBuffer"], 1)
+
+  def testExistingChunks(self):
+    client_mock = action_mocks.MultiGetFileClientMock()
+
+    # Make a file to download that is three chunks long.
+    # For the second run, we change the middle chunk. This will lead to a
+    # different hash for the whole file and three chunks to download of which we
+    # already have two.
+    chunk_size = transfer.MultiGetFile.CHUNK_SIZE
+    for data in [
+        "A" * chunk_size + "B" * chunk_size + "C" * 100,
+        "A" * chunk_size + "X" * chunk_size + "C" * 100
+    ]:
+      path = os.path.join(self.temp_dir, "test.txt")
+      with open(path, "wb") as fd:
+        fd.write(data)
+
+      pathspec = rdf_paths.PathSpec(
+          pathtype=rdf_paths.PathSpec.PathType.OS, path=path)
+
+      args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
+      flow_test_lib.TestFlowHelper(
+          transfer.MultiGetFile.__name__,
+          client_mock,
+          token=self.token,
+          client_id=self.client_id,
+          args=args)
+
+      urn = pathspec.AFF4Path(self.client_id)
+      blobimage = aff4.FACTORY.Open(urn)
+      self.assertEqual(blobimage.size, len(data))
+      self.assertEqual(blobimage.read(blobimage.size), data)
+
+    # Three chunks to get for the first file, only one for the second.
+    self.assertEqual(client_mock.action_counts["TransferBuffer"], 4)
 
   def testMultiGetFileSetsFileHashAttributeWhenMultipleChunksDownloaded(self):
     client_mock = action_mocks.MultiGetFileClientMock()

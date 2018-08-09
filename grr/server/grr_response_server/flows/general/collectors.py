@@ -73,7 +73,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return rdf_paths.PathSpec.PathType.TSK
     return rdf_paths.PathSpec.PathType.OS
 
-  @flow.StateHandler()
   def Start(self):
     """For each artifact, create subflows for each collector."""
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -108,7 +107,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     # In all other cases start the collection state.
     self.CallState(next_state="StartCollection")
 
-  @flow.StateHandler()
   def StartCollection(self, responses):
     """Start collecting."""
     if not responses.success:
@@ -236,7 +234,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         },
         next_state="ProcessFileFinderResults")
 
-  @flow.StateHandler()
   def ProcessFileFinderResults(self, responses):
     if not responses.success:
       self.Log(
@@ -555,7 +552,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           return True
     return False
 
-  @flow.StateHandler()
   def ProcessCollected(self, responses):
     """Each individual collector will call back into here.
 
@@ -613,7 +609,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if self.args.split_output_by_artifact:
       self._FinalizeSplitCollection(output_collection_map)
 
-  @flow.StateHandler()
   def ProcessCollectedRegistryStatEntry(self, responses):
     """Create AFF4 objects for registry statentries.
 
@@ -641,7 +636,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         request_data=responses.request_data,
         messages=stat_entries)
 
-  @flow.StateHandler()
   def ProcessCollectedArtifactFiles(self, responses):
     """Schedule files for download based on pathspec attribute.
 
@@ -782,8 +776,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     self.Log("Total collection size: %d", total)
 
-  @flow.StateHandler()
-  def End(self):
+  def End(self, responses):
+    del responses
     # If we got no responses, and user asked for it, we error out.
     if self.args.error_on_no_results and self.state.response_count == 0:
       raise artifact_utils.ArtifactProcessingError(
@@ -839,7 +833,6 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
 
     return [item.pathspec for item in parsed_items]
 
-  @flow.StateHandler()
   def Start(self):
     super(ArtifactFilesDownloaderFlow, self).Start()
 
@@ -853,7 +846,6 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
         use_tsk=self.args.use_tsk,
         max_file_size=self.args.max_file_size)
 
-  @flow.StateHandler()
   def DownloadFiles(self, responses):
     if not responses.success:
       self.Log("Failed to run ArtifactCollectorFlow: %s", responses.status)
@@ -912,7 +904,6 @@ class ClientArtifactCollector(flow.GRRFlow):
   args_type = artifact_utils.ArtifactCollectorFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler()
   def Start(self):
     """Issue the artifact collection request."""
     super(ClientArtifactCollector, self).Start()
@@ -949,7 +940,6 @@ class ClientArtifactCollector(flow.GRRFlow):
 
   # TODO(user): Remove this state when the knowledge base is filled on the
   # client side.
-  @flow.StateHandler()
   def StartCollection(self, responses):
     """Start collecting."""
     if not responses.success:
@@ -985,7 +975,6 @@ class ClientArtifactCollector(flow.GRRFlow):
         request=art_bundle,
         next_state="ProcessCollected")
 
-  @flow.StateHandler()
   def ProcessCollected(self, responses):
     if not responses.success:
       self.Log("Artifact data collection failed. Status: %s.", responses.status)
@@ -1000,9 +989,8 @@ class ClientArtifactCollector(flow.GRRFlow):
     self.state.response_count += 1
     self.SendReply(response)
 
-  @flow.StateHandler()
-  def End(self):
-    super(ClientArtifactCollector, self).End()
+  def End(self, responses):
+    super(ClientArtifactCollector, self).End(responses)
 
     # If we got no responses, and user asked for it, we error out.
     if self.args.error_on_no_results and self.state.response_count == 0:

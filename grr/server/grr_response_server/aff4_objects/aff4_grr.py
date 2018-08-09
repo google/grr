@@ -245,15 +245,14 @@ class VFSGRRClient(standard.VFSDirectory):
     # Our URN must be a valid client.id.
     self.client_id = rdf_client.ClientURN(self.urn)
 
-  def Update(self, attribute=None, priority=None):
+  def Update(self, attribute=None):
     if attribute == "CONTAINS":
       flow_id = flow.StartFlow(
           client_id=self.client_id,
           # TODO(user): dependency loop with flows/general/discover.py
           # flow_name=discovery.Interrogate.__name__,
           flow_name="Interrogate",
-          token=self.token,
-          priority=priority)
+          token=self.token)
 
       return flow_id
 
@@ -326,7 +325,6 @@ class UpdateVFSFile(flow.GRRFlow):
   def Init(self):
     self.state.get_file_flow_urn = None
 
-  @flow.StateHandler()
   def Start(self):
     """Calls the Update() method of a given VFSFile/VFSDirectory object."""
     self.Init()
@@ -336,9 +334,7 @@ class UpdateVFSFile(flow.GRRFlow):
     if fd.Get(fd.Schema.TYPE) is None:
       fd = fd.Upgrade(standard.VFSDirectory)
 
-    self.state.get_file_flow_urn = fd.Update(
-        attribute=self.args.attribute,
-        priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
+    self.state.get_file_flow_urn = fd.Update(attribute=self.args.attribute)
 
 
 class VFSFile(aff4.AFF4Image):
@@ -358,7 +354,7 @@ class VFSFile(aff4.AFF4Image):
         "aff4:pathspec", rdf_paths.PathSpec,
         "The pathspec used to retrieve this object from the client.")
 
-  def Update(self, attribute=None, priority=None):
+  def Update(self, attribute=None):
     """Update an attribute from the client."""
     # List the directory on the client
     currently_running = self.Get(self.Schema.CONTENT_LOCK)
@@ -380,8 +376,7 @@ class VFSFile(aff4.AFF4Image):
         # flow_name=transfer.MultiGetFile.__name__,
         flow_name="MultiGetFile",
         token=self.token,
-        pathspecs=[pathspec],
-        priority=priority)
+        pathspecs=[pathspec])
     self.Set(self.Schema.CONTENT_LOCK(flow_urn))
     self.Close()
 

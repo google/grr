@@ -155,7 +155,6 @@ class RetentionTestSystemCronJob(cronjobs.SystemCronFlow):
   lifetime = rdfvalue.Duration("30s")
   frequency = rdfvalue.Duration("30s")
 
-  @flow.StateHandler()
   def Start(self):
     self.CallState(next_state="End")
 

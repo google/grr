@@ -23,7 +23,7 @@ class VFSDirectory(aff4.AFF4Volume):
   # We contain other objects within the tree.
   _behaviours = frozenset(["Container"])
 
-  def Update(self, attribute=None, priority=None):
+  def Update(self, attribute=None):
     """Refresh an old attribute.
 
     Note that refreshing the attribute is asynchronous. It does not change
@@ -35,7 +35,6 @@ class VFSDirectory(aff4.AFF4Volume):
 
     Args:
        attribute: An attribute object as listed above.
-       priority: Priority to set for updating flow, None for default.
 
     Returns:
        The Flow ID that is pending
@@ -56,7 +55,6 @@ class VFSDirectory(aff4.AFF4Volume):
           # flow_name=filesystem.ListDirectory.__name__,
           flow_name="ListDirectory",
           pathspec=self.real_pathspec,
-          priority=priority,
           notify_to_user=False,
           token=self.token)
 

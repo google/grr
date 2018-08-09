@@ -61,7 +61,6 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
         condition_options.condition_type]
     return condition_weight
 
-  @flow.StateHandler()
   def Start(self):
     """Issue the find request."""
     super(FileFinder, self).Start()
@@ -195,7 +194,6 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
         request_data=dict(
             original_result=response, condition_index=condition_index + 1))
 
-  @flow.StateHandler()
   def ProcessGrep(self, responses):
     for response in responses:
       if "original_result" not in responses.request_data:
@@ -322,9 +320,8 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     result.hash_entry = file_hash
     self.SendReply(result)
 
-  @flow.StateHandler()
   def End(self, responses):
-    super(FileFinder, self).End()
+    super(FileFinder, self).End(responses)
 
     self.Log("Found and processed %d files.", self.state.files_found)
 
@@ -337,7 +334,6 @@ class ClientFileFinder(flow.GRRFlow):
   args_type = rdf_file_finder.FileFinderArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler()
   def Start(self):
     """Issue the find request."""
     super(ClientFileFinder, self).Start()
@@ -359,7 +355,6 @@ class ClientFileFinder(flow.GRRFlow):
       for path in artifact_utils.InterpolateKbAttributes(param_path, kb):
         yield path
 
-  @flow.StateHandler()
   def StoreResults(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
@@ -377,7 +372,7 @@ class ClientFileFinder(flow.GRRFlow):
 
         if stat.S_ISREG(response.stat_entry.st_mode):
           files_to_publish.append(
-              response.stat_entry.pathspec.AFF4Path(self.client_id))
+              response.stat_entry.pathspec.AFF4Path(self.client_urn))
 
     if files_to_publish:
       events.Events.PublishMultipleEvents({
@@ -387,7 +382,7 @@ class ClientFileFinder(flow.GRRFlow):
   # TODO(hanuszczak): Change name of this function since now it also writes to
   # the relational database.
   def _CreateAff4BlobImage(self, response, mutation_pool=None):
-    urn = response.stat_entry.pathspec.AFF4Path(self.client_id)
+    urn = response.stat_entry.pathspec.AFF4Path(self.client_urn)
 
     filedesc = aff4.FACTORY.Create(
         urn,
@@ -418,8 +413,7 @@ class ClientFileFinder(flow.GRRFlow):
         token=self.token,
         mutation_pool=mutation_pool)
 
-  @flow.StateHandler()
   def End(self, responses):
-    super(ClientFileFinder, self).End()
+    super(ClientFileFinder, self).End(responses)
 
     self.Log("Found and processed %d files.", self.state.files_found)

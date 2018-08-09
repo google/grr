@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for HTTP API."""
+from __future__ import unicode_literals
 
 import json
 
@@ -237,9 +238,10 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
 
   def testBuildToken(self):
     request = self._CreateRequest("POST", "/test_sample/some/path")
-    request.headers["X-Grr-Reason"] = urlparse.quote("区最 trailing space ")
+    request.headers["X-Grr-Reason"] = urlparse.quote(
+        "区最 trailing space ".encode("utf-8"))
     token = self.request_handler.BuildToken(request, 20)
-    self.assertEqual(token.reason, utils.SmartUnicode("区最 trailing space "))
+    self.assertEqual(token.reason, "区最 trailing space ")
 
   def testSystemUsernameIsNotAllowed(self):
     response = self._RenderResponse(

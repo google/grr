@@ -24,7 +24,6 @@ class YaraProcessScan(flow.GRRFlow):
   args_type = rdf_yara.YaraProcessScanRequest
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler()
   def Start(self):
 
     # Catch signature issues early.
@@ -41,7 +40,6 @@ class YaraProcessScan(flow.GRRFlow):
         request=self.args,
         next_state="ProcessScanResults")
 
-  @flow.StateHandler()
   def ProcessScanResults(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
@@ -77,7 +75,6 @@ class YaraProcessScan(flow.GRRFlow):
           skip_readonly_regions=self.args.skip_readonly_regions,
           next_state="CheckDumpProcessMemoryResults")
 
-  @flow.StateHandler()
   def CheckDumpProcessMemoryResults(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
@@ -100,7 +97,6 @@ class YaraDumpProcessMemory(flow.GRRFlow):
   args_type = rdf_yara.YaraProcessDumpArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler()
   def Start(self):
     # Catch regex errors early.
     if self.args.process_regex:
@@ -115,7 +111,6 @@ class YaraDumpProcessMemory(flow.GRRFlow):
         request=self.args,
         next_state="ProcessResults")
 
-  @flow.StateHandler()
   def ProcessResults(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
@@ -132,8 +127,8 @@ class YaraDumpProcessMemory(flow.GRRFlow):
     dump_files_to_get = []
     for dumped_process in response.dumped_processes:
       p = dumped_process.process
-      self.Log("Getting %d dump files for process %s (pid %d)." %
-               (len(dumped_process.dump_files), p.name, p.pid))
+      self.Log("Getting %d dump files for process %s (pid %d)." % (len(
+          dumped_process.dump_files), p.name, p.pid))
       for pathspec in dumped_process.dump_files:
         dump_files_to_get.append(pathspec)
 
@@ -147,7 +142,6 @@ class YaraDumpProcessMemory(flow.GRRFlow):
         file_size=1024 * 1024 * 1024,
         next_state="DeleteFiles")
 
-  @flow.StateHandler()
   def DeleteFiles(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
@@ -160,7 +154,6 @@ class YaraDumpProcessMemory(flow.GRRFlow):
           response.pathspec,
           next_state="LogDeleteFiles")
 
-  @flow.StateHandler()
   def LogDeleteFiles(self, responses):
     # Check that the DeleteFiles flow worked.
     if not responses.success:

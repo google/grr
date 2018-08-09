@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 
 import hashlib
 
+from future.utils import itervalues
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
@@ -577,7 +579,7 @@ class DatabaseTestPathsMixin(object):
     client_id = self.InitializeClient()
 
     path_info = rdf_objects.PathInfo.OS(components=("foo", "bar", "baz"))
-    self.db.WritePathInfos(client_id, path_info)
+    self.db.WritePathInfos(client_id, [path_info])
 
     path_info.timestamp = datetime("2001-01-01")
     stat_entry = rdf_client.StatEntry(st_size=42)
@@ -593,7 +595,7 @@ class DatabaseTestPathsMixin(object):
     client_id = self.InitializeClient()
 
     path_info = rdf_objects.PathInfo.OS(components=("foo", "bar", "baz"))
-    self.db.WritePathInfos(client_id, path_info)
+    self.db.WritePathInfos(client_id, [path_info])
 
     path_info.timestamp = datetime("2002-02-02")
     hash_entry = rdf_crypto.Hash(md5=b"quux")
@@ -1187,6 +1189,15 @@ class DatabaseTestPathsMixin(object):
       self.db.InitPathInfos(client_id, [path_info])
 
     self.assertEqual(ctx.exception.client_id, client_id)
+
+  def testInitPathInfosEmpty(self):
+    client_id = self.InitializeClient()
+
+    self.db.InitPathInfos(client_id, [])
+
+    for path_type in itervalues(rdf_objects.PathInfo.PathType.enum_dict):
+      path_infos = self.db.ListDescendentPathInfos(client_id, path_type, ())
+      self.assertEqual(path_infos, [])
 
   def testInitPathInfosWriteSingle(self):
     client_id = self.InitializeClient()

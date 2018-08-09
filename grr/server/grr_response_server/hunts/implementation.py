@@ -26,6 +26,7 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import events as events_lib
 from grr_response_server import flow
+from grr_response_server import flow_responses
 from grr_response_server import flow_runner
 from grr_response_server import foreman_rules
 from grr_response_server import grr_collections
@@ -260,19 +261,15 @@ class HuntRunner(object):
           event.wait()
 
   def RunStateMethod(self,
-                     method,
+                     method_name,
                      request=None,
                      responses=None,
                      event=None,
                      direct_response=None):
     """Completes the request by calling the state method.
 
-    NOTE - we expect the state method to be suitably decorated with a
-     StateHandler (otherwise this will raise because the prototypes
-     are different)
-
     Args:
-      method: The name of the state method to call.
+      method_name: The name of the state method to call.
 
       request: A RequestState protobuf.
 
@@ -285,26 +282,40 @@ class HuntRunner(object):
     """
     client_id = None
     try:
-      self.context.current_state = method
+      self.context.current_state = method_name
       if request and responses:
         client_id = request.client_id or self.runner_args.client_id
         logging.debug("%s Running %s with %d responses from %s",
-                      self.session_id, method, len(responses), client_id)
+                      self.session_id, method_name, len(responses), client_id)
 
       else:
-        logging.debug("%s Running state method %s", self.session_id, method)
+        logging.debug("%s Running state method %s", self.session_id,
+                      method_name)
 
       # Extend our lease if needed.
       self.hunt_obj.HeartBeat()
       try:
-        method = getattr(self.hunt_obj, method)
+        method = getattr(self.hunt_obj, method_name)
       except AttributeError:
         raise flow_runner.FlowRunnerError(
             "Flow %s has no state method %s" %
-            (self.hunt_obj.__class__.__name__, method))
+            (self.hunt_obj.__class__.__name__, method_name))
 
-      method(
-          direct_response=direct_response, request=request, responses=responses)
+      if direct_response:
+        method(direct_response)
+      elif method_name == "Start":
+        method()
+      else:
+        # Prepare a responses object for the state method to use:
+        responses = flow_responses.Responses(
+            request=request, responses=responses)
+
+        if responses.status:
+          self.SaveResourceUsage(request.client_id, responses.status)
+
+        stats.STATS.IncrementCounter("grr_worker_states_run")
+
+        method(responses)
 
     # We don't know here what exceptions can be thrown in the flow but we have
     # to continue. Thus, we catch everything.
@@ -661,12 +672,12 @@ class HuntRunner(object):
     logging.error("Hunt Error: %s", backtrace)
     self.hunt_obj.LogClientError(client_id, backtrace=backtrace)
 
-  def SaveResourceUsage(self, request, responses):
+  def SaveResourceUsage(self, client_id, status):
     """Update the resource usage of the hunt."""
     # Per client stats.
-    self.hunt_obj.ProcessClientResourcesStats(request.client_id, responses)
+    self.hunt_obj.ProcessClientResourcesStats(client_id, status)
     # Overall hunt resource usage.
-    self.UpdateProtoResources(responses.status)
+    self.UpdateProtoResources(status)
 
   def InitializeContext(self, args):
     """Initializes the context of this hunt."""
@@ -1208,7 +1219,6 @@ class GRRHunt(flow.FlowBase):
     ]
     deletion_pool.MultiMarkForDeletion(symlinks_urns)
 
-  @flow.StateHandler()
   def RunClient(self, client_id):
     """This method runs the hunt on a specific client.
 
@@ -1408,7 +1418,6 @@ class GRRHunt(flow.FlowBase):
   def SetDescription(self, description=None):
     self.runner_args.description = description or ""
 
-  @flow.StateHandler()
   def Start(self):
     """Initializes this hunt from arguments."""
     with data_store.DB.GetMutationPool() as mutation_pool:
@@ -1466,15 +1475,14 @@ class GRRHunt(flow.FlowBase):
     self.RegisterClientError(
         client_id, log_message=log_message, backtrace=backtrace)
 
-  def ProcessClientResourcesStats(self, client_id, responses):
+  def ProcessClientResourcesStats(self, client_id, status):
     """Process status message from a client and update the stats.
 
     Args:
       client_id: Client id.
-      responses: The responses object returned from the client.
+      status: The status object returned from the client.
     """
-    flow_path = responses.status.child_session_id
-    status = responses.status
+    flow_path = status.child_session_id
 
     resources = rdf_client.ClientResources()
     resources.client_id = client_id

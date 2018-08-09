@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the Find flow."""
+
+import re
+
 from grr_response_client.client_actions import searching
 from grr_response_core.lib import flags
-from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -32,8 +34,8 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
   def testInvalidFindSpec(self):
     """Test that its impossible to produce an invalid findspec."""
     # The regular expression is not valid.
-    self.assertRaises(
-        type_info.TypeValueError, rdf_client.FindSpec, path_regex="[")
+    with self.assertRaises(re.error):
+      rdf_client.FindSpec(path_regex="[")
 
   def testFindFiles(self):
     """Test that the Find flow works with files."""

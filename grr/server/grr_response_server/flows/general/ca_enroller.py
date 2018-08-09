@@ -14,6 +14,7 @@ from grr_response_server import aff4
 from grr_response_server import client_index
 from grr_response_server import data_migration
 from grr_response_server import data_store
+from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import message_handlers
 from grr_response_server.aff4_objects import aff4_grr
@@ -31,7 +32,6 @@ class CAEnroler(flow.GRRFlow):
 
   args_type = CAEnrolerArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Sign the CSR from the client."""
 
@@ -74,7 +74,7 @@ class CAEnroler(flow.GRRFlow):
       client.Set(client.Schema.FIRST_SEEN, now)
       if data_store.RelationalDBWriteEnabled():
         data_store.REL_DB.WriteClientMetadata(
-            self.client_id.Basename(),
+            self.client_id,
             certificate=cert,
             first_seen=now,
             fleetspeak_enabled=False)
@@ -85,7 +85,8 @@ class CAEnroler(flow.GRRFlow):
         index = client_index.ClientIndex()
         index.AddClient(data_migration.ConvertVFSGRRClient(client))
     # Publish the client enrollment message.
-    self.Publish("ClientEnrollment", self.client_id)
+    events.Events.PublishEvent(
+        "ClientEnrollment", self.client_urn, token=self.token)
 
     self.Log("Enrolled %s successfully", self.client_id)
 
@@ -162,7 +163,7 @@ class EnrolmentHandler(message_handlers.MessageHandler):
     if not client_ids:
       return
 
-    mds = data_store.REL_DB.MultiReadClientMetadata(client_ids)
+    mds = data_store.REL_DB.MultiReadClientMetadata(list(client_ids))
     for client_id in client_ids:
       if client_id not in mds or not mds[client_id].certificate:
         # Start the enrollment flow for this client.

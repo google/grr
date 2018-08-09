@@ -185,8 +185,7 @@
           },
           "name": "ListProcesses",
           "runnerArgs": {
-            "notifyToUser": false,
-            "priority": "HIGH_PRIORITY"
+            "notifyToUser": false
           }
         }
       },
@@ -205,8 +204,7 @@
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "ListProcesses",
           "notifyToUser": false,
-          "originalFlow": {},
-          "priority": "HIGH_PRIORITY"
+          "originalFlow": {}
         },
         "startedAt": "42000000",
         "state": "RUNNING",
@@ -2781,6 +2779,7 @@
         "parents": [
           "Duration",
           "RDFInteger",
+          "RDFPrimitive",
           "RDFValue",
           "object"
         ]
@@ -5542,7 +5541,6 @@
                 "leasedBy": "test_process@test.host:42",
                 "leasedUntil": "42000000",
                 "name": "ListProcesses",
-                "priority": "MEDIUM_PRIORITY",
                 "queue": "aff4:/C.1000000000000000/tasks",
                 "requestId": "1",
                 "requireFastpoll": true,
@@ -6179,7 +6177,6 @@
               "request": {
                 "cpuLimit": 7200.0,
                 "name": "ListProcesses",
-                "priority": "MEDIUM_PRIORITY",
                 "queue": "aff4:/C.1000000000000000/tasks",
                 "requestId": "1",
                 "requireFastpoll": true,
@@ -6197,7 +6194,6 @@
                 "leasedBy": "test_process@test.host:42",
                 "leasedUntil": "42000000",
                 "name": "ListProcesses",
-                "priority": "MEDIUM_PRIORITY",
                 "queue": "aff4:/C.1000000000000000/tasks",
                 "requestId": "1",
                 "requireFastpoll": true,

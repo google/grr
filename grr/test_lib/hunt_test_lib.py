@@ -273,13 +273,13 @@ class DummyHuntOutputPlugin(output_plugin.OutputPlugin):
 
 class FailingDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 
-  def ProcessResponses(self, unused_responses):
+  def ProcessResponses(self, responses):
     raise RuntimeError("Oh no!")
 
 
 class FailingInFlushDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 
-  def ProcessResponses(self, unused_responses):
+  def ProcessResponses(self, responses):
     pass
 
   def Flush(self):
@@ -293,7 +293,7 @@ class StatefulDummyHuntOutputPlugin(output_plugin.OutputPlugin):
     super(StatefulDummyHuntOutputPlugin, self).InitializeState()
     self.state.index = 0
 
-  def ProcessResponses(self, unused_responses):
+  def ProcessResponses(self, responses):
     StatefulDummyHuntOutputPlugin.data.append(self.state.index)
     self.state.index += 1
 
@@ -301,7 +301,7 @@ class StatefulDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 class LongRunningDummyHuntOutputPlugin(output_plugin.OutputPlugin):
   num_calls = 0
 
-  def ProcessResponses(self, unused_responses):
+  def ProcessResponses(self, responses):
     LongRunningDummyHuntOutputPlugin.num_calls += 1
     # TODO(hanuszczak): This is terrible. Figure out why it has been put here
     # delete it as soon as possible.
@@ -310,7 +310,7 @@ class LongRunningDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 
 class VerifiableDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 
-  def ProcessResponses(self, unused_responses):
+  def ProcessResponses(self, responses):
     pass
 
 
@@ -339,7 +339,7 @@ class VerifiableDummyHuntOutputPluginVerfier(
 
 class DummyHuntOutputPluginWithRaisingVerifier(output_plugin.OutputPlugin):
 
-  def ProcessResponses(self, unused_responses):
+  def ProcessResponses(self, responses):
     pass
 
 

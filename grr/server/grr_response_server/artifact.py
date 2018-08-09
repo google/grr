@@ -124,7 +124,6 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
   args_type = KnowledgeBaseInitializationArgs
 
-  @flow.StateHandler()
   def Start(self):
     """For each artifact, create subflows for each collector."""
     self.state.knowledge_base = None
@@ -180,7 +179,6 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
         self.state.fulfilled_deps.append(partial)
         self._ScheduleCollection()
 
-  @flow.StateHandler()
   def ProcessBase(self, responses):
     """Process any retrieved artifacts."""
     artifact_name = responses.request_data["artifact_name"]
@@ -293,9 +291,9 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
 
     return provided
 
-  @flow.StateHandler()
-  def End(self, unused_responses):
+  def End(self, responses):
     """Finish up."""
+    del responses
     self.SendReply(self.state.knowledge_base)
 
   def GetFirstFlowsForCollection(self):
@@ -406,7 +404,7 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
       if processor_obj.process_together:
         # TODO(amoser): This is very brittle, one day we should come
         # up with a better API here.
-        urns = [r.AFF4Path(flow_obj.client_id) for r in responses]
+        urns = [r.AFF4Path(flow_obj.client_urn) for r in responses]
         file_objects = list(aff4.FACTORY.MultiOpen(urns, token=token))
         file_objects.sort(key=lambda file_object: file_object.urn)
         stats = sorted(responses, key=lambda r: r.pathspec.path)
@@ -414,7 +412,7 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
                                        state.knowledge_base)
       else:
         fd = aff4.FACTORY.Open(
-            responses.AFF4Path(flow_obj.client_id), token=token)
+            responses.AFF4Path(flow_obj.client_urn), token=token)
         result_iterator = parse_method(responses, fd, state.knowledge_base)
 
     elif isinstance(processor_obj,

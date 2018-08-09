@@ -31,11 +31,11 @@ print('%s.%s.%s-%s' % (
 function export_build_vars() {
   # Note that versions for the packages listed here can differ.
   export LOCAL_DEB_PYINDEX="${PWD}/local_pypi"
-  export API_SDIST="$(ls sdists | grep -e 'grr-api-client-.*\.zip')"
-  export TEST_SDIST="$(ls sdists | grep -e 'grr-response-test-.*\.zip')"
-  export CLIENT_SDIST="$(ls sdists | grep -e 'grr-response-client-.*\.zip')"
-  export TEMPLATES_SDIST="$(ls sdists | grep -e 'grr-response-templates-.*\.zip')"
-  export SERVER_SDIST="$(ls sdists | grep -e 'grr-response-server-.*\.zip')"
+  export API_SDIST="$(ls local_pypi | grep -e 'grr-api-client-.*\.zip')"
+  export TEST_SDIST="$(ls local_pypi | grep -e 'grr-response-test-.*\.zip')"
+  export CLIENT_SDIST="$(ls local_pypi | grep -e 'grr-response-client-.*\.zip')"
+  export TEMPLATES_SDIST="$(ls local_pypi | grep -e 'grr-response-templates-.*\.zip')"
+  export SERVER_SDIST="$(ls local_pypi | grep -e 'grr-response-server-.*\.zip')"
 }
 
 create_changelog

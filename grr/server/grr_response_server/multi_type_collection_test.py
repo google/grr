@@ -78,13 +78,13 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
             rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)))
 
         self.collection.Add(
-            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)),
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))),
             mutation_pool=self.pool)
-        original_values.add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)))
+        original_values.add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))))
 
-    self.assertEqual(
-        sorted([v.payload for v in original_values]),
-        sorted([v.payload for v in self.collection]))
+    self.assertItemsEqual([v.payload for v in original_values],
+                          [v.payload for v in self.collection])
 
   def testLengthOfCollectionIsCorrectWhenMultipleTypesAreUsed(self):
     with self.pool:
@@ -93,7 +93,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
             rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)),
             mutation_pool=self.pool)
         self.collection.Add(
-            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)),
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))),
             mutation_pool=self.pool)
 
     self.assertEqual(200, len(self.collection))
@@ -105,7 +105,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
             rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)),
             mutation_pool=self.pool)
         self.collection.Add(
-            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)),
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))),
             mutation_pool=self.pool)
 
     for index, (_, v) in enumerate(
@@ -125,7 +125,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
       for i in range(101):
         self.collection.Add(
-            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)),
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))),
             mutation_pool=self.pool)
 
     self.assertEqual(99,

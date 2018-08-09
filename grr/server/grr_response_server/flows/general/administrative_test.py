@@ -56,9 +56,9 @@ class ClientActionRunner(flow.GRRFlow):
   """Just call the specified client action directly.
   """
   args_type = ClientActionRunnerArgs
+  # TODO(amoser): remove.
   action_args = {}
 
-  @flow.StateHandler()
   def Start(self):
     self.CallClient(
         server_stubs.ClientActionStub.classes[self.args.action],

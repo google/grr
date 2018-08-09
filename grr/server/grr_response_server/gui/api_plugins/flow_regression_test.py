@@ -380,9 +380,7 @@ class ApiCreateFlowHandlerRegressionTest(
                   args=processes.ListProcessesArgs(
                       filename_regex=".", fetch_binaries=True),
                   runner_args=rdf_flow_runner.FlowRunnerArgs(
-                      output_plugins=[],
-                      priority="HIGH_PRIORITY",
-                      notify_to_user=False))),
+                      output_plugins=[], notify_to_user=False))),
           replace=ReplaceFlowId)
 
 

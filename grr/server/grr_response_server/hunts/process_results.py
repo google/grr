@@ -13,7 +13,6 @@ from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import output_plugin
 from grr_response_server.aff4_objects import cronjobs
 from grr_response_server.hunts import implementation
@@ -172,7 +171,6 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     logging.debug("Processed %d results.", num_processed_for_hunt)
     return len(results)
 
-  @flow.StateHandler()
   def Start(self):
     self.start_time = rdfvalue.RDFDatetime.Now()
 

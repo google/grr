@@ -11,6 +11,7 @@ install:
 - lsb_release -a
 - echo "${PATH}"
 - lscpu
+- sudo apt update
 - sudo -EH ./appveyor/e2e_tests/install_mem_usage_cron.sh
 - sudo -EH ./appveyor/e2e_tests/install_latest_server_deb.sh
 

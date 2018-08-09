@@ -34,7 +34,6 @@ class CheckRunner(flow.GRRFlow):
   args_type = CheckFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler()
   def Start(self):
     """Initialize the system check flow."""
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -47,9 +46,8 @@ class CheckRunner(flow.GRRFlow):
     self.state.checks_with_findings = []
     self.state.results_store = None
     self.state.host_data = {}
-    self.CallState(next_state="MapArtifactData")
+    self.CallStateInline(next_state="MapArtifactData")
 
-  @flow.StateHandler()
   def MapArtifactData(self, responses):
     """Get processed data, mapped to artifacts.
 
@@ -137,7 +135,6 @@ class CheckRunner(flow.GRRFlow):
       processor = parser.Parser.classes[processor_name]()
       self._ProcessData(processor, responses_list, artifact_name, source)
 
-  @flow.StateHandler()
   def AddResponses(self, responses):
     """Process the raw response data from this artifact collection.
 
@@ -164,7 +161,6 @@ class CheckRunner(flow.GRRFlow):
     if responses:
       self._RunProcessors(artifact_name, responses)
 
-  @flow.StateHandler()
   def RunChecks(self, responses):
     if not responses.success:
       raise RuntimeError("Checks did not run successfully.")

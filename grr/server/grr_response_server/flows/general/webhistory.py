@@ -50,7 +50,6 @@ class ChromeHistory(flow.GRRFlow):
   args_type = ChromeHistoryArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler()
   def Start(self):
     """Determine the Chrome directory."""
     self.state.hist_count = 0
@@ -78,7 +77,6 @@ class ChromeHistory(flow.GRRFlow):
             action=rdf_file_finder.FileFinderAction.Download(),
             next_state="ParseFiles")
 
-  @flow.StateHandler()
   def ParseFiles(self, responses):
     """Take each file we retrieved and get the history from it."""
     # Note that some of these Find requests will fail because some paths don't
@@ -86,7 +84,7 @@ class ChromeHistory(flow.GRRFlow):
     if responses:
       for response in responses:
         fd = aff4.FACTORY.Open(
-            response.stat_entry.AFF4Path(self.client_id), token=self.token)
+            response.stat_entry.AFF4Path(self.client_urn), token=self.token)
         hist = chrome_history.ChromeParser(fd)
         count = 0
         for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse():
@@ -168,7 +166,6 @@ class FirefoxHistory(flow.GRRFlow):
   args_type = FirefoxHistoryArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler()
   def Start(self):
     """Determine the Firefox history directory."""
     self.state.hist_count = 0
@@ -191,13 +188,12 @@ class FirefoxHistory(flow.GRRFlow):
           action=rdf_file_finder.FileFinderAction.Download(),
           next_state="ParseFiles")
 
-  @flow.StateHandler()
   def ParseFiles(self, responses):
     """Take each file we retrieved and get the history from it."""
     if responses:
       for response in responses:
         fd = aff4.FACTORY.Open(
-            response.stat_entry.AFF4Path(self.client_id), token=self.token)
+            response.stat_entry.AFF4Path(self.client_urn), token=self.token)
         hist = firefox3_history.Firefox3History(fd)
         count = 0
         for epoch64, dtype, url, dat1, in hist.Parse():
@@ -288,7 +284,6 @@ class CacheGrep(flow.GRRFlow):
   args_type = CacheGrepArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler()
   def Start(self):
     """Redirect to start on the workers and not in the UI."""
 
@@ -313,11 +308,6 @@ class CacheGrep(flow.GRRFlow):
         raise flow.FlowError("No such user %s" % user)
       self.state.users.append(user_info)
 
-    self.CallState(next_state="StartRequests")
-
-  @flow.StateHandler()
-  def StartRequests(self):
-    """Generate and send the Find requests."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
 
     usernames = [
@@ -345,7 +335,6 @@ class CacheGrep(flow.GRRFlow):
             action=rdf_file_finder.FileFinderAction.Download(),
             next_state="HandleResults")
 
-  @flow.StateHandler()
   def HandleResults(self, responses):
     """Take each file we retrieved and add it to the collection."""
     # Note that some of these Find requests will fail because some paths don't

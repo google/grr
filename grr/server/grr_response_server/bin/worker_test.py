@@ -40,7 +40,6 @@ RESULTS = []
 class WorkerSendingTestFlow(flow.GRRFlow):
   """Tests that sent messages are correctly collected."""
 
-  @flow.StateHandler()
   def Start(self):
     for i in range(10):
       self.CallClient(
@@ -49,7 +48,6 @@ class WorkerSendingTestFlow(flow.GRRFlow):
           data=str(i),
           next_state="Incoming")
 
-  @flow.StateHandler()
   def Incoming(self, responses):
     # We push the result into a global array so we can examine it
     # better.
@@ -60,7 +58,6 @@ class WorkerSendingTestFlow(flow.GRRFlow):
 class WorkerSendingTestFlow2(WorkerSendingTestFlow):
   """Only send a single request."""
 
-  @flow.StateHandler()
   def Start(self):
     i = 1
     self.CallClient(
@@ -81,7 +78,6 @@ class WorkerSendingWKTestFlow(flow.WellKnownFlow):
 
 class RaisingTestFlow(WorkerSendingTestFlow):
 
-  @flow.StateHandler()
   def Incoming(self, responses):
     raise AttributeError("Some Error.")
 
@@ -107,7 +103,6 @@ class WorkerStuckableHunt(implementation.GRRHunt):
   def LetWorkerFinishProcessing(cls):
     cls.WAIT_FOR_TEST_SEMAPHORE.release()
 
-  @flow.StateHandler()
   def RunClient(self, responses):
     cls = WorkerStuckableHunt
 
@@ -182,7 +177,6 @@ class WorkerStuckableTestFlow(flow.GRRFlow):
   def LetWorkerFinishProcessing(cls):
     cls.WAIT_FOR_TEST_SEMAPHORE.release()
 
-  @flow.StateHandler()
   def Start(self):
     cls = WorkerStuckableTestFlow
 
@@ -218,9 +212,6 @@ class ShardedQueueManager(queue_manager.QueueManager):
   This doesn't work when shards are enabled, since each worker is only looking
   at its own shard. This class gives the worker visibility across all shards.
   """
-
-  def GetNotificationsByPriority(self, queue):
-    return self.GetNotificationsByPriorityForAllShards(queue)
 
   def GetNotifications(self, queue):
     return self.GetNotificationsForAllShards(queue)
@@ -397,8 +388,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         # Assert that there are no stuck notifications in the worker's queue.
         with queue_manager.QueueManager(token=self.token) as manager:
           for queue in worker_obj.queues:
-            notifications = manager.GetNotificationsByPriority(queue)
-          self.assertFalse(manager.STUCK_PRIORITY in notifications)
+            notifications = manager.GetNotifications(queue)
+            for n in notifications:
+              self.assertFalse(n.in_progress)
 
     finally:
       # Release the semaphore so that worker thread unblocks and finishes
@@ -427,8 +419,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         # queue.
         with queue_manager.QueueManager(token=self.token) as manager:
           for queue in worker_obj.queues:
-            notifications = manager.GetNotificationsByPriority(queue)
-            self.assertFalse(manager.STUCK_PRIORITY in notifications)
+            notifications = manager.GetNotifications(queue)
+            for n in notifications:
+              self.assertFalse(n.in_progress)
 
     finally:
       # Release the semaphore so that worker thread unblocks and finishes
@@ -509,8 +502,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
       # Check that stuck notification has been removed.
       qm = queue_manager.QueueManager(token=self.token)
-      notifications_by_priority = qm.GetNotificationsByPriority(queues.FLOWS)
-      self.assertTrue(qm.STUCK_PRIORITY not in notifications_by_priority)
+      notifications = qm.GetNotifications(queues.FLOWS)
+      for n in notifications:
+        self.assertFalse(n.in_progress)
     finally:
       # Release the semaphore so that worker thread unblocks and finishes
       # processing the flow.
@@ -695,8 +689,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     with data_store.DB.GetMutationPool() as pool:
       manager.NotifyQueue(notification, mutation_pool=pool)
 
-    notifications = manager.GetNotificationsByPriority(queues.FLOWS).get(
-        notification.priority, [])
+    notifications = manager.GetNotifications(queues.FLOWS)
 
     # Check the notification is there. With multiple worker queue shards we can
     # get other notifications such as for audit event listeners, so we need to
@@ -708,8 +701,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     worker_obj.RunOnce()
     worker_obj.thread_pool.Join()
 
-    notifications = manager.GetNotificationsByPriority(queues.FLOWS).get(
-        notification.priority, [])
+    notifications = manager.GetNotifications(queues.FLOWS)
     notifications = [x for x in notifications if x.session_id == session_id]
 
     # Check the notification is now gone.
@@ -951,12 +943,10 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     frontend_server.ReceiveMessages(self.client_id, messages + statuses)
 
     with queue_manager.QueueManager(token=self.token) as q:
-      all_notifications = q.GetNotificationsByPriorityForAllShards(
+      all_notifications = q.GetNotificationsForAllShards(
           rdfvalue.RDFURN("aff4:/F"))
-      medium_priority = rdf_flows.GrrNotification.Priority.MEDIUM_PRIORITY
-      medium_notifications = all_notifications[medium_priority]
       my_notifications = [
-          n for n in medium_notifications if n.session_id == session_id
+          n for n in all_notifications if n.session_id == session_id
       ]
       # There must not be more than one notification.
       self.assertEqual(len(my_notifications), 1)

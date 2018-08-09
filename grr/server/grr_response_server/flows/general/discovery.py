@@ -45,34 +45,32 @@ class Interrogate(flow.GRRFlow):
 
   def _OpenClient(self, mode="r"):
     return aff4.FACTORY.Open(
-        self.client_id,
+        self.client_urn,
         aff4_type=aff4_grr.VFSGRRClient,
         mode=mode,
         token=self.token)
 
   def _CreateClient(self, mode="w"):
     return aff4.FACTORY.Create(
-        self.client_id,
+        self.client_urn,
         aff4_type=aff4_grr.VFSGRRClient,
         mode=mode,
         token=self.token)
 
-  @flow.StateHandler()
   def Start(self):
     """Start off all the tests."""
 
     # Create the objects we need to exist.
     self.Load()
 
-    client_id = self.client_id.Basename()
-    self.state.client = rdf_objects.ClientSnapshot(client_id=client_id)
+    self.state.client = rdf_objects.ClientSnapshot(client_id=self.client_id)
     self.state.fqdn = None
     self.state.os = None
 
     # Make sure we always have a VFSDirectory with a pathspec at fs/os
     pathspec = rdf_paths.PathSpec(
         path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
-    urn = pathspec.AFF4Path(self.client_id)
+    urn = pathspec.AFF4Path(self.client_urn)
     with aff4.FACTORY.Create(
         urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC, pathspec)
@@ -90,7 +88,6 @@ class Interrogate(flow.GRRFlow):
     self.CallClient(
         server_stubs.EnumerateFilesystems, next_state="EnumerateFilesystems")
 
-  @flow.StateHandler()
   def CloudMetadata(self, responses):
     """Process cloud metadata and store in the client."""
     if not responses.success:
@@ -113,7 +110,6 @@ class Interrogate(flow.GRRFlow):
     client = self.state.client
     client.cloud_instance = convert(metadata_responses)
 
-  @flow.StateHandler()
   def StoreMemorySize(self, responses):
     if not responses.success:
       return
@@ -125,7 +121,6 @@ class Interrogate(flow.GRRFlow):
     # rdf_objects.ClientSnapshot.
     self.state.client.memory_size = responses.First()
 
-  @flow.StateHandler()
   def Platform(self, responses):
     """Stores information about the platform."""
     if responses.success:
@@ -176,7 +171,7 @@ class Interrogate(flow.GRRFlow):
 
       if response.system == "Windows":
         with aff4.FACTORY.Create(
-            self.client_id.Add("registry"),
+            self.client_urn.Add("registry"),
             standard.VFSDirectory,
             token=self.token) as fd:
           fd.Set(
@@ -196,7 +191,7 @@ class Interrogate(flow.GRRFlow):
       # We failed to get the Platform info, maybe there is a stored
       # system we can use to get at least some data.
       if data_store.RelationalDBReadEnabled():
-        client = data_store.REL_DB.ReadClientSnapshot(self.client_id.Basename())
+        client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
         known_system_type = client and client.knowledge_base.os
       else:
         client = self._OpenClient()
@@ -215,7 +210,6 @@ class Interrogate(flow.GRRFlow):
     else:
       self.Log("Unknown system type, skipping KnowledgeBaseInitializationFlow")
 
-  @flow.StateHandler()
   def InstallDate(self, responses):
     if not responses.success:
       self.Log("Could not get InstallDate")
@@ -253,7 +247,6 @@ class Interrogate(flow.GRRFlow):
       os_version = "%d.%d" % (kb.os_major_version, kb.os_minor_version)
       client.Set(client.Schema.OS_VERSION(os_version))
 
-  @flow.StateHandler()
   def ProcessKnowledgeBase(self, responses):
     """Collect and store any extra non-kb artifacts."""
     if not responses.success:
@@ -297,7 +290,6 @@ class Interrogate(flow.GRRFlow):
       except db.UnknownClientError:
         pass
 
-  @flow.StateHandler()
   def ProcessArtifactResponses(self, responses):
     if not responses.success:
       self.Log("Error collecting artifacts: %s", responses.status)
@@ -330,7 +322,6 @@ class Interrogate(flow.GRRFlow):
 
   FILTERED_IPS = ["127.0.0.1", "::1", "fe80::1"]
 
-  @flow.StateHandler()
   def EnumerateInterfaces(self, responses):
     """Enumerates the interfaces."""
     if not (responses.success and responses):
@@ -361,7 +352,6 @@ class Interrogate(flow.GRRFlow):
     # rdf_objects.ClientSnapshot.
     self.state.client.interfaces = sorted(responses, key=lambda i: i.ifname)
 
-  @flow.StateHandler()
   def EnumerateFilesystems(self, responses):
     """Store all the local filesystems in the client."""
     if not responses.success or not responses:
@@ -391,7 +381,7 @@ class Interrogate(flow.GRRFlow):
 
         pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-        urn = pathspec.AFF4Path(self.client_id)
+        urn = pathspec.AFF4Path(self.client_urn)
         fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
         fd.Set(fd.Schema.PATHSPEC(pathspec))
         fd.Close()
@@ -403,7 +393,7 @@ class Interrogate(flow.GRRFlow):
 
         pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-        urn = pathspec.AFF4Path(self.client_id)
+        urn = pathspec.AFF4Path(self.client_urn)
         fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
         fd.Set(fd.Schema.PATHSPEC(pathspec))
         fd.Close()
@@ -413,12 +403,11 @@ class Interrogate(flow.GRRFlow):
         pathspec = rdf_paths.PathSpec(
             path=response.mount_point, pathtype=rdf_paths.PathSpec.PathType.OS)
 
-        urn = pathspec.AFF4Path(self.client_id)
+        urn = pathspec.AFF4Path(self.client_urn)
         with aff4.FACTORY.Create(
             urn, standard.VFSDirectory, token=self.token) as fd:
           fd.Set(fd.Schema.PATHSPEC(pathspec))
 
-  @flow.StateHandler()
   def ClientInfo(self, responses):
     """Obtain some information about the GRR client running."""
     if not responses.success:
@@ -427,7 +416,7 @@ class Interrogate(flow.GRRFlow):
     response = responses.First()
 
     if fleetspeak_utils.IsFleetspeakEnabledClient(
-        self.client_id.Basename(), token=self.token):
+        self.client_id, token=self.token):
       label = fleetspeak_utils.GetLabelFromFleetspeak(self.client_id)
       # A FS enabled GRR shouldn't provide a label, but if it does prefer
       # it to an unrecognized FS label.
@@ -444,7 +433,6 @@ class Interrogate(flow.GRRFlow):
     # rdf_objects.ClientSnapshot.
     self.state.client.startup_info.client_info = response
 
-  @flow.StateHandler()
   def ClientConfiguration(self, responses):
     """Process client config."""
     if not responses.success:
@@ -460,7 +448,6 @@ class Interrogate(flow.GRRFlow):
     for k, v in iteritems(response):
       self.state.client.grr_configuration.Append(key=k, value=utils.SmartStr(v))
 
-  @flow.StateHandler()
   def ClientLibraries(self, responses):
     """Process client library information."""
     if not responses.success:
@@ -481,13 +468,12 @@ class Interrogate(flow.GRRFlow):
         rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED, "",
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-            client=rdf_objects.ClientReference(
-                client_id=self.client_id.Basename())))
+            client=rdf_objects.ClientReference(client_id=self.client_id)))
 
-  @flow.StateHandler()
-  def End(self):
+  def End(self, responses):
     """Finalize client registration."""
     # Update summary and publish to the Discovery queue.
+    del responses
 
     if data_store.RelationalDBWriteEnabled():
       try:
@@ -504,7 +490,8 @@ class Interrogate(flow.GRRFlow):
     else:
       summary = client.GetSummary()
 
-    self.Publish("Discovery", summary)
+    events.Events.PublishEvent("Discovery", summary, token=self.token)
+
     self.SendReply(summary)
 
     # Update the client index

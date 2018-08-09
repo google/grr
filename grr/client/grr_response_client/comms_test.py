@@ -252,32 +252,32 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
     msg_c = rdf_flows.GrrMessage(name="C")
 
     for _ in range(10):
-      queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
-      queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
-      queue.Put(msg_c, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
+      queue.Put(msg_a)
+      queue.Put(msg_b)
+      queue.Put(msg_c)
 
     result = queue.GetMessages()
-    self.assertEqual(list(result.job), [msg_c] * 10 + [msg_a, msg_b] * 10)
+    self.assertItemsEqual(list(result.job), [msg_c] * 10 + [msg_a, msg_b] * 10)
 
     # Tests a partial Get().
     for _ in range(7):
-      queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
-      queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
-      queue.Put(msg_c, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
+      queue.Put(msg_a)
+      queue.Put(msg_b)
+      queue.Put(msg_c)
 
     result = queue.GetMessages(
         soft_size_limit=len(msg_a.SerializeToString()) * 5 - 1)
 
-    self.assertEqual(list(result.job), [msg_c] * 5)
+    self.assertEqual(len(list(result.job)), 5)
 
     for _ in range(3):
-      queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
-      queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
-      queue.Put(msg_c, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
+      queue.Put(msg_a)
+      queue.Put(msg_b)
+      queue.Put(msg_c)
 
     # Append the remaining messages to the same result.
     result.job.Extend(queue.GetMessages().job)
-    self.assertEqual(list(result.job), [msg_c] * 10 + [msg_a, msg_b] * 10)
+    self.assertItemsEqual(list(result.job), [msg_c] * 10 + [msg_a, msg_b] * 10)
 
   def testSizeLimitedQueueOverflow(self):
 
@@ -289,12 +289,11 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
     queue = comms.SizeLimitedQueue(
         maxsize=3 * len(msg_a.SerializeToString()), heart_beat_cb=lambda: None)
 
-    queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, block=False)
-    queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, block=False)
-    queue.Put(msg_c, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, block=False)
+    queue.Put(msg_a, block=False)
+    queue.Put(msg_b, block=False)
+    queue.Put(msg_c, block=False)
     with self.assertRaises(Queue.Full):
-      queue.Put(
-          msg_d, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, block=False)
+      queue.Put(msg_d, block=False)
 
   def testSizeLimitedQueueHeartbeat(self):
 
@@ -308,11 +307,11 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
     queue = comms.SizeLimitedQueue(
         maxsize=3 * len(msg_a.SerializeToString()), heart_beat_cb=heartbeat)
 
-    queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
-    queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
-    queue.Put(msg_c, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+    queue.Put(msg_a)
+    queue.Put(msg_b)
+    queue.Put(msg_c)
     with self.assertRaises(Queue.Full):
-      queue.Put(msg_d, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, timeout=1)
+      queue.Put(msg_d, timeout=1)
 
     self.assertTrue(heartbeat.called)
 

@@ -36,10 +36,10 @@ stat_type_mask = (
 
 
 # TODO(hanuszczak): Name of this function is pretty bad. Consider changing it.
-def CreateAFF4Object(stat_response, client_id, mutation_pool, token=None):
+def CreateAFF4Object(stat_response, client_id_urn, mutation_pool, token=None):
   """This creates a File or a Directory from a stat response."""
 
-  urn = stat_response.pathspec.AFF4Path(client_id)
+  urn = stat_response.pathspec.AFF4Path(client_id_urn)
 
   if stat_response.pathspec.last.stream_name:
     # This is an ads. In that case we always need to create a file or
@@ -72,13 +72,13 @@ def WriteStatEntries(stat_entries, client_id, mutation_pool, token=None):
   for stat_entry in stat_entries:
     CreateAFF4Object(
         stat_entry,
-        client_id=client_id,
+        client_id_urn=rdf_client.ClientURN(client_id),
         mutation_pool=mutation_pool,
         token=token)
 
   if data_store.RelationalDBWriteEnabled():
     path_infos = list(map(rdf_objects.PathInfo.FromStatEntry, stat_entries))
-    data_store.REL_DB.WritePathInfos(client_id.Basename(), path_infos)
+    data_store.REL_DB.WritePathInfos(client_id, path_infos)
 
 
 class ListDirectoryArgs(rdf_structs.RDFProtoStruct):
@@ -95,7 +95,6 @@ class ListDirectory(flow.GRRFlow):
   args_type = ListDirectoryArgs
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
-  @flow.StateHandler()
   def Start(self):
     """Issue a request to list the directory."""
     self.state.urn = None
@@ -117,7 +116,6 @@ class ListDirectory(flow.GRRFlow):
         pathspec=self.args.pathspec,
         next_state="List")
 
-  @flow.StateHandler()
   def Stat(self, responses):
     """Save stat information on the directory."""
     # Did it work?
@@ -131,9 +129,8 @@ class ListDirectory(flow.GRRFlow):
 
       # The full path of the object is the combination of the client_id and the
       # path.
-      self.state.urn = stat_entry.pathspec.AFF4Path(self.client_id)
+      self.state.urn = stat_entry.pathspec.AFF4Path(self.client_urn)
 
-  @flow.StateHandler()
   def List(self, responses):
     """Collect the directory listing and store in the datastore."""
     if not responses.success:
@@ -153,7 +150,7 @@ class ListDirectory(flow.GRRFlow):
 
       if data_store.RelationalDBWriteEnabled():
         path_info = rdf_objects.PathInfo.FromStatEntry(self.state.stat)
-        data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
+        data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
       stat_entries = list(map(rdf_client.StatEntry, responses))
       WriteStatEntries(
@@ -198,7 +195,6 @@ class IteratedListDirectory(ListDirectory):
 
   category = None
 
-  @flow.StateHandler()
   def Start(self):
     """Issue a request to list the directory."""
     self.state.responses = []
@@ -216,7 +212,6 @@ class IteratedListDirectory(ListDirectory):
         self.state.request,
         next_state="List")
 
-  @flow.StateHandler()
   def List(self, responses):
     """Collect the directory listing and store in the data store."""
     if not responses.success:
@@ -243,7 +238,7 @@ class IteratedListDirectory(ListDirectory):
 
     directory_pathspec = self.state.responses[0].pathspec.Dirname()
 
-    urn = directory_pathspec.AFF4Path(self.client_id)
+    urn = directory_pathspec.AFF4Path(self.client_urn)
 
     # First dir we get back is the main urn.
     if not self.state.urn:
@@ -301,7 +296,6 @@ class RecursiveListDirectory(flow.GRRFlow):
 
   args_type = RecursiveListDirectoryArgs
 
-  @flow.StateHandler()
   def Start(self):
     """List the initial directory."""
     # The first directory we listed.
@@ -315,7 +309,6 @@ class RecursiveListDirectory(flow.GRRFlow):
         pathspec=self.args.pathspec,
         next_state="ProcessDirectory")
 
-  @flow.StateHandler()
   def ProcessDirectory(self, responses):
     """Recursively list the directory, and add to the timeline."""
     if responses.success:
@@ -326,7 +319,7 @@ class RecursiveListDirectory(flow.GRRFlow):
 
       directory_pathspec = response.pathspec.Dirname()
 
-      urn = directory_pathspec.AFF4Path(self.client_id)
+      urn = directory_pathspec.AFF4Path(self.client_urn)
 
       self.StoreDirectory(responses)
 
@@ -380,7 +373,7 @@ class RecursiveListDirectory(flow.GRRFlow):
     urn = self.state.first_directory
     if not urn:
       try:
-        urn = self.args.pathspec.AFF4Path(self.client_id)
+        urn = self.args.pathspec.AFF4Path(self.client_urn)
       except ValueError:
         pass
 
@@ -401,8 +394,8 @@ class RecursiveListDirectory(flow.GRRFlow):
             reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
             vfs_file=file_ref))
 
-  @flow.StateHandler()
-  def End(self):
+  def End(self, responses):
+    del responses
     status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
     self.Log(status_text, self.state.file_count, self.state.dir_count)
 
@@ -428,7 +421,6 @@ class UpdateSparseImageChunks(flow.GRRFlow):
         offset=chunk_offset)
     return request
 
-  @flow.StateHandler()
   def Start(self):
 
     fd = aff4.FACTORY.Open(
@@ -453,7 +445,6 @@ class UpdateSparseImageChunks(flow.GRRFlow):
       self.CallClient(
           server_stubs.TransferBuffer, request, next_state="UpdateChunk")
 
-  @flow.StateHandler()
   def UpdateChunk(self, responses):
     if not responses.success:
       raise IOError("Error running TransferBuffer: %s" % responses.status)
@@ -500,7 +491,6 @@ class FetchBufferForSparseImage(flow.GRRFlow):
   category = "/Filesystem/"
   args_type = FetchBufferForSparseImageArgs
 
-  @flow.StateHandler()
   def Start(self):
 
     urn = self.args.file_urn
@@ -537,7 +527,6 @@ class FetchBufferForSparseImage(flow.GRRFlow):
     self.CallClient(
         server_stubs.TransferBuffer, request, next_state="TransferBuffer")
 
-  @flow.StateHandler()
   def TransferBuffer(self, responses):
     # Did it work?
     if not responses.success:
@@ -636,7 +625,6 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
   category = "/Filesystem/"
   args_type = MakeNewAFF4SparseImageArgs
 
-  @flow.StateHandler()
   def Start(self):
     # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
     # This conditional should be removed after that date.
@@ -649,7 +637,6 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
 
     self.CallClient(stub, request, next_state="ProcessStat")
 
-  @flow.StateHandler()
   def ProcessStat(self, responses):
     # Did it work?
     if not responses.success:
@@ -665,7 +652,7 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
 
     # If the file was big enough, we'll store it as an AFF4SparseImage
     if client_stat.st_size > self.args.size_threshold:
-      urn = self.state.pathspec.AFF4Path(self.client_id)
+      urn = self.state.pathspec.AFF4Path(self.client_urn)
 
       # TODO(user) When we can check the last update time of the
       # contents of a file, raise if the contents have been updated before here.
@@ -678,7 +665,7 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
 
       if data_store.RelationalDBWriteEnabled():
         path_info = rdf_objects.PathInfo.FromStatEntry(client_stat)
-        data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
+        data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
     else:
       # Otherwise, just get the whole file.
       self.CallFlow(
@@ -686,7 +673,6 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
           pathspecs=[self.state.pathspec],
           next_state="End")
 
-  @flow.StateHandler()
   def End(self, responses):
     # Check that the GetFile flow worked.
     if not responses.success:
@@ -865,7 +851,6 @@ class GlobMixin(object):
 
     return components
 
-  @flow.StateHandler()
   def Start(self, **_):
     super(GlobMixin, self).Start()
     self.state.component_tree = {}
@@ -900,7 +885,6 @@ class GlobMixin(object):
       return True
     raise ValueError("Unknown Pathspec type.")
 
-  @flow.StateHandler()
   def ProcessEntry(self, responses):
     """Process the responses from the client."""
     if not responses.success:
@@ -1098,7 +1082,6 @@ class Glob(GlobMixin, flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
   args_type = GlobArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Starts the Glob.
 
@@ -1147,7 +1130,6 @@ class DiskVolumeInfo(flow.GRRFlow):
   category = "/Filesystem/"
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
-  @flow.StateHandler()
   def Start(self):
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.state.system = client.Get(client.Schema.SYSTEM)
@@ -1174,7 +1156,6 @@ class DiskVolumeInfo(flow.GRRFlow):
 
     self.CallStateInline(next_state="CollectVolumeInfo")
 
-  @flow.StateHandler()
   def StoreSystemRoot(self, responses):
     if not responses.success or not responses.First():
       if self.state.drive_letters:
@@ -1193,8 +1174,8 @@ class DiskVolumeInfo(flow.GRRFlow):
 
     self.CallStateInline(next_state="CollectVolumeInfo")
 
-  @flow.StateHandler()
-  def CollectVolumeInfo(self, unused_responses):
+  def CollectVolumeInfo(self, responses):
+    del responses
     if self.state.system == "Windows":
       # No dependencies for WMI
       deps = artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
@@ -1213,7 +1194,6 @@ class DiskVolumeInfo(flow.GRRFlow):
               path_list=self.args.path_list, pathtype=self.args.pathtype),
           next_state="ProcessVolumes")
 
-  @flow.StateHandler()
   def ProcessWindowsVolumes(self, responses):
     if not responses.success:
       self.Log("Error running WMILogicalDisks artifact: %s", responses.status)
@@ -1222,7 +1202,6 @@ class DiskVolumeInfo(flow.GRRFlow):
       if response.windowsvolume.drive_letter in self.state.drive_letters:
         self.SendReply(response)
 
-  @flow.StateHandler()
   def ProcessVolumes(self, responses):
     if not responses.success:
       self.Log("Error running StatFS: %s", responses.status)

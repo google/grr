@@ -2115,7 +2115,7 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
 
     return attribute.GetValues(self)
 
-  def Update(self, attribute=None, user=None, priority=None):
+  def Update(self, attribute=None, user=None):
     """Requests the object refresh an attribute from the Schema."""
 
   def Upgrade(self, aff4_class):

@@ -67,7 +67,6 @@ class CreateGenericHuntFlow(flow.GRRFlow):
 
   args_type = rdf_hunts.CreateGenericHuntFlowArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Create the hunt, in the paused state."""
     # Anyone can create the hunt but it will be created in the paused
@@ -91,7 +90,6 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
 
   args_type = rdf_hunts.CreateGenericHuntFlowArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Create the hunt and run it."""
     with implementation.StartHunt(
@@ -140,7 +138,6 @@ class SampleHunt(implementation.GRRHunt):
   """
   args_type = SampleHuntArgs
 
-  @flow.StateHandler()
   def RunClient(self, responses):
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS, path=self.args.filename)
@@ -152,7 +149,6 @@ class SampleHunt(implementation.GRRHunt):
           next_state="StoreResults",
           client_id=client_id)
 
-  @flow.StateHandler()
   def StoreResults(self, responses):
     """Stores the responses."""
     client_id = responses.request.client_id
@@ -306,7 +302,6 @@ class VerifyHuntOutputPluginsCronFlow(aff4_cronjobs.SystemCronFlow):
           results_metadata.Schema.OUTPUT_PLUGINS_VERIFICATION_RESULTS,
           output_plugin.OutputPluginVerificationResultsList(results=results))
 
-  @flow.StateHandler()
   def Start(self):
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
 
@@ -361,7 +356,6 @@ class GenericHunt(implementation.GRRHunt):
   def started_flows_collection_urn(self):
     return self.urn.Add("StartedFlows")
 
-  @flow.StateHandler()
   def RunClient(self, responses):
     # Just run the flow on this client.
     for client_id in responses:
@@ -434,7 +428,6 @@ class GenericHunt(implementation.GRRHunt):
 
     return [x[0] for _, x in flows]
 
-  @flow.StateHandler()
   def MarkDone(self, responses):
     """Mark a client as done."""
     client_id = responses.request.client_id
@@ -474,7 +467,6 @@ class VariableGenericHunt(GenericHunt):
   def SetDescription(self, description=None):
     self.runner_args.description = description or "Variable Generic Hunt"
 
-  @flow.StateHandler()
   def RunClient(self, responses):
     client_ids_to_schedule = set(responses)
     with data_store.DB.GetMutationPool() as pool:

@@ -51,7 +51,7 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
     with test_lib.FakeTime(gui_test_lib.TIME_0):
       filesystem.WriteStatEntries(
-          [stat_entry], client_id, mutation_pool=None, token=token)
+          [stat_entry], client_id.Basename(), mutation_pool=None, token=token)
 
     # Add a version with a stat entry, but without timestamps.
     stat_entry = rdf_client.StatEntry()
@@ -61,7 +61,7 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
     with test_lib.FakeTime(gui_test_lib.TIME_1):
       filesystem.WriteStatEntries(
-          [stat_entry], client_id, mutation_pool=None, token=token)
+          [stat_entry], client_id.Basename(), mutation_pool=None, token=token)
 
   def testTimelineContainsAllChangesForDirectory(self):
     # Open VFS view for client 1 on a specific location.

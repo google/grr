@@ -226,10 +226,27 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     return "<%s(%r)>" % (self.__class__.__name__, content)
 
 
+class RDFPrimitive(RDFValue):
+
+  @classmethod
+  def FromHumanReadable(cls, string):
+    instance = cls()
+    instance.ParseFromHumanReadable(string)
+    return instance
+
+  @abc.abstractmethod
+  def ParseFromHumanReadable(self, string):
+    """Initializes the object from human-readable string.
+
+    Args:
+      string: An `unicode` value to initialize the object from.
+    """
+
+
 # pytype: enable=ignored-abstractmethod
 
 
-class RDFBytes(RDFValue):
+class RDFBytes(RDFPrimitive):
   """An attribute which holds bytes."""
   data_store_type = "bytes"
 
@@ -251,6 +268,10 @@ class RDFBytes(RDFValue):
   def ParseFromDatastore(self, value):
     utils.AssertType(value, bytes)
     self._value = value
+
+  def ParseFromHumanReadable(self, string):
+    utils.AssertType(string, unicode)
+    self._value = string.encode("utf-8")
 
   def AsBytes(self):
     return self._value
@@ -293,12 +314,28 @@ class RDFZippedBytes(RDFBytes):
       return ""
 
 
-class RDFString(RDFBytes):
+@functools.total_ordering
+class RDFString(RDFPrimitive):
   """Represent a simple string."""
 
   data_store_type = "string"
 
   _value = u""
+
+  # TODO(hanuszczak): Allow initializng form arbitrary `unicode`-able object.
+  def __init__(self, initializer=None, age=None):
+    super(RDFString, self).__init__(initializer=None, age=age)
+
+    if isinstance(initializer, RDFString):
+      self._value = initializer._value  # pylint: disable=protected-access
+    elif isinstance(initializer, bytes):
+      self.ParseFromString(initializer)
+    elif isinstance(initializer, unicode):
+      self._value = initializer
+    elif initializer is not None:
+      message = "Unexpected initializer `%s` of type `%s`"
+      message %= (initializer, type(initializer))
+      raise TypeError(message)
 
   def format(self, *args, **kwargs):  # pylint: disable=invalid-name
     return self._value.format(*args, **kwargs)
@@ -306,30 +343,71 @@ class RDFString(RDFBytes):
   def split(self, *args, **kwargs):  # pylint: disable=invalid-name
     return self._value.split(*args, **kwargs)
 
-  def __unicode__(self):
-    return utils.SmartUnicode(self._value)
+  def __str__(self):
+    return self._value.encode("utf-8")
 
-  def __getitem__(self, value):
-    return self._value.__getitem__(value)
+  def __unicode__(self):
+    return self._value
+
+  def __getitem__(self, item):
+    return self._value.__getitem__(item)
+
+  def __eq__(self, other):
+    if isinstance(other, RDFString):
+      return self._value == other._value  # pylint: disable=protected-access
+
+    if isinstance(other, unicode):
+      return self._value == other
+
+    # TODO(hanuszczak): Comparing `RDFString` and `bytes` should result in type
+    # error. For now we allow it because too many tests still use non-unicode
+    # string literals.
+    if isinstance(other, bytes):
+      return self._value.encode("utf-8") == other
+
+    message = "Unexpected value `%s` of type `%s`"
+    message %= (other, type(other))
+    raise TypeError(message)
+
+  def __lt__(self, other):
+    if isinstance(other, RDFString):
+      return self._value < other._value  # pylint: disable=protected-access
+
+    if isinstance(other, unicode):
+      return self._value < other
+
+    # TODO(hanuszczak): Comparing `RDFString` and `bytes` should result in type
+    # error. For now we allow it because too many tests still use non-unicode
+    # string literals.
+    if isinstance(other, bytes):
+      return self._value.encode("utf-8") < other
+
+    message = "Unexpected value `%s` of type `%s`"
+    message %= (other, type(other))
+    raise TypeError(message)
 
   def ParseFromString(self, string):
-    # This handles the cases when we're initialized from Unicode strings.
-    self._value = utils.SmartStr(string)
+    utils.AssertType(string, bytes)
+    self._value = string.decode("utf-8")
 
   def ParseFromDatastore(self, value):
     utils.AssertType(value, unicode)
-    # TODO(hanuszczak): It feels like unicode strings should be internally
-    # represented as unicode objects instead of bytes and encoded only during
-    # the serialization.
-    self._value = value.encode("utf-8")
+    self._value = value
+
+  def ParseFromHumanReadable(self, string):
+    utils.AssertType(string, unicode)
+    self._value = string
 
   def SerializeToString(self):
-    return utils.SmartStr(self._value)
+    return self._value.encode("utf-8")
 
   def SerializeToDataStore(self):
-    return utils.SmartUnicode(self._value)
+    return self._value
 
 
+# TODO(hanuszczak): This class should provide custom method for parsing from
+# human readable strings (and arguably should not derive from `RDFBytes` at
+# all).
 class HashDigest(RDFBytes):
   """Binary hash digest with hex string representation."""
 
@@ -350,7 +428,7 @@ class HashDigest(RDFBytes):
 
 
 @functools.total_ordering
-class RDFInteger(RDFValue):
+class RDFInteger(RDFPrimitive):
   """Represent an integer."""
 
   data_store_type = "integer"
@@ -381,6 +459,10 @@ class RDFInteger(RDFValue):
   def ParseFromDatastore(self, value):
     utils.AssertType(value, int)
     self._value = value
+
+  def ParseFromHumanReadable(self, string):
+    utils.AssertType(string, unicode)
+    self._value = int(string)
 
   def __str__(self):
     return str(self._value)
@@ -479,6 +561,17 @@ class RDFBool(RDFInteger):
   """Boolean value."""
   data_store_type = "unsigned_integer"
 
+  def ParseFromHumanReadable(self, string):
+    utils.AssertType(string, unicode)
+
+    upper_string = string.upper()
+    if upper_string == u"TRUE" or string == u"1":
+      self._value = 1
+    elif upper_string == u"FALSE" or string == u"0":
+      self._value = 0
+    else:
+      raise ValueError("Unparsable boolean string: `%s`" % string)
+
 
 class RDFDatetime(RDFInteger):
   """A date and time internally stored in MICROSECONDS."""
@@ -540,7 +633,7 @@ class RDFDatetime(RDFInteger):
   @classmethod
   def FromHumanReadable(cls, value, eoy=False):
     res = cls()
-    res.SetRaw(cls._ParseFromHumanReadable(value, eoy=eoy))
+    res.ParseFromHumanReadable(value, eoy=eoy)
     return res
 
   @classmethod
@@ -569,8 +662,8 @@ class RDFDatetime(RDFInteger):
     return RDFDatetime(round((1 - t) * start_time._value + t * end_time._value))  # pylint: disable=protected-access
 
   def ParseFromHumanReadable(self, string, eoy=False):
+    # TODO(hanuszczak): This method should accept only unicode literals.
     self._value = self._ParseFromHumanReadable(string, eoy=eoy)
-    return self
 
   def __add__(self, other):
     if isinstance(other, (int, long, float, Duration)):
@@ -631,6 +724,15 @@ class RDFDatetime(RDFInteger):
     Returns:
       The parsed timestamp.
     """
+    # TODO(hanuszczak): Date can come either as a single integer (which we
+    # interpret as a timestamp) or as a really human readable thing such as
+    # '2000-01-01 13:37'. This is less than ideal (since timestamps are not
+    # really "human readable) and should be fixed in the future.
+    try:
+      return int(string)
+    except ValueError:
+      pass
+
     # By default assume the time is given in UTC.
     # pylint: disable=g-tzinfo-datetime
     if eoy:

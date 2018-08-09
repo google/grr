@@ -146,7 +146,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     for fname in fnames:
       fd = aff4.FACTORY.Open(self.FileNameToURN(fname), token=self.token)
       # Directories have no size attribute.
-      if fd.Get(fd.Schema.TYPE) == aff4_standard.VFSDirectory:
+      if fd.Get(fd.Schema.TYPE) == aff4_standard.VFSDirectory.__name__:
         continue
       if fd.Schema.SIZE is not None:
         self.assertEqual(fd.Get(fd.Schema.SIZE), 0)

@@ -44,39 +44,33 @@ self.runner_args: The flow runners args. This is an instance of
 from __future__ import division
 from __future__ import print_function
 
-import functools
 import logging
-import operator
 
 
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 
-from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import stats
 from grr_response_core.lib import type_info
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import events as rdf_events
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
-from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server import events
+from grr_response_server import flow_responses
 from grr_response_server import flow_runner
 from grr_response_server import grr_collections
 from grr_response_server import multi_type_collection
 from grr_response_server import notification as notification_lib
 from grr_response_server import queue_manager
 from grr_response_server import sequential_collection
-from grr_response_server import server_stubs
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -87,226 +81,6 @@ class FlowResultCollection(sequential_collection.GrrMessageCollection):
 
 class FlowError(Exception):
   """Raised when we can not retrieve the flow."""
-
-
-class Responses(object):
-  """An object encapsulating all the responses to a request.
-
-  This object is normally only instantiated from the flow StateHandler
-  decorator.
-  """
-
-  def __init__(self, request=None, responses=None):
-    self.status = None  # A GrrStatus rdfvalue object.
-    self.success = True
-    self.request = request
-    if request:
-      self.request_data = rdf_protodict.Dict(request.data)
-    self._responses = []
-    self._dropped_responses = []
-
-    if responses:
-      # This may not be needed if we can assume that responses are
-      # returned in lexical order from the data_store.
-      responses.sort(key=operator.attrgetter("response_id"))
-
-      # The iterator that was returned as part of these responses. This should
-      # be passed back to actions that expect an iterator.
-      self.iterator = None
-
-      # Filter the responses by authorized states
-      for msg in responses:
-        # Check if the message is authenticated correctly.
-        if msg.auth_state != msg.AuthorizationState.AUTHENTICATED:
-          logging.warning("%s: Messages must be authenticated (Auth state %s)",
-                          msg.session_id, msg.auth_state)
-          self._dropped_responses.append(msg)
-          # Skip this message - it is invalid
-          continue
-
-        # Check for iterators
-        if msg.type == msg.Type.ITERATOR:
-          self.iterator = rdf_client.Iterator(msg.payload)
-          continue
-
-        # Look for a status message
-        if msg.type == msg.Type.STATUS:
-          # Our status is set to the first status message that we see in
-          # the responses. We ignore all other messages after that.
-          self.status = rdf_flows.GrrStatus(msg.payload)
-
-          # Check this to see if the call succeeded
-          self.success = self.status.status == self.status.ReturnedStatus.OK
-
-          # Ignore all other messages
-          break
-
-        # Use this message
-        self._responses.append(msg)
-
-      if self.status is None:
-        # This is a special case of de-synchronized messages.
-        if self._dropped_responses:
-          logging.error(
-              "De-synchronized messages detected:\n %s", "\n".join(
-                  [utils.SmartUnicode(x) for x in self._dropped_responses]))
-
-        if responses:
-          self._LogFlowState(responses)
-
-        raise FlowError("No valid Status message.")
-
-    # This is the raw message accessible while going through the iterator
-    self.message = None
-
-  def __iter__(self):
-    """An iterator which returns all the responses in order."""
-    old_response_id = None
-    action_registry = server_stubs.ClientActionStub.classes
-    expected_response_classes = []
-    is_client_request = False
-    # This is the client request so this response packet was sent by a client.
-    if self.request.HasField("request"):
-      is_client_request = True
-      client_action_name = self.request.request.name
-      if client_action_name not in action_registry:
-        raise RuntimeError(
-            "Got unknown client action: %s." % client_action_name)
-      expected_response_classes = action_registry[
-          client_action_name].out_rdfvalues
-
-    for message in self._responses:
-      self.message = rdf_flows.GrrMessage(message)
-
-      # Handle retransmissions
-      if self.message.response_id == old_response_id:
-        continue
-
-      else:
-        old_response_id = self.message.response_id
-
-      if self.message.type == self.message.Type.MESSAGE:
-        if is_client_request:
-          # Let's do some verification for requests that came from clients.
-          if not expected_response_classes:
-            raise RuntimeError("Client action %s does not specify out_rdfvalue."
-                               % client_action_name)
-          else:
-            args_rdf_name = self.message.args_rdf_name
-            if not args_rdf_name:
-              raise RuntimeError("Deprecated message format received: "
-                                 "args_rdf_name is None.")
-            elif args_rdf_name not in [
-                x.__name__ for x in expected_response_classes
-            ]:
-              raise RuntimeError("Response type was %s but expected %s for %s."
-                                 % (args_rdf_name, expected_response_classes,
-                                    client_action_name))
-
-        yield self.message.payload
-
-  def First(self):
-    """A convenience method to return the first response."""
-    for x in self:
-      return x
-
-  def __len__(self):
-    return len(self._responses)
-
-  def __nonzero__(self):
-    return bool(self._responses)
-
-  def _LogFlowState(self, responses):
-    session_id = responses[0].session_id
-
-    logging.error(
-        "No valid Status message.\nState:\n%s\n%s\n%s",
-        data_store.DB.ResolvePrefix(session_id.Add("state"), "flow:"),
-        data_store.DB.ResolvePrefix(
-            session_id.Add("state/request:%08X" % responses[0].request_id),
-            "flow:"),
-        data_store.DB.ResolvePrefix(queues.FLOWS, "notify:%s" % session_id))
-
-
-class FakeResponses(Responses):
-  """An object which emulates the responses.
-
-  This is only used internally to call a state method inline.
-  """
-
-  def __init__(self, messages, request_data):
-    super(FakeResponses, self).__init__()
-    self.success = True
-    self._responses = messages or []
-    self.request_data = request_data
-    self.iterator = None
-
-  def __iter__(self):
-    return iter(self._responses)
-
-
-def StateHandler():
-  """A convenience decorator for state methods.
-
-  Raises:
-    RuntimeError: If a next state is not specified.
-
-  Returns:
-    A decorator
-  """
-
-  def Decorator(f):
-    """Initialised Decorator."""
-
-    @functools.wraps(f)
-    def Decorated(self, responses=None, request=None, direct_response=None):
-      """A decorator that defines allowed follow up states for a method.
-
-      Args:
-        self: The self of the wrapped function.
-
-        responses: The responses for this state.
-
-        request: The request sent out originally.
-
-        direct_response: A final responses object that does not need wrapping
-                         again. If given, neither request nor responses is used.
-
-      Returns:
-        This calls the state and returns the obtained result.
-      """
-      if "r" in self.mode:
-        pending_termination = self.Get(self.Schema.PENDING_TERMINATION)
-        if pending_termination:
-          self.Error(pending_termination.reason)
-          return
-
-      runner = self.GetRunner()
-
-      if direct_response is not None:
-        return f(self, direct_response)
-
-      if not isinstance(responses, Responses):
-        # Prepare a responses object for the state method to use:
-        responses = Responses(request=request, responses=responses)
-
-      if responses.status:
-        runner.SaveResourceUsage(request, responses)
-
-      stats.STATS.IncrementCounter("grr_worker_states_run")
-
-      if f.__name__ == "Start":
-        stats.STATS.IncrementCounter("flow_starts", fields=[self.Name()])
-
-      # Run the state method (Allow for flexibility in prototypes)
-      args = [self, responses]
-      res = f(*args[:f.func_code.co_argcount])
-
-      return res
-
-    return Decorated
-
-  return Decorator
 
 
 # This is an implementation of an AttributedDict taken from
@@ -592,8 +366,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, aff4.AFF4Volume)):
     flow_ref = None
     if self.runner_args.client_id:
       flow_ref = rdf_objects.FlowReference(
-          client_id=self.runner_args.client_id.Basename(),
-          flow_id=self.urn.Basename())
+          client_id=self.client_id, flow_id=self.urn.Basename())
 
     num_results = len(self.ResultCollection())
     notification_lib.Notify(
@@ -609,16 +382,17 @@ class FlowBase(with_metaclass(registry.FlowRegistry, aff4.AFF4Volume)):
   def Terminate(self, status=None):
     self.NotifyAboutEnd()
 
-  @StateHandler()
-  def End(self):
+  def End(self, responses):
     """Final state.
 
     This method is called prior to destruction of the flow to give
     the flow a chance to clean up.
+
+    Args:
+      responses: An flow_responses.Responses object.
     """
 
-  @StateHandler()
-  def Start(self, unused_message=None):
+  def Start(self):
     """The first state of the flow."""
     pass
 
@@ -648,17 +422,6 @@ class FlowBase(with_metaclass(registry.FlowRegistry, aff4.AFF4Volume)):
   @property
   def session_id(self):
     return self.context.session_id
-
-  def Publish(self, event_name, message):
-    """Publish a message to an event queue.
-
-    Args:
-       event_name: The name of the event to publish to.
-       message: An RDFValue instance to publish to the event listeners.
-    """
-    logging.debug("Publishing %s to %s",
-                  utils.SmartUnicode(message)[:100], event_name)
-    events.Events.PublishEvent(event_name, message, token=self.token)
 
   def Log(self, format_str, *args):
     """Logs the message using the flow's standard logging.
@@ -694,9 +457,9 @@ class FlowBase(with_metaclass(registry.FlowRegistry, aff4.AFF4Volume)):
                       request_data=None,
                       responses=None):
     if responses is None:
-      responses = FakeResponses(messages, request_data)
+      responses = flow_responses.FakeResponses(messages, request_data)
 
-    getattr(self, next_state)(self.runner, direct_response=responses)
+    getattr(self, next_state)(responses)
 
   def CallState(self, next_state="", start_time=None):
     return self.runner.CallState(next_state=next_state, start_time=start_time)
@@ -721,18 +484,15 @@ class GRRFlow(FlowBase):
   the usual aff4.FACTORY.Open() method.
 
   The GRRFlow object should be extended by flow implementations, adding state
-  handling methods (State methods are called with responses and should be
-  decorated using the StateHandler() decorator). The mechanics of running the
-  flow are separated from the flow itself, using the runner object. Then
-  FlowRunner() for the flow can be obtained from the flow.GetRunner(). The
-  runner contains all the methods specific to running, scheduling and
-  interrogating the flow:
+  handling methods. The mechanics of running the flow are separated from the
+  flow itself, using the runner object. Then FlowRunner() for the flow can be
+  obtained from the flow.GetRunner(). The runner contains all the methods
+  specific to running, scheduling and interrogating the flow:
 
 
   with aff4.FACTORY.Open(flow_urn, mode="rw") as fd:
     runner = fd.GetRunner()
     runner.ProcessCompletedRequests(messages)
-
   """
 
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
@@ -876,6 +636,10 @@ class GRRFlow(FlowBase):
 
   @property
   def client_id(self):
+    return self.client_urn.Basename()
+
+  @property
+  def client_urn(self):
     return self.runner_args.client_id
 
   @property

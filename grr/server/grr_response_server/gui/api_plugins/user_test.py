@@ -67,7 +67,7 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
                 client_id=self.client_id.Basename())))
 
     self.assertEqual(n.reference.type, "CLIENT")
-    self.assertEqual(n.reference.client.client_id, self.client_id)
+    self.assertEqual(n.reference.client.client_id.ToClientURN(), self.client_id)
 
   def testClientApprovalGrantedNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
@@ -78,7 +78,7 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
                 client_id=self.client_id.Basename())))
 
     self.assertEqual(n.reference.type, "CLIENT")
-    self.assertEqual(n.reference.client.client_id, self.client_id)
+    self.assertEqual(n.reference.client.client_id.ToClientURN(), self.client_id)
 
   def testHuntNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
@@ -109,7 +109,7 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
                 client_id=self.client_id.Basename(), flow_id="F:123456")))
 
     self.assertEqual(n.reference.type, "FLOW")
-    self.assertEqual(n.reference.flow.client_id, self.client_id)
+    self.assertEqual(n.reference.flow.client_id.ToClientURN(), self.client_id)
     self.assertEqual(n.reference.flow.flow_id, "F:123456")
 
   def testFlowFailureNotificationIsParsedCorrectly(self):
@@ -121,7 +121,7 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
                 client_id=self.client_id.Basename(), flow_id="F:123456")))
 
     self.assertEqual(n.reference.type, "FLOW")
-    self.assertEqual(n.reference.flow.client_id, self.client_id)
+    self.assertEqual(n.reference.flow.client_id.ToClientURN(), self.client_id)
     self.assertEqual(n.reference.flow.flow_id, "F:123456")
 
   def testVfsNotificationIsParsedCorrectly(self):
@@ -135,7 +135,7 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
                 path_components=["foo", "bar"])))
 
     self.assertEqual(n.reference.type, "VFS")
-    self.assertEqual(n.reference.vfs.client_id, self.client_id)
+    self.assertEqual(n.reference.vfs.client_id.ToClientURN(), self.client_id)
     self.assertEqual(n.reference.vfs.vfs_path, "fs/os/foo/bar")
 
   def testClientApprovalNotificationIsParsedCorrectly(self):
@@ -151,9 +151,11 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
                 requestor_username=self.token.username)))
 
     self.assertEqual(n.reference.type, "CLIENT_APPROVAL")
-    self.assertEqual(n.reference.client_approval.client_id, self.client_id)
-    self.assertEqual(n.reference.client_approval.username, self.token.username)
-    self.assertEqual(n.reference.client_approval.approval_id, "foo-bar")
+
+    client_approval = n.reference.client_approval
+    self.assertEqual(client_approval.client_id.ToClientURN(), self.client_id)
+    self.assertEqual(client_approval.username, self.token.username)
+    self.assertEqual(client_approval.approval_id, "foo-bar")
 
   def testHuntApprovalNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
@@ -209,7 +211,7 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
                 path_components=["foo", "bar"])))
 
     self.assertEqual(n.reference.type, "VFS")
-    self.assertEqual(n.reference.vfs.client_id, self.client_id)
+    self.assertEqual(n.reference.vfs.client_id.ToClientURN(), self.client_id)
     self.assertEqual(n.reference.vfs.vfs_path, "fs/os/foo/bar")
 
   def testUnknownNotificationIsParsedCorrectly(self):
@@ -319,7 +321,7 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
         username=self.token.username)
     result = self.handler.Handle(args, token=self.token)
 
-    self.assertEqual(result.subject.client_id, self.client_id)
+    self.assertEqual(result.subject.client_id.ToClientURN(), self.client_id)
     self.assertEqual(result.reason, "blah")
     self.assertEqual(result.is_valid, False)
     self.assertEqual(result.is_valid_message,
@@ -432,7 +434,7 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 1)
-    self.assertEqual(result.items[0].subject.client_id, client_id)
+    self.assertEqual(result.items[0].subject.client_id.ToClientURN(), client_id)
 
   def testFiltersApprovalsByInvalidState(self):
     approval_ids = self._RequestClientApprovals()
@@ -470,7 +472,8 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
         approval_id=approval_ids[0])
     result = self.handler.Handle(args, token=self.token)
     self.assertEqual(len(result.items), 1)
-    self.assertEqual(result.items[0].subject.client_id, self.client_ids[0])
+    self.assertEqual(result.items[0].subject.client_id.ToClientURN(),
+                     self.client_ids[0])
 
   def testFiltersApprovalsByClientIdAndState(self):
     client_id = self.client_ids[0]

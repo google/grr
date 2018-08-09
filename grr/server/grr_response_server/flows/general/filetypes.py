@@ -53,15 +53,13 @@ class PlistValueFilter(flow.GRRFlow):
   category = "/FileTypes/"
   args_type = PlistValueFilterArgs
 
-  @flow.StateHandler()
-  def Start(self, unused_response):
+  def Start(self):
     """Issue a request to list the directory."""
     self.CallClient(
         server_stubs.PlistQuery,
         request=self.args.request,
         next_state="Receive")
 
-  @flow.StateHandler()
   def Receive(self, responses):
     if not responses.success:
       self.Error("Could not retrieve value: %s" % responses.status)

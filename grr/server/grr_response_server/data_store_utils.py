@@ -15,7 +15,6 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 def GetClientVersion(client_id, token=None):
   """Returns last known GRR version that the client used."""
   if data_store.RelationalDBReadEnabled():
-    client_id = client_id.Basename()
     sinfo = data_store.REL_DB.ReadClientStartupInfo(client_id=client_id)
     if sinfo is not None:
       return sinfo.client_info.client_version
@@ -33,7 +32,6 @@ def GetClientVersion(client_id, token=None):
 def GetClientOs(client_id, token=None):
   """Returns last known operating system name that the client used."""
   if data_store.RelationalDBReadEnabled():
-    client_id = client_id.Basename()
     kb = data_store.REL_DB.ReadClientSnapshot(client_id).knowledge_base
   else:
     with aff4.FACTORY.Open(client_id, token=token) as client:

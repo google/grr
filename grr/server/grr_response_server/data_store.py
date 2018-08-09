@@ -1456,9 +1456,6 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
       task.leased_until = ts
       all_tasks.append(task)
 
-    # Sort the tasks in order of priority.
-    all_tasks.sort(key=lambda task: task.priority, reverse=True)
-
     return all_tasks[:limit]
 
   def StatsReadDataForProcesses(self,

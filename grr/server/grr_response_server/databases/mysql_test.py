@@ -332,6 +332,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testInitPathInfosValidatesClient(self):
     pass
 
+  def testInitPathInfosEmpty(self):
+    pass
+
   def testInitPathInfosWriteSingle(self):
     pass
 

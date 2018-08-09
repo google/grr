@@ -105,9 +105,9 @@ class RouterMatcher(object):
       except KeyError:
         # A bool is an enum but serializes to "1" / "0" which are both not in
         # enum or reverse_enum.
-        coerced_obj = type_info.type.FromSerializedString(value)
+        coerced_obj = type_info.type.FromHumanReadable(value)
     else:
-      coerced_obj = type_info.type.FromSerializedString(value)
+      coerced_obj = type_info.type.FromHumanReadable(value)
     args.Set(type_info.name, coerced_obj)
 
   def _GetArgsFromRequest(self, request, method_metadata, route_args):

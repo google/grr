@@ -77,7 +77,6 @@ class RegistryFinder(flow.GRRFlow):
         "Microsoft/Windows/CurrentVersion/Run/*"
     ])
 
-  @flow.StateHandler()
   def Start(self):
     self.CallFlow(
         file_finder.FileFinder.__name__,
@@ -87,7 +86,6 @@ class RegistryFinder(flow.GRRFlow):
         action=rdf_file_finder.FileFinderAction.Stat(),
         next_state="Done")
 
-  @flow.StateHandler()
   def Done(self, responses):
     if not responses.success:
       raise flow.FlowError("Registry search failed %s" % responses.status)
@@ -108,7 +106,6 @@ class CollectRunKeyBinaries(flow.GRRFlow):
   category = "/Registry/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler()
   def Start(self):
     """Get runkeys via the ArtifactCollectorFlow."""
     self.CallFlow(
@@ -117,7 +114,6 @@ class CollectRunKeyBinaries(flow.GRRFlow):
         use_tsk=True,
         next_state="ParseRunKeys")
 
-  @flow.StateHandler()
   def ParseRunKeys(self, responses):
     """Get filenames from the RunKeys and download the files."""
     filenames = []
@@ -145,7 +141,6 @@ class CollectRunKeyBinaries(flow.GRRFlow):
           pathspecs=filenames,
           next_state="Done")
 
-  @flow.StateHandler()
   def Done(self, responses):
     for response in responses:
       self.SendReply(response)

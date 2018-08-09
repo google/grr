@@ -46,7 +46,6 @@ class MemoryCollector(flow.GRRFlow):
   behaviours = flow.FlowBehaviour("DEBUG")
   args_type = MemoryCollectorArgs
 
-  @flow.StateHandler()
   def Start(self):
     if not config.CONFIG["Rekall.enabled"]:
       raise RuntimeError("Rekall flows are disabled. "
@@ -69,7 +68,6 @@ class MemoryCollector(flow.GRRFlow):
     else:
       self.RunRekallPlugin()
 
-  @flow.StateHandler()
   def CheckFreeSpace(self, responses):
     if responses.success and responses.First():
       disk_usage = responses.First()
@@ -96,7 +94,6 @@ class MemoryCollector(flow.GRRFlow):
         max_file_size_download=self.args.max_file_size,
         next_state="CheckAnalyzeClientMemory")
 
-  @flow.StateHandler()
   def CheckAnalyzeClientMemory(self, responses):
     if not responses.success:
       raise flow.FlowError("Unable to image memory: %s." % responses.status)
@@ -130,7 +127,6 @@ class AnalyzeClientMemory(flow.GRRFlow):
   behaviours = flow.FlowBehaviour("DEBUG")
   args_type = AnalyzeClientMemoryArgs
 
-  @flow.StateHandler()
   def Start(self):
     if not config.CONFIG["Rekall.enabled"]:
       raise RuntimeError("Rekall flows are disabled. "
@@ -139,7 +135,6 @@ class AnalyzeClientMemory(flow.GRRFlow):
 
     self.CallStateInline(next_state="StartAnalysis")
 
-  @flow.StateHandler()
   def StartAnalysis(self, responses):
     self.state.rekall_context_messages = {}
     self.state.output_files = []
@@ -171,13 +166,11 @@ class AnalyzeClientMemory(flow.GRRFlow):
         self.state.rekall_request,
         next_state="StoreResults")
 
-  @flow.StateHandler()
   def UpdateProfile(self, responses):
     """The target of the WriteRekallProfile client action."""
     if not responses.success:
       self.Log(responses.status)
 
-  @flow.StateHandler()
   def StoreResults(self, responses):
     """Stores the results."""
     if not responses.success:
@@ -242,7 +235,6 @@ class AnalyzeClientMemory(flow.GRRFlow):
             file_size=self.args.max_file_size_download,
             next_state="DeleteFiles")
 
-  @flow.StateHandler()
   def DeleteFiles(self, responses):
     # Check that the MultiGetFile flow worked.
     if not responses.success:
@@ -257,16 +249,15 @@ class AnalyzeClientMemory(flow.GRRFlow):
     # Let calling flows know where files ended up in AFF4 space.
     self.SendReply(
         rdf_rekall_types.RekallResponse(
-            downloaded_files=[x.AFF4Path(self.client_id) for x in responses]))
+            downloaded_files=[x.AFF4Path(self.client_urn) for x in responses]))
 
-  @flow.StateHandler()
   def LogDeleteFiles(self, responses):
     # Check that the DeleteFiles flow worked.
     if not responses.success:
       raise flow.FlowError("Could not delete file: %s" % responses.status)
 
-  @flow.StateHandler()
-  def End(self):
+  def End(self, responses):
+    del responses
     if self.state.plugin_errors:
       all_errors = u"\n".join([unicode(e) for e in self.state.plugin_errors])
       raise flow.FlowError("Error running plugins: %s" % all_errors)
@@ -329,7 +320,6 @@ class ListVADBinaries(flow.GRRFlow):
   behaviours = flow.FlowBehaviour("DEBUG")
   args_type = ListVADBinariesArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Request VAD data."""
     if not config.CONFIG["Rekall.enabled"]:
@@ -344,7 +334,6 @@ class ListVADBinaries(flow.GRRFlow):
         artifact_list=["FullVADBinaryList"],
         next_state="FetchBinaries")
 
-  @flow.StateHandler()
   def FetchBinaries(self, responses):
     """Parses the Rekall response and initiates FileFinder flows."""
     if not responses.success:
@@ -375,7 +364,6 @@ class ListVADBinaries(flow.GRRFlow):
       for b in binaries:
         self.SendReply(b)
 
-  @flow.StateHandler()
   def HandleDownloadedFiles(self, responses):
     """Handle success/failure of the FileFinder flow."""
     if responses.success:

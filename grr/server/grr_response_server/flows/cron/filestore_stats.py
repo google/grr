@@ -9,7 +9,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats as stats_lib
 from grr_response_core.lib import utils
 from grr_response_server import aff4
-from grr_response_server import flow
 
 from grr_response_server.aff4_objects import cronjobs
 from grr_response_server.aff4_objects import stats as aff4_stats
@@ -40,8 +39,8 @@ class ClassFileSizeCounter(ClassCounter):
 
   def ProcessFile(self, fd):
     classname = fd.__class__.__name__
-    self.value_dict[classname] = self.value_dict.get(
-        classname, 0) + fd.Get(fd.Schema.SIZE)
+    self.value_dict[classname] = self.value_dict.get(classname, 0) + fd.Get(
+        fd.Schema.SIZE)
 
   def Save(self, fd):
     for classname, count in iteritems(self.value_dict):
@@ -101,7 +100,6 @@ class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
                           "Filesize distribution in bytes"),
     ]
 
-  @flow.StateHandler()
   def Start(self):
     """Retrieve all the clients for the AbstractClientStatsCollectors."""
     self.stats = aff4.FACTORY.Create(

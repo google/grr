@@ -63,8 +63,7 @@ class FindFiles(flow.GRRFlow):
   args_type = FindFilesArgs
   friendly_name = "Find Files"
 
-  @flow.StateHandler()
-  def Start(self, unused_response):
+  def Start(self):
     """Issue the find request to the client."""
     self.state.received_count = 0
 
@@ -79,7 +78,6 @@ class FindFiles(flow.GRRFlow):
     self.CallClient(
         server_stubs.Find, self.args.findspec, next_state="IterateFind")
 
-  @flow.StateHandler()
   def IterateFind(self, responses):
     """Iterate in this state until no more results are available."""
     if not responses.success:
@@ -88,7 +86,7 @@ class FindFiles(flow.GRRFlow):
     with data_store.DB.GetMutationPool() as pool:
       for response in responses:
         # Create the file in the VFS
-        vfs_urn = response.hit.pathspec.AFF4Path(self.client_id)
+        vfs_urn = response.hit.pathspec.AFF4Path(self.client_urn)
 
         if stat.S_ISDIR(response.hit.st_mode):
           fd = aff4.FACTORY.Create(
@@ -106,9 +104,8 @@ class FindFiles(flow.GRRFlow):
           fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
 
         if data_store.RelationalDBWriteEnabled():
-          client_id = self.client_id.Basename()
           path_info = rdf_objects.PathInfo.FromStatEntry(response.hit)
-          data_store.REL_DB.WritePathInfos(client_id, [path_info])
+          data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
         # Send the stat to the parent flow.
         self.SendReply(stat_response)

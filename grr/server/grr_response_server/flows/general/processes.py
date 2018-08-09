@@ -24,7 +24,6 @@ class ListProcesses(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
   args_type = ListProcessesArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Start processing."""
     self.CallClient(server_stubs.ListProcesses, next_state="IterateProcesses")
@@ -43,7 +42,6 @@ class ListProcesses(flow.GRRFlow):
         return True
     return False
 
-  @flow.StateHandler()
   def IterateProcesses(self, responses):
     """This stores the processes."""
 
@@ -89,7 +87,6 @@ class ListProcesses(flow.GRRFlow):
       if skipped:
         self.Log("Skipped %s entries, missing path for regex" % skipped)
 
-  @flow.StateHandler()
   def HandleDownloadedFiles(self, responses):
     """Handle success/failure of the FileFinder flow."""
     if responses.success:

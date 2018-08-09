@@ -230,11 +230,9 @@ class GetClientStats(flow.GRRFlow, GetClientStatsProcessResponseMixin):
 
   category = "/Administrative/"
 
-  @flow.StateHandler()
   def Start(self):
     self.CallClient(server_stubs.GetClientStats, next_state="StoreResults")
 
-  @flow.StateHandler()
   def StoreResults(self, responses):
     """Stores the responses."""
 
@@ -243,7 +241,7 @@ class GetClientStats(flow.GRRFlow, GetClientStatsProcessResponseMixin):
       return
 
     for response in responses:
-      downsampled = self.ProcessResponse(self.client_id, response)
+      downsampled = self.ProcessResponse(self.client_urn, response)
       self.SendReply(downsampled)
 
 
@@ -292,13 +290,11 @@ class DeleteGRRTempFiles(flow.GRRFlow):
   category = "/Administrative/"
   args_type = DeleteGRRTempFilesArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Issue a request to delete tempfiles in directory."""
     self.CallClient(
         server_stubs.DeleteGRRTempFiles, self.args.pathspec, next_state="Done")
 
-  @flow.StateHandler()
   def Done(self, responses):
     if not responses.success:
       raise flow.FlowError(str(responses.status))
@@ -321,7 +317,6 @@ class Uninstall(flow.GRRFlow):
   category = "/Administrative/"
   args_type = UninstallArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Start the flow and determine OS support."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -332,7 +327,6 @@ class Uninstall(flow.GRRFlow):
     else:
       self.Log("Unsupported platform for Uninstall")
 
-  @flow.StateHandler()
   def Kill(self, responses):
     """Call the kill function on the client."""
     if not responses.success:
@@ -340,7 +334,6 @@ class Uninstall(flow.GRRFlow):
     elif self.args.kill:
       self.CallClient(server_stubs.Kill, next_state="Confirmation")
 
-  @flow.StateHandler()
   def Confirmation(self, responses):
     """Confirmation of kill."""
     if not responses.success:
@@ -352,12 +345,10 @@ class Kill(flow.GRRFlow):
 
   category = "/Administrative/"
 
-  @flow.StateHandler()
   def Start(self):
     """Call the kill function on the client."""
     self.CallClient(server_stubs.Kill, next_state="Confirmation")
 
-  @flow.StateHandler()
   def Confirmation(self, responses):
     """Confirmation of kill."""
     if not responses.success:
@@ -381,7 +372,6 @@ class UpdateConfiguration(flow.GRRFlow):
   category = None
   args_type = UpdateConfigurationArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Call the UpdateConfiguration function on the client."""
     self.CallClient(
@@ -389,7 +379,6 @@ class UpdateConfiguration(flow.GRRFlow):
         request=self.args.config,
         next_state="Confirmation")
 
-  @flow.StateHandler()
   def Confirmation(self, responses):
     """Confirmation."""
     if not responses.success:
@@ -410,7 +399,6 @@ class ExecutePythonHack(flow.GRRFlow):
   category = "/Administrative/"
   args_type = ExecutePythonHackArgs
 
-  @flow.StateHandler()
   def Start(self):
     python_hack_root_urn = config.CONFIG.Get("Config.python_hack_root")
     fd = aff4.FACTORY.Open(
@@ -427,7 +415,6 @@ class ExecutePythonHack(flow.GRRFlow):
           py_args=self.args.py_args,
           next_state="Done")
 
-  @flow.StateHandler()
   def Done(self, responses):
     response = responses.First()
     if not responses.success:
@@ -451,7 +438,6 @@ class ExecuteCommand(flow.GRRFlow):
 
   args_type = ExecuteCommandArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Call the execute function on the client."""
     self.CallClient(
@@ -461,7 +447,6 @@ class ExecuteCommand(flow.GRRFlow):
         time_limit=self.args.time_limit,
         next_state="Confirmation")
 
-  @flow.StateHandler()
   def Confirmation(self, responses):
     """Confirmation."""
     if responses.success:
@@ -570,14 +555,12 @@ class OnlineNotification(flow.GRRFlow):
 
     return args
 
-  @flow.StateHandler()
   def Start(self):
     """Starts processing."""
     if self.args.email is None:
       self.args.email = self.token.username
     self.CallClient(server_stubs.Echo, data="Ping", next_state="SendMail")
 
-  @flow.StateHandler()
   def SendMail(self, responses):
     """Sends a mail when the client has responded."""
     if responses.success:
@@ -589,7 +572,7 @@ class OnlineNotification(flow.GRRFlow):
           client_id=self.client_id,
           admin_ui=config.CONFIG["AdminUI.url"],
           hostname=hostname,
-          url="/clients/%s" % self.client_id.Basename(),
+          url="/clients/%s" % self.client_id,
           creator=self.token.username,
           signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
 
@@ -629,7 +612,6 @@ class UpdateClient(flow.GRRFlow):
 
   args_type = UpdateClientArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Start."""
     blob_path = self.args.blob_path
@@ -661,13 +643,11 @@ class UpdateClient(flow.GRRFlow):
 
       offset += len(blob.data)
 
-  @flow.StateHandler()
   def CheckUpdateAgent(self, responses):
     if not responses.success:
       raise flow.FlowError(
           "Error while calling UpdateAgent: %s" % responses.status)
 
-  @flow.StateHandler()
   def Interrogate(self, responses):
     if not responses.success:
       raise flow.FlowError("Installer reported an error: %s" % responses.status)
@@ -675,7 +655,6 @@ class UpdateClient(flow.GRRFlow):
     self.Log("Installer completed.")
     self.CallFlow(discovery.Interrogate.__name__, next_state="Done")
 
-  @flow.StateHandler()
   def Done(self):
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     info = client.Get(client.Schema.CLIENT_INFO)
@@ -849,12 +828,10 @@ class KeepAlive(flow.GRRFlow):
   sleep_time = 60
   args_type = KeepAliveArgs
 
-  @flow.StateHandler()
   def Start(self):
     self.state.end_time = self.args.duration.Expiry()
     self.CallStateInline(next_state="SendMessage")
 
-  @flow.StateHandler()
   def SendMessage(self, responses):
     if not responses.success:
       self.Log(responses.status.error_message)
@@ -862,7 +839,6 @@ class KeepAlive(flow.GRRFlow):
 
     self.CallClient(server_stubs.Echo, data="Wake up!", next_state="Sleep")
 
-  @flow.StateHandler()
   def Sleep(self, responses):
     if not responses.success:
       self.Log(responses.status.error_message)
@@ -888,7 +864,6 @@ class LaunchBinary(flow.GRRFlow):
   AUTHORIZED_LABELS = ["admin"]
   args_type = LaunchBinaryArgs
 
-  @flow.StateHandler()
   def Start(self):
     fd = aff4.FACTORY.Open(self.args.binary, token=self.token)
     if not isinstance(fd, collects.GRRSignedBlob):
@@ -916,7 +891,6 @@ class LaunchBinary(flow.GRRFlow):
 
     return result
 
-  @flow.StateHandler()
   def End(self, responses):
     if not responses.success:
       raise IOError(responses.status)

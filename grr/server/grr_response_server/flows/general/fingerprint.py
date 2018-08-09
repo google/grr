@@ -65,7 +65,6 @@ class FingerprintFileMixin(object):
         next_state="ProcessFingerprint",
         request_data=request_data)
 
-  @flow.StateHandler()
   def ProcessFingerprint(self, responses):
     """Store the fingerprint response."""
     if not responses.success:
@@ -79,7 +78,7 @@ class FingerprintFileMixin(object):
     else:
       pathspec = self.args.pathspec
 
-    self.state.urn = pathspec.AFF4Path(self.client_id)
+    self.state.urn = pathspec.AFF4Path(self.client_urn)
 
     with aff4.FACTORY.Create(
         self.state.urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
@@ -90,7 +89,7 @@ class FingerprintFileMixin(object):
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
       path_info.hash_entry = response.hash
 
-      data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
+      data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
     self.ReceiveFileFingerprint(
         self.state.urn, hash_obj, request_data=responses.request_data)
@@ -106,7 +105,6 @@ class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
   args_type = FingerprintFileArgs
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
-  @flow.StateHandler()
   def Start(self):
     """Issue the fingerprinting request."""
     self.FingerprintFile(self.args.pathspec)
@@ -115,9 +113,8 @@ class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
     # Notify any parent flows.
     self.SendReply(FingerprintFileResult(file_urn=urn, hash_entry=hash_obj))
 
-  @flow.StateHandler()
-  def End(self):
+  def End(self, responses):
     """Finalize the flow."""
-    super(FingerprintFile, self).End()
+    super(FingerprintFile, self).End(responses)
 
     self.Log("Finished fingerprinting %s", self.args.pathspec.path)

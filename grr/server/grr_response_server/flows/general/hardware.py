@@ -23,7 +23,6 @@ class DumpFlashImage(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
   args_type = DumpFlashImageArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Start by collecting general hardware information."""
     self.CallFlow(
@@ -31,7 +30,6 @@ class DumpFlashImage(flow.GRRFlow):
         artifact_list=["LinuxHardwareInfo"],
         next_state="DumpImage")
 
-  @flow.StateHandler()
   def DumpImage(self, responses):
     """Store hardware information and initiate dumping of the flash image."""
     self.state.hardware_info = responses.First()
@@ -42,7 +40,6 @@ class DumpFlashImage(flow.GRRFlow):
         notify_syslog=self.args.notify_syslog,
         next_state="CollectImage")
 
-  @flow.StateHandler()
   def CollectImage(self, responses):
     """Collect the image and store it into the database."""
     # If we have any log, forward them.
@@ -56,7 +53,7 @@ class DumpFlashImage(flow.GRRFlow):
           responses.status))
     elif not responses.First().path:
       self.Log("No path returned. Skipping host.")
-      self.CallState(next_state="End")
+      return
     else:
       image_path = responses.First().path
       self.CallFlow(
@@ -65,7 +62,6 @@ class DumpFlashImage(flow.GRRFlow):
           request_data={"image_path": image_path},
           next_state="DeleteTemporaryImage")
 
-  @flow.StateHandler()
   def DeleteTemporaryImage(self, responses):
     """Remove the temporary image from the client."""
     if not responses.success:
@@ -77,10 +73,10 @@ class DumpFlashImage(flow.GRRFlow):
 
     # Update the symbolic link to the new instance.
     with aff4.FACTORY.Create(
-        self.client_id.Add("spiflash"), aff4.AFF4Symlink,
+        self.client_urn.Add("spiflash"), aff4.AFF4Symlink,
         token=self.token) as symlink:
       symlink.Set(symlink.Schema.SYMLINK_TARGET,
-                  response.AFF4Path(self.client_id))
+                  response.AFF4Path(self.client_urn))
 
     # Clean up the temporary image from the client.
     self.CallClient(
@@ -88,15 +84,14 @@ class DumpFlashImage(flow.GRRFlow):
         responses.request_data["image_path"],
         next_state="TemporaryImageRemoved")
 
-  @flow.StateHandler()
   def TemporaryImageRemoved(self, responses):
     """Verify that the temporary image has been removed successfully."""
     if not responses.success:
       raise flow.FlowError("Unable to delete the temporary flash image: "
                            "{0}".format(responses.status))
 
-  @flow.StateHandler()
-  def End(self):
+  def End(self, responses):
+    del responses
     if hasattr(self.state, "image_path"):
       self.Log("Successfully wrote Flash image.")
 
@@ -116,7 +111,6 @@ class DumpACPITable(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
   args_type = DumpACPITableArgs
 
-  @flow.StateHandler()
   def Start(self):
     """Start collecting tables with listed signature."""
     for table_signature in self.args.table_signature_list:
@@ -126,7 +120,6 @@ class DumpACPITable(flow.GRRFlow):
           table_signature=table_signature,
           next_state="TableReceived")
 
-  @flow.StateHandler()
   def TableReceived(self, responses):
     """Store received ACPI tables from client in AFF4."""
     for response in responses:
@@ -147,7 +140,7 @@ class DumpACPITable(flow.GRRFlow):
       with data_store.DB.GetMutationPool() as mutation_pool:
 
         # TODO(amoser): Make this work in the UI!?
-        collection_urn = self.client_id.Add(
+        collection_urn = self.client_urn.Add(
             "devices/chipsec/acpi/tables/%s" % table_signature)
         for acpi_table_response in response.acpi_tables:
           hardware.ACPITableDataCollection.StaticAdd(

@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
+from future.utils import iterkeys
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -1016,5 +1017,5 @@ class DatabaseTestClientsMixin(object):
         cid for cid, ping in iteritems(client_ids_to_ping) if ping == base_time
     ]
     full_infos = d.MultiReadClientFullInfo(
-        client_ids_to_ping, min_last_ping=cutoff_time)
+        list(iterkeys(client_ids_to_ping)), min_last_ping=cutoff_time)
     self.assertItemsEqual(expected_client_ids, full_infos)

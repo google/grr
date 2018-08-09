@@ -342,6 +342,6 @@ class GlobExpression(rdfvalue.RDFString):
       A RegularExpression() object.
     """
     parts = self.__class__.REGEX_SPLIT_PATTERN.split(self._value)
-    result = "".join(self._ReplaceRegExPart(p) for p in parts)
+    result = u"".join(self._ReplaceRegExPart(p) for p in parts)
 
-    return rdf_standard.RegularExpression("(?i)\\A%s\\Z" % result)
+    return rdf_standard.RegularExpression(u"(?i)\\A%s\\Z" % result)
