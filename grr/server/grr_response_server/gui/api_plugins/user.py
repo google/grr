@@ -1202,7 +1202,7 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
   def HandleRelationalDB(self, args, token=None):
     subject_id = None
     if args.client_id:
-      subject_id = utils.SmartStr(args.client_id)
+      subject_id = unicode(args.client_id)
 
     approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(

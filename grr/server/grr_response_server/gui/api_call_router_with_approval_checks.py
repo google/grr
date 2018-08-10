@@ -60,6 +60,8 @@ class RelDBChecker(object):
 
   def _CheckAccess(self, username, subject_id, approval_type):
     """Checks access to a given subject by a given user."""
+    utils.AssertType(subject_id, unicode)
+
     cache_key = (username, subject_id, approval_type)
     try:
       self.acl_cache.Get(cache_key)
@@ -91,21 +93,21 @@ class RelDBChecker(object):
   def CheckClientAccess(self, username, client_id):
     """Checks whether a given user can access given client."""
     self._CheckAccess(
-        username, utils.SmartStr(client_id),
+        username, unicode(client_id),
         rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT)
 
   def CheckHuntAccess(self, username, hunt_id):
     """Checks whether a given user can access given hunt."""
 
     self._CheckAccess(
-        username, utils.SmartStr(hunt_id),
+        username, unicode(hunt_id),
         rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT)
 
   def CheckCronJobAccess(self, username, cron_job_id):
     """Checks whether a given user can access given cron job."""
 
     self._CheckAccess(
-        username, utils.SmartStr(cron_job_id),
+        username, unicode(cron_job_id),
         rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
 
   def CheckIfCanStartClientFlow(self, username, flow_name):

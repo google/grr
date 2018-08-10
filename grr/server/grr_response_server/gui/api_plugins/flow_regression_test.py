@@ -415,7 +415,7 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
 
   def Run(self):
     with utils.Stubber(
-        registry.FlowRegistry, "FLOW_REGISTRY", {
+        registry.AFF4FlowRegistry, "FLOW_REGISTRY", {
             processes.ListProcesses.__name__: processes.ListProcesses,
             file_finder.FileFinder.__name__: file_finder.FileFinder,
         }):

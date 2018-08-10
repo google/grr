@@ -8,6 +8,7 @@ WIP, will eventually replace datastore.py.
 
 """
 import abc
+import re
 
 
 from future.utils import iteritems
@@ -688,6 +689,15 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def MultiWritePathInfos(self, path_infos):
+    """Writes a collection of path info records for specified clients.
+
+    Args:
+      path_infos: A dictionary mapping client ids to `rdf_objects.PathInfo`
+                  instances.
+    """
+
+  @abc.abstractmethod
   def InitPathInfos(self, client_id, path_infos):
     """Initializes a collection of path info records for a client.
 
@@ -1151,141 +1161,6 @@ class DatabaseValidationWrapper(Database):
     super(DatabaseValidationWrapper, self).__init__()
     self.delegate = delegate
 
-  @staticmethod
-  def _ValidateType(value, expected_type):
-    if not isinstance(value, expected_type):
-      message = "Expected `%s` but got `%s` instead"
-      raise TypeError(message % (expected_type, type(value)))
-
-  @staticmethod
-  def _ValidateEnumType(value, expected_enum_type):
-    if value not in expected_enum_type.reverse_enum:
-      message = "Expected one of `%s` but got `%s` instead"
-      raise TypeError(message % (expected_enum_type.reverse_enum, value))
-
-  def _ValidateStringId(self, id_type, id_value):
-    if not isinstance(id_value, basestring):
-      raise TypeError(
-          "Expected %s as a string, got %s" % (id_type, type(id_value)))
-
-    if not id_value:
-      raise ValueError("Expected %s to be non-empty." % id_type)
-
-  @classmethod
-  def _ValidateString(cls, typename, value):
-    if not isinstance(value, unicode):
-      message = "Expected %s as a unicode string, got '%s' of type '%s' instead"
-      message %= (typename, value, type(value))
-      raise TypeError(message)
-
-  def _ValidateClientId(self, client_id):
-    self._ValidateStringId("client_id", client_id)
-
-  def _ValidateClientIds(self, client_ids):
-    self._ValidateType(client_ids, list)
-    for client_id in client_ids:
-      self._ValidateClientId(client_id)
-
-  def _ValidateHuntId(self, hunt_id):
-    self._ValidateString("hunt_id", hunt_id)
-
-  def _ValidateCronJobId(self, cron_job_id):
-    self._ValidateString("cron_job_id", cron_job_id)
-
-  def _ValidateCronJobRunId(self, cron_job_run_id):
-    if cron_job_run_id is not None:
-      self._ValidateString("cron_job_run_id", cron_job_run_id)
-      # Raises TypeError if cron_job_id is not a valid hex number.
-      int(cron_job_run_id, 16)
-      if len(cron_job_run_id) != 8:
-        raise TypeError("Invalid cron job run id: %s" % cron_job_run_id)
-
-  def _ValidateApprovalId(self, approval_id):
-    self._ValidateString("approval_id", approval_id)
-
-  def _ValidateApprovalType(self, approval_type):
-    if (approval_type ==
-        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_NONE):
-      raise ValueError("Unexpected approval type: %s" % approval_type)
-
-  def _ValidateUsername(self, username):
-    self._ValidateString("username", username)
-
-  def _ValidateLabel(self, label):
-    self._ValidateString("label", label)
-
-  def _ValidatePathInfo(self, path_info):
-    self._ValidateType(path_info, rdf_objects.PathInfo)
-    if not path_info.path_type:
-      raise ValueError(
-          "Expected path_type to be set, got: %s" % str(path_info.path_type))
-
-  def _ValidatePathInfos(self, path_infos):
-    self._ValidateType(path_infos, list)
-
-    validated = set()
-    for path_info in path_infos:
-      self._ValidatePathInfo(path_info)
-
-      path_key = (path_info.path_type, path_info.GetPathID())
-      if path_key in validated:
-        message = "Conflicting writes for path: '{path}' ({path_type})"
-        message.format(
-            path="/".join(path_info.components), path_type=path_info.path_type)
-        raise ValueError(message)
-
-      validated.add(path_key)
-
-  def _ValidatePathComponents(self, components):
-    self._ValidateType(components, tuple)
-    for component in components:
-      self._ValidateType(component, unicode)
-
-  def _ValidateNotificationType(self, notification_type):
-    if notification_type is None:
-      raise ValueError("notification_type can't be None")
-
-    if notification_type == rdf_objects.UserNotification.Type.TYPE_UNSET:
-      raise ValueError("notification_type can't be TYPE_UNSET")
-
-  def _ValidateNotificationState(self, notification_state):
-    if notification_state is None:
-      raise ValueError("notification_state can't be None")
-
-    if notification_state == rdf_objects.UserNotification.State.STATE_UNSET:
-      raise ValueError("notification_state can't be STATE_UNSET")
-
-  def _ValidateTimeRange(self, timerange):
-    """Parses a timerange argument and always returns non-None timerange."""
-
-    if timerange is None:
-      return
-
-    if len(timerange) != 2:
-      raise ValueError("Timerange should be a sequence with 2 items.")
-
-    for i in timerange:
-      if i:
-        self._ValidateTimestamp(i)
-
-  def _ValidateDuration(self, duration):
-    self._ValidateType(duration, rdfvalue.Duration)
-
-  def _ValidateTimestamp(self, timestamp):
-    self._ValidateType(timestamp, rdfvalue.RDFDatetime)
-
-  def _ValidateClientPathID(self, client_path_id):
-    self._ValidateType(client_path_id, rdf_objects.ClientPathID)
-
-  def _ValidateBlobReference(self, blob_ref):
-    self._ValidateType(blob_ref, rdf_objects.BlobReference)
-
-  def _ValidateBlobID(self, blob_id):
-    self._ValidateType(blob_id, rdf_objects.BlobID)
-
-  def _ValidateBytes(self, value):
-    self._ValidateType(value, bytes)
-
   def WriteClientMetadata(self,
                           client_id,
                           certificate=None,
@@ -1295,13 +1170,13 @@ class DatabaseValidationWrapper(Database):
                           last_clock=None,
                           last_ip=None,
                           last_foreman=None):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
 
-    if certificate:
-      self._ValidateType(certificate, rdf_crypto.RDFX509Cert)
+    if certificate is not None:
+      utils.AssertType(certificate, rdf_crypto.RDFX509Cert)
 
-    if last_ip:
-      self._ValidateType(last_ip, rdf_client.NetworkAddress)
+    if last_ip is not None:
+      utils.AssertType(last_ip, rdf_client.NetworkAddress)
 
     return self.delegate.WriteClientMetadata(
         client_id,
@@ -1314,19 +1189,19 @@ class DatabaseValidationWrapper(Database):
         last_foreman=last_foreman)
 
   def MultiReadClientMetadata(self, client_ids):
-    self._ValidateClientIds(client_ids)
+    _ValidateClientIds(client_ids)
     return self.delegate.MultiReadClientMetadata(client_ids)
 
   def WriteClientSnapshot(self, client):
-    self._ValidateType(client, rdf_objects.ClientSnapshot)
+    utils.AssertType(client, rdf_objects.ClientSnapshot)
     return self.delegate.WriteClientSnapshot(client)
 
   def MultiReadClientSnapshot(self, client_ids):
-    self._ValidateClientIds(client_ids)
+    _ValidateClientIds(client_ids)
     return self.delegate.MultiReadClientSnapshot(client_ids)
 
   def MultiReadClientFullInfo(self, client_ids, min_last_ping=None):
-    self._ValidateClientIds(client_ids)
+    _ValidateClientIds(client_ids)
     return self.delegate.MultiReadClientFullInfo(
         client_ids, min_last_ping=min_last_ping)
 
@@ -1339,7 +1214,7 @@ class DatabaseValidationWrapper(Database):
 
     client_id = None
     for client in clients:
-      self._ValidateType(client, rdf_objects.ClientSnapshot)
+      utils.AssertType(client, rdf_objects.ClientSnapshot)
 
       if client.timestamp is None:
         raise AttributeError("Client without a `timestamp` attribute")
@@ -1352,48 +1227,50 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteClientSnapshotHistory(clients)
 
   def ReadClientSnapshotHistory(self, client_id, timerange=None):
-    self._ValidateClientId(client_id)
-    self._ValidateTimeRange(timerange)
+    _ValidateClientId(client_id)
+    if timerange is not None:
+      _ValidateTimeRange(timerange)
 
     return self.delegate.ReadClientSnapshotHistory(
         client_id, timerange=timerange)
 
   def WriteClientStartupInfo(self, client_id, startup_info):
-    self._ValidateType(startup_info, rdf_client.StartupInfo)
-    self._ValidateClientId(client_id)
+    utils.AssertType(startup_info, rdf_client.StartupInfo)
+    _ValidateClientId(client_id)
 
     return self.delegate.WriteClientStartupInfo(client_id, startup_info)
 
   def ReadClientStartupInfo(self, client_id):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
 
     return self.delegate.ReadClientStartupInfo(client_id)
 
   def ReadClientStartupInfoHistory(self, client_id, timerange=None):
-    self._ValidateClientId(client_id)
-    self._ValidateTimeRange(timerange)
+    _ValidateClientId(client_id)
+    if timerange is not None:
+      _ValidateTimeRange(timerange)
 
     return self.delegate.ReadClientStartupInfoHistory(
         client_id, timerange=timerange)
 
   def WriteClientCrashInfo(self, client_id, crash_info):
-    self._ValidateType(crash_info, rdf_client.ClientCrash)
-    self._ValidateClientId(client_id)
+    utils.AssertType(crash_info, rdf_client.ClientCrash)
+    _ValidateClientId(client_id)
 
     return self.delegate.WriteClientCrashInfo(client_id, crash_info)
 
   def ReadClientCrashInfo(self, client_id):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
 
     return self.delegate.ReadClientCrashInfo(client_id)
 
   def ReadClientCrashInfoHistory(self, client_id):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
 
     return self.delegate.ReadClientCrashInfoHistory(client_id)
 
   def AddClientKeywords(self, client_id, keywords):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
 
     return self.delegate.AddClientKeywords(client_id, keywords)
 
@@ -1406,31 +1283,31 @@ class DatabaseValidationWrapper(Database):
                        "representation.")
 
     if start_time:
-      self._ValidateTimestamp(start_time)
+      _ValidateTimestamp(start_time)
 
     return self.delegate.ListClientsForKeywords(keywords, start_time=start_time)
 
   def RemoveClientKeyword(self, client_id, keyword):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
 
     return self.delegate.RemoveClientKeyword(client_id, keyword)
 
   def AddClientLabels(self, client_id, owner, labels):
-    self._ValidateClientId(client_id)
-    self._ValidateUsername(owner)
+    _ValidateClientId(client_id)
+    _ValidateUsername(owner)
     for label in labels:
-      self._ValidateLabel(label)
+      _ValidateLabel(label)
 
     return self.delegate.AddClientLabels(client_id, owner, labels)
 
   def MultiReadClientLabels(self, client_ids):
-    self._ValidateClientIds(client_ids)
+    _ValidateClientIds(client_ids)
     return self.delegate.MultiReadClientLabels(client_ids)
 
   def RemoveClientLabels(self, client_id, owner, labels):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
     for label in labels:
-      self._ValidateLabel(label)
+      _ValidateLabel(label)
 
     return self.delegate.RemoveClientLabels(client_id, owner, labels)
 
@@ -1438,7 +1315,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadAllClientLabels()
 
   def WriteForemanRule(self, rule):
-    self._ValidateType(rule, foreman_rules.ForemanCondition)
+    utils.AssertType(rule, foreman_rules.ForemanCondition)
 
     if not rule.hunt_id:
       raise ValueError("Foreman rule has no hunt_id: %s" % rule)
@@ -1446,7 +1323,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteForemanRule(rule)
 
   def RemoveForemanRule(self, hunt_id):
-    self._ValidateHuntId(hunt_id)
+    _ValidateHuntId(hunt_id)
     return self.delegate.RemoveForemanRule(hunt_id)
 
   def ReadAllForemanRules(self):
@@ -1461,7 +1338,7 @@ class DatabaseValidationWrapper(Database):
                    ui_mode=None,
                    canary_mode=None,
                    user_type=None):
-    self._ValidateUsername(username)
+    _ValidateUsername(username)
 
     return self.delegate.WriteGRRUser(
         username,
@@ -1471,7 +1348,7 @@ class DatabaseValidationWrapper(Database):
         user_type=user_type)
 
   def ReadGRRUser(self, username):
-    self._ValidateUsername(username)
+    _ValidateUsername(username)
 
     return self.delegate.ReadGRRUser(username)
 
@@ -1479,15 +1356,15 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadAllGRRUsers()
 
   def WriteApprovalRequest(self, approval_request):
-    self._ValidateType(approval_request, rdf_objects.ApprovalRequest)
-    self._ValidateUsername(approval_request.requestor_username)
-    self._ValidateApprovalType(approval_request.approval_type)
+    utils.AssertType(approval_request, rdf_objects.ApprovalRequest)
+    _ValidateUsername(approval_request.requestor_username)
+    _ValidateApprovalType(approval_request.approval_type)
 
     return self.delegate.WriteApprovalRequest(approval_request)
 
   def ReadApprovalRequest(self, requestor_username, approval_id):
-    self._ValidateUsername(requestor_username)
-    self._ValidateApprovalId(approval_id)
+    _ValidateUsername(requestor_username)
+    _ValidateApprovalId(approval_id)
 
     return self.delegate.ReadApprovalRequest(requestor_username, approval_id)
 
@@ -1496,11 +1373,11 @@ class DatabaseValidationWrapper(Database):
                            approval_type,
                            subject_id=None,
                            include_expired=False):
-    self._ValidateUsername(requestor_username)
-    self._ValidateApprovalType(approval_type)
+    _ValidateUsername(requestor_username)
+    _ValidateApprovalType(approval_type)
 
     if subject_id is not None:
-      self._ValidateStringId("approval subject id", subject_id)
+      _ValidateStringId("approval subject id", subject_id)
 
     return self.delegate.ReadApprovalRequests(
         requestor_username,
@@ -1509,37 +1386,37 @@ class DatabaseValidationWrapper(Database):
         include_expired=include_expired)
 
   def GrantApproval(self, requestor_username, approval_id, grantor_username):
-    self._ValidateUsername(requestor_username)
-    self._ValidateApprovalId(approval_id)
-    self._ValidateUsername(grantor_username)
+    _ValidateUsername(requestor_username)
+    _ValidateApprovalId(approval_id)
+    _ValidateUsername(grantor_username)
 
     return self.delegate.GrantApproval(requestor_username, approval_id,
                                        grantor_username)
 
   def ReadPathInfo(self, client_id, path_type, components, timestamp=None):
-    self._ValidateClientId(client_id)
-    self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
-    self._ValidatePathComponents(components)
+    _ValidateClientId(client_id)
+    _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    _ValidatePathComponents(components)
 
     if timestamp is not None:
-      self._ValidateTimestamp(timestamp)
+      _ValidateTimestamp(timestamp)
 
     return self.delegate.ReadPathInfo(
         client_id, path_type, components, timestamp=timestamp)
 
   def ReadPathInfos(self, client_id, path_type, components_list):
-    self._ValidateClientId(client_id)
-    self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
-    self._ValidateType(components_list, list)
+    _ValidateClientId(client_id)
+    _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    utils.AssertType(components_list, list)
     for components in components_list:
-      self._ValidatePathComponents(components)
+      _ValidatePathComponents(components)
 
     return self.delegate.ReadPathInfos(client_id, path_type, components_list)
 
   def ListChildPathInfos(self, client_id, path_type, components):
-    self._ValidateClientId(client_id)
-    self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
-    self._ValidatePathComponents(components)
+    _ValidateClientId(client_id)
+    _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    _ValidatePathComponents(components)
 
     return self.delegate.ListChildPathInfos(client_id, path_type, components)
 
@@ -1548,86 +1425,95 @@ class DatabaseValidationWrapper(Database):
                               path_type,
                               components,
                               max_depth=None):
-    self._ValidateClientId(client_id)
-    self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
-    self._ValidatePathComponents(components)
+    _ValidateClientId(client_id)
+    _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    _ValidatePathComponents(components)
 
     return self.delegate.ListDescendentPathInfos(
         client_id, path_type, components, max_depth=max_depth)
 
   def FindPathInfoByPathID(self, client_id, path_type, path_id, timestamp=None):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
 
     if timestamp is not None:
-      self._ValidateTimestamp(timestamp)
+      _ValidateTimestamp(timestamp)
 
     return self.delegate.FindPathInfoByPathID(
         client_id, path_type, path_id, timestamp=timestamp)
 
   def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
 
     return self.delegate.FindPathInfosByPathIDs(client_id, path_type, path_ids)
 
   def WritePathInfos(self, client_id, path_infos):
-    self._ValidateClientId(client_id)
-    self._ValidatePathInfos(path_infos)
+    _ValidateClientId(client_id)
+    _ValidatePathInfos(path_infos)
     return self.delegate.WritePathInfos(client_id, path_infos)
 
+  def MultiWritePathInfos(self, path_infos):
+    utils.AssertType(path_infos, dict)
+    for client_id, client_path_infos in iteritems(path_infos):
+      _ValidateClientId(client_id)
+      _ValidatePathInfos(client_path_infos)
+
+    return self.delegate.MultiWritePathInfos(path_infos)
+
   def InitPathInfos(self, client_id, path_infos):
-    self._ValidateClientId(client_id)
-    self._ValidatePathInfos(path_infos)
+    _ValidateClientId(client_id)
+    _ValidatePathInfos(path_infos)
     return self.delegate.InitPathInfos(client_id, path_infos)
 
   def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
 
     for path_info, stat_entry in iteritems(stat_entries):
-      self._ValidateType(path_info, rdf_objects.PathInfo)
-      self._ValidateType(stat_entry, rdf_client.StatEntry)
+      utils.AssertType(path_info, rdf_objects.PathInfo)
+      utils.AssertType(stat_entry, rdf_client.StatEntry)
 
     for path_info, hash_entry in iteritems(hash_entries):
-      self._ValidateType(path_info, rdf_objects.PathInfo)
-      self._ValidateType(hash_entry, rdf_crypto.Hash)
+      utils.AssertType(path_info, rdf_objects.PathInfo)
+      utils.AssertType(hash_entry, rdf_crypto.Hash)
 
     self.delegate.MultiWritePathHistory(client_id, stat_entries, hash_entries)
 
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
 
     return self.delegate.FindDescendentPathIDs(
         client_id, path_type, path_id, max_depth=max_depth)
 
   def WriteUserNotification(self, notification):
-    self._ValidateType(notification, rdf_objects.UserNotification)
-    self._ValidateUsername(notification.username)
-    self._ValidateNotificationType(notification.notification_type)
-    self._ValidateNotificationState(notification.state)
+    utils.AssertType(notification, rdf_objects.UserNotification)
+    _ValidateUsername(notification.username)
+    _ValidateNotificationType(notification.notification_type)
+    _ValidateNotificationState(notification.state)
 
     return self.delegate.WriteUserNotification(notification)
 
   def ReadUserNotifications(self, username, state=None, timerange=None):
-    self._ValidateUsername(username)
-    self._ValidateTimeRange(timerange)
+    _ValidateUsername(username)
+    if timerange is not None:
+      _ValidateTimeRange(timerange)
     if state is not None:
-      self._ValidateNotificationState(state)
+      _ValidateNotificationState(state)
 
     return self.delegate.ReadUserNotifications(
         username, state=state, timerange=timerange)
 
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
-    self._ValidateClientId(client_id)
-    self._ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
-    self._ValidateType(components_list, list)
+    _ValidateClientId(client_id)
+    _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    utils.AssertType(components_list, list)
     for components in components_list:
-      self._ValidatePathComponents(components)
+      _ValidatePathComponents(components)
 
     return self.delegate.ReadPathInfosHistories(client_id, path_type,
                                                 components_list)
 
   def UpdateUserNotifications(self, username, timestamps, state=None):
-    self._ValidateNotificationState(state)
+    _ValidateNotificationState(state)
 
     return self.delegate.UpdateUserNotifications(
         username, timestamps, state=state)
@@ -1636,7 +1522,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadAllAuditEvents()
 
   def WriteAuditEvent(self, event):
-    self._ValidateType(event, rdf_events.AuditEvent)
+    utils.AssertType(event, rdf_events.AuditEvent)
     return self.delegate.WriteAuditEvent(event)
 
   def WriteMessageHandlerRequests(self, requests):
@@ -1652,7 +1538,7 @@ class DatabaseValidationWrapper(Database):
     if handler is None:
       raise ValueError("handler must be provided")
 
-    self._ValidateDuration(lease_time)
+    _ValidateDuration(lease_time)
     return self.delegate.RegisterMessageHandler(
         handler, lease_time, limit=limit)
 
@@ -1660,29 +1546,29 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.UnregisterMessageHandler()
 
   def WriteCronJob(self, cronjob):
-    self._ValidateType(cronjob, rdf_cronjobs.CronJob)
+    utils.AssertType(cronjob, rdf_cronjobs.CronJob)
     return self.delegate.WriteCronJob(cronjob)
 
   def ReadCronJob(self, cronjob_id):
-    self._ValidateCronJobId(cronjob_id)
+    _ValidateCronJobId(cronjob_id)
     return self.delegate.ReadCronJob(cronjob_id)
 
   def ReadCronJobs(self, cronjob_ids=None):
-    if cronjob_ids:
+    if cronjob_ids is not None:
       for cronjob_id in cronjob_ids:
-        self._ValidateCronJobId(cronjob_id)
+        _ValidateCronJobId(cronjob_id)
     return self.delegate.ReadCronJobs(cronjob_ids=cronjob_ids)
 
   def EnableCronJob(self, cronjob_id):
-    self._ValidateCronJobId(cronjob_id)
+    _ValidateCronJobId(cronjob_id)
     return self.delegate.EnableCronJob(cronjob_id)
 
   def DisableCronJob(self, cronjob_id):
-    self._ValidateCronJobId(cronjob_id)
+    _ValidateCronJobId(cronjob_id)
     return self.delegate.DisableCronJob(cronjob_id)
 
   def DeleteCronJob(self, cronjob_id):
-    self._ValidateCronJobId(cronjob_id)
+    _ValidateCronJobId(cronjob_id)
     return self.delegate.DeleteCronJob(cronjob_id)
 
   def UpdateCronJob(self,
@@ -1692,9 +1578,9 @@ class DatabaseValidationWrapper(Database):
                     current_run_id=Database.unchanged,
                     state=Database.unchanged,
                     forced_run_requested=Database.unchanged):
-    self._ValidateCronJobId(cronjob_id)
-    if current_run_id != Database.unchanged:
-      self._ValidateCronJobRunId(current_run_id)
+    _ValidateCronJobId(cronjob_id)
+    if current_run_id is not None and current_run_id != Database.unchanged:
+      _ValidateCronJobRunId(current_run_id)
     return self.delegate.UpdateCronJob(
         cronjob_id,
         last_run_status=last_run_status,
@@ -1706,82 +1592,224 @@ class DatabaseValidationWrapper(Database):
   def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):
     if cronjob_ids:
       for cronjob_id in cronjob_ids:
-        self._ValidateCronJobId(cronjob_id)
-    self._ValidateDuration(lease_time)
+        _ValidateCronJobId(cronjob_id)
+    _ValidateDuration(lease_time)
     return self.delegate.LeaseCronJobs(
         cronjob_ids=cronjob_ids, lease_time=lease_time)
 
   def ReturnLeasedCronJobs(self, jobs):
     for job in jobs:
-      self._ValidateType(job, rdf_cronjobs.CronJob)
+      utils.AssertType(job, rdf_cronjobs.CronJob)
     return self.delegate.ReturnLeasedCronJobs(jobs)
 
   def WriteCronJobRun(self, run_object):
-    self._ValidateType(run_object, rdf_cronjobs.CronJobRun)
+    utils.AssertType(run_object, rdf_cronjobs.CronJobRun)
     return self.delegate.WriteCronJobRun(run_object)
 
   def ReadCronJobRun(self, job_id, run_id):
-    self._ValidateCronJobId(job_id)
-    self._ValidateCronJobRunId(run_id)
+    _ValidateCronJobId(job_id)
+    _ValidateCronJobRunId(run_id)
     return self.delegate.ReadCronJobRun(job_id, run_id)
 
   def ReadCronJobRuns(self, job_id):
-    self._ValidateCronJobId(job_id)
+    _ValidateCronJobId(job_id)
     return self.delegate.ReadCronJobRuns(job_id)
 
   def DeleteOldCronJobRuns(self, cutoff_timestamp):
-    self._ValidateTimestamp(cutoff_timestamp)
+    _ValidateTimestamp(cutoff_timestamp)
     return self.delegate.DeleteOldCronJobRuns(cutoff_timestamp)
 
   def WriteClientPathBlobReferences(self, references_by_client_path_id):
     for client_path_id, refs in iteritems(references_by_client_path_id):
-      self._ValidateClientPathID(client_path_id)
+      _ValidateClientPathID(client_path_id)
       for ref in refs:
-        self._ValidateBlobReference(ref)
+        _ValidateBlobReference(ref)
 
     self.delegate.WriteClientPathBlobReferences(references_by_client_path_id)
 
   def ReadClientPathBlobReferences(self, client_path_ids):
     for p in client_path_ids:
-      self._ValidateClientPathID(p)
+      _ValidateClientPathID(p)
 
     return self.delegate.ReadClientPathBlobReferences(client_path_ids)
 
   def WriteBlobs(self, blob_id_data_pairs):
     for bid, data in iteritems(blob_id_data_pairs):
-      self._ValidateBlobID(bid)
-      self._ValidateBytes(data)
+      _ValidateBlobID(bid)
+      _ValidateBytes(data)
 
     return self.delegate.WriteBlobs(blob_id_data_pairs)
 
   def ReadBlobs(self, blob_ids):
     for bid in blob_ids:
-      self._ValidateBlobID(bid)
+      _ValidateBlobID(bid)
 
     return self.delegate.ReadBlobs(blob_ids)
 
   def CheckBlobsExist(self, blob_ids):
     for bid in blob_ids:
-      self._ValidateBlobID(bid)
+      _ValidateBlobID(bid)
 
     return self.delegate.CheckBlobsExist(blob_ids)
 
   def WriteClientMessages(self, messages):
     for message in messages:
-      self._ValidateType(message, rdf_flows.GrrMessage)
+      utils.AssertType(message, rdf_flows.GrrMessage)
     return self.delegate.WriteClientMessages(messages)
 
   def LeaseClientMessages(self, client_id, lease_time=None, limit=1000000):
-    self._ValidateClientId(client_id)
-    self._ValidateDuration(lease_time)
+    _ValidateClientId(client_id)
+    _ValidateDuration(lease_time)
     return self.delegate.LeaseClientMessages(
         client_id, lease_time=lease_time, limit=limit)
 
   def ReadClientMessages(self, client_id):
-    self._ValidateClientId(client_id)
+    _ValidateClientId(client_id)
     return self.delegate.ReadClientMessages(client_id)
 
   def DeleteClientMessages(self, messages):
     for message in messages:
-      self._ValidateType(message, rdf_flows.GrrMessage)
+      utils.AssertType(message, rdf_flows.GrrMessage)
     return self.delegate.DeleteClientMessages(messages)
+
+
+def _ValidateEnumType(value, expected_enum_type):
+  if value not in expected_enum_type.reverse_enum:
+    message = "Expected one of `%s` but got `%s` instead"
+    raise TypeError(message % (expected_enum_type.reverse_enum, value))
+
+
+def _ValidateStringId(typename, value):
+  utils.AssertType(value, unicode)
+  if not value:
+    message = "Expected %s `%s` to be non-empty" % (typename, value)
+    raise ValueError(message)
+
+
+def _ValidateClientId(client_id):
+  _ValidateStringId("client_id", client_id)
+  # TODO(hanuszczak): Eventually, we should allow only either lower or upper
+  # case letters in the client id.
+  if re.match(r"^C\.[0-9A-Z]{16}$", client_id, re.IGNORECASE) is None:
+    raise ValueError("Client id has incorrect format: `%s`" % client_id)
+
+
+def _ValidateClientIds(client_ids):
+  utils.AssertListType(client_ids, unicode)
+  for client_id in client_ids:
+    _ValidateClientId(client_id)
+
+
+def _ValidateHuntId(hunt_id):
+  _ValidateStringId("hunt_id", hunt_id)
+
+
+def _ValidateCronJobId(cron_job_id):
+  _ValidateStringId("cron_job_id", cron_job_id)
+
+
+def _ValidateCronJobRunId(cron_job_run_id):
+  _ValidateStringId("cron_job_run_id", cron_job_run_id)
+  # Raises TypeError if cron_job_id is not a valid hex number.
+  int(cron_job_run_id, 16)
+  if len(cron_job_run_id) != 8:
+    raise ValueError("Invalid cron job run id: %s" % cron_job_run_id)
+
+
+def _ValidateApprovalId(approval_id):
+  _ValidateStringId("approval_id", approval_id)
+
+
+def _ValidateApprovalType(approval_type):
+  if (approval_type ==
+      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_NONE):
+    raise ValueError("Unexpected approval type: %s" % approval_type)
+
+
+def _ValidateUsername(username):
+  _ValidateStringId("username", username)
+
+
+def _ValidateLabel(label):
+  _ValidateStringId("label", label)
+
+
+def _ValidatePathInfo(path_info):
+  utils.AssertType(path_info, rdf_objects.PathInfo)
+  if not path_info.path_type:
+    raise ValueError(
+        "Expected path_type to be set, got: %s" % path_info.path_type)
+
+
+def _ValidatePathInfos(path_infos):
+  """Validates a sequence of path infos."""
+  utils.AssertIterableType(path_infos, rdf_objects.PathInfo)
+
+  validated = set()
+  for path_info in path_infos:
+    _ValidatePathInfo(path_info)
+
+    path_key = (path_info.path_type, path_info.GetPathID())
+    if path_key in validated:
+      message = "Conflicting writes for path: '{path}' ({path_type})"
+      message.format(
+          path="/".join(path_info.components), path_type=path_info.path_type)
+      raise ValueError(message)
+
+    validated.add(path_key)
+
+
+def _ValidatePathComponents(components):
+  utils.AssertTupleType(components, unicode)
+
+
+def _ValidateNotificationType(notification_type):
+  if notification_type is None:
+    raise ValueError("notification_type can't be None")
+
+  if notification_type == rdf_objects.UserNotification.Type.TYPE_UNSET:
+    raise ValueError("notification_type can't be TYPE_UNSET")
+
+
+def _ValidateNotificationState(notification_state):
+  if notification_state is None:
+    raise ValueError("notification_state can't be None")
+
+  if notification_state == rdf_objects.UserNotification.State.STATE_UNSET:
+    raise ValueError("notification_state can't be STATE_UNSET")
+
+
+def _ValidateTimeRange(timerange):
+  """Parses a timerange argument and always returns non-None timerange."""
+  if len(timerange) != 2:
+    raise ValueError("Timerange should be a sequence with 2 items.")
+
+  (start, end) = timerange
+  if start is not None:
+    utils.AssertType(start, rdfvalue.RDFDatetime)
+  if end is not None:
+    utils.AssertType(end, rdfvalue.RDFDatetime)
+
+
+def _ValidateDuration(duration):
+  utils.AssertType(duration, rdfvalue.Duration)
+
+
+def _ValidateTimestamp(timestamp):
+  utils.AssertType(timestamp, rdfvalue.RDFDatetime)
+
+
+def _ValidateClientPathID(client_path_id):
+  utils.AssertType(client_path_id, rdf_objects.ClientPathID)
+
+
+def _ValidateBlobReference(blob_ref):
+  utils.AssertType(blob_ref, rdf_objects.BlobReference)
+
+
+def _ValidateBlobID(blob_id):
+  utils.AssertType(blob_id, rdf_objects.BlobID)
+
+
+def _ValidateBytes(value):
+  utils.AssertType(value, bytes)

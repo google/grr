@@ -1754,7 +1754,73 @@ def IterableStartsWith(this, that):
 
 
 def AssertType(value, expected_type):
+  """Ensures that given value has certain type.
+
+  Args:
+    value: A value to assert the type for.
+    expected_type: An expected type for the given value.
+
+  Raises:
+    TypeError: If given value does not have the expected type.
+  """
   if not isinstance(value, expected_type):
     message = "Expected type `%s`, but got value `%s` of type `%s`"
     message %= (expected_type, value, type(value))
     raise TypeError(message)
+
+
+def AssertIterableType(iterable, expected_item_type):
+  """Ensures that given iterable container has certain type.
+
+  Args:
+    iterable: An iterable container to assert the type for.
+    expected_item_type: An expected type of the container items.
+
+  Raises:
+    TypeError: If given container does is not an iterable or its items do not
+               have the expected type.
+  """
+  # We do not consider iterators to be iterables even though Python does. An
+  # "iterable" should be a type that can be iterated (that is: an iterator can
+  # be constructed for them). Iterators should not be considered to be iterable
+  # because it makes no sense to construct an iterator for iterator. The most
+  # important practical implication is that act of iterating an iterator drains
+  # it whereas act of iterating the iterable does not.
+  if isinstance(iterable, collections.Iterator):
+    message = "Expected iterable container but got iterator `%s` instead"
+    message %= iterable
+    raise TypeError(message)
+
+  AssertType(iterable, collections.Iterable)
+  for item in iterable:
+    AssertType(item, expected_item_type)
+
+
+def AssertListType(lst, expected_item_type):
+  """Ensures that given list is actually a list of items of a certain type.
+
+  Args:
+    lst: A list to assert the type for.
+    expected_item_type: An expected type for list items.
+
+  Raises:
+    TypeError: If given list is not really a list or its items do not have the
+               expected type.
+  """
+  AssertType(lst, list)
+  AssertIterableType(lst, expected_item_type)
+
+
+def AssertTupleType(tpl, expected_item_type):
+  """Ensures that given tuple is actually a tuple of items of a certain type.
+
+  Args:
+    tpl: A tuple to assert the type for.
+    expected_item_type: An expected type for tuple items.
+
+  Raises:
+    TypeError: If given tuple is not really a tuple or its items do not have the
+               expected type.
+  """
+  AssertType(tpl, tuple)
+  AssertIterableType(tpl, expected_item_type)

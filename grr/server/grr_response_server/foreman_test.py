@@ -74,23 +74,23 @@ class ForemanTests(test_lib.GRRBaseTest):
       foreman_obj.Close()
 
       self.clients_launched = []
-      foreman_obj.AssignTasksToClient("C.1000000000000001")
-      foreman_obj.AssignTasksToClient("C.1000000000000002")
-      foreman_obj.AssignTasksToClient("C.1000000000000003")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000001")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000002")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000003")
 
       # Make sure that only the windows machines ran
       self.assertEqual(len(self.clients_launched), 2)
       self.assertEqual(self.clients_launched[0][0],
-                       rdf_client.ClientURN("C.1000000000000001"))
+                       rdf_client.ClientURN(u"C.1000000000000001"))
       self.assertEqual(self.clients_launched[1][0],
-                       rdf_client.ClientURN("C.1000000000000003"))
+                       rdf_client.ClientURN(u"C.1000000000000003"))
 
       self.clients_launched = []
 
       # Run again - This should not fire since it did already
-      foreman_obj.AssignTasksToClient("C.1000000000000001")
-      foreman_obj.AssignTasksToClient("C.1000000000000002")
-      foreman_obj.AssignTasksToClient("C.1000000000000003")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000001")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000002")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000003")
 
       self.assertEqual(len(self.clients_launched), 0)
 
@@ -187,24 +187,24 @@ class ForemanTests(test_lib.GRRBaseTest):
       foreman_obj.Close()
 
       self.clients_launched = []
-      foreman_obj.AssignTasksToClient("C.1000000000000011")
-      foreman_obj.AssignTasksToClient("C.1000000000000012")
-      foreman_obj.AssignTasksToClient("C.1000000000000013")
-      foreman_obj.AssignTasksToClient("C.1000000000000014")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000011")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000012")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000013")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000014")
 
       # Make sure that the clients ran the correct flows.
       self.assertEqual(len(self.clients_launched), 4)
       self.assertEqual(self.clients_launched[0][0],
-                       rdf_client.ClientURN("C.1000000000000011"))
+                       rdf_client.ClientURN(u"C.1000000000000011"))
       self.assertEqual(self.clients_launched[0][1], new_flow)
       self.assertEqual(self.clients_launched[1][0],
-                       rdf_client.ClientURN("C.1000000000000012"))
+                       rdf_client.ClientURN(u"C.1000000000000012"))
       self.assertEqual(self.clients_launched[1][1], new_flow)
       self.assertEqual(self.clients_launched[2][0],
-                       rdf_client.ClientURN("C.1000000000000013"))
+                       rdf_client.ClientURN(u"C.1000000000000013"))
       self.assertEqual(self.clients_launched[2][1], old_flow)
       self.assertEqual(self.clients_launched[3][0],
-                       rdf_client.ClientURN("C.1000000000000014"))
+                       rdf_client.ClientURN(u"C.1000000000000014"))
       self.assertEqual(self.clients_launched[3][1], eq_flow)
 
   def testRuleExpiration(self):
@@ -235,7 +235,7 @@ class ForemanTests(test_lib.GRRBaseTest):
               description="Test rule4",
               actions=[foreman_rules.ForemanRuleAction(hunt_id=hunt_id)]))
 
-      client_id = "C.0000000000000021"
+      client_id = u"C.0000000000000021"
       fd = aff4.FACTORY.Create(
           client_id, aff4_grr.VFSGRRClient, token=self.token)
       fd.Close()
@@ -313,21 +313,21 @@ class RelationalForemanTests(db_test_lib.RelationalDBEnabledMixin,
 
       self.clients_started = []
       foreman_obj = foreman.GetForeman()
-      foreman_obj.AssignTasksToClient("C.1000000000000001")
-      foreman_obj.AssignTasksToClient("C.1000000000000002")
-      foreman_obj.AssignTasksToClient("C.1000000000000003")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000001")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000002")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000003")
 
       # Make sure that only the windows machines ran
       self.assertEqual(len(self.clients_started), 2)
-      self.assertEqual(self.clients_started[0][1], "C.1000000000000001")
-      self.assertEqual(self.clients_started[1][1], "C.1000000000000003")
+      self.assertEqual(self.clients_started[0][1], u"C.1000000000000001")
+      self.assertEqual(self.clients_started[1][1], u"C.1000000000000003")
 
       self.clients_started = []
 
       # Run again - This should not fire since it did already
-      foreman_obj.AssignTasksToClient("C.1000000000000001")
-      foreman_obj.AssignTasksToClient("C.1000000000000002")
-      foreman_obj.AssignTasksToClient("C.1000000000000003")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000001")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000002")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000003")
 
       self.assertEqual(len(self.clients_started), 0)
 
@@ -418,20 +418,20 @@ class RelationalForemanTests(db_test_lib.RelationalDBEnabledMixin,
       foreman_obj = foreman.GetForeman()
 
       self.clients_started = []
-      foreman_obj.AssignTasksToClient("C.1000000000000011")
-      foreman_obj.AssignTasksToClient("C.1000000000000012")
-      foreman_obj.AssignTasksToClient("C.1000000000000013")
-      foreman_obj.AssignTasksToClient("C.1000000000000014")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000011")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000012")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000013")
+      foreman_obj.AssignTasksToClient(u"C.1000000000000014")
 
       # Make sure that the clients ran the correct flows.
       self.assertEqual(len(self.clients_started), 4)
-      self.assertEqual(self.clients_started[0][1], "C.1000000000000011")
+      self.assertEqual(self.clients_started[0][1], u"C.1000000000000011")
       self.assertEqual("H:222222", self.clients_started[0][0].Basename())
-      self.assertEqual(self.clients_started[1][1], "C.1000000000000012")
+      self.assertEqual(self.clients_started[1][1], u"C.1000000000000012")
       self.assertEqual("H:222222", self.clients_started[1][0].Basename())
-      self.assertEqual(self.clients_started[2][1], "C.1000000000000013")
+      self.assertEqual(self.clients_started[2][1], u"C.1000000000000013")
       self.assertEqual("H:111111", self.clients_started[2][0].Basename())
-      self.assertEqual(self.clients_started[3][1], "C.1000000000000014")
+      self.assertEqual(self.clients_started[3][1], u"C.1000000000000014")
       self.assertEqual("H:333333", self.clients_started[3][0].Basename())
 
   def testRuleExpiration(self):

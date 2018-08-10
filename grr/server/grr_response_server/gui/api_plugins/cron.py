@@ -64,7 +64,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
 
   def GetArgsClass(self):
     if self.flow_name:
-      flow_cls = registry.FlowRegistry.FlowClassByName(self.flow_name)
+      flow_cls = registry.AFF4FlowRegistry.FlowClassByName(self.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
@@ -395,7 +395,7 @@ class ApiCreateCronJobArgs(rdf_structs.RDFProtoStruct):
 
   def GetFlowArgsClass(self):
     if self.flow_name:
-      flow_cls = registry.FlowRegistry.FlowClassByName(self.flow_name)
+      flow_cls = registry.AFF4FlowRegistry.FlowClassByName(self.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type

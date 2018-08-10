@@ -221,12 +221,8 @@ message FlowRunnerArgs {
       label: HIDDEN,
     }];
 
-  optional uint64 start_time = 15 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Do not process this flow until this time. "
-      "(Implies the flow is run asyncronously.).",
-      label: ADVANCED
-    }];
+  //DEPRECATED, unused.
+  // optional uint64 start_time = 15;
 
   // DEPRECATED, output is now fixed.
   //optional string output = 16 [(sem_type) = {

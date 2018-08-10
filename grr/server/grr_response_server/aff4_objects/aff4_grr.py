@@ -479,7 +479,8 @@ class GRRForeman(aff4.AFF4Object):
             logging.info("Foreman: Starting hunt %s on client %s.",
                          action.hunt_id, client_id)
 
-            flow_cls = registry.FlowRegistry.FlowClassByName(action.hunt_name)
+            flow_cls = registry.AFF4FlowRegistry.FlowClassByName(
+                action.hunt_name)
             flow_cls.StartClients(action.hunt_id, [client_id])
             actions_count += 1
         else:

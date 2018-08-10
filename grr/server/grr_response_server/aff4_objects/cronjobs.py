@@ -259,7 +259,7 @@ def ScheduleSystemCronFlows(names=None, token=None):
   errors = []
   for name in config.CONFIG["Cron.disabled_system_jobs"]:
     try:
-      cls = registry.FlowRegistry.FlowClassByName(name)
+      cls = registry.AFF4FlowRegistry.FlowClassByName(name)
     except ValueError:
       errors.append("No such flow: %s." % name)
       continue
@@ -269,10 +269,10 @@ def ScheduleSystemCronFlows(names=None, token=None):
                     "a flow inherited from SystemCronFlow: %s" % name)
 
   if names is None:
-    names = iterkeys(registry.FlowRegistry.FLOW_REGISTRY)
+    names = iterkeys(registry.AFF4FlowRegistry.FLOW_REGISTRY)
 
   for name in names:
-    cls = registry.FlowRegistry.FlowClassByName(name)
+    cls = registry.AFF4FlowRegistry.FlowClassByName(name)
 
     if not aff4.issubclass(cls, SystemCronFlow):
       continue

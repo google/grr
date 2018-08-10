@@ -314,8 +314,9 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
       # TODO(hanuszczak): The tests passed even without support for timestamp
       # filtering. The test suite should be probably improved in that regard.
+      client_id = unicode(args.client_id)
       path_info = data_store.REL_DB.ReadPathInfo(
-          str(args.client_id), path_type, components, timestamp=args.timestamp)
+          client_id, path_type, components, timestamp=args.timestamp)
 
       if path_info:
         stat_entry = path_info.stat_entry
@@ -356,7 +357,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFilesResult
 
   def _GetRootChildren(self, args, token=None):
-    client_id = str(args.client_id)
+    client_id = unicode(args.client_id)
 
     items = []
 
@@ -907,22 +908,23 @@ def _GetTimelineStatEntriesLegacy(client_id, file_path, with_history=True):
       yield file_path, v[0], v[1]
 
 
-def _GetTimelineStatEntriesRelDB(client_id, file_path, with_history=True):
+def _GetTimelineStatEntriesRelDB(api_client_id, file_path, with_history=True):
   """Gets timeline entries from REL_DB."""
-
   path_type, components = rdf_objects.ParseCategorizedPath(file_path)
 
+  client_id = unicode(api_client_id)
+
   try:
-    root_path_info = data_store.REL_DB.ReadPathInfo(
-        str(client_id), path_type, components)
+    root_path_info = data_store.REL_DB.ReadPathInfo(client_id, path_type,
+                                                    components)
   except db.UnknownPathError:
     return
 
   path_infos = []
   for path_info in itertools.chain(
       [root_path_info],
-      data_store.REL_DB.ListDescendentPathInfos(
-          str(client_id), path_type, components),
+      data_store.REL_DB.ListDescendentPathInfos(client_id, path_type,
+                                                components),
   ):
     # TODO(user): this is to keep the compatibility with current
     # AFF4 implementation. Check if this check is needed.
@@ -938,7 +940,7 @@ def _GetTimelineStatEntriesRelDB(client_id, file_path, with_history=True):
 
   if with_history:
     hist_path_infos = data_store.REL_DB.ReadPathInfosHistories(
-        str(client_id), path_type, [tuple(pi.components) for pi in path_infos])
+        client_id, path_type, [tuple(pi.components) for pi in path_infos])
     for path_info in itertools.chain(*hist_path_infos.itervalues()):
       categorized_path = rdf_objects.ToCategorizedPath(path_info.path_type,
                                                        path_info.components)

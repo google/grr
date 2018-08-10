@@ -27,14 +27,14 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestTimeline, self).setUp()
     # Prepare our fixture.
-    fixture_test_lib.ClientFixture("C.0000000000000001", token=self.token)
+    fixture_test_lib.ClientFixture(u"C.0000000000000001", token=self.token)
     self.CreateFileWithTimeline(
-        rdf_client.ClientURN("C.0000000000000001"), "c/proc/changed.txt",
+        rdf_client.ClientURN(u"C.0000000000000001"), "c/proc/changed.txt",
         rdf_paths.PathSpec.PathType.OS, self.token)
     self.CreateFileWithTimeline(
-        rdf_client.ClientURN("C.0000000000000001"), "c/proc/other.txt",
+        rdf_client.ClientURN(u"C.0000000000000001"), "c/proc/other.txt",
         rdf_paths.PathSpec.PathType.OS, self.token)
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval(u"C.0000000000000001")
 
   @staticmethod
   def CreateFileWithTimeline(client_id, path, path_type, token):
@@ -228,7 +228,7 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
     # permissions) and once for GET request.
     mock_method.assert_called_with(
         api_vfs.ApiGetVfsTimelineAsCsvArgs(
-            client_id="C.0000000000000001",
+            client_id=u"C.0000000000000001",
             file_path="fs/os/c/proc",
             format=api_vfs.ApiGetVfsTimelineAsCsvArgs.Format.GRR),
         token=mock.ANY)
@@ -251,7 +251,7 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
     # permissions) and once for GET request.
     mock_method.assert_called_with(
         api_vfs.ApiGetVfsTimelineAsCsvArgs(
-            client_id="C.0000000000000001",
+            client_id=u"C.0000000000000001",
             file_path="fs/os/c/proc",
             format=api_vfs.ApiGetVfsTimelineAsCsvArgs.Format.BODY),
         token=mock.ANY)

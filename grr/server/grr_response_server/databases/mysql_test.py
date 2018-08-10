@@ -194,6 +194,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testWritePathInfosUpdatesAncestors(self):
     pass
 
+  def testMultiWritePathInfos(self):
+    pass
+
   def testWriteStatHistory(self):
     pass
 

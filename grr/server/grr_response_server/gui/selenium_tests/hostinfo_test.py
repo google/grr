@@ -40,7 +40,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestHostInformation, self).setUp()
-    self.client_id = "C.0000000000000001"
+    self.client_id = u"C.0000000000000001"
 
     fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.RequestAndGrantClientApproval(self.client_id)

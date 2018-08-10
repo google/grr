@@ -34,7 +34,6 @@ class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
       rdf_client.ClientURN,
       rdf_objects.FlowReference,
       "OutputPluginDescriptor",  # TODO(user): dependency loop.
-      rdfvalue.RDFDatetime,
       rdfvalue.RDFURN,
       RequestState,
   ]

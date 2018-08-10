@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests for utility classes."""
 
 import datetime
@@ -14,6 +15,7 @@ import unittest
 import zipfile
 
 
+from builtins import int  # pylint: disable=redefined-builtin
 from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
@@ -772,6 +774,90 @@ class IterableStartsWith(unittest.TestCase):
 
   def testNonListIterable(self):
     self.assertTrue(utils.IterableStartsWith((5, 4, 3), (5, 4)))
+
+
+class AssertTypeTest(unittest.TestCase):
+
+  def testIntCorrect(self):
+    del self  # Unused.
+    utils.AssertType(108, int)
+    utils.AssertType(0xABC, int)
+    utils.AssertType(2**1024, int)
+
+  def testIntIncorrect(self):
+    with self.assertRaises(TypeError):
+      utils.AssertType(1.23, int)
+
+    with self.assertRaises(TypeError):
+      utils.AssertType("123", int)
+
+  def testStringCorrect(self):
+    utils.AssertType(u"foo", unicode)
+    utils.AssertType(u"gżegżółka", unicode)
+
+  def testStringIncorrect(self):
+    with self.assertRaises(TypeError):
+      utils.AssertType(b"foo", unicode)
+
+
+class AssertIterableTypeTest(unittest.TestCase):
+
+  def testAssertEmptyCorrect(self):
+    del self  # Unused.
+    utils.AssertIterableType([], int)
+    utils.AssertIterableType({}, unicode)
+
+  def testStringSetCorrect(self):
+    del self  # Unused.
+    utils.AssertIterableType({u"foo", u"bar", u"baz"}, unicode)
+
+  def testNonHomogeneousIntList(self):
+    with self.assertRaises(TypeError):
+      utils.AssertIterableType([4, 8, 15, 16.0, 23, 42], int)
+
+  def testIteratorIsNotIterable(self):
+    with self.assertRaises(TypeError):
+      utils.AssertIterableType(iter([u"foo", u"bar", u"baz"]), unicode)
+
+  def testGeneratorIsNotIterable(self):
+
+    def Generator():
+      yield 1
+      yield 2
+      yield 3
+
+    with self.assertRaises(TypeError):
+      utils.AssertIterableType(Generator(), int)
+
+
+class AssertListType(unittest.TestCase):
+
+  def testFloatListCorrect(self):
+    del self  # Unused.
+    utils.AssertListType([-1.0, 0.0, +1.0], float)
+
+  def testNotAListIncorrect(self):
+    with self.assertRaises(TypeError):
+      utils.AssertListType({u"foo", u"bar", u"baz"}, unicode)
+
+  def testNonHomogeneousFloatListIncorrect(self):
+    with self.assertRaises(TypeError):
+      utils.AssertListType([3.14, 2.71, 42, 1.41], float)
+
+
+class AssertTupleType(unittest.TestCase):
+
+  def testIntTupleCorrect(self):
+    del self  # Unused.
+    utils.AssertTupleType((4, 8, 15, 16, 23, 42), int)
+
+  def testNotATupleIncorrect(self):
+    with self.assertRaises(TypeError):
+      utils.AssertTupleType([u"foo", u"bar", u"baz"], unicode)
+
+  def testNonHomogeneousBytesListIncorrect(self):
+    with self.assertRaises(TypeError):
+      utils.AssertTupleType((b"foo", b"bar", u"baz"), bytes)
 
 
 def main(argv):

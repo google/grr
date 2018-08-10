@@ -109,7 +109,7 @@ class EventRegistry(MetaclassRegistry):
         EventRegistry.EVENT_NAME_MAP.setdefault(ev, set()).add(cls)
 
 
-class FlowRegistry(MetaclassRegistry):
+class AFF4FlowRegistry(MetaclassRegistry):
   """A dedicated registry that only contains flows."""
 
   FLOW_REGISTRY = {}

@@ -17,6 +17,10 @@ class MySQLDBPathMixin(object):
     """Writes a collection of path_info records for a client."""
     raise NotImplementedError()
 
+  def MultiWritePathInfos(self, path_infos):
+    """Writes a collection of path info records for specified clients."""
+    raise NotImplementedError()
+
   def InitPathInfos(self, client_id, path_infos):
     """Initializes a collection of path info records for a client."""
     raise NotImplementedError()

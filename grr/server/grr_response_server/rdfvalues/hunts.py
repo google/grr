@@ -115,7 +115,7 @@ class GenericHuntArgs(rdf_structs.RDFProtoStruct):
 
   def GetFlowArgsClass(self):
     if self.flow_runner_args.flow_name:
-      flow_cls = registry.FlowRegistry.FlowClassByName(
+      flow_cls = registry.AFF4FlowRegistry.FlowClassByName(
           self.flow_runner_args.flow_name)
 
       # The required protobuf for this class is in args_type.

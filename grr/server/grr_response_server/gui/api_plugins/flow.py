@@ -175,7 +175,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       flow_name = self.runner_args.flow_name
 
     if flow_name:
-      flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+      flow_cls = registry.AFF4FlowRegistry.FlowClassByName(flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
@@ -942,7 +942,7 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
     """Renders list of descriptors for all the flows."""
 
     result = []
-    for name, cls in sorted(iteritems(registry.FlowRegistry.FLOW_REGISTRY)):
+    for name, cls in sorted(iteritems(registry.AFF4FlowRegistry.FLOW_REGISTRY)):
 
       # Flows without a category do not show up in the GUI.
       if not getattr(cls, "category", None):

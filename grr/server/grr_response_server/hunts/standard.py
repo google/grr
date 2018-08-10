@@ -444,7 +444,7 @@ class FlowRequest(rdf_structs.RDFProtoStruct):
 
   def GetFlowArgsClass(self):
     if self.runner_args.flow_name:
-      flow_cls = registry.FlowRegistry.FlowClassByName(
+      flow_cls = registry.AFF4FlowRegistry.FlowClassByName(
           self.runner_args.flow_name)
 
       # The required protobuf for this class is in args_type.

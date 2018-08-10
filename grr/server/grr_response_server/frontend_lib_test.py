@@ -348,59 +348,6 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
       self.assertEqual(response.job[i].session_id, session_id)
       self.assertEqual(response.job[i].name, "Test")
 
-  def testHandleMessageBundle(self):
-    """Check that HandleMessageBundles() requeues messages if it failed.
-
-    This test makes sure that when messages are pending for a client, and which
-    we have no certificate for, the messages are requeued when sending fails.
-    """
-    # Make a new fake client
-    client_id = self.SetupClient(0)
-
-    class MockCommunicator(object):
-      """A fake that simulates an unenrolled client."""
-
-      def DecodeMessages(self, *unused_args):
-        """For simplicity client sends an empty request."""
-        return ([], client_id, 100)
-
-      def EncodeMessages(self, *unused_args, **unused_kw):
-        """Raise because the server has no certificates for this client."""
-        raise communicator.UnknownClientCert()
-
-    # Install the mock.
-    self.server._communicator = MockCommunicator()
-
-    # First request, the server will raise UnknownClientCert.
-    request_comms = rdf_flows.ClientCommunication()
-    self.assertRaises(communicator.UnknownClientCert,
-                      self.server.HandleMessageBundles, request_comms, 2)
-
-    # We can still schedule a flow for it
-    flow.StartFlow(
-        client_id=client_id,
-        flow_name=flow_test_lib.SendingFlow.__name__,
-        message_count=1,
-        token=self.token)
-    manager = queue_manager.QueueManager(token=self.token)
-    tasks = manager.Query(client_id, limit=100)
-
-    self.assertRaises(communicator.UnknownClientCert,
-                      self.server.HandleMessageBundles, request_comms, 2)
-
-    new_tasks = manager.Query(client_id, limit=100)
-
-    # The difference in leased_until times reflects the lease that the server
-    # took on the client messages.
-    lease_time = new_tasks[0].leased_until - tasks[0].leased_until
-
-    # This lease time must be small, as the HandleMessageBundles() call failed,
-    # the pending client messages must be put back on the queue.
-    self.assertLess(lease_time, rdfvalue.Duration("2s"))
-
-    # Since the server tried to send it, the ttl must be decremented
-    self.assertEqual(tasks[0].task_ttl - new_tasks[0].task_ttl, 1)
-
   def _ScheduleResponseAndStatus(self, client_id, flow_id):
     with queue_manager.QueueManager(token=self.token) as flow_manager:
       # Schedule a response.

@@ -398,19 +398,12 @@ class FrontEndServer(object):
 
     # Encode the message_list in the response_comms using the same API version
     # the client used.
-    try:
-      self._communicator.EncodeMessages(
-          message_list,
-          response_comms,
-          destination=source,
-          timestamp=timestamp,
-          api_version=request_comms.api_version)
-    except communicator.UnknownClientCert:
-      # We can not encode messages to the client yet because we do not have the
-      # client certificate - return them to the queue so we can try again later.
-      with data_store.DB.GetMutationPool() as pool:
-        queue_manager.QueueManager(token=self.token).Schedule(tasks, pool)
-      raise
+    self._communicator.EncodeMessages(
+        message_list,
+        response_comms,
+        destination=source,
+        timestamp=timestamp,
+        api_version=request_comms.api_version)
 
     return source, len(messages)
 

@@ -205,14 +205,9 @@ def StartFlow(args=None,
 
   FilterArgsFromSemanticProtobuf(runner_args, kwargs)
 
-  # When asked to run a flow in the future this implied it will run
-  # asynchronously.
-  if runner_args.start_time:
-    sync = False
-
   # Is the required flow a known flow?
   try:
-    flow_cls = registry.FlowRegistry.FlowClassByName(runner_args.flow_name)
+    flow_cls = registry.AFF4FlowRegistry.FlowClassByName(runner_args.flow_name)
   except ValueError:
     stats.STATS.IncrementCounter("grr_flow_invalid_flow_count")
     raise RuntimeError("Unable to locate flow %s" % runner_args.flow_name)
@@ -274,7 +269,7 @@ def StartFlow(args=None,
     flow_obj.Start()
   else:
     # Running Asynchronously: Schedule the start method on another worker.
-    runner.CallState(next_state="Start", start_time=runner_args.start_time)
+    runner.CallState(next_state="Start")
 
   # The flow does not need to actually remain running.
   if not runner.OutstandingRequests():
@@ -297,7 +292,7 @@ def StartFlow(args=None,
   return flow_obj.urn
 
 
-class FlowBase(with_metaclass(registry.FlowRegistry, aff4.AFF4Volume)):
+class FlowBase(with_metaclass(registry.AFF4FlowRegistry, aff4.AFF4Volume)):
   """The base class for Flows and Hunts."""
 
   # Alternatively we can specify a single semantic protobuf that will be used to
@@ -870,7 +865,7 @@ class WellKnownFlow(GRRFlow):
   def GetAllWellKnownFlows(cls, token=None):
     """Get instances of all well known flows."""
     well_known_flows = {}
-    for cls in itervalues(registry.FlowRegistry.FLOW_REGISTRY):
+    for cls in itervalues(registry.AFF4FlowRegistry.FLOW_REGISTRY):
       if aff4.issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
         well_known_flow = cls(cls.well_known_session_id, mode="rw", token=token)
         well_known_flows[cls.well_known_session_id.FlowName()] = well_known_flow

@@ -437,14 +437,15 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
       age = rdfvalue.RDFDatetime(args.timestamp)
     api_client = None
     if data_store.RelationalDBReadEnabled():
-      info = data_store.REL_DB.ReadClientFullInfo(str(args.client_id))
+      client_id = unicode(args.client_id)
+      info = data_store.REL_DB.ReadClientFullInfo(client_id)
       if info is None:
         raise api_call_handler_base.ResourceNotFoundError()
 
       if args.timestamp:
         # Assume that a snapshot for this particular timestamp exists.
         snapshots = data_store.REL_DB.ReadClientSnapshotHistory(
-            str(args.client_id), timerange=(args.timestamp, args.timestamp))
+            client_id, timerange=(args.timestamp, args.timestamp))
 
         if snapshots:
           info.last_snapshot = snapshots[0]
@@ -491,8 +492,9 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
     items = []
 
     if data_store.RelationalDBReadEnabled():
+      client_id = unicode(args.client_id)
       history = data_store.REL_DB.ReadClientSnapshotHistory(
-          str(args.client_id), timerange=(start_time, end_time))
+          client_id, timerange=(start_time, end_time))
 
       for client in history[::-1]:
         items.append(ApiClient().InitFromClientObject(client))
@@ -538,7 +540,8 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
       # faster. However, there is a chance that this will not be
       # needed anymore once we use the relational db everywhere, let's
       # decide later.
-      history = data_store.REL_DB.ReadClientSnapshotHistory(str(args.client_id))
+      client_id = unicode(args.client_id)
+      history = data_store.REL_DB.ReadClientSnapshotHistory(client_id)
       times = [h.timestamp for h in history]
     else:
       fd = aff4.FACTORY.Open(
@@ -643,10 +646,12 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetLastClientIPAddressResult
 
   def Handle(self, args, token=None):
+    client_id = unicode(args.client_id)
+
     if data_store.RelationalDBReadEnabled():
-      md = data_store.REL_DB.ReadClientMetadata(str(args.client_id))
+      md = data_store.REL_DB.ReadClientMetadata(client_id)
       if md.fleetspeak_enabled:
-        ip_str, ipaddr_obj = _GetAddrFromFleetspeak(args.client_id)
+        ip_str, ipaddr_obj = _GetAddrFromFleetspeak(client_id)
       else:
         try:
           ipaddr_obj = md.ip.AsIPAddr()
@@ -660,7 +665,7 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
           aff4_type=aff4_grr.VFSGRRClient,
           token=token)
       if client.Get(client.Schema.FLEETSPEAK_ENABLED):
-        ip_str, ipaddr_obj = _GetAddrFromFleetspeak(args.client_id)
+        ip_str, ipaddr_obj = _GetAddrFromFleetspeak(client_id)
       else:
         ip_str = client.Get(client.Schema.CLIENT_IP)
         if ip_str:

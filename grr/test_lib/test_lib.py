@@ -413,7 +413,7 @@ class GRRBaseTest(unittest.TestCase):
                             labels=None,
                             fleetspeak_enabled=False):
     """Prepares a test client object."""
-    client_id = "C.1%015x" % client_nr
+    client_id = u"C.1%015x" % client_nr
 
     client = rdf_objects.ClientSnapshot(client_id=client_id)
     client.startup_info.client_info = self._TestClientInfo()

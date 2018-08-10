@@ -45,7 +45,7 @@ class SystemCronTestMixin(object):
         ping=ancient_ping)
 
     for i in range(0, 10):
-      client_id = "C.1%015x" % i
+      client_id = u"C.1%015x" % i
       with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
         client.AddLabels([u"Label1", u"Label2"], owner=u"GRR")
         client.AddLabel(u"UserLabel", owner=u"jim")

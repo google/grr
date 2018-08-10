@@ -54,7 +54,7 @@ class Foreman(object):
         logging.info("Foreman: Starting hunt %s on client %s.", rule.hunt_id,
                      client_id)
 
-        flow_cls = registry.FlowRegistry.FlowClassByName(rule.hunt_name)
+        flow_cls = registry.AFF4FlowRegistry.FlowClassByName(rule.hunt_name)
         hunt_urn = rdfvalue.RDFURN("aff4:/hunts/%s" % rule.hunt_id)
         flow_cls.StartClients(hunt_urn, [client_id])
         actions_count += 1
