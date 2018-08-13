@@ -12,5 +12,5 @@ dist/
 artifacts/*.yaml
 grr.egg-info/
 get-pip.py
-grr/artifacts/*.yaml
+grr/core/grr_response_core/artifacts/*.yaml
 *.egg-info/
