@@ -207,14 +207,16 @@ class InMemoryDBPathMixin(object):
     result.sort(key=lambda _: tuple(_.components))
     return result
 
-  def _GetPathRecord(self, client_id, path_info):
+  def _GetPathRecord(self, client_id, path_info, set_default=True):
     components = tuple(path_info.components)
-
     path_idx = (client_id, path_info.path_type, components)
-    path_record = _PathRecord(
-        path_type=path_info.path_type, components=components)
 
-    return self.path_records.setdefault(path_idx, path_record)
+    if set_default:
+      default = _PathRecord(
+          path_type=path_info.path_type, components=components)
+      return self.path_records.setdefault(path_idx, default)
+    else:
+      return self.path_records.get(path_idx, None)
 
   def _WritePathInfo(self, client_id, path_info, ancestor):
     """Writes a single path info record for given client."""
@@ -245,13 +247,17 @@ class InMemoryDBPathMixin(object):
         self._WritePathInfo(client_id, ancestor_path_info, ancestor=True)
 
   @utils.Synchronized
-  def InitPathInfos(self, client_id, path_infos):
-    """Initializes a collection of path info records for a client."""
+  def MultiClearPathHistory(self, path_infos):
+    """Clears path history for specified paths of given clients."""
+    for client_id, client_path_infos in iteritems(path_infos):
+      self.ClearPathHistory(client_id, client_path_infos)
+
+  @utils.Synchronized
+  def ClearPathHistory(self, client_id, path_infos):
+    """Clears path history for specified paths of given client."""
     for path_info in path_infos:
       path_record = self._GetPathRecord(client_id, path_info)
       path_record.ClearHistory()
-
-    self.WritePathInfos(client_id, path_infos)
 
   @utils.Synchronized
   def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
@@ -260,11 +266,19 @@ class InMemoryDBPathMixin(object):
       raise db.UnknownClientError(client_id)
 
     for path_info, stat_entry in iteritems(stat_entries):
-      path_record = self._GetPathRecord(client_id, path_info)
+      path_record = self._GetPathRecord(client_id, path_info, set_default=False)
+      if path_record is None:
+        # TODO(hanuszczak): Provide more details about paths that caused that.
+        raise db.AtLeastOneUnknownPathError([])
+
       path_record.AddStatEntry(stat_entry, path_info.timestamp)
 
     for path_info, hash_entry in iteritems(hash_entries):
-      path_record = self._GetPathRecord(client_id, path_info)
+      path_record = self._GetPathRecord(client_id, path_info, set_default=False)
+      if path_record is None:
+        # TODO(hanuszczak): Provide more details about paths that caused that.
+        raise db.AtLeastOneUnknownPathError([])
+
       path_record.AddHashEntry(hash_entry, path_info.timestamp)
 
   @utils.Synchronized

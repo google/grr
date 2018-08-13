@@ -435,8 +435,9 @@ class GenericHunt(implementation.GRRHunt):
     self.MarkClientDone(client_id)
 
 
-class FlowRequest(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FlowRequest
+class FlowStartRequest(rdf_structs.RDFProtoStruct):
+  """Defines a flow to start on a number of clients."""
+  protobuf = flows_pb2.FlowStartRequest
   rdf_deps = [
       rdf_client.ClientURN,
       rdf_flow_runner.FlowRunnerArgs,
@@ -454,7 +455,7 @@ class FlowRequest(rdf_structs.RDFProtoStruct):
 class VariableGenericHuntArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.VariableGenericHuntArgs
   rdf_deps = [
-      FlowRequest,
+      FlowStartRequest,
       rdf_output_plugin.OutputPluginDescriptor,
   ]
 

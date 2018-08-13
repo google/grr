@@ -1,0 +1,51 @@
+#!/bin/bash
+#
+# Pre-installation script for the GRR server deb.
+#
+# Checks whether a MySQL process is running, and if not, gives the user
+# and option to quit the installation.
+
+set -e
+
+case "${1}" in
+  install)
+    if [[ "${DEBIAN_FRONTEND}" == 'noninteractive' || ! -z "$(pgrep -x mysqld)" ]]; then
+      exit 0
+    fi
+    MYSQL_WARNING=(""
+       "######################################################################################"
+       "GRR has failed to detect a running MySQL instance on this machine."
+       "This is ok if you plan on connecting to a remote MySQL instance."
+       "If you aren't though, we recommend you exit this installation and install MySQL first."
+       "FYI you can skip this check by setting DEBIAN_FRONTEND=noninteractive."
+       "######################################################################################"
+       ""
+       "Would you like to proceed with GRR's installation? [Yn]: ")
+    (IFS=$'\n';printf "${MYSQL_WARNING[*]}")
+    read REPLY
+    if [[ -z "${REPLY}" || "${REPLY}" == 'Y'* || "${REPLY}" == 'y'* ]]; then
+      exit 0
+    elif [[ "${REPLY}" == 'N'* || "${REPLY}" == 'n'* ]]; then
+      ABORT_MESSAGE=(""
+          "#####################################################################################"
+          "Aborting installation. For instructions on how to set up MySQL, please see"
+          "https://grr-doc.readthedocs.io/en/latest/installing-grr-server/from-release-deb.html."
+          "#####################################################################################"
+          ""
+          "")
+      (IFS=$'\n';printf "${ABORT_MESSAGE[*]}")
+      exit 1
+    else
+      echo "Invalid input: '${REPLY}'. Aborting installation."
+      exit 2
+    fi
+    ;;
+  upgrade|abort-upgrade)
+    # Nothing to do if GRR is already installed.
+    ;;
+esac
+
+# The token below is replaced with shellscript snippets generated
+# by debhelper commands. See http://manpages.ubuntu.com/dh_installdeb
+
+#DEBHELPER#

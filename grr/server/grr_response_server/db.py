@@ -697,7 +697,6 @@ class Database(with_metaclass(abc.ABCMeta, object)):
                   instances.
     """
 
-  @abc.abstractmethod
   def InitPathInfos(self, client_id, path_infos):
     """Initializes a collection of path info records for a client.
 
@@ -706,8 +705,42 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     in the data migration scripts.
 
     Args:
-      client_id: A client idenitfier for which the paths are to be initialized.
+      client_id: A client identifier for which the paths are to be initialized.
       path_infos: A list of `rdf_objects.PathInfo` objects to write.
+    """
+    self.ClearPathHistory(client_id, path_infos)
+    self.WritePathInfos(client_id, path_infos)
+
+  def MultiInitPathInfos(self, path_infos):
+    """Initialize a collection of path info records for specified clients.
+
+    See documentation for `InitPathInfos` for more details.
+
+    Args:
+      path_infos: A dictionary mapping client ids to `rdf_objects.PathInfo`
+                  instances.
+    """
+    self.MultiClearPathHistory(path_infos)
+    self.MultiWritePathInfos(path_infos)
+
+  @abc.abstractmethod
+  def ClearPathHistory(self, client_id, path_infos):
+    """Clears path history for specified paths of given client.
+
+    Args:
+      client_id: A client identifier for which the path histories are about to
+                 be cleared.
+      path_infos: A list of `rdf_objects.PathInfo` instances corresponding to
+                  paths to clear the history for.
+    """
+
+  @abc.abstractmethod
+  def MultiClearPathHistory(self, path_infos):
+    """Clears path history for specified paths of given clients.
+
+    Args:
+      path_infos: A dictionary mapping client ids to `rdf_objects.PathInfo`
+                  instances corresponding to paths to clear the history for.
     """
 
   # TODO(hanuszczak): Having a dictionary with mutable key as an argument is not
@@ -1463,6 +1496,28 @@ class DatabaseValidationWrapper(Database):
     _ValidateClientId(client_id)
     _ValidatePathInfos(path_infos)
     return self.delegate.InitPathInfos(client_id, path_infos)
+
+  def MultiInitPathInfos(self, path_infos):
+    utils.AssertType(path_infos, dict)
+    for client_id, client_path_infos in iteritems(path_infos):
+      _ValidateClientId(client_id)
+      _ValidatePathInfos(client_path_infos)
+
+    return self.delegate.MultiInitPathInfos(path_infos)
+
+  def ClearPathHistory(self, client_id, path_infos):
+    _ValidateClientId(client_id)
+    _ValidatePathInfos(path_infos)
+
+    return self.delegate.ClearPathHistory(client_id, path_infos)
+
+  def MultiClearPathHistory(self, path_infos):
+    utils.AssertType(path_infos, dict)
+    for client_id, client_path_infos in iteritems(path_infos):
+      _ValidateClientId(client_id)
+      _ValidatePathInfos(client_path_infos)
+
+    return self.delegate.MultiClearPathHistory(path_infos)
 
   def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
     _ValidateClientId(client_id)

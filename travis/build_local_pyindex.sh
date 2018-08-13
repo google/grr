@@ -95,4 +95,5 @@ verify_packages
 
 # Reduce the size of the tarball that gets uploaded to GCS by
 # deleting unnecessary files.
+rm -rf sdists
 rm grr/config/grr-response-templates/templates/*.zip

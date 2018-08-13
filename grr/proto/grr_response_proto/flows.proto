@@ -418,7 +418,7 @@ message SampleHuntArgs {
 }
 
 // Next field ID: 7
-message FlowRequest {
+message FlowStartRequest {
   repeated string client_ids = 1 [(sem_type) = {
       type: "ClientURN",
       description: "The clients to start the flow on.",
@@ -437,8 +437,8 @@ message FlowRequest {
 
 // Next field ID: 3
 message VariableGenericHuntArgs {
-  repeated FlowRequest flows = 1 [(sem_type) = {
-      description: "A list of requests for starting flows on certain clients.",
+  repeated FlowStartRequest flows = 1 [(sem_type) = {
+      description: "A list of flows to start on certain clients.",
     }];
 
   // DEPRECATED: keeping it here so that existing cron jobs don't break.

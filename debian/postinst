@@ -1,6 +1,16 @@
 #!/bin/bash
+#
+# Post-installation script for the GRR server deb.
+#
+# Installs GRR in a virtualenv, sets it up as a systemd service, starts
+# the service, then runs 'grr_config_updater initialize'.
 
 set -e
+
+# The token below is replaced with shellscript snippets generated
+# by debhelper commands. See http://manpages.ubuntu.com/dh_installdeb
+
+#DEBHELPER#
 
 case "$1" in
     configure)

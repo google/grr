@@ -21,8 +21,12 @@ class MySQLDBPathMixin(object):
     """Writes a collection of path info records for specified clients."""
     raise NotImplementedError()
 
-  def InitPathInfos(self, client_id, path_infos):
-    """Initializes a collection of path info records for a client."""
+  def ClearPathHistory(self, client_id, path_infos):
+    """Clears path history for specified paths of given client."""
+    raise NotImplementedError()
+
+  def MultiClearPathHistory(self, path_infos):
+    """Clears path history for specified paths of given clients."""
     raise NotImplementedError()
 
   def ListDescendentPathInfos(self,
@@ -38,5 +42,4 @@ class MySQLDBPathMixin(object):
 
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
     """Reads a collection of hash and stat entries for given paths."""
-
     raise NotImplementedError()
