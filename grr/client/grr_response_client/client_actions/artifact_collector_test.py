@@ -42,9 +42,9 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     artifact = registry.GetArtifact("TestCmdArtifact")
     ext_src = rdf_artifact.ExtendedSource(base_source=list(artifact.sources)[0])
     ext_art = rdf_artifact.ExtendedArtifact(
-        name=artifact.name, sources=list(ext_src))
+        name=artifact.name, sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
-        artifacts=list(ext_art), apply_parsers=False)
+        artifacts=[ext_art], apply_parsers=False)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
     collected_artifact = list(result.collected_artifacts)[0]
     execute_response = list(collected_artifact.action_results)[0].value
@@ -59,9 +59,9 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     artifact = registry.GetArtifact("TestOSAgnostic")
     ext_src = rdf_artifact.ExtendedSource(base_source=list(artifact.sources)[0])
     ext_art = rdf_artifact.ExtendedArtifact(
-        name=artifact.name, sources=list(ext_src))
+        name=artifact.name, sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
-        artifacts=list(ext_art), apply_parsers=False)
+        artifacts=[ext_art], apply_parsers=False)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
     collected_artifact = list(result.collected_artifacts)[0]
     hostname = list(collected_artifact.action_results)[0].value
@@ -87,9 +87,9 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
             })
         ext_src = rdf_artifact.ExtendedSource(base_source=source)
         ext_art = rdf_artifact.ExtendedArtifact(
-            name="FakeRegistryValue", sources=list(ext_src))
+            name="FakeRegistryValue", sources=[ext_src])
         request = rdf_artifact.ClientArtifactCollectorArgs(
-            artifacts=list(ext_art), apply_parsers=False)
+            artifacts=[ext_art], apply_parsers=False)
         result = self.RunAction(artifact_collector.ArtifactCollector,
                                 request)[0]
         collected_artifact = list(result.collected_artifacts)[0]
@@ -108,9 +108,9 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     artifact = registry.GetArtifact("TestCmdArtifact")
     ext_src = rdf_artifact.ExtendedSource(base_source=list(artifact.sources)[0])
     ext_art = rdf_artifact.ExtendedArtifact(
-        name=artifact.name, sources=list(ext_src))
+        name=artifact.name, sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
-        artifacts=list(ext_art), apply_parsers=False)
+        artifacts=[ext_art], apply_parsers=False)
     request.artifacts.append(ext_art)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
     collected_artifacts = list(result.collected_artifacts)
@@ -153,9 +153,9 @@ class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
 
     ext_src = rdf_artifact.ExtendedSource(base_source=artifact.sources[0])
     ext_art = rdf_artifact.ExtendedArtifact(
-        name=artifact.name, sources=list(ext_src))
+        name=artifact.name, sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
-        artifacts=list(ext_art),
+        artifacts=[ext_art],
         knowledge_base=None,
         ignore_interpolation_errors=True,
         apply_parsers=False)
@@ -256,7 +256,7 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
     ext_art = rdf_artifact.ExtendedArtifact(
         name="TestEchoCmdArtifact", sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
-        artifacts=list(ext_art),
+        artifacts=[ext_art],
         knowledge_base=None,
         ignore_interpolation_errors=True,
         apply_parsers=True)

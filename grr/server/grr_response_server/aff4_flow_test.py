@@ -424,18 +424,15 @@ class FlowTest(BasicFlowTest):
           check_flow_errors=True,
           token=self.token)
 
-  def SendMessages(self,
-                   response_ids,
-                   session_id,
-                   authenticated=True,
-                   args_rdf_name="DataBlob"):
+  def SendMessages(self, response_ids, session_id, authenticated=True):
     """Send messages to the flow."""
     for response_id in response_ids:
       message = rdf_flows.GrrMessage(
-          request_id=1,
-          response_id=response_id,
-          session_id=session_id,
-          args_rdf_name=args_rdf_name)
+          request_id=1, response_id=response_id, session_id=session_id)
+
+      blob = rdf_protodict.DataBlob()
+      blob.SetValue(response_id)
+      message.payload = blob
 
       if authenticated:
         auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
@@ -687,21 +684,25 @@ class FlowOutputPluginsTest(BasicFlowTest):
   def testFlowWithOutputPluginButWithoutResultsCompletes(self):
     self.RunFlow(
         flow_name="NoRequestParentFlow",
-        plugins=rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name="DummyFlowOutputPlugin"))
+        plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name="DummyFlowOutputPlugin")
+        ])
     self.assertEqual(DummyFlowOutputPlugin.num_calls, 0)
 
   def testFlowWithOutputPluginProcessesResultsSuccessfully(self):
-    self.RunFlow(
-        plugins=rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name="DummyFlowOutputPlugin"))
+    self.RunFlow(plugins=[
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name="DummyFlowOutputPlugin")
+    ])
     self.assertEqual(DummyFlowOutputPlugin.num_calls, 1)
     self.assertEqual(DummyFlowOutputPlugin.num_responses, 1)
 
   def testFlowLogsSuccessfulOutputPluginProcessing(self):
-    flow_urn = self.RunFlow(
-        plugins=rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name="DummyFlowOutputPlugin"))
+    flow_urn = self.RunFlow(plugins=[
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name="DummyFlowOutputPlugin")
+    ])
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     log_messages = [item.log_message for item in flow_obj.GetLog()]
     self.assertTrue(
@@ -709,9 +710,10 @@ class FlowOutputPluginsTest(BasicFlowTest):
         log_messages)
 
   def testFlowLogsFailedOutputPluginProcessing(self):
-    flow_urn = self.RunFlow(
-        plugins=rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name="FailingDummyFlowOutputPlugin"))
+    flow_urn = self.RunFlow(plugins=[
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name="FailingDummyFlowOutputPlugin")
+    ])
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     log_messages = [item.log_message for item in flow_obj.GetLog()]
     self.assertTrue(
@@ -719,9 +721,10 @@ class FlowOutputPluginsTest(BasicFlowTest):
         "due to: Oh no!" in log_messages)
 
   def testFlowDoesNotFailWhenOutputPluginFails(self):
-    flow_urn = self.RunFlow(
-        plugins=rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name="FailingDummyFlowOutputPlugin"))
+    flow_urn = self.RunFlow(plugins=[
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name="FailingDummyFlowOutputPlugin")
+    ])
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     self.assertEqual(flow_obj.context.state, "TERMINATED")
 

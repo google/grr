@@ -71,7 +71,7 @@ class HintsTests(test_lib.GRRBaseTest):
         for a in ("1.1.1.1", "2.2.2.2", "3.3.3.3")
     ]
     eth0 = rdf_client.Interface(ifname="eth0", addresses=addresses[:2])
-    ppp0 = rdf_client.Interface(ifname="ppp0", addresses=addresses[2])
+    ppp0 = rdf_client.Interface(ifname="ppp0", addresses=addresses[2:3])
     rdf.interfaces = [eth0, ppp0]
 
     template = ("{system_info.system} {users.username} {interfaces.ifname} "

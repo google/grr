@@ -215,6 +215,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testMultiWriteHistoryTwoPaths(self):
     pass
 
+  def testMultiWriteHistoryTwoClients(self):
+    pass
+
   def testMultiWriteHistoryDoesNotAllowOverridingStat(self):
     pass
 

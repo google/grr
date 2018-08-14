@@ -238,9 +238,9 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
     if client.Get(s.MAC_ADDRESS):
       for mac in str(client.Get(s.MAC_ADDRESS)).split("\n"):
         TryAppendMac(mac)
-    for ip_list in client.Get(s.HOST_IPS, []):
-      for ip in str(ip_list).split("\n"):
-        TryAppendIP(ip)
+    ip_list = client.Get(s.HOST_IPS, "")
+    for ip in str(ip_list).split("\n"):
+      TryAppendIP(ip)
 
     client_info = client.Get(s.CLIENT_INFO)
     if client_info:

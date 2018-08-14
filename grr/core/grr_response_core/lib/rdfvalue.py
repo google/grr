@@ -184,14 +184,6 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   def SerializeToString(self):
     """Serialize into a string which can be parsed using ParseFromString."""
 
-  def __iter__(self):
-    """This allows every RDFValue to be iterated over."""
-    yield self
-
-  def Summary(self):
-    """Return a summary representation of the object."""
-    return str(self)
-
   @classmethod
   def Fields(cls):
     """Return a list of fields which can be queried from this value."""

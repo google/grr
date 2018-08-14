@@ -260,26 +260,32 @@ class InMemoryDBPathMixin(object):
       path_record.ClearHistory()
 
   @utils.Synchronized
-  def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
+  def MultiWritePathHistory(self, client_path_histories):
     """Writes a collection of hash and stat entries observed for given paths."""
-    if client_id not in self.metadatas:
-      raise db.UnknownClientError(client_id)
+    for client_path, client_path_history in iteritems(client_path_histories):
+      if client_path.client_id not in self.metadatas:
+        raise db.UnknownClientError(client_path.client_id)
 
-    for path_info, stat_entry in iteritems(stat_entries):
-      path_record = self._GetPathRecord(client_id, path_info, set_default=False)
-      if path_record is None:
-        # TODO(hanuszczak): Provide more details about paths that caused that.
-        raise db.AtLeastOneUnknownPathError([])
+      path_info = rdf_objects.PathInfo(
+          path_type=client_path.path_type, components=client_path.components)
 
-      path_record.AddStatEntry(stat_entry, path_info.timestamp)
+      for timestamp, stat_entry in iteritems(client_path_history.stat_entries):
+        path_record = self._GetPathRecord(
+            client_path.client_id, path_info, set_default=False)
+        if path_record is None:
+          # TODO(hanuszczak): Provide more details about paths that caused that.
+          raise db.AtLeastOneUnknownPathError([])
 
-    for path_info, hash_entry in iteritems(hash_entries):
-      path_record = self._GetPathRecord(client_id, path_info, set_default=False)
-      if path_record is None:
-        # TODO(hanuszczak): Provide more details about paths that caused that.
-        raise db.AtLeastOneUnknownPathError([])
+        path_record.AddStatEntry(stat_entry, timestamp)
 
-      path_record.AddHashEntry(hash_entry, path_info.timestamp)
+      for timestamp, hash_entry in iteritems(client_path_history.hash_entries):
+        path_record = self._GetPathRecord(
+            client_path.client_id, path_info, set_default=False)
+        if path_record is None:
+          # TODO(hanuszczak): Provide more details about paths that caused that.
+          raise db.AtLeastOneUnknownPathError([])
+
+        path_record.AddHashEntry(hash_entry, timestamp)
 
   @utils.Synchronized
   def ReadPathInfosHistories(self, client_id, path_type, components_list):

@@ -519,7 +519,7 @@ class MutationPool(object):
 
   def FileHashIndexAddItem(self, subject, file_path):
     predicate = (DataStore.FILE_HASH_TEMPLATE % file_path).lower()
-    self.MultiSet(subject, {predicate: file_path})
+    self.MultiSet(subject, {predicate: [file_path]})
 
   def AFF4AddChild(self, subject, child, extra_attributes=None):
     attributes = {

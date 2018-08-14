@@ -2057,6 +2057,5 @@ def ConvertValues(default_metadata, values, token=None, options=None):
   Raises:
     NoConverterFound: in case no suitable converters were found for the values.
   """
-
   batch_data = [(default_metadata, obj) for obj in values]
   return ConvertValuesWithMetadata(batch_data, token=token, options=options)

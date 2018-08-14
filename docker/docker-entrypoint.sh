@@ -14,7 +14,11 @@ run_component() {
 initialize() {
   if [[ ! -e "${VIRTUALENV}/install_data/etc/server.local.yaml" ]]; then
     if [[ "${EXTERNAL_HOSTNAME}" ]] && [[ "${ADMIN_PASSWORD}" ]]; then
-      grr_config_updater initialize --noprompt --external_hostname="$EXTERNAL_HOSTNAME" --admin_password="$ADMIN_PASSWORD"
+      grr_config_updater initialize \
+        --noprompt \
+        --external_hostname="${EXTERNAL_HOSTNAME}" \
+        --admin_password="${ADMIN_PASSWORD}" \
+        --mysql_password=''
     else
       echo "initialize hasn't run and EXTERNAL_HOSTNAME/ADMIN_PASSWORD not set"
       exit 1
@@ -25,6 +29,7 @@ initialize() {
 APPLICATION=$1;
 VIRTUALENV="/usr/share/grr-server/"
 if [[ ${APPLICATION} = 'grr' ]]; then
+  service mysql start
   source "${VIRTUALENV}/bin/activate"
 
   if [[ "$#" -eq 1 ]]; then

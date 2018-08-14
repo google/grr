@@ -552,7 +552,8 @@ class FlowRunner(object):
                               (self.flow_obj.__class__.__name__, method_name))
 
       # Prepare a responses object for the state method to use:
-      responses = flow_responses.Responses(request=request, responses=responses)
+      responses = flow_responses.Responses.FromLegacyResponses(
+          request=request, responses=responses)
 
       self.SaveResourceUsage(responses.status)
 
@@ -692,7 +693,6 @@ class FlowRunner(object):
   def CallFlow(self,
                flow_name=None,
                next_state=None,
-               sync=True,
                request_data=None,
                client_id=None,
                base_session_id=None,
@@ -708,9 +708,6 @@ class FlowRunner(object):
 
        next_state: The state in this flow, that responses to this
        message should go to.
-
-       sync: If True start the flow inline on the calling thread, else schedule
-         a worker to actually start the child flow.
 
        request_data: Any dict provided here will be available in the
              RequestState protobuf. The Responses object maintains a reference
@@ -771,10 +768,10 @@ class FlowRunner(object):
         token=self.token,
         notify_to_user=False,
         parent_flow=self.flow_obj,
-        sync=sync,
         queue=self.runner_args.queue,
         write_intermediate_results=write_intermediate,
         logs_collection_urn=logs_urn,
+        sync=True,
         **kwargs)
 
     self.QueueRequest(state)

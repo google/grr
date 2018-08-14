@@ -12,15 +12,6 @@ from grr.test_lib import test_lib
 class ConsoleUtilsTest(flow_test_lib.FlowTestsBaseclass):
   """Test the console utils library."""
 
-  def testClientIdToHostname(self):
-    client_id = self.SetupClient(0)
-    client1 = aff4.FACTORY.Open(client_id, token=self.token, mode="rw")
-    client1.Set(client1.Schema.HOSTNAME("test1"))
-    client1.Flush()
-    self.assertEqual(
-        console_utils.ClientIdToHostname(client1.urn, token=self.token),
-        "test1")
-
   def testFindClonedClients(self):
     client_ids = self.SetupClients(2)
     client = aff4.FACTORY.Open(client_ids[0], token=self.token, mode="rw")

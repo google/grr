@@ -540,7 +540,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     session_id = None
 
     # This should not raise here since the flow is run asynchronously.
-    for session_id in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
@@ -548,8 +548,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         paths=paths,
         pathtype=rdf_paths.PathSpec.PathType.OS,
         token=self.token,
-        sync=False):
-      pass
+        sync=False)
 
     fd = aff4.FACTORY.Open(session_id, token=self.token)
     self.assertIn("KnowledgeBaseInterpolationError", fd.context.backtrace)

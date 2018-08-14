@@ -546,10 +546,10 @@ class CheckResultsTest(ChecksTestBase):
         "type": "ANALYSIS_ANOMALY"
     }
     result = checks.CheckResult(
-        check_id="SW-CHECK", anomaly=rdf_anomaly.Anomaly(**anomaly1))
+        check_id="SW-CHECK", anomaly=[rdf_anomaly.Anomaly(**anomaly1)])
     other = checks.CheckResult(
-        check_id="SW-CHECK", anomaly=rdf_anomaly.Anomaly(**anomaly2))
-    result.ExtendAnomalies(other)
+        check_id="SW-CHECK", anomaly=[rdf_anomaly.Anomaly(**anomaly2)])
+    result.ExtendAnomalies([other])
     expect = {"check_id": "SW-CHECK", "anomaly": [anomaly1, anomaly2]}
     self.assertDictEqual(expect, result.ToPrimitiveDict())
 

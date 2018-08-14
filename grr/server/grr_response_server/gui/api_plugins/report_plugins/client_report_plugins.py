@@ -107,14 +107,13 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
   ACTIVE_DAYS_DISPLAY = [1, 3, 7, 30, 60]
 
   def _ProcessGraphSeries(self, graph_series, categories):
-    for graph in graph_series:
-      for sample in graph:
-        # Provide the time in js timestamps (milliseconds since the epoch).
-        days = sample.x_value // 1000000 // 24 // 60 // 60
-        if days in self.__class__.ACTIVE_DAYS_DISPLAY:
-          label = "%s day active" % days
-          timestamp = graph_series.age.AsMicrosecondsSinceEpoch() // 1000
-          categories.setdefault(label, []).append((timestamp, sample.y_value))
+    for sample in graph_series:
+      # Provide the time in js timestamps (milliseconds since the epoch).
+      days = sample.x_value // 1000000 // 24 // 60 // 60
+      if days in self.__class__.ACTIVE_DAYS_DISPLAY:
+        label = "%s day active" % days
+        timestamp = graph_series.age.AsMicrosecondsSinceEpoch() // 1000
+        categories.setdefault(label, []).append((timestamp, sample.y_value))
 
   def GetReportData(self, get_report_args, token):
     """Show how the last active breakdown evolved over time."""

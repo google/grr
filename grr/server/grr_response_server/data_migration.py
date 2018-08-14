@@ -6,9 +6,11 @@ from __future__ import division
 from multiprocessing import pool
 import sys
 import threading
+import traceback
 
 
 from future.utils import iteritems
+from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -16,6 +18,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -291,14 +294,28 @@ def ListVfs(client_urn):
   Returns:
     A list of `RDFURN` instances corresponding to client's VFS paths.
   """
+  return ListVfses([client_urn])
+
+
+def ListVfses(client_urns):
+  """Lists all known paths for a list of clients.
+
+  Args:
+    client_urns: A list of `ClientURN` instances.
+
+  Returns:
+    A list of `RDFURN` instances corresponding to VFS paths of given clients.
+  """
   vfs = set()
 
-  cur = [
-      client_urn.Add("fs/os"),
-      client_urn.Add("fs/tsk"),
-      client_urn.Add("temp"),
-      client_urn.Add("registry"),
-  ]
+  cur = set()
+  for client_urn in client_urns:
+    cur.update([
+        client_urn.Add("fs/os"),
+        client_urn.Add("fs/tsk"),
+        client_urn.Add("temp"),
+        client_urn.Add("registry"),
+    ])
 
   while cur:
     nxt = []
@@ -315,16 +332,29 @@ class ClientVfsMigrator(object):
   """A class used to migrate VFS to relational database.
 
   Attributes:
-    vfs_group_size: A size of a group into which all paths known for particular
-                    client are divided into. Increasing this number reduces the
-                    number of transactions per client is made but increases
-                    and increases the number of rows written per transaction.
+    thread_count: A number of threads to use to perform the migration.
+    client_batch_size: A size of a batch into which all client URNs to migrate
+                       are divided into.
+    init_vfs_group_size: An upper bound for a size of a group into which VFS
+                         URNs of a particular batch are divided into to perform
+                         path initialization (clearing any old entries and
+                         writing latest known information).
+    history_vfs_group_size: A size of a group into which VFS URNs of a
+                            particular batch are divided into to write the
+                            history information.
   """
 
   def __init__(self):
-    self.vfs_group_size = 30000
     self.thread_count = 300
     self.client_batch_size = 200
+    self.init_vfs_group_size = 30000
+    self.history_vfs_group_size = 10000
+
+    self._client_urns_to_migrate = []
+    self._client_urns_migrated = []
+    self._client_urns_failed = []
+
+    self._start_time = None
 
   def MigrateAllClients(self, shard_number=None, shard_count=None):
     """Migrates entire VFS of all clients available in the AFF4 data store."""
@@ -337,64 +367,151 @@ class ClientVfsMigrator(object):
       shard_number = 1
       shard_count = 1
 
+    sys.stdout.write("Collecting clients... ")
+
     client_urns = []
     for client_urn in _GetClientUrns():
       client_nr = int(client_urn.Basename()[2:], 16)
       if client_nr % shard_count == shard_number - 1:
         client_urns.append(client_urn)
 
+    sys.stdout.write("DONE\n")
+
     self.MigrateClients(client_urns)
 
   def MigrateClients(self, client_urns):
     """Migrates entire VFS of given client list to the relational data store."""
+    self._start_time = rdfvalue.RDFDatetime.Now()
+
+    self._client_urns_to_migrate = client_urns
+    self._client_urns_migrated = []
+    self._client_urns_failed = []
+
+    to_migrate_count = len(self._client_urns_to_migrate)
+    sys.stdout.write("Clients to migrate: {}\n".format(to_migrate_count))
+
     batches = utils.Grouper(client_urns, self.client_batch_size)
 
     tp = pool.ThreadPool(processes=self.thread_count)
     tp.map(self.MigrateClientBatch, list(batches))
 
+    migrated_count = len(self._client_urns_migrated)
+    sys.stdout.write("Migrated clients: {}\n".format(migrated_count))
+
+    if to_migrate_count == migrated_count:
+      sys.stdout.write("All clients migrated successfully!\n")
+    else:
+      message = "Not all clients have been migrated ({}/{})".format(
+          migrated_count, to_migrate_count)
+      raise RuntimeError(message)
+
   def MigrateClientBatch(self, client_urns):
     """Migrates entire VFS of given client batch to the relational database."""
-    for client_urn in client_urns:
-      self.MigrateClient(client_urn)
+    try:
+      now = rdfvalue.RDFDatetime.Now()
+      vfs_urns = ListVfses(client_urns)
+      list_vfs_duration = rdfvalue.RDFDatetime.Now() - now
 
-  def MigrateClient(self, client_urn):
-    """Migrates entire VFS of given client to the relational data store."""
-    vfs = ListVfs(client_urn)
+      now = rdfvalue.RDFDatetime.Now()
+      self._InitVfsUrns(vfs_urns)
+      init_vfs_duration = rdfvalue.RDFDatetime.Now() - now
 
-    path_infos = []
+      now = rdfvalue.RDFDatetime.Now()
+      self._MigrateVfsUrns(vfs_urns)
+      migrate_vfs_duration = rdfvalue.RDFDatetime.Now() - now
 
-    for vfs_urn in vfs:
-      _, vfs_path = vfs_urn.Split(2)
+      self._client_urns_migrated.extend(client_urns)
+    except Exception as error:
+      sys.stderr.write("Failed to migrate batch: {}\n".format(client_urns))
+      traceback.print_exc(error)
+      self._client_urns_failed.extend(client_urns)
+      raise error
+
+    if self._start_time is not None:
+      elapsed = rdfvalue.RDFDatetime.Now() - self._start_time
+    else:
+      elapsed = rdfvalue.Duration("0s")
+
+    if elapsed.seconds > 0:
+      cps = len(self._client_urns_migrated) / elapsed.seconds
+    else:
+      cps = 0
+
+    message = [
+        "Migrated a batch "
+        "(total migrated clients: {migrated_count}, failed: {failed_count})",
+        "  total time elapsed: {elapsed} ({cps:.2f} clients per second)",
+        "  number of VFS paths in current batch: {vfs_urn_count}",
+        "  listing VFS took: {list_vfs_duration}",
+        "  path initialization took: {init_vfs_duration}",
+        "  writing path history took: {migrate_vfs_duration}",
+        "",
+    ]
+    sys.stdout.write("\n".join(message).format(
+        migrated_count=len(self._client_urns_migrated),
+        failed_count=len(self._client_urns_failed),
+        elapsed=elapsed,
+        cps=cps,
+        vfs_urn_count=len(vfs_urns),
+        list_vfs_duration=list_vfs_duration,
+        init_vfs_duration=init_vfs_duration,
+        migrate_vfs_duration=migrate_vfs_duration))
+
+  def _InitVfsUrns(self, vfs_urns):
+    """Writes initial path information for a list of VFS URNs."""
+    client_vfs_urns = dict()
+    for vfs_urn in vfs_urns:
+      client_id, _ = vfs_urn.Split(2)
+      client_vfs_urns.setdefault(client_id, []).append(vfs_urn)
+
+    groups = list()
+    groups.append([])
+    for urns in itervalues(client_vfs_urns):
+      if len(groups[-1]) + len(urns) > self.init_vfs_group_size:
+        groups.append([])
+      groups[-1].extend(urns)
+
+    for group in groups:
+      self._InitVfsUrnGroup(group)
+
+  def _InitVfsUrnGroup(self, vfs_urns):
+    """Writes initial path information for a group of VFS URNs."""
+    path_infos = dict()
+    for vfs_urn in vfs_urns:
+      client_id, vfs_path = vfs_urn.Split(2)
       path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
 
       path_info = rdf_objects.PathInfo(
           path_type=path_type, components=components)
-      path_infos.append(path_info)
+      path_infos.setdefault(client_id, []).append(path_info)
 
-    data_store.REL_DB.InitPathInfos(client_urn.Basename(), path_infos)
+    data_store.REL_DB.MultiInitPathInfos(path_infos)
 
-    for vfs_group in utils.Grouper(vfs, self.vfs_group_size):
-      stat_entries = dict()
-      hash_entries = dict()
+  def _MigrateVfsUrns(self, vfs_urns):
+    """Migrates history of given list of VFS URNs."""
+    for group in utils.Grouper(vfs_urns, self.history_vfs_group_size):
+      self._MigrateVfsUrnGroup(group)
 
-      for fd in aff4.FACTORY.MultiOpen(vfs_group, age=aff4.ALL_TIMES):
-        _, vfs_path = fd.urn.Split(2)
-        path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
-        path_info = rdf_objects.PathInfo(
-            path_type=path_type, components=components)
+  def _MigrateVfsUrnGroup(self, vfs_urns):
+    """Migrates history of given group of VFS URNs."""
+    client_path_histories = dict()
 
-        for stat_entry in fd.GetValuesForAttribute(fd.Schema.STAT):
-          stat_path_info = path_info.Copy()
-          stat_path_info.timestamp = stat_entry.age
-          stat_entries[stat_path_info] = stat_entry
+    for fd in aff4.FACTORY.MultiOpen(vfs_urns, age=aff4.ALL_TIMES):
+      client_id, vfs_path = fd.urn.Split(2)
+      path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
 
-        for hash_entry in fd.GetValuesForAttribute(fd.Schema.HASH):
-          hash_path_info = path_info.Copy()
-          hash_path_info.timestamp = hash_entry.age
-          hash_entries[hash_path_info] = hash_entry
+      client_path = db.ClientPath(client_id, path_type, components)
+      client_path_history = db.ClientPathHistory()
 
-      data_store.REL_DB.MultiWritePathHistory(client_urn.Basename(),
-                                              stat_entries, hash_entries)
+      for stat_entry in fd.GetValuesForAttribute(fd.Schema.STAT):
+        client_path_history.AddStatEntry(stat_entry.age, stat_entry)
+
+      for hash_entry in fd.GetValuesForAttribute(fd.Schema.HASH):
+        client_path_history.AddHashEntry(hash_entry.age, hash_entry)
+
+      client_path_histories[client_path] = client_path_history
+
+    data_store.REL_DB.MultiWritePathHistory(client_path_histories)
 
 
 class BlobsMigrator(object):

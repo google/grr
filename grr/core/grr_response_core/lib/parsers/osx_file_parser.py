@@ -18,8 +18,9 @@ class OSXUsersParser(parser.ArtifactFilesParser):
   output_types = ["User"]
   supported_artifacts = ["MacOSUsers"]
   blacklist = ["Shared"]
+  process_together = True
 
-  def Parse(self, stat_entries, knowledge_base, path_type):
+  def ParseMultiple(self, stat_entries, knowledge_base, path_type):
     """Parse the StatEntry objects."""
     _, _ = knowledge_base, path_type
 

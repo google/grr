@@ -24,7 +24,7 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
     if registry_type == rdf_client.StatEntry.RegistryType.REG_MULTI_SZ:
       reg_data = rdf_protodict.DataBlob(
           list=rdf_protodict.BlobArray(
-              content=rdf_protodict.DataBlob(string=value)))
+              content=[rdf_protodict.DataBlob(string=value)]))
     else:
       reg_data = rdf_protodict.DataBlob().SetValue(value)
 

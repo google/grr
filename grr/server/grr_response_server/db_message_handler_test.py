@@ -38,7 +38,7 @@ class DatabaseTestHandlerMixin(object):
     self.assertEqual(sorted(read, key=lambda req: req.request_id), requests)
 
     self.db.DeleteMessageHandlerRequests(requests[:2])
-    self.db.DeleteMessageHandlerRequests(requests[4])
+    self.db.DeleteMessageHandlerRequests(requests[4:5])
 
     read = self.db.ReadMessageHandlerRequests()
     self.assertEqual(len(read), 2)

@@ -41,5 +41,6 @@ function export_build_vars() {
 create_changelog
 export_build_vars
 rm -f ../grr-server_*.tar.gz
+rm -rf gcs_upload_dir
 dpkg-buildpackage -us -uc
-mkdir -p gcs_upload_dir && cp ../grr-server_* gcs_upload_dir
+mkdir gcs_upload_dir && cp ../grr-server_* gcs_upload_dir

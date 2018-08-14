@@ -110,6 +110,78 @@ class UnknownCronJobRunError(NotFoundError):
   pass
 
 
+class ClientPath(object):
+  """An immutable class representing certain path on a given client.
+
+  Attributes:
+    client_id: A client to which the path belongs to.
+    path_type: A type of the path.
+    components: A tuple of path components.
+  """
+
+  def __init__(self, client_id, path_type, components):
+    _ValidateClientId(client_id)
+    _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
+    _ValidatePathComponents(components)
+    self._repr = (client_id, path_type, components)
+
+  @classmethod
+  def OS(cls, client_id, components):
+    path_type = rdf_objects.PathInfo.PathType.OS
+    return cls(client_id=client_id, path_type=path_type, components=components)
+
+  @classmethod
+  def TSK(cls, client_id, components):
+    path_type = rdf_objects.PathInfo.PathType.TSK
+    return cls(client_id=client_id, path_type=path_type, components=components)
+
+  @classmethod
+  def Registry(cls, client_id, components):
+    path_type = rdf_objects.PathInfo.PathType.REGISTRY
+    return cls(client_id=client_id, path_type=path_type, components=components)
+
+  @classmethod
+  def Temp(cls, client_id, components):
+    path_type = rdf_objects.PathInfo.PathType.Temp
+    return cls(client_id=client_id, path_type=path_type, components=components)
+
+  @property
+  def client_id(self):
+    return self._repr[0]
+
+  @property
+  def path_type(self):
+    return self._repr[1]
+
+  @property
+  def components(self):
+    return self._repr[2]
+
+  def __eq__(self, other):
+    return self._repr == other._repr  # pylint: disable=protected-access
+
+  def __hash__(self):
+    return hash(self._repr)
+
+
+class ClientPathHistory(object):
+  """A class representing stat and hash history for some path."""
+
+  def __init__(self):
+    self.stat_entries = {}
+    self.hash_entries = {}
+
+  def AddStatEntry(self, timestamp, stat_entry):
+    utils.AssertType(timestamp, rdfvalue.RDFDatetime)
+    utils.AssertType(stat_entry, rdf_client.StatEntry)
+    self.stat_entries[timestamp] = stat_entry
+
+  def AddHashEntry(self, timestamp, hash_entry):
+    utils.AssertType(timestamp, rdfvalue.RDFDatetime)
+    utils.AssertType(hash_entry, rdf_crypto.Hash)
+    self.hash_entries[timestamp] = hash_entry
+
+
 class Database(with_metaclass(abc.ABCMeta, object)):
   """The GRR relational database abstraction."""
 
@@ -743,55 +815,42 @@ class Database(with_metaclass(abc.ABCMeta, object)):
                   instances corresponding to paths to clear the history for.
     """
 
-  # TODO(hanuszczak): Having a dictionary with mutable key as an argument is not
-  # a good idea. The signature should be changed to something saner.
   @abc.abstractmethod
-  def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
+  def MultiWritePathHistory(self, client_path_histories):
     """Writes a collection of hash and stat entries observed for given paths.
 
     Args:
-      client_id: A client for which we want to write the history.
-      stat_entries: An dictionary mapping path info to stat entries.
-      hash_entries: An dictionary mapping path info to hash entries.
+      client_path_histories: A dictionary mapping `ClientPath` instances to
+                             `ClientPathHistory` objects.
     """
 
-  def WritePathStatHistory(self, client_id, path_info, stat_entries):
+  def WritePathStatHistory(self, client_path, stat_entries):
     """Writes a collection of `StatEntry` observed for particular path.
 
     Args:
-      client_id: A client for which we want to write stat entries.
-      path_info: Information about the path to write stat entries for. Note that
-                 if `path_info` has some associated stat entry, it is simply
-                 ignored.
+      client_path: A `ClientPath` instance.
       stat_entries: A dictionary with timestamps as keys and `StatEntry`
                     instances as values.
     """
-    rstat_entries = {}
+    client_path_history = ClientPathHistory()
     for timestamp, stat_entry in iteritems(stat_entries):
-      rpath_info = path_info.Copy()
-      rpath_info.timestamp = timestamp
-      rstat_entries[rpath_info] = stat_entry
+      client_path_history.AddStatEntry(timestamp, stat_entry)
 
-    self.MultiWritePathHistory(client_id, rstat_entries, {})
+    self.MultiWritePathHistory({client_path: client_path_history})
 
-  def WritePathHashHistory(self, client_id, path_info, hash_entries):
+  def WritePathHashHistory(self, client_path, hash_entries):
     """Writes a collection of `Hash` observed for particular path.
 
     Args:
-      client_id: A client for which we want to write hash entries.
-      path_info: Information about the path to write stat entries for. Note that
-                 if `path_info` has some associated hash entry, it is simply
-                 ignored.
+      client_path: A `ClientPath` instance.
       hash_entries: A dictionary with timestamps as keys and `Hash` instances
                     as values.
     """
-    rhash_entries = {}
+    client_path_history = ClientPathHistory()
     for timestamp, hash_entry in iteritems(hash_entries):
-      rpath_info = path_info.Copy()
-      rpath_info.timestamp = timestamp
-      rhash_entries[rpath_info] = hash_entry
+      client_path_history.AddHashEntry(timestamp, hash_entry)
 
-    self.MultiWritePathHistory(client_id, {}, rhash_entries)
+    self.MultiWritePathHistory({client_path: client_path_history})
 
   @abc.abstractmethod
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
@@ -1519,18 +1578,13 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.MultiClearPathHistory(path_infos)
 
-  def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
-    _ValidateClientId(client_id)
+  def MultiWritePathHistory(self, client_path_histories):
+    utils.AssertType(client_path_histories, dict)
+    for client_path, client_path_history in iteritems(client_path_histories):
+      utils.AssertType(client_path, ClientPath)
+      utils.AssertType(client_path_history, ClientPathHistory)
 
-    for path_info, stat_entry in iteritems(stat_entries):
-      utils.AssertType(path_info, rdf_objects.PathInfo)
-      utils.AssertType(stat_entry, rdf_client.StatEntry)
-
-    for path_info, hash_entry in iteritems(hash_entries):
-      utils.AssertType(path_info, rdf_objects.PathInfo)
-      utils.AssertType(hash_entry, rdf_crypto.Hash)
-
-    self.delegate.MultiWritePathHistory(client_id, stat_entries, hash_entries)
+    self.delegate.MultiWritePathHistory(client_path_histories)
 
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):

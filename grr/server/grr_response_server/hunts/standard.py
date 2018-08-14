@@ -363,7 +363,6 @@ class GenericHunt(implementation.GRRHunt):
           args=self.args.flow_args,
           client_id=client_id,
           next_state="MarkDone",
-          sync=False,
           runner_args=self.args.flow_runner_args)
       with data_store.DB.GetMutationPool() as pool:
         grr_collections.RDFUrnCollection.StaticAdd(

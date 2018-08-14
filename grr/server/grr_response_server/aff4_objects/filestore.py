@@ -387,7 +387,7 @@ class HashFileStore(FileStore):
 
     # sha256 is the canonical location.
     canonical_urn = self.PATH.Add("generic/sha256").Add(str(hashes.sha256))
-    if not list(aff4.FACTORY.Stat(canonical_urn)):
+    if not list(aff4.FACTORY.Stat([canonical_urn])):
       aff4.FACTORY.Copy(fd.urn, canonical_urn)
       # Remove the STAT entry, it makes no sense to copy it between clients.
       with aff4.FACTORY.Open(

@@ -508,7 +508,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
     # Run the hunt.
     worker_mock = worker_test_lib.MockWorker(
-        check_flow_errors=True, queues=queues.HUNTS, token=self.token)
+        check_flow_errors=True, queues=[queues.HUNTS], token=self.token)
 
     # One client is scheduled in the first minute.
     with test_lib.FakeTime(start_time + 2):

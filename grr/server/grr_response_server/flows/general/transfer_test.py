@@ -295,22 +295,22 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
 
     args = transfer.MultiGetFileArgs(
         pathspecs=pathspecs, maximum_pending_files=10)
-    for session_id in flow_test_lib.TestFlowHelper(
+    session_id = flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
-        args=args):
-      # Check up on the internal flow state.
-      flow_obj = aff4.FACTORY.Open(session_id, mode="r", token=self.token)
-      flow_state = flow_obj.state
-      # All the pathspecs should be in this list.
-      self.assertEqual(len(flow_state.indexed_pathspecs), 30)
+        args=args)
+    # Check up on the internal flow state.
+    flow_obj = aff4.FACTORY.Open(session_id, mode="r", token=self.token)
+    flow_state = flow_obj.state
+    # All the pathspecs should be in this list.
+    self.assertEqual(len(flow_state.indexed_pathspecs), 30)
 
-      # At any one time, there should not be more than 10 files or hashes
-      # pending.
-      self.assertLessEqual(len(flow_state.pending_files), 10)
-      self.assertLessEqual(len(flow_state.pending_hashes), 10)
+    # At any one time, there should not be more than 10 files or hashes
+    # pending.
+    self.assertLessEqual(len(flow_state.pending_files), 10)
+    self.assertLessEqual(len(flow_state.pending_hashes), 10)
 
     # When we finish there should be no pathspecs stored in the flow state.
     for flow_pathspec in flow_state.indexed_pathspecs:

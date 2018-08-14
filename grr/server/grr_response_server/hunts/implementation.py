@@ -307,7 +307,7 @@ class HuntRunner(object):
         method()
       else:
         # Prepare a responses object for the state method to use:
-        responses = flow_responses.Responses(
+        responses = flow_responses.Responses.FromLegacyResponses(
             request=request, responses=responses)
 
         if responses.status:
@@ -346,7 +346,6 @@ class HuntRunner(object):
   def CallFlow(self,
                flow_name=None,
                next_state=None,
-               sync=True,
                request_data=None,
                client_id=None,
                base_session_id=None,
@@ -362,9 +361,6 @@ class HuntRunner(object):
 
        next_state: The state in this flow, that responses to this
        message should go to.
-
-       sync: If True start the flow inline on the calling thread, else schedule
-         a worker to actually start the child flow.
 
        request_data: Any dict provided here will be available in the
              RequestState protobuf. The Responses object maintains a reference
@@ -455,7 +451,7 @@ class HuntRunner(object):
         parent_flow=self.hunt_obj,
         queue=self.runner_args.queue,
         request_state=state,
-        sync=sync,
+        sync=False,
         token=self.token,
         write_intermediate_results=write_intermediate,
         **kwargs)

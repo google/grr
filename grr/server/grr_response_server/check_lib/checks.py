@@ -37,12 +37,19 @@ class ProcessingError(Error):
   """A check generated bad results."""
 
 
+def Validate(item, hint):
+  try:
+    item.Validate()
+  except DefinitionError as e:
+    raise DefinitionError("%s:\n  %s" % (hint, str(e)))
+
+
 def ValidateMultiple(component, hint):
   errors = []
   for item in component:
     try:
       item.Validate()
-    except (DefinitionError) as e:
+    except DefinitionError as e:
       errors.append(str(e))
   if errors:
     raise DefinitionError("%s:\n  %s" % (hint, "\n  ".join(errors)))
@@ -147,7 +154,7 @@ class Filter(rdf_structs.RDFProtoStruct):
     if self.type not in filters.Filter.classes:
       raise DefinitionError("Undefined filter type %s" % self.type)
     self._filter.Validate(self.expression)
-    ValidateMultiple(self.hint, "Filter has invalid hint")
+    Validate(self.hint, "Filter has invalid hint")
 
 
 class Probe(rdf_structs.RDFProtoStruct):
@@ -206,7 +213,7 @@ class Probe(rdf_structs.RDFProtoStruct):
 
   def Validate(self):
     """Check the test set is well constructed."""
-    ValidateMultiple(self.target, "Probe has invalid target")
+    Validate(self.target, "Probe has invalid target")
     self.baseliner.Validate()
     self.handler.Validate()
     self.hint.Validate()
@@ -283,8 +290,8 @@ class Method(rdf_structs.RDFProtoStruct):
   def Validate(self):
     """Check the Method is well constructed."""
     ValidateMultiple(self.probe, "Method has invalid probes")
-    ValidateMultiple(self.target, "Method has invalid target")
-    ValidateMultiple(self.hint, "Method has invalid hint")
+    Validate(self.target, "Method has invalid target")
+    Validate(self.hint, "Method has invalid hint")
 
 
 class CheckResult(rdf_structs.RDFProtoStruct):
@@ -454,9 +461,9 @@ class Matcher(object):
     """
     result = CheckResult()
     for detector in self.detectors:
-      for finding in detector(baseline, host_data):
-        if finding:
-          result.ExtendAnomalies(finding)
+      finding = detector(baseline, host_data)
+      if finding:
+        result.ExtendAnomalies([finding])
     if result:
       return result
 
@@ -488,12 +495,14 @@ class Matcher(object):
     if results and all(isinstance(r, CheckResult) for r in results):
       result.ExtendAnomalies(results)
     else:
-      result.anomaly = rdf_anomaly.Anomaly(
-          type=anomaly_pb2.Anomaly.AnomalyType.Name(
-              anomaly_pb2.Anomaly.ANALYSIS_ANOMALY),
-          symptom=self.hint.Problem(state),
-          finding=self.hint.Render(results),
-          explanation=self.hint.Fix())
+      result.anomaly = [
+          rdf_anomaly.Anomaly(
+              type=anomaly_pb2.Anomaly.AnomalyType.Name(
+                  anomaly_pb2.Anomaly.ANALYSIS_ANOMALY),
+              symptom=self.hint.Problem(state),
+              finding=self.hint.Render(results),
+              explanation=self.hint.Fix())
+      ]
     return result
 
   def GotNone(self, _, results):

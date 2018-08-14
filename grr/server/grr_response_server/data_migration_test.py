@@ -53,6 +53,19 @@ class ListVfsTest(test_lib.GRRBaseTest):
     self.assertIn(client_urn.Add("temp").Add("foo"), vfs)
     self.assertIn(client_urn.Add("registry").Add("bar"), vfs)
 
+  def testManyClients(self):
+    client_a_urn = self.SetupClient(0)
+    client_b_urn = self.SetupClient(1)
+
+    self._Touch(client_a_urn.Add("fs/os").Add("foo/bar"), content=b"bar")
+    self._Touch(client_b_urn.Add("fs/os").Add("foo/baz"), content=b"baz")
+
+    vfs = data_migration.ListVfses([client_a_urn, client_b_urn])
+    self.assertIn(client_a_urn.Add("fs/os").Add("foo"), vfs)
+    self.assertIn(client_a_urn.Add("fs/os").Add("foo/bar"), vfs)
+    self.assertIn(client_b_urn.Add("fs/os").Add("foo"), vfs)
+    self.assertIn(client_b_urn.Add("fs/os").Add("foo/baz"), vfs)
+
 
 class ClientVfsMigratorTest(test_lib.GRRBaseTest):
 
@@ -68,7 +81,7 @@ class ClientVfsMigratorTest(test_lib.GRRBaseTest):
       fd.Set(fd.Schema.STAT, stat_entry)
 
     migrator = data_migration.ClientVfsMigrator()
-    migrator.MigrateClient(client_urn)
+    migrator.MigrateClientBatch([client_urn])
 
     path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
@@ -85,7 +98,7 @@ class ClientVfsMigratorTest(test_lib.GRRBaseTest):
       fd.Set(fd.Schema.HASH, hash_entry)
 
     migrator = data_migration.ClientVfsMigrator()
-    migrator.MigrateClient(client_urn)
+    migrator.MigrateClientBatch([client_urn])
 
     path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
@@ -105,7 +118,7 @@ class ClientVfsMigratorTest(test_lib.GRRBaseTest):
       fd.Set(fd.Schema.HASH, hash_entry)
 
     migrator = data_migration.ClientVfsMigrator()
-    migrator.MigrateClient(client_urn)
+    migrator.MigrateClientBatch([client_urn])
 
     path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
@@ -122,7 +135,7 @@ class ClientVfsMigratorTest(test_lib.GRRBaseTest):
       fd.Set(fd.Schema.STAT, stat_entry)
 
     migrator = data_migration.ClientVfsMigrator()
-    migrator.MigrateClient(client_urn)
+    migrator.MigrateClientBatch([client_urn])
 
     path_infos = data_store.REL_DB.ReadPathInfos(
         client_id=client_urn.Basename(),
@@ -152,7 +165,7 @@ class ClientVfsMigratorTest(test_lib.GRRBaseTest):
         fd.Set(fd.Schema.STAT, rdf_client.StatEntry(st_size=30))
 
     migrator = data_migration.ClientVfsMigrator()
-    migrator.MigrateClient(client_urn)
+    migrator.MigrateClientBatch([client_urn])
 
     path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
@@ -194,7 +207,7 @@ class ClientVfsMigratorTest(test_lib.GRRBaseTest):
         fd.Set(fd.Schema.HASH, rdf_crypto.Hash(md5=b"blargh"))
 
     migrator = data_migration.ClientVfsMigrator()
-    migrator.MigrateClient(client_urn)
+    migrator.MigrateClientBatch([client_urn])
 
     path_info = data_store.REL_DB.ReadPathInfo(
         client_id=client_urn.Basename(),
@@ -226,7 +239,7 @@ class ClientVfsMigratorTest(test_lib.GRRBaseTest):
 
     migrator = data_migration.ClientVfsMigrator()
     migrator.vfs_group_size = 5
-    migrator.MigrateClient(client_urn)
+    migrator.MigrateClientBatch([client_urn])
 
     for i in range(42):
       path_info = data_store.REL_DB.ReadPathInfo(

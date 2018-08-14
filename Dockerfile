@@ -13,6 +13,8 @@
 #    -p 0.0.0.0:8000:8000 \
 #    -p 0.0.0.0:8080:8080 \
 #    grrdocker/grr
+#
+# TODO(ogaro): Implement support for using an external MySQL instance.
 
 FROM ubuntu:xenial
 
@@ -20,6 +22,7 @@ LABEL maintainer="grr-dev@googlegroups.com"
 
 ENV GRR_VENV /usr/share/grr-server
 ENV PROTOC /usr/share/protobuf/bin/protoc
+ENV DEBIAN_FRONTEND noninteractive
 
 SHELL ["/bin/bash", "-c"]
 
@@ -35,9 +38,12 @@ RUN apt-get update && \
   python-pip \
   rpm \
   wget \
-  zip
+  zip \
+  mysql-server \
+  python-mysqldb
 
-RUN pip install --upgrade --no-cache-dir pip virtualenv && virtualenv $GRR_VENV
+RUN pip install --upgrade --no-cache-dir pip virtualenv && \
+    virtualenv --system-site-packages $GRR_VENV
 
 # Install proto compiler
 RUN mkdir -p /usr/share/protobuf && \
@@ -46,11 +52,8 @@ wget --quiet "https://github.com/google/protobuf/releases/download/v3.3.0/protoc
 unzip protoc-3.3.0-linux-x86_64.zip && \
 rm protoc-3.3.0-linux-x86_64.zip
 
-# TODO(ogaro) Stop hard-coding the node version to install
-# when a Linux node-sass binary compatible with node v8.0.0 is
-# available: https://github.com/sass/node-sass/pull/1969
 RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir wheel six setuptools nodeenv && \
-    $GRR_VENV/bin/nodeenv -p --prebuilt --node=7.10.0 && \
+    $GRR_VENV/bin/nodeenv -p --prebuilt && \
     echo '{ "allow_root": true }' > /root/.bowerrc
 
 # Copy the GRR code over.
@@ -58,7 +61,7 @@ ADD . /usr/src/grr
 
 RUN cd /usr/src/grr && /usr/src/grr/docker/install_grr_from_gcs.sh
 
-ENTRYPOINT ["/usr/src/grr/grr/core/scripts/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/src/grr/docker/docker-entrypoint.sh"]
 
 # Port for the admin UI GUI
 EXPOSE 8000
@@ -69,6 +72,6 @@ EXPOSE 8080
 # Directories used by GRR at runtime, which can be mounted from the host's
 # filesystem. Note that volumes can be mounted even if they do not appear in
 # this list.
-VOLUME ["/usr/share/grr-server/install_data/etc", "/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore"]
+VOLUME ["/usr/share/grr-server/install_data/etc"]
 
 CMD ["grr"]

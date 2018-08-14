@@ -226,7 +226,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
         crash_alert_email="crashes@example.com",
         token=self.token) as hunt:
       hunt.Run()
-      hunt.StartClients(hunt.session_id, client_id)
+      hunt.StartClients(hunt.session_id, [client_id])
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client = flow_test_lib.CrashClientMock(client_id, self.token)

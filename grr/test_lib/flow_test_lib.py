@@ -101,8 +101,8 @@ class FlowOrderTest(flow.GRRFlow):
     """Record the message id for testing."""
     self.messages = []
 
-    for _ in responses:
-      self.messages.append(responses.message.response_id)
+    for r in responses:
+      self.messages.append(r.integer)
 
 
 class SendingFlowArgs(rdf_structs.RDFProtoStruct):
@@ -374,7 +374,7 @@ class MockClient(object):
                 request_id=message.response_id,
                 request=message.payload)
 
-            handler_cls(token=self.token).ProcessMessages(handler_request)
+            handler_cls(token=self.token).ProcessMessages([handler_request])
           else:
             logging.info("Running well known flow: %s", session_id)
             self.well_known_flows[session_id.FlowName()].ProcessMessage(message)

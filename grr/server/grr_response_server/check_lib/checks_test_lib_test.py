@@ -33,7 +33,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
             checks.CheckResult(check_id="SW-CHECK"),
         "OTHER":
             checks.CheckResult(
-                check_id="OTHER", anomaly=rdf_anomaly.Anomaly(**anomaly))
+                check_id="OTHER", anomaly=[rdf_anomaly.Anomaly(**anomaly)])
     }
     self.assertCheckUndetected("SW-CHECK", other_anomaly)
 
@@ -41,7 +41,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     has_anomaly = {
         "SW-CHECK":
             checks.CheckResult(
-                check_id="SW-CHECK", anomaly=rdf_anomaly.Anomaly(**anomaly))
+                check_id="SW-CHECK", anomaly=[rdf_anomaly.Anomaly(**anomaly)])
     }
     self.assertRaises(AssertionError, self.assertCheckUndetected, "SW-CHECK",
                       has_anomaly)
@@ -105,7 +105,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     failing_checks = {
         "EXISTS":
             checks.CheckResult(
-                check_id="EXISTS", anomaly=rdf_anomaly.Anomaly(**anomaly))
+                check_id="EXISTS", anomaly=[rdf_anomaly.Anomaly(**anomaly)])
     }
 
     # Check we pass when our check produces an anomaly and we don't care

@@ -877,7 +877,7 @@ def _GetTimelineStatEntriesLegacy(client_id, file_path, with_history=True):
   folder_urn = aff4.ROOT_URN.Add(str(client_id)).Add(file_path)
 
   child_urns = []
-  for _, children in aff4.FACTORY.RecursiveMultiListChildren(folder_urn):
+  for _, children in aff4.FACTORY.RecursiveMultiListChildren([folder_urn]):
     child_urns.extend(children)
 
   if with_history:

@@ -37,7 +37,7 @@ class MySQLDBPathMixin(object):
     """Lists path info records that correspond to descendants of given path."""
     raise NotImplementedError()
 
-  def MultiWritePathHistory(self, client_id, stat_entries, hash_entries):
+  def MultiWritePathHistory(self, client_path_histories):
     raise NotImplementedError()
 
   def ReadPathInfosHistories(self, client_id, path_type, components_list):

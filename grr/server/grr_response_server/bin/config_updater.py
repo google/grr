@@ -152,6 +152,29 @@ parser_initialize.add_argument(
     action="store_true",
     help="Enable Rekall during noninteractive config initialization.")
 
+parser_initialize.add_argument(
+    "--mysql_hostname",
+    help="Hostname for a running MySQL instance (only appplies if --noprompt "
+    "is set).")
+
+parser_initialize.add_argument(
+    "--mysql_port",
+    help="Port for a running MySQL instance (only applies if --noprompt "
+    "is set).")
+
+parser_initialize.add_argument(
+    "--mysql_db",
+    help="Name of GRR's MySQL database (only applies if --noprompt is set).")
+
+parser_initialize.add_argument(
+    "--mysql_username",
+    help="Name of GRR MySQL database user (only applies if --noprompt is set).")
+
+parser_initialize.add_argument(
+    "--mysql_password",
+    help="Password for GRR MySQL database user (only applies if --noprompt is "
+    "set).")
+
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
@@ -745,24 +768,31 @@ def Initialize(config=None, token=None):
 
 
 def InitializeNoPrompt(config=None, token=None):
-  """Initialize GRR with no prompts, assumes SQLite db.
+  """Initialize GRR with no prompts.
 
   Args:
     config: config object
     token: auth token
 
   Raises:
-    ValueError: if hostname and password not supplied.
+    ValueError: if required flags are not provided, or if the config has
+      already been initialized.
     IOError: if config is not writeable
 
   This method does the minimum work necessary to configure GRR without any user
   prompting, relying heavily on config default values. User must supply the
-  external hostname and admin password, everything else is set automatically.
+  external hostname, admin password, and MySQL password; everything else is set
+  automatically.
   """
-  if not (flags.FLAGS.external_hostname and flags.FLAGS.admin_password):
+  if config["Server.initialized"]:
+    raise ValueError("Config has already been initialized.")
+  if not flags.FLAGS.external_hostname:
     raise ValueError(
-        "If interactive prompting is disabled, external_hostname and "
-        "admin_password must be set.")
+        "--noprompt set, but --external_hostname was not provided.")
+  if not flags.FLAGS.admin_password:
+    raise ValueError("--noprompt set, but --admin_password was not provided.")
+  if flags.FLAGS.mysql_password is None:
+    raise ValueError("--noprompt set, but --mysql_password was not provided.")
 
   print("Checking write access on config %s" % config.parser)
   if not os.access(config.parser.filename, os.W_OK):
@@ -770,14 +800,21 @@ def InitializeNoPrompt(config=None, token=None):
 
   config_dict = {}
   GenerateKeys(config)
-  config_dict["Datastore.implementation"] = "SqliteDataStore"
+  config_dict["Datastore.implementation"] = "MySQLAdvancedDataStore"
+  config_dict["Mysql.host"] = (
+      flags.FLAGS.mysql_hostname or config["Mysql.host"])
+  config_dict["Mysql.port"] = (flags.FLAGS.mysql_port or config["Mysql.port"])
+  config_dict["Mysql.database_name"] = (
+      flags.FLAGS.mysql_db or config["Mysql.database_name"])
+  config_dict["Mysql.database_username"] = (
+      flags.FLAGS.mysql_username or config["Mysql.database_username"])
   hostname = flags.FLAGS.external_hostname
   config_dict["Client.server_urls"] = [
-      "http://%s:%s/" % (hostname, config.Get("Frontend.bind_port"))
+      "http://%s:%s/" % (hostname, config["Frontend.bind_port"])
   ]
 
   config_dict["AdminUI.url"] = "http://%s:%s" % (hostname,
-                                                 config.Get("AdminUI.port"))
+                                                 config["AdminUI.port"])
   config_dict["Logging.domain"] = hostname
   config_dict["Monitoring.alert_email"] = "grr-monitoring@%s" % hostname
   config_dict["Monitoring.emergency_access_email"] = (
@@ -786,11 +823,12 @@ def InitializeNoPrompt(config=None, token=None):
   print("Setting configuration as:\n\n%s" % config_dict)
   for key, value in iteritems(config_dict):
     config.Set(key, value)
+  config.Set("Mysql.database_password", flags.FLAGS.mysql_password)
   config.Set("Server.initialized", True)
   config.Write()
 
   print("Configuration parameters set. You can edit these in %s" %
-        grr_config.CONFIG.Get("Config.writeback"))
+        config["Config.writeback"])
   AddUsers(token=token)
   ManageBinaries(config, token=token)
 

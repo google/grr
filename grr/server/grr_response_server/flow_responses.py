@@ -16,22 +16,26 @@ from grr_response_server import server_stubs
 class Responses(object):
   """An object encapsulating all the responses to a request."""
 
-  def __init__(self, request=None, responses=None):
-    self.status = None  # A GrrStatus rdfvalue object.
+  def __init__(self):
+    self.status = None
     self.success = True
-    self.request = request
+    self.request = None
+    self.responses = []
+
+  @classmethod
+  def FromLegacyResponses(cls, request=None, responses=None):
+    """Creates a Responses object from old style flow request and responses."""
+    res = cls()
+    res.request = request
     if request:
-      self.request_data = rdf_protodict.Dict(request.data)
-    self._responses = []
+      res.request_data = rdf_protodict.Dict(request.data)
     dropped_responses = []
-    # This is the raw message accessible while going through the iterator
-    self.message = None
     # The iterator that was returned as part of these responses. This should
     # be passed back to actions that expect an iterator.
-    self.iterator = None
+    res.iterator = None
 
     if not responses:
-      return
+      return res
 
     # This may not be needed if we can assume that responses are
     # returned in lexical order from the data_store.
@@ -49,36 +53,38 @@ class Responses(object):
 
       # Check for iterators
       if msg.type == msg.Type.ITERATOR:
-        if self.iterator:
+        if res.iterator:
           raise ValueError("Received multiple iterator messages at once.")
-        self.iterator = rdf_client.Iterator(msg.payload)
+        res.iterator = rdf_client.Iterator(msg.payload)
         continue
 
       # Look for a status message
       if msg.type == msg.Type.STATUS:
         # Our status is set to the first status message that we see in
         # the responses. We ignore all other messages after that.
-        self.status = rdf_flows.GrrStatus(msg.payload)
+        res.status = rdf_flows.GrrStatus(msg.payload)
 
         # Check this to see if the call succeeded
-        self.success = self.status.status == self.status.ReturnedStatus.OK
+        res.success = res.status.status == res.status.ReturnedStatus.OK
 
         # Ignore all other messages
         break
 
       # Use this message
-      self._responses.append(msg)
+      res.responses.append(msg)
 
-    if self.status is None:
+    if res.status is None:
       # This is a special case of de-synchronized messages.
       if dropped_responses:
         logging.error(
             "De-synchronized messages detected:\n %s",
             "\n".join([utils.SmartUnicode(x) for x in dropped_responses]))
 
-      self._LogFlowState(responses)
+      res.LogFlowState(responses)
 
       raise ValueError("No valid Status message.")
+
+    return res
 
   def __iter__(self):
     """An iterator which returns all the responses in order."""
@@ -96,24 +102,24 @@ class Responses(object):
       expected_response_classes = action_registry[
           client_action_name].out_rdfvalues
 
-    for message in self._responses:
-      self.message = rdf_flows.GrrMessage(message)
+    for message in self.responses:
+      message = rdf_flows.GrrMessage(message)
 
       # Handle retransmissions
-      if self.message.response_id == old_response_id:
+      if message.response_id == old_response_id:
         continue
 
       else:
-        old_response_id = self.message.response_id
+        old_response_id = message.response_id
 
-      if self.message.type == self.message.Type.MESSAGE:
+      if message.type == message.Type.MESSAGE:
         if is_client_request:
           # Let's do some verification for requests that came from clients.
           if not expected_response_classes:
             raise RuntimeError("Client action %s does not specify out_rdfvalue."
                                % client_action_name)
           else:
-            args_rdf_name = self.message.args_rdf_name
+            args_rdf_name = message.args_rdf_name
             if not args_rdf_name:
               raise RuntimeError("Deprecated message format received: "
                                  "args_rdf_name is None.")
@@ -124,7 +130,7 @@ class Responses(object):
                                  % (args_rdf_name, expected_response_classes,
                                     client_action_name))
 
-        yield self.message.payload
+        yield message.payload
 
   def First(self):
     """A convenience method to return the first response."""
@@ -132,12 +138,12 @@ class Responses(object):
       return x
 
   def __len__(self):
-    return len(self._responses)
+    return len(self.responses)
 
   def __nonzero__(self):
-    return bool(self._responses)
+    return bool(self.responses)
 
-  def _LogFlowState(self, responses):
+  def LogFlowState(self, responses):
     session_id = responses[0].session_id
 
     logging.error(
@@ -158,9 +164,9 @@ class FakeResponses(Responses):
   def __init__(self, messages, request_data):
     super(FakeResponses, self).__init__()
     self.success = True
-    self._responses = messages or []
+    self.responses = messages or []
     self.request_data = request_data
     self.iterator = None
 
   def __iter__(self):
-    return iter(self._responses)
+    return iter(self.responses)

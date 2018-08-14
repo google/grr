@@ -174,7 +174,7 @@ class InstantOutputPluginWithExportConversionTest(
       return fd.read().split("\n")
 
   def testWorksCorrectlyWithOneSourceValueAndOneExportedValue(self):
-    lines = self.ProcessValuesToLines({DummySrcValue1: DummySrcValue1("foo")})
+    lines = self.ProcessValuesToLines({DummySrcValue1: [DummySrcValue1("foo")]})
     self.assertListEqual(lines, [
         "Start",
         "Original: DummySrcValue1",
@@ -183,7 +183,7 @@ class InstantOutputPluginWithExportConversionTest(
     ])  # pyformat: disable
 
   def testWorksCorrectlyWithOneSourceValueAndTwoExportedValues(self):
-    lines = self.ProcessValuesToLines({DummySrcValue2: DummySrcValue2("foo")})
+    lines = self.ProcessValuesToLines({DummySrcValue2: [DummySrcValue2("foo")]})
     self.assertListEqual(lines, [
         "Start",
         "Original: DummySrcValue2",

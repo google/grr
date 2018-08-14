@@ -291,13 +291,6 @@ def ApprovalRevokeRaw(aff4_path, token):
   approval_request.Close()
 
 
-def ClientIdToHostname(client_id, token=None):
-  """Quick helper for scripts to get a hostname from a client ID."""
-  client = OpenClient(client_id, token=token)[0]
-  if client and client.Get("Host"):
-    return client.Get("Host").Summary()
-
-
 def _GetHWInfos(client_list, batch_size=10000, token=None):
   """Opens the given clients in batches and returns hardware information."""
 

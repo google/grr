@@ -95,21 +95,26 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
         ctime=1333718907167083,
-        connections=rdf_client.NetworkConnection(family="INET", state="CLOSED"))
+        connections=[
+            rdf_client.NetworkConnection(family="INET", state="CLOSED")
+        ])
     p2 = rdf_client.Process(
         pid=3,
         ppid=1,
         cmdline=["cmd2.exe"],
         exe="c:\\windows\\cmd2.exe",
         ctime=1333718907167083,
-        connections=rdf_client.NetworkConnection(family="INET", state="LISTEN"))
+        connections=[
+            rdf_client.NetworkConnection(family="INET", state="LISTEN")
+        ])
     p3 = rdf_client.Process(
         pid=4,
         ppid=1,
         cmdline=["missing_exe.exe"],
         ctime=1333718907167083,
-        connections=rdf_client.NetworkConnection(
-            family="INET", state="ESTABLISHED"))
+        connections=[
+            rdf_client.NetworkConnection(family="INET", state="ESTABLISHED")
+        ])
     client_mock = action_mocks.ListProcessesMock([p1, p2, p3])
 
     flow_urn = flow.StartFlow(
@@ -138,8 +143,9 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
         ctime=1333718907167083,
-        connections=rdf_client.NetworkConnection(
-            family="INET", state="ESTABLISHED"))
+        connections=[
+            rdf_client.NetworkConnection(family="INET", state="ESTABLISHED")
+        ])
 
     client_mock = action_mocks.ListProcessesMock([p1, p2])
 
