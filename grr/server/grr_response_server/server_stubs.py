@@ -108,7 +108,7 @@ class Echo(ClientActionStub):
   """Returns a message to the server."""
 
   in_rdfvalue = rdf_client.EchoRequest
-  out_rdfvalues = [rdf_client.LogMessage]
+  out_rdfvalues = [rdf_client.EchoRequest]
 
 
 class GetHostname(ClientActionStub):

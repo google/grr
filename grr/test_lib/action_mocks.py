@@ -77,6 +77,7 @@ class CPULimitClientMock(object):
   """A mock for testing resource limits."""
 
   in_rdfvalue = rdf_protodict.DataBlob
+  out_rdfvalues = []
 
   def __init__(self, storage):
     # Register us as an action plugin.

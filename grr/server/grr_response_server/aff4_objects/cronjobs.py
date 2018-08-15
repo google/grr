@@ -2,6 +2,7 @@
 """Cron management classes."""
 
 import logging
+import sys
 import threading
 import time
 
@@ -560,3 +561,51 @@ class CronHook(registry.InitHook):
 
       self.cron_worker = CronWorker()
       self.cron_worker.RunAsync()
+
+
+class LegacyCronJobAdapterMixin(object):
+  """Mixin used by DualDBSystemCronJob decorator to generate legacy classes."""
+
+  def Start(self):
+    self.Run()
+
+
+def DualDBSystemCronJob(legacy_name=None, stateful=False):
+  """Decorator that creates AFF4 and RELDB cronjobs from a given mixin."""
+
+  def Decorator(cls):
+    """Decorator producing 2 classes: legacy style one and a new style one."""
+    if not legacy_name:
+      raise ValueError("legacy_name has to be provided")
+
+    # Legacy cron jobs have different base classes depending on whether they're
+    # stateful or not.
+    if stateful:
+      aff4_base_cls = StatefulSystemCronFlow
+    else:
+      aff4_base_cls = SystemCronFlow
+
+    # Make sure that we're dealing with a true mixin to avoid subtle errors.
+    if issubclass(cls, cronjobs.SystemCronJobBase):
+      raise ValueError("Mixin class shouldn't inherit from SystemCronJobBase")
+
+    if issubclass(cls, aff4_base_cls):
+      raise ValueError(
+          "Mixin class shouldn't inherit from %s" % aff4_base_cls.__name__)
+
+    # Generate legacy class. Register it within the module as it's not going
+    # to be returned from the decorator.
+    aff4_cls = type(legacy_name, (
+        cls,
+        LegacyCronJobAdapterMixin,
+        aff4_base_cls,
+    ), {})
+    module = sys.modules[cls.__module__]
+    setattr(module, legacy_name, aff4_cls)
+
+    # Generate new class. No need to register it in the module (like the legacy
+    # one) since it will replace the original decorated class.
+    reldb_cls = type(cls.__name__, (cls, cronjobs.SystemCronJobBase), {})
+    return reldb_cls
+
+  return Decorator

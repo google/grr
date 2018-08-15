@@ -34,7 +34,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 class Echo(actions.ActionPlugin):
   """Returns a message to the server."""
   in_rdfvalue = rdf_client.EchoRequest
-  out_rdfvalues = [rdf_client.LogMessage]
+  out_rdfvalues = [rdf_client.EchoRequest]
 
   def Run(self, args):
     self.SendReply(args)

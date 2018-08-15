@@ -106,10 +106,10 @@ class SystemCronJobBase(CronJobBase):
       if self.run_state.finished_at > expiration_time:
         raise Error("Lifetime exceeded")
 
-  def Log(self, message):
+  def Log(self, message, *args):
     if self.run_state.log_message:
       self.run_state.log_message += "\n"
-    self.run_state.log_message += message
+    self.run_state.log_message += message % args
 
   def ReadCronState(self):
     return self.job.state
@@ -121,6 +121,10 @@ class SystemCronJobBase(CronJobBase):
 
 class CronManager(object):
   """CronManager is used to schedule/terminate cron jobs."""
+
+  def __init__(self, max_threads=10):
+    super(CronManager, self).__init__()
+    self.max_threads = max_threads
 
   def CreateJob(self, cron_args=None, job_id=None, enabled=True, token=None):
     """Creates a cron job that runs given flow with a given frequency.
@@ -234,7 +238,7 @@ class CronManager(object):
 
   def _GetThreadPool(self):
     pool = threadpool.ThreadPool.Factory(
-        "CronJobPool", min_threads=1, max_threads=10)
+        "CronJobPool", min_threads=1, max_threads=self.max_threads)
     pool.Start()
     return pool
 
@@ -285,7 +289,10 @@ class CronManager(object):
         forced_run_requested=False)
 
     run_obj = job_cls(run_state, job)
-    self._GetThreadPool().AddTask(target=run_obj.StartRun, name=name)
+    if self.max_threads == 1:
+      run_obj.StartRun()
+    else:
+      self._GetThreadPool().AddTask(target=run_obj.StartRun, name=name)
     return True
 
   def JobIsRunning(self, job, token=None):

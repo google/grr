@@ -42,7 +42,9 @@ def GetClientOs(client_id, token=None):
 
 def GetFileHashEntry(fd):
   """Returns an `rdf_crypto.Hash` instance for given AFF4 file descriptor."""
-  if data_store.RelationalDBReadEnabled(category="vfs"):
+  # Hash file store is not migrated to RELDB just yet, hence the first check.
+  if (not fd.urn.Path().startswith("/files/hash/generic") and
+      data_store.RelationalDBReadEnabled(category="vfs")):
     return GetUrnHashEntry(fd.urn)
   else:
     return fd.Get(fd.Schema.HASH)

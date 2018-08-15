@@ -41,6 +41,17 @@ class Responses(object):
     # returned in lexical order from the data_store.
     responses.sort(key=operator.attrgetter("response_id"))
 
+    if request.HasField("request"):
+      client_action_name = request.request.name
+      action_registry = server_stubs.ClientActionStub.classes
+      if client_action_name not in action_registry:
+        raise RuntimeError(
+            "Got unknown client action: %s." % client_action_name)
+      expected_response_classes = action_registry[
+          client_action_name].out_rdfvalues
+
+    old_response_id = None
+
     # Filter the responses by authorized states
     for msg in responses:
       # Check if the message is authenticated correctly.
@@ -50,6 +61,12 @@ class Responses(object):
         dropped_responses.append(msg)
         # Skip this message - it is invalid
         continue
+
+      # Handle retransmissions
+      if msg.response_id == old_response_id:
+        continue
+
+      old_response_id = msg.response_id
 
       # Check for iterators
       if msg.type == msg.Type.ITERATOR:
@@ -70,8 +87,25 @@ class Responses(object):
         # Ignore all other messages
         break
 
+      if msg.type == msg.Type.MESSAGE:
+        if request.HasField("request"):
+          # Let's do some verification for requests that came from clients.
+          if not expected_response_classes:
+            raise RuntimeError("Client action %s does not specify out_rdfvalue."
+                               % client_action_name)
+          else:
+            args_rdf_name = msg.args_rdf_name
+            if not args_rdf_name:
+              raise RuntimeError("Deprecated message format received: "
+                                 "args_rdf_name is None.")
+            elif args_rdf_name not in [
+                x.__name__ for x in expected_response_classes
+            ]:
+              raise RuntimeError("Response type was %s but expected %s for %s."
+                                 % (args_rdf_name, expected_response_classes,
+                                    client_action_name))
       # Use this message
-      res.responses.append(msg)
+      res.responses.append(msg.payload)
 
     if res.status is None:
       # This is a special case of de-synchronized messages.
@@ -87,50 +121,7 @@ class Responses(object):
     return res
 
   def __iter__(self):
-    """An iterator which returns all the responses in order."""
-    old_response_id = None
-    action_registry = server_stubs.ClientActionStub.classes
-    expected_response_classes = []
-    is_client_request = False
-    # This is the client request so this response packet was sent by a client.
-    if self.request.HasField("request"):
-      is_client_request = True
-      client_action_name = self.request.request.name
-      if client_action_name not in action_registry:
-        raise RuntimeError(
-            "Got unknown client action: %s." % client_action_name)
-      expected_response_classes = action_registry[
-          client_action_name].out_rdfvalues
-
-    for message in self.responses:
-      message = rdf_flows.GrrMessage(message)
-
-      # Handle retransmissions
-      if message.response_id == old_response_id:
-        continue
-
-      else:
-        old_response_id = message.response_id
-
-      if message.type == message.Type.MESSAGE:
-        if is_client_request:
-          # Let's do some verification for requests that came from clients.
-          if not expected_response_classes:
-            raise RuntimeError("Client action %s does not specify out_rdfvalue."
-                               % client_action_name)
-          else:
-            args_rdf_name = message.args_rdf_name
-            if not args_rdf_name:
-              raise RuntimeError("Deprecated message format received: "
-                                 "args_rdf_name is None.")
-            elif args_rdf_name not in [
-                x.__name__ for x in expected_response_classes
-            ]:
-              raise RuntimeError("Response type was %s but expected %s for %s."
-                                 % (args_rdf_name, expected_response_classes,
-                                    client_action_name))
-
-        yield message.payload
+    return iter(self.responses)
 
   def First(self):
     """A convenience method to return the first response."""
@@ -167,6 +158,3 @@ class FakeResponses(Responses):
     self.responses = messages or []
     self.request_data = request_data
     self.iterator = None
-
-  def __iter__(self):
-    return iter(self.responses)

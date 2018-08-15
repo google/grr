@@ -520,7 +520,7 @@ to create the necessary database and tables using the credentials provided.
     config.Set("Mysql.database_name", mysql_database)
 
     mysql_username = RetryQuestion(
-        "MySQL Username", "[A-Za-z0-9-]+$",
+        "MySQL Username", "[A-Za-z0-9-@]+$",
         grr_config.CONFIG.Get("Mysql.database_username"))
     config.Set("Mysql.database_username", mysql_username)
 

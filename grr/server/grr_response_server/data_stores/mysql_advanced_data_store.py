@@ -591,7 +591,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       except MySQLdb.Error as e:
         self.pool.DropConnection(connection)
         if "doesn't exist" in str(e):
-          logging.error("Fatal error: %s.", str(e))
           # This should indicate missing tables and raise immediately
           raise
         else:
