@@ -15,6 +15,8 @@ from grr_response_client.client_actions import tempfiles
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
@@ -42,18 +44,18 @@ class DummyDiskVolumeInfo(flow.GRRFlow):
 
   def Start(self):
     if "/opt" in self.args.path_list[0]:
-      mnt = rdf_client.UnixVolume(mount_point="/opt")
+      mnt = rdf_client_fs.UnixVolume(mount_point="/opt")
       self.SendReply(
-          rdf_client.Volume(
+          rdf_client_fs.Volume(
               unixvolume=mnt,
               bytes_per_sector=4096,
               sectors_per_allocation_unit=1,
               actual_available_allocation_units=10,
               total_allocation_units=100))
     else:
-      mnt = rdf_client.UnixVolume(mount_point="/var")
+      mnt = rdf_client_fs.UnixVolume(mount_point="/var")
       self.SendReply(
-          rdf_client.Volume(
+          rdf_client_fs.Volume(
               unixvolume=mnt,
               bytes_per_sector=1,
               sectors_per_allocation_unit=1,
@@ -98,7 +100,7 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
         [["file",{"path": "%s", "pathtype": "TMPFILE"}]]
         """ % self.memory_file,
             plugin="aff4acquire"),
-        rdf_client.Iterator(state="FINISHED")
+        rdf_client_action.Iterator(state="FINISHED")
     ]
 
 
@@ -176,7 +178,7 @@ class TestMemoryCollector(MemoryTest):
       def CheckFreeGRRTempSpace(self, _):
         """Mock out the driver loading code to pass the memory image."""
         path = tempfiles.GetDefaultGRRTempDirectory()
-        reply = rdf_client.DiskUsage(
+        reply = rdf_client_fs.DiskUsage(
             path=path,
             total=10 * 1024 * 1024 * 1024,
             used=5 * 1024 * 1024 * 1024,
@@ -237,7 +239,7 @@ class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
         json_data.append(new_entry)
       response.json_messages = json.dumps(json_data)
 
-    return [response, rdf_client.Iterator(state="FINISHED")]
+    return [response, rdf_client_action.Iterator(state="FINISHED")]
 
 
 class ListVADBinariesTest(MemoryTest):

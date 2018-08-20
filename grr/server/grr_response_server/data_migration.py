@@ -16,6 +16,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import db
@@ -183,7 +184,7 @@ def _WriteClientMetadata(client):
   """Store the AFF4 client metadata in the relational database."""
   client_ip = client.Get(client.Schema.CLIENT_IP)
   if client_ip:
-    last_ip = rdf_client.NetworkAddress(
+    last_ip = rdf_client_network.NetworkAddress(
         human_readable_address=utils.SmartStr(client_ip))
   else:
     last_ip = None
@@ -404,6 +405,10 @@ class ClientVfsMigrator(object):
       message = "Not all clients have been migrated ({}/{})".format(
           migrated_count, to_migrate_count)
       raise RuntimeError(message)
+
+  def MigrateClient(self, client_urn):
+    """Migrate entire VFS of a particular client to the relational database."""
+    self.MigrateClientBatch([client_urn])
 
   def MigrateClientBatch(self, client_urns):
     """Migrates entire VFS of given client batch to the relational database."""

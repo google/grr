@@ -17,6 +17,7 @@ from grr_response_core.lib import stats
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -1480,7 +1481,7 @@ class GRRHunt(flow.FlowBase):
     """
     flow_path = status.child_session_id
 
-    resources = rdf_client.ClientResources()
+    resources = rdf_client_stats.ClientResources()
     resources.client_id = client_id
     resources.session_id = flow_path
     resources.cpu_usage.user_cpu_time = status.cpu_time_used.user_cpu_time

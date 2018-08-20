@@ -5,7 +5,7 @@ import logging
 import sys
 
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 # pylint: disable=g-import-not-at-top
@@ -48,7 +48,7 @@ def StatEntryFromPath(path, pathspec, ext_attrs=True):
     stat = utils.Stat(path)
   except (IOError, OSError) as error:
     logging.error("Failed to obtain stat for '%s': %s", pathspec, error)
-    return rdf_client.StatEntry(pathspec=pathspec)
+    return rdf_client_fs.StatEntry(pathspec=pathspec)
 
   return StatEntryFromStat(stat, pathspec, ext_attrs=ext_attrs)
 
@@ -64,7 +64,7 @@ def StatEntryFromStat(stat, pathspec, ext_attrs=True):
   Returns:
     `StatEntry` object.
   """
-  result = rdf_client.StatEntry(pathspec=pathspec)
+  result = rdf_client_fs.StatEntry(pathspec=pathspec)
 
   for attr in _STAT_ATTRS:
     value = getattr(stat.GetRaw(), attr, None)

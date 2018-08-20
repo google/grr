@@ -28,6 +28,9 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.parsers import osx_launchd
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 
@@ -137,7 +140,7 @@ setattr(Ifaddrs, "_fields_", [
 
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerate all MAC addresses of all NICs."""
-  out_rdfvalues = [rdf_client.Interface]
+  out_rdfvalues = [rdf_client_network.Interface]
 
   def Run(self, unused_args):
     """Enumerate all MAC addresses."""
@@ -159,8 +162,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x2:  # AF_INET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
-          address_type = rdf_client.NetworkAddress.Family.INET
-          address = rdf_client.NetworkAddress(
+          address_type = rdf_client_network.NetworkAddress.Family.INET
+          address = rdf_client_network.NetworkAddress(
               address_type=address_type, packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
 
@@ -174,8 +177,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x1E:  # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
-          address_type = rdf_client.NetworkAddress.Family.INET6
-          address = rdf_client.NetworkAddress(
+          address_type = rdf_client_network.NetworkAddress.Family.INET6
+          address = rdf_client_network.NetworkAddress(
               address_type=address_type, packed_bytes=ip6)
           addresses.setdefault(ifname, []).append(address)
       except ValueError:
@@ -195,7 +198,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         args["mac_address"] = mac
       if address_list:
         args["addresses"] = address_list
-      self.SendReply(rdf_client.Interface(**args))
+      self.SendReply(rdf_client_network.Interface(**args))
 
 
 class GetInstallDate(actions.ActionPlugin):
@@ -215,13 +218,13 @@ class GetInstallDate(actions.ActionPlugin):
 
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
-  out_rdfvalues = [rdf_client.Filesystem]
+  out_rdfvalues = [rdf_client_fs.Filesystem]
 
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
     for fs_struct in client_utils_osx.GetFileSystems():
       self.SendReply(
-          rdf_client.Filesystem(
+          rdf_client_fs.Filesystem(
               device=fs_struct.f_mntfromname,
               mount_point=fs_struct.f_mntonname,
               type=fs_struct.f_fstypename))
@@ -235,7 +238,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
       try:
         img_inf = pytsk3.Img_Info(path)
         # This is a volume or a partition - we send back a TSK device.
-        self.SendReply(rdf_client.Filesystem(device=path))
+        self.SendReply(rdf_client_fs.Filesystem(device=path))
 
         vol_inf = pytsk3.Volume_Info(img_inf)
 
@@ -243,7 +246,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
           if volume.flags == pytsk3.TSK_VS_PART_FLAG_ALLOC:
             offset = volume.start * vol_inf.info.block_size
             self.SendReply(
-                rdf_client.Filesystem(
+                rdf_client_fs.Filesystem(
                     device=path + ":" + str(offset), type="partition"))
 
       except (IOError, RuntimeError):
@@ -371,7 +374,7 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     stderr = stderr[:10 * 1024 * 1024]
 
     self.SendReply(
-        rdf_client.ExecuteBinaryResponse(
+        rdf_client_action.ExecuteBinaryResponse(
             stdout=stdout,
             stderr=stderr,
             exit_status=status,

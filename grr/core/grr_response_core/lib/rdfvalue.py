@@ -250,12 +250,8 @@ class RDFBytes(RDFPrimitive):
       self.ParseFromString(initializer)
 
   def ParseFromString(self, string):
-    # TODO(user): this needs some more test coverage, particularly around
-    # submitting unicode strings and byte literals in the UI forms.
-    if isinstance(string, unicode):
-      self._value = utils.SmartStr(string)
-    else:
-      self._value = string
+    utils.AssertType(string, bytes)
+    self._value = string
 
   def ParseFromDatastore(self, value):
     utils.AssertType(value, bytes)

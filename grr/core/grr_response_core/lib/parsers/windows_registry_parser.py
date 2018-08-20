@@ -15,6 +15,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 
 SID_RE = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
 
@@ -71,7 +72,7 @@ class WinSystemDriveParser(parser.RegistryValueParser):
 
   def Parse(self, stat, _):
     """Parses a SystemDrive environment variable."""
-    if isinstance(stat, rdf_client.StatEntry):
+    if isinstance(stat, rdf_client_fs.StatEntry):
       value = stat.registry_data.GetValue()
     elif isinstance(stat, rdfvalue.RDFString):
       value = stat
@@ -316,7 +317,7 @@ class WinServicesParser(parser.RegistryValueParser):
 
           # Flatten multi strings into a simple string
           if (stat.registry_type ==
-              rdf_client.StatEntry.RegistryType.REG_MULTI_SZ):
+              rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ):
             services[service_name].Set(
                 field_map[key],
                 utils.SmartUnicode(stat.registry_data.GetValue()))

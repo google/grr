@@ -7,6 +7,7 @@ from future.utils import iteritems
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -118,7 +119,7 @@ class LegacyClientFixture(object):
           if aff4_object.Get(aff4_object.Schema.PATHSPEC) is None:
             # If the attribute was a stat, it has a pathspec nested in it.
             # We should add that pathspec as an attribute.
-            if attribute.attribute_type == rdf_client.StatEntry:
+            if attribute.attribute_type == rdf_client_fs.StatEntry:
               stat_object = attribute.attribute_type.FromTextFormat(
                   utils.SmartStr(value))
               if stat_object.pathspec:
@@ -136,7 +137,7 @@ class LegacyClientFixture(object):
           else:
             aff4_object.AddAttribute(attribute, rdfvalue_object)
 
-          if (isinstance(rdfvalue_object, rdf_client.StatEntry) and
+          if (isinstance(rdfvalue_object, rdf_client_fs.StatEntry) and
               rdfvalue_object.pathspec.pathtype != "UNSET"):
             if data_store.RelationalDBWriteEnabled():
               client_id = self.client_id.Basename()

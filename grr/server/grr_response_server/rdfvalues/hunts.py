@@ -5,6 +5,7 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
@@ -26,7 +27,7 @@ class HuntNotification(rdf_structs.RDFProtoStruct):
 class HuntContext(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.HuntContext
   rdf_deps = [
-      rdf_client.ClientResources,
+      rdf_client_stats.ClientResources,
       rdf_stats.ClientResourcesStats,
       rdfvalue.RDFDatetime,
       rdfvalue.SessionID,

@@ -6,7 +6,7 @@ import zlib
 
 from grr_response_client import streaming
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 
@@ -53,7 +53,7 @@ class TransferStoreUploader(object):
     for chunk in chunk_stream:
       chunks.append(self.UploadChunk(chunk))
 
-    return rdf_client.BlobImageDescriptor(
+    return rdf_client_fs.BlobImageDescriptor(
         chunks=chunks, chunk_size=self._streamer.chunk_size)
 
   def UploadChunk(self, chunk):
@@ -70,7 +70,7 @@ class TransferStoreUploader(object):
     self._action.ChargeBytesToSession(len(chunk.data))
     self._action.SendReply(blob, session_id=self._TRANSFER_STORE_SESSION_ID)
 
-    return rdf_client.BlobImageChunkDescriptor(
+    return rdf_client_fs.BlobImageChunkDescriptor(
         digest=hashlib.sha256(chunk.data).digest(),
         offset=chunk.offset,
         length=len(chunk.data))

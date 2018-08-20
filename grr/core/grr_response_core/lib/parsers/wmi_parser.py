@@ -6,15 +6,18 @@ import calendar
 import struct
 import time
 
-from builtins import chr  # pylint: disable=redefined-builtin
+from builtins import bytes  # pylint: disable=redefined-builtin
 from builtins import map  # pylint: disable=redefined-builtin
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import wmi as rdf_wmi
 
 
@@ -33,23 +36,31 @@ def BinarySIDtoStringSID(sid):
     ...
 
   Args:
-    sid: A byte array.
+    sid: A `bytes` instance for a SID to convert.
 
   Returns:
-    SID in string form.
+    A `unicode` representation of given SID.
 
   Raises:
     ValueError: If the binary SID is malformed.
   """
+  utils.AssertType(sid, bytes)
+
+  # TODO(hanuszczak): This seemingly no-op is actually not a no-op. The reason
+  # is that `sid` might be either `bytes` from the future package or `str` (e.g.
+  # a bytes literal on Python 2). This call ensures that we get a `bytes` object
+  # with Python 3 semantics. Once GRR's codebase is ready to drop support for
+  # Python 2 this line can be removed as indeed then it would be a no-op.
+  sid = bytes(sid)
 
   if not sid:
-    return ""
+    return u""
 
-  str_sid_components = [ord(sid[0])]
+  str_sid_components = [sid[0]]
   # Now decode the 48-byte portion
 
   if len(sid) >= 8:
-    subauthority_count = ord(sid[1])
+    subauthority_count = sid[1]
 
     identifier_authority = struct.unpack(">H", sid[2:4])[0]
     identifier_authority <<= 32
@@ -63,14 +74,15 @@ def BinarySIDtoStringSID(sid):
         break
 
       if len(authority) < 4:
-        raise ValueError(
-            "In binary SID '%s', component %d has been truncated. "
-            "Expected 4 bytes, found %d: (%s)" % (",".join(
-                [str(ord(c)) for c in sid]), i, len(authority), authority))
+        message = ("In binary SID '%s', component %d has been truncated. "
+                   "Expected 4 bytes, found %d: (%s)")
+        message %= (sid, i, len(authority), authority)
+        raise ValueError(message)
+
       str_sid_components.append(struct.unpack("<L", authority)[0])
       start += 4
 
-  return "S-%s" % ("-".join([str(x) for x in str_sid_components]))
+  return u"S-%s" % (u"-".join(map(unicode, str_sid_components)))
 
 
 class WMIEventConsumerParser(parser.WMIQueryParser):
@@ -85,12 +97,12 @@ class WMIEventConsumerParser(parser.WMIQueryParser):
     wmi_dict = result.ToDict()
 
     try:
-      wmi_dict["CreatorSID"] = BinarySIDtoStringSID("".join(
-          [chr(i).encode("latin-1") for i in wmi_dict["CreatorSID"]]))
-    except (ValueError, TypeError) as e:
+      creator_sid_bytes = bytes(wmi_dict["CreatorSID"])
+      wmi_dict["CreatorSID"] = BinarySIDtoStringSID(creator_sid_bytes)
+    except ValueError:
       # We recover from corrupt SIDs by outputting it raw as a string
-      wmi_dict["CreatorSID"] = str(wmi_dict["CreatorSID"])
-    except KeyError as e:
+      wmi_dict["CreatorSID"] = unicode(wmi_dict["CreatorSID"])
+    except KeyError:
       pass
 
     for output_type in self.output_types:
@@ -227,14 +239,14 @@ class WMIUserParser(parser.WMIQueryParser):
 class WMILogicalDisksParser(parser.WMIQueryParser):
   """Parser for LogicalDisk WMI output. Yields Volume rdfvalues."""
 
-  output_types = [rdf_client.Volume.__name__]
+  output_types = [rdf_client_fs.Volume.__name__]
   supported_artifacts = ["WMILogicalDisks"]
 
   def Parse(self, query, result, knowledge_base):
     """Parse the WMI packages output."""
     _ = query, knowledge_base
     result = result.ToDict()
-    winvolume = rdf_client.WindowsVolume(
+    winvolume = rdf_client_fs.WindowsVolume(
         drive_letter=result.get("DeviceID"), drive_type=result.get("DriveType"))
 
     try:
@@ -248,7 +260,7 @@ class WMILogicalDisksParser(parser.WMIQueryParser):
       free_space = None
 
     # Since we don't get the sector sizes from WMI, we just set them at 1 byte
-    volume = rdf_client.Volume(
+    volume = rdf_client_fs.Volume(
         windowsvolume=winvolume,
         name=result.get("VolumeName"),
         file_system_type=result.get("FileSystem"),
@@ -284,7 +296,8 @@ class WMIInterfacesParser(parser.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 
   output_types = [
-      rdf_client.Interface.__name__, rdf_client.DNSClientConfiguration.__name__
+      rdf_client_network.Interface.__name__,
+      rdf_client_network.DNSClientConfiguration.__name__
   ]
   supported_artifacts = []
 
@@ -321,10 +334,11 @@ class WMIInterfacesParser(parser.WMIQueryParser):
       if isinstance(interface[inputkey], list):
         for ip_address in interface[inputkey]:
           addresses.append(
-              rdf_client.NetworkAddress(human_readable_address=ip_address))
+              rdf_client_network.NetworkAddress(
+                  human_readable_address=ip_address))
       else:
         addresses.append(
-            rdf_client.NetworkAddress(
+            rdf_client_network.NetworkAddress(
                 human_readable_address=interface[inputkey]))
       output_dict[outputkey] = addresses
     return output_dict
@@ -349,8 +363,8 @@ class WMIInterfacesParser(parser.WMIQueryParser):
       args["dhcp_lease_obtained"] = self.WMITimeStrToRDFDatetime(
           result["DHCPLeaseObtained"])
 
-    yield rdf_client.Interface(**args)
+    yield rdf_client_network.Interface(**args)
 
-    yield rdf_client.DNSClientConfiguration(
+    yield rdf_client_network.DNSClientConfiguration(
         dns_server=result["DNSServerSearchOrder"],
         dns_suffix=result["DNSDomainSuffixSearchOrder"])

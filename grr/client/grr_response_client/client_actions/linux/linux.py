@@ -19,6 +19,8 @@ from grr_response_client.client_actions import standard
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 # struct sockaddr_ll
@@ -112,7 +114,7 @@ Ifaddrs._fields_ = [  # pylint: disable=protected-access
 
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerates all MAC addresses on this system."""
-  out_rdfvalues = [rdf_client.Interface]
+  out_rdfvalues = [rdf_client_network.Interface]
 
   def Run(self, unused_args):
     """Enumerate all interfaces and collect their MAC addresses."""
@@ -136,8 +138,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x2:  # AF_INET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
-          address_type = rdf_client.NetworkAddress.Family.INET
-          address = rdf_client.NetworkAddress(
+          address_type = rdf_client_network.NetworkAddress.Family.INET
+          address = rdf_client_network.NetworkAddress(
               address_type=address_type, packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
 
@@ -149,8 +151,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0xA:  # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
-          address_type = rdf_client.NetworkAddress.Family.INET6
-          address = rdf_client.NetworkAddress(
+          address_type = rdf_client_network.NetworkAddress.Family.INET6
+          address = rdf_client_network.NetworkAddress(
               address_type=address_type, packed_bytes=ip6)
           addresses.setdefault(ifname, []).append(address)
       except ValueError:
@@ -170,7 +172,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         args["mac_address"] = mac
       if addresses:
         args["addresses"] = address_list
-      self.SendReply(rdf_client.Interface(**args))
+      self.SendReply(rdf_client_network.Interface(**args))
 
 
 class GetInstallDate(actions.ActionPlugin):
@@ -285,7 +287,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
       "ext2", "ext3", "ext4", "vfat", "ntfs", "btrfs", "Reiserfs", "XFS", "JFS",
       "squashfs"
   ])
-  out_rdfvalues = [rdf_client.Filesystem]
+  out_rdfvalues = [rdf_client_fs.Filesystem]
 
   def CheckMounts(self, filename):
     """Parses the currently mounted devices."""
@@ -314,7 +316,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
 
     for device, (fs_type, mnt_point) in iteritems(self.devices):
       self.SendReply(
-          rdf_client.Filesystem(
+          rdf_client_fs.Filesystem(
               mount_point=mnt_point, type=fs_type, device=device))
 
 

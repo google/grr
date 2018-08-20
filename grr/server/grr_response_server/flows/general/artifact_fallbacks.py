@@ -7,7 +7,7 @@ These flows subclass lib.artifact.ArtifactFallbackCollector.
 # pylint: disable=unused-import
 from grr_response_core.lib import parser
 # pylint: enable=unused-import
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import artifact
@@ -52,7 +52,7 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
 
         # Put the data back into the original format expected for the artifact
         data = rdf_protodict.DataBlob().SetValue(systemroot)
-        self.SendReply(rdf_client.StatEntry(registry_data=data))
+        self.SendReply(rdf_client_fs.StatEntry(registry_data=data))
         self.state.success = True
         break
 
@@ -77,5 +77,5 @@ class WindowsAllUsersProfileFallbackFlow(artifact.ArtifactFallbackCollector):
 
   def Start(self):
     data = rdf_protodict.DataBlob().SetValue("All Users")
-    self.SendReply(rdf_client.StatEntry(registry_data=data))
+    self.SendReply(rdf_client_fs.StatEntry(registry_data=data))
     self.state.success = True

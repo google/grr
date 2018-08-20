@@ -18,7 +18,7 @@ from future.utils import iteritems
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
@@ -169,7 +169,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(sample["a"], "true")
 
   def testOverwriting(self):
-    req = rdf_client.Iterator(client_state=rdf_protodict.Dict({"A": 1}))
+    req = rdf_client_action.Iterator(client_state=rdf_protodict.Dict({"A": 1}))
     # There should be one element now.
     self.assertEqual(len(list(iteritems(req.client_state))), 1)
 

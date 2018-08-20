@@ -11,7 +11,7 @@ from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
@@ -218,7 +218,7 @@ class SystemCronTestMixin(object):
 
         stats_fd = aff4.FACTORY.Create(
             urn, aff4_stats.ClientStats, token=self.token, mode="rw")
-        st = rdf_client.ClientStats(RSS_size=int(t))
+        st = rdf_client_stats.ClientStats(RSS_size=int(t))
         stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
 
         stats_fd.Close()

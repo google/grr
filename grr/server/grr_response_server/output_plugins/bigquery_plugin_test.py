@@ -16,6 +16,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
@@ -87,7 +88,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     responses = []
     for i in range(10):
       responses.append(
-          rdf_client.StatEntry(
+          rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(
                   path="/foo/bar/%d" % i, pathtype="OS"),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
@@ -160,7 +161,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     output = self.ProcessResponses(
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(
+            rdf_client_fs.StatEntry(
                 pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS")),
             rdf_client.Process(pid=42)
         ],
@@ -180,7 +181,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     responses = []
     for i in range(10):
       responses.append(
-          rdf_client.StatEntry(
+          rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(
                   path="/foo/bar/%d" % i, pathtype="OS"),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
@@ -234,7 +235,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   def testBigQueryPluginFallbackToAFF4(self):
     plugin_args = bigquery_plugin.BigQueryOutputPluginArgs()
     responses = [
-        rdf_client.StatEntry(
+        rdf_client_fs.StatEntry(
             pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS")),
         rdf_client.Process(pid=42),
         rdf_client.Process(pid=43),

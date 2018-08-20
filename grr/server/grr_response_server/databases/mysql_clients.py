@@ -11,6 +11,7 @@ import MySQLdb
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server import db
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -87,7 +88,8 @@ class MySQLDBClientMixin(object):
           first_seen=mysql_utils.MysqlToRDFDatetime(first),
           ping=mysql_utils.MysqlToRDFDatetime(ping),
           clock=mysql_utils.MysqlToRDFDatetime(clk),
-          ip=mysql_utils.StringToRDFProto(rdf_client.NetworkAddress, ip),
+          ip=mysql_utils.StringToRDFProto(rdf_client_network.NetworkAddress,
+                                          ip),
           last_foreman_time=mysql_utils.MysqlToRDFDatetime(foreman),
           startup_info_timestamp=mysql_utils.MysqlToRDFDatetime(lst),
           last_crash_timestamp=mysql_utils.MysqlToRDFDatetime(lct))
@@ -319,7 +321,8 @@ class MySQLDBClientMixin(object):
             first_seen=mysql_utils.MysqlToRDFDatetime(first),
             ping=mysql_utils.MysqlToRDFDatetime(ping),
             clock=mysql_utils.MysqlToRDFDatetime(clk),
-            ip=mysql_utils.StringToRDFProto(rdf_client.NetworkAddress, ip),
+            ip=mysql_utils.StringToRDFProto(rdf_client_network.NetworkAddress,
+                                            ip),
             last_foreman_time=mysql_utils.MysqlToRDFDatetime(foreman),
             startup_info_timestamp=mysql_utils.MysqlToRDFDatetime(
                 last_startup_ts),

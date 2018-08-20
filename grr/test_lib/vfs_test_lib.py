@@ -17,7 +17,7 @@ from grr_response_client import vfs
 from grr_response_client.vfs_handlers import files  # pylint: disable=unused-import
 from grr_response_core import config
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import client_fixture
 from grr_response_server.aff4_objects import aff4_grr
@@ -89,7 +89,7 @@ class ClientVFSHandlerFixtureBase(vfs.VFSHandler):
     for path in self.pathspec:
       path.path = self._NormalizeCaseForPath(self.path, vfs_type=vfs_type)
 
-    return rdf_client.StatEntry(
+    return rdf_client_fs.StatEntry(
         pathspec=self.pathspec,
         st_mode=16877,
         st_size=12288,
@@ -146,13 +146,13 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
       if path == "/":
         continue
 
-      stat = rdf_client.StatEntry()
+      stat = rdf_client_fs.StatEntry()
       args = {"client_id": "C.1234"}
       attrs = attributes.get("aff4:stat")
 
       if attrs:
         attrs %= args  # Remove any %% and interpolate client_id.
-        stat = rdf_client.StatEntry.FromTextFormat(utils.SmartStr(attrs))
+        stat = rdf_client_fs.StatEntry.FromTextFormat(utils.SmartStr(attrs))
 
       stat.pathspec = rdf_paths.PathSpec(
           pathtype=self.supported_pathtype, path=path)
@@ -200,7 +200,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
           break
 
         self.paths[dirname] = (aff4_standard.VFSDirectory,
-                               rdf_client.StatEntry(
+                               rdf_client_fs.StatEntry(
                                    st_mode=16877,
                                    st_size=1,
                                    st_dev=1,

@@ -14,6 +14,8 @@ from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -221,11 +223,11 @@ class InterrogatedClient(ActionMock):
   def EnumerateInterfaces(self, _):
     self.response_count += 1
     return [
-        rdf_client.Interface(
+        rdf_client_network.Interface(
             mac_address="123456",
             addresses=[
-                rdf_client.NetworkAddress(
-                    address_type=rdf_client.NetworkAddress.Family.INET,
+                rdf_client_network.NetworkAddress(
+                    address_type=rdf_client_network.NetworkAddress.Family.INET,
                     human_readable="100.100.100.1",
                     packed_bytes=socket.inet_pton(socket.AF_INET,
                                                   "100.100.100.1"),
@@ -235,7 +237,9 @@ class InterrogatedClient(ActionMock):
 
   def EnumerateFilesystems(self, _):
     self.response_count += 1
-    return [rdf_client.Filesystem(device="/dev/sda", mount_point="/mnt/data")]
+    return [
+        rdf_client_fs.Filesystem(device="/dev/sda", mount_point="/mnt/data")
+    ]
 
   def GetClientInfo(self, _):
     self.response_count += 1
@@ -297,16 +301,16 @@ class InterrogatedClient(ActionMock):
 
 class UnixVolumeClientMock(ListDirectoryClientMock):
   """A mock of client filesystem volumes."""
-  unix_local = rdf_client.UnixVolume(mount_point="/usr")
-  unix_home = rdf_client.UnixVolume(mount_point="/")
+  unix_local = rdf_client_fs.UnixVolume(mount_point="/usr")
+  unix_home = rdf_client_fs.UnixVolume(mount_point="/")
   path_results = [
-      rdf_client.Volume(
+      rdf_client_fs.Volume(
           unixvolume=unix_local,
           bytes_per_sector=4096,
           sectors_per_allocation_unit=1,
           actual_available_allocation_units=50,
           total_allocation_units=100),
-      rdf_client.Volume(
+      rdf_client_fs.Volume(
           unixvolume=unix_home,
           bytes_per_sector=4096,
           sectors_per_allocation_unit=1,
@@ -320,16 +324,16 @@ class UnixVolumeClientMock(ListDirectoryClientMock):
 
 class WindowsVolumeClientMock(ListDirectoryClientMock):
   """A mock of client filesystem volumes."""
-  windows_d = rdf_client.WindowsVolume(drive_letter="D:")
-  windows_c = rdf_client.WindowsVolume(drive_letter="C:")
+  windows_d = rdf_client_fs.WindowsVolume(drive_letter="D:")
+  windows_c = rdf_client_fs.WindowsVolume(drive_letter="C:")
   path_results = [
-      rdf_client.Volume(
+      rdf_client_fs.Volume(
           windowsvolume=windows_d,
           bytes_per_sector=4096,
           sectors_per_allocation_unit=1,
           actual_available_allocation_units=50,
           total_allocation_units=100),
-      rdf_client.Volume(
+      rdf_client_fs.Volume(
           windowsvolume=windows_c,
           bytes_per_sector=4096,
           sectors_per_allocation_unit=1,

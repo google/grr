@@ -13,6 +13,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import ipv6_utils
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server import aff4
 from grr_response_server import client_index
 from grr_response_server import data_store
@@ -329,14 +330,16 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
       client.knowledge_base.fqdn = "host-%d.example.com" % i
 
       client.interfaces = [
-          rdf_client.Interface(
+          rdf_client_network.Interface(
               addresses=[
-                  rdf_client.NetworkAddress(
-                      address_type=rdf_client.NetworkAddress.Family.INET,
+                  rdf_client_network.NetworkAddress(
+                      address_type=rdf_client_network.NetworkAddress.Family.
+                      INET,
                       packed_bytes=ipv6_utils.InetPtoN(socket.AF_INET,
                                                        "192.168.0.%d" % i)),
-                  rdf_client.NetworkAddress(
-                      address_type=rdf_client.NetworkAddress.Family.INET6,
+                  rdf_client_network.NetworkAddress(
+                      address_type=rdf_client_network.NetworkAddress.Family.
+                      INET6,
                       packed_bytes=ipv6_utils.InetPtoN(socket.AF_INET6,
                                                        "2001:abcd::%d" % i))
               ],

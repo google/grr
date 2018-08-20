@@ -8,7 +8,7 @@ from future.utils import itervalues
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server.check_lib import checks
@@ -75,7 +75,7 @@ class ItemFilterTests(test_lib.GRRBaseTest):
 
     one = rdf_protodict.AttributedDict(test1="1", test2=[2, 3])
     foo = rdf_protodict.AttributedDict(test1="foo", test2=["bar", "baz"])
-    fs = rdf_client.Filesystem(device="/dev/sda1", mount_point="/root")
+    fs = rdf_client_fs.Filesystem(device="/dev/sda1", mount_point="/root")
     objs = [one, foo, fs]
 
     results = filt.Parse(objs, "test1 is '1'")
@@ -222,7 +222,7 @@ class StatFilterTests(test_lib.GRRBaseTest):
     """Generate a StatEntry RDF value."""
     pathspec = rdf_paths.PathSpec(
         path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
-    return rdf_client.StatEntry(
+    return rdf_client_fs.StatEntry(
         pathspec=pathspec,
         st_mode=st_mode,
         st_ino=st_ino,

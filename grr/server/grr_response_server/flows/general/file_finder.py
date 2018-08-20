@@ -5,7 +5,7 @@ import stat
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
@@ -152,7 +152,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       return
 
     options = condition_options.contents_regex_match
-    grep_spec = rdf_client.GrepSpec(
+    grep_spec = rdf_client_fs.GrepSpec(
         target=response.stat_entry.pathspec,
         regex=options.regex,
         mode=options.mode,
@@ -176,7 +176,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       return
 
     options = condition_options.contents_literal_match
-    grep_spec = rdf_client.GrepSpec(
+    grep_spec = rdf_client_fs.GrepSpec(
         target=response.stat_entry.pathspec,
         literal=options.literal,
         mode=options.mode,

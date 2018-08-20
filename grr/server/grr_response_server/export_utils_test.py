@@ -8,7 +8,7 @@ import stat
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
@@ -92,20 +92,20 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
           self.client_id,
           mutation_pool=pool)
       fd.AddAsMessage(
-          rdf_client.StatEntry(
+          rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(path="testfile2", pathtype="OS")),
           self.client_id,
           mutation_pool=pool)
       fd.AddAsMessage(
           rdf_file_finder.FileFinderResult(
-              stat_entry=rdf_client.StatEntry(
+              stat_entry=rdf_client_fs.StatEntry(
                   pathspec=rdf_paths.PathSpec(path="testfile5",
                                               pathtype="OS"))),
           self.client_id,
           mutation_pool=pool)
       fd.AddAsMessage(
           collectors.ArtifactFilesDownloaderResult(
-              downloaded_file=rdf_client.StatEntry(
+              downloaded_file=rdf_client_fs.StatEntry(
                   pathspec=rdf_paths.PathSpec(path="testfile6",
                                               pathtype="OS"))),
           self.client_id,
@@ -122,18 +122,18 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
     with data_store.DB.GetMutationPool() as pool:
       fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")), mutation_pool=pool)
       fd.Add(
-          rdf_client.StatEntry(
+          rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(path="testfile2", pathtype="OS")),
           mutation_pool=pool)
       fd.Add(
           rdf_file_finder.FileFinderResult(
-              stat_entry=rdf_client.StatEntry(
+              stat_entry=rdf_client_fs.StatEntry(
                   pathspec=rdf_paths.PathSpec(path="testfile5",
                                               pathtype="OS"))),
           mutation_pool=pool)
       fd.Add(
           collectors.ArtifactFilesDownloaderResult(
-              downloaded_file=rdf_client.StatEntry(
+              downloaded_file=rdf_client_fs.StatEntry(
                   pathspec=rdf_paths.PathSpec(path="testfile6",
                                               pathtype="OS"))),
           mutation_pool=pool)
@@ -162,12 +162,12 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
     with data_store.DB.GetMutationPool() as pool:
       fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")), mutation_pool=pool)
       fd.Add(
-          rdf_client.StatEntry(
+          rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(path="testfile2", pathtype="OS")),
           mutation_pool=pool)
       fd.Add(
           rdf_file_finder.FileFinderResult(
-              stat_entry=rdf_client.StatEntry(
+              stat_entry=rdf_client_fs.StatEntry(
                   pathspec=rdf_paths.PathSpec(path="testfile5",
                                               pathtype="OS"))),
           mutation_pool=pool)
@@ -203,13 +203,13 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
     with data_store.DB.GetMutationPool() as pool:
       fd.Add(
           rdf_file_finder.FileFinderResult(
-              stat_entry=rdf_client.StatEntry(
+              stat_entry=rdf_client_fs.StatEntry(
                   pathspec=rdf_paths.PathSpec(path="testfile5",
                                               pathtype="OS"))),
           mutation_pool=pool)
       fd.Add(
           rdf_file_finder.FileFinderResult(
-              stat_entry=rdf_client.StatEntry(
+              stat_entry=rdf_client_fs.StatEntry(
                   pathspec=rdf_paths.PathSpec(path="testdir1", pathtype="OS"),
                   st_mode=stat.S_IFDIR)),
           mutation_pool=pool)

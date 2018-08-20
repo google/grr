@@ -13,7 +13,7 @@ from future.utils import iterkeys
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -327,7 +327,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     """
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list")
-    stat = rdf_client.StatEntry(pathspec=pathspec)
+    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
@@ -374,7 +374,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
 
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/test.list")
-    stat = rdf_client.StatEntry(pathspec=pathspec)
+    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
@@ -425,7 +425,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     """
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/rfc822.list")
-    stat = rdf_client.StatEntry(pathspec=pathspec)
+    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
@@ -507,7 +507,7 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     """
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/yum.repos.d/test1.repo")
-    stat = rdf_client.StatEntry(pathspec=pathspec)
+    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.YumPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
@@ -546,7 +546,7 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
 
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/yum.repos.d/emptytest.repo")
-    stat = rdf_client.StatEntry(pathspec=pathspec)
+    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.YumPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
@@ -572,7 +572,7 @@ class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
     pparth"""
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/at.allow")
-    stat = rdf_client.StatEntry(pathspec=pathspec)
+    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.CronAtAllowDenyParser()
     results = list(parser.Parse(stat, file_obj, None))
 

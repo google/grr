@@ -17,6 +17,8 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -336,7 +338,7 @@ class MockClient(object):
     """Register resource usage for a given status."""
 
     if self.user_cpu_usage or self.system_cpu_usage:
-      status.cpu_time_used = rdf_client.CpuSeconds(
+      status.cpu_time_used = rdf_client_stats.CpuSeconds(
           user_cpu_time=self.user_cpu_usage.next(),
           system_cpu_time=self.system_cpu_usage.next())
     if self.network_usage:
@@ -439,7 +441,7 @@ class MockClient(object):
                 request_id=message.request_id,
                 payload=response,
                 type=msg_type)
-          elif isinstance(response, rdf_client.Iterator):
+          elif isinstance(response, rdf_client_action.Iterator):
             msg_type = rdf_flows.GrrMessage.Type.ITERATOR
             response = rdf_flows.GrrMessage(
                 session_id=message.session_id,

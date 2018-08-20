@@ -9,6 +9,7 @@ from future.utils import iterkeys
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import db
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -139,7 +140,8 @@ class DatabaseTestClientsMixin(object):
         client_id,
         last_ping=rdfvalue.RDFDatetime(200000000000),
         last_clock=rdfvalue.RDFDatetime(210000000000),
-        last_ip=rdf_client.NetworkAddress(human_readable_address="8.8.8.8"),
+        last_ip=rdf_client_network.NetworkAddress(
+            human_readable_address="8.8.8.8"),
         last_foreman=rdfvalue.RDFDatetime(220000000000))
 
     res = d.MultiReadClientMetadata([client_id])
@@ -150,7 +152,8 @@ class DatabaseTestClientsMixin(object):
     self.assertEqual(m1.ping, rdfvalue.RDFDatetime(200000000000))
     self.assertEqual(m1.clock, rdfvalue.RDFDatetime(210000000000))
     self.assertEqual(
-        m1.ip, rdf_client.NetworkAddress(human_readable_address="8.8.8.8"))
+        m1.ip,
+        rdf_client_network.NetworkAddress(human_readable_address="8.8.8.8"))
     self.assertEqual(m1.last_foreman_time, rdfvalue.RDFDatetime(220000000000))
 
   def testClientMetadataValidatesIP(self):

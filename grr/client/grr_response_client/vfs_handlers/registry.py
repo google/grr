@@ -15,7 +15,7 @@ from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_client import vfs
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
@@ -299,23 +299,23 @@ class RegistryFile(vfs.VFSHandler):
   # Maps the registry types to protobuf enums
   registry_map = {
       _winreg.REG_NONE:
-          rdf_client.StatEntry.RegistryType.REG_NONE,
+          rdf_client_fs.StatEntry.RegistryType.REG_NONE,
       _winreg.REG_SZ:
-          rdf_client.StatEntry.RegistryType.REG_SZ,
+          rdf_client_fs.StatEntry.RegistryType.REG_SZ,
       _winreg.REG_EXPAND_SZ:
-          rdf_client.StatEntry.RegistryType.REG_EXPAND_SZ,
+          rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ,
       _winreg.REG_BINARY:
-          rdf_client.StatEntry.RegistryType.REG_BINARY,
+          rdf_client_fs.StatEntry.RegistryType.REG_BINARY,
       _winreg.REG_DWORD:
-          rdf_client.StatEntry.RegistryType.REG_DWORD,
+          rdf_client_fs.StatEntry.RegistryType.REG_DWORD,
       _winreg.REG_DWORD_LITTLE_ENDIAN: (
-          rdf_client.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN),
+          rdf_client_fs.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN),
       _winreg.REG_DWORD_BIG_ENDIAN: (
-          rdf_client.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN),
+          rdf_client_fs.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN),
       _winreg.REG_LINK:
-          rdf_client.StatEntry.RegistryType.REG_LINK,
+          rdf_client_fs.StatEntry.RegistryType.REG_LINK,
       _winreg.REG_MULTI_SZ:
-          rdf_client.StatEntry.RegistryType.REG_MULTI_SZ,
+          rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ,
   }
 
   def __init__(self,
@@ -386,7 +386,7 @@ class RegistryFile(vfs.VFSHandler):
     return self._Stat("", self.value, self.value_type, mtime=self.last_modified)
 
   def _Stat(self, name, value, value_type, mtime=None):
-    response = rdf_client.StatEntry()
+    response = rdf_client_fs.StatEntry()
     response_pathspec = self.pathspec.Copy()
 
     # No matter how we got here, there is no need to do case folding from now on
@@ -515,7 +515,7 @@ class RegistryFile(vfs.VFSHandler):
     if self.hive is None:
       for name in dir(_winreg):
         if name.startswith("HKEY_"):
-          response = rdf_client.StatEntry(st_mode=stat.S_IFDIR)
+          response = rdf_client_fs.StatEntry(st_mode=stat.S_IFDIR)
           response_pathspec = self.pathspec.Copy()
           response_pathspec.last.path = utils.JoinPath(
               response_pathspec.last.path, name)

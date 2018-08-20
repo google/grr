@@ -146,7 +146,8 @@ class MySQLDBFlowMixin(object):
         message.leased_by = leased_by
         message.leased_until = mysql_utils.MysqlToRDFDatetime(leased_until)
       ret.append(message)
-    return ret
+
+    return sorted(ret, key=lambda msg: msg.task_id)
 
   @mysql_utils.WithTransaction()
   def DeleteClientMessages(self, messages, cursor=None):
@@ -208,7 +209,7 @@ class MySQLDBFlowMixin(object):
       message.leased_by = proc_id_str
       message.leased_until = expiry
       ret.append(message)
-    return ret
+    return sorted(ret, key=lambda msg: msg.task_id)
 
   @mysql_utils.WithTransaction()
   def WriteClientMessages(self, messages, cursor=None):

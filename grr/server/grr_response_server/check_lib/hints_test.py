@@ -3,6 +3,8 @@
 """Tests for checks."""
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server.check_lib import hints
@@ -67,11 +69,11 @@ class HintsTests(test_lib.GRRBaseTest):
     rdf.users = [rdf_client.User(username=u) for u in ("root", "jconnor")]
     # Interface (nested, repeated)
     addresses = [
-        rdf_client.NetworkAddress(human_readable=a)
+        rdf_client_network.NetworkAddress(human_readable=a)
         for a in ("1.1.1.1", "2.2.2.2", "3.3.3.3")
     ]
-    eth0 = rdf_client.Interface(ifname="eth0", addresses=addresses[:2])
-    ppp0 = rdf_client.Interface(ifname="ppp0", addresses=addresses[2:3])
+    eth0 = rdf_client_network.Interface(ifname="eth0", addresses=addresses[:2])
+    ppp0 = rdf_client_network.Interface(ifname="ppp0", addresses=addresses[2:3])
     rdf.interfaces = [eth0, ppp0]
 
     template = ("{system_info.system} {users.username} {interfaces.ifname} "
@@ -122,7 +124,7 @@ class HintsTests(test_lib.GRRBaseTest):
     self.assertEqual(expected, result)
 
   def testStatModeFormat(self):
-    rdf = rdf_client.StatEntry(st_mode=33204)
+    rdf = rdf_client_fs.StatEntry(st_mode=33204)
     expected = "-rw-rw-r--"
     template = "{st_mode}"
     hinter = hints.Hinter(template=template)

@@ -7,7 +7,7 @@ import hashlib
 from grr_response_core.lib import fingerprint
 from grr_response_client import vfs
 from grr_response_client.client_actions import standard
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 
 
 class Fingerprinter(fingerprint.Fingerprinter):
@@ -24,19 +24,19 @@ class Fingerprinter(fingerprint.Fingerprinter):
 
 class FingerprintFile(standard.ReadBuffer):
   """Apply a set of fingerprinting methods to a file."""
-  in_rdfvalue = rdf_client.FingerprintRequest
-  out_rdfvalues = [rdf_client.FingerprintResponse]
+  in_rdfvalue = rdf_client_action.FingerprintRequest
+  out_rdfvalues = [rdf_client_action.FingerprintResponse]
 
   _hash_types = {
-      rdf_client.FingerprintTuple.HashType.MD5: hashlib.md5,
-      rdf_client.FingerprintTuple.HashType.SHA1: hashlib.sha1,
-      rdf_client.FingerprintTuple.HashType.SHA256: hashlib.sha256,
+      rdf_client_action.FingerprintTuple.HashType.MD5: hashlib.md5,
+      rdf_client_action.FingerprintTuple.HashType.SHA1: hashlib.sha1,
+      rdf_client_action.FingerprintTuple.HashType.SHA256: hashlib.sha256,
   }
 
   _fingerprint_types = {
-      rdf_client.FingerprintTuple.Type.FPT_GENERIC: (
+      rdf_client_action.FingerprintTuple.Type.FPT_GENERIC: (
           fingerprint.Fingerprinter.EvalGeneric),
-      rdf_client.FingerprintTuple.Type.FPT_PE_COFF: (
+      rdf_client_action.FingerprintTuple.Type.FPT_PE_COFF: (
           fingerprint.Fingerprinter.EvalPecoff),
   }
 
@@ -45,7 +45,7 @@ class FingerprintFile(standard.ReadBuffer):
     with vfs.VFSOpen(
         args.pathspec, progress_callback=self.Progress) as file_obj:
       fingerprinter = Fingerprinter(self.Progress, file_obj)
-      response = rdf_client.FingerprintResponse()
+      response = rdf_client_action.FingerprintResponse()
       response.pathspec = file_obj.pathspec
       if args.tuples:
         tuples = args.tuples
@@ -53,7 +53,7 @@ class FingerprintFile(standard.ReadBuffer):
         # There are none selected -- we will cover everything
         tuples = list()
         for k in self._fingerprint_types:
-          tuples.append(rdf_client.FingerprintTuple(fp_type=k))
+          tuples.append(rdf_client_action.FingerprintTuple(fp_type=k))
 
       for finger in tuples:
         hashers = [self._hash_types[h] for h in finger.hashers] or None

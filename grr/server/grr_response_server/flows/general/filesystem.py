@@ -15,6 +15,8 @@ from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
@@ -103,10 +105,11 @@ class ListDirectory(flow.GRRFlow):
     # This conditional should be removed after that date.
     if self.client_version >= 3221:
       stub = server_stubs.GetFileStat
-      request = rdf_client.GetFileStatRequest(pathspec=self.args.pathspec)
+      request = rdf_client_action.GetFileStatRequest(
+          pathspec=self.args.pathspec)
     else:
       stub = server_stubs.StatFile
-      request = rdf_client.ListDirRequest(pathspec=self.args.pathspec)
+      request = rdf_client_action.ListDirRequest(pathspec=self.args.pathspec)
 
     self.CallClient(stub, request, next_state="Stat")
 
@@ -124,7 +127,7 @@ class ListDirectory(flow.GRRFlow):
 
     else:
       # Keep the stat response for later.
-      stat_entry = rdf_client.StatEntry(responses.First())
+      stat_entry = rdf_client_fs.StatEntry(responses.First())
       self.state.stat = stat_entry
 
       # The full path of the object is the combination of the client_id and the
@@ -152,7 +155,7 @@ class ListDirectory(flow.GRRFlow):
         path_info = rdf_objects.PathInfo.FromStatEntry(self.state.stat)
         data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-      stat_entries = list(map(rdf_client.StatEntry, responses))
+      stat_entries = list(map(rdf_client_fs.StatEntry, responses))
       WriteStatEntries(
           stat_entries,
           client_id=self.client_id,
@@ -201,7 +204,8 @@ class IteratedListDirectory(ListDirectory):
     self.state.urn = None
 
     # We use data to pass the path to the callback:
-    self.state.request = rdf_client.ListDirRequest(pathspec=self.args.pathspec)
+    self.state.request = rdf_client_action.ListDirRequest(
+        pathspec=self.args.pathspec)
 
     # For this example we will use a really small number to force many round
     # trips with the client. This is a performance killer.
@@ -249,7 +253,7 @@ class IteratedListDirectory(ListDirectory):
           urn, standard.VFSDirectory, mutation_pool=pool, token=self.token):
         pass
 
-      stat_entries = list(map(rdf_client.StatEntry, self.state.responses))
+      stat_entries = list(map(rdf_client_fs.StatEntry, self.state.responses))
       WriteStatEntries(
           stat_entries,
           client_id=self.client_id,
@@ -354,7 +358,7 @@ class RecursiveListDirectory(flow.GRRFlow):
     """Stores all stat responses."""
     with data_store.DB.GetMutationPool() as pool:
 
-      stat_entries = list(map(rdf_client.StatEntry, responses))
+      stat_entries = list(map(rdf_client_fs.StatEntry, responses))
       WriteStatEntries(
           stat_entries,
           client_id=self.client_id,
@@ -630,10 +634,11 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
     # This conditional should be removed after that date.
     if self.client_version >= 3221:
       stub = server_stubs.GetFileStat
-      request = rdf_client.GetFileStatRequest(pathspec=self.args.pathspec)
+      request = rdf_client_action.GetFileStatRequest(
+          pathspec=self.args.pathspec)
     else:
       stub = server_stubs.StatFile
-      request = rdf_client.ListDirRequest(pathspec=self.args.pathspec)
+      request = rdf_client_action.ListDirRequest(pathspec=self.args.pathspec)
 
     self.CallClient(stub, request, next_state="ProcessStat")
 
@@ -894,7 +899,7 @@ class GlobMixin(object):
     # files. Call Find on the client until we're done.
     if (responses.iterator and
         responses.iterator.state != responses.iterator.State.FINISHED):
-      findspec = rdf_client.FindSpec(responses.request.request.payload)
+      findspec = rdf_client_fs.FindSpec(responses.request.request.payload)
       findspec.iterator = responses.iterator
       self.CallClient(
           server_stubs.Find,
@@ -905,7 +910,7 @@ class GlobMixin(object):
     # The Find client action does not return a StatEntry but a
     # FindSpec. Normalize to a StatEntry.
     stat_responses = [
-        r.hit if isinstance(r, rdf_client.FindSpec) else r for r in responses
+        r.hit if isinstance(r, rdf_client_fs.FindSpec) else r for r in responses
     ]
 
     # If this was a pure path matching call without any regex / recursion, we
@@ -1011,12 +1016,12 @@ class GlobMixin(object):
               # This conditional should be removed after that date.
               if self.client_version >= 3221:
                 stub = server_stubs.GetFileStat
-                request = rdf_client.GetFileStatRequest(
+                request = rdf_client_action.GetFileStatRequest(
                     pathspec=pathspec,
                     collect_ext_attrs=self.state.collect_ext_attrs)
               else:
                 stub = server_stubs.StatFile
-                request = rdf_client.ListDirRequest(pathspec=pathspec)
+                request = rdf_client_action.ListDirRequest(pathspec=pathspec)
 
               self.CallClient(
                   stub,
@@ -1028,7 +1033,7 @@ class GlobMixin(object):
             # paths in the prefix tree, just emulate this by recursively
             # calling this state inline.
             self.CallStateInline(
-                [rdf_client.StatEntry(pathspec=pathspec)],
+                [rdf_client_fs.StatEntry(pathspec=pathspec)],
                 next_state="ProcessEntry",
                 request_data=dict(component_path=next_component))
 
@@ -1044,7 +1049,7 @@ class GlobMixin(object):
           path_regex = "(?i)^" + "$|^".join(set([c.path for c in recursions
                                                 ])) + "$"
 
-          findspec = rdf_client.FindSpec(
+          findspec = rdf_client_fs.FindSpec(
               pathspec=base_pathspec,
               cross_devs=True,
               max_depth=depth,
@@ -1060,7 +1065,7 @@ class GlobMixin(object):
         if regexes_to_get:
           path_regex = "(?i)^" + "$|^".join(
               set([c.path for c in regexes_to_get])) + "$"
-          findspec = rdf_client.FindSpec(
+          findspec = rdf_client_fs.FindSpec(
               pathspec=base_pathspec, max_depth=1, path_regex=path_regex)
 
           findspec.iterator.number = self.FILE_MAX_PER_DIR
@@ -1190,7 +1195,7 @@ class DiskVolumeInfo(flow.GRRFlow):
     else:
       self.CallClient(
           server_stubs.StatFS,
-          rdf_client.StatFSRequest(
+          rdf_client_action.StatFSRequest(
               path_list=self.args.path_list, pathtype=self.args.pathtype),
           next_state="ProcessVolumes")
 

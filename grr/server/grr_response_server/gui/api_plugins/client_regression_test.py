@@ -10,6 +10,8 @@ from grr_response_core.lib import rdfvalue
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -160,9 +162,9 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
         client_obj = self.SetupTestClientObject(0)
         client_id = client_obj.client_id
 
-        ip = rdf_client.NetworkAddress(
+        ip = rdf_client_network.NetworkAddress(
             human_readable_address="192.168.100.42",
-            address_type=rdf_client.NetworkAddress.Family.INET)
+            address_type=rdf_client_network.NetworkAddress.Family.INET)
         data_store.REL_DB.WriteClientMetadata(client_id, last_ip=ip)
       else:
         client_urn = self.SetupClient(0)
@@ -314,16 +316,16 @@ class ApiGetClientLoadStatsHandlerRegressionTest(
       for i in range(6):
         with test_lib.FakeTime((i + 1) * 10):
           timestamp = int((i + 1) * 10 * 1e6)
-          st = rdf_client.ClientStats()
+          st = rdf_client_stats.ClientStats()
 
-          sample = rdf_client.CpuSample(
+          sample = rdf_client_stats.CpuSample(
               timestamp=timestamp,
               user_cpu_time=10 + i,
               system_cpu_time=20 + i,
               cpu_percent=10 + i)
           st.cpu_samples.Append(sample)
 
-          sample = rdf_client.IOSample(
+          sample = rdf_client_stats.IOSample(
               timestamp=timestamp, read_bytes=10 + i, write_bytes=10 + i * 2)
           st.io_samples.Append(sample)
 

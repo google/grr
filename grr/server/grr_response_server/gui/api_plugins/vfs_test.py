@@ -13,7 +13,7 @@ from future.utils import iteritems
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
@@ -718,7 +718,7 @@ class VfsTimelineTestMixin(object):
     file_urn = client_id.Add(self.file_path)
     for i in range(0, 5):
       with test_lib.FakeTime(i):
-        stat_entry = rdf_client.StatEntry()
+        stat_entry = rdf_client_fs.StatEntry()
         stat_entry.st_mtime = rdfvalue.RDFDatetimeSeconds.Now()
         stat_entry.pathspec.path = self.file_path[len(self.category_path):]
         stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS

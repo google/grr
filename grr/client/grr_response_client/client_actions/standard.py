@@ -27,6 +27,9 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -124,8 +127,8 @@ class HashBuffer(actions.ActionPlugin):
 
 class HashFile(actions.ActionPlugin):
   """Hash an entire file using multiple algorithms."""
-  in_rdfvalue = rdf_client.FingerprintRequest
-  out_rdfvalues = [rdf_client.FingerprintResponse]
+  in_rdfvalue = rdf_client_action.FingerprintRequest
+  out_rdfvalues = [rdf_client_action.FingerprintResponse]
 
   _hash_types = {
       "md5": hashlib.md5,
@@ -144,7 +147,7 @@ class HashFile(actions.ActionPlugin):
       hasher.HashFile(fd, args.max_filesize)
 
     hash_object = hasher.GetHashObject()
-    response = rdf_client.FingerprintResponse(
+    response = rdf_client_action.FingerprintResponse(
         pathspec=fd.pathspec,
         bytes_read=hash_object.num_bytes,
         hash=hash_object)
@@ -153,8 +156,8 @@ class HashFile(actions.ActionPlugin):
 
 class CopyPathToFile(actions.ActionPlugin):
   """Copy contents of a pathspec to a file on disk."""
-  in_rdfvalue = rdf_client.CopyPathToFileRequest
-  out_rdfvalues = [rdf_client.CopyPathToFileRequest]
+  in_rdfvalue = rdf_client_action.CopyPathToFileRequest
+  out_rdfvalues = [rdf_client_action.CopyPathToFileRequest]
 
   BLOCK_SIZE = 10 * 1024 * 1024
 
@@ -214,7 +217,7 @@ class CopyPathToFile(actions.ActionPlugin):
         written = self._Copy(src_fd, dest_fd, length)
 
     self.SendReply(
-        rdf_client.CopyPathToFileRequest(
+        rdf_client_action.CopyPathToFileRequest(
             offset=offset,
             length=written,
             src_path=args.src_path,
@@ -224,8 +227,8 @@ class CopyPathToFile(actions.ActionPlugin):
 
 class ListDirectory(ReadBuffer):
   """Lists all the files in a directory."""
-  in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalues = [rdf_client.StatEntry]
+  in_rdfvalue = rdf_client_action.ListDirRequest
+  out_rdfvalues = [rdf_client_fs.StatEntry]
 
   def Run(self, args):
     """Lists a directory."""
@@ -244,8 +247,8 @@ class ListDirectory(ReadBuffer):
 
 class IteratedListDirectory(actions.IteratedAction):
   """Lists a directory as an iterator."""
-  in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalues = [rdf_client.StatEntry]
+  in_rdfvalue = rdf_client_action.ListDirRequest
+  out_rdfvalues = [rdf_client_fs.StatEntry]
 
   def Iterate(self, request, client_state):
     """Restores its way through the directory using an Iterator."""
@@ -269,8 +272,8 @@ class IteratedListDirectory(actions.IteratedAction):
 class GetFileStat(actions.ActionPlugin):
   """A client action that yields stat of a given file."""
 
-  in_rdfvalue = rdf_client.GetFileStatRequest
-  out_rdfvalues = [rdf_client.StatEntry]
+  in_rdfvalue = rdf_client_action.GetFileStatRequest
+  out_rdfvalues = [rdf_client_fs.StatEntry]
 
   def Run(self, args):
     try:
@@ -290,8 +293,8 @@ class GetFileStat(actions.ActionPlugin):
 class ExecuteCommand(actions.ActionPlugin):
   """Executes one of the predefined commands."""
 
-  in_rdfvalue = rdf_client.ExecuteRequest
-  out_rdfvalues = [rdf_client.ExecuteResponse]
+  in_rdfvalue = rdf_client_action.ExecuteRequest
+  out_rdfvalues = [rdf_client_action.ExecuteResponse]
 
   def Run(self, command):
     for res in self.Start(command):
@@ -310,7 +313,7 @@ class ExecuteCommand(actions.ActionPlugin):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    yield rdf_client.ExecuteResponse(
+    yield rdf_client_action.ExecuteResponse(
         request=command,
         stdout=stdout,
         stderr=stderr,
@@ -333,8 +336,8 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
   NOTE: If the binary is too large to fit inside a single request, the request
   will have the more_data flag enabled, indicating more data is coming.
   """
-  in_rdfvalue = rdf_client.ExecuteBinaryRequest
-  out_rdfvalues = [rdf_client.ExecuteBinaryResponse]
+  in_rdfvalue = rdf_client_action.ExecuteBinaryRequest
+  out_rdfvalues = [rdf_client_action.ExecuteBinaryResponse]
 
   def WriteBlobToFile(self, request):
     """Writes the blob to a file and returns its path."""
@@ -397,7 +400,7 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     stderr = stderr[:10 * 1024 * 1024]
 
     self.SendReply(
-        rdf_client.ExecuteBinaryResponse(
+        rdf_client_action.ExecuteBinaryResponse(
             stdout=stdout,
             stderr=stderr,
             exit_status=status,
@@ -414,8 +417,8 @@ class ExecutePython(actions.ActionPlugin):
   This is protected by CONFIG[PrivateKeys.executable_signing_private_key], which
   should be stored offline and well protected.
   """
-  in_rdfvalue = rdf_client.ExecutePythonRequest
-  out_rdfvalues = [rdf_client.ExecutePythonResponse]
+  in_rdfvalue = rdf_client_action.ExecutePythonRequest
+  out_rdfvalues = [rdf_client_action.ExecutePythonResponse]
 
   def Run(self, args):
     """Run."""
@@ -460,7 +463,7 @@ class ExecutePython(actions.ActionPlugin):
     time_used = time.time() - time_start
     # We have to return microseconds.
     self.SendReply(
-        rdf_client.ExecutePythonResponse(
+        rdf_client_action.ExecutePythonResponse(
             time_used=int(1e6 * time_used), return_val=utils.SmartStr(output)))
 
 
@@ -497,8 +500,8 @@ class ListProcesses(actions.ActionPlugin):
 
 class SendFile(actions.ActionPlugin):
   """This action encrypts and sends a file to a remote listener."""
-  in_rdfvalue = rdf_client.SendFileRequest
-  out_rdfvalues = [rdf_client.StatEntry]
+  in_rdfvalue = rdf_client_action.SendFileRequest
+  out_rdfvalues = [rdf_client_fs.StatEntry]
 
   # 10 MB.
   BLOCK_SIZE = 1024 * 1024 * 10
@@ -518,9 +521,9 @@ class SendFile(actions.ActionPlugin):
     # Open the file.
     fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
 
-    if args.address_family == rdf_client.NetworkAddress.Family.INET:
+    if args.address_family == rdf_client_network.NetworkAddress.Family.INET:
       family = socket.AF_INET
-    elif args.address_family == rdf_client.NetworkAddress.Family.INET6:
+    elif args.address_family == rdf_client_network.NetworkAddress.Family.INET6:
       family = socket.AF_INET6
     else:
       raise RuntimeError("Socket address family not supported.")
@@ -556,8 +559,8 @@ class StatFS(actions.ActionPlugin):
   Note that a statvfs call for a network filesystem (e.g. NFS) that is
   unavailable, e.g. due to no network, will result in the call blocking.
   """
-  in_rdfvalue = rdf_client.StatFSRequest
-  out_rdfvalues = [rdf_client.Volume]
+  in_rdfvalue = rdf_client_action.StatFSRequest
+  out_rdfvalues = [rdf_client_fs.Volume]
 
   def Run(self, args):
     if platform.system() == "Windows":
@@ -575,14 +578,14 @@ class StatFS(actions.ActionPlugin):
         self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, e)
         continue
 
-      unix = rdf_client.UnixVolume(mount_point=mount_point)
+      unix = rdf_client_fs.UnixVolume(mount_point=mount_point)
 
       # On linux pre 2.6 kernels don't have frsize, so we fall back to bsize.
       # The actual_available_allocation_units attribute is set to blocks
       # available to the unprivileged user, root may have some additional
       # reserved space.
       self.SendReply(
-          rdf_client.Volume(
+          rdf_client_fs.Volume(
               bytes_per_sector=(st.f_frsize or st.f_bsize),
               sectors_per_allocation_unit=1,
               total_allocation_units=st.f_blocks,

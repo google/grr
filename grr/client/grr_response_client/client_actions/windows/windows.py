@@ -24,7 +24,9 @@ from grr_response_client.client_actions import standard
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 # Properties to remove from results sent to the server.
@@ -69,7 +71,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
   Win32_NetworkAdapterConfiguration definition:
     http://msdn.microsoft.com/en-us/library/aa394217(v=vs.85).aspx
   """
-  out_rdfvalues = [rdf_client.Interface]
+  out_rdfvalues = [rdf_client_network.Interface]
 
   def Run(self, args):
     del args  # Unused.
@@ -79,9 +81,10 @@ class EnumerateInterfaces(actions.ActionPlugin):
       addresses = []
       for ip_address in interface.IPAddress or []:
         addresses.append(
-            rdf_client.NetworkAddress(human_readable_address=ip_address))
+            rdf_client_network.NetworkAddress(
+                human_readable_address=ip_address))
 
-      response = rdf_client.Interface(ifname=interface.Description)
+      response = rdf_client_network.Interface(ifname=interface.Description)
       if interface.MACAddress:
         response.mac_address = binascii.unhexlify(
             interface.MACAddress.replace(":", ""))
@@ -93,7 +96,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
 
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
-  out_rdfvalues = [rdf_client.Filesystem]
+  out_rdfvalues = [rdf_client_fs.Filesystem]
 
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
@@ -105,7 +108,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
 
           label, _, _, _, fs_type = win32api.GetVolumeInformation(drive)
           self.SendReply(
-              rdf_client.Filesystem(
+              rdf_client_fs.Filesystem(
                   device=volume,
                   mount_point="/%s:/" % drive[0],
                   type=fs_type,
@@ -153,7 +156,7 @@ def QueryService(svc_name):
 
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
-  in_rdfvalue = rdf_client.WMIRequest
+  in_rdfvalue = rdf_client_action.WMIRequest
   out_rdfvalues = [rdf_protodict.Dict]
 
   def Run(self, args):

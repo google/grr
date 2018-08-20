@@ -362,11 +362,6 @@ class AttributedDict(Dict):
       self.SetItem(item, value)
 
 
-# Old clients still send back "RDFProtoDicts" so we need to keep this around.
-class RDFProtoDict(Dict):
-  pass
-
-
 class BlobArray(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.BlobArray
   rdf_deps = [

@@ -2,7 +2,7 @@
 """Flows for exporting data out of GRR."""
 
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server.flows.general import collectors
@@ -24,7 +24,7 @@ def CollectionItemToAff4Path(item, client_id=None):
   if not client_id:
     raise ValueError("Could not determine client_id.")
 
-  if isinstance(item, rdf_client.StatEntry):
+  if isinstance(item, rdf_client_fs.StatEntry):
     return item.AFF4Path(client_id)
   elif isinstance(item, rdf_file_finder.FileFinderResult):
     return item.stat_entry.AFF4Path(client_id)

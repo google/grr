@@ -18,6 +18,8 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
@@ -103,7 +105,7 @@ class CmdProcessor(parser.CommandParser):
     yield soft
 
     # Also yield something random so we can test return type filtering.
-    yield rdf_client.StatEntry()
+    yield rdf_client_fs.StatEntry()
 
     # Also yield an anomaly to test that.
     yield rdf_anomaly.Anomaly(
@@ -143,7 +145,7 @@ class RekallMock(action_mocks.MemoryClientMock):
         plugin="pslist",
         client_urn=self.client_id)
 
-    return [result, rdf_client.Iterator(state="FINISHED")]
+    return [result, rdf_client_action.Iterator(state="FINISHED")]
 
 
 class ArtifactTest(flow_test_lib.FlowTestsBaseclass):

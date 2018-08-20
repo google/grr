@@ -61,13 +61,12 @@ config_lib.DEFINE_string("Worker.smtp_password", None,
 config_lib.DEFINE_semantic_value(
     rdf_crypto.RSAPrivateKey,
     "PrivateKeys.ca_key",
-    description="CA private key. Used to sign for client enrollment.",
-)
+    help="CA private key. Used to sign for client enrollment.")
 
 config_lib.DEFINE_semantic_value(
     rdf_crypto.RSAPrivateKey,
     "PrivateKeys.server_key",
-    description="Private key for the front end server.")
+    help="Private key for the front end server.")
 
 config_lib.DEFINE_integer("Server.rsa_key_length", 2048,
                           "The length of the server rsa key in bits.")
@@ -75,7 +74,7 @@ config_lib.DEFINE_integer("Server.rsa_key_length", 2048,
 config_lib.DEFINE_semantic_value(
     rdf_crypto.RDFX509Cert,
     "Frontend.certificate",
-    description="An X509 certificate for the frontend server.")
+    help="An X509 certificate for the frontend server.")
 
 config_lib.DEFINE_bool("Cron.active", False,
                        "Set to true to run a cron thread on this binary.")
@@ -217,7 +216,7 @@ config_lib.DEFINE_semantic_value(
     rdfvalue.Duration,
     "DataRetention.cron_jobs_flows_ttl",
     default=None,
-    description="Cron job flows TTL specified as the duration string. "
+    help="Cron job flows TTL specified as the duration string. "
     "Examples: 90d, 180d, 1y. If not set, cron jobs flows will be retained "
     "forever.")
 
@@ -225,7 +224,7 @@ config_lib.DEFINE_semantic_value(
     rdfvalue.Duration,
     "DataRetention.hunts_ttl",
     default=None,
-    description="Hunts TTL specified as the duration string. Examples: 90d, "
+    help="Hunts TTL specified as the duration string. Examples: 90d, "
     "180d, 1y. If not set, hunts will be retained forever.")
 
 config_lib.DEFINE_string(
@@ -238,7 +237,7 @@ config_lib.DEFINE_semantic_value(
     rdfvalue.Duration,
     "DataRetention.tmp_ttl",
     default=None,
-    description="Temp TTL specified as the duration string. Examples: 90d, "
+    help="Temp TTL specified as the duration string. Examples: 90d, "
     "180d, 1y. If not set, temp objects will be retained forever.")
 
 config_lib.DEFINE_string(
@@ -251,7 +250,7 @@ config_lib.DEFINE_semantic_value(
     rdfvalue.Duration,
     "DataRetention.inactive_client_ttl",
     default=None,
-    description="Temp TTL specified as the duration string. Examples: 90d, "
+    help="Temp TTL specified as the duration string. Examples: 90d, "
     "180d, 1y. If not set, inactive clients will be retained forever.")
 
 config_lib.DEFINE_string(

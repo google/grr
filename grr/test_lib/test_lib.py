@@ -33,6 +33,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import access_control
 
@@ -347,22 +348,22 @@ class GRRBaseTest(unittest.TestCase):
         labels=["label1", "label2"])
 
   def _TestInterfaces(self, client_nr):
-    ip1 = rdf_client.NetworkAddress()
+    ip1 = rdf_client_network.NetworkAddress()
     ip1.human_readable_address = "192.168.0.%d" % client_nr
 
-    ip2 = rdf_client.NetworkAddress()
+    ip2 = rdf_client_network.NetworkAddress()
     ip2.human_readable_address = "2001:abcd::%x" % client_nr
 
-    mac1 = rdf_client.MacAddress()
+    mac1 = rdf_client_network.MacAddress()
     mac1.human_readable_address = "aabbccddee%02x" % client_nr
 
-    mac2 = rdf_client.MacAddress()
+    mac2 = rdf_client_network.MacAddress()
     mac2.human_readable_address = "bbccddeeff%02x" % client_nr
 
     return [
-        rdf_client.Interface(addresses=[ip1, ip2]),
-        rdf_client.Interface(mac_address=mac1),
-        rdf_client.Interface(mac_address=mac2),
+        rdf_client_network.Interface(addresses=[ip1, ip2]),
+        rdf_client_network.Interface(mac_address=mac1),
+        rdf_client_network.Interface(mac_address=mac2),
     ]
 
   def SetupTestClientObjects(self,

@@ -230,7 +230,7 @@ class DmidecodeCmdParser(parser.CommandParser):
               break
           line = output.next()
 
-    return dmi_info
+    yield dmi_info
 
 
 class PsCmdParser(parser.CommandParser):

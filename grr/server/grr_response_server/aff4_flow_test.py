@@ -14,7 +14,8 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -48,7 +49,7 @@ class FlowResponseSerialization(flow.GRRFlow):
   def Start(self):
     self.CallClient(
         server_stubs.ClientActionStub.classes["ReturnBlob"],
-        rdf_client.EchoRequest(data="test"),
+        rdf_client_action.EchoRequest(data="test"),
         next_state="Response1")
 
   def Response1(self, messages):
@@ -56,7 +57,7 @@ class FlowResponseSerialization(flow.GRRFlow):
     self.state.messages = list(messages)
     self.CallClient(
         server_stubs.ClientActionStub.classes["ReturnBlob"],
-        rdf_client.EchoRequest(data="test"),
+        rdf_client_action.EchoRequest(data="test"),
         next_state="Response2")
 
   def Response2(self, messages):
@@ -198,7 +199,7 @@ class FlowCreationTest(BasicFlowTest):
 
     class TestClientMock(object):
 
-      in_rdfvalue = rdf_client.EchoRequest
+      in_rdfvalue = rdf_client_action.EchoRequest
       out_rdfvalues = [rdf_protodict.DataBlob]
 
       def __init__(self):
@@ -917,7 +918,7 @@ class MockVFSHandler(vfs.VFSHandler):
   """A mock VFS handler with fake files."""
   children = []
   for x in range(10):
-    child = rdf_client.StatEntry(
+    child = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="Foo%s" % x, pathtype=rdf_paths.PathSpec.PathType.OS))
     children.append(child)

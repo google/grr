@@ -10,7 +10,7 @@ import unittest
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_proto import objects_pb2
@@ -169,7 +169,7 @@ class PathInfoTest(unittest.TestCase):
       rdf_objects.PathInfo(components=["..", "foo", "bar"])
 
   def testFromStatEntrySimple(self):
-    stat_entry = rdf_client.StatEntry()
+    stat_entry = rdf_client_fs.StatEntry()
     stat_entry.pathspec.path = "foo/bar/baz"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
@@ -179,7 +179,7 @@ class PathInfoTest(unittest.TestCase):
     self.assertFalse(path_info.directory)
 
   def testFromStatEntryNested(self):
-    stat_entry = rdf_client.StatEntry()
+    stat_entry = rdf_client_fs.StatEntry()
     stat_entry.pathspec.path = "foo/bar"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.TSK
     stat_entry.pathspec.nested_path.path = "norf/quux"
@@ -191,7 +191,7 @@ class PathInfoTest(unittest.TestCase):
     self.assertFalse(path_info.directory)
 
   def testFromStatEntryOsAndTsk(self):
-    stat_entry = rdf_client.StatEntry()
+    stat_entry = rdf_client_fs.StatEntry()
     stat_entry.pathspec.path = "foo"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
     stat_entry.pathspec.nested_path.path = "bar"
@@ -203,7 +203,7 @@ class PathInfoTest(unittest.TestCase):
     self.assertFalse(path_info.directory)
 
   def testFromStatEntryRegistry(self):
-    stat_entry = rdf_client.StatEntry()
+    stat_entry = rdf_client_fs.StatEntry()
     stat_entry.pathspec.path = "foo/bar"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
 
@@ -214,7 +214,7 @@ class PathInfoTest(unittest.TestCase):
     self.assertFalse(path_info.directory)
 
   def testFromStatEntryTemp(self):
-    stat_entry = rdf_client.StatEntry()
+    stat_entry = rdf_client_fs.StatEntry()
     stat_entry.pathspec.path = "tmp/quux"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.TMPFILE
 
@@ -224,7 +224,7 @@ class PathInfoTest(unittest.TestCase):
     self.assertFalse(path_info.directory)
 
   def testFromStatEntryOffset(self):
-    stat_entry = rdf_client.StatEntry()
+    stat_entry = rdf_client_fs.StatEntry()
     stat_entry.pathspec.path = "foo/bar/baz"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.TSK
     stat_entry.pathspec.offset = 2048
@@ -234,7 +234,7 @@ class PathInfoTest(unittest.TestCase):
     self.assertEqual(path_info.components, ["foo", "bar", "baz:2048"])
 
   def testFromStatEntryAds(self):
-    stat_entry = rdf_client.StatEntry()
+    stat_entry = rdf_client_fs.StatEntry()
     stat_entry.pathspec.path = "foo/bar/baz"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
     stat_entry.pathspec.stream_name = "quux"
@@ -244,7 +244,7 @@ class PathInfoTest(unittest.TestCase):
     self.assertEqual(path_info.components, ["foo", "bar", "baz:quux"])
 
   def testFromStatEntryMetadata(self):
-    stat_entry = rdf_client.StatEntry()
+    stat_entry = rdf_client_fs.StatEntry()
     stat_entry.pathspec.path = "foo/bar"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
@@ -340,24 +340,24 @@ class PathInfoTest(unittest.TestCase):
   def testUpdateFromStatEntryUpdate(self):
     dst = rdf_objects.PathInfo(components=["foo", "bar"])
 
-    stat_entry = rdf_client.StatEntry(st_mode=1337)
+    stat_entry = rdf_client_fs.StatEntry(st_mode=1337)
     src = rdf_objects.PathInfo(components=["foo", "bar"], stat_entry=stat_entry)
 
     dst.UpdateFrom(src)
     self.assertEqual(dst.stat_entry.st_mode, 1337)
 
   def testUpdateFromStatEntryOverride(self):
-    stat_entry = rdf_client.StatEntry(st_mode=707)
+    stat_entry = rdf_client_fs.StatEntry(st_mode=707)
     dst = rdf_objects.PathInfo(components=["foo", "bar"], stat_entry=stat_entry)
 
-    stat_entry = rdf_client.StatEntry(st_mode=1337)
+    stat_entry = rdf_client_fs.StatEntry(st_mode=1337)
     src = rdf_objects.PathInfo(components=["foo", "bar"], stat_entry=stat_entry)
 
     dst.UpdateFrom(src)
     self.assertEqual(dst.stat_entry.st_mode, 1337)
 
   def testUpdateFromStatEntryRetain(self):
-    stat_entry = rdf_client.StatEntry(st_mode=707)
+    stat_entry = rdf_client_fs.StatEntry(st_mode=707)
     dst = rdf_objects.PathInfo(components=["foo", "bar"], stat_entry=stat_entry)
 
     src = rdf_objects.PathInfo(components=["foo", "bar"])

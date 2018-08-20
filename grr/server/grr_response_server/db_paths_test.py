@@ -7,7 +7,7 @@ import hashlib
 from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import db
@@ -87,7 +87,7 @@ class DatabaseTestPathsMixin(object):
 
     timestamp_1 = now()
 
-    stat_entry = rdf_client.StatEntry(st_mode=42)
+    stat_entry = rdf_client_fs.StatEntry(st_mode=42)
     self.db.WritePathInfos(
         client_id,
         [rdf_objects.PathInfo.OS(components=["foo"], stat_entry=stat_entry)])
@@ -158,7 +158,7 @@ class DatabaseTestPathsMixin(object):
   def testWritePathInfosStatEntry(self):
     client_id = self.InitializeClient()
 
-    stat_entry = rdf_client.StatEntry()
+    stat_entry = rdf_client_fs.StatEntry()
     stat_entry.pathspec.path = "foo/bar"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
     stat_entry.st_mode = 1337
@@ -215,7 +215,7 @@ class DatabaseTestPathsMixin(object):
   def testWritePathInfosHashAndStatEntry(self):
     client_id = self.InitializeClient()
 
-    stat_entry = rdf_client.StatEntry(st_mode=1337)
+    stat_entry = rdf_client_fs.StatEntry(st_mode=1337)
     hash_entry = rdf_crypto.Hash(md5=hashlib.md5("foo").digest())
 
     path_info = rdf_objects.PathInfo.OS(
@@ -238,7 +238,7 @@ class DatabaseTestPathsMixin(object):
   def testWritePathInfoHashAndStatEntrySeparateWrites(self):
     client_id = self.InitializeClient()
 
-    stat_entry = rdf_client.StatEntry(st_mode=1337)
+    stat_entry = rdf_client_fs.StatEntry(st_mode=1337)
     stat_entry_path_info = rdf_objects.PathInfo.OS(
         components=["foo"], stat_entry=stat_entry)
 
@@ -448,9 +448,9 @@ class DatabaseTestPathsMixin(object):
     path_info = rdf_objects.PathInfo.OS(components=["foo", "bar"])
 
     stat_entries = {
-        datetime("2010-10-10"): rdf_client.StatEntry(st_size=10),
-        datetime("2011-11-11"): rdf_client.StatEntry(st_size=11),
-        datetime("2012-12-12"): rdf_client.StatEntry(st_size=12),
+        datetime("2010-10-10"): rdf_client_fs.StatEntry(st_size=10),
+        datetime("2011-11-11"): rdf_client_fs.StatEntry(st_size=11),
+        datetime("2012-12-12"): rdf_client_fs.StatEntry(st_size=12),
     }
 
     self.db.WritePathInfos(client_id, [path_info])
@@ -549,7 +549,7 @@ class DatabaseTestPathsMixin(object):
     client_path = db.ClientPath.OS(client_id, components=("foo",))
     client_path_history = db.ClientPathHistory()
     client_path_history.AddStatEntry(
-        datetime("2000-01-01"), rdf_client.StatEntry(st_size=42))
+        datetime("2000-01-01"), rdf_client_fs.StatEntry(st_size=42))
     client_path_history.AddHashEntry(
         datetime("2000-01-01"), rdf_crypto.Hash(md5=b"quux"))
 
@@ -576,12 +576,12 @@ class DatabaseTestPathsMixin(object):
     client_path_1 = db.ClientPath.OS(client_id, components=("foo",))
     client_path_1_history = db.ClientPathHistory()
     client_path_1_history.AddStatEntry(
-        datetime("1999-01-01"), rdf_client.StatEntry(st_mode=1337))
+        datetime("1999-01-01"), rdf_client_fs.StatEntry(st_mode=1337))
 
     client_path_2 = db.ClientPath.TSK(client_id, components=("bar",))
     client_path_2_history = db.ClientPathHistory()
     client_path_2_history.AddStatEntry(
-        datetime("1988-01-01"), rdf_client.StatEntry(st_mode=108))
+        datetime("1988-01-01"), rdf_client_fs.StatEntry(st_mode=108))
 
     self.db.MultiWritePathHistory({
         client_path_1: client_path_1_history,
@@ -649,12 +649,12 @@ class DatabaseTestPathsMixin(object):
     client_a_path = db.ClientPath.OS(client_a_id, components=("foo",))
     client_a_history = db.ClientPathHistory()
     client_a_history.AddStatEntry(
-        datetime("2001-01-01"), rdf_client.StatEntry(st_size=42))
+        datetime("2001-01-01"), rdf_client_fs.StatEntry(st_size=42))
 
     client_b_path = db.ClientPath.OS(client_b_id, components=("foo",))
     client_b_history = db.ClientPathHistory()
     client_b_history.AddStatEntry(
-        datetime("2002-02-02"), rdf_client.StatEntry(st_size=108))
+        datetime("2002-02-02"), rdf_client_fs.StatEntry(st_size=108))
 
     self.db.MultiWritePathHistory({
         client_a_path: client_a_history,
@@ -681,13 +681,13 @@ class DatabaseTestPathsMixin(object):
 
     client_path_history = db.ClientPathHistory()
     client_path_history.AddStatEntry(
-        datetime("2001-01-01"), rdf_client.StatEntry(st_size=42))
+        datetime("2001-01-01"), rdf_client_fs.StatEntry(st_size=42))
 
     self.db.MultiWritePathHistory({client_path: client_path_history})
 
     client_path_history = db.ClientPathHistory()
     client_path_history.AddStatEntry(
-        datetime("2001-01-01"), rdf_client.StatEntry(st_size=108))
+        datetime("2001-01-01"), rdf_client_fs.StatEntry(st_size=108))
 
     with self.assertRaises(db.Error):
       self.db.MultiWritePathHistory({client_path: client_path_history})
@@ -722,7 +722,7 @@ class DatabaseTestPathsMixin(object):
     client_path = db.ClientPath.OS(client_id, components=("foo", "bar", "baz"))
     client_path_history = db.ClientPathHistory()
     client_path_history.AddStatEntry(
-        datetime("2001-01-01"), rdf_client.StatEntry(st_size=42))
+        datetime("2001-01-01"), rdf_client_fs.StatEntry(st_size=42))
 
     with self.assertRaises(db.AtLeastOneUnknownPathError):
       self.db.MultiWritePathHistory({client_path: client_path_history})
@@ -787,17 +787,17 @@ class DatabaseTestPathsMixin(object):
     pathspec = rdf_paths.PathSpec(
         path="foo/bar/baz", pathtype=rdf_paths.PathSpec.PathType.OS)
 
-    stat_entry = rdf_client.StatEntry(pathspec=pathspec, st_size=42)
+    stat_entry = rdf_client_fs.StatEntry(pathspec=pathspec, st_size=42)
     self.db.WritePathInfos(client_id,
                            [rdf_objects.PathInfo.FromStatEntry(stat_entry)])
     timestamp_1 = rdfvalue.RDFDatetime.Now()
 
-    stat_entry = rdf_client.StatEntry(pathspec=pathspec, st_size=101)
+    stat_entry = rdf_client_fs.StatEntry(pathspec=pathspec, st_size=101)
     self.db.WritePathInfos(client_id,
                            [rdf_objects.PathInfo.FromStatEntry(stat_entry)])
     timestamp_2 = rdfvalue.RDFDatetime.Now()
 
-    stat_entry = rdf_client.StatEntry(pathspec=pathspec, st_size=1337)
+    stat_entry = rdf_client_fs.StatEntry(pathspec=pathspec, st_size=1337)
     self.db.WritePathInfos(client_id,
                            [rdf_objects.PathInfo.FromStatEntry(stat_entry)])
     timestamp_3 = rdfvalue.RDFDatetime.Now()
@@ -911,7 +911,7 @@ class DatabaseTestPathsMixin(object):
 
     path_info = rdf_objects.PathInfo.OS(components=["foo"])
 
-    path_info.stat_entry = rdf_client.StatEntry(st_mode=42)
+    path_info.stat_entry = rdf_client_fs.StatEntry(st_mode=42)
     path_info.hash_entry = None
     self.db.WritePathInfos(client_id, [path_info])
     timestamp_1 = rdfvalue.RDFDatetime.Now()
@@ -921,12 +921,12 @@ class DatabaseTestPathsMixin(object):
     self.db.WritePathInfos(client_id, [path_info])
     timestamp_2 = rdfvalue.RDFDatetime.Now()
 
-    path_info.stat_entry = rdf_client.StatEntry(st_mode=1337)
+    path_info.stat_entry = rdf_client_fs.StatEntry(st_mode=1337)
     path_info.hash_entry = None
     self.db.WritePathInfos(client_id, [path_info])
     timestamp_3 = rdfvalue.RDFDatetime.Now()
 
-    path_info.stat_entry = rdf_client.StatEntry(st_mode=4815162342)
+    path_info.stat_entry = rdf_client_fs.StatEntry(st_mode=4815162342)
     path_info.hash_entry = rdf_crypto.Hash(md5=b"norf")
     self.db.WritePathInfos(client_id, [path_info])
     timestamp_4 = rdfvalue.RDFDatetime.Now()
@@ -1206,7 +1206,7 @@ class DatabaseTestPathsMixin(object):
     client_path = db.ClientPath.OS(client_id, components=("foo",))
     client_path_history = db.ClientPathHistory()
     client_path_history.AddStatEntry(
-        datetime("2000-01-01"), rdf_client.StatEntry(st_size=42))
+        datetime("2000-01-01"), rdf_client_fs.StatEntry(st_size=42))
     client_path_history.AddHashEntry(
         datetime("2000-01-01"), rdf_crypto.Hash(md5=b"quux"))
 
@@ -1234,7 +1234,7 @@ class DatabaseTestPathsMixin(object):
     client_path_1 = db.ClientPath.OS(client_id, components=("foo",))
     client_path_1_history = db.ClientPathHistory()
     client_path_1_history.AddStatEntry(
-        datetime("1999-01-01"), rdf_client.StatEntry(st_mode=1337))
+        datetime("1999-01-01"), rdf_client_fs.StatEntry(st_mode=1337))
 
     client_path_2 = db.ClientPath.OS(client_id, components=("bar",))
     client_path_2_history = db.ClientPathHistory()
@@ -1276,16 +1276,16 @@ class DatabaseTestPathsMixin(object):
     client_path_1 = db.ClientPath.OS(client_id, components=("foo",))
     client_path_1_history = db.ClientPathHistory()
     client_path_1_history.AddStatEntry(
-        datetime("1999-01-01"), rdf_client.StatEntry(st_mode=1337))
+        datetime("1999-01-01"), rdf_client_fs.StatEntry(st_mode=1337))
     client_path_1_history.AddStatEntry(
-        datetime("1999-01-02"), rdf_client.StatEntry(st_mode=1338))
+        datetime("1999-01-02"), rdf_client_fs.StatEntry(st_mode=1338))
 
     client_path_2 = db.ClientPath.OS(client_id, components=("bar",))
     client_path_2_history = db.ClientPathHistory()
     client_path_2_history.AddStatEntry(
-        datetime("1988-01-01"), rdf_client.StatEntry(st_mode=109))
+        datetime("1988-01-01"), rdf_client_fs.StatEntry(st_mode=109))
     client_path_2_history.AddStatEntry(
-        datetime("1988-01-02"), rdf_client.StatEntry(st_mode=110))
+        datetime("1988-01-02"), rdf_client_fs.StatEntry(st_mode=110))
 
     self.db.MultiWritePathHistory({
         client_path_1: client_path_1_history,
@@ -1398,9 +1398,9 @@ class DatabaseTestPathsMixin(object):
     client_path = db.ClientPath.OS(client_id, components=("foo",))
     self.db.WritePathStatHistory(
         client_path, {
-            datetime("2001-01-01"): rdf_client.StatEntry(st_size=42),
-            datetime("2002-02-02"): rdf_client.StatEntry(st_size=108),
-            datetime("2003-03-03"): rdf_client.StatEntry(st_size=1337),
+            datetime("2001-01-01"): rdf_client_fs.StatEntry(st_size=42),
+            datetime("2002-02-02"): rdf_client_fs.StatEntry(st_size=108),
+            datetime("2003-03-03"): rdf_client_fs.StatEntry(st_size=1337),
         })
 
     self.db.InitPathInfos(client_id, [path_info])
@@ -1442,8 +1442,8 @@ class DatabaseTestPathsMixin(object):
     client_parent_path = db.ClientPath.OS(client_id, components=("foo",))
     self.db.WritePathStatHistory(
         client_parent_path, {
-            datetime("2015-05-05"): rdf_client.StatEntry(st_mode=1337),
-            datetime("2016-06-06"): rdf_client.StatEntry(st_mode=8888),
+            datetime("2015-05-05"): rdf_client_fs.StatEntry(st_mode=1337),
+            datetime("2016-06-06"): rdf_client_fs.StatEntry(st_mode=8888),
         })
     self.db.WritePathHashHistory(
         client_parent_path, {
@@ -1485,8 +1485,8 @@ class DatabaseTestPathsMixin(object):
     client_path_a = db.ClientPath.OS(client_a_id, components=("foo",))
     self.db.WritePathStatHistory(
         client_path_a, {
-            datetime("2000-01-01"): rdf_client.StatEntry(st_size=1),
-            datetime("2000-02-02"): rdf_client.StatEntry(st_size=2),
+            datetime("2000-01-01"): rdf_client_fs.StatEntry(st_size=1),
+            datetime("2000-02-02"): rdf_client_fs.StatEntry(st_size=2),
         })
 
     path_info_b = rdf_objects.PathInfo.OS(components=("foo",))
@@ -1584,9 +1584,9 @@ class DatabaseTestPathsMixin(object):
     client_path = db.ClientPath.OS(client_id, components=("foo", "bar", "baz"))
     self.db.WritePathStatHistory(
         client_path, {
-            datetime("2001-01-01"): rdf_client.StatEntry(st_size=42),
-            datetime("2002-02-02"): rdf_client.StatEntry(st_mode=1337),
-            datetime("2003-03-03"): rdf_client.StatEntry(st_size=108),
+            datetime("2001-01-01"): rdf_client_fs.StatEntry(st_size=42),
+            datetime("2002-02-02"): rdf_client_fs.StatEntry(st_mode=1337),
+            datetime("2003-03-03"): rdf_client_fs.StatEntry(st_size=108),
         })
     self.db.WritePathHashHistory(
         client_path, {
@@ -1714,10 +1714,10 @@ class DatabaseTestPathsMixin(object):
     client_path_b_2 = db.ClientPath.OS(client_b_id, components=("foo", "baz"))
     self.db.WritePathStatHistory(
         client_path_b_2, {
-            datetime("2001-02-02"): rdf_client.StatEntry(st_size=2),
-            datetime("2003-03-03"): rdf_client.StatEntry(st_size=3),
-            datetime("2005-05-05"): rdf_client.StatEntry(st_size=5),
-            datetime("2007-07-07"): rdf_client.StatEntry(st_size=7),
+            datetime("2001-02-02"): rdf_client_fs.StatEntry(st_size=2),
+            datetime("2003-03-03"): rdf_client_fs.StatEntry(st_size=3),
+            datetime("2005-05-05"): rdf_client_fs.StatEntry(st_size=5),
+            datetime("2007-07-07"): rdf_client_fs.StatEntry(st_size=7),
         })
 
     self.db.MultiClearPathHistory({

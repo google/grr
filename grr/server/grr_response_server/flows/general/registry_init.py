@@ -11,6 +11,7 @@ from grr_response_server.flows.general import audit
 from grr_response_server.flows.general import ca_enroller
 from grr_response_server.flows.general import checks
 from grr_response_server.flows.general import collectors
+from grr_response_server.flows.general import data_migration
 from grr_response_server.flows.general import discovery
 
 from grr_response_server.flows.general import export

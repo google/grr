@@ -4,6 +4,7 @@
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.path_detection import windows as path_detection_windows
@@ -45,7 +46,7 @@ class WindowsPersistenceMechanismsParser(parser.ArtifactFilesParser):
 
     if isinstance(
         persistence,
-        rdf_client.StatEntry) and persistence.HasField("registry_type"):
+        rdf_client_fs.StatEntry) and persistence.HasField("registry_type"):
       pathspecs = self._GetFilePaths(persistence.registry_data.string,
                                      download_pathtype, knowledge_base)
 

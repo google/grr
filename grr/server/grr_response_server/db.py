@@ -18,6 +18,8 @@ from future.utils import with_metaclass
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -173,7 +175,7 @@ class ClientPathHistory(object):
 
   def AddStatEntry(self, timestamp, stat_entry):
     utils.AssertType(timestamp, rdfvalue.RDFDatetime)
-    utils.AssertType(stat_entry, rdf_client.StatEntry)
+    utils.AssertType(stat_entry, rdf_client_fs.StatEntry)
     self.stat_entries[timestamp] = stat_entry
 
   def AddHashEntry(self, timestamp, hash_entry):
@@ -1268,7 +1270,7 @@ class DatabaseValidationWrapper(Database):
       utils.AssertType(certificate, rdf_crypto.RDFX509Cert)
 
     if last_ip is not None:
-      utils.AssertType(last_ip, rdf_client.NetworkAddress)
+      utils.AssertType(last_ip, rdf_client_network.NetworkAddress)
 
     return self.delegate.WriteClientMetadata(
         client_id,

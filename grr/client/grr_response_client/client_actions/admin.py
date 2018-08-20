@@ -27,14 +27,16 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 
 class Echo(actions.ActionPlugin):
   """Returns a message to the server."""
-  in_rdfvalue = rdf_client.EchoRequest
-  out_rdfvalues = [rdf_client.EchoRequest]
+  in_rdfvalue = rdf_client_action.EchoRequest
+  out_rdfvalues = [rdf_client_action.EchoRequest]
 
   def Run(self, args):
     self.SendReply(args)
@@ -289,19 +291,19 @@ class GetClientInfo(actions.ActionPlugin):
 
 class GetClientStats(actions.ActionPlugin):
   """This retrieves some stats about the GRR process."""
-  in_rdfvalue = rdf_client.GetClientStatsRequest
-  out_rdfvalues = [rdf_client.ClientStats]
+  in_rdfvalue = rdf_client_action.GetClientStatsRequest
+  out_rdfvalues = [rdf_client_stats.ClientStats]
 
   def Run(self, arg):
     """Returns the client stats."""
     if arg is None:
-      arg = rdf_client.GetClientStatsRequest()
+      arg = rdf_client_action.GetClientStatsRequest()
 
     proc = psutil.Process(os.getpid())
     meminfo = proc.memory_info()
     boot_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(psutil.boot_time())
     create_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(proc.create_time())
-    response = rdf_client.ClientStats(
+    response = rdf_client_stats.ClientStats(
         RSS_size=meminfo.rss,
         VMS_size=meminfo.vms,
         memory_percent=proc.memory_percent(),
@@ -326,7 +328,7 @@ class GetClientStatsAuto(GetClientStats):
 
   def Send(self, response):
     self.grr_worker.SendReply(
-        rdf_client.ClientStats.Downsampled(response),
+        rdf_client_stats.ClientStats.Downsampled(response),
         session_id=rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"),
         response_id=0,
         request_id=0,

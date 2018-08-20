@@ -16,6 +16,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import test_lib
@@ -117,7 +118,7 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
     # Populate stats, file_ojbs, kb_ojbs lists needed by the parser.
     for filename, data in iteritems(test_data):
       pathspec = rdf_paths.PathSpec(path=filename, pathtype="OS")
-      stat = rdf_client.StatEntry(pathspec=pathspec)
+      stat = rdf_client_fs.StatEntry(pathspec=pathspec)
       file_obj = io.BytesIO(data)
       stats.append(stat)
       file_objs.append(file_obj)
@@ -278,7 +279,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     files = []
     for path in ["/etc/passwd", "/etc/shadow", "/etc/group", "/etc/gshadow"]:
       p = rdf_paths.PathSpec(path=path)
-      stats.append(rdf_client.StatEntry(pathspec=p))
+      stats.append(rdf_client_fs.StatEntry(pathspec=p))
     for data in passwd, shadow, group, gshadow:
       if data is None:
         data = []
@@ -493,9 +494,9 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
       setenv PERL5LIB :shouldntbeignored
     """)
     parser = linux_file_parser.PathParser()
-    bashrc_stat = rdf_client.StatEntry(
+    bashrc_stat = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(path="/home/user1/.bashrc", pathtype="OS"))
-    cshrc_stat = rdf_client.StatEntry(
+    cshrc_stat = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(path="/home/user1/.cshrc", pathtype="OS"))
     bashrc = {
         r.name: r.vals for r in parser.Parse(bashrc_stat, bashrc_data, None)

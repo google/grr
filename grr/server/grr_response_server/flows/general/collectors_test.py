@@ -21,6 +21,8 @@ from grr_response_core.lib import parser
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import aff4
@@ -339,7 +341,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
     # Test the statentry got stored.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
+    self.assertTrue(isinstance(list(fd)[0], rdf_client_fs.StatEntry))
     urn = fd[0].pathspec.AFF4Path(self.client_id)
     self.assertTrue(str(urn).endswith("BootExecute"))
 
@@ -368,7 +370,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
             client_id=self.client_id)
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
+    self.assertTrue(isinstance(list(fd)[0], rdf_client_fs.StatEntry))
     self.assertEqual(fd[0].registry_data.GetValue(), "DefaultValue")
 
   def testSupportedOS(self):
@@ -696,7 +698,7 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     # The artifact collector receives the same result twice here.
     # self.assertEqual(len(expected), 1)
     expected = expected[0]
-    self.assertIsInstance(expected, rdf_client.ExecuteResponse)
+    self.assertIsInstance(expected, rdf_client_action.ExecuteResponse)
 
     # Run the ClientArtifactCollector to get the actual result.
     result = self._RunFlow(
@@ -706,7 +708,7 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
         apply_parsers=False)[0]
     self.assertEqual(len(result.collected_artifacts), 1)
     result = result.collected_artifacts[0].action_results[0].value
-    self.assertIsInstance(result, rdf_client.ExecuteResponse)
+    self.assertIsInstance(result, rdf_client_action.ExecuteResponse)
 
     self.assertEqual(result, expected)
 

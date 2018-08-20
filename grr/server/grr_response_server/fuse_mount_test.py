@@ -14,7 +14,7 @@ from grr_response_client.client_actions.linux import linux
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import flow_utils
@@ -175,7 +175,7 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
         "st_uid":
             0,
         "st_mode":
-            rdf_client.StatMode(33261),
+            rdf_client_fs.StatMode(33261),
         "st_atime":
             rdfvalue.RDFDatetimeSeconds(1299502220)
     }

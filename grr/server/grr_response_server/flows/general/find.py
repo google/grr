@@ -3,7 +3,7 @@
 """Find files on the client."""
 import stat
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
@@ -18,7 +18,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 class FindFilesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FindFilesArgs
   rdf_deps = [
-      rdf_client.FindSpec,
+      rdf_client_fs.FindSpec,
   ]
 
   def Validate(self):
@@ -56,7 +56,7 @@ class FindFiles(flow.GRRFlow):
     Note: This flow is inefficient for collecting a large number of files.
 
   Returns to parent flow:
-    rdf_client.StatEntry objects for each found file.
+    rdf_client_fs.StatEntry objects for each found file.
   """
 
   category = "/Filesystem/"

@@ -918,8 +918,7 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
 
-    flow.GRRFlow.TerminateFlow(
-        flow_urn, reason="Cancelled in GUI", token=token, force=True)
+    flow.GRRFlow.TerminateFlow(flow_urn, reason="Cancelled in GUI", token=token)
 
 
 class ApiListFlowDescriptorsResult(rdf_structs.RDFProtoStruct):

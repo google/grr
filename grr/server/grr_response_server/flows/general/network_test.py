@@ -2,7 +2,7 @@
 """Test the connections listing module."""
 
 from grr_response_core.lib import flags
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server import flow
 from grr_response_server.flows.general import network
 from grr.test_lib import flow_test_lib
@@ -13,18 +13,20 @@ class ClientMock(object):
 
   def ListNetworkConnections(self, _):
     """Returns fake connections."""
-    conn1 = rdf_client.NetworkConnection(
-        state=rdf_client.NetworkConnection.State.CLOSED,
-        type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-        local_address=rdf_client.NetworkEndpoint(ip="0.0.0.0", port=22),
-        remote_address=rdf_client.NetworkEndpoint(ip="0.0.0.0", port=0),
+    conn1 = rdf_client_network.NetworkConnection(
+        state=rdf_client_network.NetworkConnection.State.CLOSED,
+        type=rdf_client_network.NetworkConnection.Type.SOCK_STREAM,
+        local_address=rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=22),
+        remote_address=rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=0),
         pid=2136,
         ctime=0)
-    conn2 = rdf_client.NetworkConnection(
-        state=rdf_client.NetworkConnection.State.LISTEN,
-        type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-        local_address=rdf_client.NetworkEndpoint(ip="192.168.1.1", port=31337),
-        remote_address=rdf_client.NetworkEndpoint(ip="1.2.3.4", port=6667),
+    conn2 = rdf_client_network.NetworkConnection(
+        state=rdf_client_network.NetworkConnection.State.LISTEN,
+        type=rdf_client_network.NetworkConnection.Type.SOCK_STREAM,
+        local_address=rdf_client_network.NetworkEndpoint(
+            ip="192.168.1.1", port=31337),
+        remote_address=rdf_client_network.NetworkEndpoint(
+            ip="1.2.3.4", port=6667),
         pid=1,
         ctime=0)
 

@@ -37,14 +37,14 @@ config_lib.DEFINE_option(
     type_info.RDFValueType(
         rdfclass=rdf_standard.DomainEmailAddress,
         name="Monitoring.alert_email",
-        help="The email address to send events to.",
+        description="The email address to send events to.",
         default="grr-monitoring@localhost"))
 
 config_lib.DEFINE_option(
     type_info.RDFValueType(
         rdfclass=rdf_standard.DomainEmailAddress,
         name="Monitoring.emergency_access_email",
-        help="The email address to notify in an emergency.",
+        description="The email address to notify in an emergency.",
         default="grr-emergency@localhost"))
 
 config_lib.DEFINE_integer("Monitoring.http_port", 0,

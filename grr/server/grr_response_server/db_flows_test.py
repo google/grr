@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for the flow database api."""
 
+import random
+
 from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import rdfvalue
@@ -114,3 +116,25 @@ class DatabaseTestFlowMixin(object):
       leased = self.db.LeaseClientMessages(client_id, lease_time=lease_time)
 
       self.assertEqual(len(leased), 10)
+
+  def testClientMessagesAreSorted(self):
+    client_id = self.InitializeClient()
+    messages = [
+        rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
+        for _ in range(10)
+    ]
+
+    random.shuffle(messages)
+
+    self.db.WriteClientMessages(messages)
+
+    read = self.db.ReadClientMessages(client_id)
+
+    self.assertEqual(len(read), 10)
+    task_ids = [m.task_id for m in read]
+    self.assertEqual(task_ids, sorted(task_ids))
+
+    lease_time = rdfvalue.Duration("10m")
+    leased = self.db.LeaseClientMessages(client_id, lease_time=lease_time)
+    task_ids = [m.task_id for m in leased]
+    self.assertEqual(task_ids, sorted(task_ids))

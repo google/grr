@@ -17,7 +17,8 @@ from grr_response_core.lib.parsers import registry_init
 # pylint: enable=unused-import
 from grr_response_core.lib.parsers import windows_persistence
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
@@ -363,10 +364,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         # This conditional should be removed after that date.
         if self.client_version >= 3221:
           stub = server_stubs.GetFileStat
-          request = rdf_client.GetFileStatRequest(pathspec=pathspec)
+          request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
         else:
           stub = server_stubs.StatFile
-          request = rdf_client.ListDirRequest(pathspec=pathspec)
+          request = rdf_client_action.ListDirRequest(pathspec=pathspec)
 
         self.CallClient(
             stub,
@@ -624,7 +625,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return
 
     with data_store.DB.GetMutationPool() as pool:
-      stat_entries = list(map(rdf_client.StatEntry, responses))
+      stat_entries = list(map(rdf_client_fs.StatEntry, responses))
       filesystem.WriteStatEntries(
           stat_entries,
           client_id=self.client_id,
@@ -796,7 +797,7 @@ class ArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactFilesDownloaderResult
   rdf_deps = [
       rdf_paths.PathSpec,
-      rdf_client.StatEntry,
+      rdf_client_fs.StatEntry,
   ]
 
   def GetOriginalResultType(self):
@@ -814,7 +815,7 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
     # If we're dealing with plain file StatEntry, just
     # return it's pathspec - there's nothing to parse
     # and guess.
-    if (isinstance(response, rdf_client.StatEntry) and
+    if (isinstance(response, rdf_client_fs.StatEntry) and
         response.pathspec.pathtype in [
             rdf_paths.PathSpec.PathType.TSK, rdf_paths.PathSpec.PathType.OS
         ]):

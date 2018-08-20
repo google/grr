@@ -672,12 +672,7 @@ class GRRFlow(FlowBase):
         replace=False)
 
   @classmethod
-  def TerminateFlow(cls,
-                    flow_id,
-                    reason=None,
-                    status=None,
-                    token=None,
-                    force=False):
+  def TerminateFlow(cls, flow_id, reason=None, status=None, token=None):
     """Terminate a flow.
 
     Args:
@@ -685,17 +680,12 @@ class GRRFlow(FlowBase):
       reason: A reason to log.
       status: Status code used in the generated status message.
       token: The access token to be used for this request.
-      force: If True then terminate locked flows hard.
 
     Raises:
       FlowError: If the flow can not be found.
     """
-    if not force:
-      flow_obj = aff4.FACTORY.OpenWithLock(
-          flow_id, aff4_type=GRRFlow, blocking=True, token=token)
-    else:
-      flow_obj = aff4.FACTORY.Open(
-          flow_id, aff4_type=GRRFlow, mode="rw", token=token)
+    flow_obj = aff4.FACTORY.Open(
+        flow_id, aff4_type=GRRFlow, mode="rw", token=token)
 
     if not flow_obj:
       raise FlowError("Could not terminate flow %s" % flow_id)
@@ -726,10 +716,7 @@ class GRRFlow(FlowBase):
 
       for child_obj in children_to_kill:
         cls.TerminateFlow(
-            child_obj.urn,
-            reason="Parent flow terminated.",
-            token=super_token,
-            force=force)
+            child_obj.urn, reason="Parent flow terminated.", token=super_token)
 
   @classmethod
   def PrintArgsHelp(cls):

@@ -17,6 +17,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_server import export
@@ -70,7 +71,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   plugin_cls = sqlite_plugin.SqliteInstantOutputPlugin
 
   STAT_ENTRY_RESPONSES = [
-      rdf_client.StatEntry(
+      rdf_client_fs.StatEntry(
           pathspec=rdf_paths.PathSpec(path="/foo/bar/%d" % i, pathtype="OS"),
           st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
           st_ino=1063090,
@@ -161,7 +162,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
   def testExportedFilenamesAndManifestForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client.StatEntry: self.STAT_ENTRY_RESPONSES
+        rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES
     })
     self.assertEqual(
         set(zip_fd.namelist()),
@@ -177,7 +178,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
   def testExportedTableStructureForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client.StatEntry: self.STAT_ENTRY_RESPONSES
+        rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES
     })
     sqlite_dump = zip_fd.read("%s/ExportedFile_from_StatEntry.sql" % prefix)
     # Import the sql dump into an in-memory db.
@@ -202,7 +203,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
   def testExportedRowsForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client.StatEntry: self.STAT_ENTRY_RESPONSES
+        rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES
     })
     sqlite_dump = zip_fd.read("%s/ExportedFile_from_StatEntry.sql" % prefix)
 
@@ -245,9 +246,9 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
   def testExportedFilenamesAndManifestForValuesOfMultipleTypes(self):
     zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client.StatEntry: [
-            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="/foo/bar", pathtype="OS"))
+        rdf_client_fs.StatEntry: [
+            rdf_client_fs.StatEntry(
+                pathspec=rdf_paths.PathSpec(path="/foo/bar", pathtype="OS"))
         ],
         rdf_client.Process: [rdf_client.Process(pid=42)]
     })
@@ -272,9 +273,9 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
   def testExportedRowsForValuesOfMultipleTypes(self):
     zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client.StatEntry: [
-            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="/foo/bar", pathtype="OS"))
+        rdf_client_fs.StatEntry: [
+            rdf_client_fs.StatEntry(
+                pathspec=rdf_paths.PathSpec(path="/foo/bar", pathtype="OS"))
         ],
         rdf_client.Process: [rdf_client.Process(pid=42)]
     })
@@ -313,9 +314,9 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
   def testHandlingOfNonAsciiCharacters(self):
     zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client.StatEntry: [
-            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="/中国新闻网新闻中", pathtype="OS"))
+        rdf_client_fs.StatEntry: [
+            rdf_client_fs.StatEntry(
+                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS"))
         ]
     })
     self.assertEqual(
@@ -338,10 +339,13 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     responses = []
     for i in range(num_rows):
       responses.append(
-          rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-              path="/foo/bar/%d" % i, pathtype="OS")))
+          rdf_client_fs.StatEntry(
+              pathspec=rdf_paths.PathSpec(
+                  path="/foo/bar/%d" % i, pathtype="OS")))
 
-    zip_fd, prefix = self.ProcessValuesToZip({rdf_client.StatEntry: responses})
+    zip_fd, prefix = self.ProcessValuesToZip({
+        rdf_client_fs.StatEntry: responses
+    })
     with self.db_connection:
       self.db_cursor.executescript(
           zip_fd.read("%s/ExportedFile_from_StatEntry.sql" % prefix))

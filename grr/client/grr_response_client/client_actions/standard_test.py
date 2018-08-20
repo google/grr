@@ -12,6 +12,7 @@ from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -35,7 +36,7 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
     python_code = "utils.TEST_VAL = 'modified'"
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
-    request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
+    request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
     self.assertTrue(result.time_used > 0)
@@ -64,7 +65,7 @@ magic_return_str = decode(s)
 """
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
-    request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
+    request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
     self.assertTrue(result.time_used > 0)
@@ -82,7 +83,7 @@ print("Done.")
 """
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
-    request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
+    request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
     self.assertTrue(result.time_used > 0)
@@ -101,7 +102,7 @@ print("Done.")
 """
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
-    request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
+    request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
     self.assertTrue(result.time_used > 0)
@@ -117,7 +118,7 @@ print("Done.")
     # Modify the data so the signature does not match.
     signed_blob.data = "utils.TEST_VAL = 'notmodified'"
 
-    request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
+    request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
 
     # Should raise since the code has been modified.
     self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
@@ -125,7 +126,7 @@ print("Done.")
 
     # Lets also adjust the hash.
     signed_blob.digest = hashlib.sha256(signed_blob.data).digest()
-    request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
+    request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
 
     self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
                       standard.ExecutePython, request)
@@ -138,7 +139,7 @@ print("Done.")
     python_code = "raise ValueError"
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
-    request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
+    request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
 
     self.assertRaises(ValueError, self.RunAction, standard.ExecutePython,
                       request)
@@ -148,7 +149,7 @@ print("Done.")
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(open("/bin/ls", "rb").read(), self.signing_key)
 
-    request = rdf_client.ExecuteBinaryRequest(
+    request = rdf_client_action.ExecuteBinaryRequest(
         executable=signed_blob, args=[__file__], write_path="ablob")
 
     result = self.RunAction(standard.ExecuteBinaryCommand, request)[0]
@@ -161,7 +162,7 @@ print("Done.")
     python_code = "magic_return_str = 'return string'"
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
-    request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
+    request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
     self.assertEqual(result.return_val, "return string")
@@ -174,7 +175,7 @@ print("Done.")
     signing_key = rdf_crypto.RSAPrivateKey.GenerateKey(2048, 65537)
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, signing_key)
-    request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
+    request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
                       standard.ExecutePython, request)
 
@@ -188,7 +189,7 @@ utils.TEST_VAL = py_args[43]
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
     pdict = rdf_protodict.Dict({"test": "dict_arg", 43: "dict_arg2"})
-    request = rdf_client.ExecutePythonRequest(
+    request = rdf_client_action.ExecutePythonRequest(
         python_code=signed_blob, py_args=pdict)
     result = self.RunAction(standard.ExecutePython, request)[0]
     self.assertEqual(result.return_val, "dict_arg")
@@ -206,7 +207,7 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
         path=self.path_in, pathtype=rdf_paths.PathSpec.PathType.OS)
 
   def testCopyPathToFile(self):
-    request = rdf_client.CopyPathToFileRequest(
+    request = rdf_client_action.CopyPathToFileRequest(
         offset=0, length=0, src_path=self.pathspec, gzip_output=False)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
     hash_out = hashlib.sha1(open(result.dest_path.path,
@@ -214,7 +215,7 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
     self.assertEqual(self.hash_in, hash_out)
 
   def testCopyPathToFileLimitLength(self):
-    request = rdf_client.CopyPathToFileRequest(
+    request = rdf_client_action.CopyPathToFileRequest(
         offset=0, length=23, src_path=self.pathspec, gzip_output=False)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
     output = open(result.dest_path.path, "rb").read()
@@ -227,7 +228,7 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
       out = f.read(25)
       hash_in = hashlib.sha1(out).hexdigest()
 
-    request = rdf_client.CopyPathToFileRequest(
+    request = rdf_client_action.CopyPathToFileRequest(
         offset=38, length=25, src_path=self.pathspec, gzip_output=False)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
     output = open(result.dest_path.path, "rb").read()
@@ -236,7 +237,7 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
     self.assertEqual(hash_in, hash_out)
 
   def testCopyPathToFileGzip(self):
-    request = rdf_client.CopyPathToFileRequest(
+    request = rdf_client_action.CopyPathToFileRequest(
         offset=0, length=0, src_path=self.pathspec, gzip_output=True)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
     self.assertEqual(
@@ -244,7 +245,7 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
         self.hash_in)
 
   def testCopyPathToFileLifetimeLimit(self):
-    request = rdf_client.CopyPathToFileRequest(
+    request = rdf_client_action.CopyPathToFileRequest(
         offset=0,
         length=23,
         src_path=self.pathspec,
@@ -266,7 +267,7 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
       pathspec = rdf_paths.PathSpec(
           path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)
 
-      request = rdf_client.GetFileStatRequest(pathspec=pathspec)
+      request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
       results = self.RunAction(standard.GetFileStat, request)
 
       self.assertEqual(len(results), 1)
@@ -279,7 +280,7 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
       pathspec = rdf_paths.PathSpec(
           path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)
 
-      request = rdf_client.GetFileStatRequest(
+      request = rdf_client_action.GetFileStatRequest(
           pathspec=pathspec, collect_ext_attrs=True)
       results = self.RunAction(standard.GetFileStat, request)
 
@@ -295,7 +296,7 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
       pathspec = rdf_paths.PathSpec(
           path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)
 
-      request = rdf_client.GetFileStatRequest(
+      request = rdf_client_action.GetFileStatRequest(
           pathspec=pathspec, collect_ext_attrs=False)
       results = self.RunAction(standard.GetFileStat, request)
 

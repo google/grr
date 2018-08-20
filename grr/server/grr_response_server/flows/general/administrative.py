@@ -16,6 +16,7 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -205,8 +206,7 @@ P.S. The state of the failing flow was:
         msg = "Client crashed."
 
       # Now terminate the flow.
-      flow.GRRFlow.TerminateFlow(
-          session_id, reason=msg, token=token, force=True)
+      flow.GRRFlow.TerminateFlow(session_id, reason=msg, token=token)
 
 
 class GetClientStatsProcessResponseMixin(object):
@@ -216,7 +216,7 @@ class GetClientStatsProcessResponseMixin(object):
     """Actually processes the contents of the response."""
     urn = client_id.Add("stats")
 
-    downsampled = rdf_client.ClientStats.Downsampled(response)
+    downsampled = rdf_client_stats.ClientStats.Downsampled(response)
     with aff4.FACTORY.Create(
         urn, aff4_stats.ClientStats, token=self.token, mode="w") as stats_fd:
       # Only keep the average of all values that fall within one minute.
@@ -256,7 +256,7 @@ class GetClientStatsAuto(flow.WellKnownFlow,
 
   def ProcessMessage(self, message):
     """Processes a stats response from the client."""
-    client_stats = rdf_client.ClientStats(message.payload)
+    client_stats = rdf_client_stats.ClientStats(message.payload)
     self.ProcessResponse(message.source, client_stats)
 
 

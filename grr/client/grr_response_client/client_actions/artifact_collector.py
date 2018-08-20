@@ -10,7 +10,8 @@ from grr_response_client.client_actions import standard
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
@@ -119,7 +120,8 @@ class ArtifactCollector(actions.ActionPlugin):
         query, self.knowledge_base, self.ignore_interpolation_errors)
     base_object = args.base_source.attributes.get("base_object")
     for query in queries:
-      request = rdf_client.WMIRequest(query=query, base_object=base_object)
+      request = rdf_client_action.WMIRequest(
+          query=query, base_object=base_object)
       yield action, request
 
   def _ProcessClientActionSource(self, args):
@@ -132,7 +134,7 @@ class ArtifactCollector(actions.ActionPlugin):
 
   def _ProcessCommandSource(self, args):
     action = standard.ExecuteCommand
-    request = rdf_client.ExecuteRequest(
+    request = rdf_client_action.ExecuteRequest(
         cmd=args.base_source.attributes["cmd"],
         args=args.base_source.attributes["args"],
     )
@@ -164,7 +166,7 @@ class ArtifactCollector(actions.ActionPlugin):
       for new_path in new_paths:
         pathspec = rdf_paths.PathSpec(
             path=new_path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
-        request = rdf_client.GetFileStatRequest(pathspec=pathspec)
+        request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
         yield action, request
 
 
@@ -207,7 +209,7 @@ def ParseResponse(processor_obj, response, knowledge_base):
       raise NotImplementedError()
     else:
       file_obj = vfs.VFSOpen(response.pathspec)
-      stat = rdf_client.StatEntry(pathspec=response.pathspec)
+      stat = rdf_client_fs.StatEntry(pathspec=response.pathspec)
       result_iterator = parse_method(stat, file_obj, None)
   elif isinstance(processor_obj,
                   (parser.RegistryParser, parser.RekallPluginParser,

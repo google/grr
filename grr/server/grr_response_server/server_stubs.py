@@ -14,6 +14,10 @@ from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -50,13 +54,13 @@ class GetInstallDate(ClientActionStub):
 class EnumerateInterfaces(ClientActionStub):
   """Enumerate all MAC addresses of all NICs."""
 
-  out_rdfvalues = [rdf_client.Interface]
+  out_rdfvalues = [rdf_client_network.Interface]
 
 
 class EnumerateFilesystems(ClientActionStub):
   """Enumerate all unique filesystems local to the system."""
 
-  out_rdfvalues = [rdf_client.Filesystem]
+  out_rdfvalues = [rdf_client_fs.Filesystem]
 
 
 class Uninstall(ClientActionStub):
@@ -68,15 +72,15 @@ class Uninstall(ClientActionStub):
 class UpdateAgent(ClientActionStub):
   """Updates the GRR agent to a new version."""
 
-  in_rdfvalue = rdf_client.ExecuteBinaryRequest
-  out_rdfvalues = [rdf_client.ExecuteBinaryResponse]
+  in_rdfvalue = rdf_client_action.ExecuteBinaryRequest
+  out_rdfvalues = [rdf_client_action.ExecuteBinaryResponse]
 
 
 # Windows-specific
 class WmiQuery(ClientActionStub):
   """Runs a WMI query and returns the results to a server callback."""
 
-  in_rdfvalue = rdf_client.WMIRequest
+  in_rdfvalue = rdf_client_action.WMIRequest
   out_rdfvalues = [rdf_protodict.Dict]
 
 
@@ -107,8 +111,8 @@ class EnumerateUsers(ClientActionStub):
 class Echo(ClientActionStub):
   """Returns a message to the server."""
 
-  in_rdfvalue = rdf_client.EchoRequest
-  out_rdfvalues = [rdf_client.EchoRequest]
+  in_rdfvalue = rdf_client_action.EchoRequest
+  out_rdfvalues = [rdf_client_action.EchoRequest]
 
 
 class GetHostname(ClientActionStub):
@@ -176,8 +180,8 @@ class GetClientInfo(ClientActionStub):
 class GetClientStats(ClientActionStub):
   """This retrieves some stats about the GRR process."""
 
-  in_rdfvalue = rdf_client.GetClientStatsRequest
-  out_rdfvalues = [rdf_client.ClientStats]
+  in_rdfvalue = rdf_client_action.GetClientStatsRequest
+  out_rdfvalues = [rdf_client_stats.ClientStats]
 
 
 class GetClientStatsAuto(GetClientStats):
@@ -227,29 +231,29 @@ class HashBuffer(ClientActionStub):
 class HashFile(ClientActionStub):
   """Hash an entire file using multiple algorithms."""
 
-  in_rdfvalue = rdf_client.FingerprintRequest
-  out_rdfvalues = [rdf_client.FingerprintResponse]
+  in_rdfvalue = rdf_client_action.FingerprintRequest
+  out_rdfvalues = [rdf_client_action.FingerprintResponse]
 
 
 class CopyPathToFile(ClientActionStub):
   """Copy contents of a pathspec to a file on disk."""
 
-  in_rdfvalue = rdf_client.CopyPathToFileRequest
-  out_rdfvalues = [rdf_client.CopyPathToFileRequest]
+  in_rdfvalue = rdf_client_action.CopyPathToFileRequest
+  out_rdfvalues = [rdf_client_action.CopyPathToFileRequest]
 
 
 class ListDirectory(ClientActionStub):
   """Lists all the files in a directory."""
 
-  in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalues = [rdf_client.StatEntry]
+  in_rdfvalue = rdf_client_action.ListDirRequest
+  out_rdfvalues = [rdf_client_fs.StatEntry]
 
 
 class IteratedListDirectory(ClientActionStub):
   """Lists a directory as an iterator."""
 
-  in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalues = [rdf_client.StatEntry]
+  in_rdfvalue = rdf_client_action.ListDirRequest
+  out_rdfvalues = [rdf_client_fs.StatEntry]
 
 
 # DEPRECATED.
@@ -262,36 +266,36 @@ class IteratedListDirectory(ClientActionStub):
 class StatFile(ClientActionStub):
   """Sends a StatEntry for a single file."""
 
-  in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalues = [rdf_client.StatEntry]
+  in_rdfvalue = rdf_client_action.ListDirRequest
+  out_rdfvalues = [rdf_client_fs.StatEntry]
 
 
 class GetFileStat(ClientActionStub):
   """A client action that yields stat of a given file."""
 
-  in_rdfvalue = rdf_client.GetFileStatRequest
-  out_rdfvalues = [rdf_client.StatEntry]
+  in_rdfvalue = rdf_client_action.GetFileStatRequest
+  out_rdfvalues = [rdf_client_fs.StatEntry]
 
 
 class ExecuteCommand(ClientActionStub):
   """Executes one of the predefined commands."""
 
-  in_rdfvalue = rdf_client.ExecuteRequest
-  out_rdfvalues = [rdf_client.ExecuteResponse]
+  in_rdfvalue = rdf_client_action.ExecuteRequest
+  out_rdfvalues = [rdf_client_action.ExecuteResponse]
 
 
 class ExecuteBinaryCommand(ClientActionStub):
   """Executes a command from a passed in binary."""
 
-  in_rdfvalue = rdf_client.ExecuteBinaryRequest
-  out_rdfvalues = [rdf_client.ExecuteBinaryResponse]
+  in_rdfvalue = rdf_client_action.ExecuteBinaryRequest
+  out_rdfvalues = [rdf_client_action.ExecuteBinaryResponse]
 
 
 class ExecutePython(ClientActionStub):
   """Executes python code with exec."""
 
-  in_rdfvalue = rdf_client.ExecutePythonRequest
-  out_rdfvalues = [rdf_client.ExecutePythonResponse]
+  in_rdfvalue = rdf_client_action.ExecutePythonRequest
+  out_rdfvalues = [rdf_client_action.ExecutePythonResponse]
 
 
 class Segfault(ClientActionStub):
@@ -311,15 +315,15 @@ class ListProcesses(ClientActionStub):
 class SendFile(ClientActionStub):
   """This action encrypts and sends a file to a remote listener."""
 
-  in_rdfvalue = rdf_client.SendFileRequest
-  out_rdfvalues = [rdf_client.StatEntry]
+  in_rdfvalue = rdf_client_action.SendFileRequest
+  out_rdfvalues = [rdf_client_fs.StatEntry]
 
 
 class StatFS(ClientActionStub):
   """Call os.statvfs for a given list of paths. OS X and Linux only."""
 
-  in_rdfvalue = rdf_client.StatFSRequest
-  out_rdfvalues = [rdf_client.Volume]
+  in_rdfvalue = rdf_client_action.StatFSRequest
+  out_rdfvalues = [rdf_client_fs.Volume]
 
 
 class GetMemorySize(ClientActionStub):
@@ -338,21 +342,21 @@ class DeleteGRRTempFiles(ClientActionStub):
 class CheckFreeGRRTempSpace(ClientActionStub):
 
   in_rdfvalue = rdf_paths.PathSpec
-  out_rdfvalues = [rdf_client.DiskUsage]
+  out_rdfvalues = [rdf_client_fs.DiskUsage]
 
 
 # from searching.py
 class Find(ClientActionStub):
   """Recurses through a directory returning files which match conditions."""
 
-  in_rdfvalue = rdf_client.FindSpec
-  out_rdfvalues = [rdf_client.FindSpec]
+  in_rdfvalue = rdf_client_fs.FindSpec
+  out_rdfvalues = [rdf_client_fs.FindSpec]
 
 
 class Grep(ClientActionStub):
   """Search a file for a pattern."""
 
-  in_rdfvalue = rdf_client.GrepSpec
+  in_rdfvalue = rdf_client_fs.GrepSpec
   out_rdfvalues = [rdf_client.BufferReference]
 
 
@@ -362,14 +366,14 @@ class Netstat(ClientActionStub):
   """Gather open network connection stats."""
 
   in_rdfvalue = None
-  out_rdfvalues = [rdf_client.NetworkConnection]
+  out_rdfvalues = [rdf_client_network.NetworkConnection]
 
 
 class ListNetworkConnections(ClientActionStub):
   """Gather open network connection stats."""
 
-  in_rdfvalue = rdf_client.ListNetworkConnectionsArgs
-  out_rdfvalues = [rdf_client.NetworkConnection]
+  in_rdfvalue = rdf_client_action.ListNetworkConnectionsArgs
+  out_rdfvalues = [rdf_client_network.NetworkConnection]
 
 
 # from cloud.py
@@ -392,8 +396,8 @@ class FileFinderOS(ClientActionStub):
 class FingerprintFile(ClientActionStub):
   """Apply a set of fingerprinting methods to a file."""
 
-  in_rdfvalue = rdf_client.FingerprintRequest
-  out_rdfvalues = [rdf_client.FingerprintResponse]
+  in_rdfvalue = rdf_client_action.FingerprintRequest
+  out_rdfvalues = [rdf_client_action.FingerprintResponse]
 
 
 # from components/chipsec_support

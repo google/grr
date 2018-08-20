@@ -6,7 +6,7 @@ import math
 import threading
 
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import analysis_pb2
@@ -75,7 +75,7 @@ class ClientResourcesStats(rdf_structs.RDFProtoStruct):
   """RDF value representing clients' resources usage statistics for hunts."""
   protobuf = jobs_pb2.ClientResourcesStats
   rdf_deps = [
-      rdf_client.ClientResources,
+      rdf_client_stats.ClientResources,
       RunningStats,
   ]
 

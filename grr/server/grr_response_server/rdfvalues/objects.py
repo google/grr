@@ -19,6 +19,8 @@ from future.utils import python_2_unicode_compatible
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -49,12 +51,12 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       StringMapEntry,
       rdf_cloud.CloudInstance,
-      rdf_client.Filesystem,
+      rdf_client_fs.Filesystem,
       rdf_client.HardwareInfo,
-      rdf_client.Interface,
+      rdf_client_network.Interface,
       rdf_client.KnowledgeBase,
       rdf_client.StartupInfo,
-      rdf_client.Volume,
+      rdf_client_fs.Volume,
       rdfvalue.ByteSize,
       rdfvalue.RDFDatetime,
   ]
@@ -158,7 +160,7 @@ class ClientMetadata(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ClientMetadata
 
   rdf_deps = [
-      rdf_client.NetworkAddress,
+      rdf_client_network.NetworkAddress,
       rdf_crypto.RDFX509Cert,
       rdfvalue.RDFDatetime,
   ]
@@ -312,7 +314,7 @@ class PathInfo(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.PathInfo
   rdf_deps = [
       rdfvalue.RDFDatetime,
-      rdf_client.StatEntry,
+      rdf_client_fs.StatEntry,
       rdf_crypto.Hash,
   ]
 

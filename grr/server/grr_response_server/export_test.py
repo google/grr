@@ -11,6 +11,8 @@ from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -205,7 +207,7 @@ class ExportTest(ExportTestBase):
         hunts_results.HuntResultCollection)
 
   def testStatEntryToExportedFileConverterWithMissingAFF4File(self):
-    stat = rdf_client.StatEntry(
+    stat = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS),
         st_mode=33184,
@@ -312,7 +314,7 @@ class ExportTest(ExportTestBase):
     results = list(
         converter.Convert(
             self.metadata,
-            rdf_client.StatEntry(pathspec=pathspec),
+            rdf_client_fs.StatEntry(pathspec=pathspec),
             token=self.token))
 
     self.assertEqual(results[0].hash_md5, "bb0a15eefe63fd41f8dc9dee01c5cf9a")
@@ -323,7 +325,7 @@ class ExportTest(ExportTestBase):
         "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5")
 
   def testExportedFileConverterIgnoresRegistryKeys(self):
-    stat = rdf_client.StatEntry(
+    stat = rdf_client_fs.StatEntry(
         st_mode=32768,
         st_size=51,
         st_mtime=1247546054,
@@ -337,11 +339,11 @@ class ExportTest(ExportTestBase):
     self.assertFalse(results)
 
   def testStatEntryToExportedRegistryKeyConverter(self):
-    stat = rdf_client.StatEntry(
+    stat = rdf_client_fs.StatEntry(
         st_mode=32768,
         st_size=51,
         st_mtime=1247546054,
-        registry_type=rdf_client.StatEntry.RegistryType.REG_EXPAND_SZ,
+        registry_type=rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ,
         pathspec=rdf_paths.PathSpec(
             path="/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
             "CurrentVersion/Run/Sidebar",
@@ -359,11 +361,11 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[0].last_modified,
                      rdfvalue.RDFDatetimeSeconds(1247546054))
     self.assertEqual(results[0].type,
-                     rdf_client.StatEntry.RegistryType.REG_EXPAND_SZ)
+                     rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ)
     self.assertEqual(results[0].data, "Sidebar.exe")
 
   def testRegistryKeyConverterIgnoresNonRegistryStatEntries(self):
-    stat = rdf_client.StatEntry(
+    stat = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS),
         st_mode=33184,
@@ -379,7 +381,7 @@ class ExportTest(ExportTestBase):
 
   def testRegistryKeyConverterWorksWithRegistryKeys(self):
     # Registry keys won't have registry_type and registry_data set.
-    stat = rdf_client.StatEntry(
+    stat = rdf_client_fs.StatEntry(
         st_mode=32768,
         st_size=51,
         st_mtime=1247546054,
@@ -439,18 +441,20 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[1].path, "/some/b")
 
   def testProcessToExportedNetworkConnection(self):
-    conn1 = rdf_client.NetworkConnection(
-        state=rdf_client.NetworkConnection.State.LISTEN,
-        type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-        local_address=rdf_client.NetworkEndpoint(ip="0.0.0.0", port=22),
-        remote_address=rdf_client.NetworkEndpoint(ip="0.0.0.0", port=0),
+    conn1 = rdf_client_network.NetworkConnection(
+        state=rdf_client_network.NetworkConnection.State.LISTEN,
+        type=rdf_client_network.NetworkConnection.Type.SOCK_STREAM,
+        local_address=rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=22),
+        remote_address=rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=0),
         pid=2136,
         ctime=0)
-    conn2 = rdf_client.NetworkConnection(
-        state=rdf_client.NetworkConnection.State.LISTEN,
-        type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-        local_address=rdf_client.NetworkEndpoint(ip="192.168.1.1", port=31337),
-        remote_address=rdf_client.NetworkEndpoint(ip="1.2.3.4", port=6667),
+    conn2 = rdf_client_network.NetworkConnection(
+        state=rdf_client_network.NetworkConnection.State.LISTEN,
+        type=rdf_client_network.NetworkConnection.Type.SOCK_STREAM,
+        local_address=rdf_client_network.NetworkEndpoint(
+            ip="192.168.1.1", port=31337),
+        remote_address=rdf_client_network.NetworkEndpoint(
+            ip="1.2.3.4", port=6667),
         pid=1,
         ctime=0)
 
@@ -467,9 +471,9 @@ class ExportTest(ExportTestBase):
 
     self.assertEqual(len(results), 2)
     self.assertEqual(results[0].state,
-                     rdf_client.NetworkConnection.State.LISTEN)
+                     rdf_client_network.NetworkConnection.State.LISTEN)
     self.assertEqual(results[0].type,
-                     rdf_client.NetworkConnection.Type.SOCK_STREAM)
+                     rdf_client_network.NetworkConnection.Type.SOCK_STREAM)
     self.assertEqual(results[0].local_address.ip, "0.0.0.0")
     self.assertEqual(results[0].local_address.port, 22)
     self.assertEqual(results[0].remote_address.ip, "0.0.0.0")
@@ -478,9 +482,9 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[0].ctime, 0)
 
     self.assertEqual(results[1].state,
-                     rdf_client.NetworkConnection.State.LISTEN)
+                     rdf_client_network.NetworkConnection.State.LISTEN)
     self.assertEqual(results[1].type,
-                     rdf_client.NetworkConnection.Type.SOCK_STREAM)
+                     rdf_client_network.NetworkConnection.Type.SOCK_STREAM)
     self.assertEqual(results[1].local_address.ip, "192.168.1.1")
     self.assertEqual(results[1].local_address.port, 31337)
     self.assertEqual(results[1].remote_address.ip, "1.2.3.4")
@@ -491,7 +495,7 @@ class ExportTest(ExportTestBase):
   def testRDFURNConverterWithURNPointingToFile(self):
     urn = self.client_id.Add("fs/os/some/path")
 
-    stat_entry = rdf_client.StatEntry()
+    stat_entry = rdf_client_fs.StatEntry()
     stat_entry.pathspec.path = "/some/path"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
     stat_entry.st_mode = 33184
@@ -524,20 +528,20 @@ class ExportTest(ExportTestBase):
 
   def testClientSummaryToExportedNetworkInterfaceConverter(self):
     client_summary = rdf_client.ClientSummary(interfaces=[
-        rdf_client.Interface(
+        rdf_client_network.Interface(
             mac_address="123456",
             ifname="eth0",
             addresses=[
-                rdf_client.NetworkAddress(
-                    address_type=rdf_client.NetworkAddress.Family.INET,
+                rdf_client_network.NetworkAddress(
+                    address_type=rdf_client_network.NetworkAddress.Family.INET,
                     packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),
                 ),
-                rdf_client.NetworkAddress(
-                    address_type=rdf_client.NetworkAddress.Family.INET,
+                rdf_client_network.NetworkAddress(
+                    address_type=rdf_client_network.NetworkAddress.Family.INET,
                     packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),
                 ),
-                rdf_client.NetworkAddress(
-                    address_type=rdf_client.NetworkAddress.Family.INET6,
+                rdf_client_network.NetworkAddress(
+                    address_type=rdf_client_network.NetworkAddress.Family.INET6,
                     packed_bytes=socket.inet_pton(socket.AF_INET6,
                                                   "2001:720:1500:1::a100"),
                 )
@@ -554,20 +558,20 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[0].ip6_addresses, "2001:720:1500:1::a100")
 
   def testInterfaceToExportedNetworkInterfaceConverter(self):
-    interface = rdf_client.Interface(
+    interface = rdf_client_network.Interface(
         mac_address="123456",
         ifname="eth0",
         addresses=[
-            rdf_client.NetworkAddress(
-                address_type=rdf_client.NetworkAddress.Family.INET,
+            rdf_client_network.NetworkAddress(
+                address_type=rdf_client_network.NetworkAddress.Family.INET,
                 packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),
             ),
-            rdf_client.NetworkAddress(
-                address_type=rdf_client.NetworkAddress.Family.INET,
+            rdf_client_network.NetworkAddress(
+                address_type=rdf_client_network.NetworkAddress.Family.INET,
                 packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),
             ),
-            rdf_client.NetworkAddress(
-                address_type=rdf_client.NetworkAddress.Family.INET6,
+            rdf_client_network.NetworkAddress(
+                address_type=rdf_client_network.NetworkAddress.Family.INET6,
                 packed_bytes=socket.inet_pton(socket.AF_INET6,
                                               "2001:720:1500:1::a100"),
             )
@@ -703,7 +707,7 @@ class ExportTest(ExportTestBase):
         offset=42, length=43, data="somedata1", pathspec=pathspec)
     match2 = rdf_client.BufferReference(
         offset=44, length=45, data="somedata2", pathspec=pathspec)
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         pathspec=pathspec,
         st_mode=33184,
         st_ino=1063090,
@@ -761,7 +765,7 @@ class ExportTest(ExportTestBase):
     # Also test registry entries.
     data = rdf_protodict.DataBlob()
     data.SetValue("testdata")
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         registry_type="REG_SZ",
         registry_data=data,
         pathspec=rdf_paths.PathSpec(
@@ -786,7 +790,7 @@ class ExportTest(ExportTestBase):
     pathspec2 = rdf_paths.PathSpec(
         path="/some/path2", pathtype=rdf_paths.PathSpec.PathType.OS)
 
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         pathspec=pathspec,
         st_mode=33184,
         st_ino=1063090,
@@ -801,7 +805,7 @@ class ExportTest(ExportTestBase):
         pecoff_md5="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
         pecoff_sha1="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"))
 
-    stat_entry2 = rdf_client.StatEntry(
+    stat_entry2 = rdf_client_fs.StatEntry(
         pathspec=pathspec2,
         st_mode=33184,
         st_ino=1063090,
@@ -982,7 +986,7 @@ class ExportTest(ExportTestBase):
   def testDNSClientConfigurationToExportedDNSClientConfiguration(self):
     dns_servers = ["192.168.1.1", "8.8.8.8"]
     dns_suffixes = ["internal.company.com", "company.com"]
-    config = rdf_client.DNSClientConfiguration(
+    config = rdf_client_network.DNSClientConfiguration(
         dns_server=dns_servers, dns_suffix=dns_suffixes)
 
     converter = export.DNSClientConfigurationToExportedDNSClientConfiguration()
@@ -1114,15 +1118,15 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
   def setUp(self):
     super(ArtifactFilesDownloaderResultConverterTest, self).setUp()
 
-    self.registry_stat = rdf_client.StatEntry(
-        registry_type=rdf_client.StatEntry.RegistryType.REG_SZ,
+    self.registry_stat = rdf_client_fs.StatEntry(
+        registry_type=rdf_client_fs.StatEntry.RegistryType.REG_SZ,
         pathspec=rdf_paths.PathSpec(
             path="/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
             "CurrentVersion/Run/Sidebar",
             pathtype=rdf_paths.PathSpec.PathType.REGISTRY),
         registry_data=rdf_protodict.DataBlob(string="C:\\Windows\\Sidebar.exe"))
 
-    self.file_stat = rdf_client.StatEntry(
+    self.file_stat = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/tmp/bar.exe", pathtype=rdf_paths.PathSpec.PathType.OS))
 
@@ -1141,7 +1145,7 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
 
   def testExportsOriginalResultIfOriginalResultIsNotRegistryOrFileStatEntry(
       self):
-    stat = rdf_client.StatEntry(
+    stat = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="some/path", pathtype=rdf_paths.PathSpec.PathType.TMPFILE))
     result = collectors.ArtifactFilesDownloaderResult(original_result=stat)
@@ -1226,7 +1230,7 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.registry_stat,
         found_pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS"),
-        downloaded_file=rdf_client.StatEntry(
+        downloaded_file=rdf_client_fs.StatEntry(
             pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS")))
 
     converter = export.ArtifactFilesDownloaderResultConverter()

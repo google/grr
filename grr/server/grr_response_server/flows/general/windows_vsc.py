@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Queries a Windows client for Volume Shadow Copy information."""
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -65,7 +65,7 @@ class ListVolumeShadowCopies(flow.GRRFlow):
 
     with data_store.DB.GetMutationPool() as pool:
       for response in responses:
-        stat_entry = rdf_client.StatEntry(response)
+        stat_entry = rdf_client_fs.StatEntry(response)
         filesystem.CreateAFF4Object(
             stat_entry, self.client_urn, pool, token=self.token)
         self.SendReply(stat_entry)

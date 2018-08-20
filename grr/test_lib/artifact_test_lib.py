@@ -9,7 +9,7 @@ from future.utils import iteritems
 import mock
 
 from grr_response_core import config
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import artifact_registry
@@ -158,7 +158,7 @@ def GenFileData(paths, data, stats=None, files=None, modes=None):
   modes.setdefault("st_mode", 0o0100644)
   for path in paths:
     p = rdf_paths.PathSpec(path=path, pathtype="OS")
-    stats.append(rdf_client.StatEntry(pathspec=p, **modes))
+    stats.append(rdf_client_fs.StatEntry(pathspec=p, **modes))
   for val in data:
     files.append(io.BytesIO(val))
   return stats, files

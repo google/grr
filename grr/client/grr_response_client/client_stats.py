@@ -10,7 +10,8 @@ import psutil
 from grr_response_client.client_actions import admin
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 
 
 class ClientStatsCollector(threading.Thread):
@@ -105,7 +106,8 @@ class ClientStatsCollector(threading.Thread):
     # requires a worker and uses stat collector internally. But this action is
     # spawned by the stat collector. What...?
     action = admin.GetClientStatsAuto(grr_worker=self._worker)
-    request = rdf_client.GetClientStatsRequest(start_time=self._last_send_time)
+    request = rdf_client_action.GetClientStatsRequest(
+        start_time=self._last_send_time)
     action.Run(request)
 
     self._should_send = False
@@ -129,7 +131,7 @@ class ClientStatsCollector(threading.Thread):
     cpu_times = self._process.cpu_times()
     cpu_percent = self._process.cpu_percent()
 
-    sample = rdf_client.CpuSample(
+    sample = rdf_client_stats.CpuSample(
         timestamp=rdfvalue.RDFDatetime.Now(),
         user_cpu_time=cpu_times.user,
         system_cpu_time=cpu_times.system,
@@ -147,7 +149,7 @@ class ClientStatsCollector(threading.Thread):
     except (AttributeError, NotImplementedError, psutil.Error):
       return
 
-    sample = rdf_client.IOSample(
+    sample = rdf_client_stats.IOSample(
         timestamp=rdfvalue.RDFDatetime.Now(),
         read_bytes=io_counters.read_bytes,
         write_bytes=io_counters.write_bytes,

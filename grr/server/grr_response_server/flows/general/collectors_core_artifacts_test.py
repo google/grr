@@ -13,6 +13,7 @@ from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import artifact_registry
@@ -160,7 +161,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
     results = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(results), 2)
     for result in results:
-      self.assertTrue(isinstance(result, rdf_client.Volume))
+      self.assertTrue(isinstance(result, rdf_client_fs.Volume))
       self.assertTrue(result.windowsvolume.drive_letter in ["Z:", "C:"])
       if result.windowsvolume.drive_letter == "C:":
         self.assertAlmostEqual(result.FreeSpacePercent(), 76.142, delta=0.001)

@@ -14,7 +14,7 @@ from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions import yara_actions
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import rdf_yara
 from grr_response_server import aff4
 from grr_response_server import flow
@@ -390,7 +390,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(results), 3)
     for result in results:
-      if isinstance(result, rdf_client.StatEntry):
+      if isinstance(result, rdf_client_fs.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
 
         image = aff4.FACTORY.Open(
@@ -416,7 +416,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(results), 3)
     for result in results:
-      if isinstance(result, rdf_client.StatEntry):
+      if isinstance(result, rdf_client_fs.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
 
         image = aff4.FACTORY.Open(
@@ -440,7 +440,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(len(results), 2)
 
     for result in results:
-      if isinstance(result, rdf_client.StatEntry):
+      if isinstance(result, rdf_client_fs.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
 
         image = aff4.FACTORY.Open(
@@ -510,7 +510,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
     self.assertIsInstance(results[0], rdf_yara.YaraProcessScanMatch)
     self.assertIsInstance(results[1], rdf_yara.YaraProcessScanMiss)
     self.assertIsInstance(results[2], rdf_yara.YaraProcessDumpResponse)
-    self.assertIsInstance(results[3], rdf_client.StatEntry)
+    self.assertIsInstance(results[3], rdf_client_fs.StatEntry)
 
     self.assertEqual(len(results[2].dumped_processes), 1)
     self.assertEqual(results[0].process.pid,

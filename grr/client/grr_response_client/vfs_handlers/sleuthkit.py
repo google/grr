@@ -8,7 +8,7 @@ import pytsk3
 from grr_response_client import client_utils
 from grr_response_client import vfs
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
@@ -256,7 +256,7 @@ class TSKFile(vfs.VFSHandler):
       A StatEntry which can be used to re-open this exact VFS node.
     """
     info = tsk_file.info
-    response = rdf_client.StatEntry()
+    response = rdf_client_fs.StatEntry()
     meta = info.meta
     if meta:
       response.st_ino = meta.addr

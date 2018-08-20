@@ -12,7 +12,7 @@ from grr_response_client.client_actions import admin
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import client_index
@@ -231,7 +231,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     volumes = client.Get(client.Schema.VOLUMES)
     self.assertEqual(len(volumes), 2)
     for result in volumes:
-      self.assertTrue(isinstance(result, rdf_client.Volume))
+      self.assertTrue(isinstance(result, rdf_client_fs.Volume))
       self.assertTrue(result.windowsvolume.drive_letter in ["Z:", "C:"])
 
   def _CheckRegistryPathspec(self):

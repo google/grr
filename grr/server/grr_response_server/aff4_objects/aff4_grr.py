@@ -16,6 +16,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -57,7 +59,7 @@ class VFSGRRClient(standard.VFSDirectory):
     CERT = aff4.Attribute("metadata:cert", rdf_crypto.RDFX509Cert,
                           "The PEM encoded cert of the client.")
 
-    FILESYSTEM = aff4.Attribute("aff4:filesystem", rdf_client.Filesystems,
+    FILESYSTEM = aff4.Attribute("aff4:filesystem", rdf_client_fs.Filesystems,
                                 "Filesystems on the client.")
 
     CLIENT_INFO = aff4.Attribute(
@@ -184,10 +186,11 @@ class VFSGRRClient(standard.VFSDirectory):
         creates_new_object_version=False,
         versioned=False)
 
-    VOLUMES = aff4.Attribute("aff4:volumes", rdf_client.Volumes,
+    VOLUMES = aff4.Attribute("aff4:volumes", rdf_client_fs.Volumes,
                              "Client disk volumes.")
 
-    INTERFACES = aff4.Attribute("aff4:interfaces", rdf_client.Interfaces,
+    INTERFACES = aff4.Attribute("aff4:interfaces",
+                                rdf_client_network.Interfaces,
                                 "Network interfaces.", "Interfaces")
 
     HARDWARE_INFO = aff4.Attribute(

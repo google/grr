@@ -21,6 +21,7 @@ from grr_response_client.vfs_handlers import files
 from grr_response_core import config
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
@@ -330,7 +331,7 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
 class CheckFreeGRRTempSpace(actions.ActionPlugin):
 
   in_rdfvalue = rdf_paths.PathSpec
-  out_rdfvalues = [rdf_client.DiskUsage]
+  out_rdfvalues = [rdf_client_fs.DiskUsage]
 
   def Run(self, args):
     if args.path:
@@ -339,4 +340,4 @@ class CheckFreeGRRTempSpace(actions.ActionPlugin):
       path = GetDefaultGRRTempDirectory()
     total, used, free, _ = psutil.disk_usage(path)
     self.SendReply(
-        rdf_client.DiskUsage(path=path, total=total, used=used, free=free))
+        rdf_client_fs.DiskUsage(path=path, total=total, used=used, free=free))

@@ -2,7 +2,7 @@
 """Invoke the fingerprint client action on a file."""
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -37,26 +37,26 @@ class FingerprintFileMixin(object):
 
   def FingerprintFile(self, pathspec, max_filesize=None, request_data=None):
     """Launch a fingerprint client action."""
-    request = rdf_client.FingerprintRequest(pathspec=pathspec)
+    request = rdf_client_action.FingerprintRequest(pathspec=pathspec)
     if max_filesize is not None:
       request.max_filesize = max_filesize
 
     # Generic hash.
     request.AddRequest(
-        fp_type=rdf_client.FingerprintTuple.Type.FPT_GENERIC,
+        fp_type=rdf_client_action.FingerprintTuple.Type.FPT_GENERIC,
         hashers=[
-            rdf_client.FingerprintTuple.HashType.MD5,
-            rdf_client.FingerprintTuple.HashType.SHA1,
-            rdf_client.FingerprintTuple.HashType.SHA256
+            rdf_client_action.FingerprintTuple.HashType.MD5,
+            rdf_client_action.FingerprintTuple.HashType.SHA1,
+            rdf_client_action.FingerprintTuple.HashType.SHA256
         ])
 
     # Authenticode hash.
     request.AddRequest(
-        fp_type=rdf_client.FingerprintTuple.Type.FPT_PE_COFF,
+        fp_type=rdf_client_action.FingerprintTuple.Type.FPT_PE_COFF,
         hashers=[
-            rdf_client.FingerprintTuple.HashType.MD5,
-            rdf_client.FingerprintTuple.HashType.SHA1,
-            rdf_client.FingerprintTuple.HashType.SHA256
+            rdf_client_action.FingerprintTuple.HashType.MD5,
+            rdf_client_action.FingerprintTuple.HashType.SHA1,
+            rdf_client_action.FingerprintTuple.HashType.SHA256
         ])
 
     self.CallClient(

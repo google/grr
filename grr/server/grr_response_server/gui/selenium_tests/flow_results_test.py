@@ -6,7 +6,7 @@
 import unittest
 from grr_response_core.lib import flags
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server.gui import gui_test_lib
@@ -29,7 +29,7 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
 
-    response = rdf_client.ExecuteResponse(
+    response = rdf_client_action.ExecuteResponse(
         stderr="Oh, ok, this is just a string 昨", stdout="\00\00\00\00")
 
     with data_store.DB.GetMutationPool() as pool:

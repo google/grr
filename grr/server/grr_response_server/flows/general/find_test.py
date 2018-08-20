@@ -7,7 +7,7 @@ import re
 from grr_response_client.client_actions import searching
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import flow
 from grr_response_server.flows.general import find
@@ -35,14 +35,14 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
     """Test that its impossible to produce an invalid findspec."""
     # The regular expression is not valid.
     with self.assertRaises(re.error):
-      rdf_client.FindSpec(path_regex="[")
+      rdf_client_fs.FindSpec(path_regex="[")
 
   def testFindFiles(self):
     """Test that the Find flow works with files."""
     client_mock = action_mocks.ActionMock(searching.Find)
 
     # Prepare a findspec.
-    findspec = rdf_client.FindSpec(
+    findspec = rdf_client_fs.FindSpec(
         path_regex="bash",
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
@@ -72,7 +72,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.ActionMock(searching.Find)
 
     # Prepare a findspec.
-    findspec = rdf_client.FindSpec(
+    findspec = rdf_client_fs.FindSpec(
         path_glob="bash*",
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
@@ -103,7 +103,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.ActionMock(searching.Find)
 
     # Prepare a findspec.
-    findspec = rdf_client.FindSpec(
+    findspec = rdf_client_fs.FindSpec(
         path_regex="bin",
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
@@ -131,7 +131,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.ActionMock(searching.Find)
 
     # Prepare a findspec.
-    findspec = rdf_client.FindSpec(
+    findspec = rdf_client_fs.FindSpec(
         path_regex=".*",
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
@@ -157,7 +157,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.ActionMock(searching.Find)
 
     # Prepare a findspec.
-    findspec = rdf_client.FindSpec()
+    findspec = rdf_client_fs.FindSpec()
     findspec.path_regex = "bin"
     findspec.pathspec.path = "/"
     findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS

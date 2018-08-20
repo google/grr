@@ -9,6 +9,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
@@ -50,7 +51,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                       "Files referenced in this collection can be downloaded")
 
   def testShowsGenerateArchiveButtonForFileFinderHunt(self):
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
@@ -66,7 +67,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                    "Files referenced in this collection can be downloaded")
 
   def testShowsGenerateArchiveButtonForArtifactDownloaderHunt(self):
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [
@@ -84,7 +85,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                    "Files referenced in this collection can be downloaded")
 
   def testExportCommandIsShownForStatEntryResults(self):
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
@@ -119,7 +120,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
   def testHuntAuthorizationIsRequiredToGenerateResultsArchive(self):
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
@@ -135,7 +136,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
   def testGenerateZipButtonGetsDisabledAfterClick(self):
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
@@ -226,7 +227,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-results-collection button:has(span.glyphicon-download)")
 
   def testShowsPerFileDownloadButtonForFileFinderHunt(self):
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
@@ -243,7 +244,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-results-collection button:has(span.glyphicon-download)")
 
   def testShowsPerFileDownloadButtonForArtifactDownloaderHunt(self):
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [

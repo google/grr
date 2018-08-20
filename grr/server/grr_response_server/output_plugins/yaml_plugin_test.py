@@ -10,6 +10,7 @@ import yaml
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.output_plugins import yaml_plugin
@@ -32,7 +33,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     responses = []
     for i in range(10):
       responses.append(
-          rdf_client.StatEntry(
+          rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(
                   path="/foo/bar/%d" % i, pathtype="OS"),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
@@ -46,7 +47,9 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
               st_mtime=1336129892,
               st_ctime=1336129892))
 
-    zip_fd, prefix = self.ProcessValuesToZip({rdf_client.StatEntry: responses})
+    zip_fd, prefix = self.ProcessValuesToZip({
+        rdf_client_fs.StatEntry: responses
+    })
     self.assertEqual(
         set(zip_fd.namelist()), {
             "%s/MANIFEST" % prefix,
@@ -90,9 +93,9 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
   def testYamlPluginWithValuesOfMultipleTypes(self):
     zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client.StatEntry: [
-            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="/foo/bar", pathtype="OS"))
+        rdf_client_fs.StatEntry: [
+            rdf_client_fs.StatEntry(
+                pathspec=rdf_paths.PathSpec(path="/foo/bar", pathtype="OS"))
         ],
         rdf_client.Process: [rdf_client.Process(pid=42)]
     })
@@ -136,9 +139,9 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
   def testYamlPluginWritesUnicodeValuesCorrectly(self):
     zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client.StatEntry: [
-            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="/中国新闻网新闻中", pathtype="OS"))
+        rdf_client_fs.StatEntry: [
+            rdf_client_fs.StatEntry(
+                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS"))
         ]
     })
     self.assertEqual(
@@ -160,10 +163,13 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     responses = []
     for i in range(num_rows):
       responses.append(
-          rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-              path="/foo/bar/%d" % i, pathtype="OS")))
+          rdf_client_fs.StatEntry(
+              pathspec=rdf_paths.PathSpec(
+                  path="/foo/bar/%d" % i, pathtype="OS")))
 
-    zip_fd, prefix = self.ProcessValuesToZip({rdf_client.StatEntry: responses})
+    zip_fd, prefix = self.ProcessValuesToZip({
+        rdf_client_fs.StatEntry: responses
+    })
     parsed_output = yaml.load(
         zip_fd.open("%s/ExportedFile/from_StatEntry.yaml" % prefix))
     self.assertEqual(len(parsed_output), num_rows)

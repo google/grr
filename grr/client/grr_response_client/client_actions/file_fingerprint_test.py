@@ -12,7 +12,7 @@ from future.utils import iteritems
 
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_core.lib import flags
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
@@ -27,7 +27,7 @@ class FilehashTest(client_test_lib.EmptyActionTest):
     p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     result = self.RunAction(
         file_fingerprint.FingerprintFile,
-        rdf_client.FingerprintRequest(pathspec=p))
+        rdf_client_action.FingerprintRequest(pathspec=p))
     types = result[0].matching_types
     fingers = {}
     for f in result[0].results:
@@ -38,8 +38,8 @@ class FilehashTest(client_test_lib.EmptyActionTest):
 
     # Make sure all fingers are listed in types and vice versa.
     t_map = {
-        rdf_client.FingerprintTuple.Type.FPT_GENERIC: "generic",
-        rdf_client.FingerprintTuple.Type.FPT_PE_COFF: "pecoff"
+        rdf_client_action.FingerprintTuple.Type.FPT_GENERIC: "generic",
+        rdf_client_action.FingerprintTuple.Type.FPT_PE_COFF: "pecoff"
     }
     ti_map = dict((v, k) for k, v in iteritems(t_map))
     for t in types:
@@ -57,7 +57,7 @@ class FilehashTest(client_test_lib.EmptyActionTest):
         IOError,
         self.RunAction,
         file_fingerprint.FingerprintFile,
-        rdf_client.FingerprintRequest(pathspec=p))
+        rdf_client_action.FingerprintRequest(pathspec=p))
 
 
 def main(argv):

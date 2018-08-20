@@ -17,6 +17,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import access_control
@@ -210,7 +211,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       # We should receive stat entries.
       i = 0
       for i, x in enumerate(collection):
-        self.assertEqual(x.payload.__class__, rdf_client.StatEntry)
+        self.assertEqual(x.payload.__class__, rdf_client_fs.StatEntry)
         self.assertEqual(
             x.payload.AFF4Path(x.source).Split(2)[-1], "fs/os/tmp/evil.txt")
 
@@ -220,13 +221,13 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
           hunt_urn)
 
       for i, x in enumerate(per_type_collection):
-        self.assertEqual(x.payload.__class__, rdf_client.StatEntry)
+        self.assertEqual(x.payload.__class__, rdf_client_fs.StatEntry)
         self.assertEqual(
             x.payload.AFF4Path(x.source).Split(2)[-1], "fs/os/tmp/evil.txt")
 
       self.assertListEqual(
           list(per_type_collection.ListStoredTypes()),
-          [rdf_client.StatEntry.__name__])
+          [rdf_client_fs.StatEntry.__name__])
 
       self.assertEqual(hunt_obj.context.clients_with_results_count, 5)
       self.assertEqual(hunt_obj.context.results_count, 5)

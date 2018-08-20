@@ -128,7 +128,7 @@ config_lib.DEFINE_integer(
 
 config_lib.DEFINE_integer(
     "Mysql.max_connect_wait",
-    0,
+    600,
     help=("Total number of seconds we wait for a "
           "connection before failing (0 means we wait "
           "forever)."))

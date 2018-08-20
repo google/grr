@@ -22,6 +22,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -89,7 +91,7 @@ class ExportedFile(rdf_structs.RDFProtoStruct):
       ExportedMetadata,
       rdfvalue.RDFDatetimeSeconds,
       rdfvalue.RDFURN,
-      rdf_client.StatMode,
+      rdf_client_fs.StatMode,
   ]
 
 
@@ -113,7 +115,7 @@ class ExportedNetworkConnection(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedNetworkConnection
   rdf_deps = [
       ExportedMetadata,
-      rdf_client.NetworkEndpoint,
+      rdf_client_network.NetworkEndpoint,
   ]
 
 
@@ -1266,7 +1268,7 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
     for metadata, value in metadata_value_pairs:
       original_result = value.original_result
 
-      if not isinstance(original_result, rdf_client.StatEntry):
+      if not isinstance(original_result, rdf_client_fs.StatEntry):
         continue
 
       if self.IsRegistryStatEntry(original_result):

@@ -10,6 +10,7 @@ import time
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import aff4
@@ -275,7 +276,7 @@ def DownloadCollection(coll_path,
 
     if isinstance(grr_message, rdfvalue.RDFURN):
       urn = grr_message
-    elif isinstance(grr_message, rdf_client.StatEntry):
+    elif isinstance(grr_message, rdf_client_fs.StatEntry):
       urn = rdfvalue.RDFURN(grr_message.AFF4Path(source or original_client_id))
     elif isinstance(grr_message, rdf_file_finder.FileFinderResult):
       urn = rdfvalue.RDFURN(

@@ -6,13 +6,14 @@ import logging
 import psutil
 
 from grr_response_client import actions
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 
 
 class ListNetworkConnections(actions.ActionPlugin):
   """Gather open network connection stats."""
-  in_rdfvalue = rdf_client.ListNetworkConnectionsArgs
-  out_rdfvalues = [rdf_client.NetworkConnection]
+  in_rdfvalue = rdf_client_action.ListNetworkConnectionsArgs
+  out_rdfvalues = [rdf_client_network.NetworkConnection]
 
   @classmethod
   def Start(cls, args):
@@ -26,7 +27,7 @@ class ListNetworkConnections(actions.ActionPlugin):
         if args.listening_only and conn.status != "LISTEN":
           continue
 
-        res = rdf_client.NetworkConnection()
+        res = rdf_client_network.NetworkConnection()
         res.pid = proc.pid
         res.process_name = proc.name()
         res.family = conn.family

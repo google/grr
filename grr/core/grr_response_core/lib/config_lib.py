@@ -1605,11 +1605,7 @@ class GrrConfigManager(object):
         type_info.String(name=name, default=default or "", description=help),
         constant=True)
 
-  def DEFINE_semantic_value(self,
-                            semantic_type,
-                            name,
-                            default=None,
-                            description=""):
+  def DEFINE_semantic_value(self, semantic_type, name, default=None, help=""):
     if issubclass(semantic_type, rdf_structs.RDFStruct):
       raise ValueError("DEFINE_semantic_value should be used for types based "
                        "on primitives.")
@@ -1619,13 +1615,9 @@ class GrrConfigManager(object):
             rdfclass=semantic_type,
             name=name,
             default=default,
-            help=description))
+            description=help))
 
-  def DEFINE_semantic_struct(self,
-                             semantic_type,
-                             name,
-                             default=None,
-                             description=""):
+  def DEFINE_semantic_struct(self, semantic_type, name, default=None, help=""):
     if not issubclass(semantic_type, rdf_structs.RDFStruct):
       raise ValueError("DEFINE_semantic_struct should be used for types based "
                        "on structs.")
@@ -1635,7 +1627,7 @@ class GrrConfigManager(object):
             rdfclass=semantic_type,
             name=name,
             default=default,
-            help=description))
+            description=help))
 
   def DEFINE_context(self, name):
     return self.DefineContext(name)
@@ -1704,14 +1696,13 @@ def DEFINE_list(name, default, help):
   _CONFIG.DEFINE_list(name, default, help)
 
 
-def DEFINE_semantic_value(semantic_type, name, default=None, description=""):
-  _CONFIG.DEFINE_semantic_value(
-      semantic_type, name, default=default, description=description)
+def DEFINE_semantic_value(semantic_type, name, default=None, help=""):
+  _CONFIG.DEFINE_semantic_value(semantic_type, name, default=default, help=help)
 
 
-def DEFINE_semantic_struct(semantic_type, name, default=None, description=""):
+def DEFINE_semantic_struct(semantic_type, name, default=None, help=""):
   _CONFIG.DEFINE_semantic_struct(
-      semantic_type, name, default=default, description=description)
+      semantic_type, name, default=default, help=help)
 
 
 def DEFINE_option(type_descriptor):

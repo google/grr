@@ -3,6 +3,7 @@
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
@@ -179,6 +180,6 @@ class FileFinderResult(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdf_client.BufferReference,
       rdf_crypto.Hash,
-      rdf_client.StatEntry,
-      rdf_client.BlobImageDescriptor,
+      rdf_client_fs.StatEntry,
+      rdf_client_fs.BlobImageDescriptor,
   ]

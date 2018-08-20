@@ -16,7 +16,8 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
@@ -119,17 +120,17 @@ class MockStatsCollector(client_stats.ClientStatsCollector):
   """Mock stats collector for GetClientStatsActionTest."""
 
   CPU_SAMPLES = [
-      rdf_client.CpuSample(
+      rdf_client_stats.CpuSample(
           timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100),
           user_cpu_time=0.1,
           system_cpu_time=0.1,
           cpu_percent=10.0),
-      rdf_client.CpuSample(
+      rdf_client_stats.CpuSample(
           timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(110),
           user_cpu_time=0.1,
           system_cpu_time=0.2,
           cpu_percent=15.0),
-      rdf_client.CpuSample(
+      rdf_client_stats.CpuSample(
           timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(120),
           user_cpu_time=0.1,
           system_cpu_time=0.3,
@@ -137,15 +138,15 @@ class MockStatsCollector(client_stats.ClientStatsCollector):
   ]
 
   IO_SAMPLES = [
-      rdf_client.IOSample(
+      rdf_client_stats.IOSample(
           timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100),
           read_bytes=100,
           write_bytes=100),
-      rdf_client.IOSample(
+      rdf_client_stats.IOSample(
           timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(110),
           read_bytes=200,
           write_bytes=200),
-      rdf_client.IOSample(
+      rdf_client_stats.IOSample(
           timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(120),
           read_bytes=300,
           write_bytes=300),
@@ -191,7 +192,7 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
     results = self.RunAction(
         admin.GetClientStats,
         grr_worker=MockClientWorker(),
-        arg=rdf_client.GetClientStatsRequest())
+        arg=rdf_client_action.GetClientStatsRequest())
 
     response = results[0]
     self.assertEqual(response.bytes_received, 1566)
@@ -220,7 +221,7 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
     results = self.RunAction(
         admin.GetClientStats,
         grr_worker=MockClientWorker(),
-        arg=rdf_client.GetClientStatsRequest(start_time=start_time))
+        arg=rdf_client_action.GetClientStatsRequest(start_time=start_time))
 
     response = results[0]
     self.assertEqual(len(response.cpu_samples), 1)
@@ -236,7 +237,7 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
     results = self.RunAction(
         admin.GetClientStats,
         grr_worker=MockClientWorker(),
-        arg=rdf_client.GetClientStatsRequest(end_time=end_time))
+        arg=rdf_client_action.GetClientStatsRequest(end_time=end_time))
 
     response = results[0]
     self.assertEqual(len(response.cpu_samples), 1)
@@ -253,7 +254,7 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
     results = self.RunAction(
         admin.GetClientStats,
         grr_worker=MockClientWorker(),
-        arg=rdf_client.GetClientStatsRequest(
+        arg=rdf_client_action.GetClientStatsRequest(
             start_time=start_time, end_time=end_time))
 
     response = results[0]

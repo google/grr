@@ -112,8 +112,11 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """Test to see if we can get data from dmidecode output."""
     parser = linux_cmd_parser.DmidecodeCmdParser()
     content = open(os.path.join(self.base_path, "dmidecode.out"), "rb").read()
-    hardware = parser.Parse("/usr/sbin/dmidecode", ["-q"], content, "", 0, 5,
-                            None)
+    parse_result = list(
+        parser.Parse("/usr/sbin/dmidecode", ["-q"], content, "", 0, 5, None))
+    self.assertEqual(len(parse_result), 1)
+    hardware = parse_result[0]
+
     self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
 
     self.assertEqual(hardware.serial_number, "2UA25107BB")

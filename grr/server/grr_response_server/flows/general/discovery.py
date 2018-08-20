@@ -9,6 +9,7 @@ from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -299,7 +300,7 @@ class Interrogate(flow.GRRFlow):
     with self._OpenClient(mode="rw") as client:
       new_volumes = []
       for response in responses:
-        if isinstance(response, rdf_client.Volume):
+        if isinstance(response, rdf_client_fs.Volume):
           # AFF4 client.
           new_volumes.append(response)
 

@@ -19,7 +19,7 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import vfs_pb2
@@ -205,7 +205,7 @@ class ApiFile(rdf_structs.RDFProtoStruct):
       ApiAff4ObjectRepresentation,
       rdf_crypto.Hash,
       rdfvalue.RDFDatetime,
-      rdf_client.StatEntry,
+      rdf_client_fs.StatEntry,
   ]
 
   def InitFromAff4Object(self,
@@ -322,7 +322,7 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
         stat_entry = path_info.stat_entry
         hash_entry = path_info.hash_entry
       else:
-        stat_entry = rdf_client.StatEntry()
+        stat_entry = rdf_client_fs.StatEntry()
         hash_entry = rdf_crypto.Hash()
     else:
       stat_entry = None

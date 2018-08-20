@@ -108,7 +108,7 @@ class InMemoryDBFlowMixin(object):
     """Reads all client messages available for a given client_id."""
     res = []
     for msgs_by_id in itervalues(self.client_messages):
-      for orig_msg in itervalues(msgs_by_id):
+      for orig_msg in sorted(itervalues(msgs_by_id), key=lambda m: m.task_id):
         if db_utils.ClientIdFromGrrMessage(orig_msg) != client_id:
           continue
         msg = orig_msg.Copy()
@@ -152,7 +152,7 @@ class InMemoryDBFlowMixin(object):
 
     leases = self.client_message_leases
     for msgs_by_id in itervalues(self.client_messages):
-      for msg in itervalues(msgs_by_id):
+      for msg in sorted(itervalues(msgs_by_id), key=lambda m: m.task_id):
         if db_utils.ClientIdFromGrrMessage(msg) != client_id:
           continue
 

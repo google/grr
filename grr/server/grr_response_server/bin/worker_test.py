@@ -14,6 +14,7 @@ from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import aff4
@@ -620,7 +621,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     client_id = rdf_client.ClientURN("C.1100110011001100")
     self.SendResponse(
         session_id,
-        data=rdf_client.ClientStats(RSS_size=1234),
+        data=rdf_client_stats.ClientStats(RSS_size=1234),
         client_id=client_id,
         well_known=True)
 
@@ -659,7 +660,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     client_id = rdf_client.ClientURN("C.1100110011001100")
     self.SendResponse(
         rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"),
-        data=rdf_client.ClientStats(RSS_size=1234),
+        data=rdf_client_stats.ClientStats(RSS_size=1234),
         client_id=client_id,
         well_known=True)
 

@@ -12,6 +12,8 @@ from future.utils import itervalues
 from grr_response_core.lib import constants
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -81,10 +83,11 @@ class GetFile(flow.GRRFlow):
     # This conditional should be removed after that date.
     if self.client_version >= 3221:
       stub = server_stubs.GetFileStat
-      request = rdf_client.GetFileStatRequest(pathspec=self.args.pathspec)
+      request = rdf_client_action.GetFileStatRequest(
+          pathspec=self.args.pathspec)
     else:
       stub = server_stubs.StatFile
-      request = rdf_client.ListDirRequest(pathspec=self.args.pathspec)
+      request = rdf_client_action.ListDirRequest(pathspec=self.args.pathspec)
 
     self.CallClient(stub, request, next_state="Stat")
 
@@ -98,7 +101,8 @@ class GetFile(flow.GRRFlow):
         raise IOError("Error: %s" % responses.status)
 
       # Just fill up a bogus stat entry.
-      self.state.stat_entry = rdf_client.StatEntry(pathspec=self.args.pathspec)
+      self.state.stat_entry = rdf_client_fs.StatEntry(
+          pathspec=self.args.pathspec)
 
     # Adjust the size from st_size if read length is not specified.
     if self.args.read_length == 0:
@@ -177,7 +181,7 @@ class GetFile(flow.GRRFlow):
 
     stat_entry = self.state.stat_entry
     if not stat_entry:
-      stat_entry = rdf_client.StatEntry(pathspec=self.args.pathspec)
+      stat_entry = rdf_client_fs.StatEntry(pathspec=self.args.pathspec)
 
     urn = stat_entry.AFF4Path(self.client_urn)
     components = urn.Split()
@@ -317,22 +321,22 @@ class MultiGetFileMixin(object):
     # This conditional should be removed after that date.
     if self.client_version >= 3221:
       stub = server_stubs.GetFileStat
-      request = rdf_client.GetFileStatRequest(pathspec=pathspec)
+      request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
     else:
       stub = server_stubs.StatFile
-      request = rdf_client.ListDirRequest(pathspec=pathspec)
+      request = rdf_client_action.ListDirRequest(pathspec=pathspec)
 
     self.CallClient(
         stub, request, next_state="StoreStat", request_data=dict(index=index))
 
-    request = rdf_client.FingerprintRequest(
+    request = rdf_client_action.FingerprintRequest(
         pathspec=pathspec, max_filesize=self.state.file_size)
     request.AddRequest(
-        fp_type=rdf_client.FingerprintTuple.Type.FPT_GENERIC,
+        fp_type=rdf_client_action.FingerprintTuple.Type.FPT_GENERIC,
         hashers=[
-            rdf_client.FingerprintTuple.HashType.MD5,
-            rdf_client.FingerprintTuple.HashType.SHA1,
-            rdf_client.FingerprintTuple.HashType.SHA256
+            rdf_client_action.FingerprintTuple.HashType.MD5,
+            rdf_client_action.FingerprintTuple.HashType.SHA1,
+            rdf_client_action.FingerprintTuple.HashType.SHA256
         ])
 
     self.CallClient(
@@ -370,7 +374,7 @@ class MultiGetFileMixin(object):
     """This method will be called for each new file successfully fetched.
 
     Args:
-      stat_entry: rdf_client.StatEntry object describing the file.
+      stat_entry: rdf_client_fs.StatEntry object describing the file.
       file_hash: rdf_crypto.Hash object with file hashes.
       request_data: Arbitrary dictionary that was passed to the corresponding
                     StartFileFetch call.
@@ -937,11 +941,11 @@ class SendFile(flow.GRRFlow):
   nc -l <port> | openssl aes-128-cbc -d -K <key> -iv <iv> > <filename>
 
   Returns to parent flow:
-    A rdf_client.StatEntry of the sent file.
+    A rdf_client_fs.StatEntry of the sent file.
   """
 
   category = "/Filesystem/"
-  args_type = rdf_client.SendFileRequest
+  args_type = rdf_client_action.SendFileRequest
 
   def Start(self):
     """This issues the sendfile request."""

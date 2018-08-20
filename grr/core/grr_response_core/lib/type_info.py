@@ -45,8 +45,7 @@ class TypeInfoObject(with_metaclass(registry.MetaclassRegistry, object)):
                default=None,
                description="",
                friendly_name="",
-               hidden=False,
-               help=""):  # pylint: disable=redefined-builtin
+               hidden=False):
     """Build a TypeInfo type descriptor.
 
     Args:
@@ -56,11 +55,10 @@ class TypeInfoObject(with_metaclass(registry.MetaclassRegistry, object)):
       description: A string describing this flow argument.
       friendly_name: A human readable name which may be provided.
       hidden: Should the argument be hidden from the UI.
-      help: A synonym for 'description'.
     """
     self.name = name
     self.default = default
-    self.description = description or help
+    self.description = description
     self.hidden = hidden
     if not friendly_name:
       friendly_name = name.replace("_", " ").capitalize()
@@ -316,8 +314,6 @@ class TypeDescriptorSet(object):
 class Bool(TypeInfoObject):
   """A True or False value."""
 
-  renderer = "BoolFormRenderer"
-
   _type = bool
 
   def Validate(self, value):
@@ -373,8 +369,6 @@ class List(TypeInfoObject):
 class String(TypeInfoObject):
   """A String type."""
 
-  renderer = "StringFormRenderer"
-
   _type = unicode
 
   def __init__(self, **kwargs):
@@ -408,7 +402,6 @@ class Bytes(String):
 
 class Integer(TypeInfoObject):
   """An Integer number type."""
-  renderer = "StringFormRenderer"
 
   _type = long
 

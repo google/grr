@@ -15,6 +15,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
@@ -56,7 +57,7 @@ class FileFinderActionMock(action_mocks.FileFinderClientMock):
 
     for response in responses:
       payload = response.payload
-      if isinstance(payload, rdf_client.FindSpec):
+      if isinstance(payload, rdf_client_fs.FindSpec):
         basename = payload.hit.pathspec.Basename()
         try:
           payload.hit.st_atime = predefined_values[basename][0]
@@ -325,8 +326,8 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
       stat_entry = results[0][1].stat_entry
       self.assertItemsEqual(stat_entry.ext_attrs, [
-          rdf_client.ExtAttr(name="user.bar", value="baz"),
-          rdf_client.ExtAttr(name="user.quux", value="norf"),
+          rdf_client_fs.ExtAttr(name="user.bar", value="baz"),
+          rdf_client_fs.ExtAttr(name="user.quux", value="norf"),
       ])
 
   def testFileFinderDownloadActionWithoutConditions(self):

@@ -11,6 +11,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -572,12 +573,12 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(type(tested.repeated[0]), UndefinedRDFValue2)
 
   def testRDFValueParsing(self):
-    stat = rdf_client.StatEntry.protobuf(st_mode=16877)
+    stat = rdf_client_fs.StatEntry.protobuf(st_mode=16877)
     data = stat.SerializeToString()
 
-    result = rdf_client.StatEntry.FromSerializedString(data)
+    result = rdf_client_fs.StatEntry.FromSerializedString(data)
 
-    self.assertTrue(isinstance(result.st_mode, rdf_client.StatMode))
+    self.assertTrue(isinstance(result.st_mode, rdf_client_fs.StatMode))
 
   def testDefaults(self):
     """Accessing a field which does not exist returns a default."""

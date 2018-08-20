@@ -237,7 +237,6 @@ class GRRWorker(object):
             stuck_flow.session_id,
             reason="Stuck in the worker",
             status=rdf_flows.GrrStatus.ReturnedStatus.WORKER_STUCK,
-            force=True,
             token=self.token)
       except Exception:  # pylint: disable=broad-except
         logging.exception("Error terminating stuck flow: %s", stuck_flow)

@@ -39,7 +39,7 @@ class Netstat(flow.GRRFlow):
     """Collects the connections.
 
     Args:
-      responses: A list of rdf_client.NetworkConnection objects.
+      responses: A list of rdf_client_network.NetworkConnection objects.
 
     Raises:
       flow.FlowError: On failure to get retrieve the connections.

@@ -12,7 +12,7 @@ from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
@@ -573,7 +573,7 @@ class MtabParser(parser.FileParser, FieldParser):
     for entry in self.ParseEntries(file_obj.read()):
       if not entry:
         continue
-      result = rdf_client.Filesystem()
+      result = rdf_client_fs.Filesystem()
       result.device = entry[0].decode("string_escape")
       result.mount_point = entry[1].decode("string_escape")
       result.type = entry[2].decode("string_escape")
@@ -604,7 +604,7 @@ class MountCmdParser(parser.CommandParser, FieldParser):
       mount_rslt = self.mount_re.match(line_str)
       if mount_rslt:
         device, mount_point, fs_type, option_str = mount_rslt.groups()
-        result = rdf_client.Filesystem()
+        result = rdf_client_fs.Filesystem()
         result.device = device
         result.mount_point = mount_point
         result.type = fs_type

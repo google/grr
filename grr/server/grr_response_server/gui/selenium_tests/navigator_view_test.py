@@ -5,7 +5,7 @@ import unittest
 from grr_response_core.lib import flags
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
@@ -38,7 +38,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
           check_flow_errors=False)
 
   def CreateClientWithVolumes(self, available=50):
-    volume = rdf_client.Volume(
+    volume = rdf_client_fs.Volume(
         total_allocation_units=100, actual_available_allocation_units=available)
 
     client_id = self.SetupClient(0)

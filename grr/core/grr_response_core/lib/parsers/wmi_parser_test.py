@@ -4,13 +4,12 @@
 import platform
 import unittest
 
-from builtins import chr  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import wmi as rdf_wmi
 from grr.test_lib import client_test_lib
@@ -39,7 +38,7 @@ class WMIParserTest(flow_test_lib.FlowTestsBaseclass):
     result_list = list(parser.Parse(None, rdf_dict, None))
     self.assertEqual(len(result_list), 2)
     for result in result_list:
-      if isinstance(result, rdf_client.Interface):
+      if isinstance(result, rdf_client_network.Interface):
         self.assertEqual(len(result.addresses), 4)
         self.assertItemsEqual(
             [x.human_readable_address for x in result.addresses], [
@@ -57,7 +56,7 @@ class WMIParserTest(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(result.dhcp_lease_obtained.AsMicrosecondsSinceEpoch(),
                          1408994579123456)
 
-      elif isinstance(result, rdf_client.DNSClientConfiguration):
+      elif isinstance(result, rdf_client_network.DNSClientConfiguration):
         self.assertItemsEqual(result.dns_server, [
             "192.168.1.1", "192.168.255.81", "192.168.128.88"
         ])
@@ -191,47 +190,38 @@ objFile.Close"""
 
 class BinarySIDToStringSIDTest(test_lib.GRRBaseTest):
 
-  def setUp(self):
-    super(BinarySIDToStringSIDTest, self).setUp()
+  def assertConvertsTo(self, sid, expected_output):
+    self.assertEqual(wmi_parser.BinarySIDtoStringSID(sid), expected_output)
 
-    self.tests = [
-        ["", []],
-        ["S-1", [1]],
-        ["S-1-5", [1, 5, 0, 0, 0, 0, 0, 5]],
-        ["S-1-5-21", [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0]],
-        # Same as before but truncated.
-        [None, [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0]],
-        # Even more truncation
-        [None, [1, 5, 0, 0, 0, 0, 0, 5, 21, 0]],
-        # All subauthorities truncated
-        ["S-1-5", [1, 5, 0, 0, 0, 0, 0, 5]],
-        # 5 subauthorities
-        [
-            "S-1-5-21-3111613573-2524581244-2586426735-500", [
-                1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185, 124,
-                13, 122, 150, 111, 189, 41, 154, 244, 1, 0, 0
-            ]
-        ],
-        # Last subauthority truncated
-        [
-            None, [
-                1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185, 124,
-                13, 122, 150, 111, 189, 41, 154, 244
-            ]
-        ],
-    ]
+  def testEmpty(self):
+    self.assertConvertsTo(b"", u"")
 
-  def testConversion(self):
-    for expected_value, binary in self.tests:
-      binary_sid = "".join([chr(x).encode("latin-1") for x in binary])
+  def testSimple(self):
+    self.assertConvertsTo(b"\x01", u"S-1")
+    self.assertConvertsTo(b"\x01\x05\x00\x00\x00\x00\x00\x05", u"S-1-5")
+    self.assertConvertsTo(b"\x01\x05\x00\x00\x00\x00\x00\x05\x15\x00\x00\x00",
+                          u"S-1-5-21")
 
-      if expected_value is None:
-        # Test is meant to raise
-        self.assertRaises(ValueError, wmi_parser.BinarySIDtoStringSID,
-                          binary_sid)
-      else:
-        self.assertEqual(
-            wmi_parser.BinarySIDtoStringSID(binary_sid), expected_value)
+  def testTruncated(self):
+    with self.assertRaises(ValueError):
+      wmi_parser.BinarySIDtoStringSID(
+          b"\x01\x05\x00\x00\x00\x00\x00\x05\x15\x00\x00")
+
+    with self.assertRaises(ValueError):
+      wmi_parser.BinarySIDtoStringSID(
+          b"\x01\x05\x00\x00\x00\x00\x00\x05\x15\x00")
+
+  def test5Subauthorities(self):
+    self.assertConvertsTo(
+        b"\x01\x05\x00\x00\x00\x00\x00\x05\x15\x00\x00\x00\x85\x74\x77\xb9\x7c"
+        "\x0d\x7a\x96\x6f\xbd\x29\x9a\xf4\x01\x00\x00",
+        u"S-1-5-21-3111613573-2524581244-2586426735-500")
+
+  def testLastAuthorityTruncated(self):
+    with self.assertRaises(ValueError):
+      wmi_parser.BinarySIDtoStringSID(
+          b"\x01\x05\x00\x00\x00\x00\x00\x05\x15\x00\x00\x00\x85\x74\x77\xb9"
+          "\x7c\x0d\x7a\x96\x6f\xbd\x29\x9a\xf4")
 
 
 def main(argv):

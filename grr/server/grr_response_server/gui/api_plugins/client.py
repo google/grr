@@ -16,6 +16,8 @@ from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -103,12 +105,12 @@ class ApiClient(rdf_structs.RDFProtoStruct):
       rdf_client.ClientURN,
       rdf_cloud.CloudInstance,
       rdf_client.HardwareInfo,
-      rdf_client.Interface,
+      rdf_client_network.Interface,
       rdf_client.KnowledgeBase,
       rdfvalue.RDFDatetime,
       rdf_client.Uname,
       rdf_client.User,
-      rdf_client.Volume,
+      rdf_client_fs.Volume,
   ]
 
   def InitFromAff4Object(self, client_obj, include_metadata=True):

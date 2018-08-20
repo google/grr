@@ -8,7 +8,8 @@ from past.builtins import long
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
@@ -37,7 +38,7 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
         setattr,
         container,
         "device",
-        rdf_client.StatEntry(st_size=5))
+        rdf_client_fs.StatEntry(st_size=5))
 
     # Assign directly.
     container.device = pathspec
@@ -51,7 +52,7 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
     self.assertFalse(container.HasField("device"))
 
   def testSimpleTypeAssignment(self):
-    sample = rdf_client.StatEntry()
+    sample = rdf_client_fs.StatEntry()
     sample.AddDescriptor(
         rdf_structs.ProtoRDFValue(
             name="test",
@@ -75,7 +76,7 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
     sample.registry_type = sample.RegistryType.REG_DWORD
     self.assertEqual(sample.registry_type, sample.RegistryType.REG_DWORD)
 
-    sample.registry_type = rdf_client.StatEntry.RegistryType.REG_SZ
+    sample.registry_type = rdf_client_fs.StatEntry.RegistryType.REG_SZ
     self.assertEqual(sample.registry_type, sample.RegistryType.REG_SZ)
 
     # We can also assign the string value.
@@ -94,12 +95,12 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
     """Test that we can construct RDFProtos with nested fields."""
     pathspec = rdf_paths.PathSpec(
         path="/foobar", pathtype=rdf_paths.PathSpec.PathType.TSK)
-    sample = rdf_client.StatEntry(pathspec=pathspec, st_size=5)
+    sample = rdf_client_fs.StatEntry(pathspec=pathspec, st_size=5)
 
     self.assertEqual(sample.pathspec.path, "/foobar")
     self.assertEqual(sample.st_size, 5)
 
-    self.assertRaises(AttributeError, rdf_client.StatEntry, foobar=1)
+    self.assertRaises(AttributeError, rdf_client_fs.StatEntry, foobar=1)
 
   def testUnicodeSupport(self):
     pathspec = rdf_paths.PathSpec(
@@ -145,7 +146,7 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
 
   def testRepeatedFields(self):
     """Test handling of protobuf repeated fields."""
-    sample = rdf_client.Interface()
+    sample = rdf_client_network.Interface()
 
     # Add a simple string.
     sample.ip4_addresses.Append("127.0.0.1")

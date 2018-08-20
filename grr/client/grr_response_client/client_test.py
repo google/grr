@@ -14,6 +14,7 @@ from grr_response_client import client_actions
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
@@ -25,8 +26,8 @@ class MockAction(actions.ActionPlugin):
 
   def Run(self, message):
     self.SendReply(
-        rdf_client.EchoRequest(data="Received Message: %s. Data %s" %
-                               (message.data, "x" * 100)))
+        rdf_client_action.EchoRequest(data="Received Message: %s. Data %s" %
+                                      (message.data, "x" * 100)))
 
 
 class RaiseAction(actions.ActionPlugin):

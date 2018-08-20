@@ -13,7 +13,7 @@ from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import registry
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
@@ -220,7 +220,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
         self.SendReply(response)
 
     if (responses.iterator and  # This will be None if an error occurred.
-        responses.iterator.state != rdf_client.Iterator.State.FINISHED):
+        responses.iterator.state != rdf_client_action.Iterator.State.FINISHED):
       self.state.rekall_request.iterator = responses.iterator
       self.CallClient(
           server_stubs.RekallAction,

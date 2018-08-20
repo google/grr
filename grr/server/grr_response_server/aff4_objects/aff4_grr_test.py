@@ -12,6 +12,8 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
@@ -111,7 +113,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         # And advance the time.
         timestamp += 1
 
-      fd.Set(fd.Schema.STAT, rdf_client.StatEntry())
+      fd.Set(fd.Schema.STAT, rdf_client_fs.StatEntry())
 
       fd.Close()
 
@@ -142,7 +144,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         token=self.token) as file_fd:
       file_fd.Set(
           file_fd.Schema.STAT,
-          rdf_client.StatEntry(
+          rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(path="/bin/bash", pathtype="OS")))
 
       # Starts a MultiGetFile flow.
@@ -180,7 +182,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         token=self.token) as file_fd:
       file_fd.Set(
           file_fd.Schema.STAT,
-          rdf_client.StatEntry(
+          rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(path="/bin/bash", pathtype="OS")))
       # Starts a MultiGetFile flow.
       first_update_flow_urn = file_fd.Update()
@@ -220,7 +222,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
     install_time = rdfvalue.RDFDatetime.Now()
     user = "testuser"
     userobj = rdf_client.User(username=user)
-    interface = rdf_client.Interface(ifname="eth0")
+    interface = rdf_client_network.Interface(ifname="eth0")
     google_cloud_instance = rdf_cloud.GoogleCloudInstance(
         instance_id="1771384456894610289",
         zone="projects/123456789733/zones/us-central1-a",

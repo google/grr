@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """AFF4 stats objects."""
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_server import aff4
 from grr_response_server.aff4_objects import standard
@@ -13,7 +13,7 @@ class ClientStats(standard.VFSDirectory):
   class SchemaCls(standard.VFSDirectory.SchemaCls):
     STATS = aff4.Attribute(
         "aff4:stats",
-        rdf_client.ClientStats,
+        rdf_client_stats.ClientStats,
         "Client Stats.",
         "Client stats",
         creates_new_object_version=False)

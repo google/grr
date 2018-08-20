@@ -8,7 +8,7 @@ import unittest
 from grr_response_core.lib import flags
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -531,8 +531,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=tr:contains('%s') div[state=RUNNING]" % f.Basename())
 
     # Cancel the flow and check that the flow state gets updated.
-    flow.GRRFlow.TerminateFlow(
-        f, "Because I said so", token=self.token, force=True)
+    flow.GRRFlow.TerminateFlow(f, "Because I said so", token=self.token)
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('%s') div[state=ERROR]" % f.Basename())
 
@@ -560,8 +559,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         "tr:contains('Status'):contains('Subflow call 1')")
 
     # Cancel the flow and check that the flow state gets updated.
-    flow.GRRFlow.TerminateFlow(
-        f, "Because I said so", token=self.token, force=True)
+    flow.GRRFlow.TerminateFlow(f, "Because I said so", token=self.token)
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-flow-inspector dd:contains('ERROR')")
     self.WaitUntil(
@@ -658,7 +656,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.IsElementPresent,
         "css=grr-results-collection grr-download-collection-files")
 
-    stat_entry = rdf_client.StatEntry(
+    stat_entry = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     with data_store.DB.GetMutationPool() as pool:

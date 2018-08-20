@@ -3,6 +3,7 @@
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -50,7 +51,7 @@ class OutputPluginState(rdf_structs.RDFProtoStruct):
 class FlowContext(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowContext
   rdf_deps = [
-      rdf_client.ClientResources,
+      rdf_client_stats.ClientResources,
       OutputPluginState,
       rdfvalue.RDFDatetime,
       rdfvalue.SessionID,

@@ -13,6 +13,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
@@ -865,7 +866,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
       results = []
       for _, reply in send_reply.args:
-        if isinstance(reply, rdf_client.Volume):
+        if isinstance(reply, rdf_client_fs.Volume):
           results.append(reply)
 
       self.assertItemsEqual([x.unixvolume.mount_point for x in results],
@@ -890,7 +891,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         results = []
         for cls, reply in send_reply.args:
           if isinstance(cls, filesystem.DiskVolumeInfo) and isinstance(
-              reply, rdf_client.Volume):
+              reply, rdf_client_fs.Volume):
             results.append(reply)
 
         # We asked for D and we guessed systemroot (C) for "/var/tmp", but only
@@ -910,7 +911,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         results = []
         for cls, reply in send_reply.args:
           if isinstance(cls, filesystem.DiskVolumeInfo) and isinstance(
-              reply, rdf_client.Volume):
+              reply, rdf_client_fs.Volume):
             results.append(reply)
 
         self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],

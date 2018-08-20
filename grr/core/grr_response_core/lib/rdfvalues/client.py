@@ -11,29 +11,23 @@ import logging
 import platform
 import re
 import socket
-import stat
 import struct
 
 
-from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
-from future.utils import itervalues
-import ipaddr
 from past.builtins import long
 import psutil
 
-from grr_response_core.lib import ipv6_utils
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
-from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import sysinfo_pb2
@@ -155,37 +149,6 @@ class PCIDevice(rdf_structs.RDFProtoStruct):
   This class describes a PCI device located on the client.
   """
   protobuf = sysinfo_pb2.PCIDevice
-
-
-# These are objects we store as attributes of the client.
-class Filesystem(rdf_structs.RDFProtoStruct):
-  """A filesystem on the client.
-
-  This class describes a filesystem mounted on the client.
-  """
-  protobuf = sysinfo_pb2.Filesystem
-  rdf_deps = [
-      rdf_protodict.AttributedDict,
-  ]
-
-
-class Filesystems(rdf_protodict.RDFValueArray):
-  """An array of client filesystems.
-
-  This is used to represent the list of valid filesystems on the client.
-  """
-  rdf_type = Filesystem
-
-
-class FolderInformation(rdf_structs.RDFProtoStruct):
-  """Representation of Window's special folders information for a User.
-
-  Windows maintains a list of "Special Folders" which are used to organize a
-  user's home directory. Knowledge about these is required in order to resolve
-  the location of user specific items, e.g. the Temporary folder, or the
-  Internet cache.
-  """
-  protobuf = jobs_pb2.FolderInformation
 
 
 class PackageRepository(rdf_structs.RDFProtoStruct):
@@ -347,182 +310,6 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
     return sorted(fields)
 
 
-class NetworkEndpoint(rdf_structs.RDFProtoStruct):
-  protobuf = sysinfo_pb2.NetworkEndpoint
-
-
-class NetworkConnection(rdf_structs.RDFProtoStruct):
-  """Information about a single network connection."""
-  protobuf = sysinfo_pb2.NetworkConnection
-  rdf_deps = [
-      NetworkEndpoint,
-  ]
-
-
-class Connections(rdf_protodict.RDFValueArray):
-  """A list of connections on the host."""
-  rdf_type = NetworkConnection
-
-
-class NetworkAddress(rdf_structs.RDFProtoStruct):
-  """A network address.
-
-  We'd prefer to use socket.inet_pton and  inet_ntop here, but they aren't
-  available on windows before python 3.4. So we use the older IPv4 functions for
-  v4 addresses and our own pure python implementations for IPv6.
-  """
-  protobuf = jobs_pb2.NetworkAddress
-  rdf_deps = [
-      rdfvalue.RDFBytes,
-  ]
-
-  @property
-  def human_readable_address(self):
-    if self.human_readable:
-      return self.human_readable
-    else:
-      try:
-        if self.address_type == NetworkAddress.Family.INET:
-          return ipv6_utils.InetNtoP(socket.AF_INET, str(self.packed_bytes))
-        else:
-          return ipv6_utils.InetNtoP(socket.AF_INET6, str(self.packed_bytes))
-      except ValueError as e:
-        return str(e)
-
-  @human_readable_address.setter
-  def human_readable_address(self, value):
-    if ":" in value:
-      # IPv6
-      self.address_type = NetworkAddress.Family.INET6
-      self.packed_bytes = ipv6_utils.InetPtoN(socket.AF_INET6, value)
-    else:
-      # IPv4
-      self.address_type = NetworkAddress.Family.INET
-      self.packed_bytes = ipv6_utils.InetPtoN(socket.AF_INET, value)
-
-  def AsIPAddr(self):
-    """Returns the ip as an ipaddr.IPADdress object.
-
-    Raises a ValueError if the stored data does not represent a valid ip.
-    """
-    try:
-      if self.address_type == NetworkAddress.Family.INET:
-        return ipaddr.IPv4Address(self.human_readable_address)
-      elif self.address_type == NetworkAddress.Family.INET6:
-        return ipaddr.IPv6Address(self.human_readable_address)
-      else:
-        raise ValueError("Unknown address type: %d" % self.address_type)
-    except ipaddr.AddressValueError:
-      raise ValueError("Invalid IP address: %s" % self.human_readable_address)
-
-
-class DNSClientConfiguration(rdf_structs.RDFProtoStruct):
-  """DNS client config."""
-  protobuf = sysinfo_pb2.DNSClientConfiguration
-
-
-class MacAddress(rdfvalue.RDFBytes):
-  """A MAC address."""
-
-  @property
-  def human_readable_address(self):
-    return self._value.encode("hex")
-
-  @human_readable_address.setter
-  def human_readable_address(self, value):
-    self._value = value.decode("hex")
-
-
-class Interface(rdf_structs.RDFProtoStruct):
-  """A network interface on the client system."""
-  protobuf = jobs_pb2.Interface
-  rdf_deps = [
-      MacAddress,
-      NetworkAddress,
-      rdfvalue.RDFDatetime,
-  ]
-
-  def GetIPAddresses(self):
-    """Return a list of IP addresses."""
-    results = []
-    for address in self.addresses:
-      if address.human_readable:
-        results.append(address.human_readable)
-      else:
-        if address.address_type == NetworkAddress.Family.INET:
-          results.append(
-              ipv6_utils.InetNtoP(socket.AF_INET, str(address.packed_bytes)))
-        else:
-          results.append(
-              ipv6_utils.InetNtoP(socket.AF_INET6, str(address.packed_bytes)))
-    return results
-
-
-class Interfaces(rdf_protodict.RDFValueArray):
-  """The list of interfaces on a host."""
-  rdf_type = Interface
-
-  def GetIPAddresses(self):
-    """Return the list of IP addresses."""
-    results = []
-    for interface in self:
-      results += interface.GetIPAddresses()
-    return results
-
-
-class WindowsVolume(rdf_structs.RDFProtoStruct):
-  """A disk volume on a windows client."""
-  protobuf = sysinfo_pb2.WindowsVolume
-
-
-class UnixVolume(rdf_structs.RDFProtoStruct):
-  """A disk volume on a unix client."""
-  protobuf = sysinfo_pb2.UnixVolume
-
-
-class Volume(rdf_structs.RDFProtoStruct):
-  """A disk volume on the client."""
-  protobuf = sysinfo_pb2.Volume
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-      UnixVolume,
-      WindowsVolume,
-  ]
-
-  def FreeSpacePercent(self):
-    try:
-      return (self.actual_available_allocation_units /
-              self.total_allocation_units) * 100.0
-    except ZeroDivisionError:
-      return 100
-
-  def FreeSpaceBytes(self):
-    return self.AUToBytes(self.actual_available_allocation_units)
-
-  def AUToBytes(self, allocation_units):
-    """Convert a number of allocation units to bytes."""
-    return (allocation_units * self.sectors_per_allocation_unit *
-            self.bytes_per_sector)
-
-  def AUToGBytes(self, allocation_units):
-    """Convert a number of allocation units to GigaBytes."""
-    return self.AUToBytes(allocation_units) // 1000.0**3
-
-  def Name(self):
-    """Return the best available name for this volume."""
-    return (self.name or self.device_path or self.windowsvolume.drive_letter or
-            self.unixvolume.mount_point or None)
-
-
-class DiskUsage(rdf_structs.RDFProtoStruct):
-  protobuf = sysinfo_pb2.DiskUsage
-
-
-class Volumes(rdf_protodict.RDFValueArray):
-  """A list of disk volumes on the client."""
-  rdf_type = Volume
-
-
 class HardwareInfo(rdf_structs.RDFProtoStruct):
   """Various hardware information."""
   protobuf = sysinfo_pb2.HardwareInfo
@@ -531,117 +318,6 @@ class HardwareInfo(rdf_structs.RDFProtoStruct):
 class ClientInformation(rdf_structs.RDFProtoStruct):
   """The GRR client information."""
   protobuf = jobs_pb2.ClientInformation
-
-
-class CpuSeconds(rdf_structs.RDFProtoStruct):
-  """CPU usage is reported as both a system and user components."""
-  protobuf = jobs_pb2.CpuSeconds
-
-
-class CpuSample(rdf_structs.RDFProtoStruct):
-  """A single CPU sample."""
-  protobuf = jobs_pb2.CpuSample
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-  @classmethod
-  def FromMany(cls, samples):
-    """Constructs a single sample that best represents a list of samples.
-
-    Args:
-      samples: An iterable collection of `CpuSample` instances.
-
-    Returns:
-      A `CpuSample` instance representing `samples`.
-
-    Raises:
-      ValueError: If `samples` is empty.
-    """
-    if not samples:
-      raise ValueError("Empty `samples` argument")
-
-    # It only makes sense to average the CPU percentage. For all other values
-    # we simply take the biggest of them.
-    cpu_percent = sum(sample.cpu_percent for sample in samples) / len(samples)
-
-    return CpuSample(
-        timestamp=max(sample.timestamp for sample in samples),
-        cpu_percent=cpu_percent,
-        user_cpu_time=max(sample.user_cpu_time for sample in samples),
-        system_cpu_time=max(sample.system_cpu_time for sample in samples))
-
-
-class IOSample(rdf_structs.RDFProtoStruct):
-  """A single I/O sample as collected by `psutil`."""
-
-  protobuf = jobs_pb2.IOSample
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-  @classmethod
-  def FromMany(cls, samples):
-    """Constructs a single sample that best represents a list of samples.
-
-    Args:
-      samples: An iterable collection of `IOSample` instances.
-
-    Returns:
-      An `IOSample` instance representing `samples`.
-
-    Raises:
-      ValueError: If `samples` is empty.
-    """
-    if not samples:
-      raise ValueError("Empty `samples` argument")
-
-    return IOSample(
-        timestamp=max(sample.timestamp for sample in samples),
-        read_bytes=max(sample.read_bytes for sample in samples),
-        write_bytes=max(sample.write_bytes for sample in samples))
-
-
-class ClientStats(rdf_structs.RDFProtoStruct):
-  """A client stat object."""
-  protobuf = jobs_pb2.ClientStats
-  rdf_deps = [
-      CpuSample,
-      IOSample,
-      rdfvalue.RDFDatetime,
-  ]
-
-  DEFAULT_SAMPLING_INTERVAL = rdfvalue.Duration("60s")
-
-  @classmethod
-  def Downsampled(cls, stats, interval=None):
-    """Constructs a copy of given stats but downsampled to given interval.
-
-    Args:
-      stats: A `ClientStats` instance.
-      interval: A downsampling interval.
-
-    Returns:
-      A downsampled `ClientStats` instance.
-    """
-    interval = interval or cls.DEFAULT_SAMPLING_INTERVAL
-
-    result = cls(stats)
-    result.cpu_samples = cls._Downsample(
-        kind=CpuSample, samples=stats.cpu_samples, interval=interval)
-    result.io_samples = cls._Downsample(
-        kind=IOSample, samples=stats.io_samples, interval=interval)
-    return result
-
-  @classmethod
-  def _Downsample(cls, kind, samples, interval):
-    buckets = {}
-    for sample in samples:
-      bucket = buckets.setdefault(sample.timestamp.Floor(interval), [])
-      bucket.append(sample)
-
-    for bucket in itervalues(buckets):
-      yield kind.FromMany(bucket)
 
 
 class BufferReference(rdf_structs.RDFProtoStruct):
@@ -659,7 +335,7 @@ class Process(rdf_structs.RDFProtoStruct):
   """Represent a process on the client."""
   protobuf = sysinfo_pb2.Process
   rdf_deps = [
-      NetworkConnection,
+      rdf_client_network.NetworkConnection,
   ]
 
   @classmethod
@@ -787,178 +463,9 @@ class SoftwarePackages(rdf_protodict.RDFValueArray):
   rdf_type = SoftwarePackage
 
 
-class StatMode(rdfvalue.RDFInteger):
-  """The mode of a file."""
-  data_store_type = "unsigned_integer"
-
-  def __unicode__(self):
-    """Pretty print the file mode."""
-    type_char = "-"
-
-    mode = int(self)
-    if stat.S_ISREG(mode):
-      type_char = "-"
-    elif stat.S_ISBLK(mode):
-      type_char = "b"
-    elif stat.S_ISCHR(mode):
-      type_char = "c"
-    elif stat.S_ISDIR(mode):
-      type_char = "d"
-    elif stat.S_ISFIFO(mode):
-      type_char = "p"
-    elif stat.S_ISLNK(mode):
-      type_char = "l"
-    elif stat.S_ISSOCK(mode):
-      type_char = "s"
-
-    mode_template = "rwx" * 3
-    # Strip the "0b"
-    bin_mode = bin(int(self))[2:]
-    bin_mode = bin_mode[-9:]
-    bin_mode = "0" * (9 - len(bin_mode)) + bin_mode
-
-    bits = []
-    for i in range(len(mode_template)):
-      if bin_mode[i] == "1":
-        bit = mode_template[i]
-      else:
-        bit = "-"
-
-      bits.append(bit)
-
-    if stat.S_ISUID & mode:
-      bits[2] = "S"
-    if stat.S_ISGID & mode:
-      bits[5] = "S"
-    if stat.S_ISVTX & mode:
-      if bits[8] == "x":
-        bits[8] = "t"
-      else:
-        bits[8] = "T"
-
-    return type_char + "".join(bits)
-
-  def __str__(self):
-    return utils.SmartStr(self.__unicode__())
-
-
-class StatExtFlagsOsx(rdfvalue.RDFInteger):
-  """Extended file attributes for Mac (set by `chflags`)."""
-
-  data_store_type = "unsigned_integer_32"
-
-
-class StatExtFlagsLinux(rdfvalue.RDFInteger):
-  """Extended file attributes as reported by `lsattr`."""
-
-  data_store_type = "unsigned_integer_32"
-
-
-class Iterator(rdf_structs.RDFProtoStruct):
-  """An Iterated client action is one which can be resumed on the client."""
-  protobuf = jobs_pb2.Iterator
-  rdf_deps = [
-      rdf_protodict.Dict,
-  ]
-
-
-class ExtAttr(rdf_structs.RDFProtoStruct):
-  """An RDF value representing an extended attributes of a file."""
-
-  protobuf = jobs_pb2.StatEntry.ExtAttr
-
-
-class StatEntry(rdf_structs.RDFProtoStruct):
-  """Represent an extended stat response."""
-  protobuf = jobs_pb2.StatEntry
-  rdf_deps = [
-      rdf_protodict.DataBlob,
-      rdf_paths.PathSpec,
-      rdfvalue.RDFDatetimeSeconds,
-      StatMode,
-      StatExtFlagsOsx,
-      StatExtFlagsLinux,
-      ExtAttr,
-  ]
-
-  def AFF4Path(self, client_urn):
-    return self.pathspec.AFF4Path(client_urn)
-
-
-class FindSpec(rdf_structs.RDFProtoStruct):
-  """A find specification."""
-  protobuf = jobs_pb2.FindSpec
-  rdf_deps = [
-      rdf_paths.GlobExpression,
-      Iterator,
-      rdf_paths.PathSpec,
-      rdfvalue.RDFDatetime,
-      rdf_standard.RegularExpression,
-      StatEntry,
-      StatMode,
-  ]
-
-  def Validate(self):
-    """Ensure the pathspec is valid."""
-    self.pathspec.Validate()
-
-    if (self.HasField("start_time") and self.HasField("end_time") and
-        self.start_time > self.end_time):
-      raise ValueError("Start time must be before end time.")
-
-    if not self.path_regex and not self.data_regex and not self.path_glob:
-      raise ValueError("A Find specification can not contain both an empty "
-                       "path regex and an empty data regex")
-
-
 class LogMessage(rdf_structs.RDFProtoStruct):
   """A log message sent from the client to the server."""
   protobuf = jobs_pb2.PrintStr
-
-
-class EchoRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.PrintStr
-
-
-class ExecuteBinaryRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.ExecuteBinaryRequest
-  rdf_deps = [
-      rdf_crypto.SignedBlob,
-  ]
-
-
-class ExecuteBinaryResponse(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.ExecuteBinaryResponse
-
-
-class ExecutePythonRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.ExecutePythonRequest
-  rdf_deps = [
-      rdf_protodict.Dict,
-      rdf_crypto.SignedBlob,
-  ]
-
-
-class ExecutePythonResponse(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.ExecutePythonResponse
-
-
-class ExecuteRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.ExecuteRequest
-
-
-class CopyPathToFileRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.CopyPathToFile
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
-
-
-class ExecuteResponse(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.ExecuteResponse
-  rdf_deps = [
-      ExecuteRequest,
-  ]
 
 
 class Uname(rdf_structs.RDFProtoStruct):
@@ -1042,100 +549,12 @@ class StartupInfo(rdf_structs.RDFProtoStruct):
   ]
 
 
-class SendFileRequest(rdf_structs.RDFProtoStruct):
-  """Arguments for the `SendFile` action."""
-
-  protobuf = jobs_pb2.SendFileRequest
-  rdf_deps = [
-      rdf_crypto.AES128Key,
-      rdf_paths.PathSpec,
-  ]
-
-  def Validate(self):
-    self.pathspec.Validate()
-
-    if not self.host:
-      raise ValueError("A host must be specified.")
-
-
-class ListDirRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.ListDirRequest
-  rdf_deps = [
-      Iterator,
-      rdf_paths.PathSpec,
-  ]
-
-
-class GetFileStatRequest(rdf_structs.RDFProtoStruct):
-
-  protobuf = jobs_pb2.GetFileStatRequest
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
-
-
-class FingerprintTuple(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.FingerprintTuple
-
-
-class FingerprintRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.FingerprintRequest
-  rdf_deps = [
-      FingerprintTuple,
-      rdf_paths.PathSpec,
-  ]
-
-  def AddRequest(self, *args, **kw):
-    self.tuples.Append(*args, **kw)
-
-
-class FingerprintResponse(rdf_structs.RDFProtoStruct):
-  """Proto containing dicts with hashes."""
-  protobuf = jobs_pb2.FingerprintResponse
-  rdf_deps = [
-      rdf_protodict.Dict,
-      rdf_crypto.Hash,
-      rdf_paths.PathSpec,
-  ]
-
-  def GetFingerprint(self, name):
-    """Gets the first fingerprint type from the protobuf."""
-    for result in self.results:
-      if result.GetItem("name") == name:
-        return result
-
-
-class GrepSpec(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.GrepSpec
-  rdf_deps = [
-      rdf_standard.LiteralExpression,
-      rdf_paths.PathSpec,
-      rdf_standard.RegularExpression,
-  ]
-
-  def Validate(self):
-    self.target.Validate()
-
-
-class BareGrepSpec(rdf_structs.RDFProtoStruct):
-  """A GrepSpec without a target."""
-  protobuf = flows_pb2.BareGrepSpec
-  rdf_deps = [
-      rdf_standard.LiteralExpression,
-      rdf_standard.RegularExpression,
-  ]
-
-
-class WMIRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.WmiRequest
-
-
 class WindowsServiceInformation(rdf_structs.RDFProtoStruct):
   """Windows Service."""
   protobuf = sysinfo_pb2.WindowsServiceInformation
   rdf_deps = [
       rdf_protodict.Dict,
-      StatEntry,
+      rdf_client_fs.StatEntry,
   ]
 
 
@@ -1153,22 +572,8 @@ class LinuxServiceInformation(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdf_protodict.AttributedDict,
       SoftwarePackage,
-      StatEntry,
+      rdf_client_fs.StatEntry,
   ]
-
-
-class ClientResources(rdf_structs.RDFProtoStruct):
-  """An RDFValue class representing the client resource usage."""
-  protobuf = jobs_pb2.ClientResources
-  rdf_deps = [
-      ClientURN,
-      CpuSeconds,
-      rdfvalue.SessionID,
-  ]
-
-
-class StatFSRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.StatFSRequest
 
 
 # Start of the Registry Specific Data types
@@ -1198,18 +603,10 @@ class ClientSummary(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       ClientInformation,
       ClientURN,
-      Interface,
+      rdf_client_network.Interface,
       rdfvalue.RDFDatetime,
       Uname,
       User,
-  ]
-
-
-class GetClientStatsRequest(rdf_structs.RDFProtoStruct):
-  """Request for GetClientStats action."""
-  protobuf = jobs_pb2.GetClientStatsRequest
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
   ]
 
 
@@ -1226,22 +623,3 @@ class VersionString(rdfvalue.RDFString):
         break
 
     return result
-
-
-class ListNetworkConnectionsArgs(rdf_structs.RDFProtoStruct):
-  """Args for the ListNetworkConnections client action."""
-  protobuf = flows_pb2.ListNetworkConnectionsArgs
-
-
-class BlobImageChunkDescriptor(rdf_structs.RDFProtoStruct):
-  """A descriptor of a file chunk stored in VFS blob image."""
-
-  protobuf = jobs_pb2.BlobImageChunkDescriptor
-  rdf_deps = []
-
-
-class BlobImageDescriptor(rdf_structs.RDFProtoStruct):
-  """A descriptor of a file stored as VFS blob image."""
-
-  protobuf = jobs_pb2.BlobImageDescriptor
-  rdf_deps = [BlobImageChunkDescriptor]

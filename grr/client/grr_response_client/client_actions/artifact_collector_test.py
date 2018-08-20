@@ -17,6 +17,8 @@ from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifact
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import artifact_test_lib
@@ -94,7 +96,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
                                 request)[0]
         collected_artifact = list(result.collected_artifacts)[0]
         file_stat = list(collected_artifact.action_results)[0].value
-        self.assertTrue(isinstance(file_stat, rdf_client.StatEntry))
+        self.assertTrue(isinstance(file_stat, rdf_client_fs.StatEntry))
         urn = file_stat.pathspec.AFF4Path(self.SetupClient(0))
         self.assertTrue(str(urn).endswith("BootExecute"))
 
@@ -166,7 +168,7 @@ class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
     coll.knowledge_base = None
     coll.ignore_interpolation_errors = True
 
-    expected = rdf_client.WMIRequest(
+    expected = rdf_client_action.WMIRequest(
         query="SELECT * FROM ActiveScriptEventConsumer",
         base_object="winmgmts:\\root\\subscription")
 
@@ -223,11 +225,11 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
 
     self.assertIsInstance(processor, TestEchoCmdParser)
 
-    request = rdf_client.ExecuteRequest(cmd="/bin/echo", args=["1"])
+    request = rdf_client_action.ExecuteRequest(cmd="/bin/echo", args=["1"])
     res = client_utils_common.Execute(request.cmd, request.args)
     (stdout, stderr, status, time_used) = res
 
-    response = rdf_client.ExecuteResponse(
+    response = rdf_client_action.ExecuteResponse(
         request=request,
         stdout=stdout,
         stderr=stderr,
@@ -297,7 +299,7 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
           pathtype=rdf_paths.PathSpec.PathType.OS,
           path=client_utils.LocalPathToCanonicalPath(stat.GetPath()),
           path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
-      response = rdf_client.FindSpec(pathspec=pathspec)
+      response = rdf_client_fs.FindSpec(pathspec=pathspec)
 
       for res in artifact_collector.ParseResponse(processor, response, {}):
         results.append(res)

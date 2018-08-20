@@ -18,6 +18,8 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.check_lib import checks
 from grr_response_server.check_lib import filters
@@ -104,11 +106,11 @@ class HostCheckTest(
 
   def AddListener(self, ip, port, family="INET", sock_type="SOCK_STREAM"):
     """Create a network connection."""
-    conn = rdf_client.NetworkConnection()
+    conn = rdf_client_network.NetworkConnection()
     conn.state = "LISTEN"
     conn.family = family
     conn.type = sock_type
-    conn.local_address = rdf_client.NetworkEndpoint(ip=ip, port=port)
+    conn.local_address = rdf_client_network.NetworkEndpoint(ip=ip, port=port)
     return conn
 
   def RunChecks(self, host_data, labels=None, restrict_checks=None):
@@ -144,7 +146,7 @@ class HostCheckTest(
   def CreateStat(self, path, uid=0, gid=0, mode=0o0100640):
     """Given path, uid, gid and file mode, this returns a StatEntry."""
     pathspec = rdf_paths.PathSpec(path=path, pathtype="OS")
-    return rdf_client.StatEntry(
+    return rdf_client_fs.StatEntry(
         pathspec=pathspec, st_uid=uid, st_gid=gid, st_mode=mode)
 
   def _AddToHostData(self, host_data, artifact, data, parser):
