@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 """Helper classes for flows-related testing."""
 
-import itertools
 import logging
 import pdb
-import traceback
 
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -16,9 +14,8 @@ from grr_response_client.client_actions import standard
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
-from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -272,9 +269,8 @@ class FlowTestsBaseclass(
     return timestamp
 
 
-class CrashClientMock(object):
-
-  STATUS_MESSAGE_ENFORCED = False
+class CrashClientMock(action_mocks.ActionMock):
+  """Client mock that simulates a client crash."""
 
   def __init__(self, client_id, token):
     self.client_id = client_id
@@ -309,9 +305,9 @@ class MockClient(object):
 
     if client_mock is None:
       client_mock = action_mocks.InvalidActionMock()
+    else:
+      utils.AssertType(client_mock, action_mocks.ActionMock)
 
-    self.status_message_enforced = getattr(client_mock,
-                                           "STATUS_MESSAGE_ENFORCED", True)
     self._mock_task_queue = getattr(client_mock, "mock_task_queue", [])
     self.client_id = client_id
     self.client_mock = client_mock
@@ -319,34 +315,9 @@ class MockClient(object):
 
     # Well known flows are run on the front end.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
-    self.user_cpu_usage = []
-    self.system_cpu_usage = []
-    self.network_usage = []
-
-  def EnableResourceUsage(self,
-                          user_cpu_usage=None,
-                          system_cpu_usage=None,
-                          network_usage=None):
-    if user_cpu_usage:
-      self.user_cpu_usage = itertools.cycle(user_cpu_usage)
-    if system_cpu_usage:
-      self.system_cpu_usage = itertools.cycle(system_cpu_usage)
-    if network_usage:
-      self.network_usage = itertools.cycle(network_usage)
-
-  def AddResourceUsage(self, status):
-    """Register resource usage for a given status."""
-
-    if self.user_cpu_usage or self.system_cpu_usage:
-      status.cpu_time_used = rdf_client_stats.CpuSeconds(
-          user_cpu_time=self.user_cpu_usage.next(),
-          system_cpu_time=self.system_cpu_usage.next())
-    if self.network_usage:
-      status.network_bytes_sent = self.network_usage.next()
 
   def PushToStateQueue(self, manager, message, **kw):
     """Push given message to the state queue."""
-
     # Assume the client is authorized
     message.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
@@ -395,89 +366,21 @@ class MockClient(object):
       self._mock_task_queue[:] = []  # Clear the referenced list.
 
       for message in request_tasks:
-        status = None
-        response_id = 1
-
-        # Collect all responses for this message from the client mock
         try:
-          if hasattr(self.client_mock, "HandleMessage"):
-            responses = self.client_mock.HandleMessage(message)
-          else:
-            self.client_mock.message = message
-            responses = getattr(self.client_mock, message.name)(message.payload)
-
-          if not responses:
-            responses = []
-
+          responses = self.client_mock.HandleMessage(message)
           logging.info("Called client action %s generating %s responses",
                        message.name,
                        len(responses) + 1)
-
-          if self.status_message_enforced:
-            status = rdf_flows.GrrStatus()
         except Exception as e:  # pylint: disable=broad-except
-          logging.exception("Error %s occurred in client", e)
-
-          # Error occurred.
-          responses = []
-          if self.status_message_enforced:
-            error_message = str(e)
-            status = rdf_flows.GrrStatus(
-                status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR)
-            # Invalid action mock is usually expected.
-            if error_message != "Invalid Action Mock.":
-              status.backtrace = traceback.format_exc()
-              status.error_message = error_message
+          logging.error("Error %s occurred in client", e)
+          responses = [
+              self.client_mock.GenerateStatusMessage(
+                  message, 1, status="GENERIC_ERROR")
+          ]
 
         # Now insert those on the flow state queue
         for response in responses:
-          if isinstance(response, rdf_flows.GrrStatus):
-            msg_type = rdf_flows.GrrMessage.Type.STATUS
-            self.AddResourceUsage(response)
-            response = rdf_flows.GrrMessage(
-                session_id=message.session_id,
-                name=message.name,
-                response_id=response_id,
-                request_id=message.request_id,
-                payload=response,
-                type=msg_type)
-          elif isinstance(response, rdf_client_action.Iterator):
-            msg_type = rdf_flows.GrrMessage.Type.ITERATOR
-            response = rdf_flows.GrrMessage(
-                session_id=message.session_id,
-                name=message.name,
-                response_id=response_id,
-                request_id=message.request_id,
-                payload=response,
-                type=msg_type)
-          elif not isinstance(response, rdf_flows.GrrMessage):
-            msg_type = rdf_flows.GrrMessage.Type.MESSAGE
-            response = rdf_flows.GrrMessage(
-                session_id=message.session_id,
-                name=message.name,
-                response_id=response_id,
-                request_id=message.request_id,
-                payload=response,
-                type=msg_type)
-
-          # Next expected response
-          response_id = response.response_id + 1
           self.PushToStateQueue(manager, response)
-
-        # Status may only be None if the client reported itself as crashed.
-        if status is not None:
-          self.AddResourceUsage(status)
-          self.PushToStateQueue(
-              manager,
-              message,
-              response_id=response_id,
-              payload=status,
-              type=rdf_flows.GrrMessage.Type.STATUS)
-        else:
-          # Status may be None only if status_message_enforced is False.
-          if self.status_message_enforced:
-            raise RuntimeError("status message can only be None when "
-                               "status_message_enforced is False")
 
         # Additionally schedule a task for the worker
         manager.QueueNotification(session_id=message.session_id)
@@ -486,7 +389,7 @@ class MockClient(object):
 
 
 def CheckFlowErrors(total_flows, token=None):
-  # Check that all the flows are complete.
+  """Checks that all the flows are complete."""
   for session_id in total_flows:
     try:
       flow_obj = aff4.FACTORY.Open(

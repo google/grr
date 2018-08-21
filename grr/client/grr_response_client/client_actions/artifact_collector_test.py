@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """Tests the client artifactor collection."""
+import __builtin__
+import glob
 import os
 
 from builtins import filter  # pylint: disable=redefined-builtin
 import mock
+import psutil
 
 from grr_response_client import client_utils
 from grr_response_client import client_utils_common
@@ -19,6 +22,7 @@ from grr_response_core.lib.rdfvalues import artifacts as rdf_artifact
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import artifact_test_lib
@@ -42,8 +46,8 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
 
     registry.AddFileSource(self.test_artifacts_file)
     artifact = registry.GetArtifact("TestCmdArtifact")
-    ext_src = rdf_artifact.ExtendedSource(base_source=list(artifact.sources)[0])
-    ext_art = rdf_artifact.ExtendedArtifact(
+    ext_src = rdf_artifact.ExpandedSource(base_source=list(artifact.sources)[0])
+    ext_art = rdf_artifact.ExpandedArtifact(
         name=artifact.name, sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
         artifacts=[ext_art], apply_parsers=False)
@@ -54,22 +58,165 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     self.assertEqual(collected_artifact.name, "TestCmdArtifact")
     self.assertTrue(execute_response.time_used > 0)
 
-  @artifact_test_lib.PatchCleanArtifactRegistry
-  def testGRRClientActionArtifact(self, registry):
-    """Test the GetHostname action."""
-    registry.AddFileSource(self.test_artifacts_file)
-    artifact = registry.GetArtifact("TestOSAgnostic")
-    ext_src = rdf_artifact.ExtendedSource(base_source=list(artifact.sources)[0])
-    ext_art = rdf_artifact.ExtendedArtifact(
-        name=artifact.name, sources=[ext_src])
+  def testGRRClientActionGetHostname(self):
+    """Test the GRR Client Action GetHostname."""
+
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.GRR_CLIENT_ACTION)
+    ext_src = rdf_artifact.ExpandedSource(base_source=source)
+    ext_art = rdf_artifact.ExpandedArtifact(
+        name="TestClientActionArtifact", sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
         artifacts=[ext_art], apply_parsers=False)
-    result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
-    collected_artifact = list(result.collected_artifacts)[0]
-    hostname = list(collected_artifact.action_results)[0].value
 
-    self.assertEqual(collected_artifact.name, "TestOSAgnostic")
-    self.assertTrue(hostname.string)
+    source.attributes["client_action"] = "GetHostname"
+    result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
+    collected_artifact = result.collected_artifacts[0]
+    for action_result in collected_artifact.action_results:
+      value = action_result.value
+      self.assertTrue(value.string)
+
+  def testGRRClientActionListProcesses(self):
+    """Test the GRR Client Action ListProcesses."""
+
+    def ProcessIter():
+      return iter([client_test_lib.MockWindowsProcess()])
+
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.GRR_CLIENT_ACTION)
+    ext_src = rdf_artifact.ExpandedSource(base_source=source)
+    ext_art = rdf_artifact.ExpandedArtifact(
+        name="TestClientActionArtifact", sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=[ext_art], apply_parsers=False)
+
+    source.attributes["client_action"] = "ListProcesses"
+    with utils.Stubber(psutil, "process_iter", ProcessIter):
+      result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
+      collected_artifact = result.collected_artifacts[0]
+      value = collected_artifact.action_results[0].value
+      self.assertIsInstance(value, rdf_client.Process)
+      self.assertEqual(value.pid, 10)
+
+  def testGRRClientActionEnumerateInterfaces(self):
+    """Test the GRR Client Action EnumerateInterfaces."""
+
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.GRR_CLIENT_ACTION)
+    ext_src = rdf_artifact.ExpandedSource(base_source=source)
+    ext_art = rdf_artifact.ExpandedArtifact(
+        name="TestClientActionArtifact", sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=[ext_art], apply_parsers=False)
+
+    source.attributes["client_action"] = "EnumerateInterfaces"
+    result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
+    collected_artifact = result.collected_artifacts[0]
+
+    self.assertGreater(len(collected_artifact.action_results), 0)
+    for action_result in collected_artifact.action_results:
+      value = action_result.value
+      self.assertIsInstance(value, rdf_client_network.Interface)
+
+  def testGRRClientActionEnumerateUsers(self):
+    """Test the GRR Client Action EnumerateUsers."""
+
+    def MockedOpen(requested_path, mode="rb"):
+      try:
+        fixture_path = os.path.join(self.base_path, "VFSFixture",
+                                    requested_path.lstrip("/"))
+        return __builtin__.open.old_target(fixture_path, mode)
+      except IOError:
+        return __builtin__.open.old_target(requested_path, mode)
+
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.GRR_CLIENT_ACTION)
+    ext_src = rdf_artifact.ExpandedSource(base_source=source)
+    ext_art = rdf_artifact.ExpandedArtifact(
+        name="TestClientActionArtifact", sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=[ext_art], apply_parsers=False)
+
+    source.attributes["client_action"] = "EnumerateUsers"
+
+    with utils.MultiStubber((__builtin__, "open", MockedOpen),
+                            (glob, "glob", lambda x: ["/var/log/wtmp"])):
+      result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
+      collected_artifact = result.collected_artifacts[0]
+
+      self.assertEqual(len(collected_artifact.action_results), 4)
+      for action_result in collected_artifact.action_results:
+        value = action_result.value
+        self.assertIsInstance(value, rdf_client.User)
+        if value.username not in ["user1", "user2", "user3", "utuser"]:
+          self.fail("Unexpected user found: %s" % result.username)
+
+  def testGRRClientActionListNetworkConnections(self):
+    """Test the GRR Client Action ListNetworkConnections."""
+
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.GRR_CLIENT_ACTION)
+    ext_src = rdf_artifact.ExpandedSource(base_source=source)
+    ext_art = rdf_artifact.ExpandedArtifact(
+        name="TestClientActionArtifact", sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=[ext_art], apply_parsers=False)
+
+    source.attributes["client_action"] = "ListNetworkConnections"
+    result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
+    collected_artifact = result.collected_artifacts[0]
+
+    for action_result in collected_artifact.action_results:
+      value = action_result.value
+      self.assertIsInstance(value, rdf_client_network.NetworkConnection)
+
+  def testGRRClientActionEnumerateFilesystems(self):
+    """Test the GRR Client Action EnumerateFilesystems."""
+
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.GRR_CLIENT_ACTION)
+    ext_src = rdf_artifact.ExpandedSource(base_source=source)
+    ext_art = rdf_artifact.ExpandedArtifact(
+        name="TestClientActionArtifact", sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=[ext_art], apply_parsers=False)
+
+    source.attributes["client_action"] = "EnumerateFilesystems"
+
+    with self.assertRaises(ValueError):
+      self.RunAction(artifact_collector.ArtifactCollector, request)
+
+  def testGRRClientActionStatFS(self):
+    """Test the GRR Client Action StatFS."""
+
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.GRR_CLIENT_ACTION)
+    ext_src = rdf_artifact.ExpandedSource(base_source=source)
+    ext_art = rdf_artifact.ExpandedArtifact(
+        name="TestClientActionArtifact", sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=[ext_art], apply_parsers=False)
+
+    source.attributes["client_action"] = "StatFS"
+
+    with self.assertRaises(ValueError):
+      self.RunAction(artifact_collector.ArtifactCollector, request)
+
+  def testGRRClientActionOSXEnumerateRunningServices(self):
+    """Test the GRR Client Action OSXEnumerateRunningServices."""
+
+    source = rdf_artifact.ArtifactSource(
+        type=rdf_artifact.ArtifactSource.SourceType.GRR_CLIENT_ACTION)
+    ext_src = rdf_artifact.ExpandedSource(base_source=source)
+    ext_art = rdf_artifact.ExpandedArtifact(
+        name="TestClientActionArtifact", sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=[ext_art], apply_parsers=False)
+
+    source.attributes["client_action"] = "OSXEnumerateRunningServices"
+
+    with self.assertRaises(ValueError):
+      self.RunAction(artifact_collector.ArtifactCollector, request)
 
   def testRegistryValueArtifact(self):
     """Test the basic Registry Value collection."""
@@ -87,8 +234,8 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
                         "BootExecute"
                 }]
             })
-        ext_src = rdf_artifact.ExtendedSource(base_source=source)
-        ext_art = rdf_artifact.ExtendedArtifact(
+        ext_src = rdf_artifact.ExpandedSource(base_source=source)
+        ext_art = rdf_artifact.ExpandedArtifact(
             name="FakeRegistryValue", sources=[ext_src])
         request = rdf_artifact.ClientArtifactCollectorArgs(
             artifacts=[ext_art], apply_parsers=False)
@@ -108,8 +255,8 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
 
     registry.AddFileSource(self.test_artifacts_file)
     artifact = registry.GetArtifact("TestCmdArtifact")
-    ext_src = rdf_artifact.ExtendedSource(base_source=list(artifact.sources)[0])
-    ext_art = rdf_artifact.ExtendedArtifact(
+    ext_src = rdf_artifact.ExpandedSource(base_source=list(artifact.sources)[0])
+    ext_art = rdf_artifact.ExpandedArtifact(
         name=artifact.name, sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
         artifacts=[ext_art], apply_parsers=False)
@@ -123,6 +270,50 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     execute_response_2 = list(collected_artifacts[1].action_results)[0].value
     self.assertGreater(execute_response_1.time_used, 0)
     self.assertGreater(execute_response_2.time_used, 0)
+
+  @artifact_test_lib.PatchCleanArtifactRegistry
+  def testTSKRaiseValueError(self, registry):
+    """Test Raise Error if path type is not OS."""
+
+    registry.AddFileSource(self.test_artifacts_file)
+
+    ext_src = rdf_artifact.ExpandedSource(
+        path_type=rdf_paths.PathSpec.PathType.TSK)
+    ext_art = rdf_artifact.ExpandedArtifact(
+        name="TestArtifact", sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=[ext_art], apply_parsers=False)
+
+    artifact = registry.GetArtifact("FakeFileArtifact")
+    ext_src.base_source = artifact.sources[0]
+    with self.assertRaises(ValueError):
+      self.RunAction(artifact_collector.ArtifactCollector, request)
+
+    artifact = registry.GetArtifact("BadPathspecArtifact")
+    ext_src.base_source = artifact.sources[0]
+    with self.assertRaises(ValueError):
+      self.RunAction(artifact_collector.ArtifactCollector, request)
+
+  @artifact_test_lib.PatchCleanArtifactRegistry
+  def testUnsupportedSourceType(self, registry):
+    """Test that an unsupported source type raises an Error."""
+
+    registry.AddFileSource(self.test_artifacts_file)
+    artifact = registry.GetArtifact("TestAggregationArtifact")
+
+    ext_src = rdf_artifact.ExpandedSource(base_source=artifact.sources[0])
+    ext_art = rdf_artifact.ExpandedArtifact(
+        name=artifact.name, sources=[ext_src])
+    request = rdf_artifact.ClientArtifactCollectorArgs(
+        artifacts=[ext_art],
+        knowledge_base=None,
+        ignore_interpolation_errors=True,
+        apply_parsers=False)
+
+    # The type ARTIFACT_GROUP will raise an error because the group should have
+    # been expanded on the server.
+    with self.assertRaises(ValueError):
+      self.RunAction(artifact_collector.ArtifactCollector, request)
 
 
 class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
@@ -150,11 +341,13 @@ class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testWMIArtifact(self, registry):
+    """Test collecting a WMI artifact."""
+
     registry.AddFileSource(self.test_artifacts_file)
     artifact = registry.GetArtifact("WMIActiveScriptEventConsumer")
 
-    ext_src = rdf_artifact.ExtendedSource(base_source=artifact.sources[0])
-    ext_art = rdf_artifact.ExtendedArtifact(
+    ext_src = rdf_artifact.ExpandedSource(base_source=artifact.sources[0])
+    ext_art = rdf_artifact.ExpandedArtifact(
         name=artifact.name, sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
         artifacts=[ext_art],
@@ -254,8 +447,8 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
             "cmd": "/bin/echo",
             "args": ["1"]
         })
-    ext_src = rdf_artifact.ExtendedSource(base_source=source)
-    ext_art = rdf_artifact.ExtendedArtifact(
+    ext_src = rdf_artifact.ExpandedSource(base_source=source)
+    ext_art = rdf_artifact.ExpandedArtifact(
         name="TestEchoCmdArtifact", sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
         artifacts=[ext_art],
@@ -313,13 +506,15 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
     self.assertEqual(len(results[2]["users"]), 1000)
 
   def testFakeFileArtifactAction(self):
+    """Test collecting a file artifact and parsing the response."""
+
     file_path = os.path.join(self.base_path, "numbers.txt")
     source = rdf_artifact.ArtifactSource(
         type=rdf_artifact.ArtifactSource.SourceType.FILE,
         attributes={"paths": [file_path]})
 
-    ext_src = rdf_artifact.ExtendedSource(base_source=source)
-    ext_art = rdf_artifact.ExtendedArtifact(
+    ext_src = rdf_artifact.ExpandedSource(base_source=source)
+    ext_art = rdf_artifact.ExpandedArtifact(
         name="FakeFileArtifact", sources=[ext_src])
     request = rdf_artifact.ClientArtifactCollectorArgs(
         artifacts=[ext_art],

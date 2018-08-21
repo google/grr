@@ -5,11 +5,12 @@ from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server import flow
 from grr_response_server.flows.general import network
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class ClientMock(object):
+class ClientMock(action_mocks.ActionMock):
 
   def ListNetworkConnections(self, _):
     """Returns fake connections."""

@@ -47,7 +47,7 @@
   { "name": "TestOSAgnostic",
     "sources": [
       { "type": "GRR_CLIENT_ACTION",
-        "attributes": { "client_action": {"GetHostname"}}
+        "attributes": { "client_action": "GetHostname"}
       }
     ],
     "doc": "Test no OS means all OSes.",
@@ -272,4 +272,45 @@
     "doc": "Test file artifact.",
     "supported_os": [ "Darwin", "Linux", "Windows" ]
   },
+
+  {
+    "name": "TestArtifactGroup",
+    "sources": [
+      { "type": "ARTIFACT_GROUP",
+        "attributes": { "names": ["TestFileArtifact"] }
+      },
+      { "type": "ARTIFACT_GROUP",
+        "attributes": { "names": [ "TestEchoArtifact" ]
+        }
+      },
+      { "type": "ARTIFACT_GROUP",
+        "attributes": { "names": ["TestFileArtifact"] }
+      },
+    ],
+    "doc": "Test artifact group.",
+    "supported_os": [ "Linux", "Darwin" ]
+  },
+
+  {
+    "name": "TestArtifactFilesArtifact",
+    "sources": [
+      { "type": "ARTIFACT_FILES",
+        "attributes": {
+          "artifact_list": ["TestFileArtifact"]
+        }
+      }
+    ],
+    "doc": "Download binaries of all the running processes.",
+    "supported_os": [ "Windows", "Linux", "Darwin" ]
+  },
+
+  {
+    "name": "ListProcessesArtifact",
+    "sources": [
+      { "type": "GRR_CLIENT_ACTION",
+        "attributes": { "client_action": "ListProcesses" }
+      }
+    ],
+    "doc": "List system processes using the GRR List Processes client action."
+  }
 ]

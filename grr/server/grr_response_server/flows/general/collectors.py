@@ -910,7 +910,6 @@ class ClientArtifactCollector(flow.GRRFlow):
     super(ClientArtifactCollector, self).Start()
 
     self.state.knowledge_base = self.args.knowledge_base
-    self.processed_artifacts = set()
     self.state.response_count = 0
 
     # TODO(user): Fill the knowledge base on the client side and remove the
@@ -954,10 +953,9 @@ class ClientArtifactCollector(flow.GRRFlow):
             client, allow_uninitialized=True)
 
     request = GetArtifactCollectorArgs(
-        self.state.knowledge_base, self.processed_artifacts,
-        self.args.artifact_list, self.args.apply_parsers,
-        self.args.ignore_interpolation_errors, self.args.use_tsk,
-        self.args.max_file_size)
+        self.state.knowledge_base, self.args.artifact_list,
+        self.args.apply_parsers, self.args.ignore_interpolation_errors,
+        self.args.use_tsk, self.args.max_file_size)
     self.CollectArtifacts(request)
 
   # TODO(user): Remove this method when the knowledge base is filled on the
@@ -1007,7 +1005,6 @@ def ConvertSupportedOSToConditions(src_object):
 
 
 def GetArtifactCollectorArgs(knowledge_base,
-                             processed_artifacts,
                              artifact_list,
                              apply_parsers=True,
                              ignore_interpolation_errors=False,
@@ -1017,7 +1014,6 @@ def GetArtifactCollectorArgs(knowledge_base,
 
   Args:
     knowledge_base: contains information about the client
-    processed_artifacts: artifacts that are in the final extended artifact
     artifact_list: list of artifact names to be collected
     apply_parsers: if True, apply any relevant parser to the collected data
     ignore_interpolation_errors: from ArtifactCollectorFlowArgs
@@ -1040,15 +1036,17 @@ def GetArtifactCollectorArgs(knowledge_base,
   bundle.ignore_interpolation_errors = ignore_interpolation_errors
   bundle.max_file_size = max_file_size
   bundle.use_tsk = use_tsk
+
+  artifact_expander = ArtifactExpander(knowledge_base, use_tsk, max_file_size)
+
   for artifact_name in artifact_list:
-    if artifact_name in processed_artifacts:
+    if artifact_name in artifact_expander.processed_artifacts:
       continue
-    artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
-    if not MeetsConditions(knowledge_base, artifact_obj):
+    rdf_artifact = artifact_registry.REGISTRY.GetArtifact(artifact_name)
+    if not MeetsConditions(knowledge_base, rdf_artifact):
       continue
-    extended_artifact = _ExtendArtifact(knowledge_base, use_tsk, max_file_size,
-                                        processed_artifacts, artifact_obj)
-    bundle.artifacts.append(extended_artifact)
+    expanded_artifact = artifact_expander.Expand(rdf_artifact)
+    bundle.artifacts.append(expanded_artifact)
   return bundle
 
 
@@ -1065,64 +1063,96 @@ def MeetsConditions(knowledge_base, source):
   return source_conditions_met
 
 
-def _ExtendArtifact(knowledge_base, use_tsk, max_file_size, processed_artifacts,
-                    art_obj):
-  """Extend artifact by adding information needed for their collection.
+class ArtifactExpander(object):
+  """Expands a given artifact and keeps track of processed artifacts."""
 
-  Args:
-    knowledge_base: containing information about the client
-    use_tsk: parameter from the ArtifactCollectorFlowArgs
-    max_file_size: parameter from the ArtifactCollectorFlowArgs
-    processed_artifacts: artifacts that are in the final extended artifact
-    art_obj: rdf value artifact
+  def __init__(self, knowledge_base, use_tsk, max_file_size):
+    self._knowledge_base = knowledge_base
+    self._path_type = _GetPathType(use_tsk)
+    self._max_file_size = max_file_size
+    self.processed_artifacts = set()
 
-  Returns:
-    rdf value representation of extended artifact containing the name of the
-    artifact and the extended sources
-  """
-  source_type = rdf_artifacts.ArtifactSource.SourceType
+  def Expand(self, rdf_artifact):
+    """Expand artifact by extending its sources.
 
-  ext_art = rdf_artifacts.ExtendedArtifact()
-  ext_art.name = art_obj.name
-  for source in art_obj.sources:
-    if MeetsConditions(knowledge_base, source):
-      ext_source = None
+    This method takes as input an rdf artifact object and returns a rdf expanded
+    artifact. It iterates through the list of sources processing them by type.
+    Each source of the original artifact can lead to one or more (in case of
+    artifact groups and files where the sub artifacts are expanded recursively)
+    sources in the expanded artifact. The list of sources of the expanded
+    artifact is extended at the end of each iteration.
 
-      ext_src = rdf_artifacts.ExtendedSource()
-      ext_src.base_source = source
-      type_name = source.type
+    Args:
+      rdf_artifact: artifact object to expand (obtained from the registry)
 
-      if type_name == source_type.FILE:
-        ext_src.path_type = _GetPathType(use_tsk)
-        ext_src.max_bytesize = max_file_size
+    Returns:
+      rdf value representation of expanded artifact containing the name of the
+      artifact and the expanded sources
+    """
 
-      elif type_name in (source_type.DIRECTORY, source_type.GREP,
-                         source_type.REGISTRY_KEY):
-        ext_src.path_type = _GetPathType(use_tsk)
+    source_type = rdf_artifacts.ArtifactSource.SourceType
 
-      elif type_name in (source_type.ARTIFACT_GROUP,
-                         source_type.ARTIFACT_FILES):
-        extended_sources = []
-        artifact_list = []
-        if "names" in source.attributes:
-          artifact_list = source.attributes["names"]
-        elif "artifact_list" in source.attributes:
-          artifact_list = source.attributes["artifact_list"]
-        for artifact_name in artifact_list:
-          if artifact_name in processed_artifacts:
+    expanded_artifact = rdf_artifacts.ExpandedArtifact()
+    expanded_artifact.name = rdf_artifact.name
+
+    for source in rdf_artifact.sources:
+      if MeetsConditions(self._knowledge_base, source):
+        type_name = source.type
+
+        if type_name == source_type.ARTIFACT_GROUP:
+          expanded_sources = self._ExpandArtifactGroupSource(source)
+          # if the source artifacts have already been processed continue with
+          # the next artifact
+          if not expanded_sources:
             continue
-          artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
-          extended_artifact = _ExtendArtifact(knowledge_base, use_tsk,
-                                              max_file_size,
-                                              processed_artifacts, artifact_obj)
-          extended_sources.extend(extended_artifact.sources)
-        ext_source = extended_sources
-      if ext_source is None:
-        ext_source = [ext_src]
 
-      ext_art.sources.Extend(ext_source)
-  processed_artifacts.add(art_obj.name)
-  return ext_art
+        elif type_name == source_type.ARTIFACT_FILES:
+          expanded_sources = self._ExpandArtifactFilesSource(source)
+
+        else:
+          expanded_sources = self._ExpandBasicSource(source)
+
+        expanded_artifact.sources.Extend(expanded_sources)
+    self.processed_artifacts.add(rdf_artifact.name)
+    return expanded_artifact
+
+  def _ExpandBasicSource(self, source):
+    expanded_source = rdf_artifacts.ExpandedSource(
+        base_source=source,
+        path_type=self._path_type,
+        max_bytesize=self._max_file_size)
+    return [expanded_source]
+
+  def _ExpandArtifactGroupSource(self, source):
+    """Recursively expands an artifact group source."""
+    expanded_sources = []
+    artifact_list = []
+    if "names" in source.attributes:
+      artifact_list = source.attributes["names"]
+    for artifact_name in artifact_list:
+      if artifact_name in self.processed_artifacts:
+        continue
+      artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
+      expanded_sub_artifact = self.Expand(artifact_obj)
+      expanded_sources.extend(expanded_sub_artifact.sources)
+    return expanded_sources
+
+  def _ExpandArtifactFilesSource(self, source):
+    """Recursively expands an artifact files source."""
+    expanded_source = rdf_artifacts.ExpandedSource(base_source=source)
+    sub_sources = []
+    artifact_list = []
+    if "artifact_list" in source.attributes:
+      artifact_list = source.attributes["artifact_list"]
+    for artifact_name in artifact_list:
+      if artifact_name in self.processed_artifacts:
+        continue
+      artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
+      expanded_artifact_group = self.Expand(artifact_obj)
+      sub_sources.extend(expanded_artifact_group.sources)
+    expanded_source.artifact_sources = sub_sources
+    expanded_source.path_type = self._path_type
+    return [expanded_source]
 
 
 def _GetPathType(use_tsk):

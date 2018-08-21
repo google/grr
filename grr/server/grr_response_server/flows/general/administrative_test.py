@@ -556,7 +556,7 @@ sys.test_code_ran_here = py_args['value']
   def testGetClientStats(self):
     client_id = test_lib.TEST_CLIENT_ID
 
-    class ClientMock(object):
+    class ClientMock(action_mocks.ActionMock):
 
       def GetClientStats(self, _):
         """Fake get client stats method."""

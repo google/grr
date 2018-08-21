@@ -958,26 +958,22 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
   def testCPULimitForFlows(self):
     """This tests that the client actions are limited properly."""
     result = {}
-    client_mock = action_mocks.CPULimitClientMock(result)
-    client_mock = flow_test_lib.MockClient(
-        self.client_id, client_mock, token=self.token)
+    client_mock = action_mocks.CPULimitClientMock(
+        result,
+        user_cpu_usage=[10],
+        system_cpu_usage=[10],
+        network_usage=[1000])
 
-    client_mock.EnableResourceUsage(
-        user_cpu_usage=[10], system_cpu_usage=[10], network_usage=[1000])
-
-    worker_obj = worker_lib.GRRWorker(token=self.token)
-
-    flow.StartFlow(
+    flow_test_lib.TestFlowHelper(
+        flow_test_lib.CPULimitFlow.__name__,
+        client_mock,
+        token=self.token,
         client_id=self.client_id,
-        flow_name=flow_test_lib.CPULimitFlow.__name__,
         cpu_limit=1000,
-        network_bytes_limit=10000,
-        token=self.token)
+        network_bytes_limit=10000)
 
-    self._Process([client_mock], worker_obj)
-
-    self.assertEqual(result["cpulimit"], [1000, 980, 960])
-    self.assertEqual(result["networklimit"], [10000, 9000, 8000])
+    self.assertEqual(client_mock.storage["cpulimit"], [1000, 980, 960])
+    self.assertEqual(client_mock.storage["networklimit"], [10000, 9000, 8000])
 
     return result
 
@@ -998,13 +994,13 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     result = {}
     client_mocks = []
     for client_id in client_ids:
-      client_mock = action_mocks.CPULimitClientMock(result)
-      client_mock = flow_test_lib.MockClient(
-          rdf_client.ClientURN(client_id), client_mock, token=self.token)
-
-      client_mock.EnableResourceUsage(
-          user_cpu_usage=[10], system_cpu_usage=[10], network_usage=[1000])
-      client_mocks.append(client_mock)
+      client_mock = action_mocks.CPULimitClientMock(
+          result,
+          user_cpu_usage=[10],
+          system_cpu_usage=[10],
+          network_usage=[1000])
+      client_mocks.append(
+          flow_test_lib.MockClient(client_id, client_mock, token=self.token))
 
     flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
         flow_name=flow_test_lib.CPULimitFlow.__name__)
@@ -1064,9 +1060,15 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     ])
     result.clear()
 
-    for client_mock in client_mocks:
-      client_mock.EnableResourceUsage(
-          user_cpu_usage=[500], system_cpu_usage=[500], network_usage=[1000000])
+    client_mocks = []
+    for client_id in client_ids:
+      client_mock = action_mocks.CPULimitClientMock(
+          result,
+          user_cpu_usage=[500],
+          system_cpu_usage=[500],
+          network_usage=[1000000])
+      client_mocks.append(
+          flow_test_lib.MockClient(client_id, client_mock, token=self.token))
 
     with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,

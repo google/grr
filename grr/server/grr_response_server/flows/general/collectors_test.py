@@ -466,7 +466,7 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     kb = rdf_client.KnowledgeBase()
     kb.os = "Windows"
 
-    artifact_bundle = collectors.GetArtifactCollectorArgs(kb, set(), [])
+    artifact_bundle = collectors.GetArtifactCollectorArgs(kb, [])
 
     self.assertEqual(artifact_bundle.knowledge_base.os, "Windows")
 
@@ -477,8 +477,7 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     kb = rdf_client.KnowledgeBase()
     kb.os = "Linux"
 
-    artifact_bundle = collectors.GetArtifactCollectorArgs(
-        kb, set(), artifact_list)
+    artifact_bundle = collectors.GetArtifactCollectorArgs(kb, artifact_list)
     artifacts_objects = list(artifact_bundle.artifacts)
 
     art_obj = artifacts_objects[0]
@@ -495,8 +494,7 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     kb = rdf_client.KnowledgeBase()
     kb.os = "Windows"
 
-    artifact_bundle = collectors.GetArtifactCollectorArgs(
-        kb, set(), artifact_list)
+    artifact_bundle = collectors.GetArtifactCollectorArgs(kb, artifact_list)
     artifacts_objects = list(artifact_bundle.artifacts)
 
     self.assertEqual(len(artifact_bundle.artifacts), 1)
@@ -521,8 +519,7 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     kb = rdf_client.KnowledgeBase()
     kb.os = "Windows"
 
-    artifact_bundle = collectors.GetArtifactCollectorArgs(
-        kb, set(), artifact_list)
+    artifact_bundle = collectors.GetArtifactCollectorArgs(kb, artifact_list)
     artifacts_objects = list(artifact_bundle.artifacts)
 
     self.assertEqual(len(artifacts_objects), 3)
@@ -545,11 +542,36 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     kb = rdf_client.KnowledgeBase()
     kb.os = "Linux"
 
-    artifact_bundle = collectors.GetArtifactCollectorArgs(
-        kb, set(), artifact_list)
+    artifact_bundle = collectors.GetArtifactCollectorArgs(kb, artifact_list)
     artifacts_objects = list(artifact_bundle.artifacts)
 
     self.assertEqual(len(artifacts_objects), 2)
+
+  def testPrepareArtifactFilesBundle(self):
+    """Test the preparation of ArtifactFiles Args."""
+
+    artifact_list = ["TestArtifactFilesArtifact"]
+
+    kb = rdf_client.KnowledgeBase()
+    kb.os = "Linux"
+
+    file_path = os.path.join(self.base_path, "numbers.txt")
+    source = rdf_artifacts.ArtifactSource(
+        type=rdf_artifacts.ArtifactSource.SourceType.FILE,
+        attributes={"paths": [file_path]})
+    artifact_obj = artifact_registry.REGISTRY.GetArtifact("TestFileArtifact")
+    artifact_obj.sources.append(source)
+
+    artifact_bundle = collectors.GetArtifactCollectorArgs(kb, artifact_list)
+    art_obj = artifact_bundle.artifacts[0]
+
+    self.assertEqual(art_obj.name, "TestArtifactFilesArtifact")
+
+    source = art_obj.sources[0]
+    self.assertEqual(source.base_source.type, "ARTIFACT_FILES")
+
+    sub_artifact_source = source.artifact_sources[0]
+    self.assertEqual(sub_artifact_source.base_source.type, "FILE")
 
 
 class TestCmdParser(parser.CommandParser):
@@ -713,6 +735,7 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(result, expected)
 
   def testCmdArtifactWithParser(self):
+    """Test a command artifact and parsing the response."""
 
     client_test_lib.Command("/bin/echo", args=["1"])
 
@@ -741,6 +764,7 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(result, expected)
 
   def testFileArtifactWithParser(self):
+    """Test collecting a file artifact and parsing the response."""
 
     artifact_list = ["TestFileArtifact"]
 
@@ -775,6 +799,115 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     result = result.collected_artifacts[0].action_results[0].value
 
     self.assertEqual(result, expected)
+
+  def testAggregatedArtifact(self):
+    """Test we can collect an ARTIFACT_GROUP."""
+
+    client_test_lib.Command("/bin/echo", args=["1"])
+
+    artifact_list = ["TestArtifactGroup"]
+
+    file_path = os.path.join(self.base_path, "numbers.txt")
+    source = rdf_artifacts.ArtifactSource(
+        type=rdf_artifacts.ArtifactSource.SourceType.FILE,
+        attributes={"paths": [file_path]})
+    artifact_obj = artifact_registry.REGISTRY.GetArtifact("TestFileArtifact")
+    artifact_obj.sources.append(source)
+
+    results = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=False)
+    self.assertEqual(len(results), 1)
+
+    result = results[0]
+    self.assertIsInstance(result, rdf_artifacts.ClientArtifactCollectorResult)
+
+    self.assertEqual(len(result.collected_artifacts), 1)
+
+    collected_artifact = result.collected_artifacts[0]
+    self.assertEqual(collected_artifact.name, "TestArtifactGroup")
+    self.assertEqual(len(collected_artifact.action_results), 2)
+
+    self.assertIsInstance(collected_artifact.action_results[0].value,
+                          rdf_client_fs.StatEntry)
+    self.assertIsInstance(collected_artifact.action_results[1].value,
+                          rdf_client_action.ExecuteResponse)
+    self.assertEqual(collected_artifact.action_results[1].value.stdout, "1\n")
+
+  def testArtifactFiles(self):
+    """Test collecting an ArtifactFiles artifact."""
+
+    artifact_list = ["TestArtifactFilesArtifact"]
+
+    file_path = os.path.join(self.base_path, "numbers.txt")
+    source = rdf_artifacts.ArtifactSource(
+        type=rdf_artifacts.ArtifactSource.SourceType.FILE,
+        attributes={"paths": [file_path]})
+    artifact_obj = artifact_registry.REGISTRY.GetArtifact("TestFileArtifact")
+    artifact_obj.sources.append(source)
+
+    # Run the ArtifactCollector to get the expected result.
+    session_id = flow_test_lib.TestFlowHelper(
+        collectors.ArtifactCollectorFlow.__name__,
+        action_mocks.FileFinderClientMock(),
+        artifact_list=artifact_list,
+        token=self.token,
+        apply_parsers=False,
+        client_id=self.client_id)
+    expected = flow.GRRFlow.ResultCollectionForFID(session_id)[0]
+
+    self.assertIsInstance(expected, rdf_client_fs.StatEntry)
+
+    # Run the ClientArtifactCollector to get the actual result.
+    result = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=False)[0]
+    self.assertEqual(len(result.collected_artifacts), 1)
+    result = result.collected_artifacts[0].action_results[0].value
+
+    self.assertEqual(result.pathspec.path, expected.pathspec.path)
+
+  def testArtifactFilesWithPathspecAttribute(self):
+    """Test collecting ArtifactFiles with specified pathspec attribute."""
+
+    artifact_list = ["TestArtifactFilesArtifact"]
+
+    file_path = os.path.join(self.base_path, "numbers.txt")
+    source = rdf_artifacts.ArtifactSource(
+        type=rdf_artifacts.ArtifactSource.SourceType.FILE,
+        attributes={
+            "paths": [file_path],
+            "pathspec_attribute": "pathspec"
+        })
+    artifact_obj = artifact_registry.REGISTRY.GetArtifact("TestFileArtifact")
+    artifact_obj.sources.append(source)
+
+    # Run the ArtifactCollector to get the expected result.
+    session_id = flow_test_lib.TestFlowHelper(
+        collectors.ArtifactCollectorFlow.__name__,
+        action_mocks.FileFinderClientMock(),
+        artifact_list=artifact_list,
+        token=self.token,
+        apply_parsers=False,
+        client_id=self.client_id)
+    expected = flow.GRRFlow.ResultCollectionForFID(session_id)[0]
+
+    self.assertIsInstance(expected, rdf_client_fs.StatEntry)
+
+    # Run the ClientArtifactCollector to get the actual result.
+    result = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=False)[0]
+    self.assertEqual(len(result.collected_artifacts), 1)
+    result = result.collected_artifacts[0].action_results[0].value
+
+    self.assertEqual(result.pathspec.path, expected.pathspec.path)
 
 
 def main(argv):

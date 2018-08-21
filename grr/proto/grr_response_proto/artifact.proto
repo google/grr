@@ -145,7 +145,7 @@ message ArtifactDescriptor {
 }
 
 message ClientArtifactCollectorArgs {
-  repeated ExtendedArtifact artifacts = 1
+  repeated ExpandedArtifact artifacts = 1
       [(sem_type) = { description: "A list of artifacts." }];
   optional KnowledgeBase knowledge_base = 2 [(sem_type) = {
     description: "The knowledge base containing information about the client."
@@ -184,16 +184,16 @@ message ClientArtifactCollectorArgs {
   ];
 }
 
-message ExtendedArtifact {
+message ExpandedArtifact {
   required string name = 1 [(sem_type) = {
     description: "The name of the artifact.",
     type: "ArtifactName",
   }];
-  repeated ExtendedSource sources = 2
+  repeated ExpandedSource sources = 2
       [(sem_type) = { description: "The sources and what they depend on." }];
 }
 
-message ExtendedSource {
+message ExpandedSource {
   required ArtifactSource base_source = 1
       [(sem_type) = { description: "The base source." }];
   optional PathSpec.PathType path_type = 6
@@ -206,6 +206,9 @@ message ExtendedSource {
   optional int32 max_number_files = 8 [(sem_type) = {
     description: "File Finder Action Option: The maximum number of "
                  "results to get."
+  }];
+  repeated ExpandedSource artifact_sources = 9 [(sem_type) = {
+    description: "Extended sources for ArtifactFiles collection."
   }];
 }
 

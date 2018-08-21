@@ -15,7 +15,6 @@ from grr_response_client.client_actions import tempfiles
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -99,8 +98,7 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
             json_messages="""
         [["file",{"path": "%s", "pathtype": "TMPFILE"}]]
         """ % self.memory_file,
-            plugin="aff4acquire"),
-        rdf_client_action.Iterator(state="FINISHED")
+            plugin="aff4acquire")
     ]
 
 
@@ -239,7 +237,7 @@ class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
         json_data.append(new_entry)
       response.json_messages = json.dumps(json_data)
 
-    return [response, rdf_client_action.Iterator(state="FINISHED")]
+    return [response]
 
 
 class ListVADBinariesTest(MemoryTest):

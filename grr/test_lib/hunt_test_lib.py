@@ -21,11 +21,12 @@ from grr_response_server.hunts import process_results
 from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import acl_test_lib
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import worker_test_lib
 
 
-class SampleHuntMock(object):
+class SampleHuntMock(action_mocks.ActionMock):
   """Client mock for sample hunts."""
 
   def __init__(self,
@@ -34,6 +35,7 @@ class SampleHuntMock(object):
                user_cpu_time=None,
                system_cpu_time=None,
                network_bytes_sent=None):
+    super(SampleHuntMock, self).__init__()
     self.responses = 0
     self.data = data
     self.failrate = failrate
@@ -65,29 +67,40 @@ class SampleHuntMock(object):
     self.responses += 1
     self.count += 1
 
-    # Create status message to report sample resource usage
-    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
-    if self.user_cpu_time is None:
-      status.cpu_time_used.user_cpu_time = self.responses
-    else:
-      status.cpu_time_used.user_cpu_time = self.user_cpu_time
-
-    if self.system_cpu_time is None:
-      status.cpu_time_used.system_cpu_time = self.responses * 2
-    else:
-      status.cpu_time_used.system_cpu_time = self.system_cpu_time
-
-    if self.network_bytes_sent is None:
-      status.network_bytes_sent = self.responses * 3
-    else:
-      status.network_bytes_sent = self.network_bytes_sent
-
     # Every "failrate" client does not have this file.
     if self.count == self.failrate:
       self.count = 0
-      return [status]
+      return []
 
-    return [response, status]
+    return [response]
+
+  def GenerateStatusMessage(self, message, response_id):
+    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
+
+    if message.name in ["StatFile", "GetFileStat"]:
+      # Create status message to report sample resource usage
+      if self.user_cpu_time is None:
+        status.cpu_time_used.user_cpu_time = self.responses
+      else:
+        status.cpu_time_used.user_cpu_time = self.user_cpu_time
+
+      if self.system_cpu_time is None:
+        status.cpu_time_used.system_cpu_time = self.responses * 2
+      else:
+        status.cpu_time_used.system_cpu_time = self.system_cpu_time
+
+      if self.network_bytes_sent is None:
+        status.network_bytes_sent = self.responses * 3
+      else:
+        status.network_bytes_sent = self.network_bytes_sent
+
+    return rdf_flows.GrrMessage(
+        session_id=message.session_id,
+        name=message.name,
+        response_id=response_id,
+        request_id=message.request_id,
+        payload=status,
+        type=rdf_flows.GrrMessage.Type.STATUS)
 
   def TransferBuffer(self, args):
     """TransferBuffer action mock."""

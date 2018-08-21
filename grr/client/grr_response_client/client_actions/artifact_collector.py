@@ -6,7 +6,10 @@ from grr_response_client import actions
 from grr_response_client import vfs
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import file_finder
+from grr_response_client.client_actions import network
+from grr_response_client.client_actions import operating_system
 from grr_response_client.client_actions import standard
+from grr_response_client.client_actions.linux import linux
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
@@ -50,15 +53,20 @@ class ArtifactCollector(actions.ActionPlugin):
     if apply_parsers:
       processors = parser.Parser.GetClassesByArtifact(artifact.name)
 
-    for source in artifact.sources:
-      for action, request in self._ParseSourceType(source):
-        responses = self._RunClientAction(action, request, processors)
-        for response in responses:
-          action_result = rdf_artifacts.ClientActionResult()
-          action_result.type = response.__class__.__name__
-          action_result.value = response
-          artifact_result.action_results.append(action_result)
+    for source_result_list in self._ProcessSources(artifact.sources,
+                                                   processors):
+      for response in source_result_list:
+        action_result = rdf_artifacts.ClientActionResult()
+        action_result.type = response.__class__.__name__
+        action_result.value = response
+        artifact_result.action_results.append(action_result)
+
     return artifact_result
+
+  def _ProcessSources(self, sources, processors):
+    for source in sources:
+      for action, request in self._ParseSourceType(source):
+        yield self._RunClientAction(action, request, processors)
 
   def _RunClientAction(self, action, request, processors):
     saved_responses = []
@@ -86,8 +94,7 @@ class ArtifactCollector(actions.ActionPlugin):
         type_name.REGISTRY_KEY: _NotImplemented,
         type_name.REGISTRY_VALUE: self._ProcessRegistryValueSource,
         type_name.WMI: self._ProcessWmiSource,
-        type_name.ARTIFACT_GROUP: _NotImplemented,
-        type_name.ARTIFACT_FILES: _NotImplemented,
+        type_name.ARTIFACT_FILES: self._ProcessArtifactFilesSource,
         type_name.GRR_CLIENT_ACTION: self._ProcessClientActionSource
     }
     source_type = args.base_source.type
@@ -95,16 +102,48 @@ class ArtifactCollector(actions.ActionPlugin):
     try:
       source_type_action = switch[source_type]
     except KeyError:
-      raise ValueError("Incorrect source type: %s" % args.base_source.type)
+      raise ValueError("Incorrect source type: %s" % source_type)
 
     for res in source_type_action(args):
       yield res
 
+  def _ProcessArtifactFilesSource(self, args):
+    """Get artifact responses, extract paths and send corresponding files."""
+
+    if args.path_type != rdf_paths.PathSpec.PathType.OS:
+      raise ValueError("Only supported path type is OS.")
+
+    # TODO(user): Check paths for GlobExpressions.
+    # If it contains a * then FileFinder will interpret it as GlobExpression and
+    # expand it. FileFinderArgs needs an option to treat paths literally.
+
+    paths = []
+    source = args.base_source
+    pathspec_attribute = source.attributes.get("pathspec_attribute")
+
+    for source_result_list in self._ProcessSources(
+        args.artifact_sources, processors=[]):
+      for response in source_result_list:
+        path = _ExtractPath(response, pathspec_attribute)
+        if path is not None:
+          paths.append(path)
+
+    file_finder_action = rdf_file_finder.FileFinderAction.Download()
+    request = rdf_file_finder.FileFinderArgs(
+        paths=paths, pathtype=args.path_type, action=file_finder_action)
+    action = file_finder.FileFinderOS
+
+    yield action, request
+
   def _ProcessFileSource(self, args):
+
+    if args.path_type != rdf_paths.PathSpec.PathType.OS:
+      raise ValueError("Only supported path type is OS.")
+
     file_finder_action = rdf_file_finder.FileFinderAction.Stat()
     request = rdf_file_finder.FileFinderArgs(
         paths=args.base_source.attributes["paths"],
-        pathtype=rdf_paths.PathSpec.PathType.OS,
+        pathtype=args.path_type,
         action=file_finder_action)
     action = file_finder.FileFinderOS
 
@@ -125,12 +164,26 @@ class ArtifactCollector(actions.ActionPlugin):
       yield action, request
 
   def _ProcessClientActionSource(self, args):
-    for action_name in args.base_source.attributes["client_action"]:
-      if action_name == "GetHostname":
-        action = admin.GetHostname
-        yield action, {}
-      else:
-        raise ValueError("Action %s not implemented yet." % action_name)
+    # TODO(user): Add support for remaining client actions
+    # EnumerateFilesystems, StatFS and OSXEnumerateRunningServices
+    switch_action = {
+        "GetHostname": (admin.GetHostname, {}),
+        "ListProcesses": (standard.ListProcesses, {}),
+        "ListNetworkConnections": (
+            network.ListNetworkConnections,
+            rdf_client_action.ListNetworkConnectionsArgs()),
+        "EnumerateInterfaces": (operating_system.EnumerateInterfaces, {}),
+        "EnumerateUsers": (linux.EnumerateUsers, {}),
+        # "EnumerateFilesystems": (operating_system.EnumerateFilesystems, {}),
+        # "StatFS": (standard.StatFS, {}),
+        # "OSXEnumerateRunningServices": (osx.OSXEnumerateRunningServices, {}),
+    }
+    action_name = args.base_source.attributes["client_action"]
+
+    try:
+      yield switch_action[action_name]
+    except KeyError:
+      raise ValueError("Incorrect action type: %s" % action_name)
 
   def _ProcessCommandSource(self, args):
     action = standard.ExecuteCommand
@@ -221,3 +274,31 @@ def ParseResponse(processor_obj, response, knowledge_base):
   else:
     raise ValueError("Unsupported parser: %s" % processor_obj)
   return result_iterator
+
+
+def _ExtractPath(response, pathspec_attribute=None):
+  """Returns the path from a client action response as a string.
+
+  Args:
+    response: A client action response.
+    pathspec_attribute: Specifies the field which stores the pathspec.
+
+  Returns:
+    The path as a string or None if no path is found.
+
+  """
+  path_specification = response
+
+  if pathspec_attribute is not None:
+    if response.HasField(pathspec_attribute):
+      path_specification = response.Get(pathspec_attribute)
+
+  if path_specification.HasField("pathspec"):
+    path_specification = path_specification.pathspec
+
+  if path_specification.HasField("path"):
+    path_specification = path_specification.path
+
+  if isinstance(path_specification, unicode):
+    return path_specification
+  return None

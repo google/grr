@@ -13199,18 +13199,6 @@
                       "type": "EnumNamedValue",
                       "value": "AUTHENTICATED"
                     },
-                    "cpu_limit": {
-                      "type": "float",
-                      "value": 7200.0
-                    },
-                    "leased_by": {
-                      "type": "unicode",
-                      "value": "test_process@test.host:42"
-                    },
-                    "leased_until": {
-                      "type": "RDFDatetime",
-                      "value": 42000000
-                    },
                     "name": {
                       "type": "unicode",
                       "value": "ListProcesses"
@@ -13228,17 +13216,9 @@
                       "type": "unicode",
                       "value": "GrrStatus"
                     },
-                    "queue": {
-                      "type": "RDFURN",
-                      "value": "aff4:/C.1000000000000000/tasks"
-                    },
                     "request_id": {
                       "type": "long",
                       "value": 1
-                    },
-                    "require_fastpoll": {
-                      "type": "RDFBool",
-                      "value": true
                     },
                     "response_id": {
                       "type": "long",
@@ -13251,10 +13231,6 @@
                     "task_id": {
                       "type": "long",
                       "value": 43
-                    },
-                    "task_ttl": {
-                      "type": "long",
-                      "value": 6
                     },
                     "timestamp": {
                       "type": "RDFDatetime",
@@ -13288,21 +13264,15 @@
             "responses": [
               {
                 "auth_state": "AUTHENTICATED",
-                "cpu_limit": 7200.0,
-                "leased_by": "test_process@test.host:42",
-                "leased_until": 42000000,
                 "name": "ListProcesses",
                 "payload": {
                   "status": "GENERIC_ERROR"
                 },
                 "payload_type": "GrrStatus",
-                "queue": "aff4:/C.1000000000000000/tasks",
                 "request_id": 1,
-                "require_fastpoll": true,
                 "response_id": 1,
                 "session_id": "aff4:/C.1000000000000000/flows/F:123456",
                 "task_id": 43,
-                "task_ttl": 6,
                 "timestamp": 42000000,
                 "type": "STATUS"
               }
@@ -15668,18 +15638,6 @@
                       "type": "EnumNamedValue",
                       "value": "AUTHENTICATED"
                     },
-                    "cpu_limit": {
-                      "type": "float",
-                      "value": 7200.0
-                    },
-                    "leased_by": {
-                      "type": "unicode",
-                      "value": "test_process@test.host:42"
-                    },
-                    "leased_until": {
-                      "type": "RDFDatetime",
-                      "value": 42000000
-                    },
                     "name": {
                       "type": "unicode",
                       "value": "ListProcesses"
@@ -15697,17 +15655,9 @@
                       "type": "unicode",
                       "value": "GrrStatus"
                     },
-                    "queue": {
-                      "type": "RDFURN",
-                      "value": "aff4:/C.1000000000000000/tasks"
-                    },
                     "request_id": {
                       "type": "long",
                       "value": 1
-                    },
-                    "require_fastpoll": {
-                      "type": "RDFBool",
-                      "value": true
                     },
                     "response_id": {
                       "type": "long",
@@ -15720,10 +15670,6 @@
                     "task_id": {
                       "type": "long",
                       "value": 42
-                    },
-                    "task_ttl": {
-                      "type": "long",
-                      "value": 6
                     },
                     "timestamp": {
                       "type": "RDFDatetime",
@@ -15763,21 +15709,15 @@
             "responses": [
               {
                 "auth_state": "AUTHENTICATED",
-                "cpu_limit": 7200.0,
-                "leased_by": "test_process@test.host:42",
-                "leased_until": 42000000,
                 "name": "ListProcesses",
                 "payload": {
                   "status": "GENERIC_ERROR"
                 },
                 "payload_type": "GrrStatus",
-                "queue": "aff4:/C.1000000000000000/tasks",
                 "request_id": 1,
-                "require_fastpoll": true,
                 "response_id": 1,
                 "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
                 "task_id": 42,
-                "task_ttl": 6,
                 "timestamp": 42000000,
                 "type": "STATUS"
               }

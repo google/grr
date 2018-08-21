@@ -197,12 +197,13 @@ class FlowCreationTest(BasicFlowTest):
   def testFlowSerialization2(self):
     """Check that we can serialize flows."""
 
-    class TestClientMock(object):
+    class TestClientMock(action_mocks.ActionMock):
 
       in_rdfvalue = rdf_client_action.EchoRequest
       out_rdfvalues = [rdf_protodict.DataBlob]
 
       def __init__(self):
+        super(TestClientMock, self).__init__()
         # Register us as an action plugin.
         # TODO(user): this is a hacky shortcut and should be fixed.
         server_stubs.ClientActionStub.classes["ReturnBlob"] = self
@@ -973,13 +974,14 @@ class NetworkLimitFlow(flow.GRRFlow):
     del responses
 
 
-class ClientMock(object):
+class ClientMock(action_mocks.ActionMock):
   """Mock of client actions."""
 
   in_rdfvalue = None
   out_rdfvalues = [rdfvalue.RDFString]
 
   def __init__(self):
+    super(ClientMock, self).__init__()
     # Register us as an action plugin.
     # TODO(user): this is a hacky shortcut and should be fixed.
     server_stubs.ClientActionStub.classes["ReturnHello"] = self

@@ -486,16 +486,23 @@ class ListProcesses(actions.ActionPlugin):
   in_rdfvalue = None
   out_rdfvalues = [rdf_client.Process]
 
-  def Run(self, unused_arg):
+  def Run(self, args):
+    for res in self.Start(args):
+      self.SendReply(res)
+
+      # Reading information here is slow so we heartbeat between processes.
+      self.Progress()
+
+  @classmethod
+  def Start(cls, args):
+    del args  # Unused
+
     # psutil will cause an active loop on Windows 2000
     if platform.system() == "Windows" and platform.version().startswith("5.0"):
       raise RuntimeError("ListProcesses not supported on Windows 2000")
 
     for proc in psutil.process_iter():
-      self.SendReply(rdf_client.Process.FromPsutilProcess(proc))
-
-      # Reading information here is slow so we heartbeat between processes.
-      self.Progress()
+      yield rdf_client.Process.FromPsutilProcess(proc)
 
 
 class SendFile(actions.ActionPlugin):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A library of client action mocks for use in tests."""
 
+import itertools
 import socket
 
 
@@ -15,7 +16,9 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -57,15 +60,51 @@ class ActionMock(object):
   def RecordCall(self, action_name, action_args):
     self.recorded_args.setdefault(action_name, []).append(action_args)
 
+  def GenerateStatusMessage(self, message, response_id=1, status=None):
+    return rdf_flows.GrrMessage(
+        session_id=message.session_id,
+        name=message.name,
+        response_id=response_id,
+        request_id=message.request_id,
+        task_id=message.task_id,
+        payload=rdf_flows.GrrStatus(
+            status=status or rdf_flows.GrrStatus.ReturnedStatus.OK),
+        type=rdf_flows.GrrMessage.Type.STATUS)
+
+  def _HandleMockAction(self, message):
+    """Handles the action in case it's a mock."""
+    responses = getattr(self, message.name)(message.payload)
+    ret = []
+    for i, r in enumerate(responses):
+      ret.append(
+          rdf_flows.GrrMessage(
+              session_id=message.session_id,
+              request_id=message.request_id,
+              task_id=message.task_id,
+              name=message.name,
+              response_id=i + 1,
+              payload=r,
+              type=rdf_flows.GrrMessage.Type.MESSAGE))
+
+    ret.append(self.GenerateStatusMessage(message, response_id=len(ret) + 1))
+    return ret
+
   def HandleMessage(self, message):
     """Consume a message and execute the client action."""
     message.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
-    # We allow special methods to be specified for certain actions.
+    # This is a mock client action, we process this separately.
     if hasattr(self, message.name):
-      return getattr(self, message.name)(message.payload)
+      return self._HandleMockAction(message)
 
     self.RecordCall(message.name, message.payload)
+
+    if message.name not in self.action_classes:
+      return [
+          self.GenerateStatusMessage(
+              message, status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR)
+      ]
+
     action_cls = self.action_classes[message.name]
     action = action_cls(grr_worker=self.client_worker)
 
@@ -75,26 +114,52 @@ class ActionMock(object):
     return self.client_worker.Drain()
 
 
-class CPULimitClientMock(object):
+class CPULimitClientMock(ActionMock):
   """A mock for testing resource limits."""
 
   in_rdfvalue = rdf_protodict.DataBlob
   out_rdfvalues = []
 
-  def __init__(self, storage):
+  def __init__(self,
+               storage,
+               user_cpu_usage=None,
+               system_cpu_usage=None,
+               network_usage=None):
+    super(CPULimitClientMock, self).__init__()
     # Register us as an action plugin.
     # TODO(user): this is a hacky shortcut and should be fixed.
     server_stubs.ClientActionStub.classes["Store"] = self
     self.storage = storage
     self.__name__ = "Store"
+    self.user_cpu_usage = itertools.cycle(user_cpu_usage or [None])
+    self.system_cpu_usage = itertools.cycle(system_cpu_usage or [None])
+    self.network_usage = itertools.cycle(network_usage or [None])
 
   def HandleMessage(self, message):
     self.storage.setdefault("cpulimit", []).append(message.cpu_limit)
     self.storage.setdefault("networklimit",
                             []).append(message.network_bytes_limit)
+    return [self.GenerateStatusMessage(message)]
+
+  def GenerateStatusMessage(self, message, response_id=1):
+    cpu_time_used = rdf_client_stats.CpuSeconds(
+        user_cpu_time=self.user_cpu_usage.next(),
+        system_cpu_time=self.system_cpu_usage.next())
+    network_bytes_sent = self.network_usage.next()
+
+    return rdf_flows.GrrMessage(
+        session_id=message.session_id,
+        name=message.name,
+        response_id=response_id,
+        request_id=message.request_id,
+        payload=rdf_flows.GrrStatus(
+            status=rdf_flows.GrrStatus.ReturnedStatus.OK,
+            cpu_time_used=cpu_time_used,
+            network_bytes_sent=network_bytes_sent),
+        type=rdf_flows.GrrMessage.Type.STATUS)
 
 
-class InvalidActionMock(object):
+class InvalidActionMock(ActionMock):
   """An action mock which raises for all actions."""
 
   def HandleMessage(self, unused_message):
@@ -285,7 +350,7 @@ class InterrogatedClient(ActionMock):
             rdf_dict[key] = "Failed to encode: %s" % value
       return [rdf_dict]
     else:
-      return None
+      return []
 
   def GetCloudVMMetadata(self, args):
     result_list = []

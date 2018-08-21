@@ -27,7 +27,7 @@ from grr.test_lib import test_lib
 # pylint:mode=test
 
 
-class ClientMock(object):
+class ClientMock(action_mocks.ActionMock):
 
   BUFFER_SIZE = 1024 * 1024
 

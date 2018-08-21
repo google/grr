@@ -542,6 +542,7 @@ def InitializeNoPrompt(config=None, token=None):
     ValueError: if required flags are not provided, or if the config has
       already been initialized.
     IOError: if config is not writeable
+    ConfigInitError: if GRR is unable to connect to a running MySQL instance.
 
   This method does the minimum work necessary to configure GRR without any user
   prompting, relying heavily on config default values. User must supply the
@@ -583,10 +584,16 @@ def InitializeNoPrompt(config=None, token=None):
   config_dict["Monitoring.emergency_access_email"] = (
       "grr-emergency@%s" % hostname)
   config_dict["Rekall.enabled"] = flags.FLAGS.enable_rekall
+  # Print all configuration options, except for the MySQL password.
   print("Setting configuration as:\n\n%s" % config_dict)
+  config_dict["Mysql.database_password"] = flags.FLAGS.mysql_password
+  if CheckMySQLConnection(config_dict):
+    print("Successfully connected to MySQL with the given configuration.")
+  else:
+    print("Error: Could not connect to MySQL with the given configuration.")
+    raise ConfigInitError
   for key, value in iteritems(config_dict):
     config.Set(key, value)
-  config.Set("Mysql.database_password", flags.FLAGS.mysql_password)
   GenerateKeys(config)
   FinalizeConfigInit(config, token)
 

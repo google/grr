@@ -74,6 +74,11 @@ class EnumerateInterfaces(actions.ActionPlugin):
   out_rdfvalues = [rdf_client_network.Interface]
 
   def Run(self, args):
+    for res in self.Start(args):
+      self.SendReply(res)
+
+  @classmethod
+  def Start(cls, args):
     del args  # Unused.
 
     pythoncom.CoInitialize()
@@ -91,7 +96,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
       if addresses:
         response.addresses = addresses
 
-      self.SendReply(response)
+      yield response
 
 
 class EnumerateFilesystems(actions.ActionPlugin):

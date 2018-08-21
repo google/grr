@@ -116,8 +116,16 @@ class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerates all MAC addresses on this system."""
   out_rdfvalues = [rdf_client_network.Interface]
 
-  def Run(self, unused_args):
+  def Run(self, args):
     """Enumerate all interfaces and collect their MAC addresses."""
+    for res in self.Start(args):
+      self.SendReply(res)
+
+  @classmethod
+  def Start(cls, args):
+    """Enumerate all interfaces and collect their MAC addresses."""
+    del args  # Unused
+
     libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
     ifa = Ifaddrs()
     p_ifa = ctypes.pointer(ifa)
@@ -172,7 +180,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         args["mac_address"] = mac
       if addresses:
         args["addresses"] = address_list
-      self.SendReply(rdf_client_network.Interface(**args))
+      yield rdf_client_network.Interface(**args)
 
 
 class GetInstallDate(actions.ActionPlugin):
@@ -214,40 +222,17 @@ class EnumerateUsers(actions.ActionPlugin):
   # KnowledgeBaseUser was renamed to User.
   out_rdfvalues = [rdf_client.User, rdf_client.KnowledgeBaseUser]
 
-  def ParseWtmp(self):
-    """Parse wtmp and utmp and extract the last logon time."""
-    users = {}
+  def Run(self, args):
+    for res in self.Start(args):
+      self.SendReply(res)
 
-    wtmp_struct_size = UtmpStruct.GetSize()
-    filenames = glob.glob("/var/log/wtmp*") + ["/var/run/utmp"]
-
-    for filename in filenames:
-      try:
-        wtmp = open(filename, "rb").read()
-      except IOError:
-        continue
-
-      for offset in range(0, len(wtmp), wtmp_struct_size):
-        try:
-          record = UtmpStruct(wtmp[offset:offset + wtmp_struct_size])
-        except utils.ParsingError:
-          break
-
-        # Users only appear for USER_PROCESS events, others are system.
-        if record.ut_type != 7:
-          continue
-
-        try:
-          if users[record.ut_user] < record.tv_sec:
-            users[record.ut_user] = record.tv_sec
-        except KeyError:
-          users[record.ut_user] = record.tv_sec
-
-    return users
-
-  def Run(self, unused_args):
+  @classmethod
+  def Start(cls, args):
     """Enumerates all the users on this system."""
-    users = self.ParseWtmp()
+
+    del args  # Unused
+
+    users = _ParseWtmp()
     for user, last_login in iteritems(users):
 
       # Lose the null termination
@@ -274,7 +259,7 @@ class EnumerateUsers(actions.ActionPlugin):
         except KeyError:
           pass
 
-        self.SendReply(result)
+        yield result
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
@@ -405,3 +390,35 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
       # so we just wait. If something goes wrong, the nanny will restart the
       # service after a short while and the client will come back to life.
       time.sleep(1000)
+
+
+def _ParseWtmp():
+  """Parse wtmp and utmp and extract the last logon time."""
+  users = {}
+
+  wtmp_struct_size = UtmpStruct.GetSize()
+  filenames = glob.glob("/var/log/wtmp*") + ["/var/run/utmp"]
+
+  for filename in filenames:
+    try:
+      wtmp = open(filename, "rb").read()
+    except IOError:
+      continue
+
+    for offset in range(0, len(wtmp), wtmp_struct_size):
+      try:
+        record = UtmpStruct(wtmp[offset:offset + wtmp_struct_size])
+      except utils.ParsingError:
+        break
+
+      # Users only appear for USER_PROCESS events, others are system.
+      if record.ut_type != 7:
+        continue
+
+      try:
+        if users[record.ut_user] < record.tv_sec:
+          users[record.ut_user] = record.tv_sec
+      except KeyError:
+        users[record.ut_user] = record.tv_sec
+
+  return users

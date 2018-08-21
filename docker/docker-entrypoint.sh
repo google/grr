@@ -18,7 +18,11 @@ initialize() {
         --noprompt \
         --external_hostname="${EXTERNAL_HOSTNAME}" \
         --admin_password="${ADMIN_PASSWORD}" \
-        --mysql_password=''
+        --mysql_hostname="${GRR_MYSQL_HOSTNAME}" \
+        --mysql_port="${GRR_MYSQL_PORT:-0}" \
+        --mysql_db="${GRR_MYSQL_DB}" \
+        --mysql_username="${GRR_MYSQL_USERNAME}" \
+        --mysql_password="${GRR_MYSQL_PASSWORD}"
     else
       echo "initialize hasn't run and EXTERNAL_HOSTNAME/ADMIN_PASSWORD not set"
       exit 1
@@ -29,7 +33,9 @@ initialize() {
 APPLICATION=$1;
 VIRTUALENV="/usr/share/grr-server/"
 if [[ ${APPLICATION} = 'grr' ]]; then
-  service mysql start
+  if [[ "${DISABLE_INTERNAL_MYSQL}" != 'true' ]]; then
+    service mysql start
+  fi
   source "${VIRTUALENV}/bin/activate"
 
   if [[ "$#" -eq 1 ]]; then

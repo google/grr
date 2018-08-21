@@ -142,8 +142,15 @@ class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerate all MAC addresses of all NICs."""
   out_rdfvalues = [rdf_client_network.Interface]
 
-  def Run(self, unused_args):
+  def Run(self, args):
+    for res in self.Start(args):
+      self.SendReply(res)
+
+  @classmethod
+  def Start(cls, args):
     """Enumerate all MAC addresses."""
+    del args  # Unused
+
     libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
     ifa = Ifaddrs()
     p_ifa = ctypes.pointer(ifa)
@@ -198,7 +205,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         args["mac_address"] = mac
       if address_list:
         args["addresses"] = address_list
-      self.SendReply(rdf_client_network.Interface(**args))
+      yield rdf_client_network.Interface(**args)
 
 
 class GetInstallDate(actions.ActionPlugin):
