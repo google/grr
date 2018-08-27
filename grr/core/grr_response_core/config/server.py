@@ -54,6 +54,9 @@ config_lib.DEFINE_bool("Worker.smtp_starttls", False,
 config_lib.DEFINE_string("Worker.smtp_user", None,
                          "Username for the smtp connection.")
 
+config_lib.DEFINE_string("Worker.smtp_mailuser", None,
+                        "Mailname for the smtp sender")
+
 config_lib.DEFINE_string("Worker.smtp_password", None,
                          "Password for the smtp connection.")
 
