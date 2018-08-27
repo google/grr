@@ -575,10 +575,15 @@ class OnlineNotification(flow.GRRFlow):
           url="/clients/%s" % self.client_id,
           creator=self.token.username,
           signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
-
+      
+      if config.CONFIG["Worker.smtp_mailuser"]:
+          email_sender = config.CONFIG["Worker.smtp_mailuser"]
+      else:
+          email_sender = "grr-noreply"
+          
       email_alerts.EMAIL_ALERTER.SendEmail(
           self.args.email,
-          "grr-noreply",
+          email_sender,
           utils.SmartStr(subject),
           utils.SmartStr(body),
           is_html=True)
