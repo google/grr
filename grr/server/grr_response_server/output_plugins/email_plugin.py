@@ -89,10 +89,15 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
         signature=config.CONFIG["Email.signature"],
         hostname=utils.SmartUnicode(hostname),
         creator=utils.SmartUnicode(self.token.username))
-
+    
+    if config.CONFIG["Worker.smtp_mailuser"]:
+        email_sender = config.CONFIG["Worker.smtp_mailuser"]
+    else:
+        email_sender = "grr-noreply"
+          
     email_alerts.EMAIL_ALERTER.SendEmail(
         self.state.args.email_address,
-        "grr-noreply",
+        email_sender,
         utils.SmartStr(subject),
         utils.SmartStr(body),
         is_html=True)
