@@ -148,7 +148,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("arp.exe", ["-a"]),
         ("driverquery.exe", ["/v"]),
         ("ipconfig.exe", ["/all"]),
-        ("netsh.exe", ["advfirewall"], ["firewall"], ["show"], ["rule"], ["name=all"]),
+        ("netsh.exe", ["advfirewall", "firewall", "show", "rule", "name=all"]),
         ("tasklist.exe", ["/SVC"]),
         ("tasklist.exe", ["/v"]),
     ]
