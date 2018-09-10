@@ -19,6 +19,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
@@ -53,8 +54,7 @@ class ClientActionRunnerArgs(rdf_structs.RDFProtoStruct):
 
 
 class ClientActionRunner(flow.GRRFlow):
-  """Just call the specified client action directly.
-  """
+  """Just call the specified client action directly."""
   args_type = ClientActionRunnerArgs
   # TODO(amoser): remove.
   action_args = {}
@@ -165,7 +165,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertEqual(
         email_message.get("address", ""),
         config.CONFIG["Monitoring.alert_email"])
-    self.assertTrue(str(client_id) in email_message["title"])
+
+    self.assertTrue(client_id.Basename() in email_message["title"])
 
     # Make sure the flow state is included in the email message.
     for s in [
@@ -238,48 +239,137 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
         [self.email_messages[0]["address"], self.email_messages[1]["address"]],
         ["crashes@example.com", config.CONFIG["Monitoring.alert_email"]])
 
-  def testNannyMessage(self):
+  def testNannyMessageFlow(self):
     client_id = self.SetupClient(0)
-    nanny_message = "Oh no!"
-    self.email_message = {}
-
-    def SendEmail(address, sender, title, message, **_):
-      self.email_message.update(
-          dict(address=address, sender=sender, title=title, message=message))
-
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+    email_dict = {}
+    with test_lib.ConfigOverrider({
+        "Database.useForReads.message_handlers": False
+    }):
+      nanny_message = "Oh no!"
       self.SendResponse(
           session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
           data=nanny_message,
           client_id=client_id,
           well_known=True)
 
+    def SendEmail(address, sender, title, message, **_):
+      email_dict.update(
+          dict(address=address, sender=sender, title=title, message=message))
+
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       # Now emulate a worker to process the event.
       worker = worker_test_lib.MockWorker(token=self.token)
       while worker.Next():
         pass
       worker.pool.Join()
 
-      # We expect the email to be sent.
-      self.assertEqual(
-          self.email_message.get("address"),
-          config.CONFIG["Monitoring.alert_email"])
-      self.assertTrue(str(client_id) in self.email_message["title"])
+    self._CheckNannyEmail(client_id, nanny_message, email_dict)
 
-      # Make sure the message is included in the email message.
-      self.assertTrue(nanny_message in self.email_message["message"])
+  def testNannyMessageHandler(self):
+    client_id = self.SetupClient(0)
+    nanny_message = "Oh no!"
+    email_dict = {}
 
-      # Make sure crashes collections are created and written
-      # into proper locations. First check the per-client crashes collection.
-      client_crashes = list(
-          aff4_grr.VFSGRRClient.CrashCollectionForCID(client_id))
+    def SendEmail(address, sender, title, message, **_):
+      email_dict.update(
+          dict(address=address, sender=sender, title=title, message=message))
 
-      self.assertEqual(len(client_crashes), 1)
-      crash = client_crashes[0]
-      self.assertEqual(crash.client_id, client_id)
-      self.assertEqual(crash.client_info.client_name, "GRR Monitor")
-      self.assertEqual(crash.crash_type, "Nanny Message")
-      self.assertEqual(crash.crash_message, nanny_message)
+    with test_lib.ConfigOverrider({
+        "Database.useForReads": True,
+        "Database.useForReads.message_handlers": True
+    }):
+      with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+        flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
+            rdf_flows.GrrMessage(
+                source=client_id,
+                session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
+                payload=rdf_protodict.DataBlob(string=nanny_message),
+                request_id=0,
+                auth_state="AUTHENTICATED",
+                response_id=123))
+
+    self._CheckNannyEmail(client_id, nanny_message, email_dict)
+
+  def _CheckNannyEmail(self, client_id, nanny_message, email_dict):
+    # We expect the email to be sent.
+    self.assertEqual(
+        email_dict.get("address"), config.CONFIG["Monitoring.alert_email"])
+    self.assertTrue(client_id.Basename() in email_dict["title"])
+
+    # Make sure the message is included in the email message.
+    self.assertTrue(nanny_message in email_dict["message"])
+
+    # Make sure crashes collections are created and written
+    # into proper locations. First check the per-client crashes collection.
+    client_crashes = list(
+        aff4_grr.VFSGRRClient.CrashCollectionForCID(client_id))
+
+    self.assertEqual(len(client_crashes), 1)
+    crash = client_crashes[0]
+    self.assertEqual(crash.client_id, client_id)
+    self.assertEqual(crash.client_info.client_name, "GRR Monitor")
+    self.assertEqual(crash.crash_type, "Nanny Message")
+    self.assertEqual(crash.crash_message, nanny_message)
+
+  def testClientAlertFlow(self):
+    client_id = self.SetupClient(0)
+    email_dict = {}
+    with test_lib.ConfigOverrider({
+        "Database.useForReads.message_handlers": False
+    }):
+      client_message = "Oh no!"
+      self.SendResponse(
+          session_id=rdfvalue.SessionID(flow_name="ClientAlert"),
+          data=client_message,
+          client_id=client_id,
+          well_known=True)
+
+    def SendEmail(address, sender, title, message, **_):
+      email_dict.update(
+          dict(address=address, sender=sender, title=title, message=message))
+
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+      # Now emulate a worker to process the event.
+      worker = worker_test_lib.MockWorker(token=self.token)
+      while worker.Next():
+        pass
+      worker.pool.Join()
+
+    self._CheckAlertEmail(client_id, client_message, email_dict)
+
+  def testClientAlertHandler(self):
+    client_id = self.SetupClient(0)
+    client_message = "Oh no!"
+    email_dict = {}
+
+    def SendEmail(address, sender, title, message, **_):
+      email_dict.update(
+          dict(address=address, sender=sender, title=title, message=message))
+
+    with test_lib.ConfigOverrider({
+        "Database.useForReads": True,
+        "Database.useForReads.message_handlers": True
+    }):
+      with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+        flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
+            rdf_flows.GrrMessage(
+                source=client_id,
+                session_id=rdfvalue.SessionID(flow_name="ClientAlert"),
+                payload=rdf_protodict.DataBlob(string=client_message),
+                request_id=0,
+                auth_state="AUTHENTICATED",
+                response_id=123))
+
+    self._CheckAlertEmail(client_id, client_message, email_dict)
+
+  def _CheckAlertEmail(self, client_id, message, email_dict):
+    # We expect the email to be sent.
+    self.assertEqual(
+        email_dict.get("address"), config.CONFIG["Monitoring.alert_email"])
+    self.assertTrue(client_id.Basename() in email_dict["title"])
+
+    # Make sure the message is included in the email message.
+    self.assertTrue(message in email_dict["message"])
 
   def _RunSendStartupInfo(self, client_id):
     client_mock = action_mocks.ActionMock(admin.SendStartupInfo)
@@ -290,7 +380,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
         action="SendStartupInfo",
         token=self.token)
 
-  def testStartupHandlerRelational(self):
+  def testStartupHandler(self):
     client_id = test_lib.TEST_CLIENT_ID
 
     with test_lib.ConfigOverrider({
@@ -336,87 +426,91 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
           self.assertIsNotNone(new_si)
           self.assertNotEqual(new_si.client_info, si.client_info)
 
-  def testStartupHandler(self):
-    client_id = test_lib.TEST_CLIENT_ID
-    rel_client_id = client_id.Basename()
-    data_store.REL_DB.WriteClientMetadata(
-        rel_client_id, fleetspeak_enabled=True)
+  def testStartupFlow(self):
+    with test_lib.ConfigOverrider({
+        "Database.useForReads.message_handlers": False
+    }):
+      client_id = test_lib.TEST_CLIENT_ID
+      rel_client_id = client_id.Basename()
+      data_store.REL_DB.WriteClientMetadata(
+          rel_client_id, fleetspeak_enabled=True)
 
-    self._RunSendStartupInfo(client_id)
-
-    # AFF4 client.
-
-    # Check the client's boot time and info.
-    fd = aff4.FACTORY.Open(client_id, token=self.token)
-    client_info = fd.Get(fd.Schema.CLIENT_INFO)
-    boot_time = fd.Get(fd.Schema.LAST_BOOT_TIME)
-
-    self.assertEqual(client_info.client_name, config.CONFIG["Client.name"])
-    self.assertEqual(client_info.client_description,
-                     config.CONFIG["Client.description"])
-
-    # Check that the boot time is accurate.
-    self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsSinceEpoch())
-
-    # objects.ClientSnapshot.
-
-    si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
-    self.assertIsNotNone(si)
-    self.assertEqual(si.client_info.client_name, config.CONFIG["Client.name"])
-    self.assertEqual(si.client_info.client_description,
-                     config.CONFIG["Client.description"])
-
-    # Run it again - this should not update any record.
-    self._RunSendStartupInfo(client_id)
-
-    # AFF4 client.
-    fd = aff4.FACTORY.Open(client_id, token=self.token)
-    self.assertEqual(boot_time.age, fd.Get(fd.Schema.LAST_BOOT_TIME).age)
-    self.assertEqual(client_info.age, fd.Get(fd.Schema.CLIENT_INFO).age)
-
-    # objects.ClientSnapshot.
-
-    new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
-    self.assertEqual(new_si, si)
-
-    # Simulate a reboot.
-    current_boot_time = psutil.boot_time()
-    with utils.Stubber(psutil, "boot_time", lambda: current_boot_time + 600):
-
-      # Run it again - this should now update the boot time.
       self._RunSendStartupInfo(client_id)
 
       # AFF4 client.
 
-      # Ensure only this attribute is updated.
+      # Check the client's boot time and info.
       fd = aff4.FACTORY.Open(client_id, token=self.token)
-      self.assertNotEqual(
-          int(boot_time.age), int(fd.Get(fd.Schema.LAST_BOOT_TIME).age))
-      self.assertEqual(
-          int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
+      client_info = fd.Get(fd.Schema.CLIENT_INFO)
+      boot_time = fd.Get(fd.Schema.LAST_BOOT_TIME)
+
+      self.assertEqual(client_info.client_name, config.CONFIG["Client.name"])
+      self.assertEqual(client_info.client_description,
+                       config.CONFIG["Client.description"])
+
+      # Check that the boot time is accurate.
+      self.assertAlmostEqual(psutil.boot_time(),
+                             boot_time.AsSecondsSinceEpoch())
 
       # objects.ClientSnapshot.
+
+      si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
+      self.assertIsNotNone(si)
+      self.assertEqual(si.client_info.client_name, config.CONFIG["Client.name"])
+      self.assertEqual(si.client_info.client_description,
+                       config.CONFIG["Client.description"])
+
+      # Run it again - this should not update any record.
+      self._RunSendStartupInfo(client_id)
+
+      # AFF4 client.
+      fd = aff4.FACTORY.Open(client_id, token=self.token)
+      self.assertEqual(boot_time.age, fd.Get(fd.Schema.LAST_BOOT_TIME).age)
+      self.assertEqual(client_info.age, fd.Get(fd.Schema.CLIENT_INFO).age)
+
+      # objects.ClientSnapshot.
+
       new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
-      self.assertIsNotNone(new_si)
-      self.assertNotEqual(new_si.boot_time, si.boot_time)
+      self.assertEqual(new_si, si)
 
-      # Now set a new client build time.
-      with test_lib.ConfigOverrider({"Client.build_time": time.ctime()}):
+      # Simulate a reboot.
+      current_boot_time = psutil.boot_time()
+      with utils.Stubber(psutil, "boot_time", lambda: current_boot_time + 600):
 
-        # Run it again - this should now update the client info.
+        # Run it again - this should now update the boot time.
         self._RunSendStartupInfo(client_id)
 
         # AFF4 client.
 
-        # Ensure the client info attribute is updated.
+        # Ensure only this attribute is updated.
         fd = aff4.FACTORY.Open(client_id, token=self.token)
         self.assertNotEqual(
+            int(boot_time.age), int(fd.Get(fd.Schema.LAST_BOOT_TIME).age))
+        self.assertEqual(
             int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
         # objects.ClientSnapshot.
         new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
         self.assertIsNotNone(new_si)
-        self.assertNotEqual(new_si.client_info, si.client_info)
+        self.assertNotEqual(new_si.boot_time, si.boot_time)
+
+        # Now set a new client build time.
+        with test_lib.ConfigOverrider({"Client.build_time": time.ctime()}):
+
+          # Run it again - this should now update the client info.
+          self._RunSendStartupInfo(client_id)
+
+          # AFF4 client.
+
+          # Ensure the client info attribute is updated.
+          fd = aff4.FACTORY.Open(client_id, token=self.token)
+          self.assertNotEqual(
+              int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
+
+          # objects.ClientSnapshot.
+          new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
+          self.assertIsNotNone(new_si)
+          self.assertNotEqual(new_si.client_info, si.client_info)
 
   def testExecutePythonHack(self):
     client_mock = action_mocks.ActionMock(standard.ExecutePython)

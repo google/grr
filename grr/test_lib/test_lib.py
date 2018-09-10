@@ -282,8 +282,8 @@ class GRRBaseTest(unittest.TestCase):
     """Prepares a test client mock to be used.
 
     Args:
-      client_nr: int The GRR ID to be used. 0xABCD maps to C.100000000000abcd
-                     in canonical representation.
+      client_nr: int The GRR ID to be used. 0xABCD maps to C.100000000000abcd in
+        canonical representation.
       arch: string
       fqdn: string
       last_boot_time: RDFDatetime
@@ -608,7 +608,7 @@ class FakeTimeline(object):
     Args:
       thread: A thread to perform controlled execution on.
       now: An `RDFDatetime` object representing starting point of the timeline.
-           If no value is provided, current time is used.
+        If no value is provided, current time is used.
 
     Raises:
       TypeError: If `thread` is not an instance of `Thread` or if `now` is not
@@ -795,6 +795,7 @@ def RequiresPackage(package_name):
 
   Args:
     package_name: string
+
   Returns:
     Decorator function
   """
@@ -930,7 +931,7 @@ class AutoTempDirPath(object):
     suffix: A suffix to end the directory name with.
     prefix: A prefix to begin the directory name with.
     remove_non_empty: If set to `True` the directory removal will succeed even
-        if it is not empty.
+      if it is not empty.
 
   Returns:
     An absolute path to the created directory.
@@ -1005,9 +1006,11 @@ class SuppressLogs(object):
 
   def __enter__(self):
     self.old_error = logging.error
+    self.old_warn = logging.warn
     self.old_info = logging.info
     self.old_debug = logging.debug
     logging.error = lambda *args, **kw: None
+    logging.warn = lambda *args, **kw: None
     logging.info = lambda *args, **kw: None
     logging.debug = lambda *args, **kw: None
 
@@ -1015,6 +1018,7 @@ class SuppressLogs(object):
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     logging.error = self.old_error
+    logging.warn = self.old_warn
     logging.info = self.old_info
     logging.debug = self.old_debug
 

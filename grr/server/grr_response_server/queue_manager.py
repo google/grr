@@ -33,8 +33,11 @@ class MoreDataException(Error):
 session_id_map = {
     rdfvalue.SessionID(queue=queues.ENROLLMENT, flow_name="Enrol"): "Enrol",
     rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"): "StatsHandler",
-    rdfvalue.SessionID(flow_name="TransferStore"): "BlobHandler",
+    rdfvalue.SessionID(flow_name="ClientAlert"): "ClientAlertHandler",
     rdfvalue.SessionID(flow_name="Foreman"): "ForemanHandler",
+    rdfvalue.SessionID(flow_name="NannyMessage"): "NannyMessageHandler",
+    rdfvalue.SessionID(flow_name="Startup"): "ClientStartupHandler",
+    rdfvalue.SessionID(flow_name="TransferStore"): "BlobHandler",
 }
 
 
@@ -250,7 +253,7 @@ class QueueManager(object):
     Args:
       session_id: The session_id to get the requests/responses for.
       timestamp: Tuple (start, end) with a time range. Fetched requests and
-                 responses will have timestamp in this range.
+        responses will have timestamp in this range.
 
     Yields:
       an tuple (request protobufs, list of responses messages) in ascending
@@ -345,10 +348,9 @@ class QueueManager(object):
         for timestamp, messages in iteritems(
             utils.GroupBy(self.new_client_messages, lambda x: x[1])):
 
-          self.Schedule(
-              [x[0] for x in messages],
-              timestamp=timestamp,
-              mutation_pool=mutation_pool)
+          self.Schedule([x[0] for x in messages],
+                        timestamp=timestamp,
+                        mutation_pool=mutation_pool)
 
     if self.notifications:
       for notification in itervalues(self.notifications):
@@ -421,8 +423,8 @@ class QueueManager(object):
 
     Args:
      queue: A queue to clear.
-     tasks: A list of tasks to remove. Tasks may be Task() instances
-          or integers representing the task_id.
+     tasks: A list of tasks to remove. Tasks may be Task() instances or integers
+       representing the task_id.
      mutation_pool: A MutationPool object to schedule deletions on.
 
     Raises:
@@ -468,6 +470,7 @@ class QueueManager(object):
 
     Args:
       queue: usually rdfvalue.RDFURN("aff4:/W")
+
     Returns:
       List of rdf_flows.GrrNotification objects
     """
@@ -588,7 +591,7 @@ class QueueManager(object):
 
     Args:
        queue: The task queue that this task belongs to, usually client.Queue()
-              where client is the ClientURN object you want to schedule msgs on.
+         where client is the ClientURN object you want to schedule msgs on.
        limit: Number of values to fetch.
 
     Returns:
@@ -611,6 +614,7 @@ class QueueManager(object):
       queue: The queue to query from.
       lease_seconds: The tasks will be leased for this long.
       limit: Number of values to fetch.
+
     Returns:
         A list of GrrMessage() objects leased.
     """

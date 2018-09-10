@@ -67,14 +67,14 @@ def WriteAllCrashDetails(client_id,
   # Relational db.
   if data_store.RelationalDBWriteEnabled():
     try:
-      data_store.REL_DB.WriteClientCrashInfo(client_id.Basename(),
-                                             crash_details)
+      data_store.REL_DB.WriteClientCrashInfo(client_id, crash_details)
     except db.UnknownClientError:
       pass
 
   # Duplicate the crash information in a number of places so we can find it
   # easily.
-  client_crashes = aff4_grr.VFSGRRClient.CrashCollectionURNForCID(client_id)
+  client_urn = rdf_client.ClientURN(client_id)
+  client_crashes = aff4_grr.VFSGRRClient.CrashCollectionURNForCID(client_urn)
   with data_store.DB.GetMutationPool() as pool:
     grr_collections.CrashCollection.StaticAdd(
         client_crashes, crash_details, mutation_pool=pool)
@@ -129,7 +129,8 @@ P.S. The state of the failing flow was:
     nanny_msg = ""
 
     for crash_details in msgs:
-      client_id = crash_details.client_id
+      client_urn = crash_details.client_id
+      client_id = client_urn.Basename()
 
       # The session id of the flow that crashed.
       session_id = crash_details.session_id
@@ -137,17 +138,17 @@ P.S. The state of the failing flow was:
       flow_obj = aff4.FACTORY.Open(session_id, token=token)
 
       # Log.
-      logging.info("Client crash reported, client %s.", client_id)
+      logging.info("Client crash reported, client %s.", client_urn)
 
       # Export.
       stats.STATS.IncrementCounter("grr_client_crashes")
 
       # Write crash data to AFF4.
       if data_store.RelationalDBReadEnabled():
-        client = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
+        client = data_store.REL_DB.ReadClientSnapshot(client_id)
         client_info = client.startup_info.client_info
       else:
-        client = aff4.FACTORY.Open(client_id, token=token)
+        client = aff4.FACTORY.Open(client_urn, token=token)
         client_info = client.Get(client.Schema.CLIENT_INFO)
 
       crash_details.client_info = client_info
@@ -178,9 +179,9 @@ P.S. The state of the failing flow was:
         if crash_details.nanny_status:
           nanny_msg = "Nanny status: %s" % crash_details.nanny_status
 
-        client = aff4.FACTORY.Open(client_id, token=token)
+        client = aff4.FACTORY.Open(client_urn, token=token)
         hostname = client.Get(client.Schema.HOSTNAME)
-        url = "/clients/%s" % client_id.Basename()
+        url = "/clients/%s" % client_id
 
         body = self.__class__.mail_template.render(
             client_id=client_id,
@@ -214,7 +215,7 @@ class GetClientStatsProcessResponseMixin(object):
 
   def ProcessResponse(self, client_id, response):
     """Actually processes the contents of the response."""
-    urn = client_id.Add("stats")
+    urn = rdf_client.ClientURN(client_id).Add("stats")
 
     downsampled = rdf_client_stats.ClientStats.Downsampled(response)
     with aff4.FACTORY.Create(
@@ -256,8 +257,7 @@ class GetClientStatsAuto(flow.WellKnownFlow,
 
   def ProcessMessage(self, message):
     """Processes a stats response from the client."""
-    client_stats = rdf_client_stats.ClientStats(message.payload)
-    self.ProcessResponse(message.source, client_stats)
+    self.ProcessResponse(message.source.Basename(), message.payload)
 
 
 class ClientStatsHandler(message_handlers.MessageHandler,
@@ -267,8 +267,7 @@ class ClientStatsHandler(message_handlers.MessageHandler,
 
   def ProcessMessages(self, msgs):
     for msg in msgs:
-      self.ProcessResponse(
-          rdf_client.ClientURN(msg.client_id), msg.request.payload)
+      self.ProcessResponse(msg.client_id, msg.request.payload)
 
 
 class DeleteGRRTempFilesArgs(rdf_structs.RDFProtoStruct):
@@ -661,10 +660,8 @@ class UpdateClient(flow.GRRFlow):
     self.Log("Client update completed, new version: %s" % info.client_version)
 
 
-class NannyMessageHandler(flow.WellKnownFlow):
+class NannyMessageHandlerMixin(object):
   """A listener for nanny messages."""
-
-  well_known_session_id = rdfvalue.SessionID(flow_name="NannyMessage")
 
   mail_template = jinja2.Template(
       """
@@ -685,18 +682,13 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
 
   logline = "Nanny for client %s sent: %s"
 
-  def ProcessMessage(self, message=None):
+  def SendEmail(self, client_id, message):
     """Processes this event."""
-
-    client_id = message.source
-
-    message = message.payload.string
-
     logging.info(self.logline, client_id, message)
 
     # Write crash data.
     if data_store.RelationalDBReadEnabled():
-      client = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
+      client = data_store.REL_DB.ReadClientSnapshot(client_id)
       client_info = client.startup_info.client_info
     else:
       client = aff4.FACTORY.Open(client_id, token=self.token)
@@ -715,7 +707,7 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
     if config.CONFIG["Monitoring.alert_email"]:
       client = aff4.FACTORY.Open(client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
-      url = "/clients/%s" % client_id.Basename()
+      url = "/clients/%s" % client_id
 
       body = self.__class__.mail_template.render(
           client_id=client_id,
@@ -732,10 +724,27 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
           is_html=True)
 
 
-class ClientAlertHandler(NannyMessageHandler):
-  """A listener for client messages."""
+class NannyMessageHandlerFlow(NannyMessageHandlerMixin, flow.WellKnownFlow):
+  """A listener for nanny messages."""
 
-  well_known_session_id = rdfvalue.SessionID(flow_name="ClientAlert")
+  well_known_session_id = rdfvalue.SessionID(flow_name="NannyMessage")
+
+  def ProcessMessage(self, message=None):
+    self.SendEmail(message.source.Basename(), message.payload.string)
+
+
+class NannyMessageHandler(NannyMessageHandlerMixin,
+                          message_handlers.MessageHandler):
+
+  handler_name = "NannyMessageHandler"
+
+  def ProcessMessages(self, msgs):
+    for message in msgs:
+      self.SendEmail(message.client_id, message.request.payload.string)
+
+
+class ClientAlertHandlerMixin(NannyMessageHandlerMixin):
+  """A listener for client messages."""
 
   mail_template = jinja2.Template(
       """
@@ -757,20 +766,33 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
   logline = "Client message from %s: %s"
 
 
-class ClientStartupHandler(flow.WellKnownFlow):
-  """Handles client startup events."""
+class ClientAlertHandlerFlow(ClientAlertHandlerMixin, flow.WellKnownFlow):
 
-  well_known_session_id = rdfvalue.SessionID(flow_name="Startup")
+  well_known_session_id = rdfvalue.SessionID(flow_name="ClientAlert")
 
   def ProcessMessage(self, message=None):
-    """Handle a startup event."""
+    self.SendEmail(message.source.Basename(), message.payload.string)
 
-    client_id = message.source
-    new_si = message.payload
+
+class ClientAlertHandler(ClientAlertHandlerMixin,
+                         message_handlers.MessageHandler):
+
+  handler_name = "ClientAlertHandler"
+
+  def ProcessMessages(self, msgs):
+    for message in msgs:
+      self.SendEmail(message.client_id, message.request.payload.string)
+
+
+class ClientStartupHandlerMixin(object):
+  """Handles client startup events."""
+
+  def WriteClientStartupInfo(self, client_id, new_si):
+    """Handle a startup event."""
     drift = rdfvalue.Duration("5m")
 
     if data_store.RelationalDBReadEnabled():
-      current_si = data_store.REL_DB.ReadClientStartupInfo(client_id.Basename())
+      current_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
 
       # We write the updated record if the client_info has any changes
       # or the boot time is more than 5 minutes different.
@@ -778,7 +800,7 @@ class ClientStartupHandler(flow.WellKnownFlow):
           not current_si.boot_time or
           abs(current_si.boot_time - new_si.boot_time) > drift):
         try:
-          data_store.REL_DB.WriteClientStartupInfo(client_id.Basename(), new_si)
+          data_store.REL_DB.WriteClientStartupInfo(client_id, new_si)
         except db.UnknownClientError:
           # On first contact with a new client, this write will fail.
           logging.info("Can't write StartupInfo for unknown client %s",
@@ -807,9 +829,27 @@ class ClientStartupHandler(flow.WellKnownFlow):
 
       if data_store.RelationalDBWriteEnabled() and changes:
         try:
-          data_store.REL_DB.WriteClientStartupInfo(client_id.Basename(), new_si)
+          data_store.REL_DB.WriteClientStartupInfo(client_id, new_si)
         except db.UnknownClientError:
           pass
+
+
+class ClientStartupHandlerFlow(ClientStartupHandlerMixin, flow.WellKnownFlow):
+
+  well_known_session_id = rdfvalue.SessionID(flow_name="Startup")
+
+  def ProcessMessage(self, message=None):
+    self.WriteClientStartupInfo(message.source.Basename(), message.payload)
+
+
+class ClientStartupHandler(ClientStartupHandlerMixin,
+                           message_handlers.MessageHandler):
+
+  handler_name = "ClientStartupHandler"
+
+  def ProcessMessages(self, msgs):
+    for message in msgs:
+      self.WriteClientStartupInfo(message.client_id, message.request.payload)
 
 
 class KeepAliveArgs(rdf_structs.RDFProtoStruct):

@@ -7,7 +7,10 @@ from grr_response_server.flows.general import ca_enroller
 from grr_response_server.flows.general import transfer
 
 message_handlers = [
+    administrative.ClientAlertHandler,
+    administrative.ClientStartupHandler,
     administrative.ClientStatsHandler,
+    administrative.NannyMessageHandler,
     ca_enroller.EnrolmentHandler,
     foreman.ForemanMessageHandler,
     transfer.BlobHandler,

@@ -290,6 +290,7 @@ class CrashClientMock(action_mocks.ActionMock):
     # This is normally done by the FrontEnd when a CLIENT_KILLED message is
     # received.
     events.Events.PublishEvent("ClientCrash", crash_details, token=self.token)
+    return []
 
 
 class MockClient(object):
@@ -317,6 +318,40 @@ class MockClient(object):
     # Well known flows are run on the front end.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
 
+  def _PushHandlerMessage(self, message):
+    """Pushes a message that goes to a message handler."""
+
+    # We only accept messages of type MESSAGE.
+    if message.type != rdf_flows.GrrMessage.Type.MESSAGE:
+      raise ValueError("Unexpected message type: %s" % type(message))
+
+    if not message.session_id:
+      raise ValueError("Message without session_id: %s" % message)
+
+    # Assume the message is authenticated and comes from this client.
+    message.source = self.client_id
+
+    message.auth_state = "AUTHENTICATED"
+    session_id = message.session_id
+
+    if data_store.RelationalDBReadEnabled("message_handlers"):
+      handler_name = queue_manager.session_id_map.get(session_id, None)
+      if handler_name is None:
+        raise ValueError("Unknown well known session id in msg %s" % message)
+
+      logging.info("Running message handler: %s", handler_name)
+      handler_cls = handler_registry.handler_name_map.get(handler_name)
+      handler_request = rdf_objects.MessageHandlerRequest(
+          client_id=self.client_id.Basename(),
+          handler_name=handler_name,
+          request_id=message.response_id,
+          request=message.payload)
+
+      handler_cls(token=self.token).ProcessMessages([handler_request])
+    else:
+      logging.info("Running well known flow: %s", session_id)
+      self.well_known_flows[session_id.FlowName()].ProcessMessage(message)
+
   def PushToStateQueue(self, manager, message, **kw):
     """Push given message to the state queue."""
     # Assume the client is authorized
@@ -328,31 +363,7 @@ class MockClient(object):
 
     # Handle well known flows
     if message.request_id == 0:
-
-      # Well known flows only accept messages of type MESSAGE.
-      if message.type == rdf_flows.GrrMessage.Type.MESSAGE:
-        # Assume the message is authenticated and comes from this client.
-        message.source = self.client_id
-
-        message.auth_state = "AUTHENTICATED"
-
-        session_id = message.session_id
-        if session_id:
-          handler_name = queue_manager.session_id_map.get(session_id)
-          if handler_name:
-            logging.info("Running message handler: %s", handler_name)
-            handler_cls = handler_registry.handler_name_map.get(handler_name)
-            handler_request = rdf_objects.MessageHandlerRequest(
-                client_id=self.client_id.Basename(),
-                handler_name=handler_name,
-                request_id=message.response_id,
-                request=message.payload)
-
-            handler_cls(token=self.token).ProcessMessages([handler_request])
-          else:
-            logging.info("Running well known flow: %s", session_id)
-            self.well_known_flows[session_id.FlowName()].ProcessMessage(message)
-
+      self._PushHandlerMessage(message)
       return
 
     if data_store.RelationalDBFlowsEnabled():

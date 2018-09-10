@@ -159,8 +159,8 @@ class WorkerStuckableTestFlow(flow.GRRFlow):
 
     Args:
       last_heartbeat: If True, the flow won't heartbeat anymore. Consequently,
-                      the test won't be supposed to call LetFlowHeartBeat and
-                      WaitForFlowHeartBeat methods.
+        the test won't be supposed to call LetFlowHeartBeat and
+        WaitForFlowHeartBeat methods.
 
     Raises:
       RuntimeError: if heartbeat is not enabled. Heartbeat can be enabled via
@@ -699,8 +699,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(len(notifications), 1)
 
     # Process all messages
-    worker_obj.RunOnce()
-    worker_obj.thread_pool.Join()
+    with test_lib.SuppressLogs():
+      worker_obj.RunOnce()
+      worker_obj.thread_pool.Join()
 
     notifications = manager.GetNotifications(queues.FLOWS)
     notifications = [x for x in notifications if x.session_id == session_id]

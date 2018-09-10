@@ -22,9 +22,9 @@ install:
 - sudo apt install -y libmysqlclient-dev
 # Install chrome if absent.
 - >-
-  [[ -z "$(type google-chrome 2>/dev/null)" ]] &&
-  wget "https://dl.google.com/linux/direct/${CHROME_DEB}" &&
-  sudo apt install -y "./${CHROME_DEB}"
+  if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
+  wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}"
+  fi
 - travis/install_protobuf.sh linux
 - virtualenv "${GRR_VENV}"
 - ${GRR_VENV}/bin/pip install pytest-xdist
