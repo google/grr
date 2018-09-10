@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Update the artifacts directory from upstream."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import fnmatch
 import glob

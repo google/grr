@@ -1,0 +1,120 @@
+#!/usr/bin/env python
+"""Rdfvalues for flows."""
+
+import re
+
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+class PendingFlowTermination(rdf_structs.RDFProtoStruct):
+  """Descriptor of a pending flow termination."""
+  protobuf = jobs_pb2.PendingFlowTermination
+
+
+class FlowRequest(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.FlowRequest
+  rdf_deps = [
+      rdf_protodict.Dict,
+      rdfvalue.RDFDatetime,
+  ]
+
+
+class FlowMessage(object):
+  """Base class for all messages flows can receive."""
+
+
+class FlowResponse(FlowMessage, rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.FlowResponse
+  rdf_deps = []
+
+
+class FlowIterator(FlowMessage, rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.FlowIterator
+  rdf_deps = []
+
+
+class FlowStatus(FlowMessage, rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.FlowStatus
+  rdf_deps = [
+      rdf_client_stats.CpuSeconds,
+  ]
+
+
+class Flow(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.Flow
+  rdf_deps = [
+      "OutputPluginDescriptor",  # TODO(user): dependency loop.
+      rdf_flow_runner.OutputPluginState,
+      PendingFlowTermination,
+      rdf_client.ClientCrash,
+      rdf_client_stats.CpuSeconds,
+      rdf_objects.FlowReference,
+      rdf_protodict.AttributedDict,
+      rdfvalue.RDFDatetime,
+  ]
+
+
+def _ClientIDFromSessionID(session_id):
+  client_id = session_id.Split(3)[0]
+  if not re.match(r"C\.[0-9a-f]{16}", client_id):
+    raise ValueError(
+        "Unable to parse client id from session_id: %s" % session_id)
+  return client_id
+
+
+status_map = {
+    rdf_flows.GrrStatus.ReturnedStatus.OK:
+        FlowStatus.Status.OK,
+    rdf_flows.GrrStatus.ReturnedStatus.IOERROR:
+        FlowStatus.Status.IOERROR,
+    rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED:
+        FlowStatus.Status.CLIENT_KILLED,
+    rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED:
+        FlowStatus.Status.NETWORK_LIMIT_EXCEEDED,
+    rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR:
+        FlowStatus.Status.ERROR,
+}
+
+
+def FlowResponseForLegacyResponse(legacy_msg):
+  """Helper function to convert legacy client replies to flow responses."""
+
+  if legacy_msg.type == legacy_msg.Type.MESSAGE:
+    return FlowResponse(
+        client_id=_ClientIDFromSessionID(legacy_msg.session_id),
+        flow_id=legacy_msg.session_id.Basename(),
+        request_id=legacy_msg.request_id,
+        response_id=legacy_msg.response_id,
+        payload=legacy_msg.payload)
+  elif legacy_msg.type == legacy_msg.Type.STATUS:
+    legacy_status = legacy_msg.payload
+    if legacy_status.status not in status_map:
+      raise ValueError(
+          "Unable to convert returned status: %s" % legacy_status.status)
+    return FlowStatus(
+        client_id=_ClientIDFromSessionID(legacy_msg.session_id),
+        flow_id=legacy_msg.session_id.Basename(),
+        request_id=legacy_msg.request_id,
+        response_id=legacy_msg.response_id,
+        status=status_map[legacy_status.status],
+        error_message=legacy_status.error_message,
+        backtrace=legacy_status.backtrace,
+        cpu_time_used=legacy_status.cpu_time_used,
+        network_bytes_sent=legacy_status.network_bytes_sent)
+  elif legacy_msg.type == legacy_msg.Type.ITERATOR:
+    return FlowIterator(
+        client_id=_ClientIDFromSessionID(legacy_msg.session_id),
+        flow_id=legacy_msg.session_id.Basename(),
+        request_id=legacy_msg.request_id,
+        response_id=legacy_msg.response_id)
+  else:
+    raise ValueError("Unknown message type: %d" % legacy_msg.type)

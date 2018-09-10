@@ -20,7 +20,10 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import data_store_utils
+from grr_response_server import db
+from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import frontend_lib
 from grr_response_server.aff4_objects import aff4_grr
@@ -28,12 +31,14 @@ from grr_response_server.aff4_objects import filestore
 from grr_response_server.bin import frontend
 from grr_response_server.flows.general import file_finder
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
 
 
+@db_test_lib.DualDBTest
 class GRRHTTPServerTest(test_lib.GRRBaseTest):
   """Test the http server."""
 
@@ -44,8 +49,6 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     cls.config_overrider = test_lib.ConfigOverrider({
         "Rekall.profile_server":
             rekall_test_lib.TestRekallRepositoryProfileServer.__name__,
-        "FileUploadFileStore.root_dir":
-            test_lib.TempDirPath()
     })
     cls.config_overrider.Start()
 
@@ -127,10 +130,18 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       data = open(r.stat_entry.pathspec.path, "rb").read()
       self.assertEqual(aff4_obj.Read(100), data[:100])
 
-      hash_obj = data_store_utils.GetFileHashEntry(aff4_obj)
-      self.assertEqual(hash_obj.md5, hashlib.md5(data).hexdigest())
-      self.assertEqual(hash_obj.sha1, hashlib.sha1(data).hexdigest())
-      self.assertEqual(hash_obj.sha256, hashlib.sha256(data).hexdigest())
+      if data_store.RelationalDBReadEnabled(category="filestore"):
+        fd = file_store.OpenLatestFileVersion(
+            db.ClientPath.FromPathSpec(self.client_id.Basename(),
+                                       r.stat_entry.pathspec))
+        self.assertEqual(fd.read(100), data[:100])
+
+        self.assertEqual(fd.hash_id.AsBytes(), hashlib.sha256(data).digest())
+      else:
+        hash_obj = data_store_utils.GetFileHashEntry(aff4_obj)
+        self.assertEqual(hash_obj.sha1, hashlib.sha1(data).hexdigest())
+        self.assertEqual(hash_obj.sha256, hashlib.sha256(data).hexdigest())
+        self.assertEqual(hash_obj.md5, hashlib.md5(data).hexdigest())
 
   def testClientFileFinderUploadLimit(self):
     paths = [os.path.join(self.base_path, "{**,.}/*.plist")]

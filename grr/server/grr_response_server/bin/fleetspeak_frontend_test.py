@@ -32,7 +32,6 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import frontend_test_lib
 from grr.test_lib import test_lib
 
-
 FS_SERVICE_NAME = "GRR"
 
 
@@ -265,7 +264,7 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
           fake_conn.outgoing,
           "InsertMessage",
           wraps=fake_conn.outgoing.InsertMessage):
-        flow_urn = flow.StartFlow(
+        flow_urn = flow.StartAFF4Flow(
             client_id=self.client_id,
             flow_name=flow_processes.ListProcesses.__name__,
             token=self.token)

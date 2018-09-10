@@ -90,7 +90,7 @@ class VfsTestMixin(object):
   def CreateRecursiveListFlow(self, client_id, token):
     flow_args = filesystem.RecursiveListDirectoryArgs()
 
-    return flow.StartFlow(
+    return flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=filesystem.RecursiveListDirectory.__name__,
         args=flow_args,
@@ -101,7 +101,7 @@ class VfsTestMixin(object):
         path=file_path, pathtype=rdf_paths.PathSpec.PathType.OS)
     flow_args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
 
-    return flow.StartFlow(
+    return flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=transfer.MultiGetFile.__name__,
         args=flow_args,
@@ -583,7 +583,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testHandlerThrowsExceptionOnArbitraryFlowId(self):
     # Create a mock flow.
-    self.flow_urn = flow.StartFlow(
+    self.flow_urn = flow.StartAFF4Flow(
         client_id=self.client_id,
         flow_name=discovery.Interrogate.__name__,
         token=self.token)
@@ -680,7 +680,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
 
   def testHandlerRaisesOnArbitraryFlowId(self):
     # Create a mock flow.
-    self.flow_urn = flow.StartFlow(
+    self.flow_urn = flow.StartAFF4Flow(
         client_id=self.client_id,
         flow_name=discovery.Interrogate.__name__,
         token=self.token)
@@ -711,11 +711,10 @@ class VfsTimelineTestMixin(object):
     fixture_test_lib.ClientFixture(client_id, token=self.token)
 
     # Choose some directory with pathspec in the ClientFixture.
-    self.category_path = "fs/os"
-    self.folder_path = self.category_path + "/Users/中国新闻网新闻中/Shared"
-    self.file_path = self.folder_path + "/a.txt"
+    self.category_path = u"fs/os"
+    self.folder_path = self.category_path + u"/Users/中国新闻网新闻中/Shared"
+    self.file_path = self.folder_path + u"/a.txt"
 
-    file_urn = client_id.Add(self.file_path)
     for i in range(0, 5):
       with test_lib.FakeTime(i):
         stat_entry = rdf_client_fs.StatEntry()
@@ -727,18 +726,27 @@ class VfsTimelineTestMixin(object):
             sha256=("0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
                     "e4f06017acdb5").decode("hex"))
 
-        with aff4.FACTORY.Create(
-            file_urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
-          fd.Set(fd.Schema.STAT, stat_entry)
-          fd.Set(fd.Schema.HASH, hash_entry)
-
-        if data_store.RelationalDBWriteEnabled():
-          cid = client_id.Basename()
-          path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
-          path_info.hash_entry = hash_entry
-          data_store.REL_DB.WritePathInfos(cid, [path_info])
+        self.SetupFileMetadata(
+            client_id,
+            self.file_path,
+            stat_entry=stat_entry,
+            hash_entry=hash_entry)
 
     return client_id
+
+  def SetupFileMetadata(self, client_urn, vfs_path, stat_entry, hash_entry):
+    file_urn = client_urn.Add(vfs_path)
+
+    with aff4.FACTORY.Create(
+        file_urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
+      fd.Set(fd.Schema.STAT, stat_entry)
+      fd.Set(fd.Schema.HASH, hash_entry)
+
+    if data_store.RelationalDBWriteEnabled():
+      client_id = client_urn.Basename()
+      path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+      path_info.hash_entry = hash_entry
+      data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
 
 @db_test_lib.DualDBTest
@@ -782,16 +790,16 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
       with test_lib.FakeTime(i):
         next_chunk = next(result.GenerateContent()).strip()
         timestamp = rdfvalue.RDFDatetime.Now()
+
         if i == 4:  # The first row includes the column headings.
-          self.assertEqual(
-              next_chunk, "Timestamp,Datetime,Message,Timestamp_desc\r\n"
-              "%d,%s,%s,MODIFICATION" % (timestamp.AsMicrosecondsSinceEpoch(),
-                                         str(timestamp), self.file_path))
+          expected_csv = u"Timestamp,Datetime,Message,Timestamp_desc\n"
         else:
-          self.assertEqual(
-              next_chunk,
-              "%d,%s,%s,MODIFICATION" % (timestamp.AsMicrosecondsSinceEpoch(),
-                                         str(timestamp), self.file_path))
+          expected_csv = u""
+        expected_csv += u"%d,%s,%s,MODIFICATION"
+        expected_csv %= (timestamp.AsMicrosecondsSinceEpoch(), timestamp,
+                         self.file_path)
+
+        self.assertEqual(next_chunk, expected_csv.encode("utf-8"))
 
   def testEmptyTimelineIsReturnedOnNonexistantPath(self):
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
@@ -809,9 +817,31 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
         format=vfs_plugin.ApiGetVfsTimelineAsCsvArgs.Format.BODY)
     result = self.handler.Handle(args, token=self.token)
 
-    content = "".join(result.GenerateContent())
-    self.assertEqual(content,
-                     "|%s|0|----------|0|0|0|0|4|0|0\r\n" % self.file_path)
+    content = b"".join(result.GenerateContent())
+    expected_csv = u"|%s|0|----------|0|0|0|0|4|0|0\n" % self.file_path
+    self.assertEqual(content, expected_csv.encode("utf-8"))
+
+  def testTimelineInBodyFormatWithHashCorrectlyReturned(self):
+    client_urn = self.SetupClient(1)
+    stat_entry = rdf_client_fs.StatEntry(st_size=1337)
+    stat_entry.pathspec.path = u"foo/bar"
+    stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+    hash_entry = rdf_crypto.Hash(md5=b"quux")
+    self.SetupFileMetadata(
+        client_urn,
+        u"fs/os/foo/bar",
+        stat_entry=stat_entry,
+        hash_entry=hash_entry)
+
+    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
+        client_id=client_urn,
+        file_path=u"fs/os/foo",
+        format=vfs_plugin.ApiGetVfsTimelineAsCsvArgs.Format.BODY)
+    result = self.handler.Handle(args, token=self.token)
+
+    content = b"".join(result.GenerateContent())
+    expected_csv = u"71757578|fs/os/foo/bar|0|----------|0|0|1337|0|0|0|0\n"
+    self.assertEqual(content, expected_csv.encode("utf-8"))
 
 
 @db_test_lib.DualDBTest

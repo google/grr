@@ -134,14 +134,14 @@ class TestMemoryCollector(MemoryTest):
 
   def testMemoryCollectorIsDisabledByDefault(self):
     with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
-      flow.StartFlow(
+      flow.StartAFF4Flow(
           client_id=self.client_id,
           flow_name=memory.MemoryCollector.__name__,
           token=self.token)
 
   def RunWithDownload(self):
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      self.flow_urn = flow.StartFlow(
+      self.flow_urn = flow.StartAFF4Flow(
           client_id=self.client_id,
           flow_name=memory.MemoryCollector.__name__,
           token=self.token)
@@ -274,7 +274,7 @@ class ListVADBinariesTest(MemoryTest):
 
   def testListVADBinariesIsDisabledByDefault(self):
     with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
-      flow.StartFlow(
+      flow.StartAFF4Flow(
           client_id=self.client_id,
           flow_name=memory.ListVADBinaries.__name__,
           token=self.token)
@@ -417,7 +417,7 @@ class TestAnalyzeClientMemory(rekall_test_lib.RekallTestBase):
 
   def testAnalyzeClientMemoryIsDisabledByDefault(self):
     with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
-      flow.StartFlow(
+      flow.StartAFF4Flow(
           client_id=self.client_id,
           flow_name=memory.AnalyzeClientMemory.__name__,
           token=self.token)
@@ -461,7 +461,7 @@ class TestAnalyzeClientMemory(rekall_test_lib.RekallTestBase):
             plugin="procdump", args=dict(pids=[2860]))
     ]
 
-    with test_lib.Instrument(transfer.MultiGetFile,
+    with test_lib.Instrument(transfer.MultiGetFileMixin,
                              "StoreStat") as storestat_instrument:
       self.LaunchRekallPlugin(request)
       # Expect one file to be downloaded.

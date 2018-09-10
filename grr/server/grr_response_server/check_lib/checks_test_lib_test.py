@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for checks_test_lib."""
+from __future__ import unicode_literals
+
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import parser

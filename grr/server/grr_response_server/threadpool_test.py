@@ -124,8 +124,9 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     self.assertTrue(self.exception_args[1], "Raising")
 
     # Make sure that both exceptions have been counted.
-    self.assertEqual(
-        stats.STATS.GetMetricValue(self.test_pool.name + "_task_exceptions"), 2)
+    exception_count = stats.STATS.GetMetricValue(
+        threadpool._TASK_EXCEPTIONS_METRIC, fields=[self.test_pool.name])
+    self.assertEqual(exception_count, 2)
 
   def testFailToCreateThread(self):
     """Test that we handle thread creation problems ok."""
@@ -269,13 +270,14 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
 
   def testExportedFunctions(self):
     """Tests if the outstanding tasks variable is exported correctly."""
-
-    pool = threadpool.ThreadPool.Factory("test_pool3", 10)
+    pool_name = "test_pool3"
+    pool = threadpool.ThreadPool.Factory(pool_name, 10)
     # Do not start but push some tasks on the pool.
     for i in range(10):
       pool.AddTask(lambda: None, ())
-      self.assertEqual(
-          stats.STATS.GetMetricValue("test_pool3_outstanding_tasks"), i + 1)
+      outstanding_tasks = stats.STATS.GetMetricValue(
+          threadpool._OUTSTANDING_TASKS_METRIC, fields=[pool_name])
+      self.assertEqual(outstanding_tasks, i + 1)
 
   def testDuplicateNameError(self):
     """Tests that creating two pools with the same name fails."""

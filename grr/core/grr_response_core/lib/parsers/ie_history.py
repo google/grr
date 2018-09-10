@@ -11,7 +11,7 @@ File%20format/MSIE%20Cache%20File%20%28index.dat%29%20format.pdf
 """
 from __future__ import division
 from __future__ import print_function
-
+from __future__ import unicode_literals
 
 import datetime
 import glob
@@ -60,7 +60,7 @@ class IEParser(object):
   Returns results in chronological order based on mtime
   """
 
-  FILE_HEADER = "Client UrlCache MMF Ver 5.2"
+  FILE_HEADER = b"Client UrlCache MMF Ver 5.2"
   BLOCK_SIZE = 0x80
 
   def __init__(self, input_obj):

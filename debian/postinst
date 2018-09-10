@@ -23,14 +23,6 @@ case "$1" in
 
         grr_config_updater initialize
       fi
-
-      # Set filehandle max to a high value if it isn't already set.
-      if ! grep -Fq "fs.file-max" /etc/sysctl.conf; then
-        echo "Increasing our filehandle limit (for SQLite datastore)."
-        echo "fs.file-max = 1048576" >> /etc/sysctl.conf
-        sysctl -p
-      fi
-      echo "Filehandle limit now: $(cat /proc/sys/fs/file-max)"
 esac
 
 echo "#################################################################"

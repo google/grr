@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """OSX specific utils."""
+from __future__ import unicode_literals
 
 import ctypes
 import ctypes.util

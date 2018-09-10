@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Configuration parameters for the check subsystem."""
+from __future__ import unicode_literals
+
 from grr_response_core.lib import config_lib
 
 config_lib.DEFINE_list("Checks.config_dir", [

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests for grr_response_server.flows.general.collectors.
+"""Tests for grr.server.grr_response_server.flows.general.collectors.
 
 These tests cover the interaction of artifacts. They test that collection of
 good artifacts can still succeed if some bad artifacts are defined, and the
@@ -97,8 +97,9 @@ supported_os: [ "Linux" ]
         artifact_registry.REGISTRY.RegisterArtifact(
             artifact_val, source="datastore", overwrite_if_exists=False)
 
-      # This should succeeded because the artifacts will be reloaded from the
-      # datastore.
+      # We need to reload all artifacts from the data store before trying to get
+      # the artifact.
+      artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
       self.assertTrue(artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact"))
 
       # We registered this artifact with datastore source but didn't
@@ -134,7 +135,7 @@ supported_os: [ "Linux" ]
       client.Set(client.Schema.KNOWLEDGE_BASE, list(col)[0])
 
     artifact_list = ["WindowsPersistenceMechanismFiles"]
-    with test_lib.Instrument(transfer.MultiGetFile,
+    with test_lib.Instrument(transfer.MultiGetFileMixin,
                              "Start") as getfile_instrument:
       flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
@@ -152,7 +153,7 @@ supported_os: [ "Linux" ]
                             [u"C:\\Windows\\TEMP\\A.exe"])
 
     artifact_list = ["BadPathspecArtifact"]
-    with test_lib.Instrument(transfer.MultiGetFile,
+    with test_lib.Instrument(transfer.MultiGetFileMixin,
                              "Start") as getfile_instrument:
       flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,

@@ -366,8 +366,8 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
           client_id=client_id,
           paths=[filename],
           action=rdf_file_finder.FileFinderAction.Download())
-      # Running worker to make sure FileStore.AddFileToStore event is processed
-      # by the worker.
+      # Running worker to make sure LegacyFileStore.AddFileToStore event is
+      # processed by the worker.
       worker = worker_test_lib.MockWorker(token=self.token)
       worker.Simulate()
 

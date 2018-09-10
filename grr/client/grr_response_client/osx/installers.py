@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """These are osx specific installers."""
+from __future__ import unicode_literals
+
 import logging
 import os
 import zipfile

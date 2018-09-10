@@ -75,7 +75,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
 
     # Test that we have no TestDrivers.
     self.Open("/#/clients/%s/launch-flow" % client_id)
-    self.Click("css=#_Collectors")
+    self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "Artifact list")
     self.WaitUntilNot(self.IsTextPresent, "Loading artifacts...")
@@ -93,7 +93,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
 
     # Test that now we can choose TestDrivers in the form.
     self.Click("css=a[grrtarget='client.launchFlows']")
-    self.Click("css=#_Collectors")
+    self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "TestDrivers")
 
@@ -133,7 +133,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
 
     # Test that we have TestDrivers available.
     self.Open("/#/clients/%s/launch-flow" % client_id)
-    self.Click("css=#_Collectors")
+    self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "TestDrivers")
 
@@ -148,7 +148,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
 
     # Test now we can choose TestDrivers in the form.
     self.Click("css=a[grrtarget='client.launchFlows']")
-    self.Click("css=#_Collectors")
+    self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "Artifact list")
     self.WaitUntilNot(self.IsTextPresent, "Loading artifacts...")

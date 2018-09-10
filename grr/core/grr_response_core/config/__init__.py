@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This module will load all the configuration parameters."""
+from __future__ import unicode_literals
 
 # pylint: disable=unused-import
 from grr_response_core.config import acls

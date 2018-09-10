@@ -23,8 +23,10 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_server import aff4
+from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
+from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
@@ -201,6 +203,10 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
         token=self.token,
         **kw)
 
+    if data_store.RelationalDBFlowsEnabled():
+      # TODO(amoser): Return results here once we store them.
+      return None
+
     return flow.GRRFlow.ResultCollectionForFID(session_id)
 
 
@@ -349,6 +355,19 @@ supported_os: [Linux]
     coll = artifact_registry.ArtifactCollection(artifact_store_urn)
     self.assertNotIn("WMIActiveScriptEventConsumer", coll)
 
+  def testUploadArtifactBadDependencies(self):
+    yaml_artifact = """
+name: InvalidArtifact
+doc: An artifact group with invalid dependencies.
+sources:
+- type: ARTIFACT_GROUP
+  attributes:
+    names:
+      - NonExistingArtifact
+"""
+    with self.assertRaises(rdf_artifacts.ArtifactDependencyError):
+      artifact.UploadArtifactYamlFile(yaml_artifact)
+
 
 class ArtifactFlowLinuxTest(ArtifactTest):
 
@@ -442,14 +461,22 @@ class ArtifactFlowLinuxTest(ArtifactTest):
 
       # Test the error_on_no_results option.
       with self.assertRaises(RuntimeError) as context:
-        self.RunCollectorAndGetCollection(
-            ["NullArtifact"],
-            client_mock=self.client_mock,
-            client_id=client_id,
-            split_output_by_artifact=True,
-            error_on_no_results=True)
+        with test_lib.SuppressLogs():
+          self.RunCollectorAndGetCollection(
+              ["NullArtifact"],
+              client_mock=self.client_mock,
+              client_id=client_id,
+              split_output_by_artifact=True,
+              error_on_no_results=True)
       if "collector returned 0 responses" not in str(context.exception):
         raise RuntimeError("0 responses should have been returned")
+
+
+# TODO(amoser): All these use the custom result collections in the artifact
+# collector. Enable once we write results to the relational db properly.
+# class RelFlowsArtifactFlowLinuxTest(db_test_lib.RelationalFlowsEnabledMixin,
+#                                     ArtifactFlowLinuxTest):
+#   pass
 
 
 class ArtifactFlowWindowsTest(ArtifactTest):
@@ -512,6 +539,13 @@ class ArtifactFlowWindowsTest(ArtifactTest):
       self.assertEqual(x.pathtype, "OS")
       extension = x.path.lower().split(".")[-1]
       self.assertIn(extension, ["exe", "dll", "pyd", "drv", "mui", "cpl"])
+
+
+# TODO(amoser): All these tests check for results and are therefore disabled for
+# now.
+# class RelFlowsArtifactFlowWindowsTest(db_test_lib.RelationalFlowsEnabledMixin,
+#                                       ArtifactFlowWindowsTest):
+#   pass
 
 
 class GrrKbTest(ArtifactTest):
@@ -627,7 +661,7 @@ class GrrKbWindowsTest(GrrKbTest):
           "Artifacts.knowledge_base_heavyweight": ["FakeArtifact"]
       }):
         args = artifact.KnowledgeBaseInitializationArgs(lightweight=True)
-        kb_init = artifact.KnowledgeBaseInitializationFlow(
+        kb_init = aff4_flows.KnowledgeBaseInitializationFlow(
             None, token=self.token)
         kb_init.args = args
         kb_init.state["all_deps"] = set()

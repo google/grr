@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests client actions related to administrating the client."""
+from __future__ import unicode_literals
 
 import os
 
@@ -48,7 +49,7 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
     # Make sure the file is gone
     self.assertRaises(IOError, open, self.config_file)
 
-    location = ["http://www.example1.com/", "http://www.example2.com/"]
+    location = [u"http://www.example1.com/", u"http://www.example2.com/"]
     request = rdf_protodict.Dict()
     request["Client.server_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
@@ -60,7 +61,12 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
 
     # Test the config file got written.
     data = open(self.config_file, "rb").read()
-    self.assertTrue("server_urls: {0}".format(",".join(location)) in data)
+    server_urls = """
+Client.server_urls:
+- http://www.example1.com/
+- http://www.example2.com/
+"""
+    self.assertTrue(server_urls in data)
 
     self.urls = []
 
@@ -83,11 +89,11 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
   def testUpdateConfigBlacklist(self):
     """Tests that disallowed fields are not getting updated."""
     with test_lib.ConfigOverrider({
-        "Client.server_urls": ["http://something.com/"],
+        "Client.server_urls": [u"http://something.com/"],
         "Client.server_serial_number": 1
     }):
 
-      location = ["http://www.example.com"]
+      location = [u"http://www.example.com"]
       request = rdf_protodict.Dict()
       request["Client.server_urls"] = location
       request["Client.server_serial_number"] = 10
@@ -97,13 +103,13 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
 
       # Nothing was updated.
       self.assertEqual(config.CONFIG["Client.server_urls"],
-                       ["http://something.com/"])
+                       [u"http://something.com/"])
       self.assertEqual(config.CONFIG["Client.server_serial_number"], 1)
 
   def testGetConfig(self):
     """Check GetConfig client action works."""
     # Use UpdateConfig to generate a config.
-    location = ["http://example.com/"]
+    location = [u"http://example.com/"]
     request = rdf_protodict.Dict()
     request["Client.server_urls"] = location
     request["Client.foreman_check_frequency"] = 3600

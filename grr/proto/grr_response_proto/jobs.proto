@@ -482,7 +482,7 @@ message CopyPathToFile {
   optional uint64 offset = 1 [ default = 0 ];
   optional uint64 length = 2 [ default = 0 ];
   optional PathSpec src_path = 3;
-  // DEPRECATED, goes to the GRR temp fir by default.
+  // DEPRECATED, goes to the GRR temp dir by default.
   // optional string dest_dir = 4;
   optional PathSpec dest_path = 5;
   optional bool gzip_output = 6 [ default = true ];
@@ -1064,6 +1064,11 @@ message Hash {
 
   optional uint64 num_bytes = 8 [(sem_type) = {
       description: "The number of bytes used to create the hashes in this message."
+    }];
+  optional uint64 source_offset = 9 [(sem_type) = {
+      description: "If bytes used to create the hashes were read from its "
+      "original source (a file, for example) with an offset, a number "
+      "indicating the offset."
     }];
 }
 
@@ -1667,12 +1672,6 @@ message Iterator {
   //     "the unique action id by which it is kept on the client."
   //   }];
 };
-
-// FindAction returns these protobufs.
-message IteratedStatResponse {
-  optional StatEntry stat = 1;
-  optional Iterator iterator = 2;
-}
 
 // A notification is used in the GUI to alert users that some operation is
 // completed

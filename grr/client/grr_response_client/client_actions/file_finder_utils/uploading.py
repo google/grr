@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utility classes for uploading files to the server."""
+from __future__ import unicode_literals
 
 import hashlib
 import zlib

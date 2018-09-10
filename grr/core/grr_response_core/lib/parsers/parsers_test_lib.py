@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Parser testing lib."""
 
+from __future__ import unicode_literals
+
 import io
 
 
@@ -36,7 +38,7 @@ def GenTestData(paths, data, st_mode=33188):
     p = rdf_paths.PathSpec(path=path, pathtype="OS")
     stats.append(rdf_client_fs.StatEntry(pathspec=p, st_mode=st_mode))
   for val in data:
-    files.append(io.BytesIO(val))
+    files.append(io.StringIO(val))
   return stats, files
 
 

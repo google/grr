@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Execute a Chipsec plugin on the client."""
+from __future__ import unicode_literals
 
 import io
 import logging
@@ -61,9 +62,7 @@ class DumpFlashImage(actions.ActionPlugin):
       syslog.info("%s: Runnning DumpFlashImage", config.CONFIG["Client.name"])
 
     self.logs = []
-    # TODO(hanuszczak): This appears to be something that could be made into
-    # `StringIO` instead of `BytesIO`.
-    self.chipsec_log = io.BytesIO()
+    self.chipsec_log = io.StringIO()
 
     if args.log_level:
       logger.logger().UTIL_TRACE = True
@@ -94,7 +93,7 @@ class DumpFlashImage(actions.ActionPlugin):
         for i in range(0, spi_size, args.chunk_size):
           bios.extend(s.read_spi(i, args.chunk_size))
           self.Progress()
-        dest_fd.write("".join(bios))
+        dest_fd.write(b"".join(bios))
 
     except (chipset.UnknownChipsetError, oshelper.OsHelperError) as err:
       # If the chipset is not recognised or if the helper threw an error,
@@ -139,9 +138,7 @@ class DumpACPITable(actions.ActionPlugin):
 
   def Run(self, args):
     self.logs = []
-    # TODO(hanuszczak): This appears to be something that could be made into
-    # `StringIO` instead of `BytesIO`.
-    self.chipsec_log = io.BytesIO()
+    self.chipsec_log = io.StringIO()
 
     if args.logging:
       self.logs.append("Dumping %s" % args.table_signature)

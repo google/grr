@@ -5,6 +5,7 @@ Most of these actions share an interface (in/out rdfvalues) with linux actions
 of the same name. Windows-only actions are registered with the server via
 libs/server_stubs.py
 """
+from __future__ import unicode_literals
 
 import binascii
 import ctypes
@@ -65,6 +66,34 @@ class GetInstallDate(actions.ActionPlugin):
     self.SendReply(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(install_date[0]))
 
 
+def EnumerateInterfacesFromClient(args):
+  """Enumerate all MAC addresses of all NICs.
+
+  Args:
+    args: Unused.
+
+  Yields:
+    `rdf_client_network.Interface` instances.
+  """
+  del args  # Unused.
+
+  pythoncom.CoInitialize()
+  for interface in wmi.WMI().Win32_NetworkAdapterConfiguration():
+    addresses = []
+    for ip_address in interface.IPAddress or []:
+      addresses.append(
+          rdf_client_network.NetworkAddress(human_readable_address=ip_address))
+
+    response = rdf_client_network.Interface(ifname=interface.Description)
+    if interface.MACAddress:
+      response.mac_address = binascii.unhexlify(
+          interface.MACAddress.replace(":", ""))
+    if addresses:
+      response.addresses = addresses
+
+    yield response
+
+
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerate all MAC addresses of all NICs.
 
@@ -74,29 +103,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
   out_rdfvalues = [rdf_client_network.Interface]
 
   def Run(self, args):
-    for res in self.Start(args):
+    for res in EnumerateInterfacesFromClient(args):
       self.SendReply(res)
-
-  @classmethod
-  def Start(cls, args):
-    del args  # Unused.
-
-    pythoncom.CoInitialize()
-    for interface in wmi.WMI().Win32_NetworkAdapterConfiguration():
-      addresses = []
-      for ip_address in interface.IPAddress or []:
-        addresses.append(
-            rdf_client_network.NetworkAddress(
-                human_readable_address=ip_address))
-
-      response = rdf_client_network.Interface(ifname=interface.Description)
-      if interface.MACAddress:
-        response.mac_address = binascii.unhexlify(
-            interface.MACAddress.replace(":", ""))
-      if addresses:
-        response.addresses = addresses
-
-      yield response
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
@@ -159,26 +167,26 @@ def QueryService(svc_name):
   return result
 
 
+def WmiQueryFromClient(args):
+  """Run the WMI query and return the data."""
+  query = args.query
+  base_object = args.base_object or r"winmgmts:\root\cimv2"
+
+  if not query.upper().startswith("SELECT "):
+    raise RuntimeError("Only SELECT WMI queries allowed.")
+
+  for response_dict in RunWMIQuery(query, baseobj=base_object):
+    yield response_dict
+
+
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
   in_rdfvalue = rdf_client_action.WMIRequest
   out_rdfvalues = [rdf_protodict.Dict]
 
   def Run(self, args):
-    """Run the WMI query and return the data."""
-    for res in self.Start(args):
+    for res in WmiQueryFromClient(args):
       self.SendReply(res)
-
-  @classmethod
-  def Start(cls, args):
-    query = args.query
-    base_object = args.base_object or r"winmgmts:\root\cimv2"
-
-    if not query.upper().startswith("SELECT "):
-      raise RuntimeError("Only SELECT WMI queries allowed.")
-
-    for response_dict in RunWMIQuery(query, baseobj=base_object):
-      yield response_dict
 
 
 def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):

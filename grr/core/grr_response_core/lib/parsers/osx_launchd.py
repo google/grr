@@ -3,6 +3,8 @@
 """Parser for OSX launchd jobs."""
 
 
+from __future__ import unicode_literals
+
 import re
 
 from grr_response_core.lib import parser

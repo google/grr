@@ -9,9 +9,11 @@ from grr_response_core.lib import config_lib
 from grr_response_core.lib import flags
 from grr_response_core.lib import registry
 from grr_response_core.lib import stats
+from grr_response_core.lib import utils
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import server_logging
+from grr_response_server import threadpool
 from grr_response_server.blob_stores import db_blob_store
 from grr_response_server.data_stores import fake_data_store
 
@@ -29,6 +31,7 @@ def TestInit():
 
   if stats.STATS is None:
     stats.STATS = stats.StatsCollector()
+    threadpool.InitializeMetrics()
 
   # Tests use both the server template grr_server.yaml as a primary config file
   # (this file does not contain all required options, e.g. private keys), and
@@ -56,11 +59,11 @@ def TestInit():
 
   test_ds = flags.FLAGS.test_data_store
   if test_ds is None:
-    test_ds = fake_data_store.FakeDataStore.__name__
+    test_ds = utils.GetName(fake_data_store.FakeDataStore)
 
   config.CONFIG.Set("Datastore.implementation", test_ds)
   config.CONFIG.Set("Blobstore.implementation",
-                    db_blob_store.DbBlobstore.__name__)
+                    utils.GetName(db_blob_store.DbBlobstore))
 
   if not INIT_RAN:
     server_logging.ServerLoggingStartupInit()

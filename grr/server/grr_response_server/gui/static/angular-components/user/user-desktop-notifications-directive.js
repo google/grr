@@ -7,7 +7,7 @@ const {annotateApiNotification, openReference} = goog.require('grrUi.user.userNo
 
 
 document.addEventListener('DOMContentLoaded', function() {
-  if(Notification && Notification.permission !== 'granted') {
+  if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
     Notification.requestPermission();
   }
 });
@@ -32,7 +32,7 @@ var MAX_DISPLAYED_NOTIFICATIONS = 2;
 const UserDesktopNotificationsController =
   function($scope, $interval, $window, $location, grrApiService, grrTimeService) {
 
-  if (!Notification) {
+  if (typeof Notification === 'undefined') {
     return;  // Nothing to do here..
   }
 

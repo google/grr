@@ -273,6 +273,18 @@
     "supported_os": [ "Darwin", "Linux", "Windows" ]
   },
 
+  { "name": "FakeFileArtifact2",
+    "sources": [
+      { "type": "FILE",
+        "attributes": { "paths": [ "/notafile", "/grr_response_test/test_data/numbers.txt" ]
+        },
+        "returned_types": [ "AttributedDict" ]
+      }
+    ],
+    "doc": "Test file artifact.",
+    "supported_os": [ "Darwin", "Linux", "Windows" ]
+  },
+
   {
     "name": "TestArtifactGroup",
     "sources": [

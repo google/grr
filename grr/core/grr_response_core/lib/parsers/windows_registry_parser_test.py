@@ -2,6 +2,8 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for grr.parsers.windows_registry_parser."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import windows_registry_parser

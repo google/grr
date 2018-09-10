@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Plist related rdfvalues."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import lexer
 from grr_response_core.lib import plist
 from grr_response_core.lib import rdfvalue

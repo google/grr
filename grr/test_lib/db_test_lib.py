@@ -53,6 +53,20 @@ class RelationalDBEnabledMixin(object):
     self._vfs_config_overrider.Stop()
 
 
+class RelationalFlowsEnabledMixin(RelationalDBEnabledMixin):
+  """Mixin to enable flows stored in the relational db."""
+
+  def setUp(self):
+    super(RelationalFlowsEnabledMixin, self).setUp()
+    self._rel_db_flows_enabled_patch = mock.patch.object(
+        data_store, "RelationalDBFlowsEnabled", return_value=True)
+    self._rel_db_flows_enabled_patch.start()
+
+  def tearDown(self):
+    super(RelationalFlowsEnabledMixin, self).tearDown()
+    self._rel_db_flows_enabled_patch.stop()
+
+
 def DualDBTest(cls):
   """Decorator that creates an additional RELDB-enabled test class."""
 

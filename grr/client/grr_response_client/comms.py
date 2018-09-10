@@ -67,8 +67,8 @@ Examples:
    URL/Proxy combination as in example 1.
 
 """
-
 from __future__ import division
+from __future__ import unicode_literals
 
 import collections
 import logging
@@ -476,12 +476,8 @@ class CommsInit(registry.InitHook):
 
   def RunOnce(self):
     # Counters used here
-    stats.STATS.RegisterGaugeMetric("grr_client_last_stats_sent_time", long)
     stats.STATS.RegisterCounterMetric("grr_client_received_bytes")
-    stats.STATS.RegisterCounterMetric("grr_client_received_messages")
-    stats.STATS.RegisterCounterMetric("grr_client_slave_restarts")
     stats.STATS.RegisterCounterMetric("grr_client_sent_bytes")
-    stats.STATS.RegisterCounterMetric("grr_client_sent_messages")
 
 
 class GRRClientWorker(threading.Thread):
@@ -574,19 +570,13 @@ class GRRClientWorker(threading.Thread):
     Returns:
        A MessageList protobuf
     """
-    messages = self._out_queue.GetMessages(soft_size_limit=max_size)
-    stats.STATS.IncrementCounter(
-        "grr_client_sent_messages", delta=len(messages.job))
-
-    return messages
+    return self._out_queue.GetMessages(soft_size_limit=max_size)
 
   def QueueMessages(self, messages):
     """Push messages to the input queue."""
     # Push all the messages to our input queue
     for message in messages:
       self._in_queue.put(message, block=True)
-
-      stats.STATS.IncrementCounter("grr_client_received_messages")
 
   def InQueueSize(self):
     """Returns the number of protobufs ready to be sent in the queue."""

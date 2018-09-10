@@ -314,7 +314,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
       router.GetFlow(None, token=self.token)
 
   def testGetFlowRaisesIfFlowWasNotCreatedBySameRouter(self):
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=self.client_id,
         flow_name=file_finder.FileFinder.__name__,
         token=self.token)
@@ -341,7 +341,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
       router.ListFlowResults(None, token=self.token)
 
   def testListFlowResultsRaisesIfFlowWasNotCreatedBySameRouter(self):
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=self.client_id,
         flow_name=file_finder.FileFinder.__name__,
         token=self.token)
@@ -369,7 +369,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
       router.GetFlowFilesArchive(None, token=self.token)
 
   def testFlowFilesArchiveRaisesIfFlowWasNotCreatedBySameRouter(self):
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=self.client_id,
         flow_name=file_finder.FileFinder.__name__,
         token=self.token)

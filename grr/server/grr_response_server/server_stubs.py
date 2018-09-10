@@ -249,13 +249,6 @@ class ListDirectory(ClientActionStub):
   out_rdfvalues = [rdf_client_fs.StatEntry]
 
 
-class IteratedListDirectory(ClientActionStub):
-  """Lists a directory as an iterator."""
-
-  in_rdfvalue = rdf_client_action.ListDirRequest
-  out_rdfvalues = [rdf_client_fs.StatEntry]
-
-
 # DEPRECATED.
 #
 # This action was replaced by newer `GetFileStat` action. This stub is left for

@@ -7,7 +7,6 @@ import pdb
 
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
-from future.utils import with_metaclass
 
 from grr_response_client.client_actions import standard
 
@@ -21,11 +20,14 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import handler_registry
 from grr_response_server import queue_manager
 from grr_response_server import server_stubs
+from grr_response_server import worker_lib
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
@@ -215,15 +217,14 @@ class WellKnownSessionTest2(WellKnownSessionTest):
       queue=rdfvalue.RDFURN("test"), flow_name="TestSessionId2")
 
 
-class FlowTestsBaseclass(
-    with_metaclass(registry.MetaclassRegistry, test_lib.GRRBaseTest)):
+class FlowTestsBaseclass(test_lib.GRRBaseTest):
   """The base class for all flow tests."""
 
   def FlowSetup(self, name, client_id=None):
     if client_id is None:
       client_id = self.client_id
 
-    session_id = flow.StartFlow(
+    session_id = flow.StartAFF4Flow(
         client_id=client_id, flow_name=name, token=self.token)
 
     return aff4.FACTORY.Open(session_id, mode="rw", token=self.token)
@@ -354,7 +355,11 @@ class MockClient(object):
 
       return
 
-    manager.QueueResponse(message)
+    if data_store.RelationalDBFlowsEnabled():
+      data_store.REL_DB.WriteFlowResponses(
+          [rdf_flow_objects.FlowResponseForLegacyResponse(message)])
+    else:
+      manager.QueueResponse(message)
 
   def Next(self):
     """Grab tasks for us from the server's queue."""
@@ -372,7 +377,7 @@ class MockClient(object):
                        message.name,
                        len(responses) + 1)
         except Exception as e:  # pylint: disable=broad-except
-          logging.error("Error %s occurred in client", e)
+          logging.exception("Error %s occurred in client", e)
           responses = [
               self.client_mock.GenerateStatusMessage(
                   message, 1, status="GENERIC_ERROR")
@@ -416,18 +421,31 @@ def TestFlowHelper(flow_urn_or_cls_name,
 
   Args:
     flow_urn_or_cls_name: RDFURN pointing to existing flow (in this case the
-                          given flow will be run) or flow class name (in this
-                          case flow of the given class will be created and run).
+      given flow will be run) or flow class name (in this case flow of the given
+      class will be created and run).
     client_mock: Client mock object.
     client_id: Client id of an emulated client.
     check_flow_errors: If True, TestFlowHelper will raise on errors during flow
-                       execution.
+      execution.
     token: Security token.
-    sync: Whether StartFlow call should be synchronous or not.
-    **kwargs: Arbitrary args that will be passed to flow.StartFlow().
+    sync: Whether StartAFF4Flow call should be synchronous or not.
+    **kwargs: Arbitrary args that will be passed to flow.StartAFF4Flow().
+
   Returns:
     The session id of the flow that was run.
   """
+
+  if data_store.RelationalDBFlowsEnabled():
+    flow_cls = registry.FlowRegistry.FlowClassByName(flow_urn_or_cls_name)
+    return StartAndRunFlow(
+        flow_cls,
+        creator=token.username,
+        client_mock=client_mock,
+        client_id=client_id.Basename(),
+        check_flow_errors=check_flow_errors,
+        flow_args=kwargs.pop("args", None),
+        **kwargs)
+
   if client_id or client_mock:
     client_mock = MockClient(client_id, client_mock, token=token)
 
@@ -438,7 +456,7 @@ def TestFlowHelper(flow_urn_or_cls_name,
     session_id = flow_urn_or_cls_name
   else:
     # Instantiate the flow:
-    session_id = flow.StartFlow(
+    session_id = flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=flow_urn_or_cls_name,
         sync=sync,
@@ -468,3 +486,87 @@ def TestFlowHelper(flow_urn_or_cls_name,
     CheckFlowErrors(total_flows, token=token)
 
   return session_id
+
+
+def StartAndRunFlow(flow_cls,
+                    client_mock=None,
+                    client_id=None,
+                    check_flow_errors=True,
+                    **kwargs):
+  """Builds a test harness (client and worker), starts the flow and runs it.
+
+  Args:
+    flow_cls: Flow class that will be created and run.
+    client_mock: Client mock object.
+    client_id: Client id of an emulated client.
+    check_flow_errors: If True, raise on errors during flow execution.
+    **kwargs: Arbitrary args that will be passed to flow.StartFlow().
+
+  Returns:
+    The session id of the flow that was run.
+  """
+  worker = TestWorker(token=True)
+  data_store.REL_DB.RegisterFlowProcessingHandler(worker.ProcessFlow)
+
+  flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kwargs)
+
+  RunFlow(
+      client_id,
+      flow_id,
+      client_mock=client_mock,
+      check_flow_errors=check_flow_errors,
+      worker=worker)
+  return flow_id
+
+
+class TestWorker(worker_lib.GRRWorker):
+  """The same class as the real worker but logs all processed flows."""
+
+  def __init__(self, *args, **kw):
+    super(TestWorker, self).__init__(*args, **kw)
+    self.processed_flows = []
+
+  def ProcessFlow(self, flow_processing_request):
+    key = (flow_processing_request.client_id, flow_processing_request.flow_id)
+    self.processed_flows.append(key)
+    super(TestWorker, self).ProcessFlow(flow_processing_request)
+
+  def ResetProcessedFlows(self):
+    processed_flows = self.processed_flows
+    self.processed_flows = []
+    return processed_flows
+
+
+def RunFlow(client_id,
+            flow_id,
+            client_mock=None,
+            worker=None,
+            check_flow_errors=True):
+  """Runs the flow given until no further progress can be made."""
+
+  all_processed_flows = set()
+
+  if client_id or client_mock:
+    client_mock = MockClient(client_id, client_mock)
+
+  if worker is None:
+    worker = TestWorker(token=True)
+    data_store.REL_DB.RegisterFlowProcessingHandler(worker.ProcessFlow)
+
+  # Run the client and worker until nothing changes any more.
+  while True:
+    client_processed = client_mock.Next()
+    worker_processed = worker.ResetProcessedFlows()
+    all_processed_flows.update(worker_processed)
+
+    if client_processed == 0 and not worker_processed:
+      break
+
+  if check_flow_errors:
+    for client_id, flow_id in all_processed_flows:
+      rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      if rdf_flow.flow_state != rdf_flow.FlowState.FINISHED:
+        raise RuntimeError("Flow %s on %s completed in state %s" %
+                           (flow_id, client_id, unicode(rdf_flow.flow_state)))
+
+  return flow_id

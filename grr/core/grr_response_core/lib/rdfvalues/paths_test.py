@@ -4,6 +4,8 @@
 # Copyright 2012 Google Inc. All Rights Reserved.
 """These are tests for the PathSpec implementation."""
 
+from __future__ import unicode_literals
+
 from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import flags

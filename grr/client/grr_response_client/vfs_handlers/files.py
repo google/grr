@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Implements VFSHandlers for files on the client."""
+from __future__ import unicode_literals
 
 import logging
 import os

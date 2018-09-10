@@ -167,7 +167,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
     """Makes sure that results are cached in the security manager."""
     client_id = self.SetupClient(0).Basename()
 
-    with test_lib.ConfigOverrider({"ACL.token_expiry": "10"}):
+    with test_lib.ConfigOverrider({"ACL.token_expiry": 30}):
       self.RequestAndGrantClientApproval(
           client_id, requestor=self.token.username)
 
@@ -176,7 +176,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
 
       # Move the clocks past approval expiry time but before cache expiry time.
       with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
-                             rdfvalue.Duration("10s")):
+                             rdfvalue.Duration("30s")):
         # If this doesn't raise now, all answers were cached.
         self.api.Client(client_id).Flow(f.flow_id).Get()
 

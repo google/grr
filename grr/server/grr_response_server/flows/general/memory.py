@@ -13,7 +13,6 @@ from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import registry
-from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
@@ -23,7 +22,9 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import rekall_pb2
 from grr_response_server import aff4
+from grr_response_server import aff4_flows
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import rekall_profile_server
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import file_finder
@@ -89,7 +90,7 @@ class MemoryCollector(flow.GRRFlow):
 
     # Note that this will actually also retrieve the memory image.
     self.CallFlow(
-        AnalyzeClientMemory.__name__,
+        aff4_flows.AnalyzeClientMemory.__name__,
         request=request,
         max_file_size_download=self.args.max_file_size,
         next_state="CheckAnalyzeClientMemory")
@@ -115,7 +116,8 @@ class AnalyzeClientMemoryArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class AnalyzeClientMemory(flow.GRRFlow):
+@flow_base.DualDBFlow
+class AnalyzeClientMemoryMixin(object):
   """Runs client side analysis using Rekall.
 
   This flow takes a list of Rekall plugins to run. It then sends the list of
@@ -136,6 +138,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
     self.CallStateInline(next_state="StartAnalysis")
 
   def StartAnalysis(self, responses):
+    del responses
     self.state.rekall_context_messages = {}
     self.state.output_files = []
     self.state.plugin_errors = []
@@ -219,21 +222,13 @@ class AnalyzeClientMemory(flow.GRRFlow):
 
         self.SendReply(response)
 
-    if (responses.iterator and  # This will be None if an error occurred.
-        responses.iterator.state != rdf_client_action.Iterator.State.FINISHED):
-      self.state.rekall_request.iterator = responses.iterator
-      self.CallClient(
-          server_stubs.RekallAction,
-          self.state.rekall_request,
-          next_state="StoreResults")
-    else:
-      if self.state.output_files:
-        self.Log("Getting %i files.", len(self.state.output_files))
-        self.CallFlow(
-            transfer.MultiGetFile.__name__,
-            pathspecs=self.state.output_files,
-            file_size=self.args.max_file_size_download,
-            next_state="DeleteFiles")
+    if self.state.output_files:
+      self.Log("Getting %i files.", len(self.state.output_files))
+      self.CallFlow(
+          transfer.MultiGetFile.__name__,
+          pathspecs=self.state.output_files,
+          file_size=self.args.max_file_size_download,
+          next_state="DeleteFiles")
 
   def DeleteFiles(self, responses):
     # Check that the MultiGetFile flow worked.
@@ -385,5 +380,5 @@ class MemoryFlowsInit(registry.InitHook):
       b = flow.FlowBehaviour("DEBUG")
 
     # Mark Rekall-based flows as basic, so that they appear in the UI.
-    for cls in [MemoryCollector, AnalyzeClientMemory, ListVADBinaries]:
+    for cls in [MemoryCollector, AnalyzeClientMemoryMixin, ListVADBinaries]:
       cls.behaviours = b

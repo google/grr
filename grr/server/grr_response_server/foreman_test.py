@@ -44,7 +44,7 @@ class ForemanTests(test_lib.GRRBaseTest):
     self.SetupClient(2, system="Linux")
     self.SetupClient(3, system="Windows 7")
 
-    with utils.Stubber(flow, "StartFlow", self.StartFlow):
+    with utils.Stubber(flow, "StartAFF4Flow", self.StartFlow):
       # Now setup the filters
       now = rdfvalue.RDFDatetime.Now()
       expires = now + rdfvalue.Duration("1h")
@@ -107,7 +107,7 @@ class ForemanTests(test_lib.GRRBaseTest):
     self.SetupClient(0x13, system="Windows 7", install_time=one_week_ago)
     self.SetupClient(0x14, system="Windows 7", last_boot_time=boot_time)
 
-    with utils.Stubber(flow, "StartFlow", self.StartFlow):
+    with utils.Stubber(flow, "StartAFF4Flow", self.StartFlow):
       # Now setup the filters
       now = rdfvalue.RDFDatetime.Now()
       expires = now + rdfvalue.Duration("1h")

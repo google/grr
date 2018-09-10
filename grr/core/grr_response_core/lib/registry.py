@@ -6,6 +6,7 @@ if it defines __metaclass__ = MetaclassRegistry.  Any derived class from this
 baseclass will have the member classes as a dict containing class name by key
 and class as value.
 """
+from __future__ import unicode_literals
 
 # The following are abstract base classes
 import abc
@@ -52,9 +53,6 @@ class MetaclassRegistry(abc.ABCMeta):
 
         cls.classes[cls.__name__] = cls
         cls.classes_by_name[getattr(cls, "name", None)] = cls
-        if hasattr(cls, "_ClsHelpEpilog"):
-          cls.__doc__ = "%s\n\n%s" % (getattr(cls, "__doc__", ""),
-                                      cls._ClsHelpEpilog())
       except AttributeError:
         cls.classes = {cls.__name__: cls}
         cls.classes_by_name = {getattr(cls, "name", None): cls}
@@ -111,6 +109,26 @@ class EventRegistry(MetaclassRegistry):
 
 class AFF4FlowRegistry(MetaclassRegistry):
   """A dedicated registry that only contains flows."""
+
+  FLOW_REGISTRY = {}
+
+  def __init__(cls, name, bases, env_dict):
+    MetaclassRegistry.__init__(cls, name, bases, env_dict)
+
+    if not cls.IsAbstract():
+      cls.FLOW_REGISTRY[name] = cls
+
+  @classmethod
+  def FlowClassByName(mcs, flow_name):
+    flow_cls = mcs.FLOW_REGISTRY.get(flow_name)
+    if flow_cls is None:
+      raise ValueError("Flow '%s' not known." % flow_name)
+
+    return flow_cls
+
+
+class FlowRegistry(MetaclassRegistry):
+  """A dedicated registry that only contains new style flows."""
 
   FLOW_REGISTRY = {}
 

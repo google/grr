@@ -140,7 +140,7 @@ users:
   def testCheckingArbitraryFlowStateDoesNotWork(self):
     self.InitRouterConfig(
         self.__class__.FILE_FINDER_ROUTER_CONFIG % self.token.username)
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=self.client_id,
         flow_name=file_finder.FileFinder.__name__,
         token=self.token)

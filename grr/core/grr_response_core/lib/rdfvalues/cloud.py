@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Cloud-related rdfvalues."""
 
+from __future__ import unicode_literals
+
 
 from future.utils import iteritems
 

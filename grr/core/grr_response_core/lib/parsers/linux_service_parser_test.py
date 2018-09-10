@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Unit test for the linux sysctl parser."""
 
+from __future__ import unicode_literals
+
 
 from future.utils import itervalues
 

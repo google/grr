@@ -2,6 +2,8 @@
 """Test for the flow state class."""
 
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base

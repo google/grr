@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests the Netstat client action."""
+from __future__ import unicode_literals
 
 
 from grr_response_client.client_actions import network

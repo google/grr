@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Abstracts encryption and authentication."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import abc
 import struct
@@ -115,7 +116,7 @@ class Cipher(object):
     return self.cipher.hmac_type
 
   def HMAC(self, *data):
-    return rdf_crypto.HMAC(self.cipher.hmac_key).HMAC("".join(data))
+    return rdf_crypto.HMAC(self.cipher.hmac_key).HMAC(b"".join(data))
 
 
 class ReceivedCipher(Cipher):
@@ -220,7 +221,7 @@ class ReceivedCipher(Cipher):
       msg = comms.encrypted
       digest = comms.hmac
     elif self.hmac_type == "FULL_HMAC":
-      msg = "".join([
+      msg = b"".join([
           comms.encrypted, comms.encrypted_cipher,
           comms.encrypted_cipher_metadata,
           comms.packet_iv.SerializeToString(),

@@ -46,13 +46,10 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
 
   def testRaisesWhenInitializedFromInvalidValues(self):
     with self.assertRaises(ValueError):
-      flow_plugin.ApiFlowId("blah")
-
-    with self.assertRaises(ValueError):
-      flow_plugin.ApiFlowId("foo/bar")
+      flow_plugin.ApiFlowId("bla%h")
 
   def testResolvesSimpleFlowURN(self):
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__,
         client_id=self.client_urn,
         token=self.token)
@@ -64,7 +61,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
         flow_urn)
 
   def testResolvesNestedFlowURN(self):
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__,
         client_id=self.client_urn,
         token=self.token)
@@ -135,7 +132,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
 
   def testInitializesClientIdForClientBasedFlows(self):
     client_id = self.SetupClient(0)
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         # Override base session id, so that the flow URN looks
         # like: aff4:/F:112233
         base_session_id="aff4:/",
@@ -150,7 +147,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
 
   def testLeavesClientIdEmptyForNonClientBasedFlows(self):
     client_id = self.SetupClient(0)
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
@@ -194,7 +191,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.client_id = self.SetupClient(0)
 
-    self.flow_urn = flow.StartFlow(
+    self.flow_urn = flow.StartAFF4Flow(
         flow_name=file_finder.FileFinder.__name__,
         client_id=self.client_id,
         paths=[os.path.join(self.base_path, "test.plist")],
@@ -331,7 +328,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     with test_lib.FakeTime(42):
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__,
           client_id=self.client_id,
           token=self.token)

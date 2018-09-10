@@ -53,8 +53,6 @@ class FindFiles(flow.GRRFlow):
     each file matching the criteria. Matching files will not be
     downloaded by this flow, only the metadata of the file is fetched.
 
-    Note: This flow is inefficient for collecting a large number of files.
-
   Returns to parent flow:
     rdf_client_fs.StatEntry objects for each found file.
   """
@@ -63,12 +61,12 @@ class FindFiles(flow.GRRFlow):
   args_type = FindFilesArgs
   friendly_name = "Find Files"
 
+  MAX_FILES_TO_CHECK = 10000000
+
   def Start(self):
     """Issue the find request to the client."""
-    self.state.received_count = 0
 
-    # Build up the request protobuf.
-    self.args.findspec.iterator.number = self.args.iteration_count
+    self.args.findspec.iterator.number = self.MAX_FILES_TO_CHECK
 
     # Convert the filename glob to a regular expression.
     if self.args.findspec.path_glob:
@@ -76,10 +74,10 @@ class FindFiles(flow.GRRFlow):
 
     # Call the client with it
     self.CallClient(
-        server_stubs.Find, self.args.findspec, next_state="IterateFind")
+        server_stubs.Find, self.args.findspec, next_state="StoreResults")
 
-  def IterateFind(self, responses):
-    """Iterate in this state until no more results are available."""
+  def StoreResults(self, responses):
+    """Stores the results returned from the client."""
     if not responses.success:
       raise IOError(responses.status)
 
@@ -109,22 +107,3 @@ class FindFiles(flow.GRRFlow):
 
         # Send the stat to the parent flow.
         self.SendReply(stat_response)
-
-    self.state.received_count += len(responses)
-
-    # Exit if we hit the max result count we wanted or we're finished. Note that
-    # we may exceed the max_results if the iteration yielded too many results,
-    # we simply will not return to the client for another iteration.
-    if (self.state.received_count < self.args.max_results and
-        responses.iterator.state != responses.iterator.State.FINISHED):
-
-      self.args.findspec.iterator = responses.iterator
-
-      # If we are close to max_results reduce the iterator.
-      self.args.findspec.iterator.number = min(
-          self.args.findspec.iterator.number,
-          self.args.max_results - self.state.received_count)
-
-      self.CallClient(
-          server_stubs.Find, self.args.findspec, next_state="IterateFind")
-      self.Log("%d files processed.", self.state.received_count)

@@ -13,13 +13,11 @@ import mock
 
 from grr_response_core import config
 from grr_response_core.lib import flags
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import aff4
 from grr_response_server import bigquery
 from grr_response_server.output_plugins import bigquery_plugin
 from grr.test_lib import flow_test_lib
@@ -33,17 +31,13 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     super(BigQueryOutputPluginTest, self).setUp()
     self.client_id = self.SetupClient(0)
     self.results_urn = self.client_id.Add("Results")
-    self.base_urn = rdfvalue.RDFURN("aff4:/foo/bar")
 
   def ProcessResponses(self,
                        plugin_args=None,
                        responses=None,
                        process_responses_separately=False):
     plugin = bigquery_plugin.BigQueryOutputPlugin(
-        source_urn=self.results_urn,
-        output_base_urn=self.base_urn,
-        args=plugin_args,
-        token=self.token)
+        source_urn=self.results_urn, args=plugin_args, token=self.token)
 
     plugin.InitializeState()
 
@@ -231,101 +225,6 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         counter += 1
 
     self.assertEqual(counter, 10)
-
-  def testBigQueryPluginFallbackToAFF4(self):
-    plugin_args = bigquery_plugin.BigQueryOutputPluginArgs()
-    responses = [
-        rdf_client_fs.StatEntry(
-            pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS")),
-        rdf_client.Process(pid=42),
-        rdf_client.Process(pid=43),
-        rdf_client.SoftwarePackage(name="test.deb")
-    ]
-
-    plugin = bigquery_plugin.BigQueryOutputPlugin(
-        source_urn=self.results_urn,
-        output_base_urn=self.base_urn,
-        args=plugin_args,
-        token=self.token)
-
-    plugin.InitializeState()
-
-    messages = []
-    for response in responses:
-      messages.append(
-          rdf_flows.GrrMessage(source=self.client_id, payload=response))
-
-    with test_lib.FakeTime(1445995873):
-      with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
-        mock_bigquery.return_value.configure_mock(**{
-            "InsertData.side_effect": bigquery.BigQueryJobUploadError()
-        })
-        with test_lib.ConfigOverrider({"BigQuery.max_upload_failures": 2}):
-          for message in messages:
-            plugin.ProcessResponses([message])
-          plugin.Flush()
-
-          # We have 3 output types but a limit of 2 upload failures, so we
-          # shouldn't try the third one.
-          self.assertEqual(mock_bigquery.return_value.InsertData.call_count, 2)
-
-    # We should have written a data file and a schema file for each type.
-    for output_name in [
-        "ExportedFile", "ExportedProcess", "AutoExportedSoftwarePackage"
-    ]:
-      schema_fd = aff4.FACTORY.Open(
-          self.base_urn.Add(
-              "C-1000000000000000_Results_%s_1445995873.schema" % output_name),
-          token=self.token)
-      data_fd = aff4.FACTORY.Open(
-          self.base_urn.Add(
-              "C-1000000000000000_Results_%s_1445995873.data" % output_name),
-          token=self.token)
-      actual_fd = gzip.GzipFile(None, "r", 9, data_fd)
-
-      if output_name == "ExportedFile":
-        self.CompareSchemaToKnownGood(json.load(schema_fd))
-        self.assertEqual(
-            json.load(actual_fd)["urn"], self.client_id.Add("/fs/os/中国新闻网新闻中"))
-      elif output_name == "ExportedProcess":
-        self.assertEqual(json.load(schema_fd)[1]["name"], "pid")
-        expected_pids = ["42", "43"]
-        for i, line in enumerate(actual_fd):
-          self.assertEqual(json.loads(line)["pid"], expected_pids[i])
-      else:
-        self.assertEqual(json.load(schema_fd)[1]["name"], "name")
-        self.assertEqual(json.load(actual_fd)["name"], "test.deb")
-
-    # Process the same messages to make sure we're re-using the filehandles.
-    with test_lib.FakeTime(1445995878):
-      with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
-        mock_bigquery.return_value.configure_mock(**{
-            "InsertData.side_effect": bigquery.BigQueryJobUploadError()
-        })
-        with test_lib.ConfigOverrider({"BigQuery.max_upload_failures": 2}):
-          for message in messages:
-            plugin.ProcessResponses([message])
-          plugin.Flush()
-
-          # We shouldn't call insertdata at all because we have passed max
-          # failures already
-          self.assertEqual(mock_bigquery.return_value.InsertData.call_count, 0)
-
-    expected_line_counts = {
-        "ExportedFile": 2,
-        "ExportedProcess": 4,
-        "AutoExportedSoftwarePackage": 2
-    }
-    for output_name in [
-        "ExportedFile", "ExportedProcess", "AutoExportedSoftwarePackage"
-    ]:
-      data_fd = aff4.FACTORY.Open(
-          self.base_urn.Add(
-              "C-1000000000000000_Results_%s_1445995873.data" % output_name),
-          token=self.token)
-      actual_fd = gzip.GzipFile(None, "r", 9, data_fd)
-      self.assertEqual(
-          sum(1 for line in actual_fd), expected_line_counts[output_name])
 
 
 def main(argv):

@@ -18,6 +18,7 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
 # TODO(user): break the dependency cycle described in filesystem.py and
@@ -28,6 +29,7 @@ from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -35,6 +37,8 @@ from grr.test_lib import vfs_test_lib
 
 class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
+
+  flow_base_cls = flow.GRRFlow
 
   def setUp(self):
     super(TestFilesystem, self).setUp()
@@ -50,12 +54,13 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # Make sure the flow raises.
     with self.assertRaises(RuntimeError):
-      flow_test_lib.TestFlowHelper(
-          filesystem.ListDirectory.__name__,
-          client_mock,
-          client_id=self.client_id,
-          pathspec=pb,
-          token=self.token)
+      with test_lib.SuppressLogs():
+        flow_test_lib.TestFlowHelper(
+            filesystem.ListDirectory.__name__,
+            client_mock,
+            client_id=self.client_id,
+            pathspec=pb,
+            token=self.token)
 
   def testListDirectory(self):
     """Test that the ListDirectory flow works."""
@@ -100,12 +105,13 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     pb.Append(path="doesnotexist", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     with self.assertRaises(RuntimeError):
-      flow_test_lib.TestFlowHelper(
-          filesystem.ListDirectory.__name__,
-          client_mock,
-          client_id=self.client_id,
-          pathspec=pb,
-          token=self.token)
+      with test_lib.SuppressLogs():
+        flow_test_lib.TestFlowHelper(
+            filesystem.ListDirectory.__name__,
+            client_mock,
+            client_id=self.client_id,
+            pathspec=pb,
+            token=self.token)
 
   def testUnicodeListDirectory(self):
     """Test that the ListDirectory flow works on unicode directories."""
@@ -156,17 +162,15 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         os.path.join(self.base_path, "VFSFixture/var/*/wtmp")
     ]
 
-    # Set iterator really low to force iteration.
-    with utils.Stubber(filesystem.Glob, "FILE_MAX_PER_DIR", 2):
-      flow_test_lib.TestFlowHelper(
-          filesystem.Glob.__name__,
-          client_mock,
-          client_id=client_id,
-          paths=paths,
-          pathtype=rdf_paths.PathSpec.PathType.OS,
-          token=self.token,
-          sync=False,
-          check_flow_errors=False)
+    flow_test_lib.TestFlowHelper(
+        filesystem.Glob.__name__,
+        client_mock,
+        client_id=client_id,
+        paths=paths,
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        token=self.token,
+        sync=False,
+        check_flow_errors=False)
 
     output_path = client_id.Add("fs/os").Add(self.base_path.replace("\\", "/"))
 
@@ -203,7 +207,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
   def _RunGlob(self, paths):
     self.flow_replies = []
     client_mock = action_mocks.GlobClientMock()
-    with utils.Stubber(flow.GRRFlow, "SendReply", self._MockSendReply):
+    with utils.Stubber(self.flow_base_cls, "SendReply", self._MockSendReply):
       flow_test_lib.TestFlowHelper(
           filesystem.Glob.__name__,
           client_mock,
@@ -525,7 +529,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     # flow since Weird_illegal_attribute is not a valid client attribute.
     self.assertRaises(
         artifact_utils.KnowledgeBaseInterpolationError,
-        flow.StartFlow,
+        flow.StartAFF4Flow,
         flow_name=filesystem.Glob.__name__,
         paths=paths,
         client_id=self.client_id,
@@ -541,15 +545,16 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     session_id = None
 
     # This should not raise here since the flow is run asynchronously.
-    session_id = flow_test_lib.TestFlowHelper(
-        filesystem.Glob.__name__,
-        client_mock,
-        client_id=self.client_id,
-        check_flow_errors=False,
-        paths=paths,
-        pathtype=rdf_paths.PathSpec.PathType.OS,
-        token=self.token,
-        sync=False)
+    with test_lib.SuppressLogs():
+      session_id = flow_test_lib.TestFlowHelper(
+          filesystem.Glob.__name__,
+          client_mock,
+          client_id=self.client_id,
+          check_flow_errors=False,
+          paths=paths,
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          token=self.token,
+          sync=False)
 
     fd = aff4.FACTORY.Open(session_id, token=self.token)
     self.assertIn("KnowledgeBaseInterpolationError", fd.context.backtrace)
@@ -856,7 +861,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
   def testDiskVolumeInfoOSXLinux(self):
     client_mock = action_mocks.UnixVolumeClientMock()
-    with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
+    with test_lib.Instrument(self.flow_base_cls, "SendReply") as send_reply:
       flow_test_lib.TestFlowHelper(
           filesystem.DiskVolumeInfo.__name__,
           client_mock,
@@ -879,8 +884,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
                                    vfs_test_lib.FakeRegistryVFSHandler):
 
       client_mock = action_mocks.WindowsVolumeClientMock()
-
-      with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
+      with test_lib.Instrument(self.flow_base_cls, "SendReply") as send_reply:
         flow_test_lib.TestFlowHelper(
             filesystem.DiskVolumeInfo.__name__,
             client_mock,
@@ -889,9 +893,8 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
             path_list=[r"D:\temp\something", r"/var/tmp"])
 
         results = []
-        for cls, reply in send_reply.args:
-          if isinstance(cls, filesystem.DiskVolumeInfo) and isinstance(
-              reply, rdf_client_fs.Volume):
+        for flow_obj, reply in send_reply.args:
+          if issubclass(flow_obj.__class__, filesystem.DiskVolumeInfoMixin):
             results.append(reply)
 
         # We asked for D and we guessed systemroot (C) for "/var/tmp", but only
@@ -900,7 +903,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
                               ["C:"])
         self.assertEqual(len(results), 1)
 
-      with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
+      with test_lib.Instrument(self.flow_base_cls, "SendReply") as send_reply:
         flow_test_lib.TestFlowHelper(
             filesystem.DiskVolumeInfo.__name__,
             client_mock,
@@ -909,9 +912,8 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
             path_list=[r"Z:\blah"])
 
         results = []
-        for cls, reply in send_reply.args:
-          if isinstance(cls, filesystem.DiskVolumeInfo) and isinstance(
-              reply, rdf_client_fs.Volume):
+        for flow_obj, reply in send_reply.args:
+          if issubclass(flow_obj.__class__, filesystem.DiskVolumeInfoMixin):
             results.append(reply)
 
         self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
@@ -1002,6 +1004,16 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
       for result in results:
         st = result.Get(result.Schema.STAT)
         self.assertIsNone(st.st_mtime)
+
+
+class RelFlowsTestFilesystem(db_test_lib.RelationalFlowsEnabledMixin,
+                             TestFilesystem):
+
+  flow_base_cls = flow_base.FlowBase
+
+  # No async flow starts in the new framework anymore.
+  def testIllegalGlobAsync(self):
+    pass
 
 
 def main(argv):

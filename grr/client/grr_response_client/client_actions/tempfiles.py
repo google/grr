@@ -3,7 +3,7 @@
 
 Utilities for working with GRR temp files.
 """
-
+from __future__ import unicode_literals
 
 import os
 import shutil

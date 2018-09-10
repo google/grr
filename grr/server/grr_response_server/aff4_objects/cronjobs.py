@@ -445,7 +445,7 @@ class CronJob(aff4.AFF4Volume):
   def StopCurrentRun(self, reason="Cron lifetime exceeded."):
     current_flow_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
     if current_flow_urn:
-      flow.GRRFlow.TerminateFlow(
+      flow.GRRFlow.TerminateAFF4Flow(
           current_flow_urn, reason=reason, token=self.token)
       self.Set(
           self.Schema.LAST_RUN_STATUS,
@@ -530,7 +530,7 @@ class CronJob(aff4.AFF4Volume):
     cron_args = self.Get(self.Schema.CRON_ARGS)
     cron_args.flow_runner_args.base_session_id = self.urn
 
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         runner_args=cron_args.flow_runner_args,
         args=cron_args.flow_args,
         token=self.token,

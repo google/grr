@@ -199,6 +199,10 @@ message BlobReference {
   optional bytes blob_id = 3 [(sem_type) = { type: "BlobID" }];
 }
 
+message BlobReferences {
+  repeated BlobReference items = 1;
+}
+
 message ObjectReference {
   option (semantic) = {
     union_field: "reference_type"

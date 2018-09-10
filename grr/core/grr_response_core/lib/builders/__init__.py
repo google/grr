@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Select operating system specific implementations of builder."""
+from __future__ import unicode_literals
+
 import platform
 
 # pylint: disable=unused-import,g-import-not-at-top,g-bad-name

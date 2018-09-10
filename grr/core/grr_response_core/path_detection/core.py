@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """The path detection interface (base) class definitions."""
 
+from __future__ import unicode_literals
+
 import abc
 import shlex
 from future.utils import with_metaclass

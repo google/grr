@@ -723,6 +723,11 @@ message ArtifactCollectorFlowArgs {
           " missing if users have never logged in. Enable this when you have"
           " multiple artifacts or paths and want to report partial results.",
     }, default=false];
+
+  optional bool recollect_knowledge_base = 14 [(sem_type) = {
+    description: "Whether the dependencies should be collected as well or the"
+                 " interrogation flow is used.",
+  }];
 }
 
 // Next field ID: 10
@@ -944,15 +949,11 @@ message FindFilesArgs {
       description: "A find operation specification.",
     }];
 
-  optional uint64 max_results = 3 [(sem_type) = {
-      description: "Maximum number of results to get.",
-      label: ADVANCED;
-    }, default=500];
+  // DEPRECATED
+  // optional uint64 max_results = 3;
 
-  optional uint64 iteration_count = 4 [(sem_type) = {
-      description: "Files examined per iteration.",
-      label: ADVANCED
-    }, default=20000];
+  // DEPRECATED
+  // optional uint64 iteration_count = 4;
 }
 
 // Next field ID: 4
@@ -1137,6 +1138,7 @@ message CronJob {
     }];
   optional bool allow_overruns = 11;
   optional bool forced_run_requested = 12;
+  optional string description = 13;
 }
 
 message CronJobRun {
@@ -2141,4 +2143,125 @@ message ListNetworkConnectionsArgs {
     },
     default = false
     ];
+}
+
+message FlowProcessingRequest {
+  optional string client_id = 1;
+  optional string flow_id = 2;
+  optional uint64 request_id = 3;
+  optional uint64 delivery_time = 4 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+}
+
+message FlowRequest {
+  optional string client_id = 1;
+  optional string flow_id = 2;
+  optional uint64 request_id = 3;
+  optional string next_state = 4;
+  optional Dict request_data = 5;
+  optional uint64 start_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional bool needs_processing = 7;
+  optional uint64 nr_responses_expected = 8;
+}
+
+message FlowResponse {
+  optional string client_id = 1;
+  optional string flow_id = 2;
+  optional uint64 request_id = 3;
+  optional uint64 response_id = 4;
+  optional google.protobuf.Any payload = 5;
+}
+
+message FlowStatus {
+  optional string client_id = 1;
+  optional string flow_id = 2;
+  optional uint64 request_id = 3;
+  optional uint64 response_id = 4;
+
+  enum Status {
+    UNSET = 0;
+    OK = 1;
+    ERROR = 2;
+    IOERROR = 3;
+    CLIENT_KILLED = 4;
+    NETWORK_LIMIT_EXCEEDED = 5;
+    CPU_LIMIT_EXCEEDED = 6;
+  };
+
+  optional Status status = 5 [default = OK];
+  optional string error_message = 6;
+  optional string backtrace = 7;
+  optional CpuSeconds cpu_time_used = 8;
+  optional uint64 network_bytes_sent = 9;
+}
+
+message FlowIterator {
+  optional string client_id = 1;
+  optional string flow_id = 2;
+  optional uint64 request_id = 3;
+  optional uint64 response_id = 4;
+}
+
+message Flow {
+  optional string flow_id = 1;
+  optional string client_id = 2;
+  optional string flow_class_name = 3;
+  optional string parent_flow_id = 4;
+  optional uint64 parent_request_id = 5;
+  optional string long_flow_id = 6;
+  optional google.protobuf.Any args = 7;
+  optional AttributedDict persistent_data = 8;
+  optional ClientCrash client_crash_info = 9;
+  optional PendingFlowTermination pending_termination = 10;
+  optional string error_message = 11;
+  optional string backtrace = 12;
+  optional uint64 create_time = 13 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional string creator = 14;
+  optional string current_state = 15;
+  optional CpuSeconds cpu_time_used = 16;
+  optional uint64 network_bytes_sent = 17;
+  optional uint64 next_outbound_id = 18 [default = 1];
+  optional uint64 next_request_to_process = 19 [default = 1];
+  repeated OutputPluginState output_plugins_states = 20;
+
+  enum FlowState {
+    UNSET = 0;
+    RUNNING = 1;
+    FINISHED = 2;
+    ERROR = 3;
+  };
+  optional FlowState flow_state = 21;
+  optional uint64 response_count = 22;
+  optional uint64 cpu_limit = 23 [(sem_type) = {
+      description: "A limit on the client cpu seconds used by this flow.",
+      label: ADVANCED,
+    }, default = 7200];
+
+  optional uint64 network_bytes_limit = 24 [(sem_type) = {
+      description: "A limit on the total traffic used by this flow.",
+      label: ADVANCED,
+    }];
+  repeated OutputPluginDescriptor output_plugins = 25 [(sem_type) = {
+      description: "Output plugins used for this flow. These plugins will be "
+                   "applied to flow results as soon as the flow is completed."
+      friendly_name: "Output Plugins",
+      label: HIDDEN,
+    }];
+  optional FlowReference original_flow = 26 [(sem_type) = {
+      description: "If this flow is a copy of another flow, we store "
+      "a reference to the original here.",
+      label: HIDDEN
+    }];
+  optional string processing_on = 27;
+  optional uint64 processing_since = 28 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional uint64 processing_deadline = 29 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
 }

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utils common to macOS and Linux."""
+from __future__ import unicode_literals
 
 import logging
 import os

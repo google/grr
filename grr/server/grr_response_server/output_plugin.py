@@ -4,10 +4,8 @@
 import abc
 import logging
 import threading
-import zipfile
 
 
-from future.utils import iterkeys
 from future.utils import itervalues
 from future.utils import with_metaclass
 
@@ -16,7 +14,6 @@ from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import output_plugin_pb2
-from grr_response_server import aff4
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
 
@@ -70,12 +67,7 @@ class OutputPlugin(with_metaclass(registry.OutputPluginRegistry, object)):
   description = ""
   args_type = None
 
-  def __init__(self,
-               source_urn=None,
-               output_base_urn=None,
-               args=None,
-               token=None,
-               state=None):
+  def __init__(self, source_urn=None, args=None, token=None, state=None):
     """OutputPlugin constructor.
 
     Note that OutputPlugin constructor may run with security checks enabled
@@ -87,13 +79,11 @@ class OutputPlugin(with_metaclass(registry.OutputPluginRegistry, object)):
 
     Args:
       source_urn: URN of the data source to process the results from.
-      output_base_urn: URN of the AFF4 volume where plugin will write output
-                       data (if needed).
       args: This plugin's arguments.
       token: Security token.
-      state: A dict representing the plugin's state. If this
-             is passed, no initialization will be performed, only the state will
-             be applied.
+      state: A dict representing the plugin's state. If this is passed, no
+        initialization will be performed, only the state will be applied.
+
     Raises:
       ValueError: when state argument is passed together with args or token
                   arguments.
@@ -105,7 +95,6 @@ class OutputPlugin(with_metaclass(registry.OutputPluginRegistry, object)):
     if not state:
       self.state = rdf_protodict.AttributedDict()
       self.state.source_urn = source_urn
-      self.state.output_base_urn = output_base_urn
       self.state.args = args
       self.state.token = token
 
@@ -197,11 +186,10 @@ class OutputPluginVerifier(with_metaclass(registry.MetaclassRegistry, object)):
     relying on BigQueryOutputPlugin correct error reporting.
 
     Args:
-      plugin: OutputPlugin object instance corresponding to a plugin that
-              was used to process hunt results.
-      hunt: Hunt object. Output of this hunt was fed into the output
-            plugin of this class with the arguments specified by
-            "args" argument.
+      plugin: OutputPlugin object instance corresponding to a plugin that was
+        used to process hunt results.
+      hunt: Hunt object. Output of this hunt was fed into the output plugin of
+        this class with the arguments specified by "args" argument.
 
     Returns:
       OutputPluginVerificationResult object.
@@ -216,10 +204,9 @@ class OutputPluginVerifier(with_metaclass(registry.MetaclassRegistry, object)):
     implementation just applies VerifyHuntOutput iteratively.
 
     Args:
-      plugins_hunts_pairs: A list of (plugin, hunt) tuples where "plugin"
-          is an OutputPlugin object instance corresponding to a plugin
-          that was used to process hunt results, and "hunt" is a GRRHunt
-          object.
+      plugins_hunts_pairs: A list of (plugin, hunt) tuples where "plugin" is an
+        OutputPlugin object instance corresponding to a plugin that was used to
+        process hunt results, and "hunt" is a GRRHunt object.
 
     Yields:
       (RDFURN, OutputPluginVerificationResult) pairs, where urns
@@ -258,75 +245,12 @@ class OutputPluginVerifier(with_metaclass(registry.MetaclassRegistry, object)):
     relying on BigQueryOutputPlugin correct error reporting.
 
     Args:
-      plugin: OutputPlugin object instance corresponding to a plugin that
-              was used to process flow results.
-      flow: Flow object. Output of this flow was fed into the output
-            plugin of this class with the arguments specified by
-            "args" argument.
+      plugin: OutputPlugin object instance corresponding to a plugin that was
+        used to process flow results.
+      flow: Flow object. Output of this flow was fed into the output plugin of
+        this class with the arguments specified by "args" argument.
 
     Returns:
       OutputPluginVerificationResult object.
     """
-    raise NotImplementedError()
-
-
-class OutputPluginWithOutputStreams(OutputPlugin):
-  """OutputPlugin that writes results to output streams on AFF4."""
-
-  __abstract = True  # pylint: disable=g-bad-name
-
-  def __init__(self, *args, **kw):
-    super(OutputPluginWithOutputStreams, self).__init__(*args, **kw)
-    self.stream_objects = {}
-
-  def InitializeState(self):
-    super(OutputPluginWithOutputStreams, self).InitializeState()
-    self.state["output_streams"] = {}
-
-  def Flush(self):
-    super(OutputPluginWithOutputStreams, self).Flush()
-
-    for stream in itervalues(self.stream_objects):
-      stream.Flush()
-
-  def _CreateOutputStream(self, name):
-    """Creates new output stream with a given name."""
-    if name in self.stream_objects:
-      return self.stream_objects[name]
-
-    urn = self.state.output_base_urn.Add(name)
-    self.state.output_streams[name] = urn
-
-    logging.info("Creating new output stream: %s", urn)
-    output_stream = aff4.FACTORY.Create(
-        urn, aff4_type=aff4.AFF4UnversionedImage, mode="rw", token=self.token)
-    output_stream.Seek(0, 2)
-    self.stream_objects[name] = output_stream
-    return output_stream
-
-  def OpenOutputStreams(self):
-    """Opens all the used output streams.
-
-    Returns:
-      Dictionary with "stream name" -> "stream object" key-value pairs.
-    """
-    urn_to_names = {
-        self.state.output_base_urn.Add(name): name
-        for name in self.stream_objects
-    }
-    streams = aff4.FACTORY.MultiOpen(
-        list(iterkeys(urn_to_names)),
-        aff4_type=aff4.AFF4UnversionedImage,
-        token=self.token)
-
-    # Name -> Stream object.
-    result = {}
-
-    for stream in streams:
-      result[urn_to_names[stream.urn]] = stream
-
-    return result
-
-  def WriteSnapshotZipStream(self, fd, compression=zipfile.ZIP_DEFLATED):
-    """Writes available output streams to a new zipped stream."""
     raise NotImplementedError()

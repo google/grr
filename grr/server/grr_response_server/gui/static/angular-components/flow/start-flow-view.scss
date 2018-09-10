@@ -1,8 +1,20 @@
+grr-start-flow-view {
 
-grr-start-flow-view .rightTopPane {
-  width: 100%;
-  height: 70%;
-  background: $color-default-background;
-  overflow: auto;
-  position: relative;
+  grr-flow-descriptors-tree {
+    position: absolute;
+    left: 0;
+    width: $flow-descriptors-tree-width;
+    top: 0;
+    bottom: 0;
+    border-right: $color-modal-border 1px solid;
+  }
+
+  div.flow-details {
+    position: absolute;
+    left: $flow-descriptors-tree-width;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    overflow: auto;
+  }
 }

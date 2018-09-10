@@ -380,7 +380,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
     default_ttl = rdf_flows.GrrMessage().task_ttl
     with test_lib.FakeTime(base_time):
-      flow.StartFlow(
+      flow.StartAFF4Flow(
           client_id=client_id,
           flow_name=flow_test_lib.SendingFlow.__name__,
           message_count=1,
@@ -405,7 +405,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     msgs_recvd = []
 
     with test_lib.FakeTime(base_time):
-      flow_id = flow.StartFlow(
+      flow_id = flow.StartAFF4Flow(
           client_id=client_id,
           flow_name=flow_test_lib.SendingFlow.__name__,
           message_count=1,

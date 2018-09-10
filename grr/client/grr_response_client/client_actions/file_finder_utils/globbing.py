@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Implementation of path expansion mechanism for client-side file-finder."""
+from __future__ import unicode_literals
 
 import abc
 import errno
@@ -10,6 +11,8 @@ import os
 import platform
 import re
 from future.utils import with_metaclass
+
+from grr_response_core.lib import utils
 
 
 class PathOpts(object):
@@ -184,6 +187,8 @@ def ParsePath(path, opts=None):
   Raises:
     ValueError: If path contains more than one recursive component.
   """
+  utils.AssertType(path, unicode)
+
   rcount = 0
   for item in path.split(os.path.sep):
     component = ParsePathItem(item, opts=opts)
@@ -204,6 +209,8 @@ def ExpandPath(path, opts=None):
   Yields:
     All paths possible to obtain from a given path by performing expansions.
   """
+  utils.AssertType(path, unicode)
+
   for grouped_path in ExpandGroups(path):
     for globbed_path in ExpandGlobs(grouped_path, opts=opts):
       yield globbed_path
@@ -221,6 +228,8 @@ def ExpandGroups(path):
   Yields:
     Paths that can be obtained from given path by expanding groups.
   """
+  utils.AssertType(path, unicode)
+
   chunks = []
   offset = 0
 
@@ -252,6 +261,7 @@ def ExpandGlobs(path, opts=None):
   Raises:
     ValueError: If given path is empty or relative.
   """
+  utils.AssertType(path, unicode)
   if not path:
     raise ValueError("Path is empty")
 
@@ -285,8 +295,26 @@ def _ListDir(dirpath):
     dirpath: A path to the directory.
   """
   try:
-    return os.listdir(dirpath)
+    childpaths = os.listdir(dirpath)
   except OSError as error:
     if error.errno == errno.EACCES:
       logging.info(error)
     return []
+
+  # TODO(hanuszczak): `os.listdir` already returns an unicode string in Python
+  # 3, there is no need to decode. Remove that once support for Python 2 is
+  # dropped.
+  string_childpaths = []
+  for childpath in childpaths:
+    try:
+      if isinstance(childpath, unicode):
+        string_childpaths.append(childpath)
+      elif isinstance(childpath, bytes):
+        string_childpaths.append(childpath.decode("utf-8"))
+      else:
+        message = "Unexpected value `%s` of type `%s`"
+        message %= (childpath, type(childpath))
+        raise TypeError(message)
+    except UnicodeDecodeError as error:
+      logging.warning(error)
+  return string_childpaths

@@ -194,28 +194,28 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
     parser = config_file.CronAtAllowDenyParser()
 
     data = {
-        "/etc/at.allow": "root",
-        "/etc/cron.allow": "user1",
-        "/etc/at.deny": "blah\nblah blah"
+        "/etc/at.allow": u"root",
+        "/etc/cron.allow": u"user1",
+        "/etc/at.deny": u"blah\nblah blah"
     }
     found = ["/etc/cron.allow: user1"]
 
     results = self.GenResults([artifact], [data], [parser])
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 
-    data = {"/etc/at.allow": "", "/etc/cron.allow": "root"}
+    data = {"/etc/at.allow": u"", "/etc/cron.allow": u"root"}
     found = ["/etc/at.allow:"]
 
     results = self.GenResults([artifact], [data], [parser])
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 
-    data = {"/etc/at.allow": "", "/etc/cron.allow": ""}
+    data = {"/etc/at.allow": u"", "/etc/cron.allow": u""}
     found = ["/etc/at.allow:", "/etc/cron.allow:"]
 
     results = self.GenResults([artifact], [data], [parser])
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 
-    data = {"/etc/at.allow": "root", "/etc/cron.allow": "root"}
+    data = {"/etc/at.allow": u"root", "/etc/cron.allow": u"root"}
 
     results = self.GenResults([artifact], [data], [parser])
     self.assertCheckUndetected(check_id, results)

@@ -10,7 +10,6 @@ A UserManager class has the following responsibilities :
   - Validate a user authentication event (optional)
 """
 
-
 import logging
 import time
 
@@ -112,8 +111,8 @@ class AccessControlManager(with_metaclass(registry.MetaclassRegistry, object)):
 
     If the flow is to be started on a particular client, it's assumed that
     CheckClientAccess passes on that client. If the flow is to be started
-    as a global flow, no additional checks will be made. See GRRFlow.StartFlow
-    implementation in lib/flow.py for details.
+    as a global flow, no additional checks will be made. See
+    GRRFlow.StartAFF4Flow implementation in lib/flow.py for details.
 
     Args:
       token: User credentials token.

@@ -24,6 +24,6 @@ def AddFileToFileStore(pathspec=None, client_id=None, token=None):
       pathspec=pathspec)
 
   urn = pathspec.AFF4Path(client_id)
-  events.Events.PublishEvent("FileStore.AddFileToStore", urn, token=token)
+  events.Events.PublishEvent("LegacyFileStore.AddFileToStore", urn, token=token)
 
   return urn

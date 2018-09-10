@@ -417,15 +417,9 @@ class ArtifactRegistry(object):
     self._CheckDirty()
     result = self._artifacts.get(name)
     if not result:
-      # If we don't have an artifact, things shouldn't have passed validation
-      # so we assume its a new one in the datastore.
-      self.ReloadDatastoreArtifacts()
-      result = self._artifacts.get(name)
-      if not result:
-        raise rdf_artifacts.ArtifactNotRegisteredError(
-            "Artifact %s missing from registry. You may need "
-            "to sync the artifact repo by running make in the artifact "
-            "directory." % name)
+      raise rdf_artifacts.ArtifactNotRegisteredError(
+          "Artifact %s missing from registry. You may need to sync the "
+          "artifact repo by running make in the artifact directory." % name)
     return result
 
   @utils.Synchronized
@@ -697,6 +691,25 @@ def GetArtifactDependencies(rdf_artifact, recursive=False, depth=1):
         deps_set.update(new_dep)
 
   return deps_set
+
+
+# TODO(user): Add tests for this and for all other Get* functions in this
+# package.
+def GetArtifactsDependenciesClosure(name_list, os_name=None):
+  """For all the artifacts in the list returns them and their dependencies."""
+
+  artifacts = set(REGISTRY.GetArtifacts(os_name=os_name, name_list=name_list))
+
+  dependencies = set()
+  for art in artifacts:
+    dependencies.update(GetArtifactDependencies(art, recursive=True))
+  if dependencies:
+    artifacts.update(
+        set(
+            REGISTRY.GetArtifacts(
+                os_name=os_name, name_list=list(dependencies))))
+
+  return artifacts
 
 
 def GetArtifactPathDependencies(rdf_artifact):

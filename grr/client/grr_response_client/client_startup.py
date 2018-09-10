@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Client startup routines."""
+from __future__ import unicode_literals
 
 from grr_response_client import client_logging
 from grr_response_core import config

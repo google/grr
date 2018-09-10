@@ -47,7 +47,6 @@ from __future__ import print_function
 import logging
 
 
-from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 
@@ -55,6 +54,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import stats
 from grr_response_core.lib import type_info
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -62,6 +62,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server import events
 from grr_response_server import flow_responses
@@ -71,6 +72,7 @@ from grr_response_server import multi_type_collection
 from grr_response_server import notification as notification_lib
 from grr_response_server import queue_manager
 from grr_response_server import sequential_collection
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -94,11 +96,6 @@ class AttributedDict(dict):
   def __init__(self, *args, **kwargs):
     super(AttributedDict, self).__init__(*args, **kwargs)
     self.__dict__ = self
-
-
-class PendingFlowTermination(rdf_structs.RDFProtoStruct):
-  """Descriptor of a pending flow termination."""
-  protobuf = jobs_pb2.PendingFlowTermination
 
 
 class EmptyFlowArgs(rdf_structs.RDFProtoStruct):
@@ -166,30 +163,49 @@ def FilterArgsFromSemanticProtobuf(protobuf, kwargs):
       setattr(protobuf, descriptor.name, value)
 
 
-def StartFlow(args=None,
-              runner_args=None,
-              parent_flow=None,
-              sync=True,
-              token=None,
-              **kwargs):
+def GetOutputPluginStates(output_plugins, source=None, token=None):
+  """Initializes state for a list of output plugins."""
+  output_plugins_states = []
+  for plugin_descriptor in output_plugins:
+    plugin_class = plugin_descriptor.GetPluginClass()
+    plugin = plugin_class(
+        source_urn=source, args=plugin_descriptor.plugin_args, token=token)
+    try:
+      plugin.InitializeState()
+    except Exception as e:  # pylint: disable=broad-except
+      logging.warning("Plugin %s failed to initialize (%s), ignoring it.",
+                      plugin, e)
+      continue
+
+    # TODO(amoser): Those do not need to be inside the state, they
+    # could be part of the plugin descriptor.
+    plugin.state["logs"] = []
+    plugin.state["errors"] = []
+
+    output_plugins_states.append(
+        rdf_flow_runner.OutputPluginState(
+            plugin_state=plugin.state, plugin_descriptor=plugin_descriptor))
+
+  return output_plugins_states
+
+
+def StartAFF4Flow(args=None,
+                  runner_args=None,
+                  parent_flow=None,
+                  sync=True,
+                  token=None,
+                  **kwargs):
   """The main factory function for creating and executing a new flow.
 
   Args:
-
     args: An arg protocol buffer which is an instance of the required flow's
       args_type class attribute.
-
     runner_args: an instance of FlowRunnerArgs() protocol buffer which is used
       to initialize the runner for this flow.
-
     parent_flow: A parent flow or None if this is a top level flow.
-
-    sync: If True, the Start method of this flow will be called
-       inline. Otherwise we schedule the starting of this flow on another
-       worker.
-
+    sync: If True, the Start method of this flow will be called inline.
+      Otherwise we schedule the starting of this flow on another worker.
     token: Security credentials token identifying the user.
-
     **kwargs: If args or runner_args are not specified, we construct these
       protobufs from these keywords.
 
@@ -248,7 +264,8 @@ def StartFlow(args=None,
   # At this point we should exhaust all the keyword args. If any are left
   # over, we do not know what to do with them so raise.
   if kwargs:
-    raise type_info.UnknownArg("Unknown parameters to StartFlow: %s" % kwargs)
+    raise type_info.UnknownArg(
+        "Unknown parameters to StartAFF4Flow: %s" % kwargs)
 
   # Create a flow runner to run this flow with.
   if parent_flow:
@@ -261,7 +278,6 @@ def StartFlow(args=None,
 
   logging.info(u"Scheduling %s(%s) on %s", flow_obj.urn, runner_args.flow_name,
                runner_args.client_id)
-
   if sync:
     # Just run the first state inline. NOTE: Running synchronously means
     # that this runs on the thread that starts the flow. The advantage is
@@ -272,7 +288,7 @@ def StartFlow(args=None,
     runner.CallState(next_state="Start")
 
   # The flow does not need to actually remain running.
-  if not runner.OutstandingRequests():
+  if not flow_obj.outstanding_requests:
     flow_obj.Terminate()
 
   flow_obj.Close()
@@ -290,6 +306,135 @@ def StartFlow(args=None,
         token=token)
 
   return flow_obj.urn
+
+
+def StartFlow(client_id=None,
+              cpu_limit=7200,
+              creator=None,
+              flow_args=None,
+              flow_cls=None,
+              network_bytes_limit=None,
+              original_flow=None,
+              output_plugins=None,
+              parent_flow_obj=None,
+              **kwargs):
+  """The main factory function for creating and executing a new flow.
+
+  Args:
+    client_id: ID of the client this flow should run on.
+    cpu_limit: CPU limit in seconds for this flow.
+    creator: Username that requested this flow.
+    flow_args: An arg protocol buffer which is an instance of the required
+      flow's args_type class attribute.
+    flow_cls: Class of the flow that should be started.
+    network_bytes_limit: Limit on the network traffic this flow can generated.
+    original_flow: A FlowReference object in case this flow was copied from
+      another flow.
+    output_plugins: An OutputPluginDescriptor object indicating what output
+      plugins should be used for this flow.
+    parent_flow_obj: A parent flow object. None if this is a top level flow.
+    **kwargs: If args or runner_args are not specified, we construct these
+      protobufs from these keywords.
+
+  Returns:
+    the flow id of the new flow.
+
+  Raises:
+    ValueError: Unknown or invalid parameters were provided.
+  """
+  # Is the required flow a known flow?
+  try:
+    registry.FlowRegistry.FlowClassByName(flow_cls.__name__)
+  except ValueError:
+    stats.STATS.IncrementCounter("grr_flow_invalid_flow_count")
+    raise ValueError("Unable to locate flow %s" % flow_cls.__name__)
+
+  if not client_id:
+    raise ValueError("Client_id is needed to start a flow.")
+
+  # Now parse the flow args into the new object from the keywords.
+  if flow_args is None:
+    flow_args = flow_cls.args_type()
+
+  FilterArgsFromSemanticProtobuf(flow_args, kwargs)
+  # At this point we should exhaust all the keyword args. If any are left
+  # over, we do not know what to do with them so raise.
+  if kwargs:
+    raise type_info.UnknownArg("Unknown parameters to StartFlow: %s" % kwargs)
+
+  # Check that the flow args are valid.
+  flow_args.Validate()
+
+  rdf_flow = rdf_flow_objects.Flow(
+      client_id=client_id,
+      flow_class_name=flow_cls.__name__,
+      args=flow_args,
+      create_time=rdfvalue.RDFDatetime.Now(),
+      creator=creator,
+      output_plugins=output_plugins,
+      original_flow=original_flow,
+      flow_state="RUNNING")
+
+  rdf_flow.flow_id = "%08X" % utils.PRNG.GetUInt32()
+
+  if parent_flow_obj:
+    parent_rdf_flow = parent_flow_obj.rdf_flow
+    rdf_flow.long_flow_id = "%s/%s" % (parent_rdf_flow.long_flow_id,
+                                       rdf_flow.flow_id)
+    rdf_flow.parent_flow_id = parent_rdf_flow.flow_id
+    rdf_flow.parent_request_id = parent_flow_obj.GetCurrentOutboundId()
+    if parent_rdf_flow.creator:
+      rdf_flow.creator = parent_rdf_flow.creator
+  else:
+    rdf_flow.long_flow_id = "%s/%s" % (client_id, rdf_flow.flow_id)
+
+  if output_plugins:
+    rdf_flow.output_plugins_states = GetOutputPluginStates(
+        output_plugins,
+        rdf_flow.long_flow_id,
+        token=access_control.ACLToken(username=rdf_flow.creator))
+
+  if network_bytes_limit is not None:
+    rdf_flow.network_bytes_limit = network_bytes_limit
+  if cpu_limit is not None:
+    rdf_flow.cpu_limit = cpu_limit
+
+  logging.info(u"Scheduling %s(%s) on %s", rdf_flow.long_flow_id,
+               rdf_flow.flow_class_name, client_id)
+
+  flow_obj = flow_cls(rdf_flow)
+  # Just run the first state inline. NOTE: Running synchronously means
+  # that this runs on the thread that starts the flow. The advantage is
+  # that that Start method can raise any errors immediately.
+  flow_obj.Start()
+  flow_obj.PersistState()
+
+  # The flow does not need to actually remain running.
+  if not flow_obj.outstanding_requests:
+    flow_obj.RunStateMethod("End")
+    flow_obj.MarkDone()
+
+  data_store.REL_DB.WriteFlowObject(flow_obj.rdf_flow)
+
+  if parent_flow_obj is not None:
+    # We can optimize here and not write requests/responses to the database
+    # since we have to do this for the parent flow at some point anyways.
+    parent_flow_obj.MergeQueuedMessages(flow_obj)
+  else:
+    flow_obj.FlushQueuedMessages()
+
+    # Publish an audit event, only for top level flows.
+    # TODO(amoser): split urn field into dedicated strings.
+    events.Events.PublishEvent(
+        "Audit",
+        rdf_events.AuditEvent(
+            user=creator,
+            action="RUN_FLOW",
+            flow_name=rdf_flow.flow_class_name,
+            urn=rdf_flow.long_flow_id,
+            client=client_id))
+
+  return rdf_flow.flow_id
 
 
 class FlowBase(with_metaclass(registry.AFF4FlowRegistry, aff4.AFF4Volume)):
@@ -374,6 +519,9 @@ class FlowBase(with_metaclass(registry.AFF4FlowRegistry, aff4.AFF4Volume)):
             reference_type=rdf_objects.ObjectReference.Type.FLOW,
             flow=flow_ref))
 
+  def ShouldSendNotifications(self):
+    return self.runner.ShouldSendNotifications()
+
   def Terminate(self, status=None):
     self.NotifyAboutEnd()
 
@@ -411,8 +559,8 @@ class FlowBase(with_metaclass(registry.AFF4FlowRegistry, aff4.AFF4Volume)):
     Load().
     """
 
-  def StartFlow(self, *args, **kw):
-    return StartFlow(*args, **kw)
+  def StartAFF4Flow(self, *args, **kw):
+    return StartAFF4Flow(*args, **kw)
 
   @property
   def session_id(self):
@@ -473,7 +621,7 @@ class GRRFlow(FlowBase):
 
   Note: Usually this object can not be created by users using the regular
   aff4.FACTORY.Create() method since it requires elevated permissions. This
-  object can instead be created using the flow.StartFlow() method.
+  object can instead be created using the flow.StartAFF4Flow() method.
 
   After creation, access to the flow object can still be obtained through
   the usual aff4.FACTORY.Open() method.
@@ -534,7 +682,7 @@ class GRRFlow(FlowBase):
 
     PENDING_TERMINATION = aff4.Attribute(
         "aff4:pending_termination",
-        PendingFlowTermination,
+        rdf_flow_objects.PendingFlowTermination,
         "If true, this flow will be "
         "terminated as soon as any of its "
         "states are called.",
@@ -656,6 +804,14 @@ class GRRFlow(FlowBase):
   def Name(self):
     return self.__class__.__name__
 
+  @property
+  def creator(self):
+    return self.token.username
+
+  @property
+  def outstanding_requests(self):
+    return self.runner.OutstandingRequests()
+
   @classmethod
   def MarkForTermination(cls, flow_urn, reason=None, mutation_pool=None):
     """Mark the flow for termination as soon as any of its states are called."""
@@ -668,11 +824,11 @@ class GRRFlow(FlowBase):
     mutation_pool.Set(
         flow_urn,
         cls.SchemaCls.PENDING_TERMINATION.predicate,
-        PendingFlowTermination(reason=reason),
+        rdf_flow_objects.PendingFlowTermination(reason=reason),
         replace=False)
 
   @classmethod
-  def TerminateFlow(cls, flow_id, reason=None, status=None, token=None):
+  def TerminateAFF4Flow(cls, flow_id, reason=None, status=None, token=None):
     """Terminate a flow.
 
     Args:
@@ -715,65 +871,8 @@ class GRRFlow(FlowBase):
           flow_obj.ListChildren(), token=super_token, aff4_type=GRRFlow)
 
       for child_obj in children_to_kill:
-        cls.TerminateFlow(
+        cls.TerminateAFF4Flow(
             child_obj.urn, reason="Parent flow terminated.", token=super_token)
-
-  @classmethod
-  def PrintArgsHelp(cls):
-    print(cls.GetArgsHelpAsString())
-
-  @classmethod
-  def _ClsHelpEpilog(cls):
-    return cls.GetArgsHelpAsString()
-
-  @classmethod
-  def GetCallingPrototypeAsString(cls):
-    """Get a description of the calling prototype for this flow."""
-    output = []
-    output.append("flow.StartFlow(client_id=client_id, ")
-    output.append("flow_name=\"%s\", " % cls.__name__)
-    prototypes = []
-    if cls.args_type:
-      for type_descriptor in cls.args_type.type_infos:
-        if not type_descriptor.hidden:
-          prototypes.append(
-              "%s=%s" % (type_descriptor.name, type_descriptor.name))
-    output.append(", ".join(prototypes))
-    output.append(")")
-    return "".join(output)
-
-  @classmethod
-  def GetArgs(cls):
-    """Get a simplified description of the args for this flow."""
-    args = {}
-    if cls.args_type:
-      for type_descriptor in cls.args_type.type_infos:
-        if not type_descriptor.hidden:
-          args[type_descriptor.name] = {
-              "description": type_descriptor.description,
-              "default": type_descriptor.default,
-              "type": "",
-          }
-          if type_descriptor.type:
-            args[type_descriptor.name]["type"] = type_descriptor.type.__name__
-    return args
-
-  @classmethod
-  def GetArgsHelpAsString(cls):
-    """Get a string description of the calling prototype for this function."""
-    output = ["  Call Spec:", "    %s" % cls.GetCallingPrototypeAsString(), ""]
-    arg_list = sorted(iteritems(cls.GetArgs()), key=lambda x: x[0])
-    if not arg_list:
-      output.append("  Args: None")
-    else:
-      output.append("  Args:")
-      for arg, val in arg_list:
-        output.append("    %s" % arg)
-        output.append("      description: %s" % val["description"])
-        output.append("      type: %s" % val["type"])
-        output.append("      default: %s" % val["default"])
-        output.append("")
-    return "\n".join(output)
 
   # All the collections flows use.
 
@@ -788,6 +887,7 @@ class GRRFlow(FlowBase):
 
     Args:
       flow_id: The id of the flow, a RDFURN of the form aff4:/flows/F:123456.
+
     Returns:
       The collection containing the results for the flow identified by the id.
     """
@@ -871,7 +971,8 @@ class WellKnownFlow(GRRFlow):
   def session_id(self):
     return self.well_known_session_id
 
-  def OutstandingRequests(self):
+  @property
+  def outstanding_requests(self):
     # Lie about it to prevent us from being destroyed
     return 1
 
@@ -910,8 +1011,8 @@ class WellKnownFlow(GRRFlow):
     Override in derived classes.
 
     Args:
-       msg: The GrrMessage sent by the client. Note that this
-            message is not authenticated.
+       msg: The GrrMessage sent by the client. Note that this message is not
+         authenticated.
     """
 
   def _ValidateState(self):

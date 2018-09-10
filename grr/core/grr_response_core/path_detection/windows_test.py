@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for windows paths detection logic."""
 
+from __future__ import unicode_literals
+
 
 from grr_response_core.lib import flags
 from grr_response_core.path_detection import windows
@@ -182,18 +184,26 @@ class WindowsRegistryExecutablePathsDetectorTest(test_lib.GRRBaseTest):
 
   def testReplacesEnvironmentVariablesWithMultipleMappings(self):
     """Test it replaces environment variables with multiple mappings."""
+
+    # TODO(hanuszczak): Raw unicode literals in Python 2 are broken since they
+    # do not consider "\u" to be two characters ("\" and "u") but treat it is as
+    # a unicode escape sequence. This behaviour is fixed in Python 3 so once the
+    # codebase does not have to support Python 2 anymore, these escaped literals
+    # can be rewritten with raw ones.
+
     mapping = {
         "appdata": [
-            r"C:\Users\foo\Application Data", r"C:\Users\bar\Application Data"
+            "C:\\Users\\foo\\Application Data",
+            "C:\\Users\\bar\\Application Data",
         ]
     }
 
     fixture = [(r"%AppData%\Realtek\Audio\blah.exe -s", [
-        r"C:\Users\foo\Application Data\Realtek\Audio\blah.exe",
-        r"C:\Users\bar\Application Data\Realtek\Audio\blah.exe"
+        "C:\\Users\\foo\\Application Data\\Realtek\\Audio\\blah.exe",
+        "C:\\Users\\bar\\Application Data\\Realtek\\Audio\\blah.exe"
     ]), (r"'%AppData%\Realtek\Audio\blah.exe' -s", [
-        r"C:\Users\foo\Application Data\Realtek\Audio\blah.exe",
-        r"C:\Users\bar\Application Data\Realtek\Audio\blah.exe"
+        "C:\\Users\\foo\\Application Data\\Realtek\\Audio\\blah.exe",
+        "C:\\Users\\bar\\Application Data\\Realtek\\Audio\\blah.exe"
     ])]
 
     for in_str, result in fixture:

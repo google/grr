@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test client standard actions."""
+from __future__ import unicode_literals
+
 import gzip
 import hashlib
 import os
@@ -35,7 +37,7 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
     utils.TEST_VAL = "original"
     python_code = "utils.TEST_VAL = 'modified'"
     signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(python_code, self.signing_key)
+    signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
@@ -64,7 +66,7 @@ s = s.decode("hex")
 magic_return_str = decode(s)
 """
     signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(python_code, self.signing_key)
+    signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
@@ -75,14 +77,14 @@ magic_return_str = decode(s)
     python_code = """
 
 def f(n):
-    print("F called:", n)
+    print("F called: %s" % n)
 
 print("Calling f.")
 f(1)
 print("Done.")
 """
     signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(python_code, self.signing_key)
+    signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
@@ -101,7 +103,7 @@ Progress()
 print("Done.")
 """
     signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(python_code, self.signing_key)
+    signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
@@ -113,10 +115,10 @@ print("Done.")
     utils.TEST_VAL = "original"
     python_code = "utils.TEST_VAL = 'modified'"
     signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(python_code, self.signing_key)
+    signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
 
     # Modify the data so the signature does not match.
-    signed_blob.data = "utils.TEST_VAL = 'notmodified'"
+    signed_blob.data = b"utils.TEST_VAL = 'notmodified'"
 
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
 
@@ -138,7 +140,7 @@ print("Done.")
     """Test broken code raises back to the original flow."""
     python_code = "raise ValueError"
     signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(python_code, self.signing_key)
+    signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
 
     self.assertRaises(ValueError, self.RunAction, standard.ExecutePython,
@@ -161,7 +163,7 @@ print("Done.")
     """Test return values."""
     python_code = "magic_return_str = 'return string'"
     signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(python_code, self.signing_key)
+    signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
@@ -174,7 +176,7 @@ print("Done.")
     # Generate a test valid RSA key that isn't the real one.
     signing_key = rdf_crypto.RSAPrivateKey.GenerateKey(2048, 65537)
     signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(python_code, signing_key)
+    signed_blob.Sign(python_code.encode("utf-8"), signing_key)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
                       standard.ExecutePython, request)
@@ -187,7 +189,7 @@ magic_return_str = py_args['test']
 utils.TEST_VAL = py_args[43]
 """
     signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(python_code, self.signing_key)
+    signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
     pdict = rdf_protodict.Dict({"test": "dict_arg", 43: "dict_arg2"})
     request = rdf_client_action.ExecutePythonRequest(
         python_code=signed_blob, py_args=pdict)

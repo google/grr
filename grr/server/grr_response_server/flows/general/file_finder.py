@@ -11,7 +11,9 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import events
+from grr_response_server import file_store
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import filesystem
@@ -20,17 +22,15 @@ from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
-                 filesystem.GlobMixin, flow.GRRFlow):
+@flow_base.DualDBFlow
+class FileFinderMixin(transfer.MultiGetFileLogic,
+                      fingerprint.FingerprintFileMixin, filesystem.GlobLogic):
   """This flow looks for files matching given criteria and acts on them.
 
   FileFinder searches for files that match glob expressions.  The "action"
   (e.g. Download) is applied to files that match all given "conditions".
   Matches are then written to the results collection. If there are no
   "conditions" specified, "action" is just applied to all found files.
-
-  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile
-  and SearchFileContent.
   """
   friendly_name = "File Finder"
   category = "/Filesystem/"
@@ -40,30 +40,34 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
   # Will be used by FingerprintFileMixin.
   fingerprint_file_mixin_client_action = server_stubs.HashFile
 
-  def Initialize(self):
-    super(FileFinder, self).Initialize()
-    type_enum = rdf_file_finder.FileFinderCondition.Type
-    # For every condition type we specify a tuple (handle, weight).
-    # Conditions will be sorted by weight, so that the ones with the minimal
-    # weight will be executed earlier.
-    self.condition_handlers = {
-        type_enum.MODIFICATION_TIME: (self.ModificationTimeCondition, 0),
-        type_enum.ACCESS_TIME: (self.AccessTimeCondition, 0),
-        type_enum.INODE_CHANGE_TIME: (self.InodeChangeTimeCondition, 0),
-        type_enum.SIZE: (self.SizeCondition, 0),
-        type_enum.CONTENTS_REGEX_MATCH: (self.ContentsRegexMatchCondition, 1),
-        type_enum.CONTENTS_LITERAL_MATCH: (self.ContentsLiteralMatchCondition,
-                                           1)
-    }
+  _condition_handlers = None
+
+  def _GetConditionHandlers(self):
+
+    if self._condition_handlers is None:
+      type_enum = rdf_file_finder.FileFinderCondition.Type
+      # For every condition type we specify a tuple (handle, weight).
+      # Conditions will be sorted by weight, so that the ones with the minimal
+      # weight will be executed earlier.
+      self._condition_handlers = {
+          type_enum.MODIFICATION_TIME: (self.ModificationTimeCondition, 0),
+          type_enum.ACCESS_TIME: (self.AccessTimeCondition, 0),
+          type_enum.INODE_CHANGE_TIME: (self.InodeChangeTimeCondition, 0),
+          type_enum.SIZE: (self.SizeCondition, 0),
+          type_enum.CONTENTS_REGEX_MATCH: (self.ContentsRegexMatchCondition, 1),
+          type_enum.CONTENTS_LITERAL_MATCH: (self.ContentsLiteralMatchCondition,
+                                             1)
+      }
+    return self._condition_handlers
 
   def _ConditionWeight(self, condition_options):
-    _, condition_weight = self.condition_handlers[
-        condition_options.condition_type]
+    _, condition_weight = self._GetConditionHandlers()[condition_options
+                                                       .condition_type]
     return condition_weight
 
   def Start(self):
     """Issue the find request."""
-    super(FileFinder, self).Start()
+    super(FileFinderMixin, self).Start()
 
     if not self.args.paths:
       # Nothing to do.
@@ -84,7 +88,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     else:
       action = rdf_file_finder.FileFinderAction()
 
-    # This is used by MultiGetFileMixin.
+    # This is used by MultiGetFileLogic.
     if action.action_type == rdf_file_finder.FileFinderAction.Action.HASH:
       self.state.file_size = action.hash.max_size
     elif action.action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
@@ -102,7 +106,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
 
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""
-    super(FileFinder, self).GlobReportMatch(response)
+    super(FileFinderMixin, self).GlobReportMatch(response)
     self.ApplyCondition(
         rdf_file_finder.FileFinderResult(stat_entry=response),
         condition_index=0)
@@ -215,8 +219,8 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     else:
       # Apply the next condition handler.
       condition_options = self.state.sorted_conditions[condition_index]
-      condition_handler, _ = self.condition_handlers[
-          condition_options.condition_type]
+      condition_handler, _ = self._GetConditionHandlers()[condition_options
+                                                          .condition_type]
 
       condition_handler(response, condition_options, condition_index)
 
@@ -311,7 +315,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
                          "is missing")
 
   def ReceiveFetchedFile(self, unused_stat_entry, file_hash, request_data=None):
-    """Handle downloaded file from MultiGetFileMixin."""
+    """Handle downloaded file from MultiGetFileLogic."""
     if "original_result" not in request_data:
       raise RuntimeError("Got fetched file data, but original result "
                          "is missing")
@@ -321,7 +325,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     self.SendReply(result)
 
   def End(self, responses):
-    super(FileFinder, self).End(responses)
+    super(FileFinderMixin, self).End(responses)
 
     self.Log("Found and processed %d files.", self.state.files_found)
 
@@ -364,9 +368,9 @@ class ClientFileFinder(flow.GRRFlow):
     with data_store.DB.GetMutationPool() as pool:
       for response in responses:
         if response.HasField("transferred_file"):
-          self._CreateAff4BlobImage(response, mutation_pool=pool)
+          self._WriteFileContent(response, mutation_pool=pool)
         elif response.HasField("stat_entry"):
-          self._CreateAff4Stat(response, mutation_pool=pool)
+          self._WriteFileStatEntry(response, mutation_pool=pool)
 
         self.SendReply(response)
 
@@ -376,12 +380,10 @@ class ClientFileFinder(flow.GRRFlow):
 
     if files_to_publish:
       events.Events.PublishMultipleEvents({
-          "FileStore.AddFileToStore": files_to_publish
+          "LegacyFileStore.AddFileToStore": files_to_publish
       })
 
-  # TODO(hanuszczak): Change name of this function since now it also writes to
-  # the relational database.
-  def _CreateAff4BlobImage(self, response, mutation_pool=None):
+  def _WriteFileContent(self, response, mutation_pool=None):
     urn = response.stat_entry.pathspec.AFF4Path(self.client_urn)
 
     filedesc = aff4.FACTORY.Create(
@@ -400,13 +402,19 @@ class ClientFileFinder(flow.GRRFlow):
 
       filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBWriteEnabled():
       path_info = rdf_objects.PathInfo.FromStatEntry(response.stat_entry)
-      data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
 
-  # TODO(hanuszczak): Change name of this function since now it also writes to
-  # the relational database.
-  def _CreateAff4Stat(self, response, mutation_pool=None):
+      # Adding files to filestore requires reading data from RELDB,
+      # thus protecting this code with a filestore-read-enabled check.
+      if data_store.RelationalDBReadEnabled("filestore"):
+        blob_ids = [rdf_objects.BlobID.FromBytes(c.digest) for c in chunks]
+        hash_id = file_store.AddFileWithUnknownHash(blob_ids)
+        path_info.hash_entry.sha256 = hash_id.AsBytes()
+
+      data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+
+  def _WriteFileStatEntry(self, response, mutation_pool=None):
     filesystem.WriteStatEntries(
         [response.stat_entry],
         client_id=self.client_id,

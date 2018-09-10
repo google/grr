@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The file finder client action."""
+from __future__ import unicode_literals
 
 import psutil
 
@@ -14,6 +15,29 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 
 class _SkipFileException(Exception):
   pass
+
+
+def FileFinderOSFromClient(args):
+  """This function expands paths from the args and returns related stat entries.
+
+  Args:
+    args: An `rdf_file_finder.FileFinderArgs` object.
+
+  Yields:
+    `rdf_paths.PathSpec` instances.
+  """
+  stat_cache = utils.StatCache()
+
+  opts = args.action.stat
+
+  for path in _GetExpandedPaths(args):
+    try:
+      stat = stat_cache.Get(path, follow_symlink=opts.resolve_links)
+      stat_entry = client_utils.StatEntryFromStatPathSpec(
+          stat, ext_attrs=opts.collect_ext_attrs)
+      yield stat_entry
+    except _SkipFileException:
+      pass
 
 
 class FileFinderOS(actions.ActionPlugin):
@@ -34,21 +58,6 @@ class FileFinderOS(actions.ActionPlugin):
         result.matches = matches
         action.Execute(path, result)
         self.SendReply(result)
-      except _SkipFileException:
-        pass
-
-  @classmethod
-  def Start(cls, args):
-    stat_cache = utils.StatCache()
-
-    opts = args.action.stat
-
-    for path in _GetExpandedPaths(args):
-      try:
-        stat = stat_cache.Get(path, follow_symlink=opts.resolve_links)
-        stat_entry = client_utils.StatEntryFromStatPathSpec(
-            stat, ext_attrs=opts.collect_ext_attrs)
-        yield stat_entry
       except _SkipFileException:
         pass
 
@@ -120,7 +129,7 @@ def _GetExpandedPaths(args):
       recursion_blacklist=_GetMountpointBlacklist(args.xdev))
 
   for path in args.paths:
-    for expanded_path in globbing.ExpandPath(utils.SmartStr(path), opts):
+    for expanded_path in globbing.ExpandPath(unicode(path), opts):
       yield expanded_path
 
 

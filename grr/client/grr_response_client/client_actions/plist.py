@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Client actions related to plist files."""
-
+from __future__ import unicode_literals
 
 import cStringIO
 import types
@@ -38,6 +38,7 @@ class PlistQuery(actions.ActionPlugin):
   MAX_PLIST_SIZE = 1024 * 1024 * 100  # 100 MB
 
   def Run(self, args):
+    # TODO(hanuszczak): Why are these an instance variables?
     self.context = args.context
     self.filter_query = args.query
 
@@ -46,7 +47,7 @@ class PlistQuery(actions.ActionPlugin):
       plist = binplist.readPlist(cStringIO.StringIO(data))
 
       # Create the query parser
-      parser = plist_lib.PlistFilterParser(self.filter_query).Parse()
+      parser = plist_lib.PlistFilterParser(unicode(self.filter_query)).Parse()
       filter_imp = plist_lib.PlistFilterImplementation
       matcher = parser.Compile(filter_imp)
 

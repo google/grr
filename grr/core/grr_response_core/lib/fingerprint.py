@@ -23,6 +23,8 @@ are meant for exploration and debugging. Intended use is through the
 Fingerprinter, as exemplified in main.
 """
 
+from __future__ import unicode_literals
+
 import collections
 import hashlib
 import os

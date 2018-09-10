@@ -125,32 +125,6 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
       self.assertTrue("bin" in path)
       self.assertEqual(child.__class__.__name__, "StatEntry")
 
-  def testFindWithMaxFiles(self):
-    """Test that the Find flow works when specifying proto directly."""
-
-    client_mock = action_mocks.ActionMock(searching.Find)
-
-    # Prepare a findspec.
-    findspec = rdf_client_fs.FindSpec(
-        path_regex=".*",
-        pathspec=rdf_paths.PathSpec(
-            path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
-
-    session_id = flow_test_lib.TestFlowHelper(
-        find.FindFiles.__name__,
-        client_mock,
-        client_id=self.client_id,
-        token=self.token,
-        findspec=findspec,
-        iteration_count=3,
-        max_results=7)
-
-    # Check the output file is created
-    collection = flow.GRRFlow.ResultCollectionForFID(session_id)
-
-    # Make sure we got the right number of results.
-    self.assertEqual(len(collection), 7)
-
   def testCollectionOverwriting(self):
     """Test we overwrite the collection every time the flow is executed."""
 
@@ -181,8 +155,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        findspec=findspec,
-        max_results=1)
+        findspec=findspec)
 
     # Check the results collection.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)

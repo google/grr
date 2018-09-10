@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Simple parsers for Linux files."""
+from __future__ import unicode_literals
+
 import collections
 import logging
 import os
@@ -59,7 +61,7 @@ class PCIDevicesInfoParser(parser.FileParser):
         # so we don't want to touch it even if it has a newline character.
         file_data = file_obj.read()
         if filename != "config":
-          file_data = file_data.rstrip("\n")
+          file_data = file_data.rstrip(b"\n")
         data[bdf][filename] = file_data
 
     # Now that we've captured all information for each PCI device. Let's convert

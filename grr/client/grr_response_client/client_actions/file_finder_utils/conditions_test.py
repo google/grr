@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import unicode_literals
+
 import os
 import platform
 import subprocess
@@ -381,7 +383,7 @@ class LiteralMatchConditionTest(ConditionTestMixin, unittest.TestCase):
       fd.write("foo bar quux")
 
     params = rdf_file_finder.FileFinderCondition()
-    params.contents_literal_match.literal = "baz"
+    params.contents_literal_match.literal = b"baz"
     params.contents_literal_match.mode = "ALL_HITS"
     condition = conditions.LiteralMatchCondition(params)
 
@@ -393,7 +395,7 @@ class LiteralMatchConditionTest(ConditionTestMixin, unittest.TestCase):
       fd.write("foo bar foo")
 
     params = rdf_file_finder.FileFinderCondition()
-    params.contents_literal_match.literal = "foo"
+    params.contents_literal_match.literal = b"foo"
     params.contents_literal_match.mode = "ALL_HITS"
     condition = conditions.LiteralMatchCondition(params)
 
@@ -411,7 +413,7 @@ class LiteralMatchConditionTest(ConditionTestMixin, unittest.TestCase):
       fd.write("bar foo baz foo")
 
     params = rdf_file_finder.FileFinderCondition()
-    params.contents_literal_match.literal = "foo"
+    params.contents_literal_match.literal = b"foo"
     params.contents_literal_match.mode = "FIRST_HIT"
     condition = conditions.LiteralMatchCondition(params)
 
@@ -426,7 +428,7 @@ class LiteralMatchConditionTest(ConditionTestMixin, unittest.TestCase):
       fd.write("foo foo foo")
 
     params = rdf_file_finder.FileFinderCondition()
-    params.contents_literal_match.literal = "foo"
+    params.contents_literal_match.literal = b"foo"
     params.contents_literal_match.mode = "ALL_HITS"
     params.contents_literal_match.bytes_before = 3
     params.contents_literal_match.bytes_after = 2
@@ -449,7 +451,7 @@ class LiteralMatchConditionTest(ConditionTestMixin, unittest.TestCase):
       fd.write("oooooooo")
 
     params = rdf_file_finder.FileFinderCondition()
-    params.contents_literal_match.literal = "ooo"
+    params.contents_literal_match.literal = b"ooo"
     params.contents_literal_match.mode = "ALL_HITS"
     params.contents_literal_match.start_offset = 2
     condition = conditions.LiteralMatchCondition(params)

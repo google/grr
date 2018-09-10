@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test Chipsec client actions."""
+from __future__ import unicode_literals
 
 import collections
 import sys
@@ -35,7 +36,7 @@ class MockSPI(mock.MagicMock):
     return (0, 0xffff, 0)
 
   def read_spi(self, unused_offset, size):
-    return "\xff" * size
+    return b"\xff" * size
 
 
 class UnsupportedChipset(mock.MagicMock):
@@ -99,14 +100,14 @@ class TestChipsecDumpFlashImage(GRRChipsecTest):
     args = rdf_chipsec_types.DumpFlashImageRequest()
     result = self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)[0]
     with vfs.VFSOpen(result.path) as image:
-      self.assertEqual(image.read(0x20000), "\xff" * 0x10000)
+      self.assertEqual(image.read(0x20000), b"\xff" * 0x10000)
 
   def testDumpFlashImageVerbose(self):
     """Test the basic dump with the verbose mode enabled."""
     args = rdf_chipsec_types.DumpFlashImageRequest(log_level=1)
     result = self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)[0]
     with vfs.VFSOpen(result.path) as image:
-      self.assertEqual(image.read(0x20000), "\xff" * 0x10000)
+      self.assertEqual(image.read(0x20000), b"\xff" * 0x10000)
     self.assertNotEqual(self.chipsec_mock.logger.logger.call_count, 0)
 
   def testDumpFlashImageUnknownChipset(self):
@@ -154,12 +155,12 @@ class MockACPI(object):
 
     # key: header, content
     self.table_content = {
-        0xAABBCCDDEEFF0011: ("\xFF" * 0xFF, "\xEE" * 0xFF),
-        0x1100FFEEDDCCBBAA: ("\xEE" * 0xFF, "\xFF" * 0xFF),
-        0x1122334455667788: ("\xAB" * 0xFF, "\xCD" * 0xFF),
-        0x1234567890ABCDEF: ("\xEF" * 0xFF, "\xFE" * 0xFF),
-        0x2234567890ABCDEF: ("\xDC" * 0xFF, "\xBA" * 0xFF),
-        0x3234567890ABCDEF: ("\xAA" * 0xFF, "\xBB" * 0xFF)
+        0xAABBCCDDEEFF0011: (b"\xFF" * 0xFF, b"\xEE" * 0xFF),
+        0x1100FFEEDDCCBBAA: (b"\xEE" * 0xFF, b"\xFF" * 0xFF),
+        0x1122334455667788: (b"\xAB" * 0xFF, b"\xCD" * 0xFF),
+        0x1234567890ABCDEF: (b"\xEF" * 0xFF, b"\xFE" * 0xFF),
+        0x2234567890ABCDEF: (b"\xDC" * 0xFF, b"\xBA" * 0xFF),
+        0x3234567890ABCDEF: (b"\xAA" * 0xFF, b"\xBB" * 0xFF)
     }
 
   def get_ACPI_table(self, name):  # pylint: disable=invalid-name
@@ -192,7 +193,7 @@ class TestDumpACPITable(GRRChipsecTest):
     self.assertEqual(len(result.acpi_tables), 1)
     self.assertEqual(result.acpi_tables[0].table_address, 0xAABBCCDDEEFF0011)
     self.assertEqual(result.acpi_tables[0].table_blob,
-                     "\xFF" * 0xFF + "\xEE" * 0xFF)
+                     b"\xFF" * 0xFF + b"\xEE" * 0xFF)
 
   def testDumpValidMultipleACPITables(self):
     """Tests valid ACPI table dump that would yield several tables."""
@@ -201,13 +202,13 @@ class TestDumpACPITable(GRRChipsecTest):
     self.assertEqual(len(result.acpi_tables), 3)
     self.assertEqual(result.acpi_tables[0].table_address, 0x1234567890ABCDEF)
     self.assertEqual(result.acpi_tables[0].table_blob,
-                     "\xEF" * 0xFF + "\xFE" * 0xFF)
+                     b"\xEF" * 0xFF + b"\xFE" * 0xFF)
     self.assertEqual(result.acpi_tables[1].table_address, 0x2234567890ABCDEF)
     self.assertEqual(result.acpi_tables[1].table_blob,
-                     "\xDC" * 0xFF + "\xBA" * 0xFF)
+                     b"\xDC" * 0xFF + b"\xBA" * 0xFF)
     self.assertEqual(result.acpi_tables[2].table_address, 0x3234567890ABCDEF)
     self.assertEqual(result.acpi_tables[2].table_blob,
-                     "\xAA" * 0xFF + "\xBB" * 0xFF)
+                     b"\xAA" * 0xFF + b"\xBB" * 0xFF)
 
   def testDumpValidSingleACPITableVerbose(self):
     """Tests valid ACPI table dump with verbose mode enabled."""
@@ -216,7 +217,7 @@ class TestDumpACPITable(GRRChipsecTest):
     result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
     self.assertEqual(result.acpi_tables[0].table_address, 0x1122334455667788)
     self.assertEqual(result.acpi_tables[0].table_blob,
-                     "\xAB" * 0xFF + "\xCD" * 0xFF)
+                     b"\xAB" * 0xFF + b"\xCD" * 0xFF)
     self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
 
   def testDumpInvalidACPITable(self):

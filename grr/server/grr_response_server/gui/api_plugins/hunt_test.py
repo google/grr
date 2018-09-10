@@ -46,13 +46,10 @@ class ApiHuntIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testRaisesWhenInitializedFromInvalidValues(self):
     with self.assertRaises(ValueError):
-      hunt_plugin.ApiHuntId("blah")
+      hunt_plugin.ApiHuntId("bl%ah")
 
     with self.assertRaises(ValueError):
       hunt_plugin.ApiHuntId("H:")
-
-    with self.assertRaises(ValueError):
-      hunt_plugin.ApiHuntId("1234")
 
     with self.assertRaises(ValueError):
       hunt_plugin.ApiHuntId("H:1234/foo")
@@ -62,7 +59,7 @@ class ApiHuntIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     with self.assertRaises(ValueError):
       hunt_id.ToURN()
 
-  def testConvertsToHunttURN(self):
+  def testConvertsToHuntURN(self):
     hunt_id = hunt_plugin.ApiHuntId("H:1234")
     hunt_urn = hunt_id.ToURN()
 

@@ -51,30 +51,37 @@ SplitterController.prototype.addPane = function(pane) {
  */
 /** @suppress {missingProperties} For jQuery.splitter(). */
 SplitterController.prototype.link = function() {
-  var closeableTo;
-  if (angular.isDefined(this.scope_['closeableTo'])) {
-    closeableTo = Number(this.scope_['closeableTo']);
-  } else {
-    closeableTo = 100;
-  }
+  // Find how many panes do not have a size set and calculate default
+  // size for them by dividing available size by their count.
+  let sizeLeft = 100;
+  let sizeLeftCount = 0;
+  this.panes.forEach((pane) => {
+    if (pane['size']) {
+      sizeLeft -= parseInt(pane['size'], 10);
+    } else {
+      ++sizeLeftCount;
+    }
+  });
+  const defaultSize = sizeLeft / sizeLeftCount;
 
-  var splitterOptions = {
-    animSpeed: 50,
-    closeableto: closeableTo,
-    minAsize: this.scope_['minLeftPaneSize'] || 0,
-    maxAsize: this.scope_['maxLeftPaneSize'] || 3000
+  const splitterOptions = {
+    gutterSize: 4,
+    sizes: this.panes.map(pane => parseInt(pane['size'] || defaultSize, 10))
   };
 
-  if (this.scope_.orientation === 'horizontal') {
-    splitterOptions['splitHorizontal'] = true;
-  } else if (this.scope_.orientation === 'vertical') {
-    splitterOptions['splitVertical'] = true;
+  // grr-splitter assumes that 'orientation' means orientation of the splitter's
+  // gutter bar. I.e. 2 panes with one on top of another mean a 'horizontal'
+  // splitter (in a sense of a 'horizontal line'). Split.js, on the other hand,
+  // has a notion of 'direction' which corresponds to panes direction.
+  if (this.scope_['orientation'] == 'horizontal') {
+    splitterOptions['direction'] = 'vertical';
+  } else if (this.scope_['orientation'] === 'vertical') {
+    splitterOptions['direction'] = 'horizontal';
   } else {
     throw Error('Orientation can be either "vertical" or "horizontal".');
   }
 
-  splitterOptions['A'] = $(this.panes[0].elem);
-  splitterOptions['B'] = $(this.panes[1].elem);
+  const elems = this.panes.map(pane => pane['elem']);
 
   // Wait until DOM updates so that splitter is applied to a div that
   // has a meaningful width and height. Give up after 5 attempts.
@@ -84,7 +91,7 @@ SplitterController.prototype.link = function() {
     if ($(this.element_).width() > 0 &&
         $(this.element_).height() > 0 ||
         count > 5) {
-      $(this.element_).children('div.splitter').splitter(splitterOptions);
+      Split(elems, splitterOptions);
       this.interval_.cancel(stop);
     } else {
       count += 1;
@@ -111,9 +118,6 @@ exports.SplitterDirective = function() {
   return {
     scope: {
       orientation: '@',
-      closeableTo: '@',
-      minLeftPaneSize: '@',
-      maxLeftPaneSize: '@'
     },
     restrict: 'EA',
     transclude: true,
@@ -147,13 +151,15 @@ exports.SplitterDirective.directive_name = 'grrSplitter';
  */
 exports.SplitterPaneDirective = function() {
   return {
-    scope: {},
+    scope: {
+      size: '@' // Size is expressed in percents (for example: 25, 75, etc).
+    },
     restrict: 'EA',
     require: '^grrSplitter',
     transclude: true,
     template: '<div class="fill-parent no-margins" ng-transclude></div>',
     link: function(scope, element, attrs, grrSplitterCtrl) {
-      scope.elem = element;
+      scope['elem'] = element[0];
       grrSplitterCtrl.addPane(scope);
     }
   };

@@ -115,7 +115,7 @@ class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
   def testLaunchFlowButtonIsDisabledIfFlowArgumentsInvalid(self):
     self.Open("/#/clients/%s/launch-flow" % self.client_urn.Basename())
 
-    self.Click("css=#_Filesystem")
+    self.Click("css=#_Filesystem a")
     self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
 
     # FileFinder's literal match condition has bytes field that should
@@ -145,7 +145,7 @@ class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
     self.Open("/#/clients/%s/launch-flow" % self.client_urn.Basename())
 
     # Launch the flow.
-    self.Click("css=#_Filesystem")
+    self.Click("css=#_Filesystem a")
     self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
     self.Type("css=grr-form-proto-repeated-field:contains('Paths') input",
               "foo/bar")
@@ -183,7 +183,7 @@ class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
     self.Open("/#/hunts")
     self.Click("css=button[name=NewHunt]")
 
-    self.Click("css=#_Filesystem")
+    self.Click("css=#_Filesystem a")
     self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
 
     # FileFinder's literal match condition has bytes field that should

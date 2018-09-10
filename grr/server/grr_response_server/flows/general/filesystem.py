@@ -23,6 +23,7 @@ from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
@@ -90,7 +91,8 @@ class ListDirectoryArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ListDirectory(flow.GRRFlow):
+@flow_base.DualDBFlow
+class ListDirectoryMixin(object):
   """List files in a directory."""
 
   category = "/Filesystem/"
@@ -123,16 +125,15 @@ class ListDirectory(flow.GRRFlow):
     """Save stat information on the directory."""
     # Did it work?
     if not responses.success:
-      self.Error("Could not stat directory: %s" % responses.status)
+      raise flow.FlowError("Could not stat directory: %s" % responses.status)
 
-    else:
-      # Keep the stat response for later.
-      stat_entry = rdf_client_fs.StatEntry(responses.First())
-      self.state.stat = stat_entry
+    # Keep the stat response for later.
+    stat_entry = rdf_client_fs.StatEntry(responses.First())
+    self.state.stat = stat_entry
 
-      # The full path of the object is the combination of the client_id and the
-      # path.
-      self.state.urn = stat_entry.pathspec.AFF4Path(self.client_urn)
+    # The full path of the object is the combination of the client_id and the
+    # path.
+    self.state.urn = stat_entry.pathspec.AFF4Path(self.client_urn)
 
   def List(self, responses):
     """Collect the directory listing and store in the datastore."""
@@ -166,11 +167,11 @@ class ListDirectory(flow.GRRFlow):
         self.SendReply(stat_entry)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
-    if not self.runner.ShouldSendNotifications():
+    if not self.ShouldSendNotifications():
       return
 
     if not self.state.urn:
-      super(ListDirectory, self).NotifyAboutEnd()
+      super(ListDirectoryMixin, self).NotifyAboutEnd()
       return
 
     components = self.state.urn.Split()
@@ -189,103 +190,6 @@ class ListDirectory(flow.GRRFlow):
             vfs_file=file_ref))
 
 
-class IteratedListDirectory(ListDirectory):
-  """A Flow to retrieve a directory listing using an iterator.
-
-  This flow is an example for how to use the iterated client actions. Normally
-  you do not need to call this flow - a ListDirectory flow is enough.
-  """
-
-  category = None
-
-  def Start(self):
-    """Issue a request to list the directory."""
-    self.state.responses = []
-    self.state.urn = None
-
-    # We use data to pass the path to the callback:
-    self.state.request = rdf_client_action.ListDirRequest(
-        pathspec=self.args.pathspec)
-
-    # For this example we will use a really small number to force many round
-    # trips with the client. This is a performance killer.
-    self.state.request.iterator.number = 50
-
-    self.CallClient(
-        server_stubs.IteratedListDirectory,
-        self.state.request,
-        next_state="List")
-
-  def List(self, responses):
-    """Collect the directory listing and store in the data store."""
-    if not responses.success:
-      raise flow.FlowError(str(responses.status))
-
-    if responses:
-      for response in responses:
-        self.state.responses.append(response)
-
-      self.state.request.iterator = responses.iterator
-      self.CallClient(
-          server_stubs.IteratedListDirectory,
-          self.state.request,
-          next_state="List")
-    else:
-      self.StoreDirectory()
-
-  def StoreDirectory(self):
-    """Store the content of the directory listing in the AFF4 object."""
-    # The full path of the object is the combination of the client_id and the
-    # path.
-    if not self.state.responses:
-      return
-
-    directory_pathspec = self.state.responses[0].pathspec.Dirname()
-
-    urn = directory_pathspec.AFF4Path(self.client_urn)
-
-    # First dir we get back is the main urn.
-    if not self.state.urn:
-      self.state.urn = urn
-
-    with data_store.DB.GetMutationPool() as pool:
-      with aff4.FACTORY.Create(
-          urn, standard.VFSDirectory, mutation_pool=pool, token=self.token):
-        pass
-
-      stat_entries = list(map(rdf_client_fs.StatEntry, self.state.responses))
-      WriteStatEntries(
-          stat_entries,
-          client_id=self.client_id,
-          mutation_pool=pool,
-          token=self.token)
-
-      for stat_entry in stat_entries:
-        self.SendReply(stat_entry)  # Send Stats to parent flows.
-
-  def NotifyAboutEnd(self):
-    if not self.runner.ShouldSendNotifications():
-      return
-
-    if self.state.urn:
-      components = self.state.urn.Split()
-      file_ref = None
-      if len(components) > 3:
-        file_ref = rdf_objects.VfsFileReference(
-            client_id=components[0],
-            path_type=components[2].upper(),
-            path_components=components[3:])
-      notification.Notify(
-          self.token.username,
-          notification.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED,
-          "List of {0} completed.".format(utils.SmartStr(self.args.pathspec)),
-          rdf_objects.ObjectReference(
-              reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
-              vfs_file=file_ref))
-    else:
-      super(IteratedListDirectory, self).NotifyAboutEnd()
-
-
 class RecursiveListDirectoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RecursiveListDirectoryArgs
   rdf_deps = [
@@ -293,7 +197,8 @@ class RecursiveListDirectoryArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class RecursiveListDirectory(flow.GRRFlow):
+@flow_base.DualDBFlow
+class RecursiveListDirectoryMixin(object):
   """Recursively list directory on the client."""
 
   category = "/Filesystem/"
@@ -369,7 +274,7 @@ class RecursiveListDirectory(flow.GRRFlow):
         self.SendReply(stat_entry)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
-    if not self.runner.ShouldSendNotifications():
+    if not self.ShouldSendNotifications():
       return
 
     status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
@@ -391,8 +296,8 @@ class RecursiveListDirectory(flow.GRRFlow):
             path_components=components[3:])
 
     notification.Notify(
-        self.token.username, rdf_objects.UserNotification.Type.
-        TYPE_VFS_RECURSIVE_LIST_DIRECTORY_COMPLETED,
+        self.token.username, rdf_objects.UserNotification.Type
+        .TYPE_VFS_RECURSIVE_LIST_DIRECTORY_COMPLETED,
         status_text % (self.state.file_count, self.state.dir_count),
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
@@ -411,7 +316,8 @@ class UpdateSparseImageChunksArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class UpdateSparseImageChunks(flow.GRRFlow):
+@flow_base.DualDBFlow
+class UpdateSparseImageChunksMixin(object):
   """Updates a list of chunks of a sparse image from the client."""
 
   category = "/Filesystem/"
@@ -485,7 +391,8 @@ class FetchBufferForSparseImageArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class FetchBufferForSparseImage(flow.GRRFlow):
+@flow_base.DualDBFlow
+class FetchBufferForSparseImageMixin(object):
   """Reads data from a client-side file, specified by a length and offset.
 
   This data is written to an AFF4SparseImage object. Note that
@@ -610,7 +517,8 @@ class MakeNewAFF4SparseImageArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class MakeNewAFF4SparseImage(flow.GRRFlow):
+@flow_base.DualDBFlow
+class MakeNewAFF4SparseImageMixin(object):
   """Gets a new file from the client, possibly as an AFF4SparseImage.
 
   If the filesize is >= the size threshold, then we get the file as an empty
@@ -622,8 +530,8 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
   Args:
     pathspec: Pathspec of the file to look at.
     size_threshold: If the file is bigger than this size, we'll get it as an
-    empty AFF4SparseImage, otherwise we'll just download the whole file as
-    usual with GetFile.
+      empty AFF4SparseImage, otherwise we'll just download the whole file as
+      usual with GetFile.
   """
 
   category = "/Filesystem/"
@@ -696,7 +604,7 @@ class GlobArgs(rdf_structs.RDFProtoStruct):
     self.paths.Validate()
 
 
-class GlobMixin(object):
+class GlobLogic(object):
   """A MixIn to implement the glob functionality."""
 
   def GlobForPaths(self,
@@ -718,9 +626,9 @@ class GlobMixin(object):
       pathtype: The pathtype to use for creating pathspecs.
       root_path: A pathspec where to start searching from.
       process_non_regular_files: Work with all kinds of files - not only with
-          regular ones.
+        regular ones.
       collect_ext_attrs: Whether to gather information about file extended
-          attributes.
+        attributes.
     """
     patterns = []
 
@@ -793,7 +701,7 @@ class GlobMixin(object):
   GLOB_MAGIC_CHECK = re.compile("[*?[]")
 
   # Maximum number of files to inspect in a single directory
-  FILE_MAX_PER_DIR = 100000
+  FILE_MAX_PER_DIR = 1000000
 
   def ConvertGlobIntoPathComponents(self, pattern):
     r"""Converts a glob pattern into a list of pathspec components.
@@ -857,7 +765,7 @@ class GlobMixin(object):
     return components
 
   def Start(self, **_):
-    super(GlobMixin, self).Start()
+    super(GlobLogic, self).Start()
     self.state.component_tree = {}
 
   def FindNode(self, component_path):
@@ -894,18 +802,6 @@ class GlobMixin(object):
     """Process the responses from the client."""
     if not responses.success:
       return
-
-    # If we get a response with an unfinished iterator then we missed some
-    # files. Call Find on the client until we're done.
-    if (responses.iterator and
-        responses.iterator.state != responses.iterator.State.FINISHED):
-      findspec = rdf_client_fs.FindSpec(responses.request.request.payload)
-      findspec.iterator = responses.iterator
-      self.CallClient(
-          server_stubs.Find,
-          findspec,
-          next_state="ProcessEntry",
-          request_data=responses.request_data)
 
     # The Find client action does not return a StatEntry but a
     # FindSpec. Normalize to a StatEntry.
@@ -1076,7 +972,8 @@ class GlobMixin(object):
               request_data=dict(base_path=component_path))
 
 
-class Glob(GlobMixin, flow.GRRFlow):
+@flow_base.DualDBFlow
+class GlobMixin(GlobLogic):
   """Glob the filesystem for patterns.
 
   Returns:
@@ -1094,7 +991,7 @@ class Glob(GlobMixin, flow.GRRFlow):
     interpolate each component. Finally, we generate a cartesian product of all
     combinations.
     """
-    super(Glob, self).Start()
+    super(GlobMixin, self).Start()
     self.GlobForPaths(
         self.args.paths,
         pathtype=self.args.pathtype,
@@ -1103,7 +1000,7 @@ class Glob(GlobMixin, flow.GRRFlow):
 
   def GlobReportMatch(self, stat_response):
     """Called when we've found a matching StatEntry."""
-    super(Glob, self).GlobReportMatch(stat_response)
+    super(GlobMixin, self).GlobReportMatch(stat_response)
     self.SendReply(stat_response)
 
 
@@ -1118,13 +1015,15 @@ def PathHasDriveLetter(path):
 
   Args:
     path: path string
+
   Returns:
     True if this path has a drive letter.
   """
   return path[1:2] == ":"
 
 
-class DiskVolumeInfo(flow.GRRFlow):
+@flow_base.DualDBFlow
+class DiskVolumeInfoMixin(object):
   """Get disk volume info for a given path.
 
   On linux and OS X we call StatFS on each path and return the results. For

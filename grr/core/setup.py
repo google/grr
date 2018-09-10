@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Setup configuration for the python grr modules."""
 from __future__ import print_function
+# TODO(hanuszczak): Add support for unicode literals in `setup.py` file.
 
 # pylint: disable=unused-variable
 # pylint: disable=g-multiple-import
@@ -131,6 +132,7 @@ setup_args = dict(
         "future==0.16.0",
         "pip>=8.1.1",
         "psutil==5.4.3",
+        "python-crontab==2.0.1",
         "python-dateutil==2.6.1",
         "pytsk3==20170802",
         "pytz==2017.3",

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.rekall_artifact_parser."""
 
+from __future__ import unicode_literals
+
 import gzip
 import os
 from grr_response_core import config

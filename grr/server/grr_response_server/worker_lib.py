@@ -233,7 +233,7 @@ class GRRWorker(object):
 
     for stuck_flow in stuck_flows:
       try:
-        flow.GRRFlow.TerminateFlow(
+        flow.GRRFlow.TerminateAFF4Flow(
             stuck_flow.session_id,
             reason="Stuck in the worker",
             status=rdf_flows.GrrStatus.ReturnedStatus.WORKER_STUCK,
@@ -382,6 +382,47 @@ class GRRWorker(object):
       stats.STATS.IncrementCounter(
           "worker_session_errors", fields=[str(type(e))])
       queue_manager.DeleteNotification(session_id)
+
+  def _ReturnProcessedFlow(self, flow_obj):
+    rdf_flow = flow_obj.rdf_flow
+    if rdf_flow.processing_deadline < rdfvalue.RDFDatetime.Now():
+      raise flow.FlowError(
+          "Lease expired for flow %s on %s (%s)." %
+          (rdf_flow.flow_id, rdf_flow.client_id, rdf_flow.processing_deadline))
+
+    flow_obj.FlushQueuedMessages()
+
+    return data_store.REL_DB.ReturnProcessedFlow(rdf_flow)
+
+  def ProcessFlow(self, flow_processing_request):
+    """The callback for the flow processing queue."""
+    client_id = flow_processing_request.client_id
+    flow_id = flow_processing_request.flow_id
+
+    rdf_flow = data_store.REL_DB.ReadFlowForProcessing(
+        client_id, flow_id, processing_time=rdfvalue.Duration("6h"))
+
+    # TODO(amoser): Ack / delete queue messages here.
+
+    flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
+    flow_obj = flow_cls(rdf_flow)
+
+    if not flow_obj.IsRunning():
+      raise ValueError(
+          "Received a request to process flow %s on client %s that is not "
+          "running." % (flow_id, client_id))
+
+    processed = flow_obj.ProcessAllReadyRequests()
+    if processed == 0:
+      raise ValueError(
+          "Unable to process any requests for flow %s on client %s." %
+          (flow_id, client_id))
+
+    while not self._ReturnProcessedFlow(flow_obj):
+      processed = flow_obj.ProcessAllReadyRequests()
+      if processed == 0:
+        raise ValueError("ReturnProcessedFlow returned false but no request "
+                         "could be processed.")
 
 
 class WorkerInit(registry.InitHook):

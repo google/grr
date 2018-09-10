@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the Linux process memory reading."""
+from __future__ import unicode_literals
 
 import __builtin__
 import os

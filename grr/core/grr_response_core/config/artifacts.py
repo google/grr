@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Configuration parameters for the artifact subsystem."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import config_lib
 
 config_lib.DEFINE_list("Artifacts.artifact_dirs", [

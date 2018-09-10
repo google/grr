@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module to load all client plugins."""
+from __future__ import unicode_literals
 
 # pylint: disable=unused-import,g-bad-import-order
 import logging
@@ -9,6 +10,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import rdfvalues
 from grr_response_client import actions
 from grr_response_client.client_actions import admin
+from grr_response_client.client_actions import artifact_collector
 from grr_response_client.client_actions import cloud
 from grr_response_client.client_actions import enrol
 from grr_response_client.client_actions import file_finder

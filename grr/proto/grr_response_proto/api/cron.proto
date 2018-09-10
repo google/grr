@@ -11,7 +11,7 @@ import "grr_response_proto/semantic.proto";
 // Entities.
 //
 
-// Next id: 14
+// Next id: 15
 message ApiCronJob {
   optional string cron_job_id = 1 [(sem_type) = {
       type: "ApiCronJobId",
@@ -50,6 +50,7 @@ message ApiCronJob {
   optional bool is_failing = 13 [(sem_type) = {
       description: "Is this cron job currently failing?"
     }];
+  optional string description = 14;
 }
 
 message ApiCronJobRun {

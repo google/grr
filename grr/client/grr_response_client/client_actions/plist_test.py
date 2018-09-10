@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for grr_response_client.client_actions.plist."""
+from __future__ import unicode_literals
 
 import os
 
@@ -18,7 +19,7 @@ test_plist_dict = {
     "date": 978307200000000,
     "nested1": {
         "nested11": {
-            "data113": "\xde\xad\xbe\xef",
+            "data113": b"\xde\xad\xbe\xef",
             "key111": "value111",
             "key112": "value112"
         }
@@ -51,10 +52,10 @@ class PlistTest(client_test_lib.EmptyActionTest):
 
   def testParseFilter(self):
     queries = [
-        ('bla is "red"', True),
-        ('bla.bla is "red"', True),
-        ('bla."bla bliek" is "red"', True),
-        ('bla.bla bliek is "red"', False),
+        (u'bla is "red"', True),
+        (u'bla.bla is "red"', True),
+        (u'bla."bla bliek" is "red"', True),
+        (u'bla.bla bliek is "red"', False),
     ]
     for query, result in queries:
       if result:
@@ -64,7 +65,7 @@ class PlistTest(client_test_lib.EmptyActionTest):
         self.assertRaises(Exception, filter_parser.Parse)
 
   def testMatches(self):
-    query = '"nested1"."nested11"."key112" contains "value112"'
+    query = u'"nested1"."nested11"."key112" contains "value112"'
     parser = plist_lib.PlistFilterParser(query).Parse()
     matcher = parser.Compile(plist_lib.PlistFilterImplementation)
     self.assertEqual(matcher.Matches(test_plist_dict), True)
@@ -83,10 +84,10 @@ class PlistTest(client_test_lib.EmptyActionTest):
 
   def testActionFilteredValueRetrieval(self):
     # Numbers does NOT contain a 2, but a "2", this should return nothing
-    results = self._RunQuery(query="numbers contains 2", context="")
+    results = self._RunQuery(query=u"numbers contains 2", context="")
     self.assertListEqual(list(list(results)[0]), [])
     # This one should return the full dict
-    results = self._RunQuery(query="numbers contains '2'", context="")
+    results = self._RunQuery(query=u"numbers contains '2'", context="")
     self.assertEqual(results[0][0], test_plist_dict)
 
     # SAFARI PLIST
@@ -115,7 +116,7 @@ class PlistTest(client_test_lib.EmptyActionTest):
     self.assertRaises(
         Exception, self._RunQuery, query="", context="", plist_file="History")
 
-  def _RunQuery(self, plist_file="test.plist", query="", context=""):
+  def _RunQuery(self, plist_file="test.plist", query=u"", context=""):
     path = os.path.join(self.base_path, plist_file)
     pathspec = rdf_paths.PathSpec(
         path=path, pathtype=rdf_paths.PathSpec.PathType.OS)

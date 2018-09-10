@@ -191,6 +191,16 @@ message ExpandedArtifact {
   }];
   repeated ExpandedSource sources = 2
       [(sem_type) = { description: "The sources and what they depend on." }];
+  repeated string provides = 3 [(sem_type) = {
+    description: "A list of knowledgebase values this artifact provides.",
+  }];
+  optional bool requested_by_user = 4 [
+    (sem_type) = {
+      description: "Whether the artifact is requested by the user or scheduled"
+                   " for collection as a KnowledgeBase dependency."
+    },
+    default = true
+  ];
 }
 
 message ExpandedSource {
@@ -215,6 +225,9 @@ message ExpandedSource {
 message ClientArtifactCollectorResult {
   repeated CollectedArtifact collected_artifacts = 1 [(sem_type) = {
     description: "The results of the single collected artifacts."
+  }];
+  optional KnowledgeBase knowledge_base = 2 [(sem_type) = {
+    description: "The knowledge base containing information about the client."
   }];
 }
 

@@ -250,7 +250,7 @@ class VFSGRRClient(standard.VFSDirectory):
 
   def Update(self, attribute=None):
     if attribute == "CONTAINS":
-      flow_id = flow.StartFlow(
+      flow_id = flow.StartAFF4Flow(
           client_id=self.client_id,
           # TODO(user): dependency loop with flows/general/discover.py
           # flow_name=discovery.Interrogate.__name__,
@@ -373,7 +373,7 @@ class VFSFile(aff4.AFF4Image):
 
     # Get the pathspec for this object
     pathspec = self.Get(self.Schema.STAT).pathspec
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=client_id,
         # TODO(user): dependency loop between aff4_grr.py and transfer.py
         # flow_name=transfer.MultiGetFile.__name__,
@@ -487,7 +487,7 @@ class GRRForeman(aff4.AFF4Object):
             flow_cls.StartClients(action.hunt_id, [client_id])
             actions_count += 1
         else:
-          flow.StartFlow(
+          flow.StartAFF4Flow(
               client_id=client_id,
               flow_name=action.flow_name,
               token=token,

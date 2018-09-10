@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Settings for ACLs/approvals system."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import config_lib
 
 config_lib.DEFINE_string("ACL.approvers_config_file",

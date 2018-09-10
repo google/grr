@@ -7,6 +7,8 @@
 # system. The clients will not share their config keys if the registry keys they
 # use are hooked by WOW64.
 
+from __future__ import unicode_literals
+
 import exceptions
 import logging
 import _winreg

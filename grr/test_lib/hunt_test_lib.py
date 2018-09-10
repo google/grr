@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Classes for hunt-related testing."""
 
+import hashlib
 import time
 
 
@@ -11,6 +12,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
@@ -107,8 +109,12 @@ class SampleHuntMock(action_mocks.ActionMock):
     response = rdf_client.BufferReference(args)
 
     offset = min(args.offset, len(self.data))
-    response.data = self.data[offset:]
+    sha256 = hashlib.sha256()
+    sha256.update(self.data[offset:])
+    response.data = sha256.digest()
     response.length = len(self.data[offset:])
+    data_store.DB.StoreBlob(self.data[offset:])
+
     return [response]
 
 
@@ -120,16 +126,16 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
 
   Args:
     client_mocks: Dictionary of (client_id->client_mock) pairs. Client mock
-        objects are used to handle client actions. Methods names of a client
-        mock object correspond to client actions names. For an example of a
-        client mock object, see SampleHuntMock.
+      objects are used to handle client actions. Methods names of a client mock
+      object correspond to client actions names. For an example of a client mock
+      object, see SampleHuntMock.
     check_flow_errors: If True, raises when one of hunt-initiated flows fails.
     token: An instance of access_control.ACLToken security token.
     iteration_limit: If None, hunt will run until it's finished. Otherwise,
-        worker_mock.Next() will be called iteration_limit number of times.
-        Every iteration processes worker's message queue. If new messages
-        are sent to the queue during the iteration processing, they will
-        be processed on next iteration,
+      worker_mock.Next() will be called iteration_limit number of times. Every
+      iteration processes worker's message queue. If new messages are sent to
+      the queue during the iteration processing, they will be processed on next
+      iteration,
   """
 
   total_flows = set()
@@ -176,18 +182,18 @@ def TestHuntHelper(client_mock,
   """Runs a hunt with a given client mock on given clients.
 
   Args:
-    client_mock: Client mock objects are used to handle client actions.
-        Methods names of a client mock object correspond to client actions
-        names. For an example of a client mock object, see SampleHuntMock.
-    client_ids: List of clients ids. Hunt will run on these clients.
-        client_mock will be used for every client id.
+    client_mock: Client mock objects are used to handle client actions. Methods
+      names of a client mock object correspond to client actions names. For an
+      example of a client mock object, see SampleHuntMock.
+    client_ids: List of clients ids. Hunt will run on these clients. client_mock
+      will be used for every client id.
     check_flow_errors: If True, raises when one of hunt-initiated flows fails.
     token: An instance of access_control.ACLToken security token.
     iteration_limit: If None, hunt will run until it's finished. Otherwise,
-        worker_mock.Next() will be called iteration_limit number of tiems.
-        Every iteration processes worker's message queue. If new messages
-        are sent to the queue during the iteration processing, they will
-        be processed on next iteration.
+      worker_mock.Next() will be called iteration_limit number of tiems. Every
+      iteration processes worker's message queue. If new messages are sent to
+      the queue during the iteration processing, they will be processed on next
+      iteration.
   """
   TestHuntHelperWithMultipleMocks(
       dict([(client_id, client_mock) for client_id in client_ids]),
@@ -269,7 +275,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       hunt_obj.Stop()
 
   def ProcessHuntOutputPlugins(self):
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         flow_name=process_results.ProcessHuntResultCollectionsCronFlow.__name__,
         token=self.token)
     flow_test_lib.TestFlowHelper(flow_urn, token=self.token)

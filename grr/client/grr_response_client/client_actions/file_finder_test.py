@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests the client file finder action."""
+from __future__ import unicode_literals
 
 import collections
 import glob
@@ -228,7 +229,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
-    literal = "pam_unix(ssh:session)"
+    literal = b"pam_unix(ssh:session)"
     bytes_before = 10
     bytes_after = 20
 
@@ -255,7 +256,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
-    literal = "mydomain.com"
+    literal = b"mydomain.com"
     bytes_before = 10
     bytes_after = 20
 
@@ -276,7 +277,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
   def testLiteralMatchConditionLargeFile(self):
     paths = [os.path.join(self.base_path, "new_places.sqlite")]
 
-    literal = "RecentlyBookmarked"
+    literal = b"RecentlyBookmarked"
     bytes_before = 10
     bytes_after = 20
 

@@ -1264,7 +1264,7 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(pi[0].stat_entry.st_mode, 1337)
     self.assertEqual(pi[0].timestamp, datetime("1999-01-01"))
 
-  def testReatPathInfosHistoriesWithTwoFilesWithTwoHistoryItems(self):
+  def testReadPathInfosHistoriesWithTwoFilesWithTwoHistoryItems(self):
     datetime = rdfvalue.RDFDatetime.FromHumanReadable
 
     client_id = self.InitializeClient()

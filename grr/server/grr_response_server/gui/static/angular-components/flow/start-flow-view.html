@@ -1,24 +1,17 @@
 <grr-check-client-access client-id="controller.clientId">
 
-  <div grr-splitter orientation="vertical" class="rightSplitterContainer" closeable-to="0">
+  <grr-flow-descriptors-tree selected-descriptor="controller.selection.flowDescriptor">
+  </grr-flow-descriptors-tree>
 
-    <div grr-splitter-pane id="main_leftPane" class="leftPane">
-      <grr-flow-descriptors-tree selected-descriptor="controller.selection.flowDescriptor" />
+  <div grr-splitter orientation="horizontal" class="flow-details">
+
+    <div grr-splitter-pane size="75" id="main_rightTopPane" class="rightTopPane">
+      <grr-start-flow-form client-id="controller.clientId"
+                           descriptor="controller.selection.flowDescriptor" />
     </div>
 
-    <div grr-splitter-pane id="main_rightPane" class="rightPane no-overflow">
-      <div grr-splitter orientation="horizontal" class="rightSplitterContainer" closeable-to="100">
-
-        <div grr-splitter-pane id="main_rightTopPane" class="rightTopPane">
-          <grr-start-flow-form client-id="controller.clientId"
-                               descriptor="controller.selection.flowDescriptor" />
-        </div>
-
-        <div grr-splitter-pane id="main_rightBottomPane" class="rightBottomPane">
-          <grr-flow-info descriptor="controller.selection.flowDescriptor" />
-        </div>
-
-      </div>
+    <div grr-splitter-pane size="25" id="main_rightBottomPane" class="rightBottomPane">
+      <grr-flow-info descriptor="controller.selection.flowDescriptor" />
     </div>
 
   </div>

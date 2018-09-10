@@ -11,6 +11,7 @@ Needed for compatibility with OS Rekall version 1.7.2.rc1.
 Copied from:
 https://github.com/google/rekall/blob/ea9512ae11524b8d5ef509549cb669dbb63fb10d/tools/installers/fix_deps.py
 """
+from __future__ import unicode_literals
 
 from Crypto.Util import _raw_api
 

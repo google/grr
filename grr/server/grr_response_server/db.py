@@ -25,6 +25,7 @@ from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import foreman_rules
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -49,7 +50,7 @@ class UnknownClientError(NotFoundError):
   Attributes:
     client_id: An id of the non-existing client that was referenced.
     cause: An (optional) exception instance that triggered the unknown client
-           error.
+      error.
   """
 
   def __init__(self, client_id, cause=None):
@@ -112,6 +113,29 @@ class UnknownCronJobRunError(NotFoundError):
   pass
 
 
+class UnknownFlowError(NotFoundError):
+
+  def __init__(self, client_id, flow_id, cause=None):
+    message = ("Flow with client id '%s' and flow id '%s' does not exist" %
+               (client_id, flow_id))
+    super(UnknownFlowError, self).__init__(message, cause=cause)
+
+    self.client_id = client_id
+    self.flow_id = flow_id
+
+
+class UnknownFlowRequestError(NotFoundError):
+
+  def __init__(self, client_id, flow_id, request_id, cause=None):
+    message = ("Flow request %d for flow with client id '%s' and flow id '%s' "
+               "does not exist" % (request_id, client_id, flow_id))
+    super(UnknownFlowRequestError, self).__init__(message, cause=cause)
+
+    self.client_id = client_id
+    self.flow_id = flow_id
+    self.request_id = request_id
+
+
 class ClientPath(object):
   """An immutable class representing certain path on a given client.
 
@@ -146,6 +170,18 @@ class ClientPath(object):
   def Temp(cls, client_id, components):
     path_type = rdf_objects.PathInfo.PathType.Temp
     return cls(client_id=client_id, path_type=path_type, components=components)
+
+  @classmethod
+  def FromPathSpec(cls, client_id, path_spec):
+    path_info = rdf_objects.PathInfo.FromPathSpec(path_spec)
+    return cls.FromPathInfo(client_id, path_info)
+
+  @classmethod
+  def FromPathInfo(cls, client_id, path_info):
+    return cls(
+        client_id=client_id,
+        path_type=path_info.path_type,
+        components=tuple(path_info.components))
 
   @property
   def client_id(self):
@@ -219,7 +255,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
         reported to the server.
       last_ip: An rdfvalues.client.NetworkAddress, indicating the last observed
         ip address for the client.
-      last_foreman: And rdfvalue.Datetime, indicating the last time that the
+      last_foreman: An rdfvalue.Datetime, indicating the last time that the
         client sent a foreman message to the server.
     """
 
@@ -228,8 +264,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """Reads ClientMetadata records for a list of clients.
 
     Args:
-      client_ids: A collection of GRR client id strings,
-        e.g. ["C.ea3b2b71840d6fa7", "C.ea3b2b71840d6fa8"]
+      client_ids: A collection of GRR client id strings, e.g.
+        ["C.ea3b2b71840d6fa7", "C.ea3b2b71840d6fa8"]
 
     Returns:
       A map from client_id to rdfvalues.object.ClientMetadata.
@@ -255,7 +291,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       client: An rdfvalues.objects.ClientSnapshot. Will be saved at the
-              "current" timestamp.
+        "current" timestamp.
 
     Raises:
       UnknownClientError: The client_id is not known yet.
@@ -292,7 +328,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       client_ids: a collection of GRR client ids, e.g. ["C.ea3b2b71840d6fa7",
         "C.ea3b2b71840d6fa8"]
       min_last_ping: If not None, only the clients with last ping time bigger
-                     than min_last_ping will be returned.
+        than min_last_ping will be returned.
 
     Returns:
       A map from client ids to `ClientFullInfo` instance.
@@ -323,9 +359,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       clients: A list of client objects representing snapshots in time. Each
-               object should have a `timestamp` attribute specifying at which
-               point this snapshot was taken. All clients should have the same
-               client id.
+        object should have a `timestamp` attribute specifying at which point
+        this snapshot was taken. All clients should have the same client id.
 
     Raises:
       AttributeError: If some client does not have a `timestamp` attribute.
@@ -339,13 +374,12 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
-      timerange: Should be either a tuple of (from, to) or None.
-                 "from" and to" should be rdfvalue.RDFDatetime or None values
-                 (from==None means "all record up to 'to'", to==None means
-                 all records from 'from'). If both "to" and "from" are
-                 None or the timerange itself is None, all history
-                 items are fetched. Note: "from" and "to" are inclusive:
-                 i.e. a from <= time <= to condition is applied.
+      timerange: Should be either a tuple of (from, to) or None. "from" and to"
+        should be rdfvalue.RDFDatetime or None values (from==None means "all
+        record up to 'to'", to==None means all records from 'from'). If both
+        "to" and "from" are None or the timerange itself is None, all history
+        items are fetched. Note: "from" and "to" are inclusive: i.e. a from <=
+          time <= to condition is applied.
 
     Returns:
       A list of rdfvalues.objects.ClientSnapshot, newest snapshot first.
@@ -357,8 +391,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
-      startup_info: An rdfvalues.client.StartupInfo object. Will be saved at
-          the "current" timestamp.
+      startup_info: An rdfvalues.client.StartupInfo object. Will be saved at the
+        "current" timestamp.
 
     Raises:
       UnknownClientError: The client_id is not known yet.
@@ -381,13 +415,12 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
-      timerange: Should be either a tuple of (from, to) or None.
-                 "from" and to" should be rdfvalue.RDFDatetime or None values
-                 (from==None means "all record up to 'to'", to==None means
-                 all records from 'from'). If both "to" and "from" are
-                 None or the timerange itself is None, all history
-                 items are fetched. Note: "from" and "to" are inclusive:
-                 i.e. a from <= time <= to condition is applied.
+      timerange: Should be either a tuple of (from, to) or None. "from" and to"
+        should be rdfvalue.RDFDatetime or None values (from==None means "all
+        record up to 'to'", to==None means all records from 'from'). If both
+        "to" and "from" are None or the timerange itself is None, all history
+        items are fetched. Note: "from" and "to" are inclusive: i.e. a from <=
+          time <= to condition is applied.
 
     Returns:
       A list of rdfvalues.client.StartupInfo objects sorted by timestamp,
@@ -400,8 +433,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
-      crash_info: An rdfvalues.objects.ClientCrash object. Will be saved at
-          the "current" timestamp.
+      crash_info: An rdfvalues.objects.ClientCrash object. Will be saved at the
+        "current" timestamp.
 
     Raises:
       UnknownClientError: The client_id is not known yet.
@@ -437,6 +470,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
       keywords: An iterable container of keyword strings to write.
+
     Raises:
       UnknownClientError: The client_id is not known yet.
     """
@@ -449,6 +483,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       keywords: An iterable container of keyword strings to look for.
       start_time: If set, should be an rdfvalue.RDFDatime and the function will
         only return keywords associated after this time.
+
     Returns:
       A dict mapping each provided keyword to a potentially empty list of client
         ids.
@@ -561,9 +596,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       password: If set, should be a string with a new encrypted user password.
       ui_mode: If set, should be a GUISettings.UIMode enum.
       canary_mode: If not None, should be a boolean indicating user's preferred
-          canary mode setting.
-      user_type: GRRUser.UserType enum describing user type
-          (unset, standard or admin).
+        canary mode setting.
+      user_type: GRRUser.UserType enum describing user type (unset, standard or
+        admin).
     """
 
   @abc.abstractmethod
@@ -572,6 +607,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       username: Name of a user.
+
     Returns:
       A rdfvalues.objects.GRRUser object.
     Raises:
@@ -592,9 +628,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       approval_request: rdfvalues.objects.ApprovalRequest object. Note:
-                        approval_id and timestamps provided inside
-                        the argument object will be ignored. Values generated
-                        by the database will be used instead.
+        approval_id and timestamps provided inside the argument object will be
+        ignored. Values generated by the database will be used instead.
+
     Returns:
       approval_id: String identifying newly created approval request.
                    Approval id is unique among approval ids for the same
@@ -609,6 +645,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       requestor_username: Username of the user who has requested the approval.
       approval_id: String identifying approval request object.
+
     Returns:
       rdfvalues.objects.ApprovalRequest object.
     Raises:
@@ -627,10 +664,11 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       requestor_username: Username of the user who has requested the approval.
       approval_type: Type of approvals to list.
-      subject_id: String identifying the subject (client id, hunt id or
-                  cron job id). If not None, only approval requests for this
-                  subject will be returned.
+      subject_id: String identifying the subject (client id, hunt id or cron job
+        id). If not None, only approval requests for this subject will be
+        returned.
       include_expired: If True, will also yield already expired approvals.
+
     Yields:
       rdfvalues.objects.ApprovalRequest objects.
     """
@@ -651,7 +689,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       batch_size: Always reads <batch_size> client full infos at a time.
       min_last_ping: If not None, only the clients with last ping time bigger
-                     than min_last_ping will be returned.
+        than min_last_ping will be returned.
+
     Yields:
       An rdfvalues.objects.ClientFullInfo object for each client in the db.
     """
@@ -667,6 +706,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       batch_size: Always reads <batch_size> snapshots at a time.
+
     Yields:
       An rdfvalues.objects.ClientSnapshot object for each client in the db.
     """
@@ -692,10 +732,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       client_id: An identifier string for a client.
       path_type: A type of a path to retrieve path information for.
       components: A tuple of path components of a path to retrieve path
-                  information for.
+        information for.
       timestamp: A moment in time for which we want to retrieve the information.
-                 If none is provided, the latest known path information is
-                 returned.
+        If none is provided, the latest known path information is returned.
 
     Returns:
       An `rdf_objects.PathInfo` instance.
@@ -709,7 +748,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       client_id: An identifier string for a client.
       path_type: A type of a path to retrieve path information for.
       components_list: An iterable of tuples of path components corresponding to
-                       paths to retrieve path information for.
+        paths to retrieve path information for.
 
     Returns:
       A dictionary mapping path components to `rdf_objects.PathInfo` instances.
@@ -722,7 +761,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       client_id: An identifier string for a client.
       path_type: A type of a path to retrieve path information for.
       components: A tuple of path components of a path to retrieve child path
-                  information for.
+        information for.
 
     Returns:
       A list of `rdf_objects.PathInfo` instances sorted by path components.
@@ -742,9 +781,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       client_id: An identifier string for a client.
       path_type: A type of a path to retrieve path information for.
       components: A tuple of path components of a path to retrieve descendent
-                  path information for.
+        path information for.
       max_depth: If set, the maximum number of generations to descend, otherwise
-                 unlimited.
+        unlimited.
 
     Returns:
       A list of `rdf_objects.PathInfo` instances sorted by path components.
@@ -768,7 +807,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       path_infos: A dictionary mapping client ids to `rdf_objects.PathInfo`
-                  instances.
+        instances.
     """
 
   def InitPathInfos(self, client_id, path_infos):
@@ -792,7 +831,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       path_infos: A dictionary mapping client ids to `rdf_objects.PathInfo`
-                  instances.
+        instances.
     """
     self.MultiClearPathHistory(path_infos)
     self.MultiWritePathInfos(path_infos)
@@ -803,9 +842,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       client_id: A client identifier for which the path histories are about to
-                 be cleared.
+        be cleared.
       path_infos: A list of `rdf_objects.PathInfo` instances corresponding to
-                  paths to clear the history for.
+        paths to clear the history for.
     """
 
   @abc.abstractmethod
@@ -814,7 +853,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       path_infos: A dictionary mapping client ids to `rdf_objects.PathInfo`
-                  instances corresponding to paths to clear the history for.
+        instances corresponding to paths to clear the history for.
     """
 
   @abc.abstractmethod
@@ -823,7 +862,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       client_path_histories: A dictionary mapping `ClientPath` instances to
-                             `ClientPathHistory` objects.
+        `ClientPathHistory` objects.
     """
 
   def WritePathStatHistory(self, client_path, stat_entries):
@@ -832,7 +871,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       client_path: A `ClientPath` instance.
       stat_entries: A dictionary with timestamps as keys and `StatEntry`
-                    instances as values.
+        instances as values.
     """
     client_path_history = ClientPathHistory()
     for timestamp, stat_entry in iteritems(stat_entries):
@@ -845,8 +884,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       client_path: A `ClientPath` instance.
-      hash_entries: A dictionary with timestamps as keys and `Hash` instances
-                    as values.
+      hash_entries: A dictionary with timestamps as keys and `Hash` instances as
+        values.
     """
     client_path_history = ClientPathHistory()
     for timestamp, hash_entry in iteritems(hash_entries):
@@ -862,7 +901,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       client_id: An identifier string for a client.
       path_type: A type of a path to retrieve path history information for.
       components_list: An iterable of tuples of path components corresponding to
-                       paths to retrieve path information for.
+        paths to retrieve path information for.
+
     Returns:
       A dictionary mapping path components to lists of `rdf_objects.PathInfo`
       ordered by timestamp in ascending order.
@@ -875,7 +915,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       client_id: An identifier string for a client.
       path_type: A type of a path to retrieve path history for.
       components: A tuple of path components corresponding to path to retrieve
-                  information for.
+        information for.
 
     Returns:
       A list of `rdf_objects.PathInfo` ordered by timestamp in ascending order.
@@ -898,13 +938,13 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       username: Username identifying the user.
       state: If set, only return the notifications with a given state attribute.
-      timerange: Should be either a tuple of (from, to) or None.
-                 "from" and to" should be rdfvalue.RDFDatetime or None values
-                 (from==None means "all record up to 'to'", to==None means
-                 all records from 'from'). If both "to" and "from" are
-                 None or the timerange itself is None, all notifications
-                 are fetched. Note: "from" and "to" are inclusive:
-                 i.e. a from <= time <= to condition is applied.
+      timerange: Should be either a tuple of (from, to) or None. "from" and to"
+        should be rdfvalue.RDFDatetime or None values (from==None means "all
+        record up to 'to'", to==None means all records from 'from'). If both
+        "to" and "from" are None or the timerange itself is None, all
+        notifications are fetched. Note: "from" and "to" are inclusive: i.e. a
+          from <= time <= to condition is applied.
+
     Returns:
       List of objects.UserNotification objects.
     """
@@ -916,8 +956,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       username: Username identifying the user.
       timestamps: List of timestamps of the notifications to be updated.
-      state: objects.UserNotification.State enum value to be written into
-             the notifications objects.
+      state: objects.UserNotification.State enum value to be written into the
+        notifications objects.
     """
 
   @abc.abstractmethod
@@ -970,11 +1010,11 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       handler: Method, which will be called repeatedly with lists of leased
-               objects.MessageHandlerRequest. Required.
+        objects.MessageHandlerRequest. Required.
       lease_time: rdfvalue.Duration indicating how long the lease should be
-                  valid. Required.
+        valid. Required.
       limit: Limit for the number of leased requests to give one execution of
-             handler.
+        handler.
     """
 
   @abc.abstractmethod
@@ -1008,8 +1048,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """Reads all cronjobs from the database.
 
     Args:
-      cronjob_ids: A list of cronjob ids to read. If not set, returns all
-                   cron jobs in the database.
+      cronjob_ids: A list of cronjob ids to read. If not set, returns all cron
+        jobs in the database.
 
     Returns:
       A list of cronjobs.CronJob objects.
@@ -1068,8 +1108,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       last_run_time: The last time a run was started for this cron job.
       current_run_id: The id of the currently active run.
       state: The state dict for stateful cron jobs.
-      forced_run_requested: A boolean indicating if a forced run is pending
-                            for this job.
+      forced_run_requested: A boolean indicating if a forced run is pending for
+        this job.
+
     Raises:
       UnknownCronJobError: A cron job with the given id does not exist.
     """
@@ -1079,10 +1120,10 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """Leases all available cron jobs.
 
     Args:
-      cronjob_ids: A list of cronjob ids that should be leased. If None,
-                   all available cronjobs will be leased.
+      cronjob_ids: A list of cronjob ids that should be leased. If None, all
+        available cronjobs will be leased.
       lease_time: rdfvalue.Duration indicating how long the lease should be
-                  valid.
+        valid.
 
     Returns:
       A list of cronjobs.CronJob objects that were leased.
@@ -1136,7 +1177,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       cutoff_timestamp: This method deletes all runs that were started before
-                        cutoff_timestamp.
+        cutoff_timestamp.
+
     Returns:
       The number of deleted runs.
     """
@@ -1146,8 +1188,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """Writes blob references for given client path ids.
 
     Args:
-      references_by_client_path_id: Dictionary of
-          ClientPathID -> [BlobReference].
+      references_by_client_path_id: Dictionary of ClientPathID ->
+        [BlobReference].
 
     Raises:
       AtLeastOneUnknownPathError: if one or more ClientPathIDs are not known
@@ -1168,14 +1210,59 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def WriteHashBlobReferences(self, references_by_hash):
+    """Writes blob references for a given set of hashes.
+
+    Every file known to GRR has a history of PathInfos. Every PathInfo has a
+    hash_entry corresponding to a known hash of a file (or a downloaded part
+    of the file) at a given moment.
+
+    GRR collects files by collecting individual data blobs from the client.
+    Thus, in the end a file contents may be described as a sequence of blobs.
+    Using WriteHashBlobReferences we key this sequence of blobs not with the
+    file name, but rather with a hash identifying file contents.
+
+    This way for any given PathInfo we can look at the hash and say whether
+    we have corresponding contents of the file by using ReadHashBlobRefernces.
+
+    Args:
+      references_by_hash: A dict where SHA256HashID objects are keys and lists
+        of BlobReference objects are values.
+    """
+
+  @abc.abstractmethod
+  def ReadHashBlobReferences(self, hashes):
+    """Reads blob references of a given set of hashes.
+
+    Every file known to GRR has a history of PathInfos. Every PathInfo has a
+    hash_entry corresponding to a known hash of a file (or a downloaded part
+    of the file) at a given moment.
+
+    GRR collects files by collecting individual data blobs from the client.
+    Thus, in the end a file contents may be described as a sequence of blobs.
+    We key this sequence of blobs not with the file name, but rather with a
+    hash identifying file contents.
+
+    This way for any given PathInfo we can look at the hash and say whether
+    we have corresponding contents of the file by using ReadHashBlobRefernces.
+
+    Args:
+      hashes: An iterable of SHA256HashID objects.
+
+    Returns:
+      A dict where SHA256HashID objects are keys and iterables of BlobReference
+      objects are values. If no blob references are found for a certain hash,
+      None will be used as a value instead of a list.
+    """
+
+  @abc.abstractmethod
   def WriteBlobs(self, blob_id_data_pairs):
     """Writes given blobs.
 
     Args:
       blob_id_data_pairs: An iterable of (blob_id, blob_data) tuples. Each
-                          blob_id should be a blob hash (i.e. uniquely
-                          idenitify the blob) expressed as bytes. blob_data
-                          should be expressed in bytes.
+        blob_id should be a blob hash (i.e. uniquely idenitify the blob)
+        expressed as bytes. blob_data should be expressed in bytes.
 
     Raises:
       ValueError: If anything but a tuple of 2 elements is encountered in
@@ -1222,8 +1309,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       client_id: The client for which the messages should be leased.
       lease_time: rdfvalue.Duration indicating how long the lease should be
-                  valid.
+        valid.
       limit: Lease at most <limit> messages.
+
     Returns:
       A list of GrrMessage objects.
     """
@@ -1246,6 +1334,206 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       messages: A list of GrrMessage objects to delete.
     """
+
+  @abc.abstractmethod
+  def WriteFlowObject(self, flow_obj):
+    """Writes a flow object to the database.
+
+    Args:
+      flow_obj: An rdf_flow_objects.Flow object to write.
+
+    Raises:
+      UnknownClientError: The client with the flow's client_id does not exist.
+    """
+
+  @abc.abstractmethod
+  def ReadFlowObject(self, client_id, flow_id):
+    """Reads a flow object from the database.
+
+    Args:
+      client_id: The client id on which this flow is running.
+      flow_id: The id of the flow to read.
+
+    Returns:
+      An rdf_flow_objects.Flow object.
+    """
+
+  @abc.abstractmethod
+  def ReadChildFlowObjects(self, client_id, flow_id):
+    """Reads flow objects that were started by a given flow from the database.
+
+    Args:
+      client_id: The client id on which the flows are running.
+      flow_id: The id of the parent flow.
+
+    Returns:
+      A list of rdf_flow_objects.Flow objects.
+    """
+
+  @abc.abstractmethod
+  def ReadFlowForProcessing(self, client_id, flow_id, processing_time):
+    """Marks a flow as being processed on this worker and returns it.
+
+    Args:
+      client_id: The client id on which this flow is running.
+      flow_id: The id of the flow to read.
+      processing_time: Duration that the worker has to finish processing before
+        the flow is considered stuck.
+
+    Raises:
+      ValueError: The flow is already marked as being processed.
+
+    Returns:
+      And rdf_flow_objects.Flow object.
+    """
+
+  @abc.abstractmethod
+  def ReturnProcessedFlow(self, flow_obj):
+    """Returns a flow that the worker was processing to the database.
+
+    This method will check if there are currently more requests ready for
+    processing. If there are, the flow will not be written to the database and
+    the method will return false.
+
+    Args:
+      flow_obj: The rdf_flow_objects.Flow object to return.
+
+    Returns:
+      A boolean indicating if it was possible to return the flow to the
+      database. If there are currently more requests ready to being processed,
+      this method will return false and the flow will not be written.
+    """
+
+  @abc.abstractmethod
+  def UpdateFlow(self,
+                 client_id,
+                 flow_id,
+                 flow_obj=unchanged,
+                 client_crash_info=unchanged,
+                 pending_termination=unchanged,
+                 processing_on=unchanged,
+                 processing_since=unchanged,
+                 processing_deadline=unchanged):
+    """Updates flow objects in the database.
+
+    Args:
+      client_id: The client id on which this flow is running.
+      flow_id: The id of the flow to update.
+      flow_obj: An updated rdf_flow_objects.Flow object.
+      client_crash_info: A rdf_client.ClientCrash object to store with the flow.
+      pending_termination: An rdf_flow_objects.PendingFlowTermination object.
+        Indicates that this flow is scheduled for termination.
+      processing_on: Worker this flow is currently processed on.
+      processing_since: Timstamp when the worker started processing this flow.
+      processing_deadline: Time after which this flow will be considered stuck
+        if processing hasn't finished.
+    """
+
+  @abc.abstractmethod
+  def WriteFlowRequests(self, requests):
+    """Writes a list of flow requests to the database.
+
+    Args:
+      requests: List of rdf_flow_objects.FlowRequest objects.
+    """
+
+  @abc.abstractmethod
+  def DeleteFlowRequests(self, requests):
+    """Deletes a list of flow requests from the database.
+
+    Note: This also deletes all corresponding responses.
+
+    Args:
+      requests: List of rdf_flow_objects.FlowRequest objects.
+    """
+
+  @abc.abstractmethod
+  def WriteFlowResponses(self, responses):
+    """Writes a list of flow responses to the database.
+
+    This method not only stores the list of responses given in the database but
+    also updates flow status information at the same time. Specifically, it
+    updates all corresponding flow requests, setting the needs_processing flag
+    in case all expected responses are available in the database after this call
+    and, in case the request the flow is currently waiting on becomes available
+    for processing, it also writes a FlowProcessingRequest to notify the worker.
+
+    Args:
+      responses: List of rdf_flow_objects.FlowResponse rdfvalues to write.
+    """
+
+  @abc.abstractmethod
+  def ReadAllFlowRequestsAndResponses(self, client_id, flow_id):
+    """Reads all requests and responses for a given flow from the database.
+
+    Args:
+      client_id: The client id on which this flow is running.
+      flow_id: The id of the flow to read requests and responses for.
+
+    Returns:
+      A list of tuples (request, list of responses) for each request in the db.
+    """
+
+  @abc.abstractmethod
+  def DeleteAllFlowRequestsAndResponses(self, client_id, flow_id):
+    """Deletes all requests and responses for a given flow from the database.
+
+    Args:
+      client_id: The client id on which this flow is running.
+      flow_id: The id of the flow to delete requests and responses for.
+    """
+
+  @abc.abstractmethod
+  def ReadFlowRequestsReadyForProcessing(self, client_id, flow_id):
+    """Reads all requests for a flow that can be processed by the worker.
+
+    Args:
+      client_id: The client id on which this flow is running.
+      flow_id: The id of the flow to read requests for.
+
+    Returns:
+      A dict mapping flow request id to tuples (request,
+      sorted list of responses for the request).
+    """
+
+  @abc.abstractmethod
+  def WriteFlowProcessingRequests(self, requests):
+    """Writes a list of flow processing requests to the database.
+
+    Args:
+      requests: List of rdf_flows.FlowProcessingRequest.
+    """
+
+  @abc.abstractmethod
+  def ReadFlowProcessingRequests(self):
+    """Reads all flow processing requests from the database.
+
+    Returns:
+      A list of rdf_flows.FlowProcessingRequest, sorted by timestamp,
+      newest first.
+    """
+
+  @abc.abstractmethod
+  def DeleteFlowProcessingRequests(self, requests):
+    """Deletes a list of flow processing requests from the database.
+
+    Args:
+      requests: List of rdf_flows.FlowProcessingRequest.
+    """
+
+  @abc.abstractmethod
+  def RegisterFlowProcessingHandler(self, handler, limit=1000):
+    """Registers a handler to receive flow processing messages.
+
+    Args:
+      handler: Method, which will be called repeatedly with lists of
+        rdf_flows.FlowProcessingRequest. Required.
+      limit: Limit for the number of requests to give one execution of handler.
+    """
+
+  @abc.abstractmethod
+  def UnregisterFlowProcessingHandler(self):
+    """Unregisters any registered flow processing handler."""
 
 
 class DatabaseValidationWrapper(Database):
@@ -1637,6 +1925,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteAuditEvent(event)
 
   def WriteMessageHandlerRequests(self, requests):
+    utils.AssertListType(requests, rdf_objects.MessageHandlerRequest)
     return self.delegate.WriteMessageHandlerRequests(requests)
 
   def DeleteMessageHandlerRequests(self, requests):
@@ -1744,6 +2033,17 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.ReadClientPathBlobReferences(client_path_ids)
 
+  def WriteHashBlobReferences(self, references_by_hash):
+    for h, refs in references_by_hash.items():
+      _ValidateSHA256HashID(h)
+      utils.AssertIterableType(refs, rdf_objects.BlobReference)
+
+    self.delegate.WriteHashBlobReferences(references_by_hash)
+
+  def ReadHashBlobReferences(self, hashes):
+    utils.AssertIterableType(hashes, rdf_objects.SHA256HashID)
+    return self.delegate.ReadHashBlobReferences(hashes)
+
   def WriteBlobs(self, blob_id_data_pairs):
     for bid, data in iteritems(blob_id_data_pairs):
       _ValidateBlobID(bid)
@@ -1783,6 +2083,111 @@ class DatabaseValidationWrapper(Database):
       utils.AssertType(message, rdf_flows.GrrMessage)
     return self.delegate.DeleteClientMessages(messages)
 
+  def WriteFlowObject(self, flow_obj):
+    utils.AssertType(flow_obj, rdf_flow_objects.Flow)
+    return self.delegate.WriteFlowObject(flow_obj)
+
+  def ReadFlowObject(self, client_id, flow_id):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    return self.delegate.ReadFlowObject(client_id, flow_id)
+
+  def ReadChildFlowObjects(self, client_id, flow_id):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    return self.delegate.ReadChildFlowObjects(client_id, flow_id)
+
+  def ReadFlowForProcessing(self, client_id, flow_id, processing_time):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    _ValidateDuration(processing_time)
+    return self.delegate.ReadFlowForProcessing(client_id, flow_id,
+                                               processing_time)
+
+  def ReturnProcessedFlow(self, flow_obj):
+    utils.AssertType(flow_obj, rdf_flow_objects.Flow)
+    return self.delegate.ReturnProcessedFlow(flow_obj)
+
+  def UpdateFlow(self,
+                 client_id,
+                 flow_id,
+                 flow_obj=Database.unchanged,
+                 client_crash_info=Database.unchanged,
+                 pending_termination=Database.unchanged,
+                 processing_on=Database.unchanged,
+                 processing_since=Database.unchanged,
+                 processing_deadline=Database.unchanged):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    if flow_obj != Database.unchanged:
+      utils.AssertType(flow_obj, rdf_flow_objects.Flow)
+    if client_crash_info != Database.unchanged:
+      utils.AssertType(client_crash_info, rdf_client.ClientCrash)
+    if pending_termination != Database.unchanged:
+      utils.AssertType(pending_termination,
+                       rdf_flow_objects.PendingFlowTermination)
+    if processing_since != Database.unchanged:
+      if processing_since is not None:
+        _ValidateTimestamp(processing_since)
+    if processing_deadline != Database.unchanged:
+      if processing_since is not None:
+        _ValidateTimestamp(processing_deadline)
+    return self.delegate.UpdateFlow(
+        client_id,
+        flow_id,
+        flow_obj=flow_obj,
+        client_crash_info=client_crash_info,
+        pending_termination=pending_termination,
+        processing_on=processing_on,
+        processing_since=processing_since,
+        processing_deadline=processing_deadline)
+
+  def WriteFlowRequests(self, requests):
+    utils.AssertListType(requests, rdf_flow_objects.FlowRequest)
+    return self.delegate.WriteFlowRequests(requests)
+
+  def DeleteFlowRequests(self, requests):
+    utils.AssertListType(requests, rdf_flow_objects.FlowRequest)
+    return self.delegate.DeleteFlowRequests(requests)
+
+  def WriteFlowResponses(self, responses):
+    utils.AssertListType(responses, (rdf_flow_objects.FlowMessage))
+    return self.delegate.WriteFlowResponses(responses)
+
+  def ReadAllFlowRequestsAndResponses(self, client_id, flow_id):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    return self.delegate.ReadAllFlowRequestsAndResponses(client_id, flow_id)
+
+  def DeleteAllFlowRequestsAndResponses(self, client_id, flow_id):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    return self.delegate.DeleteAllFlowRequestsAndResponses(client_id, flow_id)
+
+  def ReadFlowRequestsReadyForProcessing(self, client_id, flow_id):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    return self.delegate.ReadFlowRequestsReadyForProcessing(client_id, flow_id)
+
+  def WriteFlowProcessingRequests(self, requests):
+    utils.AssertListType(requests, rdf_flows.FlowProcessingRequest)
+    return self.delegate.WriteFlowProcessingRequests(requests)
+
+  def ReadFlowProcessingRequests(self):
+    return self.delegate.ReadFlowProcessingRequests()
+
+  def DeleteFlowProcessingRequests(self, requests):
+    utils.AssertListType(requests, rdf_flows.FlowProcessingRequest)
+    return self.delegate.DeleteFlowProcessingRequests(requests)
+
+  def RegisterFlowProcessingHandler(self, handler):
+    if handler is None:
+      raise ValueError("handler must be provided")
+    return self.delegate.RegisterFlowProcessingHandler(handler)
+
+  def UnregisterFlowProcessingHandler(self):
+    return self.delegate.UnregisterFlowProcessingHandler()
+
 
 def _ValidateEnumType(value, expected_enum_type):
   if value not in expected_enum_type.reverse_enum:
@@ -1811,6 +2216,10 @@ def _ValidateClientIds(client_ids):
     _ValidateClientId(client_id)
 
 
+def _ValidateFlowId(flow_id):
+  _ValidateStringId("flow_id", flow_id)
+
+
 def _ValidateHuntId(hunt_id):
   _ValidateStringId("hunt_id", hunt_id)
 
@@ -1832,8 +2241,8 @@ def _ValidateApprovalId(approval_id):
 
 
 def _ValidateApprovalType(approval_type):
-  if (approval_type ==
-      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_NONE):
+  if (approval_type == rdf_objects.ApprovalRequest.ApprovalType
+      .APPROVAL_TYPE_NONE):
     raise ValueError("Unexpected approval type: %s" % approval_type)
 
 
@@ -1924,3 +2333,7 @@ def _ValidateBlobID(blob_id):
 
 def _ValidateBytes(value):
   utils.AssertType(value, bytes)
+
+
+def _ValidateSHA256HashID(sha256_hash_id):
+  utils.AssertType(sha256_hash_id, rdf_objects.SHA256HashID)

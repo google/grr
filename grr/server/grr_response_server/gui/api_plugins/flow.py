@@ -81,6 +81,7 @@ class ApiFlowId(rdfvalue.RDFString):
     Args:
       client_id: Id of a client where this flow is supposed to be found on.
       token: Credentials token.
+
     Returns:
       RDFURN pointing to a flow identified by this flow id and client id.
     Raises:
@@ -121,6 +122,61 @@ class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
   def GetDefaultArgsClass(self):
     return rdfvalue.RDFValue.classes.get(self.args_type)
 
+  def _GetArgsDescription(self, args_type):
+    """Get a simplified description of the args_type for a flow."""
+    args = {}
+    if args_type:
+      for type_descriptor in args_type.type_infos:
+        if not type_descriptor.hidden:
+          args[type_descriptor.name] = {
+              "description": type_descriptor.description,
+              "default": type_descriptor.default,
+              "type": "",
+          }
+          if type_descriptor.type:
+            args[type_descriptor.name]["type"] = type_descriptor.type.__name__
+    return args
+
+  def _GetCallingPrototypeAsString(self, flow_cls):
+    """Get a description of the calling prototype for this flow class."""
+    output = []
+    output.append("flow.StartAFF4Flow(client_id=client_id, ")
+    output.append("flow_name=\"%s\", " % flow_cls.__name__)
+    prototypes = []
+    if flow_cls.args_type:
+      for type_descriptor in flow_cls.args_type.type_infos:
+        if not type_descriptor.hidden:
+          prototypes.append(
+              "%s=%s" % (type_descriptor.name, type_descriptor.name))
+    output.append(", ".join(prototypes))
+    output.append(")")
+    return "".join(output)
+
+  def _GetFlowArgsHelpAsString(self, flow_cls):
+    """Get a string description of the calling prototype for this flow."""
+    output = [
+        "  Call Spec:",
+        "    %s" % self._GetCallingPrototypeAsString(flow_cls), ""
+    ]
+    arg_list = sorted(
+        iteritems(self._GetArgsDescription(flow_cls.args_type)),
+        key=lambda x: x[0])
+    if not arg_list:
+      output.append("  Args: None")
+    else:
+      output.append("  Args:")
+      for arg, val in arg_list:
+        output.append("    %s" % arg)
+        output.append("      description: %s" % val["description"])
+        output.append("      type: %s" % val["type"])
+        output.append("      default: %s" % val["default"])
+        output.append("")
+    return "\n".join(output)
+
+  def _GetFlowDocumentation(self, flow_cls):
+    return "%s\n\n%s" % (getattr(flow_cls, "__doc__", ""),
+                         self._GetFlowArgsHelpAsString(flow_cls))
+
   def InitFromFlowClass(self, flow_cls, token=None):
     if not token:
       raise ValueError("token can't be None")
@@ -128,7 +184,7 @@ class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
     self.name = flow_cls.__name__
     self.friendly_name = flow_cls.friendly_name
     self.category = flow_cls.category.strip("/")
-    self.doc = flow_cls.__doc__
+    self.doc = self._GetFlowDocumentation(flow_cls)
     self.args_type = flow_cls.args_type.__name__
     self.default_args = flow_cls.GetDefaultArgs(username=token.username)
     self.behaviours = sorted(flow_cls.behaviours)
@@ -238,8 +294,8 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
 
           if flow_state_data:
             self.state_data = (
-                api_call_handler_utils.ApiDataObject()
-                .InitFromDataObject(flow_state_data))
+                api_call_handler_utils.ApiDataObject().InitFromDataObject(
+                    flow_state_data))
     except Exception as e:  # pylint: disable=broad-except
       self.internal_error = "Error while opening flow: %s" % str(e)
 
@@ -481,10 +537,10 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     """Constructor.
 
     Args:
-      path_globs_blacklist: List of paths.GlobExpression values. Blacklist
-          will be applied before the whitelist.
-      path_globs_whitelist: List of paths.GlobExpression values. Whitelist
-          will be applied after the blacklist.
+      path_globs_blacklist: List of paths.GlobExpression values. Blacklist will
+        be applied before the whitelist.
+      path_globs_whitelist: List of paths.GlobExpression values. Whitelist will
+        be applied after the blacklist.
 
     Raises:
       ValueError: If path_globs_blacklist/whitelist is passed, but
@@ -891,7 +947,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
           flow_id=utils.SmartStr(args.original_flow.flow_id),
           client_id=utils.SmartStr(args.original_flow.client_id))
 
-    flow_id = flow.StartFlow(
+    flow_id = flow.StartAFF4Flow(
         client_id=args.client_id.ToClientURN(),
         flow_name=flow_name,
         token=token,
@@ -918,7 +974,8 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
 
-    flow.GRRFlow.TerminateFlow(flow_urn, reason="Cancelled in GUI", token=token)
+    flow.GRRFlow.TerminateAFF4Flow(
+        flow_urn, reason="Cancelled in GUI", token=token)
 
 
 class ApiListFlowDescriptorsResult(rdf_structs.RDFProtoStruct):

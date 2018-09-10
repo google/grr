@@ -97,6 +97,10 @@ def RelationalDBReadEnabled(category=None):
   return flag
 
 
+def RelationalDBFlowsEnabled():
+  return config.CONFIG["Database.useForReads.flows"]
+
+
 # There are stub methods that don't return/yield as indicated by the docstring.
 # pylint: disable=g-doc-return-or-yield
 
@@ -1577,7 +1581,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
       yield (subject, children)
 
 
-class DBSubjectLock(with_metaclass(registry.MetaclassRegistry, object)):
+class DBSubjectLock(object):
   """Provide a simple subject lock using the database.
 
   This class should not be used directly. Its only safe to use via the
@@ -1669,6 +1673,8 @@ class DataStoreInit(registry.InitHook):
     except KeyError:
       msg = ("No Storage System %s found." %
              config.CONFIG["Datastore.implementation"])
+      if config.CONFIG["Datastore.implementation"] == "SqliteDataStore":
+        msg = "The SQLite datastore is no longer supported."
       print(msg)
       print("Available options:")
       self._ListStorageOptions()

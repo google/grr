@@ -9,6 +9,7 @@ implementations must be imported _before_ the relevant classes are referenced
 from this module.
 """
 from __future__ import division
+from __future__ import unicode_literals
 
 import abc
 import calendar
@@ -242,7 +243,7 @@ class RDFBytes(RDFPrimitive):
   """An attribute which holds bytes."""
   data_store_type = "bytes"
 
-  _value = ""
+  _value = b""
 
   def __init__(self, initializer=None, age=None):
     super(RDFBytes, self).__init__(initializer=initializer, age=age)
@@ -586,7 +587,8 @@ class RDFDatetime(RDFInteger):
 
   def Format(self, fmt):
     """Return the value as a string formatted as per strftime semantics."""
-    return time.strftime(fmt, time.gmtime(self._value / self.converter))
+    return time.strftime(
+        fmt.encode("ascii"), time.gmtime(self._value / self.converter))
 
   def __str__(self):
     """Return the date in human readable (UTC)."""
@@ -974,7 +976,7 @@ class ByteSize(RDFInteger):
 
 
 @functools.total_ordering
-class RDFURN(RDFValue):
+class RDFURN(RDFPrimitive):
   """An object to abstract URL manipulation."""
 
   data_store_type = "string"
@@ -1005,7 +1007,14 @@ class RDFURN(RDFValue):
 
     super(RDFURN, self).__init__(initializer=initializer, age=age)
     if self._value is None and initializer is not None:
-      self.ParseFromString(initializer)
+      if isinstance(initializer, bytes):
+        self.ParseFromString(initializer)
+      elif isinstance(initializer, unicode):
+        self.ParseFromUnicode(initializer)
+      else:
+        message = "Unsupported initializer `%s` of type `%s"
+        message %= (initializer, type(initializer))
+        raise TypeError(message)
 
   def ParseFromString(self, initializer):
     """Create RDFRUN from string.
@@ -1013,6 +1022,11 @@ class RDFURN(RDFValue):
     Args:
       initializer: url string
     """
+    utils.AssertType(initializer, bytes)
+    self.ParseFromUnicode(initializer.decode("utf-8"))
+
+  def ParseFromUnicode(self, initializer):
+    utils.AssertType(initializer, unicode)
     # Strip off the aff4: prefix if necessary.
     if initializer.startswith("aff4:/"):
       initializer = initializer[5:]
@@ -1025,7 +1039,10 @@ class RDFURN(RDFValue):
     # instead of including all of the parsing magic since the data store values
     # should be normalized already. But sadly this is not the case and for now
     # we have to deal with unnormalized values as well.
-    self.ParseFromString(value)
+    self.ParseFromUnicode(value)
+
+  def ParseFromHumanReadable(self, string):
+    self.ParseFromUnicode(string)
 
   def SerializeToString(self):
     return str(self)
@@ -1197,10 +1214,6 @@ class SessionID(RDFURN):
       else:
         initializer = RDFURN(base).Add("%s:%s" % (queue.Basename(), flow_name))
     else:
-      # TODO(user): Uncomment and make all the tests pass.
-      # if isinstance(initializer, (basestring, RDFString)):
-      #   initializer = RDFURN(initializer)
-
       if isinstance(initializer, RDFURN):
         try:
           self.ValidateID(initializer.Basename())
@@ -1225,18 +1238,11 @@ class SessionID(RDFURN):
     # This check is weaker than it could be because we allow queues called
     # "DEBUG-user1" and IDs like "TransferStore". We also have to allow
     # flows session ids like H:123456:hunt.
-    allowed_re = re.compile(r"^[-0-9a-zA-Z]+:[0-9a-zA-Z]+(:[0-9a-zA-Z]+)?$")
+    allowed_re = re.compile(r"^[-0-9a-zA-Z]+(:[0-9a-zA-Z]+){0,2}$")
     if not allowed_re.match(id_str):
       raise ValueError("Invalid SessionID: %s" % id_str)
 
 
+# TODO(hanuszczak): Remove this class.
 class FlowSessionID(SessionID):
-
-  # TODO(amoser): This is code to fix some legacy issues. Remove this when all
-  # clients are built after Dec 2014.
-
-  def ParseFromString(self, initializer):
-    # Old clients sometimes send bare well known flow ids.
-    if not utils.SmartStr(initializer).startswith("aff4"):
-      initializer = "aff4:/flows/" + initializer
-    super(FlowSessionID, self).ParseFromString(initializer)
+  pass

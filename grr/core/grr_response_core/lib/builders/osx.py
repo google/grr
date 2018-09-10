@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """An implementation of an OSX client builder."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import io
 import logging

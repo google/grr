@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Linux specific actions."""
+from __future__ import unicode_literals
 
 import ctypes
 import ctypes.util
@@ -9,7 +10,7 @@ import pwd
 import time
 
 
-from builtins import map  # pylint: disable=redefined-builtin
+from builtins import bytes  # pylint: disable=redefined-builtin
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 
@@ -112,75 +113,75 @@ Ifaddrs._fields_ = [  # pylint: disable=protected-access
 ]  # pyformat: disable
 
 
+def EnumerateInterfacesFromClient(args):
+  """Enumerate all interfaces and collect their MAC addresses."""
+  del args  # Unused
+
+  libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
+  ifa = Ifaddrs()
+  p_ifa = ctypes.pointer(ifa)
+  libc.getifaddrs(ctypes.pointer(p_ifa))
+
+  addresses = {}
+  macs = {}
+  ifs = set()
+
+  m = p_ifa
+  while m:
+    ifname = ctypes.string_at(m.contents.ifa_name)
+    ifs.add(ifname)
+    try:
+      iffamily = ord(m.contents.ifa_addr[0])
+      # TODO(hanuszczak): There are some Python 3-incompatible `chr` usages
+      # here, they should be fixed.
+      if iffamily == 0x2:  # AF_INET
+        data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
+        ip4 = bytes(list(data.contents.sin_addr))
+        address_type = rdf_client_network.NetworkAddress.Family.INET
+        address = rdf_client_network.NetworkAddress(
+            address_type=address_type, packed_bytes=ip4)
+        addresses.setdefault(ifname, []).append(address)
+
+      if iffamily == 0x11:  # AF_PACKET
+        data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrll))
+        addlen = data.contents.sll_halen
+        macs[ifname] = bytes(list(data.contents.sll_addr[:addlen]))
+
+      if iffamily == 0xA:  # AF_INET6
+        data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
+        ip6 = bytes(list(data.contents.sin6_addr))
+        address_type = rdf_client_network.NetworkAddress.Family.INET6
+        address = rdf_client_network.NetworkAddress(
+            address_type=address_type, packed_bytes=ip6)
+        addresses.setdefault(ifname, []).append(address)
+    except ValueError:
+      # Some interfaces don't have a iffamily and will raise a null pointer
+      # exception. We still want to send back the name.
+      pass
+
+    m = m.contents.ifa_next
+
+  libc.freeifaddrs(p_ifa)
+
+  for interface in ifs:
+    mac = macs.setdefault(interface, b"")
+    address_list = addresses.setdefault(interface, b"")
+    args = {"ifname": interface}
+    if mac:
+      args["mac_address"] = mac
+    if addresses:
+      args["addresses"] = address_list
+    yield rdf_client_network.Interface(**args)
+
+
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerates all MAC addresses on this system."""
   out_rdfvalues = [rdf_client_network.Interface]
 
   def Run(self, args):
     """Enumerate all interfaces and collect their MAC addresses."""
-    for res in self.Start(args):
+    for res in EnumerateInterfacesFromClient(args):
       self.SendReply(res)
-
-  @classmethod
-  def Start(cls, args):
-    """Enumerate all interfaces and collect their MAC addresses."""
-    del args  # Unused
-
-    libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
-    ifa = Ifaddrs()
-    p_ifa = ctypes.pointer(ifa)
-    libc.getifaddrs(ctypes.pointer(p_ifa))
-
-    addresses = {}
-    macs = {}
-    ifs = set()
-
-    m = p_ifa
-    while m:
-      ifname = ctypes.string_at(m.contents.ifa_name)
-      ifs.add(ifname)
-      try:
-        iffamily = ord(m.contents.ifa_addr[0])
-        # TODO(hanuszczak): There are some Python 3-incompatible `chr` usages
-        # here, they should be fixed.
-        if iffamily == 0x2:  # AF_INET
-          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
-          ip4 = "".join(map(chr, data.contents.sin_addr))
-          address_type = rdf_client_network.NetworkAddress.Family.INET
-          address = rdf_client_network.NetworkAddress(
-              address_type=address_type, packed_bytes=ip4)
-          addresses.setdefault(ifname, []).append(address)
-
-        if iffamily == 0x11:  # AF_PACKET
-          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrll))
-          addlen = data.contents.sll_halen
-          macs[ifname] = "".join(map(chr, data.contents.sll_addr[:addlen]))
-
-        if iffamily == 0xA:  # AF_INET6
-          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
-          ip6 = "".join(map(chr, data.contents.sin6_addr))
-          address_type = rdf_client_network.NetworkAddress.Family.INET6
-          address = rdf_client_network.NetworkAddress(
-              address_type=address_type, packed_bytes=ip6)
-          addresses.setdefault(ifname, []).append(address)
-      except ValueError:
-        # Some interfaces don't have a iffamily and will raise a null pointer
-        # exception. We still want to send back the name.
-        pass
-
-      m = m.contents.ifa_next
-
-    libc.freeifaddrs(p_ifa)
-
-    for interface in ifs:
-      mac = macs.setdefault(interface, "")
-      address_list = addresses.setdefault(interface, "")
-      args = {"ifname": interface}
-      if mac:
-        args["mac_address"] = mac
-      if addresses:
-        args["addresses"] = address_list
-      yield rdf_client_network.Interface(**args)
 
 
 class GetInstallDate(actions.ActionPlugin):
@@ -210,6 +211,41 @@ class UtmpStruct(utils.Struct):
   ]
 
 
+def EnumerateUsersFromClient(args):
+  """Enumerates all the users on this system."""
+
+  del args  # Unused
+
+  users = _ParseWtmp()
+  for user, last_login in iteritems(users):
+
+    # Lose the null termination
+    username = user.split("\x00", 1)[0]
+
+    if username:
+      # Somehow the last login time can be < 0. There is no documentation
+      # what this means so we just set it to 0 (the rdfvalue field is
+      # unsigned so we can't send negative values).
+      if last_login < 0:
+        last_login = 0
+
+      result = rdf_client.User(
+          username=utils.SmartUnicode(username),
+          last_logon=last_login * 1000000)
+
+      try:
+        pwdict = pwd.getpwnam(username)
+        result.homedir = utils.SmartUnicode(pwdict.pw_dir)
+        result.full_name = utils.SmartUnicode(pwdict.pw_gecos)
+        result.uid = pwdict.pw_uid
+        result.gid = pwdict.pw_gid
+        result.shell = utils.SmartUnicode(pwdict.pw_shell)
+      except KeyError:
+        pass
+
+      yield result
+
+
 class EnumerateUsers(actions.ActionPlugin):
   """Enumerates all the users on this system.
 
@@ -223,43 +259,8 @@ class EnumerateUsers(actions.ActionPlugin):
   out_rdfvalues = [rdf_client.User, rdf_client.KnowledgeBaseUser]
 
   def Run(self, args):
-    for res in self.Start(args):
+    for res in EnumerateUsersFromClient(args):
       self.SendReply(res)
-
-  @classmethod
-  def Start(cls, args):
-    """Enumerates all the users on this system."""
-
-    del args  # Unused
-
-    users = _ParseWtmp()
-    for user, last_login in iteritems(users):
-
-      # Lose the null termination
-      username = user.split("\x00", 1)[0]
-
-      if username:
-        # Somehow the last login time can be < 0. There is no documentation
-        # what this means so we just set it to 0 (the rdfvalue field is
-        # unsigned so we can't send negative values).
-        if last_login < 0:
-          last_login = 0
-
-        result = rdf_client.User(
-            username=utils.SmartUnicode(username),
-            last_logon=last_login * 1000000)
-
-        try:
-          pwdict = pwd.getpwnam(username)
-          result.homedir = utils.SmartUnicode(pwdict.pw_dir)
-          result.full_name = utils.SmartUnicode(pwdict.pw_gecos)
-          result.uid = pwdict.pw_uid
-          result.gid = pwdict.pw_gid
-          result.shell = utils.SmartUnicode(pwdict.pw_shell)
-        except KeyError:
-          pass
-
-        yield result
 
 
 class EnumerateFilesystems(actions.ActionPlugin):

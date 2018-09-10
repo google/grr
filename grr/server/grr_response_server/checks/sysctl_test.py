@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for sysctl checks."""
+from __future__ import unicode_literals
+
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import linux_sysctl_parser

@@ -45,7 +45,7 @@ class CleanHuntsFlowTest(flow_test_lib.FlowTestsBaseclass):
         self.hunts_urns.append(hunt.urn)
 
   def _RunCleanup(self):
-    self.cleaner_flow = flow.StartFlow(
+    self.cleaner_flow = flow.StartAFF4Flow(
         flow_name=data_retention.CleanHunts.__name__,
         sync=True,
         token=self.token)
@@ -187,7 +187,7 @@ class CleanCronJobsFlowTest(flow_test_lib.FlowTestsBaseclass):
           manager._GetThreadPool().Join()
 
   def _RunCleanup(self):
-    self.cleaner_flow = flow.StartFlow(
+    self.cleaner_flow = flow.StartAFF4Flow(
         flow_name=data_retention.CleanCronJobs.__name__,
         sync=True,
         token=self.token)
@@ -304,7 +304,7 @@ class CleanInactiveClientsFlowTest(flow_test_lib.FlowTestsBaseclass):
           client.Set(client.Schema.LAST(rdfvalue.RDFDatetime.Now()))
 
   def _RunCleanup(self):
-    self.cleaner_flow = flow.StartFlow(
+    self.cleaner_flow = flow.StartAFF4Flow(
         flow_name=data_retention.CleanInactiveClients.__name__,
         sync=True,
         token=self.token)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Client utilities."""
+from __future__ import unicode_literals
 
 import logging
 import sys

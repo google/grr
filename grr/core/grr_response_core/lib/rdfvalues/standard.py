@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Standard RDFValues."""
 
+from __future__ import unicode_literals
+
 import re
 from future.moves.urllib import parse as urlparse
 
@@ -39,9 +41,6 @@ class RegularExpression(rdfvalue.RDFString):
       text = str(text)
 
     return self._regex.finditer(text)
-
-  def __str__(self):
-    return "<RegularExpression: %r/>" % self._value
 
 
 class LiteralExpression(rdfvalue.RDFBytes):

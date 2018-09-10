@@ -47,7 +47,7 @@ class VFSDirectory(aff4.AFF4Volume):
 
     if attribute == "CONTAINS":
       # Get the pathspec for this object
-      flow_id = flow.StartFlow(
+      flow_id = flow.StartAFF4Flow(
           client_id=client_id,
           # Dependency loop: aff4_objects/aff4_grr.py depends on
           # aff4_objects/standard.py that depends on flows/general/filesystem.py

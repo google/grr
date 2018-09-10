@@ -2,6 +2,8 @@
 """Tests for grr.parsers.sqlite_file."""
 
 
+from __future__ import unicode_literals
+
 import io
 import os
 

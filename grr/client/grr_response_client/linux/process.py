@@ -5,6 +5,8 @@ This code is based on the memorpy project:
 https://github.com/n1nj4sec/memorpy
 
 """
+from __future__ import unicode_literals
+
 import ctypes
 import errno
 import os

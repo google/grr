@@ -143,10 +143,11 @@ class InMemoryDBCronJobMixin(object):
 
   def ReadCronJobRuns(self, job_id):
     """Reads all cron job runs for a given job id."""
-    return [
+    runs = [
         run for run in itervalues(self.cronjob_runs)
         if run.cron_job_id == job_id
     ]
+    return sorted(runs, key=lambda run: run.started_at, reverse=True)
 
   def ReadCronJobRun(self, job_id, run_id):
     """Reads a single cron job run from the db."""

@@ -2,6 +2,7 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Parser for Mozilla Firefox3 3 History files."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 __program__ = "firefox3_history.py"
 

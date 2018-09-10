@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This file defines the entry points for the client."""
+from __future__ import unicode_literals
 
 # pylint: disable=g-import-not-at-top
 # Argparse runs on import, and maintains static state.

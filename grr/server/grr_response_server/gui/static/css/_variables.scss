@@ -2,6 +2,9 @@
 $font-json: Menlo, Monaco, Consolas, "Courier New", monospace;
 $font-monospace: "Courier New", Courier, monospace;
 
+$flow-descriptors-tree-width: 280px;
+$reports-tree-width: 340px;
+
 $color-default-background: #fff;
 $color-default-font: #000;
 $color-default-font-inverted: #fff;
@@ -51,3 +54,5 @@ $color-diff-changed: #fcf8e3;
 $color-diff-added: #dff0d8;
 $color-diff-removed: #f2dede;
 $color-troggle-highlight-color: #cdcdcd;
+$color-modal-border: #e5e5e5;
+$color-navigator-shadow: rgba(255, 255, 255, .15);

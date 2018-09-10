@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Parse various Windows persistence mechanisms into PersistenceFiles."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import client as rdf_client

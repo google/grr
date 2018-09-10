@@ -41,7 +41,6 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
   """The client object.
 
   Attributes:
-
     timestamp: An rdfvalue.Datetime indicating when this client snapshot was
       saved to the database. Should be present in every client object loaded
       from the database, but is not serialized with the rdfvalue fields.
@@ -93,7 +92,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
     result = set()
     for interface in self.interfaces:
       if (interface.mac_address and
-          interface.mac_address != "\x00" * len(interface.mac_address)):
+          interface.mac_address != b"\x00" * len(interface.mac_address)):
         result.add(interface.mac_address.human_readable_address)
     return sorted(result)
 
@@ -446,6 +445,7 @@ class PathInfo(rdf_structs.RDFProtoStruct):
     Merges src into self.
     Args:
       src: An rdfvalues.objects.PathInfo record, will be merged into self.
+
     Raises:
       ValueError: If src does not represent the same path.
     """
@@ -615,6 +615,17 @@ class MessageHandlerRequest(rdf_structs.RDFProtoStruct):
   ]
 
 
+class SHA256HashID(HashID):
+  """SHA-256 based hash id."""
+
+  hash_id_length = 32
+
+  @classmethod
+  def FromData(cls, data):
+    h = hashlib.sha256(data).digest()
+    return SHA256HashID(h)
+
+
 class BlobID(HashID):
   """Blob identificator."""
 
@@ -637,4 +648,11 @@ class BlobReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.BlobReference
   rdf_deps = [
       BlobID,
+  ]
+
+
+class BlobReferences(rdf_structs.RDFProtoStruct):
+  protobuf = objects_pb2.BlobReferences
+  rdf_deps = [
+      BlobReference,
   ]

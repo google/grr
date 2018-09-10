@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 """Crypto rdfvalue tests."""
 
+from __future__ import unicode_literals
+
 import hashlib
 import os
 
@@ -31,7 +33,7 @@ class SignedBlobTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def GenerateSample(self, number=0):
     result = self.rdfvalue_class()
-    result.Sign("Sample %s" % number, self.private_key)
+    result.Sign(b"Sample %s" % number, self.private_key)
 
     return result
 
@@ -41,7 +43,7 @@ class SignedBlobTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertTrue(sample.Verify(self.public_key))
 
     # Change the data - this should fail since the hash is incorrect.
-    sample.data += "X"
+    sample.data += b"X"
     self.assertRaises(rdf_crypto.VerificationError, sample.Verify,
                       self.public_key)
 
@@ -184,7 +186,7 @@ class CryptoUtilTest(CryptoTestBase):
     key = rdf_crypto.AES128Key.GenerateKey()
     iv = rdf_crypto.AES128Key.GenerateKey()
     # 160 characters.
-    message = "Hello World!!!!!" * 10
+    message = b"Hello World!!!!!" * 10
 
     for plaintext, partitions in [
         (message, [
@@ -211,11 +213,11 @@ class CryptoUtilTest(CryptoTestBase):
         it = iter(plaintext)
         out = []
         for n in partition:
-          next_partition = "".join([it.next() for _ in range(n)])
+          next_partition = b"".join([it.next() for _ in range(n)])
           out.append(streaming_cbc.Update(next_partition))
         out.append(streaming_cbc.Finalize())
 
-        self.assertEqual(cipher.Decrypt("".join(out)), plaintext)
+        self.assertEqual(cipher.Decrypt(b"".join(out)), plaintext)
 
   def testAES128Key(self):
     key = rdf_crypto.AES128Key.GenerateKey()
@@ -225,7 +227,7 @@ class CryptoUtilTest(CryptoTestBase):
     self.assertNotEqual(key.RawBytes(), iv.RawBytes())
 
     # This key is too short.
-    self.assertRaises(rdf_crypto.CipherError, rdf_crypto.AES128Key, "foo")
+    self.assertRaises(rdf_crypto.CipherError, rdf_crypto.AES128Key, b"foo")
 
     copied_key = rdf_crypto.AES128Key(key.RawBytes())
     self.assertEqual(copied_key, key)
@@ -237,7 +239,7 @@ class CryptoUtilTest(CryptoTestBase):
 
     cipher = rdf_crypto.AES128CBCCipher(key, iv)
 
-    plain_text = "hello world!"
+    plain_text = b"hello world!"
     cipher_text = cipher.Encrypt(plain_text)
 
     # Repeatedly calling Encrypt should repeat the same cipher text.
@@ -282,11 +284,11 @@ class SymmetricCipherTest(rdf_test_base.RDFValueTestMixin,
     self.assertEqual(sample.Decrypt(cipher_text), plain_text)
 
   def testEncrypt(self):
-    self._testEncrypt("hello world!")
+    self._testEncrypt(b"hello world!")
 
   def testLargeEncrypt(self):
     # Test with a plaintext that is longer than blocksize.
-    self._testEncrypt("hello world!" * 100)
+    self._testEncrypt(b"hello world!" * 100)
 
 
 class RSATest(CryptoTestBase):
@@ -295,7 +297,7 @@ class RSATest(CryptoTestBase):
     return string[:-1] + chr(ord(string[-1]) ^ 1).encode("latin-1")
 
   def testPassPhraseEncryption(self):
-    passphrase = "testtest"
+    passphrase = b"testtest"
     key = rdf_crypto.RSAPrivateKey.GenerateKey()
     protected_pem = key.AsPassphraseProtectedPEM(passphrase)
     unprotected_pem = key.AsPEM()
@@ -329,7 +331,7 @@ class RSATest(CryptoTestBase):
     private_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=2048)
     public_key = private_key.GetPublicKey()
 
-    message = "Hello World!"
+    message = b"Hello World!"
 
     signature = private_key.Sign(message)
 
@@ -345,13 +347,13 @@ class RSATest(CryptoTestBase):
     self.assertRaises(rdf_crypto.VerificationError, public_key.Verify,
                       broken_message, signature)
     self.assertRaises(rdf_crypto.VerificationError, public_key.Verify, message,
-                      "")
+                      b"")
 
   def testEncryptDecrypt(self):
     private_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=2048)
     public_key = private_key.GetPublicKey()
 
-    message = "Hello World!"
+    message = b"Hello World!"
 
     ciphertext = public_key.Encrypt(message)
     self.assertNotEqual(ciphertext, message)
@@ -365,7 +367,7 @@ class RSATest(CryptoTestBase):
   def testPSSPadding(self):
     private_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=2048)
     public_key = private_key.GetPublicKey()
-    message = "Hello World!"
+    message = b"Hello World!"
 
     # Generate two different signtures, one using PKCS1v15 padding, one using
     # PSS. The crypto code should accept both as valid.
@@ -380,7 +382,7 @@ class RSATest(CryptoTestBase):
     signature = open(os.path.join(self.base_path, "m2crypto/signature"),
                      "rb").read()
     private_key = rdf_crypto.RSAPrivateKey(pem)
-    message = "Signed by M2Crypto!"
+    message = b"Signed by M2Crypto!"
 
     public_key = private_key.GetPublicKey()
 
@@ -392,7 +394,7 @@ class RSATest(CryptoTestBase):
     private_key = rdf_crypto.RSAPrivateKey(pem)
     ciphertext = open(
         os.path.join(self.base_path, "m2crypto/rsa_ciphertext"), "rb").read()
-    message = "Encrypted by M2Crypto!"
+    message = b"Encrypted by M2Crypto!"
 
     plaintext = private_key.Decrypt(ciphertext)
     self.assertEqual(plaintext, message)
@@ -406,24 +408,24 @@ class HMACTest(CryptoTestBase):
   def testHMAC(self):
     """A basic test for the HMAC class."""
     key = rdf_crypto.EncryptionKey.GenerateKey()
-    message = "Hello World!"
+    message = b"Hello World!"
     h = rdf_crypto.HMAC(key)
     signature = h.HMAC(message)
 
     h.Verify(message, signature)
 
-    broken_message = message + "!"
+    broken_message = message + b"!"
     self.assertRaises(rdf_crypto.VerificationError, h.Verify, broken_message,
                       signature)
 
     broken_signature = self._Tamper(signature)
-    self.assertRaises(rdf_crypto.VerificationError, h.Verify, "Hello World!",
+    self.assertRaises(rdf_crypto.VerificationError, h.Verify, b"Hello World!",
                       broken_signature)
 
   def testSHA256(self):
     """Tests that both types of signatures are ok."""
     key = rdf_crypto.EncryptionKey.GenerateKey()
-    message = "Hello World!"
+    message = b"Hello World!"
     h = rdf_crypto.HMAC(key)
     signature_sha1 = h.HMAC(message)
     signature_sha256 = h.HMAC(message, use_sha256=True)
@@ -433,7 +435,7 @@ class HMACTest(CryptoTestBase):
     h.Verify(message, signature_sha256)
 
   def testM2CryptoCompatibility(self):
-    message = "HMAC by M2Crypto!"
+    message = b"HMAC by M2Crypto!"
     signature = "99cae3ec7b41ceb6e6619f2f85368cb3ae118b70".decode("hex")
     key = rdf_crypto.EncryptionKey.FromHex("94bd4e0ecc8397a8b2cdbc4b127ee7b0")
     h = rdf_crypto.HMAC(key)
@@ -499,16 +501,16 @@ class PasswordTest(CryptoTestBase):
   def testPassword(self):
     sample = rdf_crypto.Password()
 
-    sample.SetPassword("foo")
+    sample.SetPassword(b"foo")
     serialized = sample.SerializeToString()
-    self.assertNotIn("foo", serialized)
+    self.assertNotIn(b"foo", serialized)
 
     read_sample = rdf_crypto.Password.FromSerializedString(serialized)
 
-    self.assertFalse(sample.CheckPassword("bar"))
-    self.assertFalse(read_sample.CheckPassword("bar"))
-    self.assertTrue(sample.CheckPassword("foo"))
-    self.assertTrue(read_sample.CheckPassword("foo"))
+    self.assertFalse(sample.CheckPassword(b"bar"))
+    self.assertFalse(read_sample.CheckPassword(b"bar"))
+    self.assertTrue(sample.CheckPassword(b"foo"))
+    self.assertTrue(read_sample.CheckPassword(b"foo"))
 
 
 def main(argv):

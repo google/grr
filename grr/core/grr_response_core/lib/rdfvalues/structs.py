@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Semantic Protobufs are serialization agnostic, rich data types."""
 
+from __future__ import unicode_literals
 
 import base64
 import copy
@@ -29,7 +30,6 @@ from google.protobuf import descriptor_pb2
 from google.protobuf import text_format
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import proto2 as rdf_proto2
@@ -87,7 +87,7 @@ def ReadTag(buf, pos):
 # This function is HOT.
 def VarintEncode(value):
   """Convert an integer to a varint and write it using the write function."""
-  result = ""
+  result = b""
   if value < 0:
     raise ValueError("Varint can not encode a negative number.")
 
@@ -106,7 +106,7 @@ def VarintEncode(value):
 
 def SignedVarintEncode(value):
   """Encode a signed integer as a zigzag encoded signed integer."""
-  result = ""
+  result = b""
   if value < 0:
     value += (1 << 64)
 
@@ -178,15 +178,15 @@ def SplitBuffer(buff, index=0, length=None):
     if tag_type == WIRETYPE_VARINT:
       # new_index is the index of the next tag.
       _, new_index = VarintReader(buff, data_index)
-      yield (encoded_tag, "", buff[data_index:new_index])
+      yield (encoded_tag, b"", buff[data_index:new_index])
       index = new_index
 
     elif tag_type == WIRETYPE_FIXED64:
-      yield (encoded_tag, "", buff[data_index:data_index + 8])
+      yield (encoded_tag, b"", buff[data_index:data_index + 8])
       index = 8 + data_index
 
     elif tag_type == WIRETYPE_FIXED32:
-      yield (encoded_tag, "", buff[data_index:data_index + 4])
+      yield (encoded_tag, b"", buff[data_index:data_index + 4])
       index = 4 + data_index
 
     elif tag_type == WIRETYPE_LENGTH_DELIMITED:
@@ -211,9 +211,10 @@ def SerializeEntries(entries):
                                type_descriptor.IsDirty(python_format)):
       wire_format = type_descriptor.ConvertToWireFormat(python_format)
 
+    utils.AssertTupleType(wire_format, bytes)
     output.extend(wire_format)
 
-  return "".join(output)
+  return b"".join(output)
 
 
 def ReadIntoObject(buff, index, value_obj, length=0):
@@ -503,13 +504,15 @@ class ProtoBinary(ProtoType):
 
   proto_type_name = "bytes"
 
-  def __init__(self, default="", **kwargs):
+  def __init__(self, default=b"", **kwargs):
+    utils.AssertType(default, bytes)
+
     # Byte strings default to "" if not specified.
     super(ProtoBinary, self).__init__(**kwargs)
 
     # Ensure the default is a string object.
     if default is not None:
-      self.default = utils.SmartStr(default)
+      self.default = default
 
   def Validate(self, value, **_):
     if not isinstance(value, bytes):
@@ -554,7 +557,7 @@ class ProtoUnsignedInteger(ProtoType):
     return VarintReader(value[2], 0)[0]
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", VarintEncode(value))
+    return (self.encoded_tag, b"", VarintEncode(value))
 
   def Validate(self, value, **_):
     try:
@@ -581,7 +584,7 @@ class ProtoSignedInteger(ProtoUnsignedInteger):
     return SignedVarintReader(value[2])[0]
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", SignedVarintEncode(value))
+    return (self.encoded_tag, b"", SignedVarintEncode(value))
 
 
 class ProtoFixed32(ProtoUnsignedInteger):
@@ -595,7 +598,7 @@ class ProtoFixed32(ProtoUnsignedInteger):
   wire_type = WIRETYPE_FIXED32
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", struct.pack("<L", int(value)))
+    return (self.encoded_tag, b"", struct.pack("<L", int(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<L", value[2])[0]
@@ -608,7 +611,7 @@ class ProtoFixed64(ProtoFixed32):
   wire_type = WIRETYPE_FIXED64
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", struct.pack("<Q", int(value)))
+    return (self.encoded_tag, b"", struct.pack("<Q", int(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<Q", value[2])[0]
@@ -622,7 +625,7 @@ class ProtoFixedU32(ProtoFixed32):
   proto_type_name = "fixed32"
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", struct.pack("<l", int(value)))
+    return (self.encoded_tag, b"", struct.pack("<l", int(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<l", value[2])[0]
@@ -642,7 +645,7 @@ class ProtoFloat(ProtoFixed32):
     return value
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", struct.pack("<f", float(value)))
+    return (self.encoded_tag, b"", struct.pack("<f", float(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<f", value[2])[0]
@@ -662,7 +665,7 @@ class ProtoDouble(ProtoFixed64):
     return value
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", struct.pack("<d", float(value)))
+    return (self.encoded_tag, b"", struct.pack("<d", float(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
     return struct.unpack("<d", value[2])[0]
@@ -785,7 +788,7 @@ class ProtoEnum(ProtoSignedInteger):
     yield self.reverse_enum.get(value, str(value))
 
   def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, "", SignedVarintEncode(int(value)))
+    return (self.encoded_tag, b"", SignedVarintEncode(int(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
     value = SignedVarintReader(value[2], 0)[0]
@@ -980,6 +983,9 @@ class ProtoDynamicEmbedded(ProtoType):
     return (self.encoded_tag, VarintEncode(len(data)), data)
 
   def Validate(self, value, container=None):
+    if self._type is None:
+      return value
+
     required_type = self._type(container)
     if required_type and not isinstance(value, required_type):
       raise ValueError("Expected value of type %s, but got %s" %
@@ -1013,12 +1019,23 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
       "unsigned_integer": wrappers_pb2.UInt64Value,
   }
 
+  TYPE_BY_WRAPPER = {
+      "BytesValue": rdfvalue.RDFBytes,
+      "StringValue": rdfvalue.RDFString,
+      "Int64Value": rdfvalue.RDFInteger,
+      "UInt32Value": rdfvalue.RDFInteger,
+      "UInt64Value": rdfvalue.RDFInteger,
+  }
+
   def ConvertFromWireFormat(self, value, container=None):
     """The wire format is an AnyValue message."""
     result = AnyValue()
     ReadIntoObject(value[2], 0, result)
+    if self._type is not None:
+      converted_value = self._type(container)
+    else:
+      converted_value = self._TypeFromAnyValue(result)
 
-    converted_value = self._type(container)
     # If one of the protobuf library wrapper classes is used, unwrap the value.
     if result.type_url.startswith("type.googleapis.com/google.protobuf."):
       wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
@@ -1031,6 +1048,14 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
       # is decoded. We should use it to deserialize the value and then check
       # that value type and dynamic type are compatible.
       return converted_value.FromSerializedString(result.value)
+
+  def _TypeFromAnyValue(self, anyvalue):
+    type_str = anyvalue.type_url.split("/")[-1].split(".")[-1]
+
+    if type_str in self.TYPE_BY_WRAPPER:
+      return self.TYPE_BY_WRAPPER[type_str]
+
+    return rdfvalue.RDFValue.classes.get(type_str, None)
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
@@ -1062,7 +1087,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
 
-class RepeatedFieldHelper(with_metaclass(registry.MetaclassRegistry, object)):
+class RepeatedFieldHelper(object):
   """A helper for the RDFProto to handle repeated fields.
 
   This helper is intended to only be constructed from the RDFProto class.
@@ -1281,7 +1306,7 @@ class ProtoList(ProtoType):
     output = SerializeEntries(
         (python_format, wire_format, value.type_descriptor)
         for python_format, wire_format in value.wrapped_list)
-    return ("", "", output)
+    return b"", b"", output
 
   def Format(self, value):
     yield "["
@@ -1803,57 +1828,6 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
 
     return python_format
 
-  def GetPrimitive(self, attr):
-    """Retrieve the primitive used to encode the attribute.
-
-    This method allows to bypass the semantic coercion on semantic fields in
-    order to retrieve the primitive protobuf member. This should only even be
-    done for invalid protobufs which can not parse the primitive into an object
-    type. In other words this is a major hack and should be used sparingly.
-
-    Args:
-      attr: The name of the attribute to retrieve.
-
-    Returns:
-      A primitive (int, string, etc) encoded in the field.
-    """
-    entry = self._data.get(attr)
-    # We dont have this field, try the defaults.
-    if entry is None:
-      return ""
-
-    python_format, wire_format, type_descriptor = entry
-    if wire_format is None:
-      wire_format = type_descriptor.ConvertToWireFormat(python_format)
-
-    return type_descriptor.primitive_desc.ConvertFromWireFormat(wire_format)
-
-  def SetPrimitive(self, attr, value):
-    """Sets the primitive used to encode an attribute.
-
-    This method allows to bypass the type checking afforded by the regular
-    semantic layer when assigning to the field. Using this method sets the
-    underlying primitive used to encode the field directly. This is a major hack
-    and should be used sparingly because it allows to create invalid protobufs.
-
-    Args:
-      attr: The name of the attribute to set.
-      value: A primitive (int, string etc) which will be set to this field.
-
-    Raises:
-      AttributeError: If the field is not known.
-    """
-    type_info_obj = self.type_infos.get(attr)
-
-    if type_info_obj is None:
-      raise AttributeError("Field %s is not known." % attr)
-
-    value = type_info_obj.primitive_desc.ConvertToWireFormat(value)
-    self._data[attr] = (None, value, type_info_obj)
-
-    # Make sure to invalidate our parent's cache if needed.
-    self.dirty = True
-
   def ClearFieldsWithLabel(self, label, exceptions=None):
     exceptions = exceptions or []
     for desc, value in self.ListSetFields():
@@ -2165,7 +2139,13 @@ class RDFProtoStruct(RDFStruct):
     # Due to a bug in the protoc compiler, the serialized protobuf does not
     # contain the correct file names. The python objects do though, so we need
     # to correct the produced protobuf.
-    fd_proto.ClearField("dependency")
+
+    # TODO(hanuszczak): Python protobuf bindings check whether the argument is
+    # a string. The problem is that the comparison is against native `str` and
+    # that means `bytes` in Python 2. Curiously, `HasField` works with `unicode`
+    # objects just fine. Related GitHub issue:
+    # https://github.com/protocolbuffers/protobuf/issues/2277
+    fd_proto.ClearField(b"dependency")
 
     for dep in file_descriptor.dependencies:
       fd_proto.dependency.append(dep.name)

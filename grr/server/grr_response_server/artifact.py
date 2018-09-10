@@ -5,7 +5,6 @@ import logging
 
 
 from future.utils import iteritems
-from future.utils import with_metaclass
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
@@ -23,6 +22,7 @@ from grr_response_server import aff4
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import flow
+from grr_response_server import flow_base
 
 
 def GetArtifactKnowledgeBase(client_obj, allow_uninitialized=False):
@@ -101,7 +101,8 @@ class KnowledgeBaseInitializationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.KnowledgeBaseInitializationArgs
 
 
-class KnowledgeBaseInitializationFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class KnowledgeBaseInitializationFlowMixin(object):
   """Flow that atttempts to initialize the knowledge base.
 
   This flow processes all artifacts specified by the
@@ -127,12 +128,12 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
   def Start(self):
     """For each artifact, create subflows for each collector."""
     self.state.knowledge_base = None
-    self.state.fulfilled_deps = []
+    self.state.fulfilled_deps = set()
     self.state.partial_fulfilled_deps = set()
     self.state.all_deps = set()
-    self.state.in_flight_artifacts = []
-    self.state.awaiting_deps_artifacts = []
-    self.state.completed_artifacts = []
+    self.state.in_flight_artifacts = set()
+    self.state.awaiting_deps_artifacts = set()
+    self.state.completed_artifacts = set()
 
     self.InitializeKnowledgeBase()
     first_flows = self.GetFirstFlowsForCollection()
@@ -142,7 +143,8 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
     # TODO(user): tag SendReplys with the flow that
     # generated them.
     for artifact_name in first_flows:
-      self.state.in_flight_artifacts.append(artifact_name)
+      self.state.in_flight_artifacts.add(artifact_name)
+
       self.CallFlow(
           # TODO(user): dependency loop with flows/general/collectors.py.
           # collectors.ArtifactCollectorFlow.__name__,
@@ -158,7 +160,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
       artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
       deps = artifact_registry.GetArtifactPathDependencies(artifact_obj)
       if set(deps).issubset(self.state.fulfilled_deps):
-        self.state.in_flight_artifacts.append(artifact_name)
+        self.state.in_flight_artifacts.add(artifact_name)
         self.state.awaiting_deps_artifacts.remove(artifact_name)
         self.CallFlow(
             # TODO(user): dependency loop with flows/general/collectors.py.
@@ -176,14 +178,14 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
       if self.state.partial_fulfilled_deps:
         partial = self.state.partial_fulfilled_deps.pop()
         self.Log("Accepting partially fulfilled dependency: %s", partial)
-        self.state.fulfilled_deps.append(partial)
+        self.state.fulfilled_deps.add(partial)
         self._ScheduleCollection()
 
   def ProcessBase(self, responses):
     """Process any retrieved artifacts."""
     artifact_name = responses.request_data["artifact_name"]
     self.state.in_flight_artifacts.remove(artifact_name)
-    self.state.completed_artifacts.append(artifact_name)
+    self.state.completed_artifacts.add(artifact_name)
 
     if not responses.success:
       self.Log("Failed to get artifact %s. Status: %s", artifact_name,
@@ -197,7 +199,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
           required_artifacts = artifact_registry.REGISTRY.GetArtifactNames(
               os_name=self.state.knowledge_base.os, provides=[dep])
           if required_artifacts.issubset(self.state.completed_artifacts):
-            self.state.fulfilled_deps.append(dep)
+            self.state.fulfilled_deps.add(dep)
           else:
             self.state.partial_fulfilled_deps.add(dep)
       else:
@@ -341,6 +343,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
     # Always create a new KB to override any old values.
     self.state.knowledge_base = rdf_client.KnowledgeBase()
     SetCoreGRRKnowledgeBaseValues(self.state.knowledge_base, self.client)
+
     if not self.state.knowledge_base.os:
       # If we don't know what OS this is, there is no way to proceed.
       raise flow.FlowError("Client OS not set for: %s, cannot initialize"
@@ -353,7 +356,7 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
   Args:
     processor_obj: A Processor object that inherits from Parser.
     responses: A list of, or single response depending on the processors
-       process_together setting.
+      process_together setting.
     source: The source responsible for producing the responses.
     flow_obj: An artifact collection flow.
     token: The token used in an artifact collection flow.
@@ -489,8 +492,7 @@ class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ArtifactFallbackCollector(
-    with_metaclass(registry.MetaclassRegistry, flow.GRRFlow)):
+class ArtifactFallbackCollector(flow.GRRFlow):
   """Abstract class for artifact fallback flows.
 
   If an artifact can't be collected by normal means a flow can be registered

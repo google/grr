@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Unit test for the linux sysctl parser."""
 
+from __future__ import unicode_literals
+
 import io
 
 
@@ -22,7 +24,7 @@ class ProcSysParserTest(test_lib.GRRBaseTest):
       p = rdf_paths.PathSpec(path=path)
       stats.append(rdf_client_fs.StatEntry(pathspec=p))
     for val in data:
-      files.append(io.BytesIO(val))
+      files.append(io.StringIO(val))
     return stats, files
 
   def testParseSysctl(self):

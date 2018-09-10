@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test client actions."""
+from __future__ import unicode_literals
+
 import collections
 import os
 import posix
@@ -8,7 +10,6 @@ import stat
 
 
 from builtins import range  # pylint: disable=redefined-builtin
-from builtins import zip  # pylint: disable=redefined-builtin
 import psutil
 
 from grr_response_client import actions
@@ -48,9 +49,9 @@ class ActionTest(client_test_lib.EmptyActionTest):
     """Test reading a buffer."""
     path = os.path.join(self.base_path, "morenumbers.txt")
     p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
-    result = self.RunAction(standard.ReadBuffer,
-                            rdf_client.BufferReference(
-                                pathspec=p, offset=100, length=10))[0]
+    result = self.RunAction(
+        standard.ReadBuffer,
+        rdf_client.BufferReference(pathspec=p, offset=100, length=10))[0]
 
     self.assertEqual(result.offset, 100)
     self.assertEqual(result.length, 10)
@@ -72,35 +73,6 @@ class ActionTest(client_test_lib.EmptyActionTest):
     self.assertEqual(result.pathspec.Basename(), "morenumbers.txt")
     self.assertEqual(result.st_size, 3893)
     self.assertTrue(stat.S_ISREG(result.st_mode))
-
-  def testIteratedListDirectory(self):
-    """Tests iterated listing of directories."""
-    p = rdf_paths.PathSpec(
-        path=self.base_path, pathtype=rdf_paths.PathSpec.PathType.OS)
-    non_iterated_results = self.RunAction(
-        standard.ListDirectory, rdf_client_action.ListDirRequest(pathspec=p))
-
-    # Make sure we get some results.
-    l = len(non_iterated_results)
-    self.assertTrue(l > 0)
-
-    iterated_results = []
-    request = rdf_client_action.ListDirRequest(pathspec=p)
-    request.iterator.number = 2
-    while True:
-      responses = self.RunAction(standard.IteratedListDirectory, request)
-      results = responses[:-1]
-      if not results:
-        break
-
-      for result in results:
-        iterated_results.append(result)
-
-    for x, y in zip(non_iterated_results, iterated_results):
-      # Reset the st_atime in the results to avoid potential flakiness.
-      x.st_atime = y.st_atime = 0
-
-      self.assertRDFValuesEqual(x, y)
 
   def testProcessListing(self):
     """Tests if listing processes works."""

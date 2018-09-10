@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """VFS-related test classes."""
 
-import logging
 import os
 import time
 
@@ -81,11 +80,6 @@ class ClientVFSHandlerFixtureBase(vfs.VFSHandler):
     return bool(self.ListFiles())
 
   def _FakeDirStat(self, vfs_type=None):
-    # We return some fake data, this makes writing tests easier for some
-    # things but we give an error to the tester as it is often not what you
-    # want.
-    logging.warn("Fake value for %s under %s", self.path, self.prefix)
-
     for path in self.pathspec:
       path.path = self._NormalizeCaseForPath(self.path, vfs_type=vfs_type)
 

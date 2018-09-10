@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test for client comms."""
+from __future__ import unicode_literals
 
 import Queue
 import time

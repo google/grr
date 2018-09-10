@@ -68,9 +68,21 @@ class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
     self.cronjob_runs = {}
     self.foreman_rules = []
     self.blobs = {}
+    self.blob_refs_by_hashes = {}
     self.users = {}
     self.handler_thread = None
     self.handler_stop = True
+    # Maps (client_id, flow_id) to flow objects.
+    self.flows = {}
+    # Maps (client_id, flow_id) to flow request id to the request.
+    self.flow_requests = {}
+    # Maps (client_id, flow_id) to flow request id to a list of responses.
+    self.flow_responses = {}
+    # Maps (client_id, flow_id, request_id) to FlowProcessingRequest rdfvalues.
+    self.flow_processing_requests = {}
+    self.flow_handler_target = None
+    self.flow_handler_thread = None
+    self.flow_handler_stop = True
 
   @utils.Synchronized
   def ClearTestDB(self):

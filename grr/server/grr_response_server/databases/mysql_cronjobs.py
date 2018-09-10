@@ -226,7 +226,8 @@ class MySQLDBCronJobMixin(object):
     """Reads all cron job runs for a given job id."""
     query = "SELECT run, write_time FROM cron_job_runs WHERE job_id = %s"
     cursor.execute(query, [job_id])
-    return [self._CronJobRunFromRow(row) for row in cursor.fetchall()]
+    runs = [self._CronJobRunFromRow(row) for row in cursor.fetchall()]
+    return sorted(runs, key=lambda run: run.started_at, reverse=True)
 
   @mysql_utils.WithTransaction()
   def ReadCronJobRun(self, job_id, run_id, cursor=None):

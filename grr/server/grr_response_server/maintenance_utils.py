@@ -317,7 +317,7 @@ def RotateServerKey(cn=u"grr", keylength=4096):
       serial_number=serial_number)
 
   EPrint("Updating configuration.")
-  config.CONFIG.Set("Frontend.certificate", server_cert)
+  config.CONFIG.Set("Frontend.certificate", server_cert.AsPEM())
   config.CONFIG.Set("PrivateKeys.server_key", server_private_key.AsPEM())
   config.CONFIG.Write()
 

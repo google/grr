@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Test client RDFValues."""
 
+from __future__ import unicode_literals
+
 import socket
 
 import unittest

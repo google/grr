@@ -2,6 +2,8 @@
 """Test for RunningStats class."""
 
 
+from __future__ import unicode_literals
+
 import math
 
 from builtins import range  # pylint: disable=redefined-builtin

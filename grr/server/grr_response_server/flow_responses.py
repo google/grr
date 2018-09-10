@@ -11,6 +11,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import data_store
 from grr_response_server import server_stubs
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
 
 class Responses(object):
@@ -21,6 +22,26 @@ class Responses(object):
     self.success = True
     self.request = None
     self.responses = []
+
+  @classmethod
+  def FromResponses(cls, request=None, responses=None):
+    """Creates a Responses object from new style flow request and responses."""
+    res = cls()
+    res.request = request
+    if request:
+      res.request_data = request.request_data
+
+    for r in responses or []:
+      if isinstance(r, rdf_flow_objects.FlowResponse):
+        res.responses.append(r.payload)
+      elif isinstance(r, rdf_flow_objects.FlowStatus):
+        res.status = r
+        res.success = r.status == "OK"
+      elif isinstance(r, rdf_flow_objects.FlowIterator):
+        pass
+      else:
+        raise TypeError("Got unexpected response type: %s" % type(r))
+    return res
 
   @classmethod
   def FromLegacyResponses(cls, request=None, responses=None):

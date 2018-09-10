@@ -138,7 +138,7 @@ class DeletionPool(object):
   def MultiOpen(self, urns, aff4_type=None, mode="r"):
     """Opens many urns efficiently, returning cached objects when possible."""
     not_opened_urns = []
-    aff4_type = _ValidateAFF4Type(aff4_type)
+    _ValidateAFF4Type(aff4_type)
 
     for urn in urns:
       key = self._ObjectKey(urn, mode)
@@ -264,17 +264,15 @@ class DeletionPool(object):
 
 
 def _ValidateAFF4Type(aff4_type):
-  """Validates and normalizes aff4_type to class object."""
+  """Validates an AFF4 type."""
   if aff4_type is None:
-    return None
+    return
 
-  # Check that we have the right type.
   if not isinstance(aff4_type, type):
     raise TypeError("aff4_type=%s must be a type" % aff4_type)
   if not issubclass(aff4_type, AFF4Object):
     raise TypeError(
         "aff4_type=%s must be a subclass of AFF4Object." % aff4_type)
-  return aff4_type
 
 
 class Factory(object):
@@ -703,7 +701,7 @@ class Factory(object):
       IOError: If the object is not of the required type.
       AttributeError: If the requested mode is incorrect.
     """
-    aff4_type = _ValidateAFF4Type(aff4_type)
+    _ValidateAFF4Type(aff4_type)
 
     if mode not in ["w", "r", "rw"]:
       raise AttributeError("Invalid mode %s" % mode)
@@ -777,7 +775,7 @@ class Factory(object):
 
     symlinks = {}
 
-    aff4_type = _ValidateAFF4Type(aff4_type)
+    _ValidateAFF4Type(aff4_type)
 
     for urn, values in self.GetAttributes(urns, age=age):
       try:
@@ -1004,7 +1002,7 @@ class Factory(object):
     if urn is not None:
       urn = rdfvalue.RDFURN(urn)
 
-    aff4_type = _ValidateAFF4Type(aff4_type)
+    _ValidateAFF4Type(aff4_type)
 
     if "r" in mode:
       # Check to see if an object already exists.
@@ -1071,11 +1069,10 @@ class Factory(object):
     marked_urns = deletion_pool.urns_for_deletion
 
     logging.debug(u"Found %d objects to remove when removing %s",
-                  len(marked_urns), utils.SmartUnicode(urns))
+                  len(marked_urns), urns)
 
     logging.debug(u"Removing %d root objects when removing %s: %s",
-                  len(marked_root_urns), utils.SmartUnicode(urns),
-                  utils.SmartUnicode(marked_root_urns))
+                  len(marked_root_urns), urns, marked_root_urns)
 
     pool = data_store.DB.GetMutationPool()
     for root in marked_root_urns:
@@ -2144,8 +2141,7 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
        attributes.
        InstantiationError: When we cannot instantiate the object type class.
     """
-
-    aff4_class = _ValidateAFF4Type(aff4_class)
+    _ValidateAFF4Type(aff4_class)
 
     # We are already of the required type
     if self.__class__ == aff4_class:
@@ -3056,34 +3052,6 @@ class AFF4InitHook(registry.InitHook):
     global FACTORY  # pylint: disable=global-statement
 
     FACTORY = Factory()  # pylint: disable=g-bad-name
-
-
-class AFF4Filter(with_metaclass(registry.MetaclassRegistry, object)):
-  """A simple filtering system to be used with Query()."""
-
-  def __init__(self, *args):
-    self.args = args
-
-  @abc.abstractmethod
-  def FilterOne(self, fd):
-    """Filter a single aff4 object."""
-
-  def Filter(self, subjects):
-    """A generator which filters the subjects.
-
-    Args:
-       subjects: An iterator of aff4 objects.
-
-    Yields:
-       The Objects which pass the filter.
-    """
-    for subject in subjects:
-      if self.FilterOne(subject):
-        yield subject
-
-  @classmethod
-  def GetFilter(cls, filter_name):
-    return cls.classes[filter_name]
 
 
 class ValueConverter(object):

@@ -126,6 +126,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
         frequency=cron_args.periodicity,
         lifetime=cron_args.lifetime or None,
         allow_overruns=cron_args.allow_overruns,
+        description=cron_args.description,
         is_failing=self._IsCronJobFailing(cron_job))
 
     state_dict = cron_job.Get(cron_job.Schema.STATE_DICT)
@@ -158,6 +159,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
         # aff4 to support anymore.
         # created_at=cron_job.created_at,
         current_run_id=cron_job.current_run_id or None,
+        description=cron_job.description,
         enabled=cron_job.enabled,
         last_run_status=cron_job.last_run_status or None,
         last_run_time=cron_job.last_run_time,

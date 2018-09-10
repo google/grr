@@ -45,7 +45,7 @@ possible values.
 Before any metric is used, it has to be registered with one of the Register*()
 methods.
 """
-
+from __future__ import unicode_literals
 
 import bisect
 import functools
@@ -164,7 +164,7 @@ class _Metric(object):
   def ListFieldsValues(self):
     """Lists all fields values that were used with this metric."""
     if self.fields_defs:
-      return iterkeys(self._values)
+      return list(iterkeys(self._values))
     else:
       return []
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """OSX tests."""
+from __future__ import unicode_literals
 
 import os
 

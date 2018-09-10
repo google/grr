@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Functions for client logging."""
+from __future__ import unicode_literals
 
 import logging
 from logging import handlers

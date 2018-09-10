@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Configuration parameters for the server side subsystems."""
 
+from __future__ import unicode_literals
+
 from grr_response_core import version
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
@@ -116,13 +118,6 @@ config_lib.DEFINE_integer(
     "Frontend.message_expiry_time", 600,
     "Maximum time messages remain valid within the "
     "system.")
-
-config_lib.DEFINE_string("Frontend.upload_store", "FileUploadFileStore",
-                         "The implementation of the upload file store.")
-
-config_lib.DEFINE_string("FileUploadFileStore.root_dir",
-                         "%(Config.prefix)/var/grr-filestore",
-                         "Where to store files uploaded.")
 
 config_lib.DEFINE_bool(
     "Server.initialized", False, "True once config_updater initialize has been "

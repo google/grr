@@ -2,6 +2,8 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Unit test for the linux pam config parser."""
 
+from __future__ import unicode_literals
+
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import linux_pam_parser

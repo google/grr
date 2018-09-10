@@ -383,3 +383,10 @@ ui.router.$stateProvider.prototype.state = function(name, definition) {};
  * @return {!string}
  */
 var marked = function(source) {};
+
+/**
+ * @param {Array<HTMLElement|string>} elements
+ * @param {Object=} options
+ * @return {Object}
+ */
+var Split = function(elements, options) {};

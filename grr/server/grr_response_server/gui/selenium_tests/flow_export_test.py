@@ -23,7 +23,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
     self.action_mock = action_mocks.FileFinderClientMock()
 
   def testExportCommandIsShownForStatEntryResults(self):
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
         client_id=self.client_id,
         token=self.token)

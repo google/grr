@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+from __future__ import unicode_literals
+
+import io
 import os
 import shutil
 
@@ -29,10 +33,17 @@ class DirHierarchyTestMixin(object):
   def Touch(self, *components):
     filepath = self.Path(*components)
     dirpath = os.path.dirname(filepath)
-    if not os.path.exists(dirpath):
-      os.makedirs(dirpath)
-    with open(filepath, "a"):
-      pass
+
+    try:
+      if not os.path.exists(dirpath):
+        os.makedirs(dirpath)
+      with io.open(filepath, "a"):
+        pass
+    except UnicodeEncodeError:
+      # TODO(hanuszczak): Make sure that Python 3 also throws the same error
+      # in case of unsupported unicodes in the filesystem. In general this
+      # exception being thrown feels very fishy.
+      raise unittest.SkipTest("Unicode not supported by the filesystem")
 
 
 class RecursiveComponentTest(DirHierarchyTestMixin, unittest.TestCase):
@@ -408,6 +419,36 @@ class GlobComponentTest(DirHierarchyTestMixin, unittest.TestCase):
     results = list(component.Generate(self.Path()))
     self.assertItemsEqual(results, [
         self.Path("foo"),
+    ])
+
+  def testUnicodeGlobbing(self):
+    self.Touch("ścieżka")
+    self.Touch("dróżka")
+
+    results = list(globbing.GlobComponent("ścieżka").Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("ścieżka"),
+    ])
+
+    results = list(globbing.GlobComponent("dróżka").Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("dróżka"),
+    ])
+
+    results = list(globbing.GlobComponent("*żka").Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("ścieżka"),
+        self.Path("dróżka"),
+    ])
+
+  def testUnicodeSubfolderGlobbing(self):
+    self.Touch("zbiór", "podścieżka")
+    self.Touch("zbiór", "poddróżka")
+
+    results = list(globbing.GlobComponent("*").Generate(self.Path("zbiór")))
+    self.assertItemsEqual(results, [
+        self.Path("zbiór", "podścieżka"),
+        self.Path("zbiór", "poddróżka"),
     ])
 
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """RDFValues for the NSRL file store."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2

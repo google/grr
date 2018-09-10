@@ -9,6 +9,8 @@ This file contains interoperability code with the Google protocol buffer
 library.
 """
 
+from __future__ import unicode_literals
+
 import logging
 
 from grr_response_core.lib import rdfvalue
@@ -169,15 +171,10 @@ def DefineFromProtobuf(cls, protobuf):
           logging.warning("Dynamic type specifies a non existant callback %s",
                           options.dynamic_type)
 
-    elif (field.type == TYPE_MESSAGE and options.dynamic_type and
-          field.message_type.name == "Any"):
+    elif (field.type == TYPE_MESSAGE and field.message_type.name == "Any"):
       dynamic_cb = getattr(cls, options.dynamic_type, None)
-      if dynamic_cb is not None:
-        type_descriptor = classes_dict["ProtoDynamicAnyValueEmbedded"](
-            dynamic_cb=dynamic_cb, **kwargs)
-      else:
-        logging.warning("Dynamic type specifies a non existant AnyValue "
-                        "callback %s", options.dynamic_type)
+      type_descriptor = classes_dict["ProtoDynamicAnyValueEmbedded"](
+          dynamic_cb=dynamic_cb, **kwargs)
 
     elif field.type == TYPE_INT64 or field.type == TYPE_INT32:
       type_descriptor = classes_dict["ProtoSignedInteger"](**kwargs)
@@ -299,6 +296,5 @@ def DefineFromProtobuf(cls, protobuf):
     for d in cls.recorded_rdf_deps:
       leftover_deps.remove(d)
     if leftover_deps:
-      raise rdfvalue.InitializeError(
-          "Found superfluous dependencies for %s: %s" %
-          (cls.__name__, ",".join(leftover_deps)))
+      raise rdfvalue.InitializeError("Found superfluous dependencies for %s: %s"
+                                     % (cls.__name__, ",".join(leftover_deps)))

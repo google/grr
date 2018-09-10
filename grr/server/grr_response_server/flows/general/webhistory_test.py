@@ -9,15 +9,19 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import webhistory
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class WebHistoryFlowTest(flow_test_lib.FlowTestsBaseclass):
+class WebHistoryFlowTestMixin(flow_test_lib.FlowTestsBaseclass):
 
   def MockClientRawDevWithImage(self):
     """Mock the client to run off a test image.
@@ -36,7 +40,8 @@ class WebHistoryFlowTest(flow_test_lib.FlowTestsBaseclass):
     return utils.Stubber(client_utils, "GetRawDevice", MockGetRawdevice)
 
 
-class TestWebHistory(WebHistoryFlowTest):
+@db_test_lib.DualDBTest
+class TestWebHistory(WebHistoryFlowTestMixin):
   """Test the browser history flows."""
 
   def setUp(self):
@@ -114,6 +119,12 @@ class TestWebHistory(WebHistoryFlowTest):
     self.assertTrue(fd.size > 20000)
     self.assertEqual(fd.read(15), "SQLite format 3")
 
+    if data_store.RelationalDBReadEnabled(category="filestore"):
+      cp = db.ClientPath.TSK(self.client_id.Basename(),
+                             tuple(output_path.Split()[3:]))
+      rel_fd = file_store.OpenLatestFileVersion(cp)
+      self.assertEqual(rel_fd.read(15), "SQLite format 3")
+
     # Check for analysis file.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertGreater(len(fd), 3)
@@ -150,7 +161,8 @@ class TestWebHistory(WebHistoryFlowTest):
                      "/home/test/.config/google-chrome/Default/Cache/data_1")
 
 
-class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
+@db_test_lib.DualDBTest
+class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
   """Test the browser history flows."""
 
   def setUp(self):

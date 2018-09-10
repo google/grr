@@ -121,7 +121,7 @@ class CPULimitClientMock(ActionMock):
   out_rdfvalues = []
 
   def __init__(self,
-               storage,
+               storage=None,
                user_cpu_usage=None,
                system_cpu_usage=None,
                network_usage=None):
@@ -129,7 +129,10 @@ class CPULimitClientMock(ActionMock):
     # Register us as an action plugin.
     # TODO(user): this is a hacky shortcut and should be fixed.
     server_stubs.ClientActionStub.classes["Store"] = self
-    self.storage = storage
+    if storage is not None:
+      self.storage = storage
+    else:
+      self.storage = {}
     self.__name__ = "Store"
     self.user_cpu_usage = itertools.cycle(user_cpu_usage or [None])
     self.system_cpu_usage = itertools.cycle(system_cpu_usage or [None])

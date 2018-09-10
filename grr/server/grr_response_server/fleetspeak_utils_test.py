@@ -31,7 +31,7 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
             labels=[common_pb2.Label(service_name="client",
                                      label="division2")]))
     with test_lib.ConfigOverrider({
-        "Server.fleetspeak_label_map": "division1:fleetspeak-division1",
+        "Server.fleetspeak_label_map": ["division1:fleetspeak-division1"],
     }):
       with fleetspeak_test_lib.ConnectionOverrider(conn):
         self.assertEqual("fleetspeak-unknown",
@@ -45,7 +45,7 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
             labels=[common_pb2.Label(service_name="client",
                                      label="division1")]))
     with test_lib.ConfigOverrider({
-        "Server.fleetspeak_label_map": "division1:fleetspeak-division1",
+        "Server.fleetspeak_label_map": ["division1:fleetspeak-division1"],
     }):
       with fleetspeak_test_lib.ConnectionOverrider(conn):
         self.assertEqual("fleetspeak-division1",

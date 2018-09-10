@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Shut down windows hosts."""
 
+from __future__ import unicode_literals
+
 import platform
 
 tested_versions = ['xp', 'vista', '2008', '2003']

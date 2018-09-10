@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """An LL(1) lexer. This lexer is very tolerant of errors and can resync."""
 
+from __future__ import unicode_literals
+
 import logging
 import re
 
@@ -62,12 +64,13 @@ class Lexer(object):
   flags = 0
 
   def __init__(self, data=""):
+    utils.AssertType(data, unicode)
     # Set the lexer up to process a new data feed.
     self.Reset()
     # Populate internal token list with class tokens, if defined.
     self._tokens = self.tokens[:]
     # Populate the lexer with any data we got.
-    self.buffer = utils.SmartStr(data)
+    self.buffer = data
 
   def Reset(self):
     """Reset the lexer to process a new data feed."""
@@ -152,6 +155,7 @@ class Lexer(object):
     return "Error"
 
   def Feed(self, data):
+    utils.AssertType(data, unicode)
     self.buffer += data
 
   def Empty(self):
@@ -184,6 +188,7 @@ class Lexer(object):
 
   def PushBack(self, string="", **_):
     """Push the match back on the stream."""
+    utils.AssertType(string, unicode)
     self.buffer = string + self.buffer
     self.processed_buffer = self.processed_buffer[:-len(string)]
 

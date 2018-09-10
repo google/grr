@@ -22,7 +22,7 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
     parser = config_file.APTPackageSourceParser()
     sources = {
         "/etc/apt/sources.list":
-            r"""
+            ur"""
             # APT sources.list providing the default Ubuntu packages
             #
             deb https://httpredir.debian.org/debian jessie-updates main
@@ -30,25 +30,25 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
             # comment 2
             """,
         "/etc/apt/sources.list.d/test.list":
-            r"""
+            ur"""
             deb file:/tmp/debs/ distro main
             deb [arch=amd64,blah=blah] [meh=meh] https://securitytestasdf.debian.org/ wheezy/updates main contrib non-free
             deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main
             """,
         "/etc/apt/sources.list.d/test2.list":
-            r"""
+            ur"""
             deb http://dl.google.com/linux/chrome/deb/ stable main
             """,
         "/etc/apt/sources.list.d/test3.list":
-            r"""
+            ur"""
             deb https://security.debian.org/ wheezy/updates main contrib non-free
             """,
         "/etc/apt/sources.list.d/file-test.list":
-            r"""
+            ur"""
             deb file:/mnt/debian/debs/ distro main
             """,
         "/etc/apt/sources.list.d/rfc822.list":
-            r"""
+            ur"""
             Type: deb deb-src
             URI: http://security.example.com
               https://dl.google.com
@@ -73,7 +73,7 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
     parser = config_file.YumPackageSourceParser()
     sources = {
         "/etc/yum.repos.d/noproblems.repo":
-            r"""
+            ur"""
             # comment 1
             [centosdvdiso]
             name=CentOS DVD ISO
@@ -91,20 +91,20 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
             gpgkey=http://mirror.centos.org/CentOS/6/os/i386/RPM-GPG-KEY
             """,
         "/etc/yum.repos.d/test.repo":
-            r"""
+            ur"""
             [centosdvdiso]
             name=CentOS DVD ISO
             baseurl=file:///mnt/
             https://mirror1.centos.org/CentOS/6/os/i386/
             """,
         "/etc/yum.repos.d/test2.repo":
-            r"""
+            ur"""
             [centosdvdiso]
             name=CentOS DVD ISO
             baseurl=http://mirror1.centos.org/CentOS/6/os/i386/
             """,
         "/etc/yum.repos.d/file-test.repo":
-            r"""
+            ur"""
             [centosdvdiso]
             name=CentOS DVD ISO
             baseurl=file:///mnt/

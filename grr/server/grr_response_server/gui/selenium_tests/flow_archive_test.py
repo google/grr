@@ -109,7 +109,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,
@@ -168,7 +168,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,
@@ -199,7 +199,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(MockMethodIsCalled)
 
   def testDoesNotShowDownloadAsPanelIfCollectionIsEmpty(self):
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         client_id=self.client_id,
         token=self.token)

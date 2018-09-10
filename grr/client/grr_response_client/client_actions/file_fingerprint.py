@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Action to fingerprint files on the client."""
+from __future__ import unicode_literals
 
 import hashlib
 

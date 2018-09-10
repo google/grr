@@ -56,15 +56,12 @@ class BigQueryOutputPluginArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
+class BigQueryOutputPlugin(output_plugin.OutputPlugin):
   """Output plugin that uploads hunt results to BigQuery.
 
   We write gzipped JSON data and a BigQuery schema to temporary files. One file
   for each output type is created during ProcessResponses, then we upload the
-  data and schema to BigQuery during Flush.
-
-  On failure we retry a few times. If that doesn't work we fall back to writing
-  the same data to AFF4 so that the user can upload to BigQuery manually later.
+  data and schema to BigQuery during Flush. On failure we retry a few times.
 
   We choose JSON output for BigQuery so we can support simply export fields that
   contain newlines, including when users choose to export file content. This is
@@ -126,8 +123,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
   def _WriteJSONValue(self, output_file, value, delimiter=None):
     if delimiter:
-      output_file.write(
-          "{0}{1}".format(delimiter, json.dumps(self._GetNestedDict(value))))
+      output_file.write("{0}{1}".format(delimiter,
+                                        json.dumps(self._GetNestedDict(value))))
     else:
       output_file.write(json.dumps(self._GetNestedDict(value)))
 
@@ -140,7 +137,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
     Args:
       output_type: string of export type to be used in filename. e.g.
-          ExportedFile
+        ExportedFile
+
     Returns:
       A TempOutputTracker object
     """
@@ -155,33 +153,11 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
     return self.temp_output_trackers[output_type]
 
   def _GetTempOutputFileHandles(self, value_type):
-    """Initializes output AFF4Image for a given value type."""
+    """Returns the tracker for a given value type."""
     try:
       return self.temp_output_trackers[value_type], False
     except KeyError:
       return self._CreateOutputFileHandles(value_type), True
-
-  def _WriteToAFF4(self, job_id, schema, gzip_filehandle_parent, token):
-    """When upload to bigquery fails, write to AFF4."""
-    with self._CreateOutputStream(
-        ".".join((job_id, "schema"))) as schema_stream:
-
-      logging.error("Upload to bigquery failed, will write schema to %s",
-                    schema_stream.urn)
-
-      # Only need to write the schema once.
-      if schema_stream.size == 0:
-        schema_stream.write(json.dumps(schema))
-
-    with self._CreateOutputStream(".".join((job_id, "data"))) as data_stream:
-
-      logging.error("Upload to bigquery failed, will write results to %s",
-                    data_stream.urn)
-
-      gzip_filehandle_parent.flush()
-      gzip_filehandle_parent.seek(0)
-      for line in gzip_filehandle_parent:
-        data_stream.write(line)
 
   def Flush(self):
     """Finish writing JSON files, upload to cloudstorage and bigquery."""
@@ -212,11 +188,9 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
       if (self.state.failure_count >=
           config.CONFIG["BigQuery.max_upload_failures"]):
-        logging.error("Exceeded BigQuery.max_upload_failures for %s. Giving up "
-                      "on BigQuery and writing to AFF4.", self.state.source_urn)
-        self._WriteToAFF4(job_id, tracker.schema,
-                          tracker.gzip_filehandle_parent, self.token)
-
+        logging.error(
+            "Exceeded BigQuery.max_upload_failures for %s, giving up.",
+            self.state.source_urn)
       else:
         try:
           self.bigquery.InsertData(tracker.output_type,
@@ -226,9 +200,6 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
           del self.state.output_jobids[tracker.output_type]
         except bigquery.BigQueryJobUploadError:
           self.state.failure_count += 1
-
-          self._WriteToAFF4(job_id, tracker.schema,
-                            tracker.gzip_filehandle_parent, self.token)
 
     # Now that everything is in bigquery we can remove the output streams
     self.temp_output_trackers = {}

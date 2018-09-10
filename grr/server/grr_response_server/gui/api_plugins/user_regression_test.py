@@ -297,7 +297,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.CreateAdminUser(u"approver")
 
       client_urn = self.SetupClient(0)
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           flow_name=discovery.Interrogate.__name__,
           client_id=client_urn,
           token=self.token)

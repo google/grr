@@ -160,7 +160,7 @@ def GenFileData(paths, data, stats=None, files=None, modes=None):
     p = rdf_paths.PathSpec(path=path, pathtype="OS")
     stats.append(rdf_client_fs.StatEntry(pathspec=p, **modes))
   for val in data:
-    files.append(io.BytesIO(val))
+    files.append(io.StringIO(val))
   return stats, files
 
 

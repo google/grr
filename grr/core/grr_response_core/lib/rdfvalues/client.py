@@ -5,6 +5,7 @@ This module contains the RDFValue implementations used to communicate with the
 client.
 """
 from __future__ import division
+from __future__ import unicode_literals
 
 import hashlib
 import logging
@@ -57,7 +58,7 @@ class ClientURN(rdfvalue.RDFURN):
         raise type_info.TypeValueError("Client urn malformed: %s" % initializer)
     super(ClientURN, self).__init__(initializer=initializer, age=age)
 
-  def ParseFromString(self, value):
+  def ParseFromUnicode(self, value):
     """Parse a string into a client URN.
 
     Convert case so that all URNs are of the form C.[0-9a-f].
@@ -65,9 +66,10 @@ class ClientURN(rdfvalue.RDFURN):
     Args:
       value: string value to parse
     """
+    utils.AssertType(value, unicode)
     value = value.strip()
 
-    super(ClientURN, self).ParseFromString(value)
+    super(ClientURN, self).ParseFromUnicode(value)
 
     match = self.CLIENT_ID_RE.match(self._string_urn)
     if not match:
@@ -82,7 +84,7 @@ class ClientURN(rdfvalue.RDFURN):
   @classmethod
   def Validate(cls, value):
     if value:
-      return bool(cls.CLIENT_ID_RE.match(str(value)))
+      return bool(cls.CLIENT_ID_RE.match(unicode(value)))
 
     return False
 
@@ -100,7 +102,7 @@ class ClientURN(rdfvalue.RDFURN):
     n = public_key.GetN()
     raw_n = ("%x" % n).decode("hex")
 
-    mpi_format = struct.pack(">i", len(raw_n) + 1) + "\x00" + raw_n
+    mpi_format = struct.pack(">i", len(raw_n) + 1) + b"\x00" + raw_n
 
     return cls("C.%s" % (hashlib.sha256(mpi_format).digest()[:8].encode("hex")))
 

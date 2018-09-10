@@ -25,10 +25,12 @@ from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
+from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import sequential_collection
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import file_finder
@@ -37,7 +39,8 @@ from grr_response_server.flows.general import memory
 from grr_response_server.flows.general import transfer
 
 
-class ArtifactCollectorFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class ArtifactCollectorFlowMixin(object):
   """Flow that takes a list of artifacts and collects them.
 
   This flow is the core of the Artifact implementation for GRR. Artifacts are
@@ -85,14 +88,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.state.knowledge_base = self.args.knowledge_base
     self.state.response_count = 0
 
-    if (self.args.dependencies ==
-        artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
+    if (self.args.dependencies == artifact_utils.ArtifactCollectorFlowArgs
+        .Dependency.FETCH_NOW):
       # String due to dependency loop with discover.py.
       self.CallFlow("Interrogate", next_state="StartCollection")
       return
 
-    elif (self.args.dependencies == artifact_utils.ArtifactCollectorFlowArgs.
-          Dependency.USE_CACHED) and (not self.state.knowledge_base):
+    elif (self.args.dependencies == artifact_utils.ArtifactCollectorFlowArgs
+          .Dependency.USE_CACHED) and (not self.state.knowledge_base):
       # If not provided, get a knowledge base from the client.
       try:
         self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
@@ -274,10 +277,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     Args:
       source: artifact source
-      pathtype: pathspec path type
-
-    When multiple regexes are supplied, combine them into a single regex as an
-    OR match so that we check all regexes at once.
+      pathtype: pathspec path type  When multiple regexes are supplied, combine
+        them into a single regex as an OR match so that we check all regexes at
+        once.
     """
     path_list = self.InterpolateList(source.attributes.get("paths", []))
     content_regex_list = self.InterpolateList(
@@ -380,7 +382,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def _StartSubArtifactCollector(self, artifact_list, source, next_state):
     self.CallFlow(
-        ArtifactCollectorFlow.__name__,
+        aff4_flows.ArtifactCollectorFlow.__name__,
         artifact_list=artifact_list,
         use_tsk=self.args.use_tsk,
         apply_parsers=self.args.apply_parsers,
@@ -473,6 +475,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     Args:
       input_dict: dict to interpolate
+
     Returns:
       original dict with all string values interpolated
     """
@@ -491,6 +494,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     Args:
       input_list: list of values to interpolate
+
     Returns:
       original list of values extended with strings interpolated
     """
@@ -642,6 +646,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     Args:
       responses: Response objects from the artifact source.
+
     Raises:
       RuntimeError: if pathspec value is not a PathSpec instance and not
                     a basestring.
@@ -709,7 +714,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     Args:
       processor_obj: A Processor object that inherits from Parser.
       responses: A list of, or single response depending on the processors
-         process_together setting.
+        process_together setting.
       responses_obj: The responses object itself.
       artifact_name: Name of the artifact that generated the responses.
       source: The source responsible for producing the responses.
@@ -739,7 +744,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                                                output_collection_map, pool)
 
   @classmethod
-  def ResultCollectionForArtifact(cls, session_id, artifact_name, token=None):
+  def ResultCollectionForArtifact(cls, session_id, artifact_name):
     urn = rdfvalue.RDFURN("_".join((str(session_id.Add(flow.RESULTS_SUFFIX)),
                                     utils.SmartStr(artifact_name))))
     return sequential_collection.GeneralIndexedCollection(urn)
@@ -805,7 +810,7 @@ class ArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
       return rdfvalue.RDFValue.classes.get(self.original_result_type)
 
 
-class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
+class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic, flow.GRRFlow):
   """Flow that downloads files referenced by collected artifacts."""
 
   category = "/Collectors/"
@@ -841,7 +846,7 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
     self.state.results_to_download = []
 
     self.CallFlow(
-        ArtifactCollectorFlow.__name__,
+        aff4_flows.ArtifactCollectorFlow.__name__,
         next_state="DownloadFiles",
         artifact_list=self.args.artifact_list,
         use_tsk=self.args.use_tsk,
@@ -898,7 +903,8 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
         self.SendReply(result)
 
 
-class ClientArtifactCollector(flow.GRRFlow):
+@flow_base.DualDBFlow
+class ClientArtifactCollectorMixin(object):
   """A client side artifact collector."""
 
   category = "/Collectors/"
@@ -907,39 +913,36 @@ class ClientArtifactCollector(flow.GRRFlow):
 
   def Start(self):
     """Issue the artifact collection request."""
-    super(ClientArtifactCollector, self).Start()
+    super(ClientArtifactCollectorMixin, self).Start()
 
     self.state.knowledge_base = self.args.knowledge_base
     self.state.response_count = 0
 
-    # TODO(user): Fill the knowledge base on the client side and remove the
-    # field knowledge_base from ClientArtifactCollectorArgs
+    if not self.args.recollect_knowledge_base:
+      dependency = artifact_utils.ArtifactCollectorFlowArgs.Dependency
+      if self.args.dependencies == dependency.FETCH_NOW:
+        # String due to dependency loop with discover.py.
+        self.CallFlow("Interrogate", next_state="StartCollection")
+        return
 
-    dependency = artifact_utils.ArtifactCollectorFlowArgs.Dependency
-    if self.args.dependencies == dependency.FETCH_NOW:
-      # String due to dependency loop with discover.py.
-      self.CallFlow("Interrogate", next_state="StartCollection")
-      return
-
-    if (self.args.dependencies == dependency.USE_CACHED and
-        not self.state.knowledge_base):
-      # If not provided, get a knowledge base from the client.
-      try:
-        with aff4.FACTORY.Open(self.client_id, token=self.token) as client:
-          self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(client)
-      except artifact_utils.KnowledgeBaseUninitializedError:
-        # If no-one has ever initialized the knowledge base, we should do so
-        # now.
-        if not self._AreArtifactsKnowledgeBaseArtifacts():
-          # String due to dependency loop with discover.py.
-          self.CallFlow("Interrogate", next_state="StartCollection")
-          return
+      if (self.args.dependencies == dependency.USE_CACHED and
+          not self.state.knowledge_base):
+        # If not provided, get a knowledge base from the client.
+        try:
+          with aff4.FACTORY.Open(self.client_id, token=self.token) as client:
+            self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
+                client)
+        except artifact_utils.KnowledgeBaseUninitializedError:
+          # If no-one has ever initialized the knowledge base, we should do so
+          # now.
+          if not self._AreArtifactsKnowledgeBaseArtifacts():
+            # String due to dependency loop with discover.py
+            self.CallFlow("Interrogate", next_state="StartCollection")
+            return
 
     # In all other cases start the collection state.
     self.CallStateInline(next_state="StartCollection")
 
-  # TODO(user): Remove this state when the knowledge base is filled on the
-  # client side.
   def StartCollection(self, responses):
     """Start collecting."""
     if not responses.success:
@@ -955,11 +958,10 @@ class ClientArtifactCollector(flow.GRRFlow):
     request = GetArtifactCollectorArgs(
         self.state.knowledge_base, self.args.artifact_list,
         self.args.apply_parsers, self.args.ignore_interpolation_errors,
-        self.args.use_tsk, self.args.max_file_size)
+        self.args.use_tsk, self.args.max_file_size,
+        self.args.recollect_knowledge_base)
     self.CollectArtifacts(request)
 
-  # TODO(user): Remove this method when the knowledge base is filled on the
-  # client side.
   def _AreArtifactsKnowledgeBaseArtifacts(self):
     knowledgebase_list = config.CONFIG["Artifacts.knowledge_base"]
     for artifact_name in self.args.artifact_list:
@@ -967,29 +969,36 @@ class ClientArtifactCollector(flow.GRRFlow):
         return False
     return True
 
-  def CollectArtifacts(self, art_bundle):
+  def CollectArtifacts(self, client_artifact_collector_args):
     """Start the client side artifact collection."""
     self.CallClient(
         server_stubs.ArtifactCollector,
-        request=art_bundle,
+        request=client_artifact_collector_args,
         next_state="ProcessCollected")
 
   def ProcessCollected(self, responses):
-    if not responses.success:
+    flow_name = self.__class__.__name__
+    if responses.success:
+      self.Log(
+          "Artifact data collection completed successfully in flow %s "
+          "with %d responses", flow_name, len(responses))
+    else:
       self.Log("Artifact data collection failed. Status: %s.", responses.status)
-      raise flow.FlowError(responses.status)
+      return
 
-    self.Log("Artifact data collection completed successfully.")
     for response in responses:
-      self._ParseResponse(response)
-
-  def _ParseResponse(self, response):
-    # TODO(user): Add support for parsers.
-    self.state.response_count += 1
-    self.SendReply(response)
+      # The ClientArtifactCollector returns a `ClientArtifactCollectorResult`
+      # (an rdf object that contains a knowledge base and the list of collected
+      # artifacts, each collected artifact has a name and a list of responses).
+      # In order to conform to the normal Artifact Collector we just iterate
+      # through and return the responses.
+      for collected_artifact in response.collected_artifacts:
+        for res in collected_artifact.action_results:
+          self.SendReply(res.value)
+      self.state.response_count += 1
 
   def End(self, responses):
-    super(ClientArtifactCollector, self).End(responses)
+    super(ClientArtifactCollectorMixin, self).End(responses)
 
     # If we got no responses, and user asked for it, we error out.
     if self.args.error_on_no_results and self.state.response_count == 0:
@@ -1009,7 +1018,8 @@ def GetArtifactCollectorArgs(knowledge_base,
                              apply_parsers=True,
                              ignore_interpolation_errors=False,
                              use_tsk=False,
-                             max_file_size=500000000):
+                             max_file_size=500000000,
+                             recollect_knowledge_base=False):
   """Prepare bundle of artifacts and their dependencies for the client.
 
   Args:
@@ -1019,35 +1029,37 @@ def GetArtifactCollectorArgs(knowledge_base,
     ignore_interpolation_errors: from ArtifactCollectorFlowArgs
     use_tsk: from ArtifactCollectorFlowArgs
     max_file_size: from ArtifactCollectorFlowArgs
+    recollect_knowledge_base: Whether the dependencies should be collected as
+      well or the interrogation flow is used.
 
   Returns:
-    rdf value bundle containing a list of extended artifacts and the
+    rdf value object containing a list of extended artifacts and the
     knowledge base
   """
-  bundle = rdf_artifacts.ClientArtifactCollectorArgs()
-  bundle.knowledge_base = knowledge_base
+  args = rdf_artifacts.ClientArtifactCollectorArgs()
+  args.knowledge_base = knowledge_base
 
-  # TODO(user): Check if the knowledge base is provided. What does the
-  # ArtifactCollector do if it's not present?
-  # Switch the Interrogate flow from the ArtifactCollector flow to the
-  # ClientArtifactCollector? (Think about a way to avoid a dependency loop.)
+  args.apply_parsers = apply_parsers
+  args.ignore_interpolation_errors = ignore_interpolation_errors
+  args.max_file_size = max_file_size
+  args.use_tsk = use_tsk
 
-  bundle.apply_parsers = apply_parsers
-  bundle.ignore_interpolation_errors = ignore_interpolation_errors
-  bundle.max_file_size = max_file_size
-  bundle.use_tsk = use_tsk
+  if not recollect_knowledge_base:
+    artifact_names = artifact_list
+  else:
+    artifact_names = GetArtifactsForCollection(knowledge_base.os, artifact_list)
 
-  artifact_expander = ArtifactExpander(knowledge_base, use_tsk, max_file_size)
-
-  for artifact_name in artifact_list:
-    if artifact_name in artifact_expander.processed_artifacts:
-      continue
+  expander = ArtifactExpander(knowledge_base, use_tsk, max_file_size)
+  for artifact_name in artifact_names:
     rdf_artifact = artifact_registry.REGISTRY.GetArtifact(artifact_name)
     if not MeetsConditions(knowledge_base, rdf_artifact):
       continue
-    expanded_artifact = artifact_expander.Expand(rdf_artifact)
-    bundle.artifacts.append(expanded_artifact)
-  return bundle
+    if artifact_name in expander.processed_artifacts:
+      continue
+    requested_by_user = artifact_name in artifact_list
+    for expanded_artifact in expander.Expand(rdf_artifact, requested_by_user):
+      args.artifacts.append(expanded_artifact)
+  return args
 
 
 def MeetsConditions(knowledge_base, source):
@@ -1072,7 +1084,7 @@ class ArtifactExpander(object):
     self._max_file_size = max_file_size
     self.processed_artifacts = set()
 
-  def Expand(self, rdf_artifact):
+  def Expand(self, rdf_artifact, requested):
     """Expand artifact by extending its sources.
 
     This method takes as input an rdf artifact object and returns a rdf expanded
@@ -1082,39 +1094,47 @@ class ArtifactExpander(object):
     sources in the expanded artifact. The list of sources of the expanded
     artifact is extended at the end of each iteration.
 
+    The parameter `requested` is passed down at the recursive calls. So, if an
+    artifact group is requested by the user, every artifact/source belonging to
+    this group will be treated as requested by the user. The same applies to
+    artifact files.
+
     Args:
       rdf_artifact: artifact object to expand (obtained from the registry)
+      requested: Whether the artifact is requested by the user or scheduled for
+        collection as a KnowledgeBase dependency.
 
-    Returns:
+    Yields:
       rdf value representation of expanded artifact containing the name of the
       artifact and the expanded sources
     """
 
     source_type = rdf_artifacts.ArtifactSource.SourceType
 
-    expanded_artifact = rdf_artifacts.ExpandedArtifact()
-    expanded_artifact.name = rdf_artifact.name
+    expanded_artifact = rdf_artifacts.ExpandedArtifact(
+        name=rdf_artifact.name,
+        provides=rdf_artifact.provides,
+        requested_by_user=requested)
 
     for source in rdf_artifact.sources:
       if MeetsConditions(self._knowledge_base, source):
         type_name = source.type
 
         if type_name == source_type.ARTIFACT_GROUP:
-          expanded_sources = self._ExpandArtifactGroupSource(source)
-          # if the source artifacts have already been processed continue with
-          # the next artifact
-          if not expanded_sources:
-            continue
+          for subartifact in self._ExpandArtifactGroupSource(source, requested):
+            yield subartifact
+          continue
 
         elif type_name == source_type.ARTIFACT_FILES:
-          expanded_sources = self._ExpandArtifactFilesSource(source)
+          expanded_sources = self._ExpandArtifactFilesSource(source, requested)
 
         else:
           expanded_sources = self._ExpandBasicSource(source)
 
         expanded_artifact.sources.Extend(expanded_sources)
     self.processed_artifacts.add(rdf_artifact.name)
-    return expanded_artifact
+    if expanded_artifact.sources:
+      yield expanded_artifact
 
   def _ExpandBasicSource(self, source):
     expanded_source = rdf_artifacts.ExpandedSource(
@@ -1123,9 +1143,8 @@ class ArtifactExpander(object):
         max_bytesize=self._max_file_size)
     return [expanded_source]
 
-  def _ExpandArtifactGroupSource(self, source):
+  def _ExpandArtifactGroupSource(self, source, requested):
     """Recursively expands an artifact group source."""
-    expanded_sources = []
     artifact_list = []
     if "names" in source.attributes:
       artifact_list = source.attributes["names"]
@@ -1133,11 +1152,10 @@ class ArtifactExpander(object):
       if artifact_name in self.processed_artifacts:
         continue
       artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
-      expanded_sub_artifact = self.Expand(artifact_obj)
-      expanded_sources.extend(expanded_sub_artifact.sources)
-    return expanded_sources
+      for expanded_artifact in self.Expand(artifact_obj, requested):
+        yield expanded_artifact
 
-  def _ExpandArtifactFilesSource(self, source):
+  def _ExpandArtifactFilesSource(self, source, requested):
     """Recursively expands an artifact files source."""
     expanded_source = rdf_artifacts.ExpandedSource(base_source=source)
     sub_sources = []
@@ -1148,8 +1166,8 @@ class ArtifactExpander(object):
       if artifact_name in self.processed_artifacts:
         continue
       artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
-      expanded_artifact_group = self.Expand(artifact_obj)
-      sub_sources.extend(expanded_artifact_group.sources)
+      for expanded_artifact in self.Expand(artifact_obj, requested):
+        sub_sources.extend(expanded_artifact.sources)
     expanded_source.artifact_sources = sub_sources
     expanded_source.path_type = self._path_type
     return [expanded_source]
@@ -1159,3 +1177,169 @@ def _GetPathType(use_tsk):
   if use_tsk:
     return rdf_paths.PathSpec.PathType.TSK
   return rdf_paths.PathSpec.PathType.OS
+
+
+def GetArtifactsForCollection(os_name, artifact_list):
+  """Wrapper for the ArtifactArranger.
+
+  Extend the artifact list by dependencies and sort the artifacts to resolve the
+  dependencies.
+
+  Args:
+    os_name: String specifying the OS name.
+    artifact_list: List of requested artifact names.
+
+  Returns:
+    A list of artifacts such that if they are collected in the given order
+      their dependencies are resolved.
+  """
+  artifact_arranger = ArtifactArranger(os_name, artifact_list)
+  artifact_names = artifact_arranger.GetArtifactsInProperOrder()
+  return artifact_names
+
+
+class ArtifactArranger(object):
+  """Resolves dependencies and gives an ordered list of artifacts to collect."""
+
+  def __init__(self, os_name, artifacts_name_list):
+    self.reachable_nodes = set()
+    self.graph = {}
+    self._InitializeGraph(os_name, artifacts_name_list)
+
+  class Node(object):
+
+    def __init__(self, is_artifact):
+      self.is_artifact = is_artifact
+      self.is_provided = False
+      self.outgoing = []
+      self.incoming = []
+
+  def _InitializeGraph(self, os_name, artifact_list):
+    """Creates the nodes and directed edges of the dependency graph.
+
+    Args:
+      os_name: String specifying the OS name.
+      artifact_list: List of requested artifact names.
+    """
+    dependencies = artifact_registry.REGISTRY.SearchDependencies(
+        os_name, artifact_list)
+    artifact_names, attribute_names = dependencies
+
+    self._AddAttributeNodes(attribute_names)
+    self._AddArtifactNodesAndEdges(artifact_names)
+
+  def _AddAttributeNodes(self, attribute_names):
+    """Add the attribute nodes to the graph.
+
+    For every attribute that is required for the collection of requested
+    artifacts, add a node to the dependency graph. An attribute node will have
+    incoming edges from the artifacts that provide this attribute and outgoing
+    edges to the artifacts that depend on it.
+
+    An attribute is reachable as soon as one artifact that provides it is
+    reachable. Initially, no attribute node is reachable.
+
+    Args:
+      attribute_names: List of required attribute names.
+    """
+    for attribute_name in attribute_names:
+      self.graph[attribute_name] = self.Node(is_artifact=False)
+
+  def _AddArtifactNodesAndEdges(self, artifact_names):
+    """Add the artifact nodes to the graph.
+
+    For every artifact that has to be collected, add a node to the dependency
+    graph.
+
+    The edges represent the dependencies. An artifact has outgoing edges to the
+    attributes it provides and incoming edges from attributes it depends on.
+    Initially, only artifacts without incoming edges are reachable. An artifact
+    becomes reachable if all of its dependencies are reachable.
+
+    Args:
+      artifact_names: List of names of the artifacts to collect.
+    """
+    for artifact_name in artifact_names:
+      self.graph[artifact_name] = self.Node(is_artifact=True)
+      rdf_artifact = artifact_registry.REGISTRY.GetArtifact(artifact_name)
+      self._AddDependencyEdges(rdf_artifact)
+      self._AddProvidesEdges(rdf_artifact)
+
+  def _AddDependencyEdges(self, rdf_artifact):
+    """Add an edge for every dependency of the given artifact.
+
+    This method gets the attribute names for a given artifact and for every
+    attribute it adds a directed edge from the attribute node to the artifact
+    node. If an artifact does not have any dependencies it is added to the set
+    of reachable nodes.
+
+    Args:
+      rdf_artifact: The artifact object.
+    """
+    artifact_dependencies = artifact_registry.GetArtifactPathDependencies(
+        rdf_artifact)
+    if artifact_dependencies:
+      for attribute in artifact_dependencies:
+        self._AddEdge(attribute, rdf_artifact.name)
+    else:
+      self.reachable_nodes.add(rdf_artifact.name)
+      self.graph[rdf_artifact.name].is_provided = True
+
+  def _AddProvidesEdges(self, rdf_artifact):
+    """Add an edge for every attribute the given artifact provides.
+
+    This method adds a directed edge from the artifact node to every attribute
+    this artifact provides.
+
+    Args:
+      rdf_artifact: The artifact object.
+    """
+    for attribute in rdf_artifact.provides:
+      self._AddEdge(rdf_artifact.name, attribute)
+
+  def _AddEdge(self, start_node, end_node):
+    """Add a directed edge to the graph.
+
+    Add the end to the list of outgoing nodes of the start and the start to the
+    list of incoming nodes of the end node.
+
+    Args:
+      start_node: name of the start node
+      end_node: name of the end node
+    """
+
+    self.graph[start_node].outgoing.append(end_node)
+
+    # This check is necessary because an artifact can provide attributes that
+    # are not covered by the graph because they are not relevant for the
+    # requested artifacts.
+    if end_node in self.graph:
+      self.graph[end_node].incoming.append(start_node)
+
+  def GetArtifactsInProperOrder(self):
+    """Bring the artifacts in a linear order that resolves dependencies.
+
+    This method obtains a linear ordering of the nodes and then returns the list
+    of artifact names.
+
+    Returns:
+      A list of artifacts such that if they are collected in the given order
+      their dependencies are resolved.
+    """
+    artifact_list = []
+    while self.reachable_nodes:
+      node_name = self.reachable_nodes.pop()
+      node = self.graph[node_name]
+      if node.is_artifact:
+        artifact_list.append(unicode(node_name))
+      for next_node_name in node.outgoing:
+        if next_node_name not in self.graph:
+          continue
+        next_node = self.graph[next_node_name]
+        if next_node.is_provided:
+          continue
+        next_node.incoming.remove(node_name)
+        if not (next_node.is_artifact and next_node.incoming):
+          next_node.is_provided = True
+          self.reachable_nodes.add(next_node_name)
+    return artifact_list

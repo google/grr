@@ -35,6 +35,7 @@ class ApiCronJobTest(test_lib.GRRBaseTest):
       args = rdf_cronjobs.CreateCronJobFlowArgs()
       args.periodicity = rdfvalue.Duration("1d")
       args.lifetime = rdfvalue.Duration("30d")
+      args.description = "testdescription"
 
       status = rdf_cronjobs.CronJobRunStatus(status="OK")
 
@@ -50,6 +51,7 @@ class ApiCronJobTest(test_lib.GRRBaseTest):
 
     self.assertEqual(api_cron_job.cron_job_id, "foo")
     self.assertEqual(api_cron_job.current_run_id, "bar")
+    self.assertEqual(api_cron_job.description, "testdescription")
     self.assertEqual(api_cron_job.last_run_time, self._DATETIME("2001-01-01"))
     self.assertEqual(api_cron_job.last_run_status, "FINISHED")
     self.assertEqual(api_cron_job.frequency, rdfvalue.Duration("1d"))
@@ -74,11 +76,13 @@ class ApiCronJobTest(test_lib.GRRBaseTest):
     cron_job.enabled = False
     cron_job.forced_run_requested = True
     cron_job.state = state
+    cron_job.description = "testdescription"
 
     api_cron_job = cron_plugin.ApiCronJob().InitFromCronObject(cron_job)
 
     self.assertEqual(api_cron_job.cron_job_id, "foo")
     self.assertEqual(api_cron_job.current_run_id, "bar")
+    self.assertEqual(api_cron_job.description, "testdescription")
     self.assertEqual(api_cron_job.last_run_time, self._DATETIME("2001-01-01"))
     self.assertEqual(api_cron_job.last_run_status, "FINISHED")
     self.assertEqual(api_cron_job.frequency, rdfvalue.Duration("1d"))

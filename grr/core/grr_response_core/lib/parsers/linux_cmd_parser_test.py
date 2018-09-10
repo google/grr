@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Unit test for the linux cmd parser."""
 
+from __future__ import unicode_literals
+
 import os
 
 

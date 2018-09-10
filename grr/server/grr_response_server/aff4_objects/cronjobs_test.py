@@ -178,7 +178,7 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
     self.assertTrue(cron_job.IsRunning())
     cron_job_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
     self.assertTrue(cron_job_flow_urn is not None)
-    flow.GRRFlow.TerminateFlow(cron_job_flow_urn, token=self.token)
+    flow.GRRFlow.TerminateAFF4Flow(cron_job_flow_urn, token=self.token)
 
     # Check we're dead
     cron_job = cron_manager.ReadJob(job_id, token=self.token)
@@ -531,7 +531,7 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
   def testStatefulSystemCronFlowRaisesWhenRunningWithoutCronJob(self):
     self.assertRaises(
         aff4_cronjobs.StateReadError,
-        flow.StartFlow,
+        flow.StartAFF4Flow,
         flow_name="DummyStatefulSystemCronJob",
         token=self.token)
 
@@ -543,9 +543,9 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
     aff4_cronjobs.ScheduleSystemCronFlows(
         names=[DummyStatefulSystemCronJob.__name__], token=self.token)
 
-    flow.StartFlow(flow_name="DummyStatefulSystemCronJob", token=self.token)
-    flow.StartFlow(flow_name="DummyStatefulSystemCronJob", token=self.token)
-    flow.StartFlow(flow_name="DummyStatefulSystemCronJob", token=self.token)
+    flow.StartAFF4Flow(flow_name="DummyStatefulSystemCronJob", token=self.token)
+    flow.StartAFF4Flow(flow_name="DummyStatefulSystemCronJob", token=self.token)
+    flow.StartAFF4Flow(flow_name="DummyStatefulSystemCronJob", token=self.token)
 
     self.assertListEqual(DummyStatefulSystemCronJob.VALUES, [0, 1, 2])
 

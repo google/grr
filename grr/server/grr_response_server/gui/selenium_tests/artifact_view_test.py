@@ -58,7 +58,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     # First screen should be the Host Information already.
     self.WaitUntil(self.IsTextPresent, "Host-0")
     self.Click("css=a[grrtarget='client.launchFlows']")
-    self.Click("css=#_Collectors")
+    self.Click("css=#_Collectors a")
 
     self.assertEqual(collectors.ArtifactCollectorFlow.__name__,
                      self.GetText("link=ArtifactCollectorFlow"))
@@ -93,7 +93,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self._LoadSystemArtifacts()
 
     self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
-    self.Click("css=#_Collectors")
+    self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 
     self.WaitUntil(self.IsElementPresent, "css=*:contains('TestCmdArtifact')")
@@ -105,7 +105,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self._UploadCustomArtifacts()
 
     self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
-    self.Click("css=#_Collectors")
+    self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 
     self.WaitUntil(
@@ -116,7 +116,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self._UploadCustomArtifacts()
 
     self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
-    self.Click("css=#_Collectors")
+    self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 
     self.DoubleClick(
@@ -132,7 +132,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self._UploadCustomArtifacts()
 
     self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
-    self.Click("css=#_Collectors")
+    self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 
     self.DoubleClick(

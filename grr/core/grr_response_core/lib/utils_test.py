@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """Tests for utility classes."""
+from __future__ import unicode_literals
 
 import datetime
 import io
@@ -27,6 +28,39 @@ from grr.test_lib import test_lib
 
 # Test method names don't conform with Google style
 # pylint: disable=g-bad-name
+
+
+class TrimTest(unittest.TestCase):
+
+  def testEmpty(self):
+    lst = []
+    clipping = utils.Trim(lst, limit=3)
+    self.assertEqual(lst, [])
+    self.assertEqual(clipping, [])
+
+  def testSomeClipping(self):
+    lst = [1, 2, 3, 4, 5, 6, 7]
+    clipping = utils.Trim(lst, limit=4)
+    self.assertEqual(lst, [1, 2, 3, 4])
+    self.assertEqual(clipping, [5, 6, 7])
+
+  def testNoClipping(self):
+    lst = [1, 2, 3, 4]
+    clipping = utils.Trim(lst, limit=10)
+    self.assertEqual(lst, [1, 2, 3, 4])
+    self.assertEqual(clipping, [])
+
+  def testLimit0(self):
+    lst = [1, 2, 3]
+    clipping = utils.Trim(lst, limit=0)
+    self.assertEqual(lst, [])
+    self.assertEqual(clipping, [1, 2, 3])
+
+  def testLimitNegative(self):
+    lst = [1, 2, 3]
+    clipping = utils.Trim(lst, limit=-3)
+    self.assertEqual(lst, [])
+    self.assertEqual(clipping, [1, 2, 3])
 
 
 class StoreTests(test_lib.GRRBaseTest):
@@ -159,7 +193,7 @@ class UtilsTest(test_lib.GRRBaseTest):
         utils.FormatAsHexString(int(1e19), 5), "0x8ac7230489e80000")
 
   def testXor(self):
-    test_str = "Hello World!!"
+    test_str = b"foobar4815162342"
     for key in [1, 5, 123, 255]:
       xor_str = utils.Xor(test_str, key)
       self.assertNotEqual(xor_str, test_str)
@@ -332,24 +366,24 @@ class RollingMemoryStreamTest(test_lib.GRRBaseTest):
     self.stream = utils.RollingMemoryStream()
 
   def testGetValueAndResetReturnsSingleWrittenValue(self):
-    self.stream.write("blah")
-    self.assertEqual(self.stream.GetValueAndReset(), "blah")
+    self.stream.write(b"blah")
+    self.assertEqual(self.stream.GetValueAndReset(), b"blah")
 
   def testSecondCallToGetValueAndResetReturnsEmptyValue(self):
-    self.stream.write("blah")
+    self.stream.write(b"blah")
     self.stream.GetValueAndReset()
-    self.assertEqual(self.stream.GetValueAndReset(), "")
+    self.assertEqual(self.stream.GetValueAndReset(), b"")
 
   def testGetValueAndResetReturnsLastValueSincePreviousReset(self):
-    self.stream.write("foo")
+    self.stream.write(b"foo")
     self.stream.GetValueAndReset()
-    self.stream.write("bar")
-    self.assertEqual(self.stream.GetValueAndReset(), "bar")
+    self.stream.write(b"bar")
+    self.assertEqual(self.stream.GetValueAndReset(), b"bar")
 
   def testWriteAfterCloseRaises(self):
     self.stream.close()
     with self.assertRaises(utils.ArchiveAlreadyClosedError):
-      self.stream.write("blah")
+      self.stream.write(b"blah")
 
 
 class StreamingZipWriterTest(test_lib.GRRBaseTest):
@@ -747,6 +781,88 @@ class StatCacheTest(unittest.TestCase):
       self.assertFalse(stat_mock.called)
 
 
+class CsvWriterTest(unittest.TestCase):
+
+  def testEmpty(self):
+    writer = utils.CsvWriter()
+
+    self.assertEqual(writer.Content(), "")
+
+  def testSingleRow(self):
+    writer = utils.CsvWriter()
+    writer.WriteRow(["foo", "bar", "baz"])
+
+    self.assertEqual(writer.Content(), "foo,bar,baz\n")
+
+  def testMultipleRows(self):
+    writer = utils.CsvWriter()
+    writer.WriteRow(["foo", "quux"])
+    writer.WriteRow(["bar", "norf"])
+    writer.WriteRow(["baz", "thud"])
+
+    self.assertEqual(writer.Content(), "foo,quux\nbar,norf\nbaz,thud\n")
+
+  def testUnicode(self):
+    writer = utils.CsvWriter()
+    writer.WriteRow(["jodła", "świerk", "dąb"])
+    writer.WriteRow(["żyto", "jęczmień", "ryż"])
+
+    self.assertEqual(writer.Content(), "jodła,świerk,dąb\nżyto,jęczmień,ryż\n")
+
+  def testCustomDelimiter(self):
+    writer = utils.CsvWriter(delimiter="|")
+    writer.WriteRow(["foo", "bar", "baz"])
+
+    self.assertEqual(writer.Content(), "foo|bar|baz\n")
+
+
+class CsvDictWriter(unittest.TestCase):
+
+  def testEmpty(self):
+    writer = utils.CsvDictWriter(["foo", "bar", "baz"])
+
+    self.assertEqual(writer.Content(), "")
+
+  def testSingleRow(self):
+    writer = utils.CsvDictWriter(["foo", "bar", "baz"])
+    writer.WriteRow({"foo": "quux", "bar": "norf", "baz": "blargh"})
+
+    self.assertEqual(writer.Content(), "quux,norf,blargh\n")
+
+  def testMultipleRows(self):
+    writer = utils.CsvDictWriter(["x", "y", "z"])
+    writer.WriteRow({"x": "foo", "y": "bar", "z": "baz"})
+    writer.WriteRow({"x": "quux", "y": "norf", "z": "blargh"})
+
+    self.assertEqual(writer.Content(), "foo,bar,baz\nquux,norf,blargh\n")
+
+  def testCustomDelimiter(self):
+    writer = utils.CsvDictWriter(["1", "2", "3"], delimiter=" ")
+    writer.WriteRow({"1": "a", "2": "b", "3": "c"})
+
+    self.assertEqual(writer.Content(), "a b c\n")
+
+  def testIrrelevantOrder(self):
+    writer = utils.CsvDictWriter(["1", "2", "3"])
+    writer.WriteRow({"1": "a", "2": "b", "3": "c"})
+    writer.WriteRow({"3": "d", "2": "e", "1": "f"})
+
+    self.assertEqual(writer.Content(), "a,b,c\nf,e,d\n")
+
+  def testWriteHeader(self):
+    writer = utils.CsvDictWriter(["A", "B", "C"])
+    writer.WriteHeader()
+    writer.WriteRow({"A": "foo", "B": "bar", "C": "baz"})
+
+    self.assertEqual(writer.Content(), "A,B,C\nfoo,bar,baz\n")
+
+  def testRaisesOnMissingColumn(self):
+    writer = utils.CsvDictWriter(["foo", "bar", "baz"])
+
+    with self.assertRaises(ValueError):
+      writer.WriteRow({"foo": "quux", "bar": "norf"})
+
+
 class IterableStartsWith(unittest.TestCase):
 
   def testEmptyStartsWithEmpty(self):
@@ -830,7 +946,7 @@ class AssertIterableTypeTest(unittest.TestCase):
       utils.AssertIterableType(Generator(), int)
 
 
-class AssertListType(unittest.TestCase):
+class AssertListTypeTest(unittest.TestCase):
 
   def testFloatListCorrect(self):
     del self  # Unused.
@@ -845,7 +961,7 @@ class AssertListType(unittest.TestCase):
       utils.AssertListType([3.14, 2.71, 42, 1.41], float)
 
 
-class AssertTupleType(unittest.TestCase):
+class AssertTupleTypeTest(unittest.TestCase):
 
   def testIntTupleCorrect(self):
     del self  # Unused.
@@ -858,6 +974,25 @@ class AssertTupleType(unittest.TestCase):
   def testNonHomogeneousBytesListIncorrect(self):
     with self.assertRaises(TypeError):
       utils.AssertTupleType((b"foo", b"bar", u"baz"), bytes)
+
+
+class AssertDictTypeTest(unittest.TestCase):
+
+  def testIntStringDictCorrect(self):
+    del self  # Unused.
+    utils.AssertDictType({1: "foo", 2: "bar", 3: "baz"}, int, unicode)
+
+  def testNotADictIncorrect(self):
+    with self.assertRaises(TypeError):
+      utils.AssertDictType([(1, "foo"), (2, "bar"), (3, "baz")], int, unicode)
+
+  def testWrongKeyType(self):
+    with self.assertRaises(TypeError):
+      utils.AssertDictType({"foo": 1, b"bar": 2, "baz": 3}, unicode, int)
+
+  def testWrongValueType(self):
+    with self.assertRaises(TypeError):
+      utils.AssertDictType({"foo": 1, "bar": 2, "baz": 3.14}, unicode, int)
 
 
 def main(argv):

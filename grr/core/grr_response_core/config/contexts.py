@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """This file defines valid configuration contexts."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import config_lib
 
 # Different client platforms.
@@ -23,7 +25,6 @@ ADMIN_UI_CONTEXT = config_lib.DEFINE_context("AdminUI Context")
 CLIENT_CONTEXT = config_lib.DEFINE_context("Client Context")
 CONFIG_UPDATER_CONTEXT = config_lib.DEFINE_context("ConfigUpdater Context")
 CONSOLE_CONTEXT = config_lib.DEFINE_context("Console Context")
-DATA_SERVER_CONTEXT = config_lib.DEFINE_context("DataServer Context")
 DEMO_CONTEXT = config_lib.DEFINE_context("Demo Context")
 ENTRY_POINT_CONTEXT = config_lib.DEFINE_context("EntryPoint Context")
 EXPORT_TOOL_CONTEXT = config_lib.DEFINE_context("ExportTool Context")

@@ -201,12 +201,14 @@ ServerLoadController.prototype.fetchIndicators_ = function() {
         this.indicators['frontendLoad'] = result;
       }.bind(this));
 
-  this.grrServerLoadIndicatorService_.fetchRatioIndicator(
-      'worker',      // component name
-      'grr_threadpool_outstanding_tasks',  // numerator
-      'grr_threadpool_threads',  // denominator
-      4,   // warning level
-      10).then(function(result) {
+  this.grrServerLoadIndicatorService_
+      .fetchRatioIndicator(
+          'worker',                        // component name
+          'threadpool_outstanding_tasks',  // numerator
+          'threadpool_threads',            // denominator
+          4,                               // warning level
+          10)
+      .then(function(result) {
         this.indicators['workerLoad'] = result;
       }.bind(this));
 };

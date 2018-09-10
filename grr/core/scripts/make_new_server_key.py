@@ -5,6 +5,8 @@ Use this script to make a new server key and certificate. You can just run the
 script inside a console using `run -i make_new_server_key.py`.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
+
 from grr import config
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.server import key_utils

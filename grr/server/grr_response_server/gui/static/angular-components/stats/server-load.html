@@ -110,13 +110,13 @@
         <grr-timeseries-graph start-time="controller.startTime"
                               end-time="controller.endTime">
           <grr-server-load-graph-serie component="worker"
-                                       metric="grr_threadpool_working_time"
+                                       metric="threadpool_working_time"
                                        rate="10m"
                                        distribution-handling="DH_SUM"
                                        label="Latency">
           </grr-server-load-graph-serie>
           <grr-server-load-graph-serie component="worker"
-                                       metric="grr_threadpool_queueing_time"
+                                       metric="threadpool_queueing_time"
                                        rate="10m"
                                        distribution-handling="DH_SUM"
                                        label="Queueing time">
@@ -127,13 +127,13 @@
         <grr-timeseries-graph start-time="controller.startTime"
                               end-time="controller.endTime">
           <grr-server-load-graph-serie component="worker"
-                                       metric="grr_threadpool_outstanding_tasks"
+                                       metric="threadpool_outstanding_tasks"
                                        rate="10m"
                                        aggregation="AGG_MEAN"
                                        label="Outstanding tasks">
           </grr-server-load-graph-serie>
           <grr-server-load-graph-serie component="worker"
-                                       metric="grr_threadpool_threads"
+                                       metric="threadpool_threads"
                                        rate="10m"
                                        aggregation="AGG_MEAN"
                                        label="Threads">

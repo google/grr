@@ -1,15 +1,7 @@
-<div grr-splitter orientation="vertical" class="rightSplitterContainer">
+<grr-report-listing selection-name="controller.selectionName">
+</grr-report-listing>
 
-  <div grr-splitter-pane id="main_leftPane" class="leftPane">
-    <grr-report-listing selection-name="controller.selectionName">
-    </grr-report-listing>
-  </div>
-
-  <div grr-splitter-pane id="main_rightPane" class="rightPane">
-    <grr-report name="controller.selectionName"
-                start-time="controller.startTime"
-                duration="controller.duration"
-                client-label="controller.clientLabel"></grr-report>
-  </div>
-
-</div>
+<grr-report name="controller.selectionName"
+            start-time="controller.startTime"
+            duration="controller.duration"
+            client-label="controller.clientLabel"></grr-report>

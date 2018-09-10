@@ -2,11 +2,13 @@
 """This file contains various utility classes used by GRR."""
 
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import array
 import base64
 import collections
 import copy
+import csv
 import errno
 import functools
 import getpass
@@ -21,6 +23,7 @@ import shutil
 import socket
 import stat
 import struct
+import sys
 import tarfile
 import tempfile
 import threading
@@ -36,7 +39,7 @@ from future.utils import iterkeys
 from future.utils import itervalues
 import psutil
 
-from typing import Any, List, Text
+from typing import Any, List, Optional, Text
 
 
 class Error(Exception):
@@ -92,7 +95,7 @@ class InterruptableThread(threading.Thread):
                args=None,
                kwargs=None,
                sleep_time=10,
-               name=None,
+               name = None,
                **kw):
     self.exit = False
     self.last_run = 0
@@ -102,7 +105,11 @@ class InterruptableThread(threading.Thread):
     self.sleep_time = sleep_time
     if name is None:
       raise ValueError("Please name your threads.")
+
+    # TODO(hanuszczak): Incorrect type specification for the `name` param.
+    # pytype: disable=wrong-arg-count
     super(InterruptableThread, self).__init__(name=name, **kw)
+    # pytype: enable=wrong-arg-count
 
     # Do not hold up program exit
     self.daemon = True
@@ -600,6 +607,23 @@ def GroupBy(items, key):
   return key_map
 
 
+def Trim(lst, limit):
+  """Trims a given list so that it is not longer than given limit.
+
+  Args:
+    lst: A list to trim.
+    limit: A maximum number of elements in the list after trimming.
+
+  Returns:
+    A suffix of the input list that was trimmed.
+  """
+  limit = max(0, limit)
+
+  clipping = lst[limit:]
+  del lst[limit:]
+  return clipping
+
+
 def SmartStr(string):
   """Returns a string or encodes a unicode object.
 
@@ -645,9 +669,7 @@ def Xor(bytestr, key):
   # pytype: disable=import-error
   from builtins import bytes  # pylint: disable=redefined-builtin, g-import-not-at-top
   # pytype: enable=import-error
-
-  if not isinstance(bytestr, bytes):
-    raise TypeError("Expected `%s` but got `%s`" % (type(bytestr), bytes))
+  AssertType(bytestr, bytes)
 
   # TODO(hanuszczak): This seemingly no-op operation actually changes things.
   # In Python 2 this function receives a `str` object which has different
@@ -674,7 +696,11 @@ def FormatAsHexString(num, width=None, prefix="0x"):
 def FormatAsTimestamp(timestamp):
   if not timestamp:
     return "-"
-  return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
+
+  # TODO(hanuszczak): Remove these string conversion functions once support for
+  # Python 2 is dropped.
+  fmt = str("%Y-%m-%d %H:%M:%S")
+  return unicode(time.strftime(fmt, time.gmtime(timestamp)))
 
 
 def NormalizePath(path, sep="/"):
@@ -781,6 +807,8 @@ def Join(*parts):
 
 def Grouper(iterable, n):
   """Group iterable into lists of size n. Last list will be short."""
+  AssertType(n, int)
+
   items = []
   for count, item in enumerate(iterable):
     items.append(item)
@@ -1404,11 +1432,14 @@ class StreamingTarWriter(object):
   """
 
   def __init__(self, fd_or_path, mode="w"):
+    # TODO(hanuszczak): Incorrect type specification for `tarfile.open`.
+    # pytype: disable=wrong-arg-types
     if hasattr(fd_or_path, "write"):
       self.tar_fd = tarfile.open(
           mode=mode, fileobj=fd_or_path, encoding="utf-8")
     else:
       self.tar_fd = tarfile.open(name=fd_or_path, mode=mode, encoding="utf-8")
+    # pytype: enable=wrong-arg-types
 
   def __enter__(self):
     return self
@@ -1665,7 +1696,13 @@ class Stat(object):
     try:
       # This import is Linux-specific.
       import fcntl  # pylint: disable=g-import-not-at-top
-      buf = array.array("l", [0])
+      # TODO(hanuszczak): On Python 2.7.6 `array.array` accepts only bytestrings
+      # as an argument. On Python 2.7.12 and 2.7.13 unicodes are supported as
+      # well. On Python 3, only unicode strings are supported. This is why, as
+      # a temporary hack, we wrap the literal with `str` call that will convert
+      # it to whatever is the default on given Python version. This should be
+      # changed to raw literal once support for Python 2 is dropped.
+      buf = array.array(str("l"), [0])
       # TODO(user):pytype: incorrect type spec for fcntl.ioctl
       # pytype: disable=wrong-arg-types
       fcntl.ioctl(fd, self.FS_IOC_GETFLAGS, buf)
@@ -1729,6 +1766,114 @@ class StatCache(object):
 def ProcessIdString():
   return "%s@%s:%d" % (psutil.Process().name(), socket.gethostname(),
                        os.getpid())
+
+
+class CsvWriter(object):
+  """A compatibility class for writing CSV files.
+
+  This class should be used instead of the `csv.writer` that has API differences
+  across Python 2 and Python 3. This class provides unified interface that
+  should work the same way on both versions. Once support for Python 2 is
+  dropped, this class can be removed and code can be refactored to use the
+  native class.
+
+  Args:
+    delimiter: A delimiter to separate the values with. Defaults to a comma.
+  """
+
+  def __init__(self, delimiter=","):
+    AssertType(delimiter, unicode)
+
+    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
+    # two elements which is not true.
+    # pytype: disable=attribute-error
+    if sys.version_info.major == 2:
+      self._output = io.BytesIO()
+    else:
+      self._output = io.StringIO()
+    # pytype: enable=attribute-error
+
+    # We call `str` on the delimiter in order to ensure it is `bytes` on Python
+    # 2 and `unicode` on Python 3.
+    self._csv = csv.writer(
+        self._output, delimiter=str(delimiter), lineterminator=str("\n"))
+
+  def WriteRow(self, values):
+    """Writes a single row to the underlying buffer.
+
+    Args:
+      values: A list of string values to be inserted into the CSV output.
+    """
+    AssertListType(values, unicode)
+
+    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
+    # two elements which is not true.
+    # pytype: disable=attribute-error
+    if sys.version_info.major == 2:
+      self._csv.writerow([value.encode("utf-8") for value in values])
+    else:
+      self._csv.writerow(values)
+    # pytype: enable=attribute-error
+
+  def Content(self):
+    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
+    # two elements which is not true.
+    # pytype: disable=attribute-error
+    if sys.version_info.major == 2:
+      return self._output.getvalue().decode("utf-8")
+    else:
+      return self._output.getvalue()
+    # pytype: enable=attribute-error
+
+
+class CsvDictWriter(object):
+  """A compatibility class for writing CSV files.
+
+  This class is to `csv.DictWriter` what `CsvWriter` is `csv.writer`. Consult
+  documentation for `CsvWriter` for more rationale.
+
+  Args:
+    columns: A list of column names to base row writing on.
+    delimiter: A delimiter to separate the values with. Defaults to a comma.
+  """
+
+  def __init__(self, columns, delimiter=","):
+    AssertListType(columns, unicode)
+    AssertType(delimiter, unicode)
+
+    self._writer = CsvWriter(delimiter=delimiter)
+    self._columns = columns
+
+  def WriteHeader(self):
+    """Writes header to the CSV file.
+
+    A header consist of column names of this particular writer separated by
+    specified delimiter.
+    """
+    self._writer.WriteRow(self._columns)
+
+  def WriteRow(self, values):
+    """Writes a single row to the underlying buffer.
+
+    Args:
+      values: A dictionary mapping column names to values to be inserted into
+        the CSV output.
+    """
+    AssertDictType(values, unicode, unicode)
+
+    row = []
+    for column in self._columns:
+      try:
+        value = values[column]
+      except KeyError:
+        raise ValueError("Row does not contain required column `%s`" % column)
+
+      row.append(value)
+
+    self._writer.WriteRow(row)
+
+  def Content(self):
+    return self._writer.Content()
 
 
 # TODO(hanuszczak): We should create some module with general-purpose functions
@@ -1824,3 +1969,85 @@ def AssertTupleType(tpl, expected_item_type):
   """
   AssertType(tpl, tuple)
   AssertIterableType(tpl, expected_item_type)
+
+
+def AssertDictType(dct, expected_key_type, expected_value_type):
+  """Ensures that given dictionary is actually a dictionary of specified type.
+
+  Args:
+    dct: A dictionary to assert the type for.
+    expected_key_type: An expected type for dictionary keys.
+    expected_value_type: An expected type for dicionary values.
+
+  Raises:
+    TypeError: If given dictionary is not really a dictionary or not all its
+               keys and values have the expected type.
+  """
+  AssertType(dct, dict)
+  for key, value in iteritems(dct):
+    AssertType(key, expected_key_type)
+    AssertType(value, expected_value_type)
+
+
+def MakeType(name, base_classes, namespace):
+  """A compatibility wrapper for the `type` built-in function.
+
+  In Python 2 `type` (used as a type constructor) requires the name argument to
+  be a `bytes` object whereas in Python 3 it is required to be an `unicode`
+  object. Since class name is human readable text rather than arbitrary stream
+  of bytes, the Python 3 behaviour is considered to be the sane one.
+
+  Once support for Python 2 is dropped all invocations of this call can be
+  replaced with the `type` built-in.
+
+  Args:
+    name: A name of the type to create.
+    base_classes: A tuple of base classes that the returned type is supposed to
+      derive from.
+    namespace: A dictionary of methods and fields that the returned type is
+      supposed to contain.
+
+  Returns:
+    A new type with specified parameters.
+  """
+  AssertType(name, unicode)
+
+  # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
+  # elements which is not true.
+  # pytype: disable=attribute-error
+  if sys.version_info.major == 2:
+    name = name.encode("ascii")
+  # pytype: enable=attribute-error
+
+  return type(name, base_classes, namespace)
+
+
+def GetName(cls):
+  """A compatibility wrapper for getting class name.
+
+  In Python 2 class names are returned as `bytes` (since class names can contain
+  only ASCII characters) whereas in Python 3 they are `unicode` (since class
+  names can contain arbitrary unicode characters).
+
+  This function makes this behaviour consistent and always returns class name as
+  an unicode string.
+
+  Once support for Python 2 is dropped all invocations of this call can be
+  replaced with ordinary `__name__` access.
+
+  Args:
+    cls: A class object to get the name for.
+
+  Returns:
+    Name of the specified class as unicode string.
+  """
+  AssertType(cls, type)
+
+  # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
+  # elements which is not true.
+  # pytype: disable=attribute-error
+  if sys.version_info.major == 2:
+    return cls.__name__.decode("ascii")
+  else:
+    return cls.__name__
+  # pytype: enable=attribute-error

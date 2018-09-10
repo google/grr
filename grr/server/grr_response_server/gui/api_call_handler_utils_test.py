@@ -198,8 +198,8 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     # Delete a single chunk
     aff4.FACTORY.Delete(
-        utils.SmartStr("aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt/0000000000") %
-        utils.SmartStr(self.client_id.Basename()),
+        (u"aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt/0000000000" %
+         self.client_id.Basename()),
         token=self.token)
 
     fd_path = self._GenerateArchive(

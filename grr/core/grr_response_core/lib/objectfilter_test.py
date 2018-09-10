@@ -2,6 +2,7 @@
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Tests for grr.lib.objectfilter."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 
 from future.utils import iteritems

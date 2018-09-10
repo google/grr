@@ -23,7 +23,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
 
   @mock.patch.object(MySQLdb, "connect")
   @mock.patch.object(getpass, "getpass")
-  def testConfigureDatastore(self, getpass_mock, connect_mock):
+  def testConfigureMySQLDatastore(self, getpass_mock, connect_mock):
     # Mock user-inputs for MySQL prompts.
     self.input_mock.side_effect = [
         "",  # MySQL hostname (the default is localhost).
@@ -34,7 +34,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
     getpass_mock.return_value = "grr-test-password"  # DB password for GRR.
     connect_mock.return_value = mock.Mock(spec=connections.Connection)
     config = grr_config.CONFIG.CopyConfig()
-    config_updater_util.ConfigureDatastore(config)
+    config_updater_util.ConfigureMySQLDatastore(config)
     connect_mock.assert_called_once_with(
         host="localhost",
         port=1234,
@@ -43,7 +43,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         passwd="grr-test-password",
         charset="utf8")
     self.assertEqual(config.writeback_data["Mysql.host"], "localhost")
-    self.assertEqual(config.writeback_data["Mysql.port"], "1234")
+    self.assertEqual(config.writeback_data["Mysql.port"], 1234)
     self.assertEqual(config.writeback_data["Mysql.database_name"],
                      "grr-test-db")
     self.assertEqual(config.writeback_data["Mysql.database_username"],
@@ -55,7 +55,8 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
   @mock.patch.object(getpass, "getpass")
   @mock.patch.object(config_updater_util, "_MYSQL_MAX_RETRIES", new=1)
   @mock.patch.object(config_updater_util, "_MYSQL_RETRY_WAIT_SECS", new=0.1)
-  def testConfigureDatastore_ConnectionRetry(self, getpass_mock, connect_mock):
+  def testConfigureMySQLDatastore_ConnectionRetry(self, getpass_mock,
+                                                  connect_mock):
     # Mock user-inputs for MySQL prompts.
     self.input_mock.side_effect = [
         "",  # MySQL hostname (the default is localhost).
@@ -69,7 +70,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         mysql_conn_errors.CONNECTION_ERROR, "Fake connection error.")
     config = grr_config.CONFIG.CopyConfig()
     with self.assertRaises(config_updater_util.ConfigInitError):
-      config_updater_util.ConfigureDatastore(config)
+      config_updater_util.ConfigureMySQLDatastore(config)
     self.assertEqual(connect_mock.call_count, 2)
 
 

@@ -16,6 +16,8 @@ python grr/client/grr_response_client/client_build.py \
 -p grr/client/plugins/installer_plugin.py
 
 """
+from __future__ import unicode_literals
+
 from grr_response_client import installer
 import pywintypes
 import win32serviceutil

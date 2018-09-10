@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Configuration parameters for client builder and server packaging."""
+from __future__ import unicode_literals
+
 import os
 import time
 
@@ -239,10 +241,9 @@ VSVersionInfo\(
 \)
 """)
 
-config_lib.DEFINE_bytes(
-    "PyInstaller.icon",
-    "%(%(install_data/grr.ico@grr-response-core|resource)|file)",
-    "The icon file contents to use for building the client.")
+config_lib.DEFINE_string("PyInstaller.icon_path",
+                         "%(install_data/grr.ico@grr-response-core|resource)",
+                         "A path to the icon to use for building the client.")
 
 config_lib.DEFINE_string(
     "PyInstaller.build_dir",

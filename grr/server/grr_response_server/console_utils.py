@@ -7,8 +7,8 @@ approval or token handling.
 from __future__ import division
 from __future__ import print_function
 
-import csv
 import getpass
+import io
 import logging
 import os
 import time
@@ -506,26 +506,35 @@ def ExportClientsByKeywords(keywords, filename, token=None):
   if not client_list:
     return
 
-  result_set = aff4.FACTORY.MultiOpen(client_list, token=token)
-  with open(filename, "wb") as csv_out:
-    writer = csv.DictWriter(csv_out, [
-        "client_id", "hostname", "last_seen", "os", "os_release", "os_version",
-        "users", "ips", "macs"
-    ])
-    writer.writeheader()
-    for client in result_set:
-      s = client.Schema
-      writer.writerow({
-          "client_id": client.urn.Basename(),
-          "hostname": client.Get(s.HOSTNAME),
-          "os": client.Get(s.SYSTEM),
-          "os_release": client.Get(s.OS_RELEASE),
-          "os_version": client.Get(s.OS_VERSION),
-          "ips": client.Get(s.HOST_IPS),
-          "macs": client.Get(s.MAC_ADDRESS),
-          "users": "\n".join(client.Get(s.USERNAMES, [])),
-          "last_seen": client.Get(s.PING),
-      })
+  writer = utils.CsvDictWriter([
+      u"client_id",
+      u"hostname",
+      u"last_seen",
+      u"os",
+      u"os_release",
+      u"os_version",
+      u"users",
+      u"ips",
+      u"macs",
+  ])
+  writer.WriteHeader()
+
+  for client in aff4.FACTORY.MultiOpen(client_list, token=token):
+    s = client.Schema
+    writer.WriteRow({
+        u"client_id": client.urn.Basename(),
+        u"hostname": client.Get(s.HOSTNAME),
+        u"os": client.Get(s.SYSTEM),
+        u"os_release": client.Get(s.OS_RELEASE),
+        u"os_version": client.Get(s.OS_VERSION),
+        u"ips": client.Get(s.HOST_IPS),
+        u"macs": client.Get(s.MAC_ADDRESS),
+        u"users": "\n".join(client.Get(s.USERNAMES, [])),
+        u"last_seen": client.Get(s.PING),
+    })
+
+  with io.open(filename, "w") as csv_out:
+    csv_out.write(writer.Content())
 
 
 # Pull this into the console.
@@ -552,7 +561,7 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
   else:
     token = access_control.ACLToken(username="GRRConsole")
 
-  session_id = flow.StartFlow(
+  session_id = flow.StartAFF4Flow(
       client_id=client_id,
       flow_name=flow_name,
       queue=queue,

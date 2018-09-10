@@ -2,6 +2,8 @@
 """Tests for grr.parsers.osx_launchd."""
 
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import osx_launchd
 from grr_response_core.lib.rdfvalues import client as rdf_client

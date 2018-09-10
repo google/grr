@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """RDFValues used with Yara."""
 
+from __future__ import unicode_literals
+
 import yara
 
 from grr_response_core.lib import rdfvalue

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Simple parsers for cron type files."""
 
+from __future__ import unicode_literals
+
 
 import crontab
 

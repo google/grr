@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Tests for config_lib classes."""
 
-import __builtin__
+from __future__ import unicode_literals
+
 import io
 import ntpath
 import os
@@ -740,8 +741,7 @@ Section1.int: 3
       # Using fd with no fd.name should raise because there is no way to resolve
       # the relative path.
       conf = self._GetNewConf()
-      # TODO(hanuszczak): YAML or config, consider using `StringIO` instead.
-      fd = io.BytesIO(one)
+      fd = io.StringIO(one)
       self.assertRaises(
           config_lib.ConfigFileNotFound,
           conf.Initialize,
@@ -820,17 +820,15 @@ SecondaryFileIncluded: true
         raise IOError("Tried to open wrong file %s" % filename)
 
       if basename == "1.yaml":
-        # TODO(hanuszczak): YAML, consider using `StringIO`.
-        return io.BytesIO(one)
+        return io.StringIO(one)
 
       if basename == "2.yaml":
-        # TODO(hanuszczak): YAML, consider using `StringIO`.
-        return io.BytesIO(two)
+        return io.StringIO(two)
 
       raise IOError("File not found %s" % filename)
 
     # We need to also use the nt path manipulation modules.
-    with utils.MultiStubber((__builtin__, "open", MockedWindowsOpen),
+    with utils.MultiStubber((io, "open", MockedWindowsOpen),
                             (os, "path", ntpath)):
       conf = self._GetNewConf()
       conf.Initialize(filename=ntpath.join(config_path, "1.yaml"))

@@ -8,13 +8,11 @@ import types
 import unittest
 
 
-from future.utils import with_metaclass
 import pytest
 
 from grr_response_client import actions
 from grr_response_client.client_actions import standard
 
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -25,8 +23,7 @@ from grr.test_lib import worker_mocks
 
 
 @pytest.mark.small
-class EmptyActionTest(
-    with_metaclass(registry.MetaclassRegistry, test_lib.GRRBaseTest)):
+class EmptyActionTest(test_lib.GRRBaseTest):
   """Test the client Actions."""
 
   def RunAction(self, action_cls, arg=None, grr_worker=None):
@@ -62,6 +59,7 @@ class EmptyActionTest(
        action_cls: The action class to run.
        grr_worker: The GRRClientWorker instance to use. If not provided we make
          a new one.
+
     Returns:
       A list of response protobufs.
     """
@@ -298,7 +296,7 @@ def Command(name, args=None, system=None, message=None):
   args = args or []
   if system is not None and platform.system() != system:
     raise unittest.SkipTest("`%s` available only on `%s`" % (name, system))
-  if subprocess.call(["which", name]) != 0:
+  if subprocess.call(["which", name], stdout=open("/dev/null", "w")) != 0:
     raise unittest.SkipTest("`%s` command is not available" % name)
   if subprocess.call([name] + args) != 0:
     raise unittest.SkipTest(message or "`%s` call failed" % name)

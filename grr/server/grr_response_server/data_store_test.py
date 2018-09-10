@@ -6,7 +6,6 @@ Implementations should be able to pass these tests to be conformant.
 """
 from __future__ import division
 
-import csv
 import functools
 import hashlib
 import inspect
@@ -29,6 +28,7 @@ import mock
 import pytest
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -1643,16 +1643,21 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   def WriteCSV(self, remove=False):
     """Write results to a CSV file."""
-    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as fp:
-      writer = csv.writer(fp, delimiter=" ")
-      writer.writerow([
-          "Benchmark", "Time", "DBSize", "Queries", "Subjects", "Predicates",
-          "Values"
-      ])
-      for row in self.scratchpad[2:]:
-        writer.writerow(
-            [row[0], row[1], row[3], row[4], row[5], row[6], row[7]])
+    writer = utils.CsvWriter(delimiter=u" ")
+    writer.WriteRow([
+        u"Benchmark",
+        u"Time",
+        u"DBSize",
+        u"Queries",
+        u"Subjects",
+        u"Predicates",
+        u"Values",
+    ])
+    for row in self.scratchpad[2:]:
+      writer.WriteRow([row[0], row[1], row[3], row[4], row[5], row[6], row[7]])
 
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as fp:
+      fp.write(writer.Content().encode("utf-8"))
       logging.info("CSV File is in %s", fp.name)
       if remove:
         os.unlink(fp.name)
@@ -2093,7 +2098,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     return res
 
   def StartFlow(self, client_id):
-    flow_id = flow.StartFlow(
+    flow_id = flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=filesystem.ListDirectory.__name__,
         queue=self.queue,

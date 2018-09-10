@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Linux specific utils."""
+from __future__ import unicode_literals
 
 import logging
 import os

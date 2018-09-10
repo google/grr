@@ -24,6 +24,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import client_pb2
 from grr_response_server import aff4
+from grr_response_server import aff4_flows
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import db
@@ -38,7 +39,6 @@ from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.general import audit
-from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui.api_plugins import stats as api_stats
@@ -576,9 +576,9 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiInterrogateClientResult
 
   def Handle(self, args, token=None):
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=args.client_id.ToClientURN(),
-        flow_name=discovery.Interrogate.__name__,
+        flow_name=aff4_flows.Interrogate.__name__,
         token=token)
 
     return ApiInterrogateClientResult(operation_id=str(flow_urn))
@@ -602,7 +602,7 @@ class ApiGetInterrogateOperationStateHandler(
   def Handle(self, args, token=None):
     try:
       flow_obj = aff4.FACTORY.Open(
-          args.operation_id, aff4_type=discovery.Interrogate, token=token)
+          args.operation_id, aff4_type=aff4_flows.Interrogate, token=token)
 
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:

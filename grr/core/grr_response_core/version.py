@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """GRR Rapid Response Framework."""
 
+from __future__ import unicode_literals
+
 import ConfigParser
 import os
 

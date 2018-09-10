@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Configuration parameters for the data stores."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
 
@@ -27,6 +29,9 @@ config_lib.DEFINE_bool(
 config_lib.DEFINE_bool("Database.useForReads.cronjobs", False,
                        "Enable storing cronjobs in the relational database.")
 
+config_lib.DEFINE_bool("Database.useForReads.flows", False,
+                       "Enable storing flows in the relational database.")
+
 config_lib.DEFINE_bool(
     "Database.useForReads.client_messages", False,
     "Enable storing client messages in the relational "
@@ -37,6 +42,10 @@ config_lib.DEFINE_bool("Database.useForReads.foreman", False,
 
 config_lib.DEFINE_bool("Database.useForReads.vfs", False,
                        "Use relational database for reading VFS information.")
+
+config_lib.DEFINE_bool(
+    "Database.useForReads.filestore", False,
+    "Use relational database for reading files from filestore.")
 
 DATASTORE_PATHING = [
     r"%{(?P<path>files/hash/generic/sha256/...).*}",
@@ -61,6 +70,8 @@ config_lib.DEFINE_string(
           "filesystem directory)"))
 
 # SQLite data store.
+# NOTE: The SQLite datastore was obsoleted, so these options do not get
+# used. We can remove them once users have migrated to MySQL.
 config_lib.DEFINE_integer(
     "SqliteDatastore.vacuum_check",
     default=10,

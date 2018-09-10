@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test client vfs."""
+from __future__ import unicode_literals
 
 import logging
 import os

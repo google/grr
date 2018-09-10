@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Simple parsers for Linux files."""
+from __future__ import unicode_literals
+
 import re
 from debian import deb822
 

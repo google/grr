@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A builder implementation for windows clients."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import ctypes
 import logging

@@ -1078,7 +1078,7 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
         args, token=token)
 
     if args.keep_client_alive:
-      flow.StartFlow(
+      flow.StartAFF4Flow(
           client_id=args.client_id.ToClientURN(),
           flow_name=administrative.KeepAlive.__name__,
           duration=3600,

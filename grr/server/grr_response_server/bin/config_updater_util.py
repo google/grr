@@ -250,8 +250,8 @@ def CheckMySQLConnection(db_options):
   return False
 
 
-def ConfigureDatastore(config):
-  """Prompts the user for configuration details for the datastore."""
+def ConfigureMySQLDatastore(config):
+  """Prompts the user for configuration details for a MySQL datastore."""
   print("GRR will use MySQL as its database backend. Enter connection details:")
   datastore_init_complete = False
   db_options = {}
@@ -281,79 +281,54 @@ def ConfigureDatastore(config):
       if should_retry:
         db_options.clear()
       else:
-        raise ConfigInitError
+        raise ConfigInitError()
 
   for option, value in iteritems(db_options):
     config.Set(option, value)
 
 
-def ConfigureEmails(config):
-  """Configure email notification addresses."""
-  print("""\n\n-=Monitoring/Email Domain=-
-Emails concerning alerts or updates must be sent to this domain.
-""")
-  domain = RetryQuestion("Email Domain e.g example.com",
-                         "^([\\.A-Za-z0-9-]+)*$",
-                         grr_config.CONFIG.Get("Logging.domain"))
-  config.Set("Logging.domain", domain)
-
-  print("""\n\n-=Alert Email Address=-
-Address where monitoring events get sent, e.g. crashed clients, broken server
-etc.
-""")
-  email = RetryQuestion("Alert Email Address", "", "grr-monitoring@%s" % domain)
-  config.Set("Monitoring.alert_email", email)
-
-  print("""\n\n-=Emergency Email Address=-
-Address where high priority events such as an emergency ACL bypass are sent.
-""")
-  emergency_email = RetryQuestion("Emergency Access Email Address", "",
-                                  "grr-emergency@%s" % domain)
-  config.Set("Monitoring.emergency_access_email", emergency_email)
-
-
-def ConfigureBaseOptions(config):
-  """Configure the basic options required to run the server."""
-
-  print("We are now going to configure the server using a bunch of questions.")
-
-  print("""\n\n-=GRR Datastore=-
-For GRR to work each GRR server has to be able to communicate with the
-datastore.  To do this we need to configure a datastore.\n""")
+def ConfigureDatastore(config):
+  """Guides the user through configuration of the datastore."""
+  print("\n\n-=GRR Datastore=-\n"
+        "For GRR to work each GRR server has to be able to communicate with\n"
+        "the datastore. To do this we need to configure a datastore.\n")
 
   existing_datastore = grr_config.CONFIG.Get("Datastore.implementation")
 
   if not existing_datastore or existing_datastore == "FakeDataStore":
-    ConfigureDatastore(config)
-  else:
-    print("""Found existing settings:
-  Datastore: %s""" % existing_datastore)
+    ConfigureMySQLDatastore(config)
+    return
 
-    if existing_datastore == "SqliteDataStore":
-      print("""  Datastore Location: %s
-      """ % grr_config.CONFIG.Get("Datastore.location"))
+  print("Found existing settings:\n  Datastore: %s" % existing_datastore)
+  if existing_datastore == "SqliteDataStore":
+    set_up_mysql = RetryBoolQuestion(
+        "The SQLite datastore is no longer supported. Would you like to\n"
+        "set up a MySQL datastore? Answering 'no' will abort config "
+        "initialization.", True)
+    if set_up_mysql:
+      print("\nPlease note that no data will be migrated from SQLite to "
+            "MySQL.\n")
+      ConfigureMySQLDatastore(config)
+    else:
+      raise ConfigInitError()
+  elif existing_datastore == "MySQLAdvancedDataStore":
+    print("  MySQL Host: %s\n  MySQL Port: %s\n  MySQL Database: %s\n"
+          "  MySQL Username: %s\n" %
+          (grr_config.CONFIG.Get("Mysql.host"),
+           grr_config.CONFIG.Get("Mysql.port"),
+           grr_config.CONFIG.Get("Mysql.database_name"),
+           grr_config.CONFIG.Get("Mysql.database_username")))
+    if not RetryBoolQuestion("Do you want to keep this configuration?", True):
+      ConfigureMySQLDatastore(config)
 
-    if existing_datastore == "MySQLAdvancedDataStore":
-      print("""  MySQL Host: %s
-  MySQL Port: %s
-  MySQL Database: %s
-  MySQL Username: %s
-  """ % (grr_config.CONFIG.Get("Mysql.host"),
-         grr_config.CONFIG.Get("Mysql.port"),
-         grr_config.CONFIG.Get("Mysql.database_name"),
-         grr_config.CONFIG.Get("Mysql.database_username")))
 
-    # pytype: disable=wrong-arg-count
-    if builtins.input("Do you want to keep this configuration?"
-                      " [Yn]: ").upper() == "N":
-      ConfigureDatastore(config)
-    # pytype: enable=wrong-arg-count
-
-  print("""\n\n-=GRR URLs=-
-For GRR to work each client has to be able to communicate with the server. To do
-this we normally need a public dns name or IP address to communicate with. In
-the standard configuration this will be used to host both the client facing
-server and the admin user interface.\n""")
+def ConfigureUrls(config):
+  """Guides the user through configuration of various URLs used by GRR."""
+  print("\n\n-=GRR URLs=-\n"
+        "For GRR to work each client has to be able to communicate with the\n"
+        "server. To do this we normally need a public dns name or IP address\n"
+        "to communicate with. In the standard configuration this will be used\n"
+        "to host both the client facing server and the admin user interface.\n")
 
   existing_ui_urn = grr_config.CONFIG.Get("AdminUI.url", default=None)
   existing_frontend_urns = grr_config.CONFIG.Get("Client.server_urls")
@@ -377,42 +352,54 @@ server and the admin user interface.\n""")
   if not existing_frontend_urns or not existing_ui_urn:
     ConfigureHostnames(config)
   else:
-    print("""Found existing settings:
-  AdminUI URL: %s
-  Frontend URL(s): %s
-""" % (existing_ui_urn, existing_frontend_urns))
-
-    # pytype: disable=wrong-arg-count
-    if builtins.input("Do you want to keep this configuration?"
-                      " [Yn]: ").upper() == "N":
+    print("Found existing settings:\n  AdminUI URL: %s\n  "
+          "Frontend URL(s): %s\n" % (existing_ui_urn, existing_frontend_urns))
+    if not RetryBoolQuestion("Do you want to keep this configuration?", True):
       ConfigureHostnames(config)
-    # pytype: enable=wrong-arg-count
 
-  print("""\n\n-=GRR Emails=-
-  GRR needs to be able to send emails for various logging and
-  alerting functions.  The email domain will be appended to GRR user names
-  when sending emails to users.\n""")
+
+def ConfigureEmails(config):
+  """Guides the user through email setup."""
+  print("\n\n-=GRR Emails=-\n"
+        "GRR needs to be able to send emails for various logging and\n"
+        "alerting functions. The email domain will be appended to GRR\n"
+        "usernames when sending emails to users.\n")
 
   existing_log_domain = grr_config.CONFIG.Get("Logging.domain", default=None)
   existing_al_email = grr_config.CONFIG.Get(
       "Monitoring.alert_email", default=None)
-
   existing_em_email = grr_config.CONFIG.Get(
       "Monitoring.emergency_access_email", default=None)
-  if not existing_log_domain or not existing_al_email or not existing_em_email:
-    ConfigureEmails(config)
-  else:
-    print("""Found existing settings:
-  Email Domain: %s
-  Alert Email Address: %s
-  Emergency Access Email Address: %s
-""" % (existing_log_domain, existing_al_email, existing_em_email))
+  if existing_log_domain and existing_al_email and existing_em_email:
+    print("Found existing settings:\n"
+          "  Email Domain: %s\n  Alert Email Address: %s\n"
+          "  Emergency Access Email Address: %s\n" %
+          (existing_log_domain, existing_al_email, existing_em_email))
+    if RetryBoolQuestion("Do you want to keep this configuration?", True):
+      return
 
-    # pytype: disable=wrong-arg-count
-    if builtins.input("Do you want to keep this configuration?"
-                      " [Yn]: ").upper() == "N":
-      ConfigureEmails(config)
-    # pytype: enable=wrong-arg-count
+  print("\n\n-=Monitoring/Email Domain=-\n"
+        "Emails concerning alerts or updates must be sent to this domain.\n")
+  domain = RetryQuestion("Email Domain e.g example.com",
+                         "^([\\.A-Za-z0-9-]+)*$",
+                         grr_config.CONFIG.Get("Logging.domain"))
+  config.Set("Logging.domain", domain)
+
+  print("\n\n-=Alert Email Address=-\n"
+        "Address where monitoring events get sent, e.g. crashed clients, \n"
+        "broken server, etc.\n")
+  email = RetryQuestion("Alert Email Address", "", "grr-monitoring@%s" % domain)
+  config.Set("Monitoring.alert_email", email)
+
+  print("\n\n-=Emergency Email Address=-\n"
+        "Address where high priority events such as an emergency ACL bypass "
+        "are sent.\n")
+  emergency_email = RetryQuestion("Emergency Access Email Address", "",
+                                  "grr-emergency@%s" % domain)
+  config.Set("Monitoring.emergency_access_email", emergency_email)
+
+
+def ConfigureRekall(config):
   rekall_enabled = grr_config.CONFIG.Get("Rekall.enabled", False)
   if rekall_enabled:
     rekall_enabled = RetryBoolQuestion("Keep Rekall enabled?", True)
@@ -513,7 +500,11 @@ def Initialize(config=None, token=None):
     print("No old config file found.")
 
   print("\nStep 1: Setting Basic Configuration Parameters")
-  ConfigureBaseOptions(config)
+  print("We are now going to configure the server using a bunch of questions.")
+  ConfigureDatastore(config)
+  ConfigureUrls(config)
+  ConfigureEmails(config)
+  ConfigureRekall(config)
 
   print("\nStep 2: Key Generation")
   if config.Get("PrivateKeys.server_key", default=None):
@@ -591,7 +582,7 @@ def InitializeNoPrompt(config=None, token=None):
     print("Successfully connected to MySQL with the given configuration.")
   else:
     print("Error: Could not connect to MySQL with the given configuration.")
-    raise ConfigInitError
+    raise ConfigInitError()
   for key, value in iteritems(config_dict):
     config.Set(key, value)
   GenerateKeys(config)

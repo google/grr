@@ -8,16 +8,13 @@ import time
 
 
 from builtins import range  # pylint: disable=redefined-builtin
-from future.utils import with_metaclass
 import pytest
 
-from grr_response_core.lib import registry
 from grr.test_lib import test_lib
 
 
 @pytest.mark.large
-class MicroBenchmarks(
-    with_metaclass(registry.MetaclassRegistry, test_lib.GRRBaseTest)):
+class MicroBenchmarks(test_lib.GRRBaseTest):
   """This base class created the GRR benchmarks."""
 
   units = "us"
@@ -34,8 +31,8 @@ class MicroBenchmarks(
     scratchpad_fields = base_scratchpad_fields + extra_fields
     # Create format string for displaying benchmark results.
     initial_fmt = ["45", "<20", "<20"] + extra_format
-    self.scratchpad_fmt = " ".join([("{%d:%s}" % (ind, x))
-                                    for ind, x in enumerate(initial_fmt)])
+    self.scratchpad_fmt = " ".join(
+        [("{%d:%s}" % (ind, x)) for ind, x in enumerate(initial_fmt)])
     # We use this to store temporary benchmark results.
     self.scratchpad = [
         scratchpad_fields, ["-" * len(x) for x in scratchpad_fields]

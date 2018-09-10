@@ -24,7 +24,7 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
     self.RequestAndGrantClientApproval(self.client_id)
 
   def testLaunchBinaryFlowResultsHaveReadableStdOutAndStdErr(self):
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)

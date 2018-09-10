@@ -267,7 +267,7 @@ class ApiListClientActionRequestsHandlerRegressionTest(
 
     replace = {}
     with test_lib.FakeTime(42):
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           client_id=client_id,
           flow_name=processes.ListProcesses.__name__,
           token=self.token)

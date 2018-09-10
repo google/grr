@@ -5,6 +5,7 @@ This handles opening and parsing of config files.
 """
 
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import collections
 import ConfigParser
@@ -367,9 +368,9 @@ class ConfigFileParser(ConfigParser.RawConfigParser, GRRConfigParser):
       self.filename = filename
 
     elif data is not None:
-      # TODO(hanuszczak): Configuration file, consider using `StringIO` instead.
-      fd = io.BytesIO(data)
-      self.parsed = self.readfp(fd)
+      fd = io.StringIO(data)
+      # TODO(hanuszczak): Incorrect typings (`StringIO` is `IO`).
+      self.parsed = self.readfp(fd)  # pytype: disable=wrong-arg-types
       self.filename = filename
     else:
       raise Error("Filename not specified.")
@@ -403,7 +404,10 @@ class ConfigFileParser(ConfigParser.RawConfigParser, GRRConfigParser):
   def SaveDataToFD(self, raw_data, fd):
     """Merge the raw data with the config file and store it."""
     for key, value in iteritems(raw_data):
+      # TODO(hanuszczak): Incorrect type specification for `set`.
+      # pytype: disable=wrong-arg-types
       self.set("", key, value=value)
+      # pytype: enable=wrong-arg-types
 
     self.write(fd)
 
@@ -484,25 +488,8 @@ class YamlParser(GRRConfigParser):
 
   name = "yaml"
 
-  def _LoadYamlByName(self, filename):
-    # Note that we do not use safe_load because we trust the config file (if an
-    # attacker can write on the config file they can already get code
-    # execution). Using safe_load will break when loading a yaml file written
-    # with dump().
-    return yaml.load(open(filename, "rb"))
-
-  def _ParseYaml(self, filename="", fd=None):
-    """Recursively parse included configs."""
-    if not filename and not fd:
-      raise IOError("Neither filename nor fd specified")
-
-    if fd:
-      data = yaml.load(fd) or OrderedYamlDict()
-    elif filename:
-      data = self._LoadYamlByName(filename) or OrderedYamlDict()
-
-    return data
-
+  # TODO(hanuszczak): This constructor has unnecessary complicated logic and too
+  # much branching. It should be simplified.
   def __init__(self, filename=None, data=None, fd=None):
     super(YamlParser, self).__init__()
 
@@ -512,13 +499,13 @@ class YamlParser(GRRConfigParser):
         self.filename = fd.name
       except AttributeError:
         self.filename = None
-      self.parsed = self._ParseYaml(fd=fd, filename=(self.filename or ""))
+      self.parsed = _ParseYamlFromFile(fd)
 
     elif filename:
       self.filename = filename
 
       try:
-        self.parsed = self._ParseYaml(filename=filename) or OrderedYamlDict()
+        self.parsed = _ParseYamlFromFilepath(filename)
       except IOError as e:
         if e.errno == errno.EACCES:
           # Specifically catch access denied errors, this usually indicates the
@@ -532,9 +519,8 @@ class YamlParser(GRRConfigParser):
 
     elif data is not None:
       self.filename = filename
-      # TODO(hanuszczak): YAML, consider using `StringIO` instead.
-      fd = io.BytesIO(data)
-      self.parsed = self._ParseYaml(fd=fd)
+      fd = io.StringIO(data)
+      self.parsed = _ParseYamlFromFile(fd)
     else:
       raise Error("Filename not specified.")
 
@@ -596,6 +582,30 @@ class YamlParser(GRRConfigParser):
 
   def RawData(self):
     return self._RawData(self.parsed)
+
+
+def _ParseYamlFromFilepath(filepath):
+  """Parses a YAML file at specified path."""
+  with io.open(filepath, "r") as filedesc:
+    return _ParseYamlFromFile(filedesc)
+
+
+def _ParseYamlFromFile(filedesc):
+  """Parses given YAML file."""
+
+  def StrConstructor(loader, node):
+    utils.AssertType(node.value, unicode)
+    return loader.construct_scalar(node)
+
+  # This makes sure that all string literals in the YAML file are parsed as an
+  # `unicode` object rather than `bytes` instances.
+  yaml.add_constructor("tag:yaml.org,2002:str", StrConstructor)
+
+  # Note that we do not use safe_load because we trust the config file (if an
+  # attacker can write on the config file they can already get code
+  # execution). Using safe_load will break when loading a yaml file written
+  # with dump().
+  return yaml.load(filedesc) or OrderedYamlDict()
 
 
 class StringInterpolator(lexer.Lexer):
@@ -996,9 +1006,7 @@ class GrrConfigManager(object):
 
     # Check if the new value conforms with the type_info.
     if value is not None:
-      type_info_obj = self.FindTypeInfo(name)
-      value = type_info_obj.ToString(value)
-      if isinstance(value, basestring):
+      if isinstance(value, unicode):
         value = self.EscapeString(value)
 
     writeback_data[name] = value
@@ -1217,6 +1225,8 @@ class GrrConfigManager(object):
 
     return parser
 
+  # TODO(hanuszczak): Magic method with a lot of mutually exclusive switches. It
+  # should be split into multiple methods instead.
   def Initialize(self,
                  filename=None,
                  data=None,
@@ -1476,7 +1486,7 @@ class GrrConfigManager(object):
                        context=None):
     """Interpolate the value and parse it with the appropriate type."""
     # It is only possible to interpolate strings...
-    if isinstance(value, basestring):
+    if isinstance(value, unicode):
       try:
         value = StringInterpolator(
             value,
@@ -1557,12 +1567,6 @@ class GrrConfigManager(object):
     """A helper for defining string options."""
     self.AddOption(
         type_info.String(name=name, default=default or "", description=help),
-        constant=constant)
-
-  def DEFINE_bytes(self, name, default, help, constant=False):
-    """A helper for defining bytes options."""
-    self.AddOption(
-        type_info.Bytes(name=name, default=default or "", description=help),
         constant=constant)
 
   def DEFINE_choice(self, name, default, choices, help, constant=False):
@@ -1669,11 +1673,6 @@ def DEFINE_boolean(name, default, help):
 def DEFINE_string(name, default, help):
   """A helper for defining string options."""
   _CONFIG.DEFINE_string(name, default, help)
-
-
-def DEFINE_bytes(name, default, help):
-  """A helper for defining bytes options."""
-  _CONFIG.DEFINE_bytes(name, default, help)
 
 
 def DEFINE_choice(name, default, choices, help):

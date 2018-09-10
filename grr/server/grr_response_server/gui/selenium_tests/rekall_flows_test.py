@@ -21,8 +21,8 @@ class TestRekallFlows(gui_test_lib.GRRSeleniumTest):
   def testRekallFlowsAreShownInDebugUIByDefault(self):
     self.Open("/#/clients/%s/launch-flow" % self.client_id)
 
-    self.Click("css=#_Memory")
-    self.Click("css=#_Filesystem")
+    self.Click("css=#_Memory a")
+    self.Click("css=#_Filesystem a")
     # Make sure that there's no race by clicking on 2 categories and
     # checking that we actually see the items from the second category.
     self.WaitUntil(self.IsElementPresent, "css=a:contains('File Finder')")
@@ -35,7 +35,7 @@ class TestRekallFlows(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Proceed]")
 
     # Try again. AnalyzeClientMemory should be visible now.
-    self.Click("css=#_Memory")
+    self.Click("css=#_Memory a")
     self.WaitUntil(self.IsElementPresent,
                    "css=a:contains('AnalyzeClientMemory')")
 
@@ -46,7 +46,7 @@ class TestRekallFlows(gui_test_lib.GRRSeleniumTest):
     try:
       self.Open("/#/clients/%s/launch-flow" % self.client_id)
 
-      self.Click("css=#_Memory")
+      self.Click("css=#_Memory a")
       self.WaitUntilNot(self.IsElementPresent,
                         "css=a:contains('AnalyzeClientMemory')")
     finally:

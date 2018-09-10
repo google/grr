@@ -22,7 +22,7 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
   @classmethod
   def GenerateNotifications(cls, client_id, token):
     """Generates fake notifications of different notification types."""
-    session_id = flow.StartFlow(
+    session_id = flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=discovery.Interrogate.__name__,
         token=token)

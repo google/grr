@@ -78,27 +78,27 @@ class ItemFilterTests(test_lib.GRRBaseTest):
     fs = rdf_client_fs.Filesystem(device="/dev/sda1", mount_point="/root")
     objs = [one, foo, fs]
 
-    results = filt.Parse(objs, "test1 is '1'")
+    results = filt.Parse(objs, u"test1 is '1'")
     self.assertEqual(1, len(results))
     self.assertEqual("test1", results[0].key)
     self.assertEqual("1", results[0].value)
 
-    results = filt.Parse(objs, "test1 is '2'")
+    results = filt.Parse(objs, u"test1 is '2'")
     self.assertFalse(results)
 
-    results = filt.Parse(objs, "test2 contains 3")
+    results = filt.Parse(objs, u"test2 contains 3")
     self.assertEqual(1, len(results))
     self.assertEqual("test2", results[0].key)
     self.assertEqual([2, 3], results[0].value)
 
-    results = filt.Parse(objs, "test1 is '1' or test1 contains 'foo'")
+    results = filt.Parse(objs, u"test1 is '1' or test1 contains 'foo'")
     self.assertEqual(2, len(results))
     self.assertEqual("test1", results[0].key)
     self.assertEqual("1", results[0].value)
     self.assertEqual("test1", results[1].key)
     self.assertEqual("foo", results[1].value)
 
-    results = filt.Parse(objs, "mount_point is '/root'")
+    results = filt.Parse(objs, u"mount_point is '/root'")
     self.assertEqual(1, len(results))
     self.assertEqual("mount_point", results[0].key)
     self.assertEqual("/root", results[0].value)
@@ -139,8 +139,8 @@ class ObjectFilterTests(test_lib.GRRBaseTest):
 
   def testValidate(self):
     filt = filters.ObjectFilter()
-    self.assertRaises(filters.DefinitionError, filt.Validate, "bad term")
-    self.assertFalse(filt.Validate("test is 'ok'"))
+    self.assertRaises(filters.DefinitionError, filt.Validate, u"bad term")
+    self.assertFalse(filt.Validate(u"test is 'ok'"))
 
   def testParse(self):
     filt = filters.ObjectFilter()
@@ -149,11 +149,11 @@ class ObjectFilterTests(test_lib.GRRBaseTest):
     hit2 = rdf_protodict.AttributedDict(test="hit2")
     miss = rdf_protodict.AttributedDict(test="miss")
     objs = [hit1, hit2, miss]
-    results = filt.Parse(objs, "test is 'hit1'")
+    results = filt.Parse(objs, u"test is 'hit1'")
     self.assertItemsEqual([hit1], results)
-    results = filt.Parse(objs, "test is 'hit2'")
+    results = filt.Parse(objs, u"test is 'hit2'")
     self.assertItemsEqual([hit2], results)
-    results = filt.Parse(objs, "test inset 'hit1,hit2'")
+    results = filt.Parse(objs, u"test inset 'hit1,hit2'")
     self.assertItemsEqual([hit1, hit2], results)
 
 
@@ -182,29 +182,29 @@ class RDFFilterTests(test_lib.GRRBaseTest):
 class StatFilterTests(test_lib.GRRBaseTest):
   """Test stat filter methods and operations."""
 
-  bad_null = ["", " :"]
-  bad_file = ["file_re:[[["]
-  bad_gids = ["gid: ", "gid 0", "gid:0", "gid:=", "gid:gid:"]
-  bad_mode = ["mode 755", "mode:755", "mode:0999", "mode:0777,0775"]
-  bad_mask = ["mask 755", "mask:755", "mask:0999", "mask:0777,0775"]
-  bad_path = ["path_re:[[["]
+  bad_null = [u"", u" :"]
+  bad_file = [u"file_re:[[["]
+  bad_gids = [u"gid: ", u"gid 0", u"gid:0", u"gid:=", u"gid:gid:"]
+  bad_mode = [u"mode 755", u"mode:755", u"mode:0999", u"mode:0777,0775"]
+  bad_mask = [u"mask 755", u"mask:755", u"mask:0999", u"mask:0777,0775"]
+  bad_path = [u"path_re:[[["]
   bad_type = [
-      "file_type: ", "file_type foo", "file_type:foo",
-      "file_type:directory,regular"
+      u"file_type: ", u"file_type foo", u"file_type:foo",
+      u"file_type:directory,regular"
   ]
-  bad_uids = ["uid: ", "uid 0", "uid:0", "uid:=", "uid:gid:"]
+  bad_uids = [u"uid: ", u"uid 0", u"uid:0", u"uid:=", u"uid:gid:"]
   badness = [
       bad_null, bad_file, bad_gids, bad_mask, bad_mode, bad_path, bad_type,
       bad_uids
   ]
 
-  ok_file = ["file_re:/etc/passwd"]
-  ok_gids = ["gid:=0", "gid:=1,>1,<1,>=1,<=1,!1"]
-  ok_mode = ["mode:0002"]
-  ok_mask = ["mode:1002"]
-  ok_path = ["path_re:/home/*"]
-  ok_type = ["file_type:REGULAR", "file_type:directory"]
-  ok_uids = ["uid:=0", "uid:=1,>1,<1,>=1,<=1,!1"]
+  ok_file = [u"file_re:/etc/passwd"]
+  ok_gids = [u"gid:=0", u"gid:=1,>1,<1,>=1,<=1,!1"]
+  ok_mode = [u"mode:0002"]
+  ok_mask = [u"mode:1002"]
+  ok_path = [u"path_re:/home/*"]
+  ok_type = [u"file_type:REGULAR", u"file_type:directory"]
+  ok_uids = [u"uid:=0", u"uid:=1,>1,<1,>=1,<=1,!1"]
   just_fine = [ok_file, ok_gids, ok_mask, ok_mode, ok_path, ok_type, ok_uids]
 
   def _GenStat(self,
@@ -259,7 +259,7 @@ class StatFilterTests(test_lib.GRRBaseTest):
     for file_type, expected in iteritems(all_types):
       filt._Flush()
       results = filt.Parse(
-          list(itervalues(all_types)), "file_type:%s" % file_type)
+          list(itervalues(all_types)), u"file_type:%s" % file_type)
       self.assertEqual(1, len(results), "Expected exactly 1 %s" % file_type)
       self.assertEqual(expected, results[0],
                        "Expected stat %s, got %s" % (expected, results[0]))
@@ -271,11 +271,11 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj2 = self._GenStat(path="/etc/alternatives/ssh-askpass")
     obj3 = self._GenStat(path="/etc/alternatives/ssh-askpass.1.gz")
     objs = [obj1, obj2, obj3]
-    results = filt.Parse(objs, "file_re:pass")
+    results = filt.Parse(objs, u"file_re:pass")
     self.assertItemsEqual(objs, results)
-    results = filt.Parse(objs, "file_re:pass$")
+    results = filt.Parse(objs, u"file_re:pass$")
     self.assertItemsEqual([obj2], results)
-    results = filt.Parse(objs, "file_re:^pass")
+    results = filt.Parse(objs, u"file_re:^pass")
     self.assertItemsEqual([obj1], results)
 
   def testPathREParse(self):
@@ -285,11 +285,11 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj2 = self._GenStat(path="/etc/alternatives/ssh-askpass")
     obj3 = self._GenStat(path="/etc/alternatives/ssh-askpass.1.gz")
     objs = [obj1, obj2, obj3]
-    results = filt.Parse(objs, "path_re:/etc/*")
+    results = filt.Parse(objs, u"path_re:/etc/*")
     self.assertItemsEqual(objs, results)
-    results = filt.Parse(objs, "path_re:alternatives")
+    results = filt.Parse(objs, u"path_re:alternatives")
     self.assertItemsEqual([obj2, obj3], results)
-    results = filt.Parse(objs, "path_re:alternatives file_re:pass$")
+    results = filt.Parse(objs, u"path_re:alternatives file_re:pass$")
     self.assertItemsEqual([obj2], results)
 
   def testGIDParse(self):
@@ -299,17 +299,17 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj2 = self._GenStat(st_gid=500)
     obj3 = self._GenStat(st_gid=5000)
     objs = [obj1, obj2, obj3]
-    results = filt.Parse(objs, "gid:=0")
+    results = filt.Parse(objs, u"gid:=0")
     self.assertItemsEqual([obj1], results)
-    results = filt.Parse(objs, "gid:>=0")
+    results = filt.Parse(objs, u"gid:>=0")
     self.assertItemsEqual(objs, results)
-    results = filt.Parse(objs, "gid:>0")
+    results = filt.Parse(objs, u"gid:>0")
     self.assertItemsEqual([obj2, obj3], results)
-    results = filt.Parse(objs, "gid:>0,<=5000")
+    results = filt.Parse(objs, u"gid:>0,<=5000")
     self.assertItemsEqual([obj2, obj3], results)
-    results = filt.Parse(objs, "gid:>0,<5000")
+    results = filt.Parse(objs, u"gid:>0,<5000")
     self.assertItemsEqual([obj2], results)
-    results = filt.Parse(objs, "gid:!5000")
+    results = filt.Parse(objs, u"gid:!5000")
     self.assertItemsEqual([obj1, obj2], results)
 
   def testUIDParse(self):
@@ -318,19 +318,19 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj1 = self._GenStat(st_uid=1001)
     obj2 = self._GenStat(st_uid=5000)
     objs = [obj1, obj2]
-    results = filt.Parse(objs, "uid:=0")
+    results = filt.Parse(objs, u"uid:=0")
     self.assertFalse(results)
-    results = filt.Parse(objs, "uid:=1001")
+    results = filt.Parse(objs, u"uid:=1001")
     self.assertItemsEqual([obj1], results)
-    results = filt.Parse(objs, "uid:>=0")
+    results = filt.Parse(objs, u"uid:>=0")
     self.assertItemsEqual(objs, results)
-    results = filt.Parse(objs, "uid:>0")
+    results = filt.Parse(objs, u"uid:>0")
     self.assertItemsEqual(objs, results)
-    results = filt.Parse(objs, "uid:>0,<=5000")
+    results = filt.Parse(objs, u"uid:>0,<=5000")
     self.assertItemsEqual(objs, results)
-    results = filt.Parse(objs, "uid:>0,<5000")
+    results = filt.Parse(objs, u"uid:>0,<5000")
     self.assertItemsEqual([obj1], results)
-    results = filt.Parse(objs, "uid:!5000")
+    results = filt.Parse(objs, u"uid:!5000")
     self.assertItemsEqual([obj1], results)
 
   def testPermissionsParse(self):
@@ -339,13 +339,13 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj1 = self._GenStat(st_mode=0o100740)
     obj2 = self._GenStat(st_mode=0o100755)
     objs = [obj1, obj2]
-    results = filt.Parse(objs, "mode:0644")
+    results = filt.Parse(objs, u"mode:0644")
     self.assertFalse(results)
-    results = filt.Parse(objs, "mode:0740")
+    results = filt.Parse(objs, u"mode:0740")
     self.assertItemsEqual([obj1], results)
-    results = filt.Parse(objs, "mode:0640 mask:0640")
+    results = filt.Parse(objs, u"mode:0640 mask:0640")
     self.assertItemsEqual(objs, results)
-    results = filt.Parse(objs, "mode:0014 mask:0014")
+    results = filt.Parse(objs, u"mode:0014 mask:0014")
     self.assertItemsEqual([obj2], results)
 
   def testParseFileObjs(self):
@@ -361,14 +361,14 @@ class StatFilterTests(test_lib.GRRBaseTest):
     cfg = {"path": "/etc/shadow", "st_uid": 0, "st_gid": 0, "st_mode": 0o100640}
     invalid = rdf_protodict.AttributedDict(**cfg)
     objs = [ok, link, user, writable, invalid]
-    results = filt.Parse(objs, "uid:>=0 gid:>=0")
+    results = filt.Parse(objs, u"uid:>=0 gid:>=0")
     self.assertItemsEqual([ok, link, user, writable], results)
-    results = filt.Parse(objs, "uid:=0 mode:0440 mask:0440")
+    results = filt.Parse(objs, u"uid:=0 mode:0440 mask:0440")
     self.assertItemsEqual([ok, link, writable], results)
-    results = filt.Parse(objs, "uid:=0 mode:0440 mask:0444")
+    results = filt.Parse(objs, u"uid:=0 mode:0440 mask:0444")
     self.assertItemsEqual([ok, link], results)
     results = list(
-        filt.Parse(objs, "uid:=0 mode:0440 mask:0444 file_type:regular"))
+        filt.Parse(objs, u"uid:=0 mode:0440 mask:0444 file_type:regular"))
     self.assertItemsEqual([ok], results)
 
 

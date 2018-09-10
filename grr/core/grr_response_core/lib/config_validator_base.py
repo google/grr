@@ -3,6 +3,8 @@
 
 This has to be in a separate file to avoid import loops.
 """
+from __future__ import unicode_literals
+
 
 from future.utils import with_metaclass
 

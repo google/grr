@@ -3,6 +3,8 @@
 """Tests for grr.parsers.chrome_history."""
 
 
+from __future__ import unicode_literals
+
 import datetime
 import os
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Simple parsers for configuration files."""
 
+from __future__ import unicode_literals
+
 
 from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems

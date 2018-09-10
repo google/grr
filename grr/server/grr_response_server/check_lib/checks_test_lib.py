@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A library for check-specific tests."""
+from __future__ import unicode_literals
 
 import collections
 import io
@@ -9,12 +10,11 @@ import os
 from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import iterkeys
-from future.utils import with_metaclass
 import yaml
 
 from grr_response_core import config
-from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
+from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -28,8 +28,7 @@ from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
 
-class HostCheckTest(
-    with_metaclass(registry.MetaclassRegistry, test_lib.GRRBaseTest)):
+class HostCheckTest(test_lib.GRRBaseTest):
   """The base class for host check tests."""
 
   loaded_checks = None
@@ -138,7 +137,7 @@ class HostCheckTest(
       check.Validate()
     except (checks.Error, filters.Error, hints.Error, type_info.Error) as e:
       errors.append(str(e))
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
       # TODO(user): More granular exception handling.
       errors.append("Unknown error %s: %s" % (type(e), e))
     return errors
@@ -151,8 +150,7 @@ class HostCheckTest(
 
   def _AddToHostData(self, host_data, artifact, data, parser):
     """Parse raw data collected for an artifact into the host_data table."""
-    if type(data) != dict:
-      raise TypeError("Data for %s is not of type dictionary." % artifact)
+    utils.AssertType(data, dict)
 
     rdfs = []
     stats = []
@@ -160,7 +158,7 @@ class HostCheckTest(
     for path, lines in iteritems(data):
       stat = self.CreateStat(path)
       stats.append(stat)
-      file_obj = io.BytesIO(lines)
+      file_obj = io.StringIO(lines)
       files.append(file_obj)
       if not parser.process_together:
         rdfs.extend(list(parser.Parse(stat, file_obj, None)))

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A facade to operating system dependent client actions."""
+from __future__ import unicode_literals
 
 import platform
 
@@ -25,7 +26,21 @@ elif platform.system() == "Darwin":
 # pylint: disable=invalid-name
 
 EnumerateInterfaces = submodule.EnumerateInterfaces
+EnumerateInterfacesFromClient = submodule.EnumerateInterfacesFromClient
 EnumerateFilesystems = submodule.EnumerateFilesystems
+# EnumerateFilesystemsFromClient = submodule.EnumerateFilesystemsFromClient
+if platform.system() == "Linux":
+  EnumerateUsers = submodule.EnumerateUsers
+  EnumerateUsersFromClient = submodule.EnumerateUsersFromClient
+else:
+  EnumerateUsers = None
+  EnumerateUsersFromClient = None
 GetInstallDate = submodule.GetInstallDate
+if platform.system() == "Darwin":
+  OSXEnumerateRunningServices = submodule.OSXEnumerateRunningServices
+# OSXEnumerateRunningServicesFromC = submodule.OSXEnumerateRunningServicesFromC
+else:
+  OSXEnumerateRunningServices = None
+  OSXEnumerateRunningServicesFromClient = None
 Uninstall = submodule.Uninstall
 UpdateAgent = submodule.UpdateAgent

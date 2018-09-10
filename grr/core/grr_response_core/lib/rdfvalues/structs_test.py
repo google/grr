@@ -2,6 +2,8 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test RDFStruct implementations."""
 
+from __future__ import unicode_literals
+
 from builtins import range  # pylint: disable=redefined-builtin
 
 from google.protobuf import descriptor_pool
@@ -10,6 +12,7 @@ from google.protobuf import message_factory
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -119,6 +122,14 @@ class DynamicAnyValueTypeTest(rdf_structs.RDFProtoStruct):
   )
 
 
+class AnyValueWithoutTypeFunctionTest(rdf_structs.RDFProtoStruct):
+  """A protobuf with dynamic types stored in AnyValue messages."""
+
+  type_description = type_info.TypeDescriptorSet(
+      rdf_structs.ProtoDynamicAnyValueEmbedded(
+          name="dynamic", field_number=1, description="A dynamic value."),)
+
+
 class LateBindingTest(rdf_structs.RDFProtoStruct):
   type_description = type_info.TypeDescriptorSet(
       # A nested protobuf referring to an undefined type.
@@ -195,13 +206,28 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(DynamicTypeTest.FromSerializedString(serialized), test_pb)
 
     # Test proto definition.
-    self.assertEqual(DynamicTypeTest.EmitProto(),
-                     "message DynamicTypeTest {\n\n  "
-                     "// A string value\n  optional string type = 1 "
-                     "[default = u'TestStruct'];\n\n  "
-                     "// A dynamic value based on another field.\n  "
-                     "optional bytes dynamic = 2;\n  "
-                     "optional User nested = 3;\n}\n")
+    self.assertEqual(
+        DynamicTypeTest.EmitProto(), "message DynamicTypeTest {\n\n  "
+        "// A string value\n  optional string type = 1 "
+        "[default = u'TestStruct'];\n\n  "
+        "// A dynamic value based on another field.\n  "
+        "optional bytes dynamic = 2;\n  "
+        "optional User nested = 3;\n}\n")
+
+  def testAnyValueWithoutTypeCallback(self):
+    test_pb = AnyValueWithoutTypeFunctionTest()
+
+    for value_to_assign in [
+        rdfvalue.RDFString("test"),
+        rdfvalue.RDFInteger(1234),
+        rdfvalue.RDFBytes(b"abc"),
+        rdf_flows.GrrStatus(status="WORKER_STUCK", error_message="stuck")
+    ]:
+      test_pb.dynamic = value_to_assign
+      serialized = test_pb.SerializeToString()
+      self.assertEqual(
+          AnyValueWithoutTypeFunctionTest.FromSerializedString(serialized),
+          test_pb)
 
   def testDynamicAnyValueType(self):
     test_pb = DynamicAnyValueTypeTest(type="TestStruct")
@@ -218,11 +244,12 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         DynamicAnyValueTypeTest.FromSerializedString(serialized), test_pb)
 
     # Test proto definition.
-    self.assertEqual(DynamicAnyValueTypeTest.EmitProto(),
-                     "message DynamicAnyValueTypeTest {\n\n  "
-                     "// A string value\n  optional string type = 1;\n\n  "
-                     "// A dynamic value based on another field.\n  "
-                     "optional google.protobuf.Any dynamic = 2;\n}\n")
+    self.assertEqual(
+        DynamicAnyValueTypeTest.EmitProto(),
+        "message DynamicAnyValueTypeTest {\n\n  "
+        "// A string value\n  optional string type = 1;\n\n  "
+        "// A dynamic value based on another field.\n  "
+        "optional google.protobuf.Any dynamic = 2;\n}\n")
 
   def testDynamicAnyValueTypeWithPrimitiveValues(self):
     test_pb = DynamicAnyValueTypeTest(type="RDFString")
@@ -253,7 +280,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Now let's define an RDFProtoStruct for the dynamically generated
     # proto_class.
-    new_dynamic_class = type(
+    new_dynamic_class = utils.MakeType(
         "DynamicTypeTestReversed", (rdf_structs.RDFProtoStruct,),
         dict(protobuf=proto_class, rdf_deps=[rdf_client.User]))
     new_dynamic_instance = new_dynamic_class(
@@ -275,11 +302,10 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Now let's define an RDFProtoStruct for the dynamically generated
     # proto_class.
-    new_dynamic_class = type(
+    new_dynamic_class = utils.MakeType(
         "DynamicAnyValueTypeTestReversed",
         (rdf_structs.RDFProtoStruct,),
-        # TODO(user): We shouldn't need to specify Any here. Investigate.
-        dict(protobuf=proto_class, rdf_deps=["Any"]),
+        dict(protobuf=proto_class),
     )
     new_dynamic_instance = new_dynamic_class(type="foo")
     self.assertEqual(new_dynamic_instance.type, "foo")
@@ -462,26 +488,6 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     # serialized. If the cache is not properly invalidated, we will return the
     # old result instead.
     self.assertTrue("booo" in path.SerializeToString())
-
-  def testWireFormatAccess(self):
-
-    m = rdf_flows.PackedMessageList()
-
-    now = 1369308998000000
-
-    # An unset RDFDatetime with no defaults will be None.
-    self.assertEqual(m.timestamp, None)
-
-    # Set the wireformat to the integer equivalent.
-    m.SetPrimitive("timestamp", now)
-
-    self.assertTrue(isinstance(m.timestamp, rdfvalue.RDFDatetime))
-    self.assertEqual(m.timestamp, now)
-
-    rdf_now = rdfvalue.RDFDatetime.Now()
-
-    m.timestamp = rdf_now
-    self.assertEqual(m.GetPrimitive("timestamp"), int(rdf_now))
 
   def testLateBinding(self):
     # The LateBindingTest protobuf is not fully defined.

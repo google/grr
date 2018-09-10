@@ -147,8 +147,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_LITERAL_MATCH,
+            condition_type=registry.RegistryFinderCondition.Type
+            .VALUE_LITERAL_MATCH,
             value_literal_match=vlm)
     ])
     self.AssertNoResults(session_id)
@@ -160,8 +160,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_LITERAL_MATCH,
+            condition_type=registry.RegistryFinderCondition.Type
+            .VALUE_LITERAL_MATCH,
             value_literal_match=vlm)
     ])
 
@@ -191,8 +191,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_REGEX_MATCH,
+            condition_type=registry.RegistryFinderCondition.Type
+            .VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)
     ])
     self.AssertNoResults(session_id)
@@ -204,8 +204,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_REGEX_MATCH,
+            condition_type=registry.RegistryFinderCondition.Type
+            .VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)
     ])
 
@@ -236,8 +236,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            MODIFICATION_TIME,
+            condition_type=registry.RegistryFinderCondition.Type
+            .MODIFICATION_TIME,
             modification_time=modification_time)
     ])
     self.AssertNoResults(session_id)
@@ -252,8 +252,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            MODIFICATION_TIME,
+            condition_type=registry.RegistryFinderCondition.Type
+            .MODIFICATION_TIME,
             modification_time=modification_time)
     ])
 
@@ -277,12 +277,12 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            MODIFICATION_TIME,
+            condition_type=registry.RegistryFinderCondition.Type
+            .MODIFICATION_TIME,
             modification_time=modification_time),
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_LITERAL_MATCH,
+            condition_type=registry.RegistryFinderCondition.Type
+            .VALUE_LITERAL_MATCH,
             value_literal_match=vlm)
     ])
 
@@ -346,7 +346,7 @@ class TestRegistryFlows(RegistryFlowTest):
       client.Set(client.Schema.KNOWLEDGE_BASE, list(col)[0])
       client.Flush()
 
-      with test_lib.Instrument(transfer.MultiGetFile,
+      with test_lib.Instrument(transfer.MultiGetFileMixin,
                                "Start") as getfile_instrument:
         # Run the flow in the emulated way.
         flow_test_lib.TestFlowHelper(

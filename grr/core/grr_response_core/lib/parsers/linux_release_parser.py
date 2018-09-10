@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Simple parsers for Linux Release files."""
+from __future__ import unicode_literals
+
 import collections
 import itertools
 import re

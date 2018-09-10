@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.wmi_parser."""
 
+from __future__ import unicode_literals
+
 import platform
 import unittest
 
@@ -99,15 +101,7 @@ objFile.Close"""
   def testWMIEventConsumerParserDoesntFailOnMalformedSIDs(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
     rdf_dict = rdf_protodict.Dict()
-    tests = [
-        [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0],
-        "(1, 2, 3)",  # Older clients (3.0.0.3) return a the SID like this
-        1,
-        {
-            1: 2
-        },
-        (1, 2)
-    ]
+    tests = [[1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0], [1, 2, 3], [1], {1: 2}, (1, 2)]
 
     for test in tests:
       rdf_dict["CreatorSID"] = test
@@ -214,14 +208,14 @@ class BinarySIDToStringSIDTest(test_lib.GRRBaseTest):
   def test5Subauthorities(self):
     self.assertConvertsTo(
         b"\x01\x05\x00\x00\x00\x00\x00\x05\x15\x00\x00\x00\x85\x74\x77\xb9\x7c"
-        "\x0d\x7a\x96\x6f\xbd\x29\x9a\xf4\x01\x00\x00",
+        b"\x0d\x7a\x96\x6f\xbd\x29\x9a\xf4\x01\x00\x00",
         u"S-1-5-21-3111613573-2524581244-2586426735-500")
 
   def testLastAuthorityTruncated(self):
     with self.assertRaises(ValueError):
       wmi_parser.BinarySIDtoStringSID(
           b"\x01\x05\x00\x00\x00\x00\x00\x05\x15\x00\x00\x00\x85\x74\x77\xb9"
-          "\x7c\x0d\x7a\x96\x6f\xbd\x29\x9a\xf4")
+          b"\x7c\x0d\x7a\x96\x6f\xbd\x29\x9a\xf4")
 
 
 def main(argv):

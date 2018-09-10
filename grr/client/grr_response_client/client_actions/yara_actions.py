@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Yara based client actions."""
+from __future__ import unicode_literals
 
 import os
 import re

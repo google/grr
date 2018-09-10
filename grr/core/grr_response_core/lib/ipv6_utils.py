@@ -5,6 +5,8 @@ We've written our own versions of socket.inet_pton and inet_ntop for ipv6
 because those functions are not available on windows before python 3.4.
 """
 
+from __future__ import unicode_literals
+
 import re
 import socket
 
@@ -22,12 +24,11 @@ BAD_SINGLE_COLON = re.compile(r"(^\:[^:].*|.*[^:]\:$)")
 
 def _RemoveV4Ending(addr_string):
   """Replace v4 endings with v6 equivalents."""
-
   match = V4_ENDING.match(addr_string)
   if match:
     ipv4_addr = ".".join(match.groups()[1:])
     try:
-      socket.inet_aton(ipv4_addr)
+      socket.inet_aton(ipv4_addr.encode("ascii"))
     except (socket.error, ValueError):
       raise socket.error("Illegal IPv4 extension: %s" % addr_string)
 

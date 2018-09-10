@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """RDF values related to events."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs

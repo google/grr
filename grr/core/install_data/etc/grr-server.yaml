@@ -293,9 +293,3 @@ Worker Context:
 
 # For Test Context, see test_data/grr_test.yaml in the grr-response-test
 # package.
-
-DataServer Context:
-  Logging.filename: "%(Logging.path)/grr-dataserver.log"
-
-  # By default use an sqlite backend.
-  Datastore.implementation: SqliteDataStore

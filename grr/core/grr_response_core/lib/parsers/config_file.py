@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Simple parsers for configuration files."""
+from __future__ import unicode_literals
+
 import collections
 import logging
 import re
@@ -10,7 +12,6 @@ from future.utils import iteritems
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
@@ -130,7 +131,7 @@ class FieldParser(lexer.Lexer):
     """Generate string matching state rules."""
     for i, q in enumerate(self.quot):
       label = "%s_STRING" % i
-      escaped = q.encode("string_escape")
+      escaped = q.encode("unicode_escape")
       self._AddToken(label, escaped, "PopState", None)
       self._AddToken(label, q, "PopState", None)
       if self.ml_quote:
@@ -185,7 +186,7 @@ class FieldParser(lexer.Lexer):
   def ParseEntries(self, data):
     # Flush any old results.
     self.Reset()
-    self.Feed(utils.SmartStr(data))
+    self.Feed(data)
     self.Close()
     # In case there isn't a terminating field at the end of the feed, e.g. \n
     self.EndEntry()

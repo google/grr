@@ -2,8 +2,6 @@
 """CSV single-pass output plugin."""
 
 
-import csv
-import io
 import os
 import zipfile
 
@@ -24,15 +22,15 @@ class CSVInstantOutputPlugin(
 
   ROW_BATCH = 100
 
-  def _GetCSVHeader(self, value_class, prefix=""):
+  def _GetCSVHeader(self, value_class, prefix=u""):
     header = []
     for type_info in value_class.type_infos:
       if type_info.__class__.__name__ == "ProtoEmbedded":
         header.extend(
             self._GetCSVHeader(
-                type_info.type, prefix=prefix + type_info.name + "."))
+                type_info.type, prefix=prefix + type_info.name + u"."))
       else:
-        header.append(utils.SmartStr(prefix + type_info.name))
+        header.append(prefix + type_info.name)
 
     return header
 
@@ -42,7 +40,7 @@ class CSVInstantOutputPlugin(
       if type_info.__class__.__name__ == "ProtoEmbedded":
         row.extend(self._GetCSVRow(value.Get(type_info.name)))
       else:
-        row.append(utils.SmartStr(value.Get(type_info.name)))
+        row.append(unicode(value.Get(type_info.name)))
 
     return row
 
@@ -67,26 +65,27 @@ class CSVInstantOutputPlugin(
         "%s/%s/from_%s.csv" % (self.path_prefix, first_value.__class__.__name__,
                                original_value_type.__name__))
 
-    buf = io.BytesIO()
-    writer = csv.writer(buf)
+    writer = utils.CsvWriter()
     # Write the CSV header based on first value class and write
     # the first value itself. All other values are guaranteed
     # to have the same class (see ProcessSingleTypeExportedValues definition).
-    writer.writerow(self._GetCSVHeader(first_value.__class__))
-    writer.writerow(self._GetCSVRow(first_value))
-    yield self.archive_generator.WriteFileChunk(buf.getvalue())
+    writer.WriteRow(self._GetCSVHeader(first_value.__class__))
+    writer.WriteRow(self._GetCSVRow(first_value))
+
+    chunk = writer.Content().encode("utf-8")
+    yield self.archive_generator.WriteFileChunk(chunk)
 
     # Counter starts from 1, as 1 value has already been written.
     counter = 1
     for batch in utils.Grouper(exported_values, self.ROW_BATCH):
       counter += len(batch)
 
-      buf = io.BytesIO()
-      writer = csv.writer(buf)
+      writer = utils.CsvWriter()
       for value in batch:
-        writer.writerow(self._GetCSVRow(value))
+        writer.WriteRow(self._GetCSVRow(value))
 
-      yield self.archive_generator.WriteFileChunk(buf.getvalue())
+      chunk = writer.Content().encode("utf-8")
+      yield self.archive_generator.WriteFileChunk(chunk)
 
     yield self.archive_generator.WriteFileFooter()
 

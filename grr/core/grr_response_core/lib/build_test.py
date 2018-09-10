@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for building and repacking clients."""
 
+from __future__ import unicode_literals
+
 import io
 import os
 

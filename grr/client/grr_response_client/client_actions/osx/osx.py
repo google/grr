@@ -5,6 +5,7 @@ Most of these actions share an interface (in/out rdfvalues) with linux actions
 of the same name. OSX-only actions are registered with the server via
 libs/server_stubs.py
 """
+from __future__ import unicode_literals
 
 import ctypes
 import logging
@@ -138,74 +139,74 @@ setattr(Ifaddrs, "_fields_", [
 ])  # pyformat: disable
 
 
+def EnumerateInterfacesFromClient(args):
+  """Enumerate all MAC addresses."""
+  del args  # Unused
+
+  libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
+  ifa = Ifaddrs()
+  p_ifa = ctypes.pointer(ifa)
+  libc.getifaddrs(ctypes.pointer(p_ifa))
+
+  addresses = {}
+  macs = {}
+  ifs = set()
+
+  m = p_ifa
+  while m:
+    ifname = ctypes.string_at(m.contents.ifa_name)
+    ifs.add(ifname)
+    try:
+      iffamily = ord(m.contents.ifa_addr[1])
+      if iffamily == 0x2:  # AF_INET
+        data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
+        ip4 = "".join(map(chr, data.contents.sin_addr))
+        address_type = rdf_client_network.NetworkAddress.Family.INET
+        address = rdf_client_network.NetworkAddress(
+            address_type=address_type, packed_bytes=ip4)
+        addresses.setdefault(ifname, []).append(address)
+
+      if iffamily == 0x12:  # AF_LINK
+        data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrdl))
+        iflen = data.contents.sdl_nlen
+        addlen = data.contents.sdl_alen
+        macs[ifname] = "".join(
+            map(chr, data.contents.sdl_data[iflen:iflen + addlen]))
+
+      if iffamily == 0x1E:  # AF_INET6
+        data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
+        ip6 = "".join(map(chr, data.contents.sin6_addr))
+        address_type = rdf_client_network.NetworkAddress.Family.INET6
+        address = rdf_client_network.NetworkAddress(
+            address_type=address_type, packed_bytes=ip6)
+        addresses.setdefault(ifname, []).append(address)
+    except ValueError:
+      # Some interfaces don't have a iffamily and will raise a null pointer
+      # exception. We still want to send back the name.
+      pass
+
+    m = m.contents.ifa_next
+
+  libc.freeifaddrs(p_ifa)
+
+  for interface in ifs:
+    mac = macs.setdefault(interface, "")
+    address_list = addresses.setdefault(interface, "")
+    args = {"ifname": interface}
+    if mac:
+      args["mac_address"] = mac
+    if address_list:
+      args["addresses"] = address_list
+    yield rdf_client_network.Interface(**args)
+
+
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerate all MAC addresses of all NICs."""
   out_rdfvalues = [rdf_client_network.Interface]
 
   def Run(self, args):
-    for res in self.Start(args):
+    for res in EnumerateInterfacesFromClient(args):
       self.SendReply(res)
-
-  @classmethod
-  def Start(cls, args):
-    """Enumerate all MAC addresses."""
-    del args  # Unused
-
-    libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
-    ifa = Ifaddrs()
-    p_ifa = ctypes.pointer(ifa)
-    libc.getifaddrs(ctypes.pointer(p_ifa))
-
-    addresses = {}
-    macs = {}
-    ifs = set()
-
-    m = p_ifa
-    while m:
-      ifname = ctypes.string_at(m.contents.ifa_name)
-      ifs.add(ifname)
-      try:
-        iffamily = ord(m.contents.ifa_addr[1])
-        if iffamily == 0x2:  # AF_INET
-          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
-          ip4 = "".join(map(chr, data.contents.sin_addr))
-          address_type = rdf_client_network.NetworkAddress.Family.INET
-          address = rdf_client_network.NetworkAddress(
-              address_type=address_type, packed_bytes=ip4)
-          addresses.setdefault(ifname, []).append(address)
-
-        if iffamily == 0x12:  # AF_LINK
-          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrdl))
-          iflen = data.contents.sdl_nlen
-          addlen = data.contents.sdl_alen
-          macs[ifname] = "".join(
-              map(chr, data.contents.sdl_data[iflen:iflen + addlen]))
-
-        if iffamily == 0x1E:  # AF_INET6
-          data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
-          ip6 = "".join(map(chr, data.contents.sin6_addr))
-          address_type = rdf_client_network.NetworkAddress.Family.INET6
-          address = rdf_client_network.NetworkAddress(
-              address_type=address_type, packed_bytes=ip6)
-          addresses.setdefault(ifname, []).append(address)
-      except ValueError:
-        # Some interfaces don't have a iffamily and will raise a null pointer
-        # exception. We still want to send back the name.
-        pass
-
-      m = m.contents.ifa_next
-
-    libc.freeifaddrs(p_ifa)
-
-    for interface in ifs:
-      mac = macs.setdefault(interface, "")
-      address_list = addresses.setdefault(interface, "")
-      args = {"ifname": interface}
-      if mac:
-        args["mac_address"] = mac
-      if address_list:
-        args["addresses"] = address_list
-      yield rdf_client_network.Interface(**args)
 
 
 class GetInstallDate(actions.ActionPlugin):

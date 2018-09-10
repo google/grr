@@ -17,6 +17,7 @@
 @import 'grr/server/grr_response_server/gui/static/angular-components/artifact/artifacts-list-form';
 @import 'grr/server/grr_response_server/gui/static/angular-components/artifact/artifact-name';
 @import 'grr/server/grr_response_server/gui/static/angular-components/core/download-collection-as';
+@import 'grr/server/grr_response_server/gui/static/angular-components/core/splitter';
 @import 'grr/server/grr_response_server/gui/static/angular-components/core/troggle';
 @import 'grr/server/grr_response_server/gui/static/angular-components/client/client-disk-warnings-modal';
 @import 'grr/server/grr_response_server/gui/static/angular-components/client/check-client-access';
@@ -34,6 +35,7 @@
 @import 'grr/server/grr_response_server/gui/static/angular-components/core/wizard-form';
 @import 'grr/server/grr_response_server/gui/static/angular-components/cron/cron-job-runs-list';
 @import 'grr/server/grr_response_server/gui/static/angular-components/flow/start-flow-view';
+@import 'grr/server/grr_response_server/gui/static/angular-components/flow/flow-descriptors-tree';
 @import 'grr/server/grr_response_server/gui/static/angular-components/forms/ext-flags-condition-form';
 @import 'grr/server/grr_response_server/gui/static/angular-components/forms/ext-flags-linux-picker-long';
 @import 'grr/server/grr_response_server/gui/static/angular-components/forms/ext-flags-linux-picker-short';
@@ -42,6 +44,7 @@
 @import 'grr/server/grr_response_server/gui/static/angular-components/forms/semantic-proto-form';
 @import 'grr/server/grr_response_server/gui/static/angular-components/forms/semantic-proto-union-form';
 @import 'grr/server/grr_response_server/gui/static/angular-components/hunt/hunt-graph';
+@import 'grr/server/grr_response_server/gui/static/angular-components/hunt/new-hunt-wizard/configure-flow-page';
 @import 'grr/server/grr_response_server/gui/static/angular-components/semantic/rekall/rekall';
 @import 'grr/server/grr_response_server/gui/static/angular-components/semantic/semantic-diff-annotated-proto';
 @import 'grr/server/grr_response_server/gui/static/angular-components/semantic/semantic-versioned-proto';
@@ -51,6 +54,8 @@
 @import 'grr/server/grr_response_server/gui/static/angular-components/sidebar/client-summary';
 @import 'grr/server/grr_response_server/gui/static/angular-components/sidebar/client-warnings';
 @import 'grr/server/grr_response_server/gui/static/angular-components/sidebar/navigator';
+@import 'grr/server/grr_response_server/gui/static/angular-components/stats/report-listing';
+@import 'grr/server/grr_response_server/gui/static/angular-components/stats/stats-view';
 @import 'grr/server/grr_response_server/gui/static/angular-components/stats/chart';
 @import 'grr/server/grr_response_server/gui/static/angular-components/stats/timeseries-graph';
 @import 'grr/server/grr_response_server/gui/static/angular-components/user/user-notification-item';
@@ -167,7 +172,6 @@ label.btn {
 }
 
 .navbar.navbar-fixed-bottom {
-  position: absolute !important;
   min-width: 1024px;
 }
 
@@ -202,16 +206,6 @@ label.btn {
 //
 //
 
-div[ui-view] {
-  width: 100%;
-  height: 100%;
-
-  > * {
-    display: block;
-    height: 100%;
-  }
-}
-
 #content {
   position: absolute;
   left: 0;
@@ -220,6 +214,25 @@ div[ui-view] {
   right: 0;
   min-width: 1024px;
   min-height: 400px;
+
+  grr-navigator {
+    position: absolute;
+    left: 0;
+    width: 224px;
+    top: 0;
+    bottom: 0;
+    border-right: $color-modal-border 1px solid;
+    box-shadow: inset 0 1px 0 $color-navigator-shadow;
+    z-index: 100;
+  }
+
+  > div[ui-view] {
+    position: absolute;
+    left: 224px;
+    right: 0;
+    top: 0;
+    bottom: 0;
+  }
 }
 
 .breadcrumb {
@@ -290,7 +303,7 @@ div[ui-view] {
     left: 0;
     right: 0;
     top: 82px;
-    bottom: 69px;
+    bottom: 60px;
     max-height: none;
     padding: 0;
     overflow: auto;
@@ -411,48 +424,33 @@ div[grr-splitter] {
   height: 100%;
 }
 
-#content_leftPane {
-  width: 224px;
-}
-
-.leftPane {
+.leftPane,
+.rightPane {
   float: left;
-  width: 15%;
   height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: $color-default-background;
-  overflow: auto;
   position: relative;
 }
 
-.rightPane {
-  float: right;
-  width: 85%;
-  height: 100%;
-  background: $color-default-background;
-  overflow: auto;
-  position: absolute;
-  right: 0;
-}
-
 .rightSplitterContainer {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
   background: $color-default-background;
   overflow: hidden;
 }
 
-.rightTopPane {
-  width: 100%;
-  height: 50%;
-  background: $color-default-background;
-  overflow: auto;
-  position: relative;
-}
-
+.rightTopPane,
 .rightBottomPane {
-  width: 100%;
+  box-sizing: border-box;
   background: $color-default-background;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
 }
 

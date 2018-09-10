@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Parsers for handling rekall output."""
 
+from __future__ import unicode_literals
+
 import json
 import ntpath
 

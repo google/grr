@@ -2,6 +2,8 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for utility classes."""
 
+from __future__ import unicode_literals
+
 
 import unittest
 from grr_response_core.lib import flags
@@ -26,17 +28,16 @@ class RDFValueTest(unittest.TestCase):
 
   def testStr(self):
     """Test RDFValue.__str__."""
-    self.assertEqual(str(rdfvalue.RDFBool(True)), "1")
-    self.assertEqual(str(rdfvalue.RDFString(long_string)), long_string)
+    self.assertEqual(unicode(rdfvalue.RDFBool(True)), "1")
+    self.assertEqual(unicode(rdfvalue.RDFString(long_string)), long_string)
 
-  def testRepr(self):
-    """Test RDFValue.__repr__."""
-    self.assertEqual(repr(rdfvalue.RDFBool(True)), "<RDFBool('1')>")
-    self.assertEqual(
-        repr(rdfvalue.RDFString(long_string)),
-        "<RDFString('\\xe8\\xbf\\x8e\\xe6\\xac\\xa2\\xe8\\xbf\\x8e\\nLorem "
-        "ipsum dolor sit amet, consectetur adipiscing elit. Morbi luctus ex "
-        "sed dictum volutp...')>")
+  # TODO(hanuszczak): Current implementation of `repr` for RDF values is broken
+  # and not in line with Python guidelines. For example, `repr` should be
+  # unambiguous whereas current implementation will trim long representations
+  # with `...`. Moreover, the representation for most types is questionable at
+  # best (true booleans as presented as `<RDFBool('1')>`).
+  #
+  # The implementation should be fixed and proper tests should be written.
 
 
 class RDFBytesTest(unittest.TestCase):

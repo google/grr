@@ -234,3 +234,99 @@ class MySQLDBFlowMixin(object):
       cursor.execute(query, args)
     except MySQLdb.IntegrityError as e:
       raise db.UnknownClientError(cause=e)
+
+  @mysql_utils.WithTransaction()
+  def WriteFlowObject(self, flow_obj, cursor=None):
+    """Writes a flow object to the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def ReadFlowObject(self, client_id, flow_id, cursor=None):
+    """Reads a flow object from the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def ReadChildFlowObjects(self, client_id, flow_id, cursor=None):
+    """Reads flows that were started by a given flow from the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def ReadFlowForProcessing(self,
+                            client_id,
+                            flow_id,
+                            processing_time,
+                            cursor=None):
+    """Marks a flow as being processed on this worker and returns it."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def UpdateFlow(self,
+                 client_id,
+                 flow_id,
+                 flow_obj=db.Database.unchanged,
+                 client_crash_info=db.Database.unchanged,
+                 pending_termination=db.Database.unchanged,
+                 processing_on=db.Database.unchanged,
+                 processing_since=db.Database.unchanged,
+                 processing_deadline=db.Database.unchanged,
+                 cursor=None):
+    """Updates flow objects in the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def WriteFlowRequests(self, requests, cursor=None):
+    """Writes a list of flow requests to the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def WriteFlowResponses(self, responses, cursor=None):
+    """Writes a list of flow responses to the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def DeleteFlowRequests(self, requests, cursor=None):
+    """Deletes a list of flow requests from the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def ReadAllFlowRequestsAndResponses(self, client_id, flow_id, cursor=None):
+    """Reads all requests and responses for a given flow from the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def DeleteAllFlowRequestsAndResponses(self, client_id, flow_id, cursor=None):
+    """Deletes all requests and responses for a given flow from the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def ReadFlowRequestsReadyForProcessing(self, client_id, flow_id, cursor=None):
+    """Reads all requests for a flow that can be processed by the worker."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def ReturnProcessedFlow(self, flow_obj, cursor=None):
+    """Returns a flow that the worker was processing to the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def WriteFlowProcessingRequests(self, requests, cursor=None):
+    """Writes a list of flow processing requests to the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def ReadFlowProcessingRequests(self, cursor=None):
+    """Reads all flow processing requests from the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def DeleteFlowProcessingRequests(self, requests, cursor=None):
+    """Deletes a list of flow processing requests from the database."""
+    raise NotImplementedError()
+
+  def RegisterFlowProcessingHandler(self, handler, limit=1000):
+    """Registers a handler to receive flow processing messages."""
+    raise NotImplementedError()
+
+  def UnregisterFlowProcessingHandler(self):
+    """Unregisters any registered flow processing handler."""
+    raise NotImplementedError()

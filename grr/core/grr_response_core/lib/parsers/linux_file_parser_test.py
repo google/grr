@@ -2,6 +2,8 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Unit test for the linux file parser."""
 
+from __future__ import unicode_literals
+
 import io
 import operator
 import os
@@ -30,10 +32,10 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
 
     # Test when there's data for one PCI device only.
     test_data1 = {
-        "/sys/bus/pci/devices/0000:00:01.0/vendor": "0x0e00\n",
-        "/sys/bus/pci/devices/0000:00:01.0/class": "0x060400\n",
-        "/sys/bus/pci/devices/0000:00:01.0/device": "0x0e02\n",
-        "/sys/bus/pci/devices/0000:00:01.0/config": "0200"
+        "/sys/bus/pci/devices/0000:00:01.0/vendor": b"0x0e00\n",
+        "/sys/bus/pci/devices/0000:00:01.0/class": b"0x060400\n",
+        "/sys/bus/pci/devices/0000:00:01.0/device": b"0x0e02\n",
+        "/sys/bus/pci/devices/0000:00:01.0/config": b"0200"
     }
     device_1 = rdf_client.PCIDevice(
         domain=0,
@@ -43,17 +45,19 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
         class_id="0x060400",
         vendor="0x0e00",
         vendor_device_id="0x0e02",
-        config="0200")
+        config=b"0200")
     parsed_results = self._ParsePCIDeviceTestData(test_data1)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_1])
 
-    # Use raw bytes to test PCI device config works as expected.
-    bytes2 = bytearray([234, 232, 231, 188, 122, 132, 145])
     test_data2 = {
-        "/sys/bus/pci/devices/0000:00:00.0/vendor": "0x8086\n",
-        "/sys/bus/pci/devices/0000:00:00.0/class": "0x060000\n",
-        "/sys/bus/pci/devices/0000:00:00.0/device": "0x0e00\n",
-        "/sys/bus/pci/devices/0000:00:00.0/config": bytes2
+        "/sys/bus/pci/devices/0000:00:00.0/vendor":
+            b"0x8086\n",
+        "/sys/bus/pci/devices/0000:00:00.0/class":
+            b"0x060000\n",
+        "/sys/bus/pci/devices/0000:00:00.0/device":
+            b"0x0e00\n",
+        "/sys/bus/pci/devices/0000:00:00.0/config": (b"\xea\xe8\xe7\xbc\x7a\x84"
+                                                     b"\x91"),
     }
     device_2 = rdf_client.PCIDevice(
         domain=0,
@@ -69,23 +73,23 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
 
     # Test for when there's missing data.
     test_data3 = {
-        "/sys/bus/pci/devices/0000:00:03.0/vendor": "0x0e00\n",
-        "/sys/bus/pci/devices/0000:00:03.0/config": "0030"
+        "/sys/bus/pci/devices/0000:00:03.0/vendor": b"0x0e00\n",
+        "/sys/bus/pci/devices/0000:00:03.0/config": b"0030"
     }
     device_3 = rdf_client.PCIDevice(
-        domain=0, bus=0, device=3, function=0, vendor="0x0e00", config="0030")
+        domain=0, bus=0, device=3, function=0, vendor="0x0e00", config=b"0030")
     parsed_results = self._ParsePCIDeviceTestData(test_data3)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_3])
 
     # Test when data contains non-valid B/D/F folders/files.
     test_data4 = {
-        "/sys/bus/pci/devices/0000:00:05.0/vendor": "0x0e00\n",
-        "/sys/bus/pci/devices/0000:00:05.0/class": "0x060400\n",
-        "/sys/bus/pci/devices/0000:00:05.0/device": "0x0e02\n",
-        "/sys/bus/pci/devices/0000:00:05.0/config": "0200",
-        "/sys/bus/pci/devices/crazyrandomfile/test1": "test1",
-        "/sys/bus/pci/devices/::./test2": "test2",
-        "/sys/bus/pci/devices/00:5.0/test3": "test3"
+        "/sys/bus/pci/devices/0000:00:05.0/vendor": b"0x0e00\n",
+        "/sys/bus/pci/devices/0000:00:05.0/class": b"0x060400\n",
+        "/sys/bus/pci/devices/0000:00:05.0/device": b"0x0e02\n",
+        "/sys/bus/pci/devices/0000:00:05.0/config": b"0200",
+        "/sys/bus/pci/devices/crazyrandomfile/test1": b"test1",
+        "/sys/bus/pci/devices/::./test2": b"test2",
+        "/sys/bus/pci/devices/00:5.0/test3": b"test3"
     }
     device_4 = rdf_client.PCIDevice(
         domain=0,
@@ -95,7 +99,7 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
         class_id="0x060400",
         vendor="0x0e00",
         vendor_device_id="0x0e02",
-        config="0200")
+        config=b"0200")
     parsed_results = self._ParsePCIDeviceTestData(test_data4)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_4])
 
@@ -154,7 +158,7 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
 user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user2:/bin/bash
 """
-    out = list(parser.Parse(None, io.BytesIO(dat), None))
+    out = list(parser.Parse(None, io.StringIO(dat), None))
     self.assertEqual(len(out), 2)
     self.assertTrue(isinstance(out[1], rdf_client.User))
     self.assertTrue(isinstance(out[1], rdf_client.User))
@@ -166,16 +170,15 @@ user2:x:1001:1001:User2 Name,,,:/home/user
 """
     parser = linux_file_parser.PasswdParser()
     self.assertRaises(lib_parser.ParseError, list,
-                      parser.Parse(None, io.BytesIO(dat), None))
+                      parser.Parse(None, io.StringIO(dat), None))
 
   def testPasswdBufferParser(self):
     """Ensure we can extract users from a passwd file."""
     parser = linux_file_parser.PasswdBufferParser()
-    buf1 = rdf_client.BufferReference(data="user1:x:1000:1000:User1"
-                                      " Name,,,:/home/user1:/bin/bash\n")
-
-    buf2 = rdf_client.BufferReference(data="user2:x:1000:1000:User2"
-                                      " Name,,,:/home/user2:/bin/bash\n")
+    buf1 = rdf_client.BufferReference(
+        data=b"user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash\n")
+    buf2 = rdf_client.BufferReference(
+        data=b"user2:x:1000:1000:User2 Name,,,:/home/user2:/bin/bash\n")
 
     ff_result = rdf_file_finder.FileFinderResult(matches=[buf1, buf2])
     out = list(parser.Parse(ff_result, None))
@@ -223,10 +226,10 @@ super_group3 (-,user5,) (-,user6,) group1 group2
   def testNetgroupBufferParser(self):
     """Ensure we can extract users from a netgroup file."""
     parser = linux_file_parser.NetgroupBufferParser()
-    buf1 = rdf_client.BufferReference(data="group1 (-,user1,) (-,user2,) "
-                                      "(-,user3,)\n")
-    buf2 = rdf_client.BufferReference(data="super_group3 (-,user5,) (-,user6,)"
-                                      " group1 group2\n")
+    buf1 = rdf_client.BufferReference(
+        data=b"group1 (-,user1,) (-,user2,) (-,user3,)\n")
+    buf2 = rdf_client.BufferReference(
+        data=b"super_group3 (-,user5,) (-,user6,) group1 group2\n")
 
     ff_result = rdf_file_finder.FileFinderResult(matches=[buf1, buf2])
     with test_lib.ConfigOverrider({
@@ -245,7 +248,7 @@ super_group (-,,user5,) (-user6,) group1 group2
 super_group2 (-,user7,) super_group
 """
     self.assertRaises(lib_parser.ParseError, list,
-                      parser.Parse(None, io.BytesIO(dat), None))
+                      parser.Parse(None, io.StringIO(dat), None))
 
   def testWtmpParser(self):
     """Test parsing of wtmp file."""
@@ -284,7 +287,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
       if data is None:
         data = []
       lines = "\n".join(data).format(**self.crypt)
-      files.append(io.BytesIO(lines))
+      files.append(io.StringIO(lines))
     return stats, files
 
   def testNoAnomaliesWhenEverythingIsFine(self):
@@ -464,7 +467,7 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
   def testFindPaths(self):
     # TODO(user): Deal with cases where multiple vars are exported.
     # export TERM PERLLIB=.:shouldntbeignored
-    bashrc_data = io.BytesIO("""
+    bashrc_data = io.StringIO("""
       IGNORE='bad' PATH=${HOME}/bin:$PATH
      { PYTHONPATH=/path1:/path2 }
       export TERM=screen-256color
@@ -479,7 +482,7 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
       # Ignore PATH=foo:bar
       TERM=vt100 PS=" Foo" PERL5LIB=:shouldntbeignored
     """)
-    cshrc_data = io.BytesIO("""
+    cshrc_data = io.StringIO("""
       setenv PATH ${HOME}/bin:$PATH
       setenv PYTHONPATH /path1:/path2
       set term = (screen-256color)

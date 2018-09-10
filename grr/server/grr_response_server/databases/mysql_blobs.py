@@ -19,3 +19,9 @@ class MySQLDBBlobsMixin(object):
 
   def CheckBlobsExist(self, blob_ids):
     raise NotImplementedError()
+
+  def WriteHashBlobReferences(self, references_by_hash):
+    raise NotImplementedError()
+
+  def ReadHashBlobReferences(self, hashes):
+    raise NotImplementedError()

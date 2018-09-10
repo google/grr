@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Windows specific utils."""
+from __future__ import unicode_literals
 
 import ctypes
 import exceptions

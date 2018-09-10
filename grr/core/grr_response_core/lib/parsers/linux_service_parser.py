@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Simple parsers for configuration files."""
 
+from __future__ import unicode_literals
+
 import logging
 import os
 import re
@@ -58,9 +60,10 @@ class LSBInitLexer(lexer.Lexer):
     self.buffer = []
 
   def ParseEntries(self, data):
+    utils.AssertType(data, unicode)
     self.entries = {}
     self.Reset()
-    self.Feed(utils.SmartStr(data))
+    self.Feed(data)
     self.Close()
     found = set(self.entries)
     if self.required.issubset(found):

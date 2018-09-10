@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Basic rdfvalue tests."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import datetime
 from datetime import datetime
@@ -18,7 +19,7 @@ class RDFBytesTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFBytes
 
   def GenerateSample(self, number=0):
-    return rdfvalue.RDFBytes("\x00hello%s\x01" % number)
+    return rdfvalue.RDFBytes(b"\x00hello%s\x01" % number)
 
 
 class RDFStringTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -412,14 +413,14 @@ class HashDigestTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.HashDigest
 
   def GenerateSample(self, number=0):
-    return rdfvalue.HashDigest("\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
-                               "\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
-                               "\xaf\xeeH\xbb%s" % number)
+    return rdfvalue.HashDigest(b"\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
+                               b"\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
+                               b"\xaf\xeeH\xbb%s" % number)
 
   def testEqNeq(self):
-    binary_digest = ("\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
-                     "\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
-                     "\xaf\xeeH\xbb")
+    binary_digest = (b"\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
+                     b"\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
+                     b"\xaf\xeeH\xbb")
     sample = rdfvalue.HashDigest(binary_digest)
     hex_digest = ("ca978112ca1bbdcafac231b39a23dc4da786eff81"
                   "47c4e72b9807785afee48bb")

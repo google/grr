@@ -212,6 +212,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # pylint: disable=unreachable
     os.environ.pop("http_proxy", None)
     options = webdriver.ChromeOptions()
+    options.add_argument("--disable-notifications")
+
     if flags.FLAGS.use_headless_chrome:
       options.add_argument("--headless")
       options.add_argument("--window-size=1400,1080")

@@ -15,7 +15,7 @@ from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 
 
-def IsFleetspeakEnabledClient(grr_id, token):
+def IsFleetspeakEnabledClient(grr_id, token=None):
   """Returns whether the provided GRR id is a Fleetspeak client."""
   if grr_id is None:
     return False

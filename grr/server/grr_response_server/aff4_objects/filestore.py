@@ -20,7 +20,6 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class FileStore(aff4.AFF4Volume):
@@ -212,9 +211,8 @@ class HashFileStore(FileStore):
 
     Args:
        index_urn: The index to use. Should be a urn that points to the sha256
-                  namespace.
+         namespace.
        target_prefix: The prefix to match against the index.
-
        limit: Either a tuple of (start, limit) or a maximum number of results to
          return.
        token: A DB token.
@@ -378,13 +376,6 @@ class HashFileStore(FileStore):
     fd.Set(fd.Schema.HASH, hashes)
     fd.Flush()
 
-    if data_store.RelationalDBWriteEnabled():
-      client_id, vfs_path = fd.urn.Split(2)
-      path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
-      path_info = rdf_objects.PathInfo(
-          path_type=path_type, components=components, hash_entry=hashes)
-      data_store.REL_DB.WritePathInfos(client_id, [path_info])
-
     # sha256 is the canonical location.
     canonical_urn = self.PATH.Add("generic/sha256").Add(str(hashes.sha256))
     if not list(aff4.FACTORY.Stat([canonical_urn])):
@@ -425,12 +416,11 @@ class HashFileStore(FileStore):
     """Yields all the hashes in the file store.
 
     Args:
-      age: AFF4 age specification. Only get hits corresponding to the given
-           age spec. Should be aff4.NEWEST_TIME or a time range given as a
-           tuple (start, end) in microseconds since Jan 1st, 1970. If just
-           a microseconds value is given it's treated as the higher end of the
-           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
-           details.
+      age: AFF4 age specification. Only get hits corresponding to the given age
+        spec. Should be aff4.NEWEST_TIME or a time range given as a tuple
+        (start, end) in microseconds since Jan 1st, 1970. If just a microseconds
+        value is given it's treated as the higher end of the range, i.e. (0,
+        age). See aff4.FACTORY.ParseAgeSpecification for details.
 
     Yields:
       FileStoreHash instances corresponding to all the hashes in the file store.
@@ -457,12 +447,11 @@ class HashFileStore(FileStore):
     Args:
       hash_obj: RDFURN that we want to get hits for.
       token: Security token.
-      age: AFF4 age specification. Only get hits corresponding to the given
-           age spec. Should be aff4.NEWEST_TIME or a time range given as a
-           tuple (start, end) in microseconds since Jan 1st, 1970. If just
-           a microseconds value is given it's treated as the higher end of the
-           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
-           details.
+      age: AFF4 age specification. Only get hits corresponding to the given age
+        spec. Should be aff4.NEWEST_TIME or a time range given as a tuple
+        (start, end) in microseconds since Jan 1st, 1970. If just a microseconds
+        value is given it's treated as the higher end of the range, i.e. (0,
+        age). See aff4.FACTORY.ParseAgeSpecification for details.
 
     Yields:
       RDFURNs corresponding to a client file that has the hash.
@@ -486,12 +475,11 @@ class HashFileStore(FileStore):
     Args:
       hashes: List of RDFURN's.
       token: Security token.
-      age: AFF4 age specification. Only get hits corresponding to the given
-           age spec. Should be aff4.NEWEST_TIME or a time range given as a
-           tuple (start, end) in microseconds since Jan 1st, 1970. If just
-           a microseconds value is given it's treated as the higher end of the
-           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
-           details.
+      age: AFF4 age specification. Only get hits corresponding to the given age
+        spec. Should be aff4.NEWEST_TIME or a time range given as a tuple
+        (start, end) in microseconds since Jan 1st, 1970. If just a microseconds
+        value is given it's treated as the higher end of the range, i.e. (0,
+        age). See aff4.FACTORY.ParseAgeSpecification for details.
 
     Yields:
       (hash, client_files) tuples, where hash is a FileStoreHash instance and

@@ -11,11 +11,5 @@ try:
 except ImportError:
   pass
 
-# Simple data store based on the sqlite database (sqlite)
-try:
-  from grr_response_server.data_stores import sqlite_data_store
-except ImportError:
-  pass
-
 # Site specific data stores.
 from grr_response_server.data_stores import local

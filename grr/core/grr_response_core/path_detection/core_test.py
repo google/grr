@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests core paths detection logic."""
 
+from __future__ import unicode_literals
+
 
 from builtins import range  # pylint: disable=redefined-builtin
 

@@ -1000,6 +1000,25 @@ class AutoTempFilePath(object):
     os.remove(self.path)
 
 
+class SuppressLogs(object):
+  """A context manager for suppressing logging."""
+
+  def __enter__(self):
+    self.old_error = logging.error
+    self.old_info = logging.info
+    self.old_debug = logging.debug
+    logging.error = lambda *args, **kw: None
+    logging.info = lambda *args, **kw: None
+    logging.debug = lambda *args, **kw: None
+
+    return self
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    logging.error = self.old_error
+    logging.info = self.old_info
+    logging.debug = self.old_debug
+
+
 def main(argv=None):
   del argv  # Unused.
   unittest.main()

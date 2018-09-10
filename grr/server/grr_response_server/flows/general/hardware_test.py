@@ -74,7 +74,7 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
     client_mock = UnknownChipsetDumpMock()
 
     # Manually start the flow in order to be able to read the logs
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=self.client_id,
         flow_name=hardware.DumpFlashImage.__name__,
         token=self.token)

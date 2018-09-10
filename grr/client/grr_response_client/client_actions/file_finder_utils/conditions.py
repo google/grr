@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Implementation of condition mechanism for client-side file-finder."""
+from __future__ import unicode_literals
 
 import abc
 import collections

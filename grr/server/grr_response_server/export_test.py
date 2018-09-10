@@ -295,7 +295,7 @@ class ExportTest(ExportTestBase):
         pathspec=pathspec)
 
     events.Events.PublishEvent(
-        "FileStore.AddFileToStore", urn, token=self.token)
+        "LegacyFileStore.AddFileToStore", urn, token=self.token)
 
     if data_store.RelationalDBReadEnabled(category="vfs"):
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)

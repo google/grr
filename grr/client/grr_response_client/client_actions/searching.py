@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Client actions related to searching files and directories."""
+from __future__ import unicode_literals
 
 import functools
 import logging
@@ -303,7 +304,7 @@ class Grep(actions.ActionPlugin):
     preamble_size = 0
     postscript_size = 0
     hits = 0
-    data = ""
+    data = b""
     while fd.Tell() < args.start_offset + args.length:
 
       # Base size to read is at most the buffer size.
@@ -350,8 +351,9 @@ class Grep(actions.ActionPlugin):
           return
 
         if hits >= self.HIT_LIMIT:
-          msg = utils.Xor("This Grep has reached the maximum number of hits"
-                          " (%d)." % self.HIT_LIMIT, self.xor_out_key)
+          msg = utils.Xor(
+              b"This Grep has reached the maximum number of hits"
+              b" (%d)." % self.HIT_LIMIT, self.xor_out_key)
           self.SendReply(
               rdf_client.BufferReference(offset=0, data=msg, length=len(msg)))
           return

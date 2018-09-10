@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test client vfs."""
+from __future__ import unicode_literals
+
 import functools
 import os
 
@@ -33,14 +35,14 @@ class MockVFSHandlerFind(vfs.VFSHandler):
       "/": ["mock2"],
       "/mock2": ["directory1", "directory3"],
       "/mock2/directory1": ["file1.txt", "file2.txt", "directory2"],
-      "/mock2/directory1/file1.txt": "Secret 1",
-      "/mock2/directory1/file2.txt": "Another file",
+      "/mock2/directory1/file1.txt": b"Secret 1",
+      "/mock2/directory1/file2.txt": b"Another file",
       "/mock2/directory1/directory2": ["file.jpg", "file.mp3"],
-      "/mock2/directory1/directory2/file.jpg": "JPEG",
-      "/mock2/directory1/directory2/file.mp3": "MP3 movie",
+      "/mock2/directory1/directory2/file.jpg": b"JPEG",
+      "/mock2/directory1/directory2/file.mp3": b"MP3 movie",
       "/mock2/directory3": ["file1.txt", "long_file.text"],
-      "/mock2/directory3/file1.txt": "A text file",
-      "/mock2/directory3/long_file.text": ("space " * 100000 + "A Secret")
+      "/mock2/directory3/file1.txt": b"A text file",
+      "/mock2/directory3/long_file.text": (b"space " * 100000 + b"A Secret")
   }
 
   def __init__(self,
@@ -59,7 +61,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
 
     try:
       self.content = self.filesystem[self.path]
-      if isinstance(self.content, str):
+      if isinstance(self.content, bytes):
         self.size = len(self.content)
     except KeyError:
       raise IOError("not mocking %s" % self.path)
@@ -83,7 +85,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
     else:
       result.st_dev = 2
     f = self.filesystem[path]
-    if isinstance(f, str):
+    if isinstance(f, bytes):
       if path.startswith("/mock2/directory1/directory2"):
         result.st_mode = 0o0100644  # u=rw,g=r,o=r on regular file
         result.st_uid = 50
@@ -524,7 +526,7 @@ class GrepTest(client_test_lib.EmptyActionTest):
     vfs.VFSInit().Run()
 
     request = rdf_client_fs.GrepSpec(
-        literal=utils.Xor("10", self.XOR_IN_KEY),
+        literal=utils.Xor(b"10", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = os.path.join(self.base_path, "numbers.txt")
@@ -538,7 +540,7 @@ class GrepTest(client_test_lib.EmptyActionTest):
         1529, 1929, 2329, 2729, 3129, 3529, 3888
     ])
     for x in result:
-      self.assertTrue("10" in utils.Xor(x.data, self.XOR_OUT_KEY))
+      self.assertTrue(b"10" in utils.Xor(x.data, self.XOR_OUT_KEY))
       self.assertEqual(request.target.path, x.pathspec.path)
 
   def testGrepRegex(self):
@@ -560,15 +562,15 @@ class GrepTest(client_test_lib.EmptyActionTest):
         1529, 1929, 2329, 2729, 3129, 3529, 3888
     ])
     for x in result:
-      self.assertTrue("10" in utils.Xor(x.data, self.XOR_OUT_KEY))
+      self.assertTrue(b"10" in utils.Xor(x.data, self.XOR_OUT_KEY))
 
   def testGrepLength(self):
-    data = "X" * 100 + "HIT"
+    data = b"X" * 100 + b"HIT"
 
     MockVFSHandlerFind.filesystem[self.filename] = data
 
     request = rdf_client_fs.GrepSpec(
-        literal=utils.Xor("HIT", self.XOR_IN_KEY),
+        literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
@@ -580,7 +582,7 @@ class GrepTest(client_test_lib.EmptyActionTest):
     self.assertEqual(result[0].offset, 100)
 
     request = rdf_client_fs.GrepSpec(
-        literal=utils.Xor("HIT", self.XOR_IN_KEY),
+        literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
@@ -592,12 +594,12 @@ class GrepTest(client_test_lib.EmptyActionTest):
     self.assertEqual(len(result), 0)
 
   def testGrepOffset(self):
-    data = "X" * 10 + "HIT" + "X" * 100
+    data = b"X" * 10 + b"HIT" + b"X" * 100
 
     MockVFSHandlerFind.filesystem[self.filename] = data
 
     request = rdf_client_fs.GrepSpec(
-        literal=utils.Xor("HIT", self.XOR_IN_KEY),
+        literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
@@ -609,7 +611,7 @@ class GrepTest(client_test_lib.EmptyActionTest):
     self.assertEqual(result[0].offset, 10)
 
     request = rdf_client_fs.GrepSpec(
-        literal=utils.Xor("HIT", self.XOR_IN_KEY),
+        literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
@@ -622,7 +624,7 @@ class GrepTest(client_test_lib.EmptyActionTest):
     self.assertEqual(result[0].offset, 10)
 
     request = rdf_client_fs.GrepSpec(
-        literal=utils.Xor("HIT", self.XOR_IN_KEY),
+        literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
@@ -634,11 +636,11 @@ class GrepTest(client_test_lib.EmptyActionTest):
 
   def testOffsetAndLength(self):
 
-    data = "X" * 10 + "HIT" + "X" * 100 + "HIT" + "X" * 10
+    data = b"X" * 10 + b"HIT" + b"X" * 100 + b"HIT" + b"X" * 10
     MockVFSHandlerFind.filesystem[self.filename] = data
 
     request = rdf_client_fs.GrepSpec(
-        literal=utils.Xor("HIT", self.XOR_IN_KEY),
+        literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
@@ -652,11 +654,11 @@ class GrepTest(client_test_lib.EmptyActionTest):
   @SearchParams(1000, 100)
   def testSecondBuffer(self):
 
-    data = "X" * 1500 + "HIT" + "X" * 100
+    data = b"X" * 1500 + b"HIT" + b"X" * 100
     MockVFSHandlerFind.filesystem[self.filename] = data
 
     request = rdf_client_fs.GrepSpec(
-        literal=utils.Xor("HIT", self.XOR_IN_KEY),
+        literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
@@ -672,11 +674,11 @@ class GrepTest(client_test_lib.EmptyActionTest):
 
     for offset in range(-20, 20):
 
-      data = "X" * (1000 + offset) + "HIT" + "X" * 100
+      data = b"X" * (1000 + offset) + b"HIT" + b"X" * 100
       MockVFSHandlerFind.filesystem[self.filename] = data
 
       request = rdf_client_fs.GrepSpec(
-          literal=utils.Xor("HIT", self.XOR_IN_KEY),
+          literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
           xor_in_key=self.XOR_IN_KEY,
           xor_out_key=self.XOR_OUT_KEY)
       request.target.path = self.filename
@@ -686,19 +688,19 @@ class GrepTest(client_test_lib.EmptyActionTest):
       result = self.RunAction(searching.Grep, request)
       self.assertEqual(len(result), 1)
       self.assertEqual(result[0].offset, 1000 + offset)
-      expected = "X" * 10 + "HIT" + "X" * 10
+      expected = b"X" * 10 + b"HIT" + b"X" * 10
       self.assertEqual(result[0].length, len(expected))
       self.assertEqual(utils.Xor(result[0].data, self.XOR_OUT_KEY), expected)
 
   def testSnippetSize(self):
 
-    data = "X" * 100 + "HIT" + "X" * 100
+    data = b"X" * 100 + b"HIT" + b"X" * 100
     MockVFSHandlerFind.filesystem[self.filename] = data
 
     for before in [50, 10, 1, 0]:
       for after in [50, 10, 1, 0]:
         request = rdf_client_fs.GrepSpec(
-            literal=utils.Xor("HIT", self.XOR_IN_KEY),
+            literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
             xor_in_key=self.XOR_IN_KEY,
             xor_out_key=self.XOR_OUT_KEY)
         request.target.path = self.filename
@@ -710,7 +712,7 @@ class GrepTest(client_test_lib.EmptyActionTest):
         result = self.RunAction(searching.Grep, request)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].offset, 100)
-        expected = "X" * before + "HIT" + "X" * after
+        expected = b"X" * before + b"HIT" + b"X" * after
         self.assertEqual(result[0].length, len(expected))
         self.assertEqual(utils.Xor(result[0].data, self.XOR_OUT_KEY), expected)
 
@@ -718,11 +720,11 @@ class GrepTest(client_test_lib.EmptyActionTest):
   def testGrepEverywhere(self):
 
     for offset in range(500):
-      data = "X" * offset + "HIT" + "X" * (500 - offset)
+      data = b"X" * offset + b"HIT" + b"X" * (500 - offset)
       MockVFSHandlerFind.filesystem[self.filename] = data
 
       request = rdf_client_fs.GrepSpec(
-          literal=utils.Xor("HIT", self.XOR_IN_KEY),
+          literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
           xor_in_key=self.XOR_IN_KEY,
           xor_out_key=self.XOR_OUT_KEY)
       request.target.path = self.filename
@@ -741,12 +743,12 @@ class GrepTest(client_test_lib.EmptyActionTest):
   def testHitLimit(self):
     limit = searching.Grep.HIT_LIMIT
 
-    hit = "x" * 10 + "HIT" + "x" * 10
+    hit = b"x" * 10 + b"HIT" + b"x" * 10
     data = hit * (limit + 100)
     MockVFSHandlerFind.filesystem[self.filename] = data
 
     request = rdf_client_fs.GrepSpec(
-        literal=utils.Xor("HIT", self.XOR_IN_KEY),
+        literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
         xor_out_key=self.XOR_OUT_KEY)
     request.target.path = self.filename
@@ -757,7 +759,7 @@ class GrepTest(client_test_lib.EmptyActionTest):
 
     result = self.RunAction(searching.Grep, request)
     self.assertEqual(len(result), limit + 1)
-    error = "maximum number of hits"
+    error = b"maximum number of hits"
     self.assertTrue(error in utils.Xor(result[-1].data, self.XOR_OUT_KEY))
 
 

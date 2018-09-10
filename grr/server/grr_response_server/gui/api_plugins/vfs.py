@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
 
-import csv
-import io
 import itertools
 import logging
 import os
@@ -24,6 +22,7 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import vfs_pb2
 from grr_response_server import aff4
+from grr_response_server import aff4_flows
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server import db
@@ -31,7 +30,6 @@ from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
 from grr_response_server.flows.general import filesystem
-from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client
 
@@ -110,8 +108,8 @@ class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
 
     Args:
       aff4_obj: An Aff4Object to take the attributes from.
-      aff4_cls: A class in the inheritance hierarchy of the Aff4Object
-        defining which attributes to take.
+      aff4_cls: A class in the inheritance hierarchy of the Aff4Object defining
+        which attributes to take.
       attr_blacklist: A list of already added attributes as to not add
         attributes multiple times.
 
@@ -811,7 +809,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
     if args.max_depth == 1:
       flow_args = filesystem.ListDirectoryArgs(pathspec=fd.real_pathspec)
 
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           client_id=args.client_id.ToClientURN(),
           flow_name=filesystem.ListDirectory.__name__,
           args=flow_args,
@@ -822,7 +820,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
       flow_args = filesystem.RecursiveListDirectoryArgs(
           pathspec=fd.real_pathspec, max_depth=args.max_depth)
 
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           client_id=args.client_id.ToClientURN(),
           flow_name=filesystem.RecursiveListDirectory.__name__,
           args=flow_args,
@@ -857,7 +855,7 @@ class ApiGetVfsRefreshOperationStateHandler(
 
     if not isinstance(
         flow_obj,
-        (filesystem.RecursiveListDirectory, filesystem.ListDirectory)):
+        (aff4_flows.RecursiveListDirectory, aff4_flows.ListDirectory)):
       raise VfsRefreshOperationNotFoundError(
           "Operation with id %s not found" % args.operation_id)
 
@@ -886,7 +884,7 @@ def _GetTimelineStatEntriesLegacy(client_id, file_path, with_history=True):
     timestamp = aff4.NEWEST_TIME
 
   for fd in aff4.FACTORY.MultiOpen(child_urns, age=timestamp):
-    file_path = "/".join(str(fd.urn).split("/")[2:])
+    file_path = u"/".join(unicode(fd.urn).split(u"/")[2:])
 
     if not with_history:
       yield file_path, fd.Get(fd.Schema.STAT), fd.Get(fd.Schema.HASH)
@@ -1044,24 +1042,23 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
   CHUNK_SIZE = 1000
 
   def _GenerateDefaultExport(self, items):
-    fd = io.BytesIO()
-    writer = csv.writer(fd)
+    writer = utils.CsvWriter()
 
     # Write header. Since we do not stick to a specific timeline format, we
     # can export a format suited for TimeSketch import.
-    writer.writerow(["Timestamp", "Datetime", "Message", "Timestamp_desc"])
+    writer.WriteRow([u"Timestamp", u"Datetime", u"Message", u"Timestamp_desc"])
 
     for start in range(0, len(items), self.CHUNK_SIZE):
       for item in items[start:start + self.CHUNK_SIZE]:
-        writer.writerow([
-            item.timestamp.AsMicrosecondsSinceEpoch(), item.timestamp,
-            utils.SmartStr(item.file_path), item.action
+        writer.WriteRow([
+            unicode(item.timestamp.AsMicrosecondsSinceEpoch()),
+            unicode(item.timestamp),
+            item.file_path,
+            unicode(item.action),
         ])
 
-      yield fd.getvalue()
-
-      fd.seek(0)
-      fd.truncate()
+      yield writer.Content().encode("utf-8")
+      writer = utils.CsvWriter()
 
   def _HandleDefaultFormat(self, args):
     items = _GetTimelineItems(args.client_id, args.file_path)
@@ -1070,34 +1067,32 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
         content_generator=self._GenerateDefaultExport(items))
 
   def _GenerateBodyExport(self, file_infos):
-    fd = io.BytesIO()
-    writer = csv.writer(fd, delimiter="|")
-
     for path, st, hash_v in file_infos:
-      hash_str = ""
+      writer = utils.CsvWriter(delimiter=u"|")
+
       if hash_v and hash_v.md5:
-        hash_str = hash_v.md5.HexDigest()
+        hash_str = hash_v.md5.HexDigest().decode("ascii")
+      else:
+        hash_str = u""
 
       # Details about Body format:
       # https://wiki.sleuthkit.org/index.php?title=Body_file
       # MD5|name|inode|mode_as_string|UID|GID|size|atime|mtime|ctime|crtime
-      writer.writerow([
+      writer.WriteRow([
           hash_str,
-          utils.SmartStr(path),
-          st.st_ino,
-          utils.SmartStr(st.st_mode),
-          st.st_uid,
-          st.st_gid,
-          st.st_size,
-          int(st.st_atime or 0),
-          int(st.st_mtime or 0),
-          int(st.st_ctime or 0),
-          int(st.st_crtime or 0),
+          path,
+          unicode(st.st_ino),
+          unicode(st.st_mode),
+          unicode(st.st_uid),
+          unicode(st.st_gid),
+          unicode(st.st_size),
+          unicode(int(st.st_atime or 0)),
+          unicode(int(st.st_mtime or 0)),
+          unicode(int(st.st_ctime or 0)),
+          unicode(int(st.st_crtime or 0)),
       ])
 
-      yield fd.getvalue()
-      fd.seek(0)
-      fd.truncate()
+      yield writer.Content().encode("utf-8")
 
   def _HandleBodyFormat(self, args):
     file_infos = _GetTimelineStatEntries(
@@ -1174,7 +1169,7 @@ class ApiGetVfsFileContentUpdateStateHandler(
   def Handle(self, args, token=None):
     try:
       flow_obj = aff4.FACTORY.Open(
-          args.operation_id, aff4_type=transfer.MultiGetFile, token=token)
+          args.operation_id, aff4_type=aff4_flows.MultiGetFile, token=token)
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
       raise VfsFileContentUpdateNotFoundError(

@@ -27,7 +27,8 @@ The following is a summary of the CallFlow() sequence:
 2. The flow calls self.CallFlow() which is delegated to the flow's runner's
    CallFlow() method.
 
-3. The flow runner calls StartFlow(). This creates a child flow and a new flow
+3. The flow runner calls StartAFF4Flow(). This creates a child flow and a new
+flow
    runner. The new runner has as a parent the top level flow.
 
 4. The child flow calls CallClient() which schedules some messages for the
@@ -82,9 +83,6 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 class FlowRunnerError(Exception):
   """Raised when there is an error during state transitions."""
-
-
-OUTPUT_PLUGIN_BASE_SUFFIX = "PluginOutput"
 
 
 class FlowRunner(object):
@@ -177,14 +175,16 @@ class FlowRunner(object):
     flow runner into the new runner created by the flow object.
 
     For a regular flow the call sequence is:
-    flow_runner --StartFlow--> flow object --CreateRunner--> (new) flow_runner
+    flow_runner --StartAFF4Flow--> flow object --CreateRunner--> (new)
+    flow_runner
 
     For a hunt the call sequence is:
-    hunt_runner --CallFlow--> flow_runner --StartFlow--> flow object
+    hunt_runner --CallFlow--> flow_runner --StartAFF4Flow--> flow object
      --CreateRunner--> (new) flow_runner
 
     Args:
       logs_collection_urn: RDFURN pointing to parent logs collection
+
     Returns:
       The LogCollection.
     Raises:
@@ -206,12 +206,10 @@ class FlowRunner(object):
             "the client.", plugin_descriptor.plugin_name)
         continue
 
-      output_base_urn = self.session_id.Add(OUTPUT_PLUGIN_BASE_SUFFIX)
       plugin_class = plugin_descriptor.GetPluginClass()
       plugin = plugin_class(
           self.flow_obj.output_urn,
           args=plugin_descriptor.plugin_args,
-          output_base_urn=output_base_urn,
           token=self.token)
       try:
         plugin.InitializeState()
@@ -224,8 +222,8 @@ class FlowRunner(object):
             rdf_flow_runner.OutputPluginState(
                 plugin_state=plugin.state, plugin_descriptor=plugin_descriptor))
       except Exception as e:  # pylint: disable=broad-except
-        logging.info("Plugin %s failed to initialize (%s), ignoring it.",
-                     plugin, e)
+        logging.warning("Plugin %s failed to initialize (%s), ignoring it.",
+                        plugin, e)
 
     parent_creator = None
     if self.parent_runner:
@@ -276,7 +274,6 @@ class FlowRunner(object):
 
     Args:
        next_state: The state in this flow to be invoked.
-
        start_time: Start the flow at this time. This delays notification for
          flow processing into the future. Note that the flow may still be
          processed earlier if there are client responses waiting.
@@ -286,7 +283,7 @@ class FlowRunner(object):
     """
     # Check if the state is valid
     if not getattr(self.flow_obj, next_state):
-      raise FlowRunnerError("Next state %s is invalid.")
+      raise FlowRunnerError("Next state %s is invalid." % next_state)
 
     # Queue the response message to the parent flow
     request_state = rdf_flow_runner.RequestState(
@@ -523,9 +520,7 @@ class FlowRunner(object):
 
     Args:
       method_name: The name of the state method to call.
-
       request: A RequestState protobuf.
-
       responses: A list of GrrMessages responding to the request.
     """
     if self._TerminationPending():
@@ -605,19 +600,15 @@ class FlowRunner(object):
 
     Args:
        action_cls: The function to call on the client.
-
        request: The request to send to the client. If not specified (Or None) we
-             create a new RDFValue using the kwargs.
-
-       next_state: The state in this flow, that responses to this
-             message should go to.
-
+         create a new RDFValue using the kwargs.
+       next_state: The state in this flow, that responses to this message should
+         go to.
        request_data: A dict which will be available in the RequestState
-             protobuf. The Responses object maintains a reference to this
-             protobuf for use in the execution of the state method. (so you can
-             access this data by responses.request). Valid values are
-             strings, unicode and protobufs.
-
+         protobuf. The Responses object maintains a reference to this protobuf
+         for use in the execution of the state method. (so you can access this
+         data by responses.request). Valid values are strings, unicode and
+         protobufs.
        **kwargs: These args will be used to construct the client action semantic
          protobuf.
 
@@ -705,20 +696,15 @@ class FlowRunner(object):
 
     Args:
        flow_name: The name of the flow to invoke.
-
-       next_state: The state in this flow, that responses to this
-       message should go to.
-
+       next_state: The state in this flow, that responses to this message should
+         go to.
        request_data: Any dict provided here will be available in the
-             RequestState protobuf. The Responses object maintains a reference
-             to this protobuf for use in the execution of the state method. (so
-             you can access this data by responses.request). There is no
-             format mandated on this data but it may be a serialized protobuf.
-
+         RequestState protobuf. The Responses object maintains a reference to
+         this protobuf for use in the execution of the state method. (so you can
+         access this data by responses.request). There is no format mandated on
+         this data but it may be a serialized protobuf.
        client_id: If given, the flow is started for this client.
-
        base_session_id: A URN which will be used to build a URN.
-
        **kwargs: Arguments for the child flow.
 
     Raises:
@@ -760,7 +746,7 @@ class FlowRunner(object):
         self.runner_args.write_intermediate_results)
 
     # Create the new child flow but do not notify the user about it.
-    child_urn = self.flow_obj.StartFlow(
+    child_urn = self.flow_obj.StartAFF4Flow(
         client_id=client_id,
         flow_name=flow_name,
         base_session_id=base_session_id or self.session_id,
@@ -894,12 +880,10 @@ class FlowRunner(object):
             self.context.creator not in aff4_users.GRRUser.SYSTEM_USERS)
 
   def ProcessRepliesWithOutputPlugins(self, replies):
-    if not self.runner_args.output_plugins or not replies:
-      return
+    """Processes replies with output plugins."""
     for output_plugin_state in self.context.output_plugins_states:
       plugin_descriptor = output_plugin_state.plugin_descriptor
-      plugin_state = output_plugin_state.plugin_state
-      output_plugin = plugin_descriptor.GetPluginForState(plugin_state)
+      output_plugin = output_plugin_state.GetPlugin()
 
       # Extend our lease if needed.
       self.flow_obj.HeartBeat()
@@ -911,19 +895,17 @@ class FlowRunner(object):
             plugin_descriptor=plugin_descriptor,
             status="SUCCESS",
             batch_size=len(replies))
-        # Cannot append to lists in AttributedDicts.
-        plugin_state["logs"] += [log_item]
+        output_plugin_state.Log(log_item)
 
-        self.Log("Plugin %s sucessfully processed %d flow replies.",
+        self.Log("Plugin %s successfully processed %d flow replies.",
                  plugin_descriptor, len(replies))
       except Exception as e:  # pylint: disable=broad-except
         error = output_plugin_lib.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_descriptor,
             status="ERROR",
-            summary=utils.SmartStr(e),
+            summary=utils.SmartUnicode(e),
             batch_size=len(replies))
-        # Cannot append to lists in AttributedDicts.
-        plugin_state["errors"] += [error]
+        output_plugin_state.Error(error)
 
         self.Log("Plugin %s failed to process %d replies due to: %s",
                  plugin_descriptor, len(replies), e)
@@ -1055,6 +1037,7 @@ class FlowRunner(object):
     Args:
       format_str: Format string
       *args: arguments to the format string
+
     Raises:
       ValueError: on parent missing logs_collection
     """

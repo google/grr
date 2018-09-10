@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Registry for parsers and abstract classes for basic parser functionality."""
 
+from __future__ import unicode_literals
+
 
 from future.utils import with_metaclass
 

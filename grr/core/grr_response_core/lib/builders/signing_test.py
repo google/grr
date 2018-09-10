@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for grr.lib.signing."""
 
+from __future__ import unicode_literals
+
 import platform
 import tempfile
 import unittest

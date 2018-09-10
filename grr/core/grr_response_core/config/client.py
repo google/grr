@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Configuration parameters for the client."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import config_lib
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 

@@ -40,6 +40,30 @@ from grr_response_core.lib import utils
 
 STOP_MESSAGE = "Stop message"
 
+_OUTSTANDING_TASKS_METRIC = "threadpool_outstanding_tasks"
+_NUM_THREADS_METRIC = "threadpool_threads"
+_CPU_USE_METRIC = "threadpool_cpu_use"
+_TASK_EXCEPTIONS_METRIC = "threadpool_task_exceptions"
+_WORKING_TIME_METRIC = "threadpool_working_time"
+_QUEUEING_TIME_METRIC = "threadpool_queueing_time"
+
+
+def InitializeMetrics():
+  """Registers threadpool-related metrics.
+
+  This function must be called before any threadpools are created.
+  """
+  metric_fields = [("pool_name", str)]
+  stats.STATS.RegisterGaugeMetric(
+      _OUTSTANDING_TASKS_METRIC, int, fields=metric_fields)
+  stats.STATS.RegisterGaugeMetric(
+      _NUM_THREADS_METRIC, int, fields=metric_fields)
+  stats.STATS.RegisterGaugeMetric(_CPU_USE_METRIC, float, fields=metric_fields)
+  stats.STATS.RegisterCounterMetric(
+      _TASK_EXCEPTIONS_METRIC, fields=metric_fields)
+  stats.STATS.RegisterEventMetric(_WORKING_TIME_METRIC, fields=metric_fields)
+  stats.STATS.RegisterEventMetric(_QUEUEING_TIME_METRIC, fields=metric_fields)
+
 
 class Error(Exception):
   pass
@@ -95,7 +119,8 @@ class _WorkerThread(threading.Thread):
 
     if self.pool.name:
       time_in_queue = time.time() - queueing_time
-      stats.STATS.RecordEvent(self.pool.name + "_queueing_time", time_in_queue)
+      stats.STATS.RecordEvent(
+          _QUEUEING_TIME_METRIC, time_in_queue, fields=[self.pool.name])
 
       start_time = time.time()
     try:
@@ -105,13 +130,15 @@ class _WorkerThread(threading.Thread):
     # raised in the call to target().
     except Exception as e:  # pylint: disable=broad-except
       if self.pool.name:
-        stats.STATS.IncrementCounter(self.pool.name + "_task_exceptions")
+        stats.STATS.IncrementCounter(
+            _TASK_EXCEPTIONS_METRIC, fields=[self.pool.name])
       logging.exception("Caught exception in worker thread (%s): %s", name,
                         str(e))
 
     if self.pool.name:
       total_time = time.time() - start_time
-      stats.STATS.RecordEvent(self.pool.name + "_working_time", total_time)
+      stats.STATS.RecordEvent(
+          _WORKING_TIME_METRIC, total_time, fields=[self.pool.name])
 
   def _RemoveFromPool(self):
     """Remove ourselves from the pool.
@@ -259,19 +286,12 @@ class ThreadPool(object):
         raise DuplicateThreadpoolError(
             "A thread pool with the name %s already exists.", name)
 
-      stats.STATS.RegisterGaugeMetric(self.name + "_outstanding_tasks", int)
-      stats.STATS.SetGaugeCallback(self.name + "_outstanding_tasks",
-                                   self._queue.qsize)
-
-      stats.STATS.RegisterGaugeMetric(self.name + "_threads", int)
-      stats.STATS.SetGaugeCallback(self.name + "_threads", lambda: len(self))
-
-      stats.STATS.RegisterGaugeMetric(self.name + "_cpu_use", float)
-      stats.STATS.SetGaugeCallback(self.name + "_cpu_use", self.CPUUsage)
-
-      stats.STATS.RegisterCounterMetric(self.name + "_task_exceptions")
-      stats.STATS.RegisterEventMetric(self.name + "_working_time")
-      stats.STATS.RegisterEventMetric(self.name + "_queueing_time")
+      stats.STATS.SetGaugeCallback(
+          _OUTSTANDING_TASKS_METRIC, self._queue.qsize, fields=[self.name])
+      stats.STATS.SetGaugeCallback(
+          _NUM_THREADS_METRIC, lambda: len(self), fields=[self.name])
+      stats.STATS.SetGaugeCallback(
+          _CPU_USE_METRIC, self.CPUUsage, fields=[self.name])
 
   def __del__(self):
     if self.started:

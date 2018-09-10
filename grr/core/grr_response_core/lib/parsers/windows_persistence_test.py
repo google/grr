@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.windows_persistence."""
 
+from __future__ import unicode_literals
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import windows_persistence
 from grr_response_core.lib.rdfvalues import client as rdf_client

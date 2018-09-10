@@ -5,6 +5,8 @@ This handles invocations for the build across the supported platforms including
 handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
 
+from __future__ import unicode_literals
+
 import io
 import logging
 import os
@@ -90,10 +92,12 @@ class BuilderBase(object):
       input_filename = output_filename + ".in"
     if output_filename[-3:] == ".in":
       output_filename = output_filename[:-3]
-    data = open(input_filename, "rb").read()
     logging.debug("Generating file %s from %s", output_filename, input_filename)
 
-    with open(output_filename, "wb") as fd:
+    with io.open(input_filename, "r") as fd:
+      data = fd.read()
+
+    with io.open(output_filename, "w") as fd:
       fd.write(config.CONFIG.InterpolateValue(data, context=self.context))
 
 
@@ -149,8 +153,9 @@ class ClientBuilder(BuilderBase):
     with open(os.path.join(self.build_dir, "version.txt"), "wb") as fd:
       fd.write(config.CONFIG.Get("PyInstaller.version", context=self.context))
 
-    with open(os.path.join(self.build_dir, "grr.ico"), "wb") as fd:
-      fd.write(config.CONFIG.Get("PyInstaller.icon", context=self.context))
+    shutil.copy(
+        src=config.CONFIG.Get("PyInstaller.icon_path", context=self.context),
+        dst=os.path.join(self.build_dir, u"grr.ico"))
 
     # We expect the onedir output at this location.
     self.output_dir = os.path.join(
@@ -320,7 +325,8 @@ class ClientRepacker(BuilderBase):
         new_config.Set("Client.fleetspeak_enabled", True)
 
       if deploy_timestamp:
-        new_config.Set("Client.deploy_time", str(rdfvalue.RDFDatetime.Now()))
+        deploy_time_string = unicode(rdfvalue.RDFDatetime.Now())
+        new_config.Set("Client.deploy_time", deploy_time_string)
       new_config.Write()
 
       if validate:
@@ -339,7 +345,7 @@ class ClientRepacker(BuilderBase):
           raise
         validator.ValidateEndConfig(new_config, self.context)
 
-      return open(filename, "rb").read()
+      return io.open(filename, "r").read()
 
   def ValidateEndConfig(self, config_obj, errors_fatal=True):
     """Given a generated client config, attempt to check for common errors."""
@@ -365,7 +371,7 @@ class ClientRepacker(BuilderBase):
           "Invalid Client.executable_signing_public_key: %s" % key_data)
     else:
       rsa_key = rdf_crypto.RSAPublicKey()
-      rsa_key.ParseFromString(key_data)
+      rsa_key.ParseFromHumanReadable(key_data)
       logging.info(
           "Executable signing key successfully parsed from config (%d-bit)",
           rsa_key.KeyLen())
@@ -502,8 +508,8 @@ class WindowsClientRepacker(ClientRepacker):
                       "config file without the '.in' extension.")
       with utils.TempDirectory() as temp_dir:
         temp_fs_config_path = os.path.join(temp_dir, final_fs_config_fname)
-        with open(orig_fs_config_path, "rb") as source:
-          with open(temp_fs_config_path, "wb") as dest:
+        with io.open(orig_fs_config_path, "r") as source:
+          with io.open(temp_fs_config_path, "w") as dest:
             interpolated = config.CONFIG.InterpolateValue(
                 source.read(), context=self.context)
             dest.write(re.sub(r"\\", r"\\\\", interpolated))
@@ -572,7 +578,7 @@ class WindowsClientRepacker(ClientRepacker):
 
     output_zip.writestr(
         config_file_name,
-        client_config_content,
+        client_config_content.encode("utf-8"),
         compress_type=zipfile.ZIP_STORED)
 
     # The zip file comment is used by the self extractor to run the installation
@@ -580,7 +586,7 @@ class WindowsClientRepacker(ClientRepacker):
     # smart enough to properly handle `unicode` objects. We use the `encode`
     # method instead of `SmartStr` because we expect this option to be an
     # `unicode` object and in case it is not, we want it to blow up.
-    output_zip.comment = "$AUTORUN$>%s" % config.CONFIG.Get(
+    output_zip.comment = b"$AUTORUN$>%s" % config.CONFIG.Get(
         "ClientBuilder.autorun_command_line", context=context).encode("utf-8")
 
     output_zip.close()
@@ -594,7 +600,7 @@ class WindowsClientRepacker(ClientRepacker):
       stub_raw = open(unzipsfx_stub, "rb").read()
 
       # Check stub has been compiled with the requireAdministrator manifest.
-      if "level=\"requireAdministrator" not in stub_raw:
+      if b"level=\"requireAdministrator" not in stub_raw:
         raise RuntimeError("Bad unzip binary in use. Not compiled with the"
                            "requireAdministrator manifest option.")
 
@@ -611,7 +617,7 @@ class WindowsClientRepacker(ClientRepacker):
 
       # This is the IMAGE_SECTION_HEADER.Name which is also the start of
       # IMAGE_SECTION_HEADER.
-      offset_to_rsrc = stub_data.getvalue().find(".rsrc")
+      offset_to_rsrc = stub_data.getvalue().find(b".rsrc")
 
       # IMAGE_SECTION_HEADER.PointerToRawData is a 32 bit int.
       stub_data.seek(offset_to_rsrc + 20)
@@ -1028,7 +1034,7 @@ def SetPeSubsystem(fd, console=True):
   subsystem_offset = header_offset + 0x5c
   fd.seek(subsystem_offset)
   if console:
-    fd.write("\x03")
+    fd.write(b"\x03")
   else:
-    fd.write("\x02")
+    fd.write(b"\x02")
   fd.seek(current_pos)

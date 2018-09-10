@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Implementation of various cryptographic types."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import hashlib
 import logging
@@ -53,7 +54,7 @@ class Certificate(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.Certificate
 
 
-class RDFX509Cert(rdfvalue.RDFValue):
+class RDFX509Cert(rdfvalue.RDFPrimitive):
   """X509 certificates used to communicate with this client."""
 
   def __init__(self, initializer=None, age=None):
@@ -99,6 +100,10 @@ class RDFX509Cert(rdfvalue.RDFValue):
       raise rdfvalue.DecodeError("Invalid certificate %s: %s" % (string, e))
     # This can also raise if there isn't exactly one CN entry.
     self.GetCN()
+
+  def ParseFromHumanReadable(self, string):
+    utils.AssertType(string, unicode)
+    self.ParseFromString(string.encode("ascii"))
 
   def ParseFromDatastore(self, value):
     utils.AssertType(value, bytes)
@@ -260,7 +265,7 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
     return True
 
 
-class RSAPublicKey(rdfvalue.RDFValue):
+class RSAPublicKey(rdfvalue.RDFPrimitive):
   """An RSA public key."""
 
   def __init__(self, initializer=None, age=None):
@@ -268,8 +273,10 @@ class RSAPublicKey(rdfvalue.RDFValue):
     if self._value is None and initializer is not None:
       if isinstance(initializer, rsa.RSAPublicKey):
         self._value = initializer
-      elif isinstance(initializer, basestring):
+      elif isinstance(initializer, bytes):
         self.ParseFromString(initializer)
+      elif isinstance(initializer, unicode):
+        self.ParseFromString(initializer.encode("ascii"))
       else:
         raise rdfvalue.InitializeError(
             "Cannot initialize %s from %s." % (self.__class__, initializer))
@@ -278,6 +285,7 @@ class RSAPublicKey(rdfvalue.RDFValue):
     return self._value
 
   def ParseFromString(self, pem_string):
+    utils.AssertType(pem_string, bytes)
     try:
       self._value = serialization.load_pem_public_key(
           pem_string, backend=openssl.backend)
@@ -287,6 +295,10 @@ class RSAPublicKey(rdfvalue.RDFValue):
   def ParseFromDatastore(self, value):
     utils.AssertType(value, bytes)
     self.ParseFromString(value)
+
+  def ParseFromHumanReadable(self, string):
+    utils.AssertType(string, unicode)
+    self.ParseFromString(string.encode("ascii"))
 
   def SerializeToString(self):
     if self._value is None:
@@ -349,7 +361,7 @@ class RSAPublicKey(rdfvalue.RDFValue):
     raise VerificationError(last_e)
 
 
-class RSAPrivateKey(rdfvalue.RDFValue):
+class RSAPrivateKey(rdfvalue.RDFPrimitive):
   """An RSA private key."""
 
   def __init__(self, initializer=None, age=None, allow_prompt=None):
@@ -358,11 +370,17 @@ class RSAPrivateKey(rdfvalue.RDFValue):
     if self._value is None and initializer is not None:
       if isinstance(initializer, rsa.RSAPrivateKey):
         self._value = initializer
-      elif isinstance(initializer, basestring):
+      elif isinstance(initializer, bytes):
         self.ParseFromString(initializer)
+      elif isinstance(initializer, unicode):
+        self.ParseFromString(initializer.encode("ascii"))
       else:
         raise rdfvalue.InitializeError(
             "Cannot initialize %s from %s." % (self.__class__, initializer))
+
+  def ParseFromHumanReadable(self, string):
+    utils.AssertType(string, unicode)
+    self.ParseFromString(string.encode("ascii"))
 
   def GetRawPrivateKey(self):
     return self._value
@@ -402,6 +420,7 @@ class RSAPrivateKey(rdfvalue.RDFValue):
     return cls(key)
 
   def ParseFromString(self, pem_string):
+    utils.AssertType(pem_string, bytes)
     try:
       self._value = serialization.load_pem_private_key(
           pem_string, password=None, backend=openssl.backend)
@@ -626,7 +645,7 @@ class StreamingCBCEncryptor(object):
   def __init__(self, cipher):
     self._cipher = cipher
     self._encryptor = cipher.GetEncryptor()
-    self._overflow_buffer = ""
+    self._overflow_buffer = b""
     self._block_size = len(cipher.key)
 
   def Update(self, data):
@@ -796,7 +815,7 @@ class Password(rdf_structs.RDFProtoStruct):
     return kdf.derive(password)
 
   def SetPassword(self, password):
-    self.salt = "%016x" % utils.PRNG.GetUInt64()
+    self.salt = b"%016x" % utils.PRNG.GetUInt64()
     self.iteration_count = 100000
     self.hashed_pwd = self._CalculateHash(password, self.salt,
                                           self.iteration_count)

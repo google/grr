@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Parser for Google chrome/chromium History files."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 __program__ = "chrome_history.py"
 

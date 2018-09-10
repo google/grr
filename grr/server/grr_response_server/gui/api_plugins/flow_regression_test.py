@@ -46,7 +46,7 @@ class ApiGetFlowHandlerRegressionTest(
           client_urn, mode="rw", token=self.token) as client_obj:
         client_obj.DeleteAttribute(client_obj.Schema.CERT)
 
-      flow_id = flow.StartFlow(
+      flow_id = flow.StartAFF4Flow(
           flow_name=discovery.Interrogate.__name__,
           client_id=client_urn,
           token=self.token)
@@ -83,13 +83,13 @@ class ApiListFlowsHandlerRegressionTest(
       client_urn = self.SetupClient(0)
 
     with test_lib.FakeTime(43):
-      flow_id_1 = flow.StartFlow(
+      flow_id_1 = flow.StartAFF4Flow(
           flow_name=discovery.Interrogate.__name__,
           client_id=client_urn,
           token=self.token)
 
     with test_lib.FakeTime(44):
-      flow_id_2 = flow.StartFlow(
+      flow_id_2 = flow.StartAFF4Flow(
           flow_name=processes.ListProcesses.__name__,
           client_id=client_urn,
           token=self.token)
@@ -113,7 +113,7 @@ class ApiListFlowRequestsHandlerRegressionTest(
   def Run(self):
     client_id = self.SetupClient(0)
     with test_lib.FakeTime(42):
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           flow_name=processes.ListProcesses.__name__,
           client_id=client_id,
           token=self.token)
@@ -160,7 +160,7 @@ class ApiListFlowResultsHandlerRegressionTest(
     client_mock = hunt_test_lib.SampleHuntMock()
 
     with test_lib.FakeTime(42):
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           client_id=client_id,
           args=flow_args,
           runner_args=runner_args,
@@ -188,7 +188,7 @@ class ApiListFlowLogsHandlerRegressionTest(
 
   def Run(self):
     client_id = self.SetupClient(0)
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         flow_name=processes.ListProcesses.__name__,
         client_id=client_id,
         token=self.token)
@@ -233,7 +233,7 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
   def Run(self):
     client_id = self.SetupClient(0)
     with test_lib.FakeTime(42):
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           flow_name=processes.ListProcesses.__name__,
           client_id=client_id,
           token=self.token)
@@ -266,7 +266,7 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
             email_address="test@localhost", emails_limit=42))
 
     with test_lib.FakeTime(42):
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           flow_name=processes.ListProcesses.__name__,
           client_id=client_id,
           output_plugins=[email_descriptor],
@@ -300,7 +300,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
             email_address="test@localhost", emails_limit=42))
 
     with test_lib.FakeTime(42):
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__,
           client_id=client_id,
           output_plugins=[email_descriptor],
@@ -337,7 +337,7 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
         plugin_name=hunt_test_lib.FailingDummyHuntOutputPlugin.__name__)
 
     with test_lib.FakeTime(42):
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__,
           client_id=client_id,
           output_plugins=[failing_descriptor],
@@ -394,7 +394,7 @@ class ApiCancelFlowHandlerRegressionTest(
   def Run(self):
     client_id = self.SetupClient(0)
     with test_lib.FakeTime(42):
-      flow_urn = flow.StartFlow(
+      flow_urn = flow.StartAFF4Flow(
           flow_name=processes.ListProcesses.__name__,
           client_id=client_id,
           token=self.token)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Client utilities common to all platforms."""
+from __future__ import unicode_literals
 
 import hashlib
 import logging
@@ -47,11 +48,11 @@ def Execute(cmd,
     args: List of arguments.
     time_limit: Time in seconds the process is allowed to run.
     bypass_whitelist: Allow execution of things that are not in the whitelist.
-        Note that this should only ever be called on a binary that passes the
-        VerifySignedBlob check.
+      Note that this should only ever be called on a binary that passes the
+      VerifySignedBlob check.
     daemon: Start the new process in the background.
     use_client_context: Run this script in the client's context. Defaults to
-                        system context.
+      system context.
     cwd: Current working directory for the command.
 
   Returns:
@@ -61,7 +62,7 @@ def Execute(cmd,
     # Whitelist doesn't contain this cmd/arg pair
     logging.info("Execution disallowed by whitelist: %s %s.", cmd,
                  " ".join(args))
-    return ("", "Execution disallowed by whitelist.", -1, -1)
+    return (b"", b"Execution disallowed by whitelist.", -1, -1)
 
   if daemon:
     pid = os.fork()
@@ -109,7 +110,7 @@ def _Execute(cmd, args, time_limit=-1, use_client_context=False, cwd=None):
     alarm.setDaemon(True)
     alarm.start()
 
-  stdout, stderr, exit_status = "", "", -1
+  stdout, stderr, exit_status = b"", b"", -1
   start_time = time.time()
   try:
     stdout, stderr = p.communicate()
@@ -149,7 +150,8 @@ def IsExecutionWhitelisted(cmd, args):
         ("driverquery.exe", ["/v"]),
         ("ipconfig.exe", ["/all"]),
         ("netsh.exe", ["advfirewall", "firewall", "show", "rule", "name=all"]),
-        ("netsh.exe", ["advfirewall", "monitor", "show", "firewall", "rule", "name=all"]),
+        ("netsh.exe",
+         ["advfirewall", "monitor", "show", "firewall", "rule", "name=all"]),
         ("tasklist.exe", ["/SVC"]),
         ("tasklist.exe", ["/v"]),
     ]
@@ -208,9 +210,9 @@ class MultiHasher(object):
 
   Args:
     algorithms: List of names of the algorithms from the `hashlib` module that
-        need to be applied.
+      need to be applied.
     progress: An (optional) progress callback called when hashing functions are
-        applied to the data.
+      applied to the data.
   """
 
   def __init__(self, algorithms=None, progress=None):

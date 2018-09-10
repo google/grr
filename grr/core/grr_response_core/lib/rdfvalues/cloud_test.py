@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for grr.lib.rdfvalues.cloud."""
 
+from __future__ import unicode_literals
+
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud

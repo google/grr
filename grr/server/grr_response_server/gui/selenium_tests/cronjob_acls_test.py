@@ -4,6 +4,7 @@
 
 import unittest
 from grr_response_core.lib import flags
+from grr_response_core.lib import utils
 
 from grr_response_server import cronjobs
 from grr_response_server import data_store
@@ -15,16 +16,15 @@ from grr.test_lib import db_test_lib
 
 @db_test_lib.DualDBTest
 class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
-  # Using an Unicode string for the test here would be optimal but Selenium
-  # can't correctly enter Unicode text into forms.
-  reason = "Felt like it!"
+
+  reason = u"Cóż, po prostu taką miałem zachciankę."
 
   def _ScheduleCronJob(self):
     if data_store.RelationalDBReadEnabled(category="cronjobs"):
-      cron_job_id = unicode(cron_system.OSBreakDownCronJob.__name__)
+      cron_job_id = utils.GetName(cron_system.OSBreakDownCronJob)
       cronjobs.ScheduleSystemCronJobs(names=[cron_job_id])
     else:
-      cron_job_id = unicode(cron_system.OSBreakDown.__name__)
+      cron_job_id = utils.GetName(cron_system.OSBreakDown)
       aff4_cronjobs.ScheduleSystemCronFlows(
           names=[cron_job_id], token=self.token)
     aff4_cronjobs.GetCronManager().DisableJob(job_id=cron_job_id)

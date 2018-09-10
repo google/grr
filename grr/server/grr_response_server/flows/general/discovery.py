@@ -16,6 +16,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
+from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import client_index
 from grr_response_server import data_store
@@ -24,6 +25,7 @@ from grr_response_server import events
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
@@ -36,7 +38,8 @@ class InterrogateArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.InterrogateArgs
 
 
-class Interrogate(flow.GRRFlow):
+@flow_base.DualDBFlow
+class InterrogateMixin(object):
   """Interrogate various things about the host."""
 
   category = "/Administrative/"
@@ -60,10 +63,6 @@ class Interrogate(flow.GRRFlow):
 
   def Start(self):
     """Start off all the tests."""
-
-    # Create the objects we need to exist.
-    self.Load()
-
     self.state.client = rdf_objects.ClientSnapshot(client_id=self.client_id)
     self.state.fqdn = None
     self.state.os = None
@@ -128,10 +127,11 @@ class Interrogate(flow.GRRFlow):
       response = responses.First()
       # AFF4 client.
 
-      # These need to be in separate attributes because they get searched on in
-      # the GUI
       with self._OpenClient(mode="rw") as client:
         # For backwards compatibility.
+
+        # These need to be in separate attributes because they get searched on
+        # in the GUI.
         client.Set(client.Schema.HOSTNAME(response.fqdn))
         client.Set(client.Schema.SYSTEM(response.system))
         client.Set(client.Schema.OS_RELEASE(response.release))
@@ -465,7 +465,7 @@ class Interrogate(flow.GRRFlow):
 
   def NotifyAboutEnd(self):
     notification.Notify(
-        self.token.username,
+        self.creator,
         rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED, "",
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CLIENT,
@@ -516,8 +516,8 @@ class EnrolmentInterrogateEvent(events.EventListener):
 
   def ProcessMessages(self, msgs=None, token=None):
     for msg in msgs:
-      flow.StartFlow(
+      flow.StartAFF4Flow(
           client_id=msg,
-          flow_name=Interrogate.__name__,
+          flow_name=aff4_flows.Interrogate.__name__,
           queue=queues.ENROLLMENT,
           token=token)

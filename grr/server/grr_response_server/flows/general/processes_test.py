@@ -29,7 +29,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             ctime=1333718907167083)
     ])
 
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=flow_processes.ListProcesses.__name__,
         token=self.token)
@@ -66,7 +66,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             pid=5, ppid=1, cmdline=["missing2_exe.exe"], ctime=1333718907167083)
     ])
 
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=flow_processes.ListProcesses.__name__,
         filename_regex=r".*cmd2.exe",
@@ -119,7 +119,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ])
     client_mock = action_mocks.ListProcessesMock([p1, p2, p3])
 
-    flow_urn = flow.StartFlow(
+    flow_urn = flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=flow_processes.ListProcesses.__name__,
         connection_states=["ESTABLISHED", "LISTEN"],

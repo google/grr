@@ -12,6 +12,7 @@ from grr_response_core.lib import stats
 from grr_response_core.lib.local import plugins
 # pylint: enable=unused-import
 from grr_response_server import server_logging
+from grr_response_server import threadpool
 from grr_response_server.local import registry_init
 
 # pylint: disable=g-import-not-at-top
@@ -65,6 +66,7 @@ def Init():
     logging.debug("Using default stats collector.")
     stats.STATS = stats.StatsCollector()
 
+  threadpool.InitializeMetrics()
   server_logging.ServerLoggingStartupInit()
 
   registry.Init()

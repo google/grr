@@ -160,7 +160,7 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
       flow_obj.GetRunner().Error("Fake error")
 
     # Create an arbitrary flow to check on 404s.
-    self.non_refresh_flow_urn = flow.StartFlow(
+    self.non_refresh_flow_urn = flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=discovery.Interrogate.__name__,
         token=self.token)
@@ -247,7 +247,7 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
       flow_obj.GetRunner().Error("Fake error")
 
     # Create an arbitrary flow to check on 404s.
-    self.non_update_flow_urn = flow.StartFlow(
+    self.non_update_flow_urn = flow.StartAFF4Flow(
         client_id=client_id,
         flow_name=discovery.Interrogate.__name__,
         token=self.token)

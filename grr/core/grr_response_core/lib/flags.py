@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module to allow option processing from files or registry."""
+from __future__ import unicode_literals
 
 import argparse
 import copy
@@ -135,8 +136,8 @@ def StartMain(main):
   """
   extra_args = Initialize()
 
-  exec_name = sys.argv[0]
-  sys.argv = [exec_name] + extra_args
+  exec_name = sys.argv[0].decode("utf-8")
+  sys.argv = [exec_name.encode("utf-8")] + extra_args
 
   # Call the main function
   try:

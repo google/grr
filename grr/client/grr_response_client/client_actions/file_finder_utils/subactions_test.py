@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import unicode_literals
+
 import unittest
 from grr_response_core.lib import flags
 from grr.test_lib import test_lib
