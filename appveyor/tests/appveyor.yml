@@ -23,7 +23,7 @@ install:
 # Install chrome if absent.
 - >-
   if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
-  wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}"
+  wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
   fi
 - travis/install_protobuf.sh linux
 - virtualenv "${GRR_VENV}"
