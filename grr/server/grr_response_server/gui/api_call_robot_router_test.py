@@ -363,6 +363,33 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
             client_id=self.client_id, flow_id=flow_id),
         token=self.token)
 
+  def testListFlowLogsIsDisabledByDefault(self):
+    router = self._CreateRouter()
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      router.ListFlowLogs(None, token=self.token)
+
+  def testListFlowLogsRaisesIfFlowWasNotCreatedBySameRouter(self):
+    flow_urn = flow.StartAFF4Flow(
+        client_id=self.client_id,
+        flow_name=file_finder.FileFinder.__name__,
+        token=self.token)
+
+    router = self._CreateRouter(
+        list_flow_logs=rr.RobotRouterListFlowLogsParams(enabled=True))
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      router.ListFlowLogs(
+          api_flow.ApiListFlowLogsArgs(
+              client_id=self.client_id, flow_id=flow_urn.Basename()),
+          token=self.token)
+
+  def testListFlowLogsWorksIfFlowWasCreatedBySameRouter(self):
+    flow_id = self._CreateFlowWithRobotId()
+    router = self._CreateRouter(
+        list_flow_logs=rr.RobotRouterListFlowLogsParams(enabled=True))
+    router.ListFlowLogs(
+        api_flow.ApiListFlowLogsArgs(client_id=self.client_id, flow_id=flow_id),
+        token=self.token)
+
   def testGetFlowFilesArchiveIsDisabledByDefault(self):
     router = self._CreateRouter()
     with self.assertRaises(access_control.UnauthorizedAccess):
@@ -440,6 +467,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
       "CreateFlow",
       "GetFlow",
       "ListFlowResults",
+      "ListFlowLogs",
       "GetFlowFilesArchive",
       # This single reflection method is needed for API libraries to work
       # correctly.

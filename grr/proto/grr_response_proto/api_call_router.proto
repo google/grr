@@ -101,6 +101,10 @@ message RobotRouterListFlowResultsParams {
   optional bool enabled = 1;
 }
 
+message RobotRouterListFlowLogsParams {
+  optional bool enabled = 1;
+}
+
 message RobotRouterGetFlowFilesArchiveParams {
   optional bool enabled = 1;
 
@@ -120,6 +124,7 @@ message RobotRouterGetFlowFilesArchiveParams {
   optional bool skip_glob_checks_for_artifact_collector = 4;
 }
 
+// Next messade id: 9
 message ApiCallRobotRouterParams {
   optional RobotRouterSearchClientsParams search_clients = 1;
 
@@ -128,6 +133,7 @@ message ApiCallRobotRouterParams {
 
   optional RobotRouterGetFlowParams get_flow = 4;
   optional RobotRouterListFlowResultsParams list_flow_results = 5;
+  optional RobotRouterListFlowLogsParams list_flow_logs = 8;
   optional RobotRouterGetFlowFilesArchiveParams get_flow_files_archive = 6;
 
   optional string robot_id = 7;

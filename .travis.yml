@@ -69,7 +69,7 @@ matrix:
       env:
         - GCS_TAG=centos_64bit
         - GCS_BUCKET=autobuilds.grr-response.com
-        - DOCKER_IMG=centos:7
+        - DOCKER_IMG=grrdocker/centos7
         - DOCKER_CONTAINER=centos_64bit_container
         - DOCKER_USER=grrbot
         - PATH=$PATH:${HOME}/google-cloud-sdk/bin
@@ -88,13 +88,6 @@ matrix:
           --env PROTOC="/home/${DOCKER_USER}/protobuf/bin/protoc"
           --name "${DOCKER_CONTAINER}"
           "${DOCKER_IMG}"
-        - >-
-          sudo docker exec "${DOCKER_CONTAINER}"
-          yum install -y epel-release python-devel wget which java-1.8.0-openjdk
-          libffi-devel openssl-devel zip git gcc gcc-c++ redhat-rpm-config
-          rpm-build rpm-sign
-        - sudo docker exec "${DOCKER_CONTAINER}" yum install -y python-pip
-        - sudo docker exec "${DOCKER_CONTAINER}" pip install --upgrade pip virtualenv
         - sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"

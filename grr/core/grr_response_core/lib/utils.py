@@ -449,7 +449,7 @@ class Memoize(object):
 
     Args:
       deep_copy: Whether to perform a deep copy of the returned object.
-          Otherwise, a direct reference is returned.
+        Otherwise, a direct reference is returned.
     """
     self.deep_copy = deep_copy
 
@@ -488,6 +488,7 @@ class Memoize(object):
 
 class MemoizeFunction(object):
   """A decorator to produce a memoizing version a function.
+
   """
 
   def __init__(self, deep_copy=False):
@@ -495,7 +496,7 @@ class MemoizeFunction(object):
 
     Args:
       deep_copy: Whether to perform a deep copy of the returned object.
-          Otherwise, a direct reference is returned.
+        Otherwise, a direct reference is returned.
     """
     self.deep_copy = deep_copy
 
@@ -769,7 +770,7 @@ def JoinPath(stem="", *parts):
   Args:
      stem: The stem to join to.
      *parts: parts of the path to join. The first arg is always the root and
-        directory traversal is not allowed.
+       directory traversal is not allowed.
 
   Returns:
      a normalized path.
@@ -1245,9 +1246,8 @@ class StreamingZipWriter(object):
     """Open streaming ZIP file with mode read "r", write "w" or append "a".
 
     Args:
-      fd_or_path: Either the path to the file, or a file-like object.
-                  If it is a path, the file will be opened and closed by
-                  ZipFile.
+      fd_or_path: Either the path to the file, or a file-like object. If it is a
+        path, the file will be opened and closed by ZipFile.
       mode: The mode can be either read "r", write "w" or append "a".
       compression: ZIP_STORED (no compression) or ZIP_DEFLATED (requires zlib).
     """
@@ -1614,7 +1614,7 @@ class Stat(object):
   Args:
     path: A path to the file to perform `stat` on.
     follow_symlink: True if `stat` of a symlink should be returned instead of a
-        file that it points to. For non-symlinks this setting has no effect.
+      file that it points to. For non-symlinks this setting has no effect.
   """
 
   def __init__(self, path, follow_symlink=True):
@@ -1742,7 +1742,7 @@ class StatCache(object):
     Args:
       path: A path to the file to perform `stat` on.
       follow_symlink: True if `stat` of a symlink should be returned instead of
-          a file that it points to. For non-symlinks this setting has no effect.
+        a file that it points to. For non-symlinks this setting has no effect.
 
     Returns:
       `Stat` object corresponding to the given path.
@@ -2051,3 +2051,10 @@ def GetName(cls):
   else:
     return cls.__name__
   # pytype: enable=attribute-error
+
+
+def IterValuesInSortedKeysOrder(d):
+  """Iterates dict's values in sorted keys order."""
+
+  for key in sorted(iterkeys(d)):
+    yield d[key]

@@ -49,6 +49,10 @@ class RobotRouterListFlowResultsParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.RobotRouterListFlowResultsParams
 
 
+class RobotRouterListFlowLogsParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_call_router_pb2.RobotRouterListFlowLogsParams
+
+
 class RobotRouterGetFlowFilesArchiveParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.RobotRouterGetFlowFilesArchiveParams
   rdf_deps = [
@@ -63,6 +67,7 @@ class ApiCallRobotRouterParams(rdf_structs.RDFProtoStruct):
       RobotRouterFileFinderFlowParams,
       RobotRouterGetFlowFilesArchiveParams,
       RobotRouterGetFlowParams,
+      RobotRouterListFlowLogsParams,
       RobotRouterListFlowResultsParams,
       RobotRouterSearchClientsParams,
   ]
@@ -303,6 +308,15 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     self._CheckFlowRobotId(args.client_id, args.flow_id, token=token)
 
     return api_flow.ApiListFlowResultsHandler()
+
+  def ListFlowLogs(self, args, token=None):
+    if not self.params.list_flow_logs.enabled:
+      raise access_control.UnauthorizedAccess(
+          "ListFlowLogs is not allowed by the configuration.")
+
+    self._CheckFlowRobotId(args.client_id, args.flow_id, token=token)
+
+    return api_flow.ApiListFlowLogsHandler()
 
   def GetFlowFilesArchive(self, args, token=None):
     if not self.params.get_flow_files_archive.enabled:

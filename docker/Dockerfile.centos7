@@ -1,0 +1,46 @@
+# Docker file that builds a Centos 7 image with a recent version of
+# Python installed.
+#
+# To build a new image on your local machine, cd to this file's directory
+# and run (note the period at the end):
+#
+#   docker build -t grrdocker/centos7 -f Dockerfile.centos7 .
+#
+# A custom Python version is built and installed in /usr/local/bin by this
+# script. It is available in the PATH as 'python2.7'. The old (default) Python
+# is still available in the PATH as 'python'.
+
+FROM centos:7
+
+LABEL maintainer="grr-dev@googlegroups.com"
+
+WORKDIR /tmp/grrdocker-scratch
+
+# Install pre-requisites for building Python, as well as GRR prerequisites.
+RUN yum update -y && yum install -y make zlib-devel bzip2-devel ncurses-devel \
+  sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel \
+  xz-devel epel-release python-devel wget which java-1.8.0-openjdk \
+  libffi-devel openssl-devel zip git gcc gcc-c++ redhat-rpm-config rpm-build \
+  rpm-sign
+
+# Build a recent version of Python from source (Centos 7 has Python 2.7.5
+# installed in /bin). The custom Python version is installed in
+# /usr/local/bin
+RUN wget https://www.python.org/ftp/python/2.7.14/Python-2.7.14.tgz && \
+  tar xzvf Python-2.7.14.tgz && \
+  cd Python-2.7.14 && \
+  ./configure --enable-shared --enable-ipv6 --enable-unicode=ucs4 \
+    --prefix=/usr/local LDFLAGS="-Wl,-rpath /usr/local/lib" && \
+  make && \
+  make altinstall
+
+# Install pip and virtualenv.
+RUN wget https://bootstrap.pypa.io/get-pip.py && \
+  /usr/local/bin/python2.7 get-pip.py && \
+  pip install --upgrade pip virtualenv
+
+WORKDIR /
+
+RUN rm -rf /tmp/grrdocker-scratch
+
+CMD ["/bin/bash"]

@@ -1,0 +1,27 @@
+# Docker file that builds an Ubuntu Xenial image ready for GRR installation.
+#
+# To build a new image on your local machine, cd to this file's directory
+# and run (note the period at the end):
+#
+#   docker build -t grrdocker/xenial -f Dockerfile.xenial .
+
+FROM ubuntu:xenial
+
+LABEL maintainer="grr-dev@googlegroups.com"
+
+WORKDIR /tmp/grrdocker-scratch
+
+RUN apt update -qq && \
+  apt install -y fakeroot debhelper libffi-dev \
+  libssl-dev python-dev python-pip wget openjdk-8-jdk zip devscripts \
+  dh-systemd libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
+
+RUN pip install --upgrade pip virtualenv && \
+  wget --quiet https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+  apt install -y ./google-chrome-stable_current_amd64.deb
+
+WORKDIR /
+
+RUN rm -rf /tmp/grrdocker-scratch
+
+CMD ["/bin/bash"]

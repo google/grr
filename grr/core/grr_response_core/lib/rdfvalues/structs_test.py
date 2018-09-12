@@ -4,6 +4,8 @@
 
 from __future__ import unicode_literals
 
+import random
+
 from builtins import range  # pylint: disable=redefined-builtin
 
 from google.protobuf import descriptor_pool
@@ -22,6 +24,19 @@ from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr.test_lib import test_lib
 
 # pylint: mode=test
+
+
+class TestStructWithManyFields(rdf_structs.RDFProtoStruct):
+  """A test struct object."""
+
+  type_description = type_info.TypeDescriptorSet(*[
+      rdf_structs.ProtoString(
+          name="foobar_%d" % i,
+          field_number=i + 1,
+          default="string",
+          description="A string value",
+      ) for i in range(100)
+  ])
 
 
 class TestStruct(rdf_structs.RDFProtoStruct):
@@ -336,10 +351,8 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Adding a descriptor which is not a Proto* descriptor is not allowed for
     # Struct fields:
-    self.assertRaises(
-        type_info.TypeValueError,
-        TestStruct.AddDescriptor,
-        type_info.String(name="int"))
+    self.assertRaises(type_info.TypeValueError, TestStruct.AddDescriptor,
+                      type_info.String(name="int"))
 
   def testRepeatedMember(self):
     tested = TestStruct(int=5)
@@ -412,8 +425,8 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     tested.nested = TestStruct(foobar="nested_foo")
 
     # Not OK to use the wrong semantic type.
-    self.assertRaises(
-        ValueError, setattr, tested, "nested", PartialTest1(int=1))
+    self.assertRaises(ValueError, setattr, tested, "nested",
+                      PartialTest1(int=1))
 
     # Not OK to assign a serialized string - even if it is for the right type -
     # since there is no type checking.
@@ -698,6 +711,29 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     }
     self.assertEqual(
         test_struct.ToPrimitiveDict(serialize_leaf_fields=True), expected_dict)
+
+  def _GenerateSampleWithManyFields(self):
+    fields = {}
+    for _ in range(50):
+      key = "foobar_%d" % random.randrange(100)
+      fields[key] = key
+
+    sample = TestStructWithManyFields(**fields)
+
+    parsed = TestStructWithManyFields()
+    parsed.ParseFromString(sample.SerializeToString())
+
+    return sample, parsed
+
+  def testSerializationIsStable(self):
+    sample1, sample2 = self._GenerateSampleWithManyFields()
+
+    self.assertEqual(sample1.SerializeToString(), sample2.SerializeToString())
+
+  def testHashingIsStable(self):
+    sample1, sample2 = self._GenerateSampleWithManyFields()
+
+    self.assertEqual(hash(sample1), hash(sample2))
 
 
 def main(argv):

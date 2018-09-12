@@ -995,6 +995,21 @@ class AssertDictTypeTest(unittest.TestCase):
       utils.AssertDictType({"foo": 1, "bar": 2, "baz": 3.14}, unicode, int)
 
 
+class IterValuesInSortedKeysOrderTest(unittest.TestCase):
+
+  def testYieldsSingleValueCorrectly(self):
+    self.assertEqual([42], list(utils.IterValuesInSortedKeysOrder({"a": 42})))
+
+  def testYieldsMultipleValuesInCorrectOrder(self):
+    self.assertEqual([44, 42, 43],
+                     list(
+                         utils.IterValuesInSortedKeysOrder({
+                             "a": 44,
+                             "b": 42,
+                             "c": 43
+                         })))
+
+
 def main(argv):
   test_lib.main(argv)
 

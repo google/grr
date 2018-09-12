@@ -44,7 +44,7 @@ def main(unused_args):
 
   errors = config.CONFIG.Validate(["Client", "CA", "Logging"])
 
-  if errors and list(iterkeys(errors.keys)) != ["Client.private_key"]:
+  if errors and list(iterkeys(errors)) != ["Client.private_key"]:
     raise config_lib.ConfigFormatError(errors)
 
   if config.CONFIG["Client.fleetspeak_enabled"]:

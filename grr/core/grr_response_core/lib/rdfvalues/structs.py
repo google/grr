@@ -202,8 +202,9 @@ def SplitBuffer(buff, index=0, length=None):
       raise rdfvalue.DecodeError("Unexpected Tag.")
 
 
-def SerializeEntries(entries):
+def _SerializeEntries(entries):
   """Serializes given triplets of python and wire values and a descriptor."""
+
   output = []
   for python_format, wire_format, type_descriptor in entries:
 
@@ -876,7 +877,8 @@ class ProtoEmbedded(ProtoType):
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
-    output = SerializeEntries(itervalues(value.GetRawData()))
+    output = _SerializeEntries(
+        utils.IterValuesInSortedKeysOrder(value.GetRawData()))
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
   def LateBind(self, target=None):
@@ -966,8 +968,7 @@ class ProtoDynamicEmbedded(ProtoType):
 
     Args:
       dynamic_cb: A callback to be used to return the class to parse the
-      embedded data. We pass the callback our container.
-
+        embedded data. We pass the callback our container.
       **kwargs: Passthrough.
     """
     super(ProtoDynamicEmbedded, self).__init__(**kwargs)
@@ -1038,8 +1039,8 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
 
     # If one of the protobuf library wrapper classes is used, unwrap the value.
     if result.type_url.startswith("type.googleapis.com/google.protobuf."):
-      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
-          converted_value.data_store_type]
+      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[converted_value
+                                                   .data_store_type]
       wrapper_value = wrapper_cls()
       wrapper_value.ParseFromString(result.value)
       return converted_value.FromDatastoreValue(wrapper_value.value)
@@ -1069,8 +1070,8 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
       data = value.SerializeToString()
     # Is it a primitive value?
     elif hasattr(value.__class__, "data_store_type"):
-      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
-          value.__class__.data_store_type]
+      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[value.__class__
+                                                   .data_store_type]
       wrapped_data = wrapper_cls()
       wrapped_data.value = value.SerializeToDataStore()
 
@@ -1082,7 +1083,8 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
           "Can't convert value %s to an protobuf.Any value." % value)
 
     any_value = AnyValue(type_url=type_name, value=data)
-    output = SerializeEntries(itervalues(any_value.GetRawData()))
+    output = _SerializeEntries(
+        utils.IterValuesInSortedKeysOrder(any_value.GetRawData()))
 
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
@@ -1303,9 +1305,9 @@ class ProtoList(ProtoType):
     Returns:
       A wire format representation of the value.
     """
-    output = SerializeEntries(
+    output = _SerializeEntries(
         (python_format, wire_format, value.type_descriptor)
-        for python_format, wire_format in value.wrapped_list)
+        for (python_format, wire_format) in value.wrapped_list)
     return b"", b"", output
 
   def Format(self, value):
@@ -1628,7 +1630,6 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
 
     Args:
       other: An instance of the same type of this class.
-
     """
     self._data = {}
     for name, (obj, serialized, t_info) in iteritems(other.GetRawData()):
@@ -1713,7 +1714,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     self.dirty = True
 
   def SerializeToString(self):
-    return SerializeEntries(itervalues(self._data))
+    return _SerializeEntries(utils.IterValuesInSortedKeysOrder(self._data))
 
   def ParseFromString(self, string):
     ReadIntoObject(string, 0, self)
@@ -2044,8 +2045,8 @@ class RDFProtoStruct(RDFStruct):
 
           # Register import of a proto file containing embedded protobuf
           # definition.
-          if (desc.type.protobuf.DESCRIPTOR.file.name not in
-              file_descriptor.dependency):
+          if (desc.type.protobuf.DESCRIPTOR.file.name not in file_descriptor
+              .dependency):
             file_descriptor.dependency.append(
                 desc.type.protobuf.DESCRIPTOR.file.name)
         else:
