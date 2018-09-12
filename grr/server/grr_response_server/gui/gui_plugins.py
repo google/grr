@@ -7,6 +7,7 @@ the gui so that the server_startup.Init() function will find and register them.
 This also acts as a sensible single place to add deployment specific gui plugin
 modules that have been customized for your deployment.
 """
+from __future__ import unicode_literals
 
 # pylint: disable=unused-import
 from grr_response_server.gui import api_call_robot_router

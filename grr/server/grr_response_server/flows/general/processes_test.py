@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test the process list module."""
+from __future__ import unicode_literals
 
 import os
 

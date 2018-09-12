@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Renderers that render RDFValues into JSON compatible data structures."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import base64
 import inspect

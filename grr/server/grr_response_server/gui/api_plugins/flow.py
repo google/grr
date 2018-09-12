@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API handlers for dealing with flows."""
+from __future__ import unicode_literals
 
 import itertools
 import re

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Router classes route API requests to particular handlers."""
+from __future__ import unicode_literals
 
 import inspect
 import re
@@ -8,6 +9,7 @@ import re
 from future.utils import with_metaclass
 
 from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 
 from grr_response_server.gui import api_value_renderers
 from grr_response_server.gui.api_plugins import artifact as api_artifact
@@ -107,6 +109,8 @@ class RouterMethodMetadata(object):
                category=None,
                http_methods=None,
                no_audit_log_required=False):
+    utils.AssertType(name, unicode)
+
     self.name = name
     self.doc = doc
     self.args_type = args_type
@@ -170,7 +174,7 @@ class ApiCallRouter(with_metaclass(registry.MetaclassRegistry, object)):
     # We want methods with the highest call-order to be processed last,
     # so that their annotations have precedence.
     for i_cls in reversed(inspect.getmro(cls)):
-      for name in dir(i_cls):
+      for name in utils.ListAttrs(i_cls):
         cls_method = getattr(i_cls, name)
 
         if not callable(cls_method):

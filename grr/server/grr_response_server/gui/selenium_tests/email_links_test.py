@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests email links."""
+from __future__ import unicode_literals
 
 import re
 

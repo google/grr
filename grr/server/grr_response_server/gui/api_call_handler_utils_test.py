@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Contains tests for api_call_handler_utils."""
+from __future__ import unicode_literals
 
 import hashlib
 import os
@@ -58,12 +59,14 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     path1 = self.client_id.Add("fs/os/foo/bar/hello1.txt")
     archive_path1 = (
         u"test_prefix/%s/fs/os/foo/bar/hello1.txt" % self.client_id.Basename())
-    self._CreateFile(path=path1, content="hello1", hashing=hashing)
+    self._CreateFile(
+        path=path1, content="hello1".encode("utf-8"), hashing=hashing)
 
     path2 = self.client_id.Add(u"fs/os/foo/bar/中国新闻网新闻中.txt")
     archive_path2 = (u"test_prefix/%s/fs/os/foo/bar/"
                      u"中国新闻网新闻中.txt") % self.client_id.Basename()
-    self._CreateFile(path=path2, content="hello2", hashing=hashing)
+    self._CreateFile(
+        path=path2, content="hello2".encode("utf-8"), hashing=hashing)
 
     self.stat_entries = []
     self.paths = [path1, path2]
@@ -72,7 +75,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
       self.stat_entries.append(
           rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(
-                  path="foo/bar/" + str(path).split("/")[-1],
+                  path="foo/bar/" + unicode(path).split("/")[-1],
                   pathtype=rdf_paths.PathSpec.PathType.OS)))
 
   def _GenerateArchive(
@@ -194,7 +197,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     path2 = (u"aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt" % self.client_id.Basename())
     with aff4.FACTORY.Create(path2, aff4.AFF4Image, token=self.token) as fd:
-      fd.Write("hello2")
+      fd.Write("hello2".encode("utf-8"))
 
     # Delete a single chunk
     aff4.FACTORY.Delete(

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This is the GRR frontend FS Server."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import logging
 import time

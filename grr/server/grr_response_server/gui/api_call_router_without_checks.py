@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Implementation of a router class that does no ACL checks."""
+from __future__ import unicode_literals
 
 from grr_response_server.gui import api_call_router
 

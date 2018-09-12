@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """An implementation of an in-memory data store for testing."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import sys
 import threading
@@ -299,7 +300,9 @@ class FakeDataStore(data_store.DataStore):
     start = int(start)
     end = int(end)
 
-    if isinstance(attribute_prefix, str):
+    # TODO(hanuszczak): Make this function accept only one attribute prefix and
+    # only a unicode object.
+    if isinstance(attribute_prefix, basestring):
       attribute_prefix = [attribute_prefix]
 
     try:
@@ -315,7 +318,9 @@ class FakeDataStore(data_store.DataStore):
       for attribute, values in iteritems(record):
         if limit and nr_results >= limit:
           break
-        if utils.SmartStr(attribute).startswith(prefix):
+        # TODO(hanuszczak): After resolving the TODO comment above this call to
+        # `unicode` should be redundant.
+        if unicode(attribute).startswith(prefix):
           for encoded_value, ts in values:
             results_list = results.setdefault(attribute, [])
             # If we are always after the latest ts we clear older ones.

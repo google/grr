@@ -5,6 +5,7 @@ Root router provides root-level access to GRR. It is not externally accessible
 and must be accessed from a machine that runs GRR services directly (it runs
 on top of a server bound to "localhost").
 """
+from __future__ import unicode_literals
 
 from grr_response_server.gui import api_call_router
 

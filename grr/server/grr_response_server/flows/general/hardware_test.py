@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for low-level flows."""
+from __future__ import unicode_literals
 
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
@@ -24,7 +25,7 @@ class DumpFlashImageMock(action_mocks.ActionMock):
 
   def DumpFlashImage(self, args):
     flash_fd, flash_path = tempfiles.CreateGRRTempFileVFS()
-    flash_fd.write("\xff" * 1024)
+    flash_fd.write(b"\xff" * 1024)
     flash_fd.close()
     logs = ["test"] if args.log_level else []
     response = rdf_chipsec_types.DumpFlashImageResponse(
@@ -67,7 +68,7 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
         token=self.token)
 
     fd = aff4.FACTORY.Open(self.client_id.Add("spiflash"), token=self.token)
-    self.assertEqual(fd.Read("10"), "\xff" * 10)
+    self.assertEqual(fd.Read("10"), b"\xff" * 10)
 
   def testUnknownChipset(self):
     """Fail to dump flash of unknown chipset."""
@@ -102,17 +103,17 @@ class DumpACPITableMock(action_mocks.ActionMock):
   ACPI_TABLES = {
       "DSDT": [
           rdf_chipsec_types.ACPITableData(
-              table_address=0x1122334455667788, table_blob="\xAA" * 0xFF)
+              table_address=0x1122334455667788, table_blob=b"\xAA" * 0xFF)
       ],
       "XSDT": [
           rdf_chipsec_types.ACPITableData(
-              table_address=0x8877665544332211, table_blob="\xBB" * 0xFF)
+              table_address=0x8877665544332211, table_blob=b"\xBB" * 0xFF)
       ],
       "SSDT": [
           rdf_chipsec_types.ACPITableData(
-              table_address=0x1234567890ABCDEF, table_blob="\xCC" * 0xFF),
+              table_address=0x1234567890ABCDEF, table_blob=b"\xCC" * 0xFF),
           rdf_chipsec_types.ACPITableData(
-              table_address=0x2234567890ABCDEF, table_blob="\xDD" * 0xFF)
+              table_address=0x2234567890ABCDEF, table_blob=b"\xDD" * 0xFF)
       ]
   }
 

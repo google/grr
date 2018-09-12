@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test the vfs recursive refreshing functionality."""
+from __future__ import unicode_literals
+
 
 import unittest
 from grr_response_core.lib import flags
@@ -25,7 +27,7 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     gui_test_lib.CreateFileVersion(
         client_id,
         "fs/os/c/a.txt",
-        "Hello World",
+        "Hello World".encode("utf-8"),
         timestamp=gui_test_lib.TIME_0,
         token=self.token)
     gui_test_lib.CreateFolder(

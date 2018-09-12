@@ -4,6 +4,7 @@
 We basically pull a new task from the task master, and run the plugin
 it specifies.
 """
+from __future__ import unicode_literals
 
 
 # pylint: disable=unused-import,g-bad-import-order

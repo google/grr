@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The MySQL database methods for flow handling."""
+from __future__ import unicode_literals
 
 import logging
 import threading

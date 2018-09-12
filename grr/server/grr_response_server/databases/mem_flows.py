@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """The in memory database methods for flow handling."""
+from __future__ import unicode_literals
+
 import logging
 import sys
 import threading

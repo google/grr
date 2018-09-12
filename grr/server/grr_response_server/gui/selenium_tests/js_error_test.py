@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test Selenium tests JS errors detection logic."""
+from __future__ import unicode_literals
 
 import unittest
 from grr_response_core.lib import flags

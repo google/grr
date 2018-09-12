@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test the hunt_view interface."""
+from __future__ import unicode_literals
 
 
 import mock
@@ -193,8 +194,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
     def RaisingStub(*unused_args, **unused_kwargs):
-      yield "foo"
-      yield "bar"
+      yield b"foo"
+      yield b"bar"
       raise RuntimeError("something went wrong")
 
     with utils.Stubber(api_call_handler_utils.CollectionArchiveGenerator,

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test the fileview interface."""
+from __future__ import unicode_literals
 
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -73,11 +74,11 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     # and "222" will become "323232".
     urn_a = rdfvalue.RDFURN("%s/fs/os/c/Downloads/a.txt" % self.client_id)
     with aff4.FACTORY.Open(urn_a, mode="rw") as fd:
-      fd.Set(fd.Schema.HASH(sha256="111"))
+      fd.Set(fd.Schema.HASH(sha256=b"111"))
 
     urn_b = rdfvalue.RDFURN("%s/fs/os/c/Downloads/b.txt" % self.client_id)
     with aff4.FACTORY.Open(urn_b, mode="rw") as fd:
-      fd.Set(fd.Schema.HASH(sha256="222"))
+      fd.Set(fd.Schema.HASH(sha256=b"222"))
 
     if data_store.RelationalDBWriteEnabled():
       path_info_a = rdf_objects.PathInfo()
@@ -122,7 +123,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
           aff4_type=aff4_grr.VFSFile,
           force_new_version=False,
           object_exists=True) as fd:
-        fd.Set(fd.Schema.HASH(sha256="111"))
+        fd.Set(fd.Schema.HASH(sha256=b"111"))
 
       if data_store.RelationalDBWriteEnabled():
         path_info.hash_entry.sha256 = b"111"
@@ -134,7 +135,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
           aff4_type=aff4_grr.VFSFile,
           force_new_version=False,
           object_exists=True) as fd:
-        fd.Set(fd.Schema.HASH(sha256="222"))
+        fd.Set(fd.Schema.HASH(sha256=b"222"))
 
       if data_store.RelationalDBWriteEnabled():
         path_info.hash_entry.sha256 = b"222"

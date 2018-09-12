@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for API client and labels-related API calls."""
+from __future__ import unicode_literals
 
 
 from grr_response_core.lib import flags

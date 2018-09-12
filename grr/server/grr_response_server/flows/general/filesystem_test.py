@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test the filesystem related flows."""
+from __future__ import unicode_literals
 
 import hashlib
 import os

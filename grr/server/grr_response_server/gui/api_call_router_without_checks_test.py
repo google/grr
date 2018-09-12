@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Tests for ApiCallRouterWithoutChecks."""
-
+from __future__ import unicode_literals
 
 
 from grr_response_core.lib import flags

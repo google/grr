@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The MySQL database methods for GRR users and approval handling."""
+from __future__ import unicode_literals
 
 import MySQLdb
 

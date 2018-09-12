@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for ApiCallRobotRouter."""
+from __future__ import unicode_literals
 
 
 from future.utils import iterkeys

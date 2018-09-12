@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the worker."""
+from __future__ import unicode_literals
 
 import threading
 import time

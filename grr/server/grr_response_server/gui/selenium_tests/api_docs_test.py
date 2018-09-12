@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Tests for API docs view."""
-
+from __future__ import unicode_literals
 
 import unittest
 from grr_response_core.lib import flags

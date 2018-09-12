@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test the Rekall flows-related UI."""
+from __future__ import unicode_literals
 
 import unittest
 from grr_response_core.lib import flags

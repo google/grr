@@ -3,6 +3,7 @@
 
 These flows subclass lib.artifact.ArtifactFallbackCollector.
 """
+from __future__ import unicode_literals
 
 # pylint: disable=unused-import
 from grr_response_core.lib import parser

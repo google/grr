@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test hunt creation by flow."""
+from __future__ import unicode_literals
 
 
 import unittest

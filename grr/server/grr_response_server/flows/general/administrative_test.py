@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for administrative flows."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import os
 import subprocess
@@ -523,7 +524,9 @@ import sys
 sys.test_code_ran_here = True
 """
     maintenance_utils.UploadSignedConfigBlob(
-        code, aff4_path="aff4:/config/python_hacks/test", token=self.token)
+        code.encode("utf-8"),
+        aff4_path="aff4:/config/python_hacks/test",
+        token=self.token)
 
     flow_test_lib.TestFlowHelper(
         administrative.ExecutePythonHack.__name__,
@@ -542,7 +545,9 @@ import sys
 sys.test_code_ran_here = py_args['value']
 """
     maintenance_utils.UploadSignedConfigBlob(
-        code, aff4_path="aff4:/config/python_hacks/test", token=self.token)
+        code.encode("utf-8"),
+        aff4_path="aff4:/config/python_hacks/test",
+        token=self.token)
 
     flow_test_lib.TestFlowHelper(
         administrative.ExecutePythonHack.__name__,
@@ -557,7 +562,7 @@ sys.test_code_ran_here = py_args['value']
   def testExecuteBinariesWithArgs(self):
     client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
 
-    code = "I am a binary file"
+    code = b"I am a binary file"
     upload_path = config.CONFIG["Executables.aff4_path"].Add("test.exe")
 
     maintenance_utils.UploadSignedConfigBlob(
@@ -599,7 +604,7 @@ sys.test_code_ran_here = py_args['value']
   def testExecuteLargeBinaries(self):
     client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
 
-    code = "I am a large binary file" * 100
+    code = b"I am a large binary file" * 100
     upload_path = config.CONFIG["Executables.aff4_path"].Add("test.exe")
 
     maintenance_utils.UploadSignedConfigBlob(

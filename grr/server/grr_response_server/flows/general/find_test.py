@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the Find flow."""
+from __future__ import unicode_literals
 
 import re
 

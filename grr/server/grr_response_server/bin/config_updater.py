@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Util for modifying the GRR server configuration."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import argparse
 import os
@@ -26,7 +27,6 @@ from grr_response_core.lib import repacking
 from grr_response_server import aff4
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
-from grr_response_server import data_migration
 from grr_response_server import maintenance_utils
 from grr_response_server import rekall_profile_server
 from grr_response_server import server_startup
@@ -315,11 +315,6 @@ parser_rotate_key.add_argument(
     help="The key length for the new server key. "
     "Defaults to the Server.rsa_key_length config option.")
 
-parser_migrate_data = subparsers.add_parser(
-    "migrate_data",
-    parents=[],
-    help="Migrates data to the relational database.")
-
 
 def main(argv):
   """Main."""
@@ -499,8 +494,6 @@ You are about to rotate the server key. Note that:
 
       maintenance_utils.RotateServerKey(
           cn=flags.FLAGS.common_name, keylength=keylength)
-  elif flags.FLAGS.subparser_name == "migrate_data":
-    data_migration.Migrate()
 
 
 if __name__ == "__main__":

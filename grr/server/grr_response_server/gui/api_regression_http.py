@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Base test classes for API handlers tests."""
+from __future__ import unicode_literals
+
 # pylint:mode=test
 
 import json

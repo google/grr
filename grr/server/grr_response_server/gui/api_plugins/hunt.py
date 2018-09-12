@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API handlers for accessing hunts."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import functools
 import itertools

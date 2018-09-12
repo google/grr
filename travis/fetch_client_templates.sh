@@ -10,7 +10,7 @@ set -e
 
 TIMEOUT_SECS=3600
 GCS_POLL_INTERVAL_SECS=30
-LOCAL_TEMPLATE_DIR='grr/config/grr-response-templates/templates'
+LOCAL_TEMPLATE_DIR='grr/config/grr_response_templates/templates'
 
 commit_timestamp_secs="$(git show -s --format=%ct "${TRAVIS_COMMIT}")"
 # Hacky, but platform independent way of formatting the timestamp.

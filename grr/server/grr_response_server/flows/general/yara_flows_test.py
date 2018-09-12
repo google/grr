@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for Yara flows."""
+from __future__ import unicode_literals
 
 import functools
 import string
@@ -39,7 +40,7 @@ rule test_rule {
 
 class FakeMatch(object):
 
-  strings = [(100, "$s1", "1234"), (200, "$s1", "1234")]
+  strings = [(100, "$s1", b"1234"), (200, "$s1", b"1234")]
 
   def __init__(self, rule_name="test_rule"):
     self.rule = rule_name
@@ -75,7 +76,7 @@ class TooManyHitsRules(FakeRules):
 
 
 def GeneratePattern(seed, length):
-  if not "A" <= seed <= "Z":
+  if not b"A" <= seed <= b"Z":
     raise ValueError("Needs an upper case letter as seed")
 
   res = string.ascii_uppercase[string.ascii_uppercase.find(seed):]
@@ -88,12 +89,12 @@ class FakeMemoryProcess(object):
 
   regions_by_pid = {
       101: [],
-      102: [(0, "A" * 98 + "1234" + "B" * 50)],
-      103: [(0, "A" * 100), (10000, "B" * 500)],
-      104: [(0, "A" * 100), (1000, "X" * 50 + "1234" + "X" * 50)],
-      105: [(0, GeneratePattern("A", 100)), (300, GeneratePattern("B", 700))],
+      102: [(0, b"A" * 98 + b"1234" + b"B" * 50)],
+      103: [(0, b"A" * 100), (10000, b"B" * 500)],
+      104: [(0, b"A" * 100), (1000, b"X" * 50 + b"1234" + b"X" * 50)],
+      105: [(0, GeneratePattern(b"A", 100)), (300, GeneratePattern(b"B", 700))],
       106: [],
-      107: [(0, "A" * 98 + "1234" + "B" * 50), (400, "C" * 50 + "1234")],
+      107: [(0, b"A" * 98 + b"1234" + b"B" * 50), (400, b"C" * 50 + b"1234")],
   }
 
   def __init__(self, pid=None):
@@ -211,7 +212,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(match.rule_name, "test_rule")
         self.assertEqual(len(match.string_matches), 1)
         for string_match in match.string_matches:
-          self.assertEqual(string_match.data, "1234")
+          self.assertEqual(string_match.data, b"1234")
           self.assertEqual(string_match.string_id, "$s1")
           self.assertIn(string_match.offset, [98, 1050])
 
@@ -398,8 +399,8 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         data = image.read(1000)
 
         self.assertIn(data,
-                      [GeneratePattern("A", 100),
-                       GeneratePattern("B", 700)])
+                      [GeneratePattern(b"A", 100),
+                       GeneratePattern(b"B", 700)])
       elif isinstance(result, rdf_yara.YaraProcessDumpResponse):
         self.assertEqual(len(result.dumped_processes), 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
@@ -424,8 +425,8 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         data = image.read(1000)
 
         self.assertIn(data,
-                      [GeneratePattern("A", 100),
-                       GeneratePattern("B", 700)])
+                      [GeneratePattern(b"A", 100),
+                       GeneratePattern(b"B", 700)])
       elif isinstance(result, rdf_yara.YaraProcessDumpResponse):
         self.assertEqual(len(result.dumped_processes), 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
@@ -447,7 +448,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
             result.pathspec.AFF4Path(self.client_id), aff4_grr.VFSBlobImage)
         data = image.read(1000)
 
-        self.assertEqual(data, GeneratePattern("A", 100))
+        self.assertEqual(data, GeneratePattern(b"A", 100))
       elif isinstance(result, rdf_yara.YaraProcessDumpResponse):
         self.assertEqual(len(result.dumped_processes), 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)

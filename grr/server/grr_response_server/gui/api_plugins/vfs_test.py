@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """This modules contains tests for VFS API handlers."""
+from __future__ import unicode_literals
 
 import io
 import unittest
@@ -59,7 +60,7 @@ class VfsTestMixin(object):
           aff4.AFF4MemoryStream,
           mode="w",
           token=token)
-      fd.Write("Hello World")
+      fd.Write("Hello World".encode("utf-8"))
       fd.Close()
 
       if data_store.RelationalDBWriteEnabled():
@@ -76,7 +77,7 @@ class VfsTestMixin(object):
           aff4.AFF4MemoryStream,
           mode="w",
           token=token)
-      fd.Write("Goodbye World")
+      fd.Write("Goodbye World".encode("utf-8"))
       fd.Close()
 
       if data_store.RelationalDBWriteEnabled():
@@ -384,7 +385,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     self.assertEqual(next(result.GenerateContent()), "Hello World")
 
   def testLargeFileIsReturnedInMultipleChunks(self):
-    chars = ["a", "b", "x"]
+    chars = [b"a", b"b", b"x"]
     huge_file_path = "fs/os/c/Downloads/huge.txt"
 
     # Overwrite CHUNK_SIZE in handler for smaller test streams.

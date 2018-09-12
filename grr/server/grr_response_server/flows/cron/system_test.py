@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """System cron flows tests."""
+from __future__ import unicode_literals
 
 
 from builtins import range  # pylint: disable=redefined-builtin

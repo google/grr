@@ -4,6 +4,7 @@
 We can schedule a new flow for a specific client.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 
 # pylint: disable=unused-import
 # Import things that are useful from the console.

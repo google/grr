@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API handlers for user-related data and actions."""
+from __future__ import unicode_literals
 
 import email
 import functools

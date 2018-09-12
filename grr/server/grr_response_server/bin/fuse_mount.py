@@ -2,6 +2,7 @@
 """Tool for mounting AFF4 datastore over FUSE."""
 from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import datetime
 import errno

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the file transfer mechanism."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import hashlib
 import os
@@ -50,7 +51,7 @@ class ClientMock(action_mocks.ActionMock):
 class GetMBRFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
 
-  mbr = ("123456789" * 1000)[:4096]
+  mbr = (b"123456789" * 1000)[:4096]
 
   def setUp(self):
     super(GetMBRFlowTest, self).setUp()

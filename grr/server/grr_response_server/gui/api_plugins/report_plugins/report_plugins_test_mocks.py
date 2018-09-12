@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This module contains report plugin mocks used for testing."""
+from __future__ import unicode_literals
 
 
 from future.utils import iteritems

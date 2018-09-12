@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """API Authorization Manager."""
-
+from __future__ import unicode_literals
 
 import logging
 

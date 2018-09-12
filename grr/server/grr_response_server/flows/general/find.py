@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Find files on the client."""
+from __future__ import unicode_literals
+
 import stat
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs

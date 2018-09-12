@@ -390,6 +390,8 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
 
   def Sign(self, message, use_pss=False):
     """Sign a given message."""
+    utils.AssertType(message, bytes)
+
     # TODO(amoser): This should use PSS by default at some point.
     if not use_pss:
       padding_algorithm = padding.PKCS1v15()

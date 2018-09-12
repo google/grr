@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Helper functionality for gui testing."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import atexit
 import functools
@@ -86,18 +87,18 @@ def CreateFileVersions(client_id, token):
   CreateFileVersion(
       client_id,
       "fs/os/c/Downloads/a.txt",
-      "Hello World",
+      "Hello World".encode("utf-8"),
       timestamp=TIME_1,
       token=token)
   CreateFileVersion(
       client_id,
       "fs/os/c/Downloads/a.txt",
-      "Goodbye World",
+      "Goodbye World".encode("utf-8"),
       timestamp=TIME_2,
       token=token)
 
 
-def CreateFileVersion(client_id, path, content="", timestamp=None, token=None):
+def CreateFileVersion(client_id, path, content=b"", timestamp=None, token=None):
   """Add a new version for a file."""
   if timestamp is None:
     timestamp = rdfvalue.RDFDatetime.Now()

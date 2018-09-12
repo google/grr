@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The in memory database methods for path handling."""
+from __future__ import unicode_literals
 
 
 from builtins import filter  # pylint: disable=redefined-builtin

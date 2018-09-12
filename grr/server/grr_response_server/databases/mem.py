@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """An in memory database implementation used for testing."""
+from __future__ import unicode_literals
 
 import sys
 import threading

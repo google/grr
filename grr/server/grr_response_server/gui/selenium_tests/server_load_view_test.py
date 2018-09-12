@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the server load view interface."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import unittest
 from grr_response_core.lib import flags

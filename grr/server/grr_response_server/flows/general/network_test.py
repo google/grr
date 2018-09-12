@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test the connections listing module."""
+from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network

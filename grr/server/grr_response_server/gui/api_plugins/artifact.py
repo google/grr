@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API handlers for accessing artifacts."""
+from __future__ import unicode_literals
 
 from grr_response_core.lib import parser
 

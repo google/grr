@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Connection pooling for MySQLdb connections."""
+from __future__ import unicode_literals
 
 import logging
 import threading

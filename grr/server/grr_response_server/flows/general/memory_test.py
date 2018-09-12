@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for memory related flows."""
+from __future__ import unicode_literals
 
 import copy
 import functools
 import gzip
+import io
 import json
 import os
 
@@ -196,10 +198,12 @@ class TestMemoryCollector(MemoryTest):
     self.assertEqual(flow_obj.state.output_urn, None)
 
   def testM2CryptoCipherCompatibility(self):
-    m2crypto_ciphertext = open(
-        os.path.join(self.base_path, "m2crypto/send_file_data"), "rb").read()
-    key = rdf_crypto.EncryptionKey("x" * 16)
-    iv = rdf_crypto.EncryptionKey("y" * 16)
+    path = os.path.join(self.base_path, "m2crypto/send_file_data")
+    with io.open(path, "rb") as fd:
+      m2crypto_ciphertext = fd.read()
+
+    key = rdf_crypto.EncryptionKey(b"x" * 16)
+    iv = rdf_crypto.EncryptionKey(b"y" * 16)
 
     cipher = rdf_crypto.AES128CBCCipher(key, iv)
     plaintext = cipher.Decrypt(m2crypto_ciphertext)
@@ -262,7 +266,9 @@ class ListVADBinariesTest(MemoryTest):
         rdf_client.User(
             username="LocalService",
             userdomain="testing-PC",
-            homedir=r"C:\Users\localservice",
+            # TODO(hanuszczak): Issues with raw unicode literals and escaping
+            # '\u' in Python 2. Refactor this once support for it is dropped.
+            homedir="C:\\Users\\localservice",
             sid="S-1-5-20"))
     fd.Set(kb)
     fd.Close()

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Test flow notifications."""
+from __future__ import unicode_literals
+
 import os
 
 
@@ -71,8 +73,8 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
 
     def RaisingStub(*unused_args, **unused_kwargs):
-      yield "foo"
-      yield "bar"
+      yield b"foo"
+      yield b"bar"
       raise RuntimeError("something went wrong")
 
     with utils.Stubber(api_call_handler_utils.CollectionArchiveGenerator,

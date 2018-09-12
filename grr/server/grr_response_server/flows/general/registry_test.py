@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the registry flows."""
+from __future__ import unicode_literals
 
 import os
 
@@ -142,7 +143,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsNothingIfNothingMatchesLiteralMatchCondition(self):
     vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
-        bytes_before=10, bytes_after=10, literal="CanNotFindMe")
+        bytes_before=10, bytes_after=10, literal=b"CanNotFindMe")
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
@@ -155,7 +156,9 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsKeyIfItMatchesLiteralMatchCondition(self):
     vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
-        bytes_before=10, bytes_after=10, literal="Windows Sidebar\\Sidebar.exe")
+        bytes_before=10,
+        bytes_after=10,
+        literal=b"Windows Sidebar\\Sidebar.exe")
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
@@ -272,7 +275,9 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
             1247546054 + 1))
 
     vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
-        bytes_before=10, bytes_after=10, literal="Windows Sidebar\\Sidebar.exe")
+        bytes_before=10,
+        bytes_after=10,
+        literal=b"Windows Sidebar\\Sidebar.exe")
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [

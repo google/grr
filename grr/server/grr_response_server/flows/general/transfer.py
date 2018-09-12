@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """These flows are designed for high performance transfers."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import logging
 import zlib
@@ -1053,7 +1054,7 @@ class GetMBRMixin(object):
     self.state.bytes_downloaded += len(response.data)
 
     if self.state.bytes_downloaded >= self.args.length:
-      mbr_data = "".join(self.state.buffers)
+      mbr_data = b"".join(self.state.buffers)
       self.state.buffers = None
 
       mbr = aff4.FACTORY.Create(

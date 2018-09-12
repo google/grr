@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Test flow copy UI."""
+from __future__ import unicode_literals
 
 
 import mock
@@ -209,7 +210,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     # Literal is defined simply as "bytes" in its proto definition. We make sure
     # to assign ascii-incompatible value to it here.
     condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
-        literal="zażółć gęślą jaźń")
+        literal="zażółć gęślą jaźń".encode("utf-8"))
     action = rdf_file_finder.FileFinderAction.Download()
     args = rdf_file_finder.FileFinderArgs(
         action=action, conditions=[condition], paths=["a/b/*"])

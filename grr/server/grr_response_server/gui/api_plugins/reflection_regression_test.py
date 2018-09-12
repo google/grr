@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """This module contains regression tests for reflection API handlers."""
-
+from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
 from grr_response_server.gui import api_regression_test_lib

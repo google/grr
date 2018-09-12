@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test of "New Hunt" wizard."""
+from __future__ import unicode_literals
 
 import unittest
 from grr_response_core.lib import flags
@@ -428,7 +429,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(
         self.IsElementPresent,
         "css=grr-wizard-form:contains('%s')" % file_finder.FileFinder.__name__)
-    self.WaitUntil(self.IsTextPresent, "foo\\x0d\\xc8bar")
+    self.WaitUntil(self.IsTextPresent, b"foo\\x0d\\xc8bar")
 
     # Click on "Run" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
@@ -448,7 +449,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
                      file_finder.FileFinder.__name__)
     self.assertEqual(
         hunt.args.flow_args.conditions[0].contents_literal_match.literal,
-        "foo\x0d\xc8bar")
+        b"foo\x0d\xc8bar")
 
   def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
     self.Open("/#main=ManageHunts")
@@ -898,7 +899,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   def testCopyHuntHandlesLiteralExpressionCorrectly(self):
     """Literals are raw bytes. Testing that raw bytes are processed right."""
     literal_match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
-        literal="foo\x0d\xc8bar")
+        literal=b"foo\x0d\xc8bar")
 
     implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
@@ -968,7 +969,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
                      file_finder.FileFinder.__name__)
     self.assertEqual(
         last_hunt.args.flow_args.conditions[0].contents_literal_match.literal,
-        "foo\x0d\xc8bar")
+        b"foo\x0d\xc8bar")
 
   def testCopyHuntPreservesRuleType(self):
     implementation.StartHunt(

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This modules contains regression tests for artifact API handler."""
+from __future__ import unicode_literals
 
 import os
 

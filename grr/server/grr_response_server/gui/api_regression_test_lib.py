@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Base test classes for API handlers tests."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import abc
 import json
@@ -66,7 +67,7 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
         continue
 
       cls_name = "%s_%s" % (name, mixin.connection_type)
-      test_cls = type(
+      test_cls = utils.MakeType(
           cls_name,
           (mixin, cls, test_lib.GRRBaseTest),
           # pylint: disable=protected-access

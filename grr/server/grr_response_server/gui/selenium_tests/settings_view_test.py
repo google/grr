@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for GRR settings-related views."""
+from __future__ import unicode_literals
 
 import unittest
 from grr_response_core.lib import flags

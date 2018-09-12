@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test the flow_management interface."""
+from __future__ import unicode_literals
 
 import os
 

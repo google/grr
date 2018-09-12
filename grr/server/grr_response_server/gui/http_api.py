@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """HTTP API logic that ties API call handlers with HTTP routes."""
+from __future__ import unicode_literals
 
 import itertools
 import json
@@ -351,6 +352,7 @@ class HttpRequestHandler(object):
 
   def _BuildStreamingResponse(self, binary_stream, method_name=None):
     """Builds HTTPResponse object for streaming."""
+    utils.AssertType(method_name, unicode)
 
     # We get a first chunk of the output stream. This way the likelihood
     # of catching an exception that may happen during response generation
@@ -366,10 +368,10 @@ class HttpRequestHandler(object):
         response=stream,
         content_type="binary/octet-stream",
         direct_passthrough=True)
-    response.headers["Content-Disposition"] = (
-        "attachment; filename=%s" % utils.SmartStr(binary_stream.filename))
+    response.headers["Content-Disposition"] = ((
+        "attachment; filename=%s" % binary_stream.filename).encode("utf-8"))
     if method_name:
-      response.headers["X-API-Method"] = method_name
+      response.headers["X-API-Method"] = method_name.encode("utf-8")
 
     if binary_stream.content_length:
       response.content_length = binary_stream.content_length

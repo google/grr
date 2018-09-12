@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This module contains tests for flows-related API handlers."""
+from __future__ import unicode_literals
 
 import io
 import os

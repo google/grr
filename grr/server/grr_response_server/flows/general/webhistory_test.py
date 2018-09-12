@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Test the webhistory flows."""
+from __future__ import unicode_literals
+
 import os
 
 from grr_response_client import client_utils
@@ -93,8 +95,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     # Check for analysis file.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertGreater(len(fd), 50)
-    self.assertIn("funnycats.exe",
-                  "\n".join([utils.SmartStr(x) for x in fd.GenerateItems()]))
+    self.assertIn("funnycats.exe", "\n".join(map(unicode, fd.GenerateItems())))
 
   def testFirefoxHistoryFetch(self):
     """Test that downloading the Firefox history works."""
@@ -128,7 +129,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     # Check for analysis file.
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertGreater(len(fd), 3)
-    data = "\n".join([utils.SmartStr(x) for x in fd.GenerateItems()])
+    data = "\n".join(map(unicode, fd.GenerateItems()))
     self.assertTrue(data.find("Welcome to Firefox") != -1)
     self.assertTrue(data.find("sport.orf.at") != -1)
 

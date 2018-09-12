@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Tests for Windows Volume Shadow Copy flow."""
+from __future__ import unicode_literals
+
 import stat
 
 from builtins import range  # pylint: disable=redefined-builtin

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test the vfs gui interface."""
+from __future__ import unicode_literals
 
 
 import mock
@@ -48,7 +49,7 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     gui_test_lib.CreateFileVersion(
         self.client_id,
         "fs/os/c/foo?bar&oh/a&=?b.txt",
-        "Hello World",
+        "Hello World".encode("utf-8"),
         timestamp=gui_test_lib.TIME_1,
         token=self.token)
 
@@ -76,7 +77,7 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     gui_test_lib.CreateFileVersion(
         self.client_id,
         "fs/os/c/foo?bar&oh/a&=?b.txt",
-        "Hello World",
+        "Hello World".encode("utf-8"),
         timestamp=gui_test_lib.TIME_1,
         token=self.token)
 

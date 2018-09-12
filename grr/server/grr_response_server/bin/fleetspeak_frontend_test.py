@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Unittest for GRR<->Fleetspeak server side glue code."""
+from __future__ import unicode_literals
 
 import itertools
 
@@ -122,7 +123,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             payload=rdfvalue.RDFInteger(i)) for i in range(1, num_msgs + 1)
     ]
 
-    fs_client_id = "\x10\x00\x00\x00\x00\x00\x00\xab"
+    fs_client_id = b"\x10\x00\x00\x00\x00\x00\x00\xab"
     # fs_client_id should be equivalent to grr_client_id_urn
     self.assertEqual(
         fs_client_id,
@@ -184,7 +185,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             payload=rdfvalue.RDFInteger(i)) for i in range(1, num_msgs + 1)
     ]
 
-    fs_client_id = "\x10\x00\x00\x00\x00\x00\x00\xab"
+    fs_client_id = b"\x10\x00\x00\x00\x00\x00\x00\xab"
     # fs_client_id should be equivalent to grr_client_id_urn
     self.assertEqual(
         fs_client_id,

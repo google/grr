@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The benchmark tests for the fake data store."""
+from __future__ import unicode_literals
 
 
 from grr_response_core.lib import flags

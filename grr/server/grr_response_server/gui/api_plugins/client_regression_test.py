@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This modules contains regression tests for clients API handlers."""
+from __future__ import unicode_literals
 
 
 from builtins import range  # pylint: disable=redefined-builtin

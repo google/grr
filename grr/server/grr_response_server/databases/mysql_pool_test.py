@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for mysql_pool.py."""
+from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
 import mock

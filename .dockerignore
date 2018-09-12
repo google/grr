@@ -20,7 +20,7 @@ build
 dist
 executables
 !executables/windows/templates/unzipsfx/*.exe
-grr/config/grr-response-templates
+grr/config/grr_response_templates
 grr/gui/static/bower_components
 grr/gui/static/node_modules
 grr/gui/static/tmp

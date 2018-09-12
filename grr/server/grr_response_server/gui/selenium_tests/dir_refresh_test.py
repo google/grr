@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test the vfs refreshing functionality."""
+from __future__ import unicode_literals
+
 
 import unittest
 from grr_response_core.lib import flags
@@ -37,7 +39,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     gui_test_lib.CreateFileVersion(
         client_id,
         "fs/os/c/a.txt",
-        "Hello World",
+        "Hello World".encode("utf-8"),
         timestamp=gui_test_lib.TIME_0,
         token=self.token)
     gui_test_lib.CreateFolder(
@@ -122,7 +124,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
       gui_test_lib.CreateFileVersion(
           rdf_client.ClientURN("C.0000000000000001"),
           "fs/os/c/Downloads/a.txt",
-          "The newest version!",
+          "The newest version!".encode("utf-8"),
           timestamp=rdfvalue.RDFDatetime.Now(),
           token=self.token)
 

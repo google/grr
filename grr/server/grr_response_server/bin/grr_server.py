@@ -3,6 +3,7 @@
 
 To use this entry point you must run "grr_config_updater initialize" first.
 """
+from __future__ import unicode_literals
 
 
 from grr_response_core.config import server as config_server

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests the mysql data store."""
+from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
 from grr_response_server import data_store

@@ -4,6 +4,7 @@
 To reduce the size of this module, additional collector flow tests are split out
 into collectors_*_test.py files.
 """
+from __future__ import unicode_literals
 
 import os
 import shutil

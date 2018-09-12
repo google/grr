@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test helper classes to test GRR WSGI app."""
+from __future__ import unicode_literals
 
 import logging
 import threading

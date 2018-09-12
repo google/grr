@@ -28,6 +28,7 @@ import tarfile
 import tempfile
 import threading
 import time
+import types
 import weakref
 import zipfile
 import zlib
@@ -2022,8 +2023,8 @@ def MakeType(name, base_classes, namespace):
   return type(name, base_classes, namespace)
 
 
-def GetName(cls):
-  """A compatibility wrapper for getting class name.
+def GetName(obj):
+  """A compatibility wrapper for getting object's name.
 
   In Python 2 class names are returned as `bytes` (since class names can contain
   only ASCII characters) whereas in Python 3 they are `unicode` (since class
@@ -2036,10 +2037,60 @@ def GetName(cls):
   replaced with ordinary `__name__` access.
 
   Args:
-    cls: A class object to get the name for.
+    obj: A type or function object to get the name for.
 
   Returns:
     Name of the specified class as unicode string.
+  """
+  AssertType(obj, (types.TypeType, types.FunctionType))
+
+  # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
+  # elements which is not true.
+  # pytype: disable=attribute-error
+  if sys.version_info.major == 2:
+    return obj.__name__.decode("ascii")
+  else:
+    return obj.__name__
+  # pytype: enable=attribute-error
+
+
+def SetName(obj, name):
+  """A compatibility wrapper for setting object's name.
+
+  See documentation for `GetName` for more information.
+
+  Args:
+    obj: A type or function object to set the name for.
+    name: A name to set.
+  """
+  AssertType(obj, (types.TypeType, types.FunctionType))
+  AssertType(name, unicode)
+
+  # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
+  # elements which is not true.
+  # pytype: disable=attribute-error
+  if sys.version_info.major == 2:
+    obj.__name__ = name.encode("ascii")
+  else:
+    obj.__name__ = name
+  # pytype: disable=attribute-error
+
+
+def ListAttrs(cls):
+  """A compatibility wrapper for listing class attributes.
+
+  This method solves similar Python 2 compatibility issues for `dir` function as
+  `GetName` does for `__name__` invocations. See documentation for `GetName` for
+  more details.
+
+  Once support for Python 2 is dropped all invocations of this function should
+  be replaced with ordinary `dir` calls.
+
+  Args:
+    cls: A class object to list the attributes for.
+
+  Returns:
+    A list of attribute names as unicode strings.
   """
   AssertType(cls, type)
 
@@ -2047,9 +2098,9 @@ def GetName(cls):
   # elements which is not true.
   # pytype: disable=attribute-error
   if sys.version_info.major == 2:
-    return cls.__name__.decode("ascii")
+    return [item.decode("ascii") for item in dir(cls)]
   else:
-    return cls.__name__
+    return dir(cls)
   # pytype: enable=attribute-error
 
 

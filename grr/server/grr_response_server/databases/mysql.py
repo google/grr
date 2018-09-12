@@ -4,6 +4,8 @@
 See grr/server/db.py for interface.
 
 """
+from __future__ import unicode_literals
+
 import contextlib
 import logging
 import math

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This modules contains tests for config API handler."""
+from __future__ import unicode_literals
 
 
 from future.utils import iteritems
@@ -173,13 +174,13 @@ class ApiGrrBinaryTestMixin(object):
       upload_path = config.CONFIG.Get("Config.aff4_root").Add(
           "executables/windows/test.exe")
       maintenance_utils.UploadSignedConfigBlob(
-          code, aff4_path=upload_path, token=self.token)
+          code.encode("utf-8"), aff4_path=upload_path, token=self.token)
 
     with test_lib.FakeTime(43):
       code = "I'm a python hack"
       upload_path = config.CONFIG.Get("Config.python_hack_root").Add("test")
       maintenance_utils.UploadSignedConfigBlob(
-          code, aff4_path=upload_path, token=self.token)
+          code.encode("utf-8"), aff4_path=upload_path, token=self.token)
 
 
 def main(argv):

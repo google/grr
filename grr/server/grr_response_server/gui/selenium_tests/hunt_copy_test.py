@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test of "Copy Hunt" wizard."""
+from __future__ import unicode_literals
 
 import unittest
 from grr_response_core.lib import flags
@@ -298,7 +299,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
   def testCopyHuntHandlesLiteralExpressionCorrectly(self):
     """Literals are raw bytes. Testing that raw bytes are processed right."""
     literal_match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
-        literal="foo\x0d\xc8bar")
+        literal=b"foo\x0d\xc8bar")
 
     implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
@@ -361,7 +362,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
                      file_finder.FileFinder.__name__)
     self.assertEqual(
         last_hunt.args.flow_args.conditions[0].contents_literal_match.literal,
-        "foo\x0d\xc8bar")
+        b"foo\x0d\xc8bar")
 
   def testCopyHuntPreservesRuleType(self):
     implementation.StartHunt(

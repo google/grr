@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """These are flows designed to discover information about the host."""
+from __future__ import unicode_literals
 
 
 from future.utils import iteritems

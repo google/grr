@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """UI report plugins server-side interface."""
+from __future__ import unicode_literals
 
 
 from future.utils import itervalues

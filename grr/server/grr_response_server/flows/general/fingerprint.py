@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Invoke the fingerprint client action on a file."""
+from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action

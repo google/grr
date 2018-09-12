@@ -44,7 +44,7 @@ function build_sdists() {
       --formats=zip --dist-dir="${PWD}/sdists"
   python grr/test/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
-  python grr/config/grr-response-templates/setup.py sdist \
+  python grr/config/grr_response_templates/setup.py sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
 }
 
@@ -96,4 +96,4 @@ verify_packages
 # Reduce the size of the tarball that gets uploaded to GCS by
 # deleting unnecessary files.
 rm -rf sdists
-rm grr/config/grr-response-templates/templates/*.zip
+rm grr/config/grr_response_templates/templates/*.zip

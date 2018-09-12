@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """These are network related flows."""
+from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2

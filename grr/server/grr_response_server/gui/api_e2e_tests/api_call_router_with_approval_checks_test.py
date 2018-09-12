@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API E2E tests for an ApiCallRouterWithChecks."""
+from __future__ import unicode_literals
 
 
 from grr_api_client import errors as grr_api_errors

@@ -330,7 +330,7 @@ class InterrogatedClient(ActionMock):
     self.response_count += 1
     return [
         rdf_protodict.Dict({
-            "Client.server_urls": ["http://localhost:8001/"],
+            "Client.server_urls": [u"http://localhost:8001/"],
             "Client.poll_min": 1.0
         })
     ]

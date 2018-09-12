@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the FileFinder flow."""
+from __future__ import unicode_literals
 
 import collections
 import glob
@@ -376,7 +377,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         .ALL_HITS,
         bytes_before=10,
         bytes_after=10,
-        literal="session opened for user dearjohn")
+        literal=b"session opened for user dearjohn")
     literal_condition = rdf_file_finder.FileFinderCondition(
         condition_type=rdf_file_finder.FileFinderCondition.Type
         .CONTENTS_LITERAL_MATCH,
@@ -402,7 +403,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         .FIRST_HIT,
         bytes_before=10,
         bytes_after=10,
-        literal="\x4D\x5A\x90")
+        literal=b"\x4D\x5A\x90")
     literal_condition = rdf_file_finder.FileFinderCondition(
         condition_type=rdf_file_finder.FileFinderCondition.Type
         .CONTENTS_LITERAL_MATCH,
@@ -418,7 +419,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(len(results[0].matches), 1)
     self.assertEqual(results[0].matches[0].offset, 0)
     self.assertEqual(results[0].matches[0].data,
-                     "MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xff")
+                     b"MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xff")
 
   def testRegexMatchConditionWithDifferentActions(self):
     expected_files = ["auth.log"]

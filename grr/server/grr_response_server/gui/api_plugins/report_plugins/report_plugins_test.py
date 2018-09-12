@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for report plugins."""
+from __future__ import unicode_literals
 
 import itertools
 import math

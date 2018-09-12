@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Test the collector flows."""
+from __future__ import unicode_literals
+
 import os
 
 from future.utils import iterkeys

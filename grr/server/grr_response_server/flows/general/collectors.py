@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Flows for handling the collection for artifacts."""
+from __future__ import unicode_literals
 
 import logging
 

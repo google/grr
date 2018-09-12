@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """GRR HTTP server implementation."""
+from __future__ import unicode_literals
 
 import base64
 import hashlib
@@ -28,26 +29,30 @@ from grr_response_server import server_logging
 from grr_response_server.gui import http_api
 from grr_response_server.gui import webauth
 
-CSRF_DELIMITER = ":"
+CSRF_DELIMITER = b":"
 CSRF_TOKEN_DURATION = rdfvalue.Duration("10h")
 
 
 def GenerateCSRFToken(user_id, time):
   """Generates a CSRF token based on a secret key, id and time."""
+  utils.AssertType(user_id, unicode)
+  if time is not None:
+    utils.AssertType(time, int)
+
   time = time or rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
   secret = config.CONFIG.Get("AdminUI.csrf_secret_key", None)
   # TODO(amoser): Django is deprecated. Remove this at some point.
   if not secret:
     secret = config.CONFIG["AdminUI.django_secret_key"]
-  digester = hmac.new(utils.SmartStr(secret), digestmod=hashlib.sha256)
-  digester.update(utils.SmartStr(user_id))
+  digester = hmac.new(secret.encode("ascii"), digestmod=hashlib.sha256)
+  digester.update(user_id.encode("ascii"))
   digester.update(CSRF_DELIMITER)
-  digester.update(str(time))
+  digester.update(unicode(time).encode("ascii"))
   digest = digester.digest()
 
-  token = base64.urlsafe_b64encode("%s%s%d" % (digest, CSRF_DELIMITER, time))
-  return token.rstrip("=")
+  token = base64.urlsafe_b64encode(b"%s%s%d" % (digest, CSRF_DELIMITER, time))
+  return token.rstrip(b"=")
 
 
 def StoreCSRFCookie(user, response):
@@ -79,13 +84,13 @@ def ValidateCSRFTokenOrRaise(request):
   # See for more details:
   # https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)_Prevention_Cheat_Sheet
   # (Protecting REST Services: Use of Custom Request Headers).
-  csrf_token = utils.SmartStr(request.headers.get("X-CSRFToken", ""))
+  csrf_token = request.headers.get("X-CSRFToken", "").encode("ascii")
   if not csrf_token:
     logging.info("Did not find headers CSRF token for: %s", request.path)
     raise werkzeug_exceptions.Forbidden("CSRF token is missing")
 
   try:
-    decoded = base64.urlsafe_b64decode(csrf_token + "==")
+    decoded = base64.urlsafe_b64decode(csrf_token + b"==")
     digest, token_time = decoded.rsplit(CSRF_DELIMITER, 1)
     token_time = int(token_time)
   except (TypeError, ValueError):

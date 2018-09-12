@@ -4,6 +4,7 @@
 These flows allow for distributing memory access modules to clients and
 performing basic analysis.
 """
+from __future__ import unicode_literals
 
 import json
 import logging

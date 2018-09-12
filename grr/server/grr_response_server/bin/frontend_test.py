@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Unittest for grr http server."""
+from __future__ import unicode_literals
 
 import hashlib
 import os
@@ -291,7 +292,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         pb.SerializeToString())
     self.assertEqual(profile.name, "nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942")
     self.assertEqual(profile.version, "v1.0")
-    self.assertEqual(profile.data[:2], "\x1f\x8b")
+    self.assertEqual(profile.data[:2], b"\x1f\x8b")
 
 
 def main(args):

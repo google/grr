@@ -1,0 +1,3 @@
+include version.ini
+recursive-include components *.bin
+recursive-include templates *.zip

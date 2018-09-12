@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """This file contains utility functions used in ApiCallHandler classes."""
-
+from __future__ import unicode_literals
 
 import io
 import itertools
@@ -110,14 +110,10 @@ class CollectionArchiveGenerator(object):
     if self.failed_files:
       manifest["failed_files_list"] = self.failed_files
 
-    # TODO(hanuszczak): Manifest is a YAML file which is supposed to be
-    # unicode-encoded format. However due to PyYAML incompetence we are given
-    # `bytes` object as a result of dumping. It should be investigated and
-    # changed to `StringIO` if possible.
-    manifest_fd = io.BytesIO()
+    manifest_fd = io.StringIO()
     if self.total_files != self.archived_files:
       manifest_fd.write(self.FILES_SKIPPED_WARNING)
-    manifest_fd.write(yaml.safe_dump(manifest))
+    manifest_fd.write(yaml.safe_dump(manifest).decode("utf-8"))
 
     manifest_fd.seek(0)
     st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0,
@@ -128,8 +124,11 @@ class CollectionArchiveGenerator(object):
       yield chunk
 
   def _GenerateClientInfo(self, client_fd):
-    summary = yaml.safe_dump(
-        client_fd.GetSummary().ToPrimitiveDict(serialize_leaf_fields=True))
+    """Yields chucks of archive information for given client."""
+    summary_dict = client_fd.GetSummary().ToPrimitiveDict(
+        serialize_leaf_fields=True)
+    summary = yaml.safe_dump(summary_dict).decode("utf-8")
+
     client_info_path = os.path.join(self.prefix,
                                     client_fd.urn.Basename(),
                                     "client_info.yaml")

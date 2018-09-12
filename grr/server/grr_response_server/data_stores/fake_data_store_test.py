@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests the fake data store - in memory implementation."""
+from __future__ import unicode_literals
 
 
 from grr_response_core.lib import flags

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Utililies for modifying the GRR server configuration."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import getpass
 import os
@@ -266,9 +267,12 @@ def ConfigureMySQLDatastore(config):
         "MySQL Database", "^[A-Za-z0-9-]+$", config["Mysql.database_name"])
     db_options["Mysql.database_username"] = RetryQuestion(
         "MySQL Username", "[A-Za-z0-9-@]+$", config["Mysql.database_username"])
+    # TODO(hanuszczak): Incorrect type specification for `getpass`.
+    # pytype: disable=wrong-arg-types
     db_options["Mysql.database_password"] = getpass.getpass(
         prompt="Please enter password for database user %s: " %
         db_options["Mysql.database_username"])
+    # pytype: enable=wrong-arg-types
 
     if CheckMySQLConnection(db_options):
       print("Successfully connected to MySQL with the provided details.")

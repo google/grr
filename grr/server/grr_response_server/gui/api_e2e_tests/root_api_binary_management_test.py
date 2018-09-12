@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for root API user management calls."""
+from __future__ import unicode_literals
 
 import io
 
@@ -43,18 +44,18 @@ class RootApiBinaryManagementTest(api_e2e_test_lib.RootApiE2ETest):
 
   def testUploadedPythonHackCanBeReadBack(self):
     self._testBinaryUpload(config_pb2.ApiGrrBinary.PYTHON_HACK,
-                           "windows/clean.py", "print 'blah'")
+                           "windows/clean.py", b"print 'blah'")
 
   def testUploadedExecutableCanBeReadBack(self):
     self._testBinaryUpload(config_pb2.ApiGrrBinary.EXECUTABLE, "windows/a.ps1",
-                           "# some")
+                           b"# some")
 
   def testUploadedBinaryWithIncorrectSignatureIsCorrectlyReported(self):
     private_key = rdf_crypto.RSAPrivateKey.GenerateKey()
     self._Upload(
         config_pb2.ApiGrrBinary.EXECUTABLE,
         "windows/a.ps1",
-        "# some",
+        b"# some",
         private_key=private_key)
 
     read_binary = self.api.GrrBinary(config_pb2.ApiGrrBinary.EXECUTABLE,
@@ -63,7 +64,7 @@ class RootApiBinaryManagementTest(api_e2e_test_lib.RootApiE2ETest):
 
   def testLargeUploadedExecutableCanBeReadBack(self):
     # 5Mb of data
-    data = "#" * 1024 * 1024 * 5
+    data = b"#" * 1024 * 1024 * 5
     self._testBinaryUpload(config_pb2.ApiGrrBinary.EXECUTABLE, "windows/a.ps1",
                            data)
 
@@ -74,7 +75,7 @@ class RootApiBinaryManagementTest(api_e2e_test_lib.RootApiE2ETest):
 
   def testUploadedBinaryIsCorrectlyDeleted(self):
     self._testBinaryUpload(config_pb2.ApiGrrBinary.EXECUTABLE, "windows/a.ps1",
-                           "blah")
+                           b"blah")
     self.api.root.GrrBinary(config_pb2.ApiGrrBinary.EXECUTABLE,
                             "windows/a.ps1").Delete()
 

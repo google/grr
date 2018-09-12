@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Web authentication classes for the GUI."""
+from __future__ import unicode_literals
 
 import logging
 

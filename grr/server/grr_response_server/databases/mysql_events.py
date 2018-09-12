@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The MySQL database methods for event handling."""
+from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client

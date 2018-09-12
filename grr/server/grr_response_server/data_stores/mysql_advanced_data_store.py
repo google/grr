@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """An implementation of a data store based on mysql."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import logging
 import os

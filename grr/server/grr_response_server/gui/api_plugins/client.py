@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API handlers for accessing and searching clients and managing labels."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import shlex
 import sys

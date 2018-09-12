@@ -5,6 +5,7 @@
 Implementations should be able to pass these tests to be conformant.
 """
 from __future__ import division
+from __future__ import unicode_literals
 
 import functools
 import hashlib
@@ -1137,7 +1138,7 @@ class DataStoreTestMixin(object):
     self.assertItemsEqual(predicate_values, [x[1] for x in results])
 
   def testBlobs(self):
-    data = "randomdata" * 50
+    data = b"randomdata" * 50
 
     identifier = data_store.DB.StoreBlob(data)
 
@@ -1151,7 +1152,7 @@ class DataStoreTestMixin(object):
 
   def testAFF4BlobImage(self):
     # 500k
-    data = "randomdata" * 50 * 1024
+    data = b"randomdata" * 50 * 1024
 
     identifier = data_store.DB.StoreBlob(data)
 

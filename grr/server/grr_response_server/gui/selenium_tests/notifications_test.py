@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test the fileview interface."""
+from __future__ import unicode_literals
 
 import unittest
 from grr_response_core.lib import flags
@@ -52,7 +53,7 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
       gui_test_lib.CreateFileVersion(
           client_id,
           "fs/os/proc/10/exe",
-          "",
+          b"",
           timestamp=gui_test_lib.TIME_0,
           token=token)
 

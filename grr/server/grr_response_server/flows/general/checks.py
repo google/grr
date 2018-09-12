@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A flow to run checks for a host."""
+from __future__ import unicode_literals
 
 
 from future.utils import iteritems

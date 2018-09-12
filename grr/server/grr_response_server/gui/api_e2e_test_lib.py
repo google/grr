@@ -5,6 +5,7 @@ API plugins are tested with their own dedicated unit-tests that are
 protocol- and server-independent. End-to-end tests are meant to use
 the full GRR server stack (web server + API client library).
 """
+from __future__ import unicode_literals
 
 import logging
 import threading

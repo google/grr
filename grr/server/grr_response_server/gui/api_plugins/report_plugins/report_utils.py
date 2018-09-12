@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """UI report handling helper utils."""
+from __future__ import unicode_literals
 
 from grr_response_server import aff4
 from grr_response_server.flows.general import audit

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Filestore stats crons."""
 from __future__ import division
+from __future__ import unicode_literals
 
 
 from future.utils import iteritems

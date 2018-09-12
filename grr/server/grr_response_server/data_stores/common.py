@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This file contains various utility classes used by GRR data stores."""
+from __future__ import unicode_literals
 
 import collections
 import logging

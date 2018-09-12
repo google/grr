@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The in memory database methods for client handling."""
+from __future__ import unicode_literals
 
 
 from future.utils import iteritems

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The MySQL database methods for client handling."""
+from __future__ import unicode_literals
 
 import datetime
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
+from __future__ import unicode_literals
 
 import itertools
 import logging
@@ -872,7 +873,7 @@ class ApiGetVfsRefreshOperationStateHandler(
 def _GetTimelineStatEntriesLegacy(client_id, file_path, with_history=True):
   """Gets timeline entries from AFF4."""
 
-  folder_urn = aff4.ROOT_URN.Add(str(client_id)).Add(file_path)
+  folder_urn = aff4.ROOT_URN.Add(unicode(client_id)).Add(file_path)
 
   child_urns = []
   for _, children in aff4.FACTORY.RecursiveMultiListChildren([folder_urn]):
@@ -884,7 +885,7 @@ def _GetTimelineStatEntriesLegacy(client_id, file_path, with_history=True):
     timestamp = aff4.NEWEST_TIME
 
   for fd in aff4.FACTORY.MultiOpen(child_urns, age=timestamp):
-    file_path = u"/".join(unicode(fd.urn).split(u"/")[2:])
+    file_path = "/".join(unicode(fd.urn).split("/")[2:])
 
     if not with_history:
       yield file_path, fd.Get(fd.Schema.STAT), fd.Get(fd.Schema.HASH)

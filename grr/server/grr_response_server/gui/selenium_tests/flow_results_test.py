@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test flows results UI."""
+from __future__ import unicode_literals
 
 
 import unittest
@@ -29,8 +30,10 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
 
+    stderr = "Oh, ok, this is just a string 昨"
+    stdout = "\00\00\00\00"
     response = rdf_client_action.ExecuteResponse(
-        stderr="Oh, ok, this is just a string 昨", stdout="\00\00\00\00")
+        stderr=stderr.encode("utf-8"), stdout=stdout.encode("utf-8"))
 
     with data_store.DB.GetMutationPool() as pool:
       flow.GRRFlow.ResultCollectionForFID(flow_urn).Add(
