@@ -118,10 +118,14 @@ class GRRWorker(object):
                   self._ProcessMessageHandlerRequests,
                   self.well_known_flow_lease_time,
                   limit=100)
+            if data_store.RelationalDBFlowsEnabled():
+              data_store.REL_DB.RegisterFlowProcessingHandler(self.ProcessFlow)
+
           was_master = True
         else:
           processed = 0
           data_store.REL_DB.UnregisterMessageHandler()
+          data_store.REL_DB.UnregisterFlowProcessingHandler()
           was_master = False
           time.sleep(60)
 
@@ -258,7 +262,7 @@ class GRRWorker(object):
     Args:
         active_notifications: The list of notifications.
         queue_manager: QueueManager object used to manage notifications,
-                       requests and responses.
+          requests and responses.
         time_limit: If set return as soon as possible after this many seconds.
 
     Returns:
@@ -396,13 +400,14 @@ class GRRWorker(object):
 
   def ProcessFlow(self, flow_processing_request):
     """The callback for the flow processing queue."""
+
+    data_store.REL_DB.AckFlowProcessingRequests([flow_processing_request])
+
     client_id = flow_processing_request.client_id
     flow_id = flow_processing_request.flow_id
 
     rdf_flow = data_store.REL_DB.ReadFlowForProcessing(
         client_id, flow_id, processing_time=rdfvalue.Duration("6h"))
-
-    # TODO(amoser): Ack / delete queue messages here.
 
     flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
     flow_obj = flow_cls(rdf_flow)

@@ -61,22 +61,23 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
            last_modified=0):
     """Sends a response to the client."""
     if additional_headers:
-      header_strings = [
+      additional_header_strings = [
           "%s: %s\r\n" % (name, val)
           for name, val in iteritems(additional_headers)
       ]
     else:
-      header_strings = []
-    data = ("HTTP/1.0 %s\r\n"
-            "Server: GRR Server\r\n"
-            "Content-type: %s\r\n"
-            "Content-Length: %d\r\n"
-            "Last-Modified: %s\r\n"
-            "%s"
-            "\r\n"
-            "%s") % (self.statustext[status], ctype, len(data),
-                     self.date_time_string(last_modified),
-                     "".join(header_strings), data)
+      additional_header_strings = []
+
+    header = ""
+    header += "HTTP/1.0 %s\r\n" % self.statustext[status]
+    header += "Server: GRR Server\r\n"
+    header += "Content-type: %s\r\n" % ctype
+    header += "Content-Length: %d\r\n" % len(data)
+    header += "Last-Modified: %s\r\n" % self.date_time_string(last_modified)
+    header += "".join(additional_header_strings)
+    header += "\r\n"
+
+    self.wfile.write(header.encode("utf-8"))
     self.wfile.write(data)
 
   rekall_profile_path = "/rekall_profiles"

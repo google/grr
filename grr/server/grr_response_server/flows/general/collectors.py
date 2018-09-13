@@ -70,13 +70,8 @@ class ArtifactCollectorFlowMixin(object):
   """
 
   category = "/Collectors/"
-  args_type = artifact_utils.ArtifactCollectorFlowArgs
+  args_type = rdf_artifacts.ArtifactCollectorFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
-
-  def GetPathType(self):
-    if self.args.use_tsk:
-      return rdf_paths.PathSpec.PathType.TSK
-    return rdf_paths.PathSpec.PathType.OS
 
   def Start(self):
     """For each artifact, create subflows for each collector."""
@@ -89,13 +84,13 @@ class ArtifactCollectorFlowMixin(object):
     self.state.knowledge_base = self.args.knowledge_base
     self.state.response_count = 0
 
-    if (self.args.dependencies == artifact_utils.ArtifactCollectorFlowArgs
+    if (self.args.dependencies == rdf_artifacts.ArtifactCollectorFlowArgs
         .Dependency.FETCH_NOW):
       # String due to dependency loop with discover.py.
       self.CallFlow("Interrogate", next_state="StartCollection")
       return
 
-    elif (self.args.dependencies == artifact_utils.ArtifactCollectorFlowArgs
+    elif (self.args.dependencies == rdf_artifacts.ArtifactCollectorFlowArgs
           .Dependency.USE_CACHED) and (not self.state.knowledge_base):
       # If not provided, get a knowledge base from the client.
       try:
@@ -174,11 +169,11 @@ class ArtifactCollectorFlowMixin(object):
         if type_name == source_type.COMMAND:
           self.RunCommand(source)
         elif type_name == source_type.DIRECTORY:
-          self.Glob(source, self.GetPathType())
+          self.Glob(source, self.args.path_type)
         elif type_name == source_type.FILE:
-          self.GetFiles(source, self.GetPathType(), self.args.max_file_size)
+          self.GetFiles(source, self.args.path_type, self.args.max_file_size)
         elif type_name == source_type.GREP:
-          self.Grep(source, self.GetPathType())
+          self.Grep(source, self.args.path_type)
         elif type_name == source_type.PATH:
           # TODO(user): GRR currently ignores PATH types, they are currently
           # only useful to plaso during bootstrapping when the registry is
@@ -909,7 +904,7 @@ class ClientArtifactCollectorMixin(object):
   """A client side artifact collector."""
 
   category = "/Collectors/"
-  args_type = artifact_utils.ArtifactCollectorFlowArgs
+  args_type = rdf_artifacts.ArtifactCollectorFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   def Start(self):
@@ -920,7 +915,7 @@ class ClientArtifactCollectorMixin(object):
     self.state.response_count = 0
 
     if not self.args.recollect_knowledge_base:
-      dependency = artifact_utils.ArtifactCollectorFlowArgs.Dependency
+      dependency = rdf_artifacts.ArtifactCollectorFlowArgs.Dependency
       if self.args.dependencies == dependency.FETCH_NOW:
         # String due to dependency loop with discover.py.
         self.CallFlow("Interrogate", next_state="StartCollection")
@@ -950,17 +945,15 @@ class ClientArtifactCollectorMixin(object):
       raise artifact_utils.KnowledgeBaseUninitializedError(
           "Attempt to initialize Knowledge Base failed.")
 
+    # TODO(hanuszczak): Flow arguments also appear to have some knowledgebase.
+    # Do we use it in any way?
     if not self.state.knowledge_base:
       with aff4.FACTORY.Open(self.client_id, token=self.token) as client:
         # If we are processing the knowledge base, it still won't exist yet.
         self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
             client, allow_uninitialized=True)
 
-    request = GetArtifactCollectorArgs(
-        self.state.knowledge_base, self.args.artifact_list,
-        self.args.apply_parsers, self.args.ignore_interpolation_errors,
-        self.args.use_tsk, self.args.max_file_size,
-        self.args.recollect_knowledge_base)
+    request = GetArtifactCollectorArgs(self.args, self.state.knowledge_base)
     self.CollectArtifacts(request)
 
   def _AreArtifactsKnowledgeBaseArtifacts(self):
@@ -1014,24 +1007,12 @@ def ConvertSupportedOSToConditions(src_object):
     return conditions
 
 
-def GetArtifactCollectorArgs(knowledge_base,
-                             artifact_list,
-                             apply_parsers=True,
-                             ignore_interpolation_errors=False,
-                             use_tsk=False,
-                             max_file_size=500000000,
-                             recollect_knowledge_base=False):
+def GetArtifactCollectorArgs(flow_args, knowledge_base):
   """Prepare bundle of artifacts and their dependencies for the client.
 
   Args:
+    flow_args: An `ArtifactCollectorFlowArgs` instance.
     knowledge_base: contains information about the client
-    artifact_list: list of artifact names to be collected
-    apply_parsers: if True, apply any relevant parser to the collected data
-    ignore_interpolation_errors: from ArtifactCollectorFlowArgs
-    use_tsk: from ArtifactCollectorFlowArgs
-    max_file_size: from ArtifactCollectorFlowArgs
-    recollect_knowledge_base: Whether the dependencies should be collected as
-      well or the interrogation flow is used.
 
   Returns:
     rdf value object containing a list of extended artifacts and the
@@ -1040,24 +1021,26 @@ def GetArtifactCollectorArgs(knowledge_base,
   args = rdf_artifacts.ClientArtifactCollectorArgs()
   args.knowledge_base = knowledge_base
 
-  args.apply_parsers = apply_parsers
-  args.ignore_interpolation_errors = ignore_interpolation_errors
-  args.max_file_size = max_file_size
-  args.use_tsk = use_tsk
+  args.apply_parsers = flow_args.apply_parsers
+  args.ignore_interpolation_errors = flow_args.ignore_interpolation_errors
+  args.max_file_size = flow_args.max_file_size
+  args.use_tsk = flow_args.use_tsk
 
-  if not recollect_knowledge_base:
-    artifact_names = artifact_list
+  if not flow_args.recollect_knowledge_base:
+    artifact_names = flow_args.artifact_list
   else:
-    artifact_names = GetArtifactsForCollection(knowledge_base.os, artifact_list)
+    artifact_names = GetArtifactsForCollection(knowledge_base.os,
+                                               flow_args.artifact_list)
 
-  expander = ArtifactExpander(knowledge_base, use_tsk, max_file_size)
+  expander = ArtifactExpander(knowledge_base, flow_args.path_type,
+                              flow_args.max_file_size)
   for artifact_name in artifact_names:
     rdf_artifact = artifact_registry.REGISTRY.GetArtifact(artifact_name)
     if not MeetsConditions(knowledge_base, rdf_artifact):
       continue
     if artifact_name in expander.processed_artifacts:
       continue
-    requested_by_user = artifact_name in artifact_list
+    requested_by_user = artifact_name in flow_args.artifact_list
     for expanded_artifact in expander.Expand(rdf_artifact, requested_by_user):
       args.artifacts.append(expanded_artifact)
   return args
@@ -1079,9 +1062,9 @@ def MeetsConditions(knowledge_base, source):
 class ArtifactExpander(object):
   """Expands a given artifact and keeps track of processed artifacts."""
 
-  def __init__(self, knowledge_base, use_tsk, max_file_size):
+  def __init__(self, knowledge_base, path_type, max_file_size):
     self._knowledge_base = knowledge_base
-    self._path_type = _GetPathType(use_tsk)
+    self._path_type = path_type
     self._max_file_size = max_file_size
     self.processed_artifacts = set()
 
@@ -1172,12 +1155,6 @@ class ArtifactExpander(object):
     expanded_source.artifact_sources = sub_sources
     expanded_source.path_type = self._path_type
     return [expanded_source]
-
-
-def _GetPathType(use_tsk):
-  if use_tsk:
-    return rdf_paths.PathSpec.PathType.TSK
-  return rdf_paths.PathSpec.PathType.OS
 
 
 def GetArtifactsForCollection(os_name, artifact_list):

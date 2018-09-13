@@ -124,6 +124,16 @@ class InMemoryDBFlowMixin(object):
 
     return res
 
+  def _DeleteClientMessage(self, client_id, task_id):
+    tasks = self.client_messages.get(client_id)
+    if not tasks or task_id not in tasks:
+      # TODO(amoser): Once new flows are in, reevaluate if we can raise on
+      # deletion request for unknown messages.
+      return
+    del tasks[task_id]
+    if task_id in self.client_message_leases:
+      del self.client_message_leases[task_id]
+
   @utils.Synchronized
   def DeleteClientMessages(self, messages):
     """Deletes a list of client messages from the db."""
@@ -137,14 +147,7 @@ class InMemoryDBFlowMixin(object):
           "Received multiple copies of the same message to delete.")
 
     for client_id, task_id in to_delete:
-      tasks = self.client_messages.get(client_id)
-      if not tasks or task_id not in tasks:
-        # TODO(amoser): Once new flows are in, reevaluate if we can raise on
-        # deletion request for unknown messages.
-        continue
-      del tasks[task_id]
-      if task_id in self.client_message_leases:
-        del self.client_message_leases[task_id]
+      self._DeleteClientMessage(client_id, task_id)
 
   @utils.Synchronized
   def LeaseClientMessages(self, client_id, lease_time=None, limit=sys.maxsize):
@@ -175,6 +178,11 @@ class InMemoryDBFlowMixin(object):
   @utils.Synchronized
   def WriteClientMessages(self, messages):
     """Writes messages that should go to the client to the db."""
+    client_ids = [db_utils.ClientIdFromGrrMessage(msg) for msg in messages]
+    for client_id in client_ids:
+      if client_id not in self.metadatas:
+        raise db.AtLeastOneUnknownClientError(client_ids=client_ids)
+
     for m in messages:
       client_id = db_utils.ClientIdFromGrrMessage(m)
       self.client_messages.setdefault(client_id, {})[m.task_id] = m
@@ -264,7 +272,8 @@ class InMemoryDBFlowMixin(object):
 
     for request in requests:
       if (request.client_id, request.flow_id) not in self.flows:
-        raise db.UnknownFlowError(request.client_id, request.flow_id)
+        raise db.AtLeastOneUnknownFlowError([(request.client_id,
+                                              request.flow_id)])
 
     for request in requests:
       key = (request.client_id, request.flow_id)
@@ -276,9 +285,7 @@ class InMemoryDBFlowMixin(object):
         if flow.next_request_to_process == request.request_id:
           flow_processing_requests.append(
               rdf_flows.FlowProcessingRequest(
-                  client_id=request.client_id,
-                  flow_id=request.flow_id,
-                  request_id=request.request_id))
+                  client_id=request.client_id, flow_id=request.flow_id))
 
     if flow_processing_requests:
       self.WriteFlowProcessingRequests(flow_processing_requests)
@@ -310,11 +317,14 @@ class InMemoryDBFlowMixin(object):
     """Writes a list of flow responses to the database."""
     status_available = set()
     requests_updated = set()
+    task_ids_by_request = {}
 
     for response in responses:
       flow_key = (response.client_id, response.flow_id)
       if flow_key not in self.flows:
-        raise db.UnknownFlowError(response.client_id, response.flow_id)
+        logging.error("Received response for unknown flow %s, %s.",
+                      response.client_id, response.flow_id)
+        continue
 
       request_dict = self.flow_requests.get(flow_key, {})
       if response.request_id not in request_dict:
@@ -329,8 +339,12 @@ class InMemoryDBFlowMixin(object):
       if isinstance(response, rdf_flow_objects.FlowStatus):
         status_available.add(response)
 
-      requests_updated.add((response.client_id, response.flow_id,
-                            response.request_id))
+      request_key = (response.client_id, response.flow_id, response.request_id)
+      requests_updated.add(request_key)
+      try:
+        task_ids_by_request[request_key] = response.task_id
+      except AttributeError:
+        pass
 
     # Every time we get a status we store how many responses are expected.
     for status in status_available:
@@ -340,7 +354,6 @@ class InMemoryDBFlowMixin(object):
 
     # And we check for all updated requests if we need to process them.
     needs_processing = []
-
     for client_id, flow_id, request_id in requests_updated:
       flow_key = (client_id, flow_id)
       request_dict = self.flow_requests[flow_key]
@@ -351,12 +364,15 @@ class InMemoryDBFlowMixin(object):
 
         if len(responses) == request.nr_responses_expected:
           request.needs_processing = True
+          task_id = task_ids_by_request.get((client_id, flow_id, request_id))
+          if task_id:
+            self._DeleteClientMessage(client_id, task_id)
+
           flow = self.flows[flow_key]
           if flow.next_request_to_process == request_id:
             needs_processing.append(
                 rdf_flows.FlowProcessingRequest(
-                    client_id=client_id, flow_id=flow_id,
-                    request_id=request_id))
+                    client_id=client_id, flow_id=flow_id))
 
     if needs_processing:
       self.WriteFlowProcessingRequests(needs_processing)
@@ -368,14 +384,14 @@ class InMemoryDBFlowMixin(object):
     try:
       self.flows[flow_key]
     except KeyError:
-      raise db.UnknownFlowError(client_id, flow_id)
+      return []
 
     request_dict = self.flow_requests.get(flow_key, {})
     response_dict = self.flow_responses.get(flow_key, {})
 
     res = []
     for request_id in sorted(request_dict):
-      res.append((request_dict[request_id], response_dict.get(request_id, [])))
+      res.append((request_dict[request_id], response_dict.get(request_id, {})))
     return res
 
   @utils.Synchronized
@@ -398,26 +414,21 @@ class InMemoryDBFlowMixin(object):
       pass
 
   @utils.Synchronized
-  def ReadFlowRequestsReadyForProcessing(self, client_id, flow_id):
+  def ReadFlowRequestsReadyForProcessing(self,
+                                         client_id,
+                                         flow_id,
+                                         next_needed_request=None):
     """Reads all requests for a flow that can be processed by the worker."""
-
-    try:
-      flow_obj = self.flows[(client_id, flow_id)]
-    except KeyError:
-      raise db.UnknownFlowError(client_id, flow_id)
-
-    next_request_to_process = flow_obj.next_request_to_process
-
     request_dict = self.flow_requests.get((client_id, flow_id), {})
     response_dict = self.flow_responses.get((client_id, flow_id), {})
 
     res = {}
     for request_id in sorted(request_dict):
       # Ignore outdated requests.
-      if request_id < next_request_to_process:
+      if request_id < next_needed_request:
         continue
       # The request we are currently looking for is not in yet, we are done.
-      if request_id != next_request_to_process:
+      if request_id != next_needed_request:
         break
       request = request_dict[request_id]
       if not request.needs_processing:
@@ -427,7 +438,7 @@ class InMemoryDBFlowMixin(object):
           itervalues(response_dict.get(request_id, {})),
           key=lambda response: response.response_id)
       res[request_id] = (request, responses)
-      next_request_to_process += 1
+      next_needed_request += 1
 
     return res
 
@@ -478,7 +489,7 @@ class InMemoryDBFlowMixin(object):
     for r in requests:
       cloned_request = r.Copy()
       cloned_request.timestamp = now
-      key = (r.client_id, r.flow_id, r.request_id)
+      key = (r.client_id, r.flow_id)
       self.flow_processing_requests[key] = cloned_request
 
   @utils.Synchronized
@@ -487,19 +498,16 @@ class InMemoryDBFlowMixin(object):
     return list(itervalues(self.flow_processing_requests))
 
   @utils.Synchronized
-  def DeleteFlowProcessingRequests(self, requests):
+  def AckFlowProcessingRequests(self, requests):
     """Deletes a list of flow processing requests from the database."""
-    unknown = []
     for r in requests:
-      key = (r.client_id, r.flow_id, r.request_id)
+      key = (r.client_id, r.flow_id)
       if key in self.flow_processing_requests:
         del self.flow_processing_requests[key]
-      else:
-        unknown.append(key)
 
-    if unknown:
-      key = unknown[0]
-      raise db.UnknownFlowRequestError(key[0], key[1], key[2])
+  @utils.Synchronized
+  def DeleteAllFlowProcessingRequests(self):
+    self.flow_processing_requests = {}
 
   def RegisterFlowProcessingHandler(self, handler):
     """Registers a message handler to receive flow processing messages."""
@@ -536,8 +544,7 @@ class InMemoryDBFlowMixin(object):
       for r in list(itervalues(self.flow_processing_requests)):
         if r.delivery_time is None or r.delivery_time <= now:
           todo.append(r)
-          key = (r.client_id, r.flow_id, r.request_id)
-          del self.flow_processing_requests[key]
+          del self.flow_processing_requests[(r.client_id, r.flow_id)]
 
       for request in todo:
         handler(request)

@@ -375,7 +375,7 @@ def StartFlow(client_id=None,
       original_flow=original_flow,
       flow_state="RUNNING")
 
-  rdf_flow.flow_id = "%08X" % utils.PRNG.GetUInt32()
+  rdf_flow.flow_id = "%08X" % utils.PRNG.GetPositiveUInt32()
 
   if parent_flow_obj:
     parent_rdf_flow = parent_flow_obj.rdf_flow
@@ -682,8 +682,7 @@ class GRRFlow(FlowBase):
 
     PENDING_TERMINATION = aff4.Attribute(
         "aff4:pending_termination",
-        rdf_flow_objects.PendingFlowTermination,
-        "If true, this flow will be "
+        rdf_flow_objects.PendingFlowTermination, "If true, this flow will be "
         "terminated as soon as any of its "
         "states are called.",
         creates_new_object_version=False)

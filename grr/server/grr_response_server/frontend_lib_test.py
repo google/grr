@@ -38,8 +38,10 @@ from grr_response_server import queue_manager
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import ca_enroller
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import client_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import frontend_test_lib
 from grr.test_lib import test_lib
@@ -61,7 +63,7 @@ class SendingTestFlow(flow.GRRFlow):
 class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
   """Tests the GRRFEServer."""
 
-  def testReceiveMessages(self):
+  def testReceivedMessagesAreCorrectlyWrittenToDatastore(self):
     """Test Receiving messages with no status."""
     client_id = test_lib.TEST_CLIENT_ID
     flow_obj = self.FlowSetup(
@@ -466,6 +468,42 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     crash_details_rel = data_store.REL_DB.ReadClientCrashInfo(client_id)
     self.assertTrue(crash_details_rel)
     self.assertEqual(crash_details_rel.session_id, session_id)
+
+
+class GRRFEServerTestRelational(db_test_lib.RelationalFlowsEnabledMixin,
+                                frontend_test_lib.FrontEndServerTest):
+  """Tests the GRRFEServer with relational flows enabled."""
+
+  def testReceiveMessages(self):
+    """Tests Receiving messages."""
+    client_id = u"C.1234567890123456"
+    flow_id = u"12345678"
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    rdf_flow = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+    data_store.REL_DB.WriteFlowObject(rdf_flow)
+
+    req = rdf_flow_objects.FlowRequest(
+        client_id=client_id, flow_id=flow_id, request_id=1)
+
+    data_store.REL_DB.WriteFlowRequests([req])
+
+    session_id = "%s/%s" % (client_id, flow_id)
+    messages = [
+        rdf_flows.GrrMessage(
+            request_id=1,
+            response_id=i,
+            session_id=session_id,
+            auth_state="AUTHENTICATED",
+            payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
+    ]
+
+    self.server.ReceiveMessages(client_id, messages)
+    received = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
+        client_id, flow_id)
+    self.assertEqual(len(received), 1)
+    self.assertEqual(received[0][0], req)
+    self.assertEqual(len(received[0][1]), 9)
 
 
 class FleetspeakFrontendTests(frontend_test_lib.FrontEndServerTest):

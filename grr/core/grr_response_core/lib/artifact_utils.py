@@ -12,10 +12,7 @@ import logging
 import re
 
 from grr_response_core.lib import objectfilter
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto import flows_pb2
 
 
 class Error(Exception):
@@ -40,21 +37,6 @@ class KnowledgeBaseUninitializedError(Error):
 
 class KnowledgeBaseAttributesMissingError(Error):
   """Knowledge Base is missing key attributes."""
-
-
-class ArtifactCollectorFlowArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for the artifact collector flow."""
-
-  protobuf = flows_pb2.ArtifactCollectorFlowArgs
-  rdf_deps = [
-      "ArtifactName",  # TODO(user): dependency loop.
-      rdfvalue.ByteSize,
-      "KnowledgeBase",  # TODO(user): dependency loop.
-  ]
-
-  def Validate(self):
-    if not self.artifact_list:
-      raise ValueError("No artifacts to collect.")
 
 
 INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")

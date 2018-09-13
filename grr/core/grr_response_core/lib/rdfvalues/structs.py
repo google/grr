@@ -1501,7 +1501,7 @@ class ProtoRDFValue(ProtoType):
 
   def Format(self, value):
     yield "%s:" % self.type.__name__
-    for line in str(value).splitlines():
+    for line in unicode(value).splitlines():
       yield "  %s" % line
 
   def __str__(self):

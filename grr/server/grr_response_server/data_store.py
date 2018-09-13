@@ -1391,6 +1391,8 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
                           after_timestamp=None,
                           after_suffix=None,
                           limit=None):
+    utils.AssertType(collection_id, rdfvalue.RDFURN)
+
     after_urn = None
     if after_timestamp:
       after_urn = utils.SmartStr(
@@ -1400,7 +1402,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
               suffix=after_suffix or self.COLLECTION_MAX_SUFFIX)[0])
 
     for subject, timestamp, serialized_rdf_value in self.ScanAttribute(
-        collection_id.Add("Results"),
+        unicode(collection_id.Add("Results")),
         self.COLLECTION_ATTRIBUTE,
         after_urn=after_urn,
         max_records=limit):

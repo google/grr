@@ -60,6 +60,16 @@ class UnknownClientError(NotFoundError):
     self.client_id = client_id
 
 
+class AtLeastOneUnknownClientError(UnknownClientError):
+
+  def __init__(self, client_ids, cause=None):
+    message = "At least one client in '%s' does not exist" % ",".join(
+        client_ids)
+    super(AtLeastOneUnknownClientError, self).__init__(message, cause=cause)
+
+    self.client_ids = client_ids
+
+
 class UnknownPathError(NotFoundError):
   """An exception class representing errors about unknown paths.
 
@@ -122,6 +132,16 @@ class UnknownFlowError(NotFoundError):
 
     self.client_id = client_id
     self.flow_id = flow_id
+
+
+class AtLeastOneUnknownFlowError(NotFoundError):
+
+  def __init__(self, flow_keys, cause=None):
+    message = ("At least one flow with client id/flow_id in '%s' does not exist"
+               % (flow_keys))
+    super(AtLeastOneUnknownFlowError, self).__init__(message, cause=cause)
+
+    self.flow_keys = flow_keys
 
 
 class UnknownFlowRequestError(NotFoundError):
@@ -1471,7 +1491,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       flow_id: The id of the flow to read requests and responses for.
 
     Returns:
-      A list of tuples (request, list of responses) for each request in the db.
+      A list of tuples (request, dict mapping response_id to response) for each
+      request in the db.
     """
 
   @abc.abstractmethod
@@ -1484,12 +1505,16 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadFlowRequestsReadyForProcessing(self, client_id, flow_id):
+  def ReadFlowRequestsReadyForProcessing(self,
+                                         client_id,
+                                         flow_id,
+                                         next_needed_request=None):
     """Reads all requests for a flow that can be processed by the worker.
 
     Args:
       client_id: The client id on which this flow is running.
       flow_id: The id of the flow to read requests for.
+      next_needed_request: The next request id that the flow needs to process.
 
     Returns:
       A dict mapping flow request id to tuples (request,
@@ -1514,21 +1539,24 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def DeleteFlowProcessingRequests(self, requests):
-    """Deletes a list of flow processing requests from the database.
+  def AckFlowProcessingRequests(self, requests):
+    """Acknowledges and deletes flow processing requests.
 
     Args:
       requests: List of rdf_flows.FlowProcessingRequest.
     """
 
   @abc.abstractmethod
-  def RegisterFlowProcessingHandler(self, handler, limit=1000):
+  def DeleteAllFlowProcessingRequests(self):
+    """Deletes all flow processing requests from the database."""
+
+  @abc.abstractmethod
+  def RegisterFlowProcessingHandler(self, handler):
     """Registers a handler to receive flow processing messages.
 
     Args:
       handler: Method, which will be called repeatedly with lists of
         rdf_flows.FlowProcessingRequest. Required.
-      limit: Limit for the number of requests to give one execution of handler.
     """
 
   @abc.abstractmethod
@@ -2164,10 +2192,16 @@ class DatabaseValidationWrapper(Database):
     _ValidateFlowId(flow_id)
     return self.delegate.DeleteAllFlowRequestsAndResponses(client_id, flow_id)
 
-  def ReadFlowRequestsReadyForProcessing(self, client_id, flow_id):
+  def ReadFlowRequestsReadyForProcessing(self,
+                                         client_id,
+                                         flow_id,
+                                         next_needed_request=None):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
-    return self.delegate.ReadFlowRequestsReadyForProcessing(client_id, flow_id)
+    if next_needed_request is None:
+      raise ValueError("next_needed_request must be provided.")
+    return self.delegate.ReadFlowRequestsReadyForProcessing(
+        client_id, flow_id, next_needed_request=next_needed_request)
 
   def WriteFlowProcessingRequests(self, requests):
     utils.AssertListType(requests, rdf_flows.FlowProcessingRequest)
@@ -2176,9 +2210,12 @@ class DatabaseValidationWrapper(Database):
   def ReadFlowProcessingRequests(self):
     return self.delegate.ReadFlowProcessingRequests()
 
-  def DeleteFlowProcessingRequests(self, requests):
+  def AckFlowProcessingRequests(self, requests):
     utils.AssertListType(requests, rdf_flows.FlowProcessingRequest)
-    return self.delegate.DeleteFlowProcessingRequests(requests)
+    return self.delegate.AckFlowProcessingRequests(requests)
+
+  def DeleteAllFlowProcessingRequests(self):
+    return self.delegate.DeleteAllFlowProcessingRequests()
 
   def RegisterFlowProcessingHandler(self, handler):
     if handler is None:

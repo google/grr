@@ -87,9 +87,8 @@ status_map = {
 
 def FlowResponseForLegacyResponse(legacy_msg):
   """Helper function to convert legacy client replies to flow responses."""
-
   if legacy_msg.type == legacy_msg.Type.MESSAGE:
-    return FlowResponse(
+    response = FlowResponse(
         client_id=_ClientIDFromSessionID(legacy_msg.session_id),
         flow_id=legacy_msg.session_id.Basename(),
         request_id=legacy_msg.request_id,
@@ -100,7 +99,7 @@ def FlowResponseForLegacyResponse(legacy_msg):
     if legacy_status.status not in status_map:
       raise ValueError(
           "Unable to convert returned status: %s" % legacy_status.status)
-    return FlowStatus(
+    response = FlowStatus(
         client_id=_ClientIDFromSessionID(legacy_msg.session_id),
         flow_id=legacy_msg.session_id.Basename(),
         request_id=legacy_msg.request_id,
@@ -111,10 +110,21 @@ def FlowResponseForLegacyResponse(legacy_msg):
         cpu_time_used=legacy_status.cpu_time_used,
         network_bytes_sent=legacy_status.network_bytes_sent)
   elif legacy_msg.type == legacy_msg.Type.ITERATOR:
-    return FlowIterator(
+    response = FlowIterator(
         client_id=_ClientIDFromSessionID(legacy_msg.session_id),
         flow_id=legacy_msg.session_id.Basename(),
         request_id=legacy_msg.request_id,
         response_id=legacy_msg.response_id)
   else:
     raise ValueError("Unknown message type: %d" % legacy_msg.type)
+
+  # TODO(amoser): The current datastore api uses task ids as keys (instead of
+  # the much more intuitive (client_id, flow_id, request_id) so we need to
+  # propagate the task_id here. This can be removed once client messages are
+  # stored properly.
+  try:
+    response.task_id = legacy_msg.task_id
+  except ValueError:
+    pass
+
+  return response

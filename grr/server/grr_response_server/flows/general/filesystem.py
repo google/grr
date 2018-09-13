@@ -12,9 +12,9 @@ from builtins import map  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import iterkeys
 
-from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -168,6 +168,7 @@ class ListDirectoryMixin(object):
         self.SendReply(stat_entry)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
+    """Sends a notification that this flow is done."""
     if not self.ShouldSendNotifications():
       return
 
@@ -184,7 +185,7 @@ class ListDirectoryMixin(object):
           path_components=components[3:])
     notification.Notify(
         self.token.username,
-        notification.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED,
+        rdf_objects.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED,
         "Listed {0}".format(utils.SmartStr(self.args.pathspec)),
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
@@ -692,11 +693,10 @@ class GlobLogic(object):
     """Called when we've found a matching a StatEntry."""
     # By default write the stat_response to the AFF4 VFS.
     with data_store.DB.GetMutationPool() as pool:
-      WriteStatEntries(
-          [stat_response],
-          client_id=self.client_id,
-          mutation_pool=pool,
-          token=self.token)
+      WriteStatEntries([stat_response],
+                       client_id=self.client_id,
+                       mutation_pool=pool,
+                       token=self.token)
 
   # A regex indicating if there are shell globs in this path.
   GLOB_MAGIC_CHECK = re.compile("[*?[]")
@@ -1083,7 +1083,7 @@ class DiskVolumeInfoMixin(object):
     del responses
     if self.state.system == "Windows":
       # No dependencies for WMI
-      deps = artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
+      deps = rdf_artifacts.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
       self.CallFlow(
           # TODO(user): dependency loop between collectors.py and
           # filesystem.py.

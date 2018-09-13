@@ -13,9 +13,11 @@ import yaml
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import artifact_pb2
+from grr_response_proto import flows_pb2
 
 
 class ConditionError(Exception):
@@ -386,6 +388,28 @@ class ExpandedArtifact(rdf_structs.RDFProtoStruct):
       ExpandedSource,
       ArtifactName,
   ]
+
+
+class ArtifactCollectorFlowArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for the artifact collector flow."""
+
+  protobuf = flows_pb2.ArtifactCollectorFlowArgs
+  rdf_deps = [
+      ArtifactName,
+      rdfvalue.ByteSize,
+      rdf_client.KnowledgeBase,
+  ]
+
+  @property
+  def path_type(self):
+    if self.use_tsk:
+      return rdf_paths.PathSpec.PathType.TSK
+    else:
+      return rdf_paths.PathSpec.PathType.OS
+
+  def Validate(self):
+    if not self.artifact_list:
+      raise ValueError("No artifacts to collect.")
 
 
 class ClientArtifactCollectorArgs(rdf_structs.RDFProtoStruct):

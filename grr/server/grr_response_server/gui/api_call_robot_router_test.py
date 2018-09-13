@@ -5,10 +5,9 @@ from __future__ import unicode_literals
 
 from future.utils import iterkeys
 
-from grr_response_core.lib import artifact_utils
-
 from grr_response_core.lib import flags
 
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import access_control
 from grr_response_server import flow
@@ -26,7 +25,7 @@ class AnotherFileFinder(flow.GRRFlow):
 
 
 class AnotherArtifactCollector(flow.GRRFlow):
-  args_type = artifact_utils.ArtifactCollectorFlowArgs
+  args_type = rdf_artifacts.ArtifactCollectorFlowArgs
 
 
 class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
@@ -221,7 +220,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
           api_flow.ApiCreateFlowArgs(
               flow=api_flow.ApiFlow(
                   name=collectors.ArtifactCollectorFlow.__name__,
-                  args=artifact_utils.ArtifactCollectorFlowArgs(
+                  args=rdf_artifacts.ArtifactCollectorFlowArgs(
                       artifact_list=artifacts)),
               client_id=self.client_id),
           token=self.token)
@@ -250,7 +249,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
             api_flow.ApiCreateFlowArgs(
                 flow=api_flow.ApiFlow(
                     name=collectors.ArtifactCollectorFlow.__name__,
-                    args=artifact_utils.ArtifactCollectorFlowArgs(
+                    args=rdf_artifacts.ArtifactCollectorFlowArgs(
                         artifact_list=artifacts)),
                 client_id=self.client_id),
             token=self.token)
@@ -454,7 +453,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
 
     flow_id = self._CreateFlowWithRobotId(
         flow_name=AnotherArtifactCollector.__name__,
-        flow_args=artifact_utils.ArtifactCollectorFlowArgs(
+        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
             artifact_list=["Foo"]))
     handler = router.GetFlowFilesArchive(
         api_flow.ApiGetFlowFilesArchiveArgs(

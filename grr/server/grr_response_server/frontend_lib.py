@@ -30,6 +30,8 @@ from grr_response_server import queue_manager
 from grr_response_server import rekall_profile_server
 from grr_response_server import threadpool
 from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class ServerCommunicator(communicator.Communicator):
@@ -91,6 +93,7 @@ class ServerCommunicator(communicator.Communicator):
       cipher_verified: If True, the cipher's signature is not verified again.
       api_version: The api version we should use.
       remote_public_key: The public key of the source.
+
     Returns:
       An rdf_flows.GrrMessage.AuthorizationState.
     """
@@ -230,6 +233,7 @@ class RelationalServerCommunicator(communicator.Communicator):
       cipher_verified: If True, the cipher's signature is not verified again.
       api_version: The api version we should use.
       remote_public_key: The public key of the source.
+
     Returns:
       An rdf_flows.GrrMessage.AuthorizationState.
     """
@@ -369,10 +373,9 @@ class FrontEndServer(object):
 
     Args:
        request_comms: A ClientCommunication rdfvalue with messages sent by the
-       client. source should be set to the client CN.
-
+         client. source should be set to the client CN.
        response_comms: A ClientCommunication rdfvalue of jobs destined to this
-       client.
+         client.
 
     Returns:
        tuple of (source, message_count) where message_count is the number of
@@ -418,10 +421,8 @@ class FrontEndServer(object):
 
     Args:
        client: The ClientURN object specifying this client.
-
-       max_count: The maximum number of messages we will issue for the
-                  client.
-                  If not given, uses self.max_queue_size .
+       max_count: The maximum number of messages we will issue for the client.
+         If not given, uses self.max_queue_size .
 
     Returns:
        The tasks respresenting the messages returned. If we can not send them,
@@ -510,6 +511,73 @@ class FrontEndServer(object):
     # Publish the client enrollment message.
     events.Events.PublishEvent("ClientEnrollment", client_urn, token=self.token)
 
+  def ReceiveMessagesRelationalFlows(self, client_id, messages):
+    """Receives and processes messages for flows stored in the relational db.
+
+    Args:
+      client_id: The client which sent the messages.
+      messages: A list of GrrMessage RDFValues.
+    """
+    now = time.time()
+    unprocessed_msgs = []
+    message_handler_requests = []
+    dropped_count = 0
+    for session_id, msgs in iteritems(
+        utils.GroupBy(messages, operator.attrgetter("session_id"))):
+
+      # Remove and handle messages to WellKnownFlows
+      leftover_msgs = self.HandleWellKnownFlows(msgs)
+
+      for msg in leftover_msgs:
+        if (msg.auth_state != msg.AuthorizationState.AUTHENTICATED and
+            msg.session_id != self.unauth_allowed_session_id):
+          dropped_count += 1
+          continue
+
+        if session_id in queue_manager.session_id_map:
+          message_handler_requests.append(
+              rdf_objects.MessageHandlerRequest(
+                  client_id=msg.source.Basename(),
+                  handler_name=queue_manager.session_id_map[session_id],
+                  request_id=msg.response_id,
+                  request=msg.payload))
+        else:
+          unprocessed_msgs.append(msg)
+
+    if dropped_count:
+      logging.info("Dropped %d unauthenticated messages for %s", dropped_count,
+                   client_id)
+
+    if unprocessed_msgs:
+      flow_responses = []
+      for message in unprocessed_msgs:
+        flow_responses.append(
+            rdf_flow_objects.FlowResponseForLegacyResponse(message))
+
+      data_store.REL_DB.WriteFlowResponses(flow_responses)
+
+      for msg in unprocessed_msgs:
+        if msg.type == rdf_flows.GrrMessage.Type.STATUS:
+          stat = rdf_flows.GrrStatus(msg.payload)
+          if stat.status == rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED:
+            # A client crashed while performing an action, fire an event.
+            crash_details = rdf_client.ClientCrash(
+                client_id=client_id,
+                session_id=msg.source,
+                backtrace=stat.backtrace,
+                crash_message=stat.error_message,
+                nanny_status=stat.nanny_status,
+                timestamp=rdfvalue.RDFDatetime.Now())
+            events.Events.PublishEvent(
+                "ClientCrash", crash_details, token=self.token)
+
+    if message_handler_requests:
+      data_store.REL_DB.WriteMessageHandlerRequests(message_handler_requests)
+
+    logging.debug("Received %s messages from %s in %s sec", len(messages),
+                  client_id,
+                  time.time() - now)
+
   def ReceiveMessages(self, client_id, messages):
     """Receives and processes the messages from the source.
 
@@ -521,6 +589,9 @@ class FrontEndServer(object):
       client_id: The client which sent the messages.
       messages: A list of GrrMessage RDFValues.
     """
+    if data_store.RelationalDBFlowsEnabled():
+      return self.ReceiveMessagesRelationalFlows(client_id, messages)
+
     now = time.time()
     with queue_manager.QueueManager(token=self.token) as manager:
       for session_id, msgs in iteritems(

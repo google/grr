@@ -2148,8 +2148,7 @@ message ListNetworkConnectionsArgs {
 message FlowProcessingRequest {
   optional string client_id = 1;
   optional string flow_id = 2;
-  optional uint64 request_id = 3;
-  optional uint64 delivery_time = 4 [(sem_type) = {
+  optional uint64 delivery_time = 3 [(sem_type) = {
       type: "RDFDatetime",
     }];
 }

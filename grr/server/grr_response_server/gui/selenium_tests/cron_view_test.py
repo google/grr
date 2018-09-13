@@ -140,6 +140,33 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.assertTrue(
         self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])"))
 
+  def testUserCanSendApprovalRequestWhenDeletingCronJob(self):
+    self.assertEqual(
+        len(self.ListCronJobApprovals(requestor=self.token.username)), 0)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=crons]")
+    self.Click("css=td:contains('OSBreakDown')")
+
+    # Click on Enable button and check that dialog appears.
+    self.Click("css=button[name=DeleteCronJob]:not([disabled])")
+    # Click on "Proceed" and wait for authorization dialog to appear.
+    self.Click("css=button[name=Proceed]")
+
+    # This should be rejected now and a form request is made.
+    self.WaitUntil(self.IsTextPresent, "Create a new approval")
+    # This asks the user "test" (which is us) to approve the request.
+    self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
+              self.token.username)
+    self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
+              "some reason")
+    self.Click(
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
+
+    self.WaitUntilEqual(
+        1,
+        lambda: len(self.ListCronJobApprovals(requestor=self.token.username)))
+
   def testEnableCronJob(self):
     cronjobs.GetCronManager().DisableJob(job_id=u"OSBreakDown")
 

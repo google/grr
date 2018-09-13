@@ -143,6 +143,7 @@ CREATE TABLE IF NOT EXISTS client_messages(
     message MEDIUMBLOB,
     leased_until DATETIME(6),
     leased_by VARCHAR(128),
-    PRIMARY KEY (client_id, message_id)
+    PRIMARY KEY (client_id, message_id),
+    FOREIGN KEY (client_id) REFERENCES clients(client_id)
 )"""
 ]

@@ -282,24 +282,8 @@ CronJobsListController.prototype.showDeleteCronJobConfirmation = function() {
  */
 CronJobsListController.prototype.deleteCronJob_ = function() {
   var url = this.buildCronJobUrl_(this.selectedCronJobId);
-  var deferred = this.q_.defer();
-
-  this.grrApiService_.delete(url).then(
-    function success(){
-      deferred.resolve('Cron job was deleted successfully!');
-    },
-    function failure(response) {
-      if (response.status === 403) {
-        var headers = response.headers();
-        this.grrAclDialogService_.openRequestCronJobApprovalDialog(
-            headers['x-grr-unauthorized-access-subject'],
-            headers['x-grr-unauthorized-access-reason']);
-      } else {
-        deferred.reject(response.data.message);
-      }
-    }.bind(this));
-
-  return deferred.promise;
+  var promise = this.grrApiService_.delete(url);
+  return this.wrapApiPromise_(promise, 'Cron job was deleted successfully!');
 };
 
 /**

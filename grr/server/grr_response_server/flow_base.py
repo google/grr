@@ -491,7 +491,9 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       The number of processed requests.
     """
     request_dict = data_store.REL_DB.ReadFlowRequestsReadyForProcessing(
-        self.rdf_flow.client_id, self.rdf_flow.flow_id)
+        self.rdf_flow.client_id,
+        self.rdf_flow.flow_id,
+        next_needed_request=self.rdf_flow.next_request_to_process)
     if not request_dict:
       return 0
 

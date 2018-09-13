@@ -79,8 +79,8 @@ class DatabaseTestUsersMixin(object):
 
     client_id = "C.0000000050000001"
     approval_request = rdf_objects.ApprovalRequest(
-        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-        APPROVAL_TYPE_CLIENT,
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType
+        .APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -105,8 +105,8 @@ class DatabaseTestUsersMixin(object):
 
     client_id = "C.0000000050000001"
     approval_request = rdf_objects.ApprovalRequest(
-        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-        APPROVAL_TYPE_CLIENT,
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType
+        .APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -140,8 +140,8 @@ class DatabaseTestUsersMixin(object):
 
     client_id = "C.0000000050000001"
     approval_request = rdf_objects.ApprovalRequest(
-        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-        APPROVAL_TYPE_CLIENT,
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType
+        .APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -164,8 +164,8 @@ class DatabaseTestUsersMixin(object):
 
     client_id = "C.0000000050000001"
     approval_request = rdf_objects.ApprovalRequest(
-        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-        APPROVAL_TYPE_CLIENT,
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType
+        .APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -200,8 +200,8 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     approval_request = rdf_objects.ApprovalRequest(
-        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-        APPROVAL_TYPE_CLIENT,
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType
+        .APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -215,6 +215,8 @@ class DatabaseTestUsersMixin(object):
 
     self.assertEqual(len(approvals), 1)
     self.assertEqual(approvals[0].approval_id, approval_id)
+    # Make sure that commit timestamp gets written and then read back correctly.
+    self.assertIsNotNone(approvals[0].timestamp)
 
     # Approval id and timestamp are generated in WriteApprovalRequest so we're
     # filling them into our model object ot make sure that equality check works.
@@ -233,8 +235,8 @@ class DatabaseTestUsersMixin(object):
     approval_ids = set()
     for i in range(10):
       approval_request = rdf_objects.ApprovalRequest(
-          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-          APPROVAL_TYPE_CLIENT,
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType
+          .APPROVAL_TYPE_CLIENT,
           subject_id="C.000000005000000%d" % i,
           requestor_username="requestor",
           reason="some test reason",
@@ -257,8 +259,8 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     approval_request = rdf_objects.ApprovalRequest(
-        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-        APPROVAL_TYPE_CLIENT,
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType
+        .APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -289,8 +291,8 @@ class DatabaseTestUsersMixin(object):
 
     for i in range(10):
       approval_request = rdf_objects.ApprovalRequest(
-          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-          APPROVAL_TYPE_CLIENT,
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType
+          .APPROVAL_TYPE_CLIENT,
           subject_id="C.00000000000000%d" % i,
           requestor_username="requestor",
           reason="some test reason %d" % i,
@@ -326,8 +328,8 @@ class DatabaseTestUsersMixin(object):
     non_expired_approval_ids = set()
     for i in range(10):
       approval_request = rdf_objects.ApprovalRequest(
-          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-          APPROVAL_TYPE_CLIENT,
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType
+          .APPROVAL_TYPE_CLIENT,
           subject_id="C.000000005000000%d" % i,
           requestor_username="requestor",
           reason="some test reason",
@@ -358,8 +360,8 @@ class DatabaseTestUsersMixin(object):
     approval_ids = set()
     for i in range(10):
       approval_request = rdf_objects.ApprovalRequest(
-          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-          APPROVAL_TYPE_CLIENT,
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType
+          .APPROVAL_TYPE_CLIENT,
           subject_id="C.000000005000000%d" % i,
           requestor_username="requestor",
           reason="some test reason",
@@ -398,8 +400,8 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     approval_request = rdf_objects.ApprovalRequest(
-        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-        APPROVAL_TYPE_CLIENT,
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType
+        .APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -433,8 +435,8 @@ class DatabaseTestUsersMixin(object):
     approval_ids = set()
     for _ in range(10):
       approval_request = rdf_objects.ApprovalRequest(
-          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-          APPROVAL_TYPE_CLIENT,
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType
+          .APPROVAL_TYPE_CLIENT,
           subject_id=client_id,
           requestor_username="requestor",
           reason="some test reason",
@@ -458,8 +460,8 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     approval_request = rdf_objects.ApprovalRequest(
-        approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-        APPROVAL_TYPE_CLIENT,
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType
+        .APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -492,8 +494,8 @@ class DatabaseTestUsersMixin(object):
 
     for i in range(10):
       approval_request = rdf_objects.ApprovalRequest(
-          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-          APPROVAL_TYPE_CLIENT,
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType
+          .APPROVAL_TYPE_CLIENT,
           subject_id=client_id,
           requestor_username="requestor",
           reason="some test reason %d" % i,
@@ -531,8 +533,8 @@ class DatabaseTestUsersMixin(object):
     non_expired_approval_ids = set()
     for i in range(10):
       approval_request = rdf_objects.ApprovalRequest(
-          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-          APPROVAL_TYPE_CLIENT,
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType
+          .APPROVAL_TYPE_CLIENT,
           subject_id=client_id,
           requestor_username="requestor",
           reason="some test reason",
@@ -565,8 +567,8 @@ class DatabaseTestUsersMixin(object):
     approval_ids = set()
     for i in range(10):
       approval_request = rdf_objects.ApprovalRequest(
-          approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-          APPROVAL_TYPE_CLIENT,
+          approval_type=rdf_objects.ApprovalRequest.ApprovalType
+          .APPROVAL_TYPE_CLIENT,
           subject_id=client_id,
           requestor_username="requestor",
           reason="some test reason",
@@ -587,8 +589,8 @@ class DatabaseTestUsersMixin(object):
   def testNotificationForUnknownUser(self):
     n = rdf_objects.UserNotification(
         username="doesnotexist",
-        notification_type=rdf_objects.UserNotification.Type.
-        TYPE_CLIENT_INTERROGATED,
+        notification_type=rdf_objects.UserNotification.Type
+        .TYPE_CLIENT_INTERROGATED,
         state=rdf_objects.UserNotification.State.STATE_PENDING)
     with self.assertRaises(db.UnknownGRRUserError):
       self.db.WriteUserNotification(n)
@@ -600,8 +602,8 @@ class DatabaseTestUsersMixin(object):
 
     n = rdf_objects.UserNotification(
         username=username,
-        notification_type=rdf_objects.UserNotification.Type.
-        TYPE_CLIENT_INTERROGATED,
+        notification_type=rdf_objects.UserNotification.Type
+        .TYPE_CLIENT_INTERROGATED,
         state=rdf_objects.UserNotification.State.STATE_PENDING,
         timestamp=rdfvalue.RDFDatetime(42),
         message="blah")
@@ -619,8 +621,8 @@ class DatabaseTestUsersMixin(object):
     ns = [
         rdf_objects.UserNotification(
             username=username,
-            notification_type=rdf_objects.UserNotification.Type.
-            TYPE_CLIENT_INTERROGATED,
+            notification_type=rdf_objects.UserNotification.Type
+            .TYPE_CLIENT_INTERROGATED,
             state=rdf_objects.UserNotification.State.STATE_PENDING,
             timestamp=rdfvalue.RDFDatetime(42 + i),
             message="blah%d" % i) for i in range(10)
@@ -639,8 +641,8 @@ class DatabaseTestUsersMixin(object):
 
     n = rdf_objects.UserNotification(
         username=username,
-        notification_type=rdf_objects.UserNotification.Type.
-        TYPE_CLIENT_INTERROGATED,
+        notification_type=rdf_objects.UserNotification.Type
+        .TYPE_CLIENT_INTERROGATED,
         state=rdf_objects.UserNotification.State.STATE_PENDING,
         message="blah")
     d.WriteUserNotification(n)
@@ -664,8 +666,8 @@ class DatabaseTestUsersMixin(object):
 
     n = rdf_objects.UserNotification(
         username=username,
-        notification_type=rdf_objects.UserNotification.Type.
-        TYPE_CLIENT_INTERROGATED,
+        notification_type=rdf_objects.UserNotification.Type
+        .TYPE_CLIENT_INTERROGATED,
         state=rdf_objects.UserNotification.State.STATE_PENDING,
         message="n0")
     d.WriteUserNotification(n)
@@ -674,8 +676,8 @@ class DatabaseTestUsersMixin(object):
 
     n = rdf_objects.UserNotification(
         username=username,
-        notification_type=rdf_objects.UserNotification.Type.
-        TYPE_CLIENT_INTERROGATED,
+        notification_type=rdf_objects.UserNotification.Type
+        .TYPE_CLIENT_INTERROGATED,
         state=rdf_objects.UserNotification.State.STATE_PENDING,
         message="n1")
     d.WriteUserNotification(n)

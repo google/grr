@@ -17,7 +17,6 @@ import psutil
 from grr_response_client.client_actions import artifact_collector
 from grr_response_client.client_actions import standard
 from grr_response_core import config
-from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import flags
 from grr_response_core.lib import parser
 from grr_response_core.lib import utils
@@ -86,7 +85,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
     collect_flow.state["knowledge_base"] = kb
 
     collect_flow.current_artifact_name = "blah"
-    collect_flow.args = artifact_utils.ArtifactCollectorFlowArgs()
+    collect_flow.args = rdf_artifacts.ArtifactCollectorFlowArgs()
 
     test_rdf = rdf_client.KnowledgeBase()
     action_args = {
@@ -457,10 +456,10 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     self.knowledge_base.os = os_name
 
   def ArtifactCollectorArgs(self, artifact_list, collect_knowledge_base=False):
-    return collectors.GetArtifactCollectorArgs(
-        self.knowledge_base,
-        artifact_list,
+    flow_args = rdf_artifacts.ArtifactCollectorFlowArgs(
+        artifact_list=artifact_list,
         recollect_knowledge_base=collect_knowledge_base)
+    return collectors.GetArtifactCollectorArgs(flow_args, self.knowledge_base)
 
   def setUp(self):
     super(GetArtifactCollectorArgsTest, self).setUp()

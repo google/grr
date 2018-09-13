@@ -451,6 +451,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testResponsesForExpectedRequestTriggerFlowProcessing(self):
     pass
 
+  def testResponsesAnyRequestTriggerClientMessageDeletion(self):
+    pass
+
   def testReadFlowForProcessingThatIsAlreadyBeingProcessed(self):
     pass
 
@@ -490,7 +493,10 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testFlowProcessingRequestsQueueWithDelay(self):
     pass
 
-  def testFlowProcessingRequestDeletion(self):
+  def testAcknowledgingFlowProcessingRequestsWorks(self):
+    pass
+
+  def testStatusMessagesCanBeWrittenAndRead(self):
     pass
 
 

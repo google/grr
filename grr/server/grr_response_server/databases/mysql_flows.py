@@ -222,11 +222,14 @@ class MySQLDBFlowMixin(object):
              "timestamp=VALUES(timestamp), message=VALUES(message)")
     now = mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
 
+    client_ids = set()
+
     value_templates = []
     args = []
     for m in messages:
-      client_id_int = mysql_utils.ClientIDToInt(
-          db_utils.ClientIdFromGrrMessage(m))
+      cid = db_utils.ClientIdFromGrrMessage(m)
+      client_ids.add(cid)
+      client_id_int = mysql_utils.ClientIDToInt(cid)
       args.extend([client_id_int, m.task_id, now, m.SerializeToString()])
       value_templates.append("(%s, %s, %s, %s)")
 
@@ -234,7 +237,7 @@ class MySQLDBFlowMixin(object):
     try:
       cursor.execute(query, args)
     except MySQLdb.IntegrityError as e:
-      raise db.UnknownClientError(cause=e)
+      raise db.AtLeastOneUnknownClientError(client_ids=client_ids, cause=e)
 
   @mysql_utils.WithTransaction()
   def WriteFlowObject(self, flow_obj, cursor=None):
@@ -300,7 +303,11 @@ class MySQLDBFlowMixin(object):
     raise NotImplementedError()
 
   @mysql_utils.WithTransaction()
-  def ReadFlowRequestsReadyForProcessing(self, client_id, flow_id, cursor=None):
+  def ReadFlowRequestsReadyForProcessing(self,
+                                         client_id,
+                                         flow_id,
+                                         next_request_to_process=None,
+                                         cursor=None):
     """Reads all requests for a flow that can be processed by the worker."""
     raise NotImplementedError()
 
@@ -320,11 +327,16 @@ class MySQLDBFlowMixin(object):
     raise NotImplementedError()
 
   @mysql_utils.WithTransaction()
-  def DeleteFlowProcessingRequests(self, requests, cursor=None):
+  def AckFlowProcessingRequests(self, requests, cursor=None):
     """Deletes a list of flow processing requests from the database."""
     raise NotImplementedError()
 
-  def RegisterFlowProcessingHandler(self, handler, limit=1000):
+  @mysql_utils.WithTransaction()
+  def DeleteAllFlowProcessingRequests(self, cursor=None):
+    """Deletes all flow processing requests from the database."""
+    raise NotImplementedError()
+
+  def RegisterFlowProcessingHandler(self, handler):
     """Registers a handler to receive flow processing messages."""
     raise NotImplementedError()
 

@@ -426,7 +426,7 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
 
     elif isinstance(processor_obj, (parser.ArtifactFilesParser)):
       result_iterator = parse_method(responses, state.knowledge_base,
-                                     flow_obj.GetPathType())
+                                     flow_obj.args.path_type)
 
     else:
       raise RuntimeError("Unsupported parser detected %s" % processor_obj)

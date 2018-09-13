@@ -8,6 +8,7 @@ import os
 import platform
 
 from builtins import range  # pylint: disable=redefined-builtin
+import mock
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import flags
@@ -20,6 +21,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import flow
 from grr_response_server import flow_base
+from grr_response_server import notification
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
 # TODO(user): break the dependency cycle described in filesystem.py and
@@ -29,6 +31,7 @@ from grr_response_server.flows.general import collectors
 # pylint: enable=unused-import
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
@@ -71,12 +74,23 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS)
     pb.Append(path="test directory", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-    flow_test_lib.TestFlowHelper(
-        filesystem.ListDirectory.__name__,
-        client_mock,
-        client_id=self.client_id,
-        pathspec=pb,
-        token=self.token)
+    # Change the username so we get a notification about the flow termination.
+    token = self.token.Copy()
+    token.username = "User"
+
+    with mock.patch.object(notification, "Notify") as mock_notify:
+      flow_test_lib.TestFlowHelper(
+          filesystem.ListDirectory.__name__,
+          client_mock,
+          client_id=self.client_id,
+          pathspec=pb,
+          token=token)
+      self.assertEqual(mock_notify.call_count, 1)
+      args = list(mock_notify.mock_calls[0])[1]
+      self.assertEqual(args[0], token.username)
+      com = rdf_objects.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED
+      self.assertEqual(args[1], com)
+      self.assertIn(pb.path, args[2])
 
     # Check the output file is created
     output_path = self.client_id.Add("fs/tsk").Add(pb.first.path)

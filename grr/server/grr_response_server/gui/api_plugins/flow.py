@@ -19,6 +19,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import flow_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import instant_output_plugin
 from grr_response_server import notification
@@ -948,15 +949,31 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
           flow_id=utils.SmartStr(args.original_flow.flow_id),
           client_id=utils.SmartStr(args.original_flow.client_id))
 
-    flow_id = flow.StartAFF4Flow(
-        client_id=args.client_id.ToClientURN(),
-        flow_name=flow_name,
-        token=token,
-        args=args.flow.args,
-        runner_args=args.flow.runner_args)
+    if data_store.RelationalDBFlowsEnabled():
+      flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+      flow_id = flow.StartFlow(
+          client_id=str(args.client_id),
+          cpu_limit=args.flow.runner_args.cpu_limit,
+          creator=token.username,
+          flow_args=args.flow.args,
+          flow_cls=flow_cls,
+          network_bytes_limit=args.flow.runner_args.network_bytes_limit,
+          original_flow=args.flow.runner_args.original_flow,
+          output_plugins=args.flow.runner_args.output_plugins,
+          parent_flow_obj=None,
+      )
+      # TODO(amoser): read back and convert to ApiFlow.
+      return ApiFlow(flow_id=flow_id)
+    else:
+      flow_id = flow.StartAFF4Flow(
+          client_id=args.client_id.ToClientURN(),
+          flow_name=flow_name,
+          token=token,
+          args=args.flow.args,
+          runner_args=args.flow.runner_args)
 
-    fd = aff4.FACTORY.Open(flow_id, aff4_type=flow.GRRFlow, token=token)
-    return ApiFlow().InitFromAff4Object(fd, flow_id=flow_id.Basename())
+      fd = aff4.FACTORY.Open(flow_id, aff4_type=flow.GRRFlow, token=token)
+      return ApiFlow().InitFromAff4Object(fd, flow_id=flow_id.Basename())
 
 
 class ApiCancelFlowArgs(rdf_structs.RDFProtoStruct):

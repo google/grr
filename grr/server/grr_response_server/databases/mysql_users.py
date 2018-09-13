@@ -37,6 +37,8 @@ def _ResponseToApprovalsWithGrants(response):
       cur_approval_request = mysql_utils.StringToRDFProto(
           rdf_objects.ApprovalRequest, approval_request_bytes)
       cur_approval_request.approval_id = _IntToApprovalID(approval_id_int)
+      cur_approval_request.timestamp = mysql_utils.MysqlToRDFDatetime(
+          approval_timestamp)
 
     if grantor_username and grant_timestamp:
       cur_approval_request.grants.append(

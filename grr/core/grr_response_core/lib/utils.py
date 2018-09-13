@@ -883,6 +883,13 @@ class PRNG(object):
                           os.urandom(struct.calcsize("=L") * 1000)))
 
   @classmethod
+  def GetPositiveUInt32(cls):
+    res = cls.GetUInt32()
+    while res == 0:
+      res = cls.GetUInt32()
+    return res
+
+  @classmethod
   def GetUInt64(cls):
     return (cls.GetUInt32() << 32) + cls.GetUInt32()
 

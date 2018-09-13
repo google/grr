@@ -700,9 +700,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(len(notifications), 1)
 
     # Process all messages
-    with test_lib.SuppressLogs():
-      worker_obj.RunOnce()
-      worker_obj.thread_pool.Join()
+    worker_obj.RunOnce()
+    worker_obj.thread_pool.Join()
 
     notifications = manager.GetNotifications(queues.FLOWS)
     notifications = [x for x in notifications if x.session_id == session_id]
