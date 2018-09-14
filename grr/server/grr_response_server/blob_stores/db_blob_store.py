@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """REL_DB blobstore implementation."""
+from __future__ import unicode_literals
 
 import hashlib
 

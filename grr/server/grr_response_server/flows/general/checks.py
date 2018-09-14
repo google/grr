@@ -76,7 +76,7 @@ class CheckRunner(flow.GRRFlow):
           next_state="AddResponses")
     self.CallState(next_state="RunChecks")
 
-  def _ProcessData(self, processor, responses, artifact_name, source):
+  def _ProcessData(self, processor, responses, artifact_name):
     """Runs parsers over the raw data and maps it to artifact_data types.
 
     Args:
@@ -84,12 +84,11 @@ class CheckRunner(flow.GRRFlow):
       responses: One or more response items, depending on whether the processor
         uses Parse or ParseMultiple.
       artifact_name: The name of the artifact.
-      source: The origin of the data, if specified.
     """
     # Now parse the data and set state.
     artifact_data = self.state.host_data.get(artifact_name)
     result_iterator = artifact.ApplyParserToResponses(processor, responses,
-                                                      source, self, self.token)
+                                                      self, self.token)
 
     for rdf in result_iterator:
       if isinstance(rdf, rdf_anomaly.Anomaly):
@@ -111,8 +110,6 @@ class CheckRunner(flow.GRRFlow):
       artifact_name: The name of the artifact being processed as a string.
       responses: Input from previous states as an rdfvalue.Dict
     """
-    source = responses.request_data.GetItem("source", None)
-
     # Find all the parsers that should apply to an artifact.
     processors = parser.Parser.GetClassesByArtifact(artifact_name)
     saved_responses = {}
@@ -129,12 +126,12 @@ class CheckRunner(flow.GRRFlow):
             saved_responses.setdefault(processor_name, []).append(response)
           else:
             # Process the response immediately
-            self._ProcessData(processor, response, artifact_name, source)
+            self._ProcessData(processor, response, artifact_name)
 
     # If we were saving responses, process them now:
     for processor_name, responses_list in iteritems(saved_responses):
       processor = parser.Parser.classes[processor_name]()
-      self._ProcessData(processor, responses_list, artifact_name, source)
+      self._ProcessData(processor, responses_list, artifact_name)
 
   def AddResponses(self, responses):
     """Process the raw response data from this artifact collection.

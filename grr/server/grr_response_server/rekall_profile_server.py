@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A server that retrieves Rekall profiles by name."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import json
 import logging
@@ -96,7 +97,7 @@ class RekallRepositoryProfileServer(ProfileServer):
                              version, profile_name)
       handle = urlrequest.urlopen(url, timeout=10)
       profile_data = handle.read()
-      if profile_data[:3] != "\x1F\x8B\x08":
+      if profile_data[:3] != b"\x1F\x8B\x08":
         raise ValueError("Downloaded file does not look like gzipped data: %s" %
                          profile_data[:100])
       compression = "GZIP"

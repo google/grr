@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utils exporting data from AFF4 to the rest of the world."""
+from __future__ import unicode_literals
 
 import logging
 import os

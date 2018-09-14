@@ -10,7 +10,7 @@ Frontend Servers running without any problems as long as you don't use
 data store replication. Only if you work on a replicated database you
 will run into race conditions and have to disable the backup instances.
 """
-
+from __future__ import unicode_literals
 
 import logging
 

@@ -55,6 +55,8 @@ queues. Child flow runners all share their parent's queue manager.
 
 
 """
+from __future__ import unicode_literals
+
 import logging
 import threading
 import traceback

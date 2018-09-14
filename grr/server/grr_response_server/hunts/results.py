@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Classes to store and manage hunt results.
 """
+from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests the queue manager."""
+from __future__ import unicode_literals
 
 import time
 

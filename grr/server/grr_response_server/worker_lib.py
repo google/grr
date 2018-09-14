@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Module with GRRWorker implementation."""
+from __future__ import unicode_literals
 
 import logging
 import pdb

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Email live output plugin."""
-
+from __future__ import unicode_literals
 
 import jinja2
 

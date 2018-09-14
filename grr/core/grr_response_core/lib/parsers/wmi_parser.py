@@ -92,10 +92,8 @@ class WMIEventConsumerParser(parser.WMIQueryParser):
 
   __abstract = True  # pylint: disable=invalid-name
 
-  def Parse(self, query, result, knowledge_base):
+  def Parse(self, result):
     """Parse a WMI Event Consumer."""
-    _ = query, knowledge_base
-
     wmi_dict = result.ToDict()
 
     try:
@@ -160,9 +158,8 @@ class WMIInstalledSoftwareParser(parser.WMIQueryParser):
   output_types = [rdf_client.SoftwarePackage.__name__]
   supported_artifacts = ["WMIInstalledSoftware"]
 
-  def Parse(self, query, result, knowledge_base):
+  def Parse(self, result):
     """Parse the WMI packages output."""
-    _ = query, knowledge_base
     status = rdf_client.SoftwarePackage.InstallState.INSTALLED
     soft = rdf_client.SoftwarePackage(
         name=result["Name"],
@@ -187,9 +184,8 @@ class WMIHotfixesSoftwareParser(parser.WMIQueryParser):
     except ValueError:
       return 0
 
-  def Parse(self, query, result, knowledge_base):
+  def Parse(self, result):
     """Parse the WMI packages output."""
-    _ = query, knowledge_base
     status = rdf_client.SoftwarePackage.InstallState.INSTALLED
     result = result.ToDict()
 
@@ -221,9 +217,8 @@ class WMIUserParser(parser.WMIQueryParser):
       "LocalPath": "homedir"
   }
 
-  def Parse(self, query, result, knowledge_base):
+  def Parse(self, result):
     """Parse the WMI Win32_UserAccount output."""
-    _ = query, knowledge_base
     kb_user = rdf_client.User()
     for wmi_key, kb_key in iteritems(self.account_mapping):
       try:
@@ -244,9 +239,8 @@ class WMILogicalDisksParser(parser.WMIQueryParser):
   output_types = [rdf_client_fs.Volume.__name__]
   supported_artifacts = ["WMILogicalDisks"]
 
-  def Parse(self, query, result, knowledge_base):
+  def Parse(self, result):
     """Parse the WMI packages output."""
-    _ = query, knowledge_base
     result = result.ToDict()
     winvolume = rdf_client_fs.WindowsVolume(
         drive_letter=result.get("DeviceID"), drive_type=result.get("DriveType"))
@@ -281,13 +275,12 @@ class WMIComputerSystemProductParser(parser.WMIQueryParser):
   output_types = [rdf_client.HardwareInfo.__name__]
   supported_artifacts = ["WMIComputerSystemProduct"]
 
-  def Parse(self, query, result, knowledge_base):
+  def Parse(self, result):
     """Parse the WMI output to get Identifying Number."""
     # Currently we are only grabbing the Identifying Number
     # as the serial number (catches the unique number for VMs).
     # This could be changed to include more information from
     # Win32_ComputerSystemProduct.
-    _ = query, knowledge_base
 
     yield rdf_client.HardwareInfo(
         serial_number=result["IdentifyingNumber"],
@@ -345,10 +338,8 @@ class WMIInterfacesParser(parser.WMIQueryParser):
       output_dict[outputkey] = addresses
     return output_dict
 
-  def Parse(self, query, result, knowledge_base):
+  def Parse(self, result):
     """Parse the WMI packages output."""
-    _ = query, knowledge_base
-
     args = {"ifname": result["Description"]}
     args["mac_address"] = binascii.unhexlify(result["MACAddress"].replace(
         ":", ""))

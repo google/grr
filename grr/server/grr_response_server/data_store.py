@@ -35,6 +35,7 @@ able to filter it directly).
 """
 from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import abc
 import atexit
@@ -526,8 +527,11 @@ class MutationPool(object):
     self.MultiSet(subject, {predicate: [file_path]})
 
   def AFF4AddChild(self, subject, child, extra_attributes=None):
+    """Adds a child to the specified parent."""
+    utils.AssertType(child, unicode)
+
     attributes = {
-        DataStore.AFF4_INDEX_DIR_TEMPLATE % utils.SmartStr(child): [
+        DataStore.AFF4_INDEX_DIR_TEMPLATE % child: [
             DataStore.EMPTY_DATA_PLACEHOLDER
         ]
     }

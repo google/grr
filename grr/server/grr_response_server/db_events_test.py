@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import unicode_literals
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import events as rdf_events
@@ -13,7 +15,7 @@ class DatabaseEventsTestMixin(object):
         action=rdf_events.AuditEvent.Action.RUN_FLOW,
         user="quux",
         flow_name="foo",
-        flow_args="bar",
+        flow_args=b"bar",
         client=client_urn,
         urn=client_urn.Add("flows").Add("108"),
         description="lorem ipsum")

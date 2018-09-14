@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test for the foreman client rule classes."""
 from __future__ import division
+from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
 

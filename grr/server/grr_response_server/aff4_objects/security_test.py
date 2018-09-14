@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr_response_server.aff4_objects.security."""
+from __future__ import unicode_literals
 
 from grr_response_core import config
 from grr_response_core.lib import flags

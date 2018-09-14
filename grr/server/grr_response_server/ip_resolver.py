@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A resolver for ip addresses to hostnames."""
+from __future__ import unicode_literals
 
 import logging
 import socket

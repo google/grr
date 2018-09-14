@@ -633,7 +633,7 @@ class NtpParserTests(test_lib.GRRBaseTest):
     # Check all the expected "simple" config keywords are present.
     expected_config_keywords = set([
         "driftfile", "statsdir", "filegen", "ttl", "broadcastdelay"
-    ]) | set(iterkeys(parser._defaults))
+    ]) | set(iterkeys(config_file.NtpdFieldParser.defaults))
     self.assertEqual(expected_config_keywords, set(iterkeys(results.config)))
 
     # Check all the expected "keyed" config keywords are present.

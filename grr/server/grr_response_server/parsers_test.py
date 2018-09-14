@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for parsers."""
+from __future__ import unicode_literals
+
 import os
 
 from grr_response_core import config

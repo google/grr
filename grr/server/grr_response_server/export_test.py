@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for export converters."""
+from __future__ import unicode_literals
 
 import json
 import os
@@ -529,7 +530,7 @@ class ExportTest(ExportTestBase):
   def testClientSummaryToExportedNetworkInterfaceConverter(self):
     client_summary = rdf_client.ClientSummary(interfaces=[
         rdf_client_network.Interface(
-            mac_address="123456",
+            mac_address=b"123456",
             ifname="eth0",
             addresses=[
                 rdf_client_network.NetworkAddress(
@@ -559,7 +560,7 @@ class ExportTest(ExportTestBase):
 
   def testInterfaceToExportedNetworkInterfaceConverter(self):
     interface = rdf_client_network.Interface(
-        mac_address="123456",
+        mac_address=b"123456",
         ifname="eth0",
         addresses=[
             rdf_client_network.NetworkAddress(
@@ -685,7 +686,7 @@ class ExportTest(ExportTestBase):
     buffer_reference = rdf_client.BufferReference(
         offset=42,
         length=43,
-        data="somedata",
+        data=b"somedata",
         pathspec=rdf_paths.PathSpec(
             path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS))
 
@@ -696,7 +697,7 @@ class ExportTest(ExportTestBase):
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].offset, 42)
     self.assertEqual(results[0].length, 43)
-    self.assertEqual(results[0].data, "somedata")
+    self.assertEqual(results[0].data, b"somedata")
     self.assertEqual(results[0].urn, self.client_id.Add("fs/os/some/path"))
 
   def testFileFinderResultExportConverter(self):
@@ -704,9 +705,9 @@ class ExportTest(ExportTestBase):
         path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS)
 
     match1 = rdf_client.BufferReference(
-        offset=42, length=43, data="somedata1", pathspec=pathspec)
+        offset=42, length=43, data=b"somedata1", pathspec=pathspec)
     match2 = rdf_client.BufferReference(
-        offset=44, length=45, data="somedata2", pathspec=pathspec)
+        offset=44, length=45, data=b"somedata2", pathspec=pathspec)
     stat_entry = rdf_client_fs.StatEntry(
         pathspec=pathspec,
         st_mode=33184,
@@ -752,19 +753,19 @@ class ExportTest(ExportTestBase):
 
     self.assertEqual(exported_matches[0].offset, 42)
     self.assertEqual(exported_matches[0].length, 43)
-    self.assertEqual(exported_matches[0].data, "somedata1")
+    self.assertEqual(exported_matches[0].data, b"somedata1")
     self.assertEqual(exported_matches[0].urn,
                      self.client_id.Add("fs/os/some/path"))
 
     self.assertEqual(exported_matches[1].offset, 44)
     self.assertEqual(exported_matches[1].length, 45)
-    self.assertEqual(exported_matches[1].data, "somedata2")
+    self.assertEqual(exported_matches[1].data, b"somedata2")
     self.assertEqual(exported_matches[1].urn,
                      self.client_id.Add("fs/os/some/path"))
 
     # Also test registry entries.
     data = rdf_protodict.DataBlob()
-    data.SetValue("testdata")
+    data.SetValue(b"testdata")
     stat_entry = rdf_client_fs.StatEntry(
         registry_type="REG_SZ",
         registry_data=data,
@@ -779,7 +780,7 @@ class ExportTest(ExportTestBase):
     self.assertIsInstance(results[0], export.ExportedRegistryKey)
     result = results[0]
 
-    self.assertEqual(result.data, "testdata")
+    self.assertEqual(result.data, b"testdata")
     self.assertEqual(
         result.urn,
         self.client_id.Add("registry/HKEY_USERS/S-1-1-1-1/Software"))
@@ -869,7 +870,7 @@ class ExportTest(ExportTestBase):
                          "1dd6bee591dfcb6d75eb705405302c3eab65e21a")
 
   def testRDFBytesConverter(self):
-    data = rdfvalue.RDFBytes("foobar")
+    data = rdfvalue.RDFBytes(b"foobar")
 
     converter = export.RDFBytesToExportedBytesConverter()
     results = list(converter.Convert(self.metadata, data, token=self.token))
@@ -895,7 +896,7 @@ class ExportTest(ExportTestBase):
       self.assertEqual(len(converted_data), 1)
       for converted in converted_data:
         self.assertIsInstance(converted, export.ExportedString)
-        self.assertEqual(converted.data, str(data))
+        self.assertEqual(converted.data, unicode(data))
 
   def testGrrMessageConverter(self):
     payload = DummyRDFValue4(
@@ -1404,12 +1405,12 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
 
   def _ResetState(self):
     self.messages = []
+    data = """{
+       "$INVENTORY": {},
+       "$METADATA": {"ProfileClass":"Inventory", "Type":"Inventory"}
+    }"""
     inventory = rdf_rekall_types.RekallProfile(
-        name="inventory",
-        data=('{"$INVENTORY": {},'
-              '"$METADATA": {"ProfileClass":"Inventory", "Type":"Inventory"}}'),
-        version="1",
-        compression=0)
+        name="inventory", data=data.encode("utf-8"), version="1", compression=0)
 
     self.rekall_session = grr_rekall.GrrRekallSession(
         action=self, initial_profiles=[inventory])

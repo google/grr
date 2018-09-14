@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for export utils functions."""
+from __future__ import unicode_literals
 
 import os
 import stat
@@ -50,7 +51,7 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
   def CreateFile(self, filepath):
     path = self.out.Add(filepath)
     fd = aff4.FACTORY.Create(path, aff4_grr.VFSMemoryFile, token=self.token)
-    fd.Write("some data")
+    fd.Write(b"some data")
     fd.Close()
 
   def testExportFile(self):

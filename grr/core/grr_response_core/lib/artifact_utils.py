@@ -42,6 +42,14 @@ class KnowledgeBaseAttributesMissingError(Error):
 INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")
 
 
+def InterpolateListKbAttributes(input_list, knowledge_base, ignore_errors):
+  interpolated_list = []
+  for element in input_list:
+    interpolated_list.extend(
+        InterpolateKbAttributes(element, knowledge_base, ignore_errors))
+  return interpolated_list
+
+
 def InterpolateKbAttributes(pattern, knowledge_base, ignore_errors=False):
   """Interpolate all knowledgebase attributes in pattern.
 

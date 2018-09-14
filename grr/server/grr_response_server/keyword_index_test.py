@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.keyword_index."""
+from __future__ import unicode_literals
 
 
 from builtins import range  # pylint: disable=redefined-builtin

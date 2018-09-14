@@ -7,6 +7,8 @@ a logical relational database model.
 WIP, will eventually replace datastore.py.
 
 """
+from __future__ import unicode_literals
+
 import abc
 import re
 

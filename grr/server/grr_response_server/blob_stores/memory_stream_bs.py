@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A blob store based on memory stream objects."""
+from __future__ import unicode_literals
 
 import hashlib
 import logging

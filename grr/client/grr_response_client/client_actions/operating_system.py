@@ -28,7 +28,7 @@ elif platform.system() == "Darwin":
 EnumerateInterfaces = submodule.EnumerateInterfaces
 EnumerateInterfacesFromClient = submodule.EnumerateInterfacesFromClient
 EnumerateFilesystems = submodule.EnumerateFilesystems
-# EnumerateFilesystemsFromClient = submodule.EnumerateFilesystemsFromClient
+EnumerateFilesystemsFromClient = submodule.EnumerateFilesystemsFromClient
 if platform.system() == "Linux":
   EnumerateUsers = submodule.EnumerateUsers
   EnumerateUsersFromClient = submodule.EnumerateUsersFromClient
@@ -38,9 +38,9 @@ else:
 GetInstallDate = submodule.GetInstallDate
 if platform.system() == "Darwin":
   OSXEnumerateRunningServices = submodule.OSXEnumerateRunningServices
-# OSXEnumerateRunningServicesFromC = submodule.OSXEnumerateRunningServicesFromC
+  EnumerateRunningServices = submodule.OSXEnumerateRunningServicesFromClient
 else:
   OSXEnumerateRunningServices = None
-  OSXEnumerateRunningServicesFromClient = None
+  EnumerateRunningServices = None
 Uninstall = submodule.Uninstall
 UpdateAgent = submodule.UpdateAgent

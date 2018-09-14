@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Implementations of various collections."""
+from __future__ import unicode_literals
 
 import io
 

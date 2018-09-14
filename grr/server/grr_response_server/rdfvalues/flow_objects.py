@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Rdfvalues for flows."""
+from __future__ import unicode_literals
 
 import re
 

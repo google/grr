@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Plugin that exports results as SQLite db scripts."""
+from __future__ import unicode_literals
 
 import collections
 import io
@@ -186,21 +187,21 @@ class SqliteInstantOutputPlugin(
   def _FlushAllRows(self, db_connection, table_name):
     """Copies rows from the given db into the output file then deletes them."""
     for sql in db_connection.iterdump():
-      # The archive generator expects strings (not Unicode objects returned by
-      # the pysqlite library).
-      sql = utils.SmartStr(sql)
       if (sql.startswith("CREATE TABLE") or
           sql.startswith("BEGIN TRANSACTION") or sql.startswith("COMMIT")):
         # These statements only need to be written once.
         continue
-      yield self.archive_generator.WriteFileChunk(sql + "\n")
+      # The archive generator expects strings (not Unicode objects returned by
+      # the pysqlite library).
+      yield self.archive_generator.WriteFileChunk((sql + "\n").encode("utf-8"))
     with db_connection:
       db_connection.cursor().execute("DELETE FROM \"%s\";" % table_name)
 
   def Finish(self):
     manifest = {"export_stats": self.export_counts}
 
-    yield self.archive_generator.WriteFileHeader(self.path_prefix + "/MANIFEST")
+    header = self.path_prefix + "/MANIFEST"
+    yield self.archive_generator.WriteFileHeader(header.encode("utf-8"))
     yield self.archive_generator.WriteFileChunk(yaml.safe_dump(manifest))
     yield self.archive_generator.WriteFileFooter()
     yield self.archive_generator.Close()

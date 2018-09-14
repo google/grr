@@ -224,41 +224,116 @@ class GetInstallDate(actions.ActionPlugin):
     self.SendReply(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
 
+def EnumerateFilesystemsFromClient(args):
+  """List all local filesystems mounted on this system."""
+  del args  # Unused.
+  for fs_struct in client_utils_osx.GetFileSystems():
+    yield rdf_client_fs.Filesystem(
+        device=fs_struct.f_mntfromname,
+        mount_point=fs_struct.f_mntonname,
+        type=fs_struct.f_fstypename)
+
+  drive_re = re.compile("r?disk[0-9].*")
+  for drive in os.listdir("/dev"):
+    if not drive_re.match(drive):
+      continue
+
+    path = os.path.join("/dev", drive)
+    try:
+      img_inf = pytsk3.Img_Info(path)
+      # This is a volume or a partition - we send back a TSK device.
+      yield rdf_client_fs.Filesystem(device=path)
+
+      vol_inf = pytsk3.Volume_Info(img_inf)
+
+      for volume in vol_inf:
+        if volume.flags == pytsk3.TSK_VS_PART_FLAG_ALLOC:
+          offset = volume.start * vol_inf.info.block_size
+          yield rdf_client_fs.Filesystem(
+              device=path + ":" + str(offset), type="partition")
+
+    except (IOError, RuntimeError):
+      continue
+
+
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
   out_rdfvalues = [rdf_client_fs.Filesystem]
 
-  def Run(self, unused_args):
-    """List all local filesystems mounted on this system."""
-    for fs_struct in client_utils_osx.GetFileSystems():
-      self.SendReply(
-          rdf_client_fs.Filesystem(
-              device=fs_struct.f_mntfromname,
-              mount_point=fs_struct.f_mntonname,
-              type=fs_struct.f_fstypename))
+  def Run(self, args):
+    for res in EnumerateFilesystemsFromClient(args):
+      self.SendReply(res)
 
-    drive_re = re.compile("r?disk[0-9].*")
-    for drive in os.listdir("/dev"):
-      if not drive_re.match(drive):
-        continue
 
-      path = os.path.join("/dev", drive)
-      try:
-        img_inf = pytsk3.Img_Info(path)
-        # This is a volume or a partition - we send back a TSK device.
-        self.SendReply(rdf_client_fs.Filesystem(device=path))
+def CreateServiceProto(job):
+  """Create the Service protobuf.
 
-        vol_inf = pytsk3.Volume_Info(img_inf)
+  Args:
+    job: Launchdjobdict from servicemanagement framework.
 
-        for volume in vol_inf:
-          if volume.flags == pytsk3.TSK_VS_PART_FLAG_ALLOC:
-            offset = volume.start * vol_inf.info.block_size
-            self.SendReply(
-                rdf_client_fs.Filesystem(
-                    device=path + ":" + str(offset), type="partition"))
+  Returns:
+    sysinfo_pb2.OSXServiceInformation proto
+  """
+  service = rdf_client.OSXServiceInformation(
+      label=job.get("Label"),
+      program=job.get("Program"),
+      sessiontype=job.get("LimitLoadToSessionType"),
+      lastexitstatus=int(job["LastExitStatus"]),
+      timeout=int(job["TimeOut"]),
+      ondemand=bool(job["OnDemand"]))
 
-      except (IOError, RuntimeError):
-        continue
+  for arg in job.get("ProgramArguments", "", stringify=False):
+    # Returns CFArray of CFStrings
+    service.args.Append(unicode(arg))
+
+  mach_dict = job.get("MachServices", {}, stringify=False)
+  for key, value in iteritems(mach_dict):
+    service.machservice.Append("%s:%s" % (key, value))
+
+  job_mach_dict = job.get("PerJobMachServices", {}, stringify=False)
+  for key, value in iteritems(job_mach_dict):
+    service.perjobmachservice.Append("%s:%s" % (key, value))
+
+  if "PID" in job:
+    service.pid = job["PID"].value
+
+  return service
+
+
+def GetRunningLaunchDaemons():
+  """Get running launchd jobs from objc ServiceManagement framework."""
+
+  sm = ServiceManagement()
+  return sm.SMGetJobDictionaries("kSMDomainSystemLaunchd")
+
+
+def OSXEnumerateRunningServicesFromClient(args):
+  """Get running launchd jobs.
+
+  Args:
+    args: Unused.
+
+  Yields:
+    `rdf_client.OSXServiceInformation` instances.
+
+  Raises:
+      UnsupportedOSVersionError: for OS X earlier than 10.6.
+  """
+  del args  # Unused.
+  osx_version = client_utils_osx.OSXVersion()
+  version_array = osx_version.VersionAsMajorMinor()
+
+  if version_array[:2] < [10, 6]:
+    raise UnsupportedOSVersionError(
+        "ServiceManagement API unsupported on < 10.6. This client is %s" %
+        osx_version.VersionString())
+
+  launchd_list = GetRunningLaunchDaemons()
+
+  parser = osx_launchd.OSXLaunchdJobDict(launchd_list)
+  for job in parser.Parse():
+    response = CreateServiceProto(job)
+    yield response
 
 
 class OSXEnumerateRunningServices(actions.ActionPlugin):
@@ -266,65 +341,9 @@ class OSXEnumerateRunningServices(actions.ActionPlugin):
   in_rdfvalue = None
   out_rdfvalues = [rdf_client.OSXServiceInformation]
 
-  def GetRunningLaunchDaemons(self):
-    """Get running launchd jobs from objc ServiceManagement framework."""
-
-    sm = ServiceManagement()
-    return sm.SMGetJobDictionaries("kSMDomainSystemLaunchd")
-
-  def Run(self, unused_arg):
-    """Get running launchd jobs.
-
-    Raises:
-      UnsupportedOSVersionError: for OS X earlier than 10.6
-    """
-    osxversion = client_utils_osx.OSXVersion()
-    version_array = osxversion.VersionAsMajorMinor()
-
-    if version_array[:2] < [10, 6]:
-      raise UnsupportedOSVersionError(
-          "ServiceManagment API unsupported on < 10.6. This client is %s" %
-          osxversion.VersionString())
-
-    launchd_list = self.GetRunningLaunchDaemons()
-
-    self.parser = osx_launchd.OSXLaunchdJobDict(launchd_list)
-    for job in self.parser.Parse():
-      response = self.CreateServiceProto(job)
-      self.SendReply(response)
-
-  def CreateServiceProto(self, job):
-    """Create the Service protobuf.
-
-    Args:
-      job: Launchdjobdict from servicemanagement framework.
-    Returns:
-      sysinfo_pb2.OSXServiceInformation proto
-    """
-    service = rdf_client.OSXServiceInformation(
-        label=job.get("Label"),
-        program=job.get("Program"),
-        sessiontype=job.get("LimitLoadToSessionType"),
-        lastexitstatus=int(job["LastExitStatus"]),
-        timeout=int(job["TimeOut"]),
-        ondemand=bool(job["OnDemand"]))
-
-    for arg in job.get("ProgramArguments", "", stringify=False):
-      # Returns CFArray of CFStrings
-      service.args.Append(unicode(arg))
-
-    mach_dict = job.get("MachServices", {}, stringify=False)
-    for key, value in iteritems(mach_dict):
-      service.machservice.Append("%s:%s" % (key, value))
-
-    job_mach_dict = job.get("PerJobMachServices", {}, stringify=False)
-    for key, value in iteritems(job_mach_dict):
-      service.perjobmachservice.Append("%s:%s" % (key, value))
-
-    if "PID" in job:
-      service.pid = job["PID"].value
-
-    return service
+  def Run(self, args):
+    for res in OSXEnumerateRunningServicesFromClient(args):
+      self.SendReply(res)
 
 
 class Uninstall(actions.ActionPlugin):

@@ -107,27 +107,32 @@ class EnumerateInterfaces(actions.ActionPlugin):
       self.SendReply(res)
 
 
+def EnumerateFilesystemsFromClient(args):
+  """List all local filesystems mounted on this system."""
+  del args  # Unused.
+  for drive in win32api.GetLogicalDriveStrings().split("\x00"):
+    if not drive:
+      continue
+    try:
+      volume = win32file.GetVolumeNameForVolumeMountPoint(drive).rstrip("\\")
+
+      label, _, _, _, fs_type = win32api.GetVolumeInformation(drive)
+    except win32api.error:
+      continue
+    yield rdf_client_fs.Filesystem(
+        device=volume,
+        mount_point="/%s:/" % drive[0],
+        type=fs_type,
+        label=UnicodeFromCodePage(label))
+
+
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
   out_rdfvalues = [rdf_client_fs.Filesystem]
 
-  def Run(self, unused_args):
-    """List all local filesystems mounted on this system."""
-    for drive in win32api.GetLogicalDriveStrings().split("\x00"):
-      if drive:
-        try:
-          volume = win32file.GetVolumeNameForVolumeMountPoint(drive).rstrip(
-              "\\")
-
-          label, _, _, _, fs_type = win32api.GetVolumeInformation(drive)
-          self.SendReply(
-              rdf_client_fs.Filesystem(
-                  device=volume,
-                  mount_point="/%s:/" % drive[0],
-                  type=fs_type,
-                  label=UnicodeFromCodePage(label)))
-        except win32api.error:
-          pass
+  def Run(self, args):
+    for res in EnumerateFilesystemsFromClient(args):
+      self.SendReply(res)
 
 
 class Uninstall(actions.ActionPlugin):

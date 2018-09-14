@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Plugins that produce results in YAML."""
+from __future__ import unicode_literals
 
 import io
 import os
@@ -72,7 +73,7 @@ class YamlInstantOutputPluginWithExportConversion(
       # investigated whether there is a way to adjust behaviour of PyYAML.
       buf = io.BytesIO()
       for value in batch:
-        buf.write("\n")
+        buf.write(b"\n")
         buf.write(_SerializeToYaml(value))
 
       yield self.archive_generator.WriteFileChunk(buf.getvalue())

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The GRR frontend server."""
+from __future__ import unicode_literals
 
 import logging
 import operator

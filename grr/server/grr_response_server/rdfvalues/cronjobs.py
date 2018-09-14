@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """RDFValues for GRR server-side cron jobs."""
+from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry

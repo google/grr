@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the artifact libraries."""
+from __future__ import unicode_literals
 
 import os
 

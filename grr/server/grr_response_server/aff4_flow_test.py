@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for aff4 flows."""
+from __future__ import unicode_literals
 
 import time
 

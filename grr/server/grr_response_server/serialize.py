@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This module serializes AFF4 objects in various ways."""
+from __future__ import unicode_literals
 
 
 from future.utils import iteritems

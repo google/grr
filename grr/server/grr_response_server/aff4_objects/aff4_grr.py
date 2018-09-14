@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """GRR specific AFF4 objects."""
+from __future__ import unicode_literals
 
 import io
 import logging
@@ -743,7 +744,7 @@ class VFSBlobImage(VFSFile):
     if offset != 0:
       raise IOError("Non-zero truncation not supported for BlobImage")
     super(VFSBlobImage, self).Truncate(0)
-    self.index = io.BytesIO("")
+    self.index = io.BytesIO(b"")
     self.finalized = False
 
   def _GetChunkForWriting(self, chunk):

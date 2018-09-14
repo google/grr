@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Output plugins implementations."""
-
+from __future__ import unicode_literals
 
 from grr_response_server import output_plugin
 

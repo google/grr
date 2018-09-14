@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the standard hunts."""
+from __future__ import unicode_literals
 
 import glob
 import logging

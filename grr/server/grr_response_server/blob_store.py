@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The blob store abstraction."""
+from __future__ import unicode_literals
 
 
 from future.utils import with_metaclass

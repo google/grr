@@ -721,7 +721,7 @@ class ArtifactCollectorFlowMixin(object):
     """
     _ = responses_obj
     result_iterator = artifact.ApplyParserToResponses(processor_obj, responses,
-                                                      source, self, self.token)
+                                                      self, self.token)
 
     artifact_return_types = self._GetArtifactReturnTypes(source)
 

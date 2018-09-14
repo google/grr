@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Base classes for artifacts."""
+from __future__ import unicode_literals
 
 import logging
 
@@ -350,14 +351,13 @@ class KnowledgeBaseInitializationFlowMixin(object):
                            " KnowledgeBase" % self.client_id)
 
 
-def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
+def ApplyParserToResponses(processor_obj, responses, flow_obj, token):
   """Parse responses using the specified processor and the right args.
 
   Args:
     processor_obj: A Processor object that inherits from Parser.
     responses: A list of, or single response depending on the processors
       process_together setting.
-    source: The source responsible for producing the responses.
     flow_obj: An artifact collection flow.
     token: The token used in an artifact collection flow.
 
@@ -400,8 +400,7 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
           knowledge_base=state.knowledge_base)
 
     elif isinstance(processor_obj, parser.WMIQueryParser):
-      query = source["attributes"]["query"]
-      result_iterator = parse_method(query, responses, state.knowledge_base)
+      result_iterator = parse_method(responses)
 
     elif isinstance(processor_obj, parser.FileParser):
       if processor_obj.process_together:
@@ -420,8 +419,7 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
 
     elif isinstance(processor_obj,
                     (parser.RegistryParser, parser.RekallPluginParser,
-                     parser.RegistryValueParser, parser.GenericResponseParser,
-                     parser.GrepParser)):
+                     parser.RegistryValueParser, parser.GrepParser)):
       result_iterator = parse_method(responses, state.knowledge_base)
 
     elif isinstance(processor_obj, (parser.ArtifactFilesParser)):

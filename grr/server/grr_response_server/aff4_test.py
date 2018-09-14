@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the flow."""
+from __future__ import unicode_literals
+
 import itertools
 import os
 import threading
@@ -327,23 +329,23 @@ class AFF4MemoryStreamTest(aff4_test_lib.AFF4ObjectTest):
   def testMultiStreamStreamsSingleFileWithSingleChunk(self):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4MemoryStream, token=self.token) as fd:
-      fd.Write("123456789")
+      fd.Write(b"123456789")
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     chunks_fds = list(aff4.AFF4Stream.MultiStream([fd]))
 
     self.assertEqual(len(chunks_fds), 1)
-    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertEqual(chunks_fds[0][1], b"123456789")
     self.assertIs(chunks_fds[0][0], fd)
 
   def testMultiStreamStreamsSinglfeFileWithTwoChunks(self):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4MemoryStream, token=self.token) as fd:
-      fd.Write("123456789")
+      fd.Write(b"123456789")
 
     with aff4.FACTORY.Create(
         "aff4:/bar", aff4_type=aff4.AFF4MemoryStream, token=self.token) as fd:
-      fd.Write("abcd")
+      fd.Write(b"abcd")
 
     fd1 = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
@@ -351,20 +353,20 @@ class AFF4MemoryStreamTest(aff4_test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(chunks_fds), 2)
 
-    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertEqual(chunks_fds[0][1], b"123456789")
     self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][1], "abcd")
+    self.assertEqual(chunks_fds[1][1], b"abcd")
     self.assertIs(chunks_fds[1][0], fd2)
 
   def testMultiStreamStreamsTwoFilesWithTwoChunksInEach(self):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4MemoryStream, token=self.token) as fd:
-      fd.Write("*" * 10 + "123456789")
+      fd.Write(b"*" * 10 + b"123456789")
 
     with aff4.FACTORY.Create(
         "aff4:/bar", aff4_type=aff4.AFF4MemoryStream, token=self.token) as fd:
-      fd.Write("*" * 10 + "abcd")
+      fd.Write(b"*" * 10 + b"abcd")
 
     fd1 = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
@@ -372,16 +374,16 @@ class AFF4MemoryStreamTest(aff4_test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(chunks_fds), 4)
 
-    self.assertEqual(chunks_fds[0][1], "*" * 10)
+    self.assertEqual(chunks_fds[0][1], b"*" * 10)
     self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][1], "123456789")
+    self.assertEqual(chunks_fds[1][1], b"123456789")
     self.assertIs(chunks_fds[1][0], fd1)
 
-    self.assertEqual(chunks_fds[2][1], "*" * 10)
+    self.assertEqual(chunks_fds[2][1], b"*" * 10)
     self.assertIs(chunks_fds[2][0], fd2)
 
-    self.assertEqual(chunks_fds[3][1], "abcd")
+    self.assertEqual(chunks_fds[3][1], b"abcd")
     self.assertIs(chunks_fds[3][0], fd2)
 
 
@@ -393,25 +395,25 @@ class AFF4ImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4Image, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.Write("123456789")
+      fd.Write(b"123456789")
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     chunks_fds = list(aff4.AFF4Stream.MultiStream([fd]))
 
     self.assertEqual(len(chunks_fds), 1)
-    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertEqual(chunks_fds[0][1], b"123456789")
     self.assertIs(chunks_fds[0][0], fd)
 
   def testMultiStreamStreamsSinglfeFileWithTwoChunks(self):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4Image, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.Write("123456789")
+      fd.Write(b"123456789")
 
     with aff4.FACTORY.Create(
         "aff4:/bar", aff4_type=aff4.AFF4Image, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.Write("abcd")
+      fd.Write(b"abcd")
 
     fd1 = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
@@ -419,22 +421,22 @@ class AFF4ImageTest(aff4_test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(chunks_fds), 2)
 
-    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertEqual(chunks_fds[0][1], b"123456789")
     self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][1], "abcd")
+    self.assertEqual(chunks_fds[1][1], b"abcd")
     self.assertIs(chunks_fds[1][0], fd2)
 
   def testMultiStreamStreamsTwoFilesWithTwoChunksInEach(self):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4Image, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.Write("*" * 10 + "123456789")
+      fd.Write(b"*" * 10 + b"123456789")
 
     with aff4.FACTORY.Create(
         "aff4:/bar", aff4_type=aff4.AFF4Image, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.Write("*" * 10 + "abcd")
+      fd.Write(b"*" * 10 + b"abcd")
 
     fd1 = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
@@ -442,23 +444,23 @@ class AFF4ImageTest(aff4_test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(chunks_fds), 4)
 
-    self.assertEqual(chunks_fds[0][1], "*" * 10)
+    self.assertEqual(chunks_fds[0][1], b"*" * 10)
     self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][1], "123456789")
+    self.assertEqual(chunks_fds[1][1], b"123456789")
     self.assertIs(chunks_fds[1][0], fd1)
 
-    self.assertEqual(chunks_fds[2][1], "*" * 10)
+    self.assertEqual(chunks_fds[2][1], b"*" * 10)
     self.assertIs(chunks_fds[2][0], fd2)
 
-    self.assertEqual(chunks_fds[3][1], "abcd")
+    self.assertEqual(chunks_fds[3][1], b"abcd")
     self.assertIs(chunks_fds[3][0], fd2)
 
   def testMultiStreamChunkIsMissing(self):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4Image, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.Write("123456789")
+      fd.Write(b"123456789")
 
     aff4.FACTORY.Delete("aff4:/foo/0000000000", token=self.token)
 
@@ -473,7 +475,7 @@ class AFF4ImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4Image, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.Write("*" * 10 + "123456789")
+      fd.Write(b"*" * 10 + b"123456789")
 
     aff4.FACTORY.Delete("aff4:/foo/0000000000", token=self.token)
 
@@ -491,7 +493,7 @@ class AFF4ImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4Image, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.Write("*" * 10 + "123456789")
+      fd.Write(b"*" * 10 + b"123456789")
 
     aff4.FACTORY.Delete("aff4:/foo/0000000001", token=self.token)
 
@@ -504,7 +506,7 @@ class AFF4ImageTest(aff4_test_lib.AFF4ObjectTest):
       else:
         got_exception = True
 
-    self.assertEqual(content, ["*" * 10])
+    self.assertEqual(content, [b"*" * 10])
     self.assertTrue(got_exception)
 
   @mock.patch.object(aff4.AFF4Image, "MULTI_STREAM_CHUNKS_READ_AHEAD", 1)
@@ -512,7 +514,7 @@ class AFF4ImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4Image, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.Write("*" * 10 + "123456789")
+      fd.Write(b"*" * 10 + b"123456789")
 
     aff4.FACTORY.Delete("aff4:/foo/0000000000", token=self.token)
 
@@ -532,11 +534,11 @@ class AFF4StreamTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4.AFF4Image, token=self.token) as fd:
       fd.SetChunksize(10)
-      fd.Write("*" * 10 + "123456789")
+      fd.Write(b"*" * 10 + b"123456789")
 
     with aff4.FACTORY.Create(
         "aff4:/bar", aff4_type=aff4.AFF4MemoryStream, token=self.token) as fd:
-      fd.Write("*" * 10 + "abcd")
+      fd.Write(b"*" * 10 + b"abcd")
 
     fd1 = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
@@ -551,16 +553,16 @@ class AFF4StreamTest(aff4_test_lib.AFF4ObjectTest):
     if chunks_fds[0][0] == fd2:
       chunks_fds = chunks_fds[2:] + chunks_fds[:2]
 
-    self.assertEqual(chunks_fds[0][1], "*" * 10)
+    self.assertEqual(chunks_fds[0][1], b"*" * 10)
     self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][1], "123456789")
+    self.assertEqual(chunks_fds[1][1], b"123456789")
     self.assertIs(chunks_fds[1][0], fd1)
 
-    self.assertEqual(chunks_fds[2][1], "*" * 10)
+    self.assertEqual(chunks_fds[2][1], b"*" * 10)
     self.assertIs(chunks_fds[2][0], fd2)
 
-    self.assertEqual(chunks_fds[3][1], "abcd")
+    self.assertEqual(chunks_fds[3][1], b"abcd")
     self.assertIs(chunks_fds[3][0], fd2)
 
 
@@ -857,11 +859,11 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     fd.Flush()
 
     # Now object is ready for use
-    fd.Write("hello")
+    fd.Write(b"hello")
     fd.Close()
 
     fd = aff4.FACTORY.Open(path, token=self.token)
-    self.assertEqual(fd.Read(100), "hello")
+    self.assertEqual(fd.Read(100), b"hello")
 
     # Make sure that we have intermediate objects created.
     for path in [
@@ -887,7 +889,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
           mode="w",
           mutation_pool=pool,
           token=self.token)
-      content = "TestData" * 10
+      content = b"TestData" * 10
       fd.Write(content)
       fd.Close()
 
@@ -927,11 +929,11 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     # Overwrite with a new object of different type
     with aff4.FACTORY.Create(
         path, aff4.AFF4MemoryStream, token=self.token) as fd:
-      fd.Write("hello")
+      fd.Write(b"hello")
 
     # Check that the object is now an AFF4MemoryStream
     with aff4.FACTORY.Open(path, aff4.AFF4MemoryStream, token=self.token) as fd:
-      self.assertEqual(fd.Read(100), "hello")
+      self.assertEqual(fd.Read(100), b"hello")
       self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4MemoryStream")
       self.assertRaises(aff4.BadGetAttributeError, getattr, fd.Schema,
                         "HOSTNAME")
@@ -939,7 +941,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     # Attributes of previous objects are actually still accessible. Some code
     # relies on this behaviour so we verify it here.
     with aff4.FACTORY.Open(path, token=self.token) as fd:
-      self.assertEqual(fd.Read(100), "hello")
+      self.assertEqual(fd.Read(100), b"hello")
       self.assertEqual(fd.Get(original_fd.Schema.HOSTNAME), "blah")
 
   def testDelete(self):
@@ -947,7 +949,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     path = "/C.0123456789abcdef/foo/bar/hello.txt"
 
     fd = aff4.FACTORY.Create(path, aff4.AFF4MemoryStream, token=self.token)
-    fd.Write("hello")
+    fd.Write(b"hello")
     fd.Close()
 
     # Delete the directory and check that the file in it is also removed.
@@ -975,7 +977,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     for path in paths_to_delete + safe_paths:
       with aff4.FACTORY.Create(
           path, aff4.AFF4MemoryStream, token=self.token) as fd:
-        fd.Write("hello")
+        fd.Write(b"hello")
 
     fd = aff4.FACTORY.Open("aff4:/tmp", token=self.token)
     self.assertListEqual(
@@ -1054,7 +1056,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
 
     size = 0
     for i in range(100):
-      data = "Test%08X\n" % i
+      data = b"Test%08X\n" % i
       fd.Write(data)
       size += len(data)
       self.assertEqual(fd.size, size)
@@ -1067,7 +1069,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     fd.Seek(size)
     self.assertEqual(fd.Tell(), size)
     fd.Seek(100)
-    fd.Write("Hello World!")
+    fd.Write(b"Hello World!")
     self.assertEqual(fd.size, size)
     fd.Close()
 
@@ -1075,7 +1077,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(fd.size, size)
     data = fd.Read(size)
     self.assertEqual(len(data), size)
-    self.assertTrue("Hello World!" in data)
+    self.assertTrue(b"Hello World!" in data)
     fd.Close()
 
   def ExerciseAFF4ImageBase(self, classname):
@@ -1088,35 +1090,35 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
       # Make lots of small writes - The length of this string and the chunk size
       # are relative primes for worst case.
       for i in range(10):
-        fd.Write("Test%08X\n" % i)
+        fd.Write(b"Test%08X\n" % i)
 
     with aff4.FACTORY.Open(path, token=self.token) as fd:
       for i in range(10):
-        self.assertEqual(fd.Read(13), "Test%08X\n" % i)
+        self.assertEqual(fd.Read(13), b"Test%08X\n" % i)
 
     with aff4.FACTORY.Create(
         path, classname, mode="rw", token=self.token) as fd:
       fd.Set(fd.Schema._CHUNKSIZE(10))
 
       # Overflow the cache (Cache is 100 chunks, can hold 10*100 bytes).
-      fd.Write("X" * 1100)
+      fd.Write(b"X" * 1100)
       self.assertEqual(fd.size, 1100)
       # Now rewind a bit and write something.
       fd.seek(fd.size - 100)
-      fd.Write("Hello World")
+      fd.Write(b"Hello World")
       self.assertEqual(fd.size, 1100)
       # Now append to the end.
       fd.seek(fd.size)
-      fd.Write("Y" * 10)
+      fd.Write(b"Y" * 10)
       self.assertEqual(fd.size, 1110)
       # And verify everything worked as expected.
       fd.seek(997)
       data = fd.Read(17)
-      self.assertEqual("XXXHello WorldXXX", data)
+      self.assertEqual(b"XXXHello WorldXXX", data)
 
       fd.seek(1097)
       data = fd.Read(6)
-      self.assertEqual("XXXYYY", data)
+      self.assertEqual(b"XXXYYY", data)
 
     # Set the max_unbound_read_size to last size of object at path
     # before object creation for unbound read() tests.
@@ -1130,7 +1132,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
         self.assertEqual(len(data), 1110)
         # Append additional data and retry as oversized unbound read
         fd.seek(fd.size)
-        fd.Write("X" * 10)
+        fd.Write(b"X" * 10)
         fd.seek(0)
         self.assertRaises(aff4.OversizedRead, fd.read)
 
@@ -1148,7 +1150,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
 
     size = 0
     for i in range(99):
-      data = "Test%08X\n" % i
+      data = b"Test%08X\n" % i
       fd.Write(data)
       size += len(data)
       self.assertEqual(fd.size, size)
@@ -1162,7 +1164,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     # Now append some more data.
     fd.seek(fd.size)
     for i in range(99):
-      data = "Test%08X\n" % i
+      data = b"Test%08X\n" % i
       fd.Write(data)
       size += len(data)
       self.assertEqual(fd.size, size)
@@ -1177,7 +1179,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     # Writes in the middle should not change size.
     fd = aff4.FACTORY.Open(path, mode="rw", token=self.token)
     fd.Seek(100)
-    fd.Write("Hello World!")
+    fd.Write(b"Hello World!")
     self.assertEqual(fd.size, size)
     fd.Close()
 
@@ -1186,22 +1188,22 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(fd.size, size)
     data = fd.Read(fd.size)
     self.assertEqual(len(data), size)
-    self.assertTrue("Hello World" in data)
+    self.assertTrue(b"Hello World!" in data)
     fd.Close()
 
   def testAFF4ImageWithFlush(self):
     """Make sure the AFF4Image can survive with partial flushes."""
     path = "/C.12345/foo"
 
-    self.WriteImage(path, "Test")
+    self.WriteImage(path, b"Test")
 
     fd = aff4.FACTORY.Open(path, token=self.token)
     for i in range(100):
-      self.assertEqual(fd.Read(13), "Test%08X\n" % i)
+      self.assertEqual(fd.Read(13), b"Test%08X\n" % i)
 
   def WriteImage(self,
                  path,
-                 prefix="Test",
+                 prefix=b"Test",
                  timestamp=0,
                  classname=aff4.AFF4Image):
     with utils.Stubber(time, "time", lambda: timestamp):
@@ -1213,7 +1215,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
       # Make lots of small writes - The length of this string and the chunk size
       # are relative primes for worst case.
       for i in range(100):
-        fd.Write("%s%08X\n" % (prefix, i))
+        fd.Write(b"%s%08X\n" % (prefix, i))
 
         # Flush after every write.
         fd.Flush()
@@ -1227,20 +1229,20 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     """Make sure the AFF4Image can do multiple versions."""
     path = "/C.12345/foowithtime"
 
-    self.WriteImage(path, "Time1", timestamp=1000)
+    self.WriteImage(path, b"Time1", timestamp=1000)
 
     # Write a newer version.
-    self.WriteImage(path, "Time2", timestamp=2000)
+    self.WriteImage(path, b"Time2", timestamp=2000)
 
     fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 1150 * 1e6))
 
     for i in range(100):
-      s = "Time1%08X\n" % i
+      s = b"Time1%08X\n" % i
       self.assertEqual(fd.Read(len(s)), s)
 
     fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 2250 * 1e6))
     for i in range(100):
-      s = "Time2%08X\n" % i
+      s = b"Time2%08X\n" % i
       self.assertEqual(fd.Read(len(s)), s)
 
   def testAFF4ImageWithoutVersioning(self):
@@ -1248,21 +1250,21 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     path = "/C.12345/foowithtime"
 
     self.WriteImage(
-        path, "Time1", timestamp=1000, classname=aff4.AFF4UnversionedImage)
+        path, b"Time1", timestamp=1000, classname=aff4.AFF4UnversionedImage)
 
     # Write a newer version.
     self.WriteImage(
-        path, "Time2", timestamp=2000, classname=aff4.AFF4UnversionedImage)
+        path, b"Time2", timestamp=2000, classname=aff4.AFF4UnversionedImage)
 
     fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 1150 * 1e6))
 
     for i in range(100):
-      s = "Time2%08X\n" % i
+      s = b"Time2%08X\n" % i
       self.assertEqual(fd.Read(len(s)), s)
 
     fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 2250 * 1e6))
     for i in range(100):
-      s = "Time2%08X\n" % i
+      s = b"Time2%08X\n" % i
       self.assertEqual(fd.Read(len(s)), s)
 
   def testAFF4ImageContentLastUpdated(self):

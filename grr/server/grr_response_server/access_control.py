@@ -9,6 +9,7 @@ A UserManager class has the following responsibilities :
   - Manage add/update/set password for users (optional)
   - Validate a user authentication event (optional)
 """
+from __future__ import unicode_literals
 
 import logging
 import time

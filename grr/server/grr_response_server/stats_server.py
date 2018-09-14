@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Stats server implementation."""
-
+from __future__ import unicode_literals
 
 import collections
 import json

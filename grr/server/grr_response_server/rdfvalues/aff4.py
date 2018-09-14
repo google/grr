@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """AFF4-related RDFValues implementations."""
+from __future__ import unicode_literals
 
 import re
 

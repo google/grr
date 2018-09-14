@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Instant output plugins used by the API for on-the-fly conversion."""
+from __future__ import unicode_literals
 
 import itertools
 import re

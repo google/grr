@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utils for flow related tasks."""
+from __future__ import unicode_literals
 
 import logging
 import time
@@ -13,14 +14,20 @@ DEFAULT_TIMEOUT = 650
 
 
 def GetUserInfo(client, user):
-  r"""Get a User protobuf for a specific user.
+  # TODO(hanuszczak): This docstring cannot be a raw literal because there are
+  # issues with raw unicode literals on Python 2. Once support for Python 2 is
+  # dropped, it can be made raw again.
+  # pylint: disable=g-docstring-has-escape
+  """Get a User protobuf for a specific user.
 
   Args:
     client: A VFSGRRClient object.
-    user: Username as string. May contain domain like DOMAIN\user.
+    user: Username as string. May contain domain like DOMAIN\\user.
+
   Returns:
     A User rdfvalue or None
   """
+  # pylint: enable=g-docstring-has-escape
   kb = client.Get(client.Schema.KNOWLEDGE_BASE)
   if "\\" in user:
     domain, user = user.split("\\", 1)

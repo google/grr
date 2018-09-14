@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Throttle user calls to flows."""
+from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server import aff4

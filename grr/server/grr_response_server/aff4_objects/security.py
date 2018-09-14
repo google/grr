@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """AFF4 Objects to enforce ACL policies."""
+from __future__ import unicode_literals
 
 import email
 

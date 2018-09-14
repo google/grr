@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Cron management classes."""
+from __future__ import unicode_literals
 
 import logging
 import sys
@@ -595,17 +596,15 @@ def DualDBSystemCronJob(legacy_name=None, stateful=False):
 
     # Generate legacy class. Register it within the module as it's not going
     # to be returned from the decorator.
-    aff4_cls = type(legacy_name, (
-        cls,
-        LegacyCronJobAdapterMixin,
-        aff4_base_cls,
-    ), {})
+    aff4_cls = utils.MakeType(
+        legacy_name, (cls, LegacyCronJobAdapterMixin, aff4_base_cls), {})
     module = sys.modules[cls.__module__]
     setattr(module, legacy_name, aff4_cls)
 
     # Generate new class. No need to register it in the module (like the legacy
     # one) since it will replace the original decorated class.
-    reldb_cls = type(cls.__name__, (cls, cronjobs.SystemCronJobBase), {})
+    reldb_cls = utils.MakeType(
+        utils.GetName(cls), (cls, cronjobs.SystemCronJobBase), {})
     return reldb_cls
 
   return Decorator

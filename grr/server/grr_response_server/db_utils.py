@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utility functions/decorators for DB implementations."""
+from __future__ import unicode_literals
 
 import functools
 import logging

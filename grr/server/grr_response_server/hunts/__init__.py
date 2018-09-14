@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Hunts and hunt implementations."""
+from __future__ import unicode_literals
 
 # pylint: disable=unused-import
 from grr_response_server.hunts import process_results

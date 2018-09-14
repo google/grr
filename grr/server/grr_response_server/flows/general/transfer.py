@@ -842,11 +842,6 @@ class MultiGetFileLogic(object):
             digest, length = blob_dict[index]
             fd.AddBlob(digest, length)
 
-        # Publish the new file event to cause the file to be added to the
-        # filestore.
-        events.Events.PublishEvent(
-            "LegacyFileStore.AddFileToStore", urn, token=self.token)
-
         if data_store.RelationalDBWriteEnabled():
           path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
 
@@ -878,6 +873,11 @@ class MultiGetFileLogic(object):
                 token=self.token)
 
           data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+
+        # Publish the new file event to cause the file to be added to the
+        # filestore.
+        events.Events.PublishEvent(
+            "LegacyFileStore.AddFileToStore", urn, token=self.token)
 
         # Save some space.
         del file_tracker["blobs"]

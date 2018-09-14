@@ -867,11 +867,11 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # Bigger than the size of the file.
     fd = self.ReadTestImage(size_threshold=2**32)
+
     # We shouldn't be a sparse image in this case.
     self.assertFalse(isinstance(fd, aff4_standard.AFF4SparseImage))
     self.assertTrue(isinstance(fd, aff4.AFF4Image))
-
-    self.assertNotEqual(fd.Read(10000), "")
+    self.assertTrue(fd.Read(10000))
     self.assertNotEqual(fd.Get(fd.Schema.SIZE), 0)
 
   def testDiskVolumeInfoOSXLinux(self):

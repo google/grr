@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Registry for filters and abstract classes for basic filter functionality."""
+from __future__ import unicode_literals
+
 import collections
 import glob
 import itertools

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test the grr aff4 objects."""
+from __future__ import unicode_literals
 
 import hashlib
 import io
@@ -105,7 +106,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
       # Make lots of small writes - The length of this string and the chunk size
       # are relative primes for worst case.
       for i in range(100):
-        fd.Write("%s%08X\n" % ("Test", i))
+        fd.Write(b"%s%08X\n" % (b"Test", i))
 
         # Flush after every write.
         fd.Flush()

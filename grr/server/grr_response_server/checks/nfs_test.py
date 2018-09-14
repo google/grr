@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for nfs export checks."""
+from __future__ import unicode_literals
 
 import io
 

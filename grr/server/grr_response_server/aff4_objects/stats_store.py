@@ -33,6 +33,7 @@ fetches values for all the metrics and writes them to corresponding
 object on AFF4.
 """
 from __future__ import division
+from __future__ import unicode_literals
 
 import logging
 import re

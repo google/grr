@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for cron checks."""
+from __future__ import unicode_literals
+
 
 from builtins import zip  # pylint: disable=redefined-builtin
 

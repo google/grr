@@ -114,7 +114,7 @@ class FileParser(Parser):
 class WMIQueryParser(Parser):
   """Abstract parser for processing WMI query output."""
 
-  def Parse(self, query, result_dict, knowledge_base):
+  def Parse(self, result_dict):
     """Take the output of the query, and yield RDFValues."""
 
 
@@ -133,13 +133,6 @@ class RegistryParser(Parser):
 
   def Parse(self, stat, knowledge_base):
     """Take the stat, and yield RDFValues."""
-
-
-class GenericResponseParser(Parser):
-  """Abstract response parser."""
-
-  def Parse(self, response, knowledge_base):
-    """Parse the response object."""
 
 
 class GrepParser(Parser):

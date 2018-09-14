@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """AFF4 object representing grr users."""
+from __future__ import unicode_literals
 
 import hashlib
 import itertools

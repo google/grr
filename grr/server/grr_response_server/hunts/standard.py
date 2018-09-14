@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Some multiclient flows aka hunts."""
+from __future__ import unicode_literals
 
 import logging
 import operator

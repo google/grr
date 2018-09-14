@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.lib.timeseries."""
 from __future__ import division
+from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
 

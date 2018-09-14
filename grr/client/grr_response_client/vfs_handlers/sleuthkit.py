@@ -85,8 +85,9 @@ class TSKFile(vfs.VFSHandler):
 
   # This is all bits that define the type of the file in the stat mode. Equal to
   # 0b1111000000000000.
-  stat_type_mask = (stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK
-                    | stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
+  stat_type_mask = (
+      stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK
+      | stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
 
   def __init__(self,
                base_fd,
@@ -99,8 +100,9 @@ class TSKFile(vfs.VFSHandler):
       base_fd: The file like object we read this component from.
       pathspec: An optional pathspec to open directly.
       progress_callback: A callback to indicate that the open call is still
-                         working but needs more time.
+        working but needs more time.
       full_pathspec: The full pathspec we are trying to open.
+
     Raises:
       IOError: If the file can not be opened.
     """
@@ -188,11 +190,9 @@ class TSKFile(vfs.VFSHandler):
     tsk_dir_map = {}
 
     for f in top_tsk_dir:
-      name = f.info.name.name
+      name = f.info.name.name.decode("utf-8")
       if name in [".", ".."] or name in self.BLACKLIST_FILES:
         continue
-
-      name = utils.SmartUnicode(name)
 
       try:
         inode = f.info.meta.addr
@@ -236,7 +236,7 @@ class TSKFile(vfs.VFSHandler):
       # TSK. Prefer to compare unicode objects to guarantee they are normalized.
       yield utils.SmartUnicode(f.info.name.name)
 
-  def MakeStatResponse(self, tsk_file, tsk_attribute=None, append_name=False):
+  def MakeStatResponse(self, tsk_file, tsk_attribute=None, append_name=None):
     """Given a TSK info object make a StatEntry.
 
     Note that tsk uses two things to uniquely identify a data stream - the inode
@@ -246,16 +246,17 @@ class TSKFile(vfs.VFSHandler):
 
     Args:
       tsk_file: A TSK File object for the specified inode.
-
       tsk_attribute: A TSK Attribute object for the ADS. If None we use the main
         stream.
-
       append_name: If specified we append this name to the last element of the
         pathspec.
 
     Returns:
       A StatEntry which can be used to re-open this exact VFS node.
     """
+    if append_name is not None:
+      utils.AssertType(append_name, unicode)
+
     info = tsk_file.info
     response = rdf_client_fs.StatEntry()
     meta = info.meta
@@ -277,10 +278,10 @@ class TSKFile(vfs.VFSHandler):
     name = info.name
     child_pathspec = self.pathspec.Copy()
 
-    if append_name:
+    if append_name is not None:
       # Append the name to the most inner pathspec
       child_pathspec.last.path = utils.JoinPath(child_pathspec.last.path,
-                                                utils.SmartUnicode(append_name))
+                                                append_name)
 
     child_pathspec.last.inode = meta.addr
     if tsk_attribute is not None:
@@ -350,7 +351,7 @@ class TSKFile(vfs.VFSHandler):
 
     for f in self.fd.as_directory():
       try:
-        name = f.info.name.name
+        name = f.info.name.name.decode("utf-8")
         # Drop these useless entries.
         if name in [".", ".."] or name in self.BLACKLIST_FILES:
           continue

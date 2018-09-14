@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The GRR event publishing classes."""
+from __future__ import unicode_literals
 
 
 from future.utils import iteritems

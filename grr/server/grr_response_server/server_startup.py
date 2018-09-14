@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Server startup routines."""
+from __future__ import unicode_literals
+
 import logging
 import os
 import platform

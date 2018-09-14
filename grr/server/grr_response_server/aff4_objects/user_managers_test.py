@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import unicode_literals
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_server import access_control

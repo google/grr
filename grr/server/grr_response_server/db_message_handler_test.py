@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the message handler database api."""
+from __future__ import unicode_literals
 
 import Queue
 

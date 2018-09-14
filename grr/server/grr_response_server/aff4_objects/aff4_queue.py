@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """A simple message queue synchronized through data store locks.
 """
+from __future__ import unicode_literals
+
 from grr_response_core.lib import rdfvalue
 from grr_response_server import aff4
 from grr_response_server import data_store

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Test for the stats server implementation."""
-
+from __future__ import unicode_literals
 
 import json
 

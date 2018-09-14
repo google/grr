@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Tests for REL_DB-based file store."""
-
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags

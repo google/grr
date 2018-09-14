@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test AFF4 RDFValues."""
+from __future__ import unicode_literals
 
 import re
 

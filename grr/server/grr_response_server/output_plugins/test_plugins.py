@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Output plugins used for testing."""
+from __future__ import unicode_literals
 
 import os
 

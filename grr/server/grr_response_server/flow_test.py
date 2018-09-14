@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Tests for flows."""
+from __future__ import unicode_literals
+
 import mock
 
 from grr_response_core.lib import flags

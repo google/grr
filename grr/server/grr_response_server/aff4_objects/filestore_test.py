@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Tests for the filestore."""
+from __future__ import unicode_literals
 
 import hashlib
+import io
 import os
-import StringIO
 import time
 
 from grr_response_core.lib import flags
@@ -63,8 +64,8 @@ class FileStoreTest(aff4_test_lib.AFF4ObjectTest):
           mode="rw")
       src_fd.SetChunksize(filestore.FileStore.CHUNK_SIZE)
 
-      src_data = "ABC" * filestore.FileStore.CHUNK_SIZE
-      src_data_fd = StringIO.StringIO(src_data)
+      src_data = b"ABC" * filestore.FileStore.CHUNK_SIZE
+      src_data_fd = io.BytesIO(src_data)
       src_fd.AppendContent(src_data_fd)
 
       fs.AddFile(src_fd)

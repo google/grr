@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Helper functions for filestore testing."""
+from __future__ import unicode_literals
 
 from grr_response_server import events
 from grr_response_server.flows.general import transfer

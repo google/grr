@@ -9,6 +9,7 @@ AccessControlManager Classes:
     labels.
   FullAccessControlManager: Provides for multiparty authorization.
 """
+from __future__ import unicode_literals
 
 import fnmatch
 import functools

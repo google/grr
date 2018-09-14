@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Unit test for check definitions."""
+from __future__ import unicode_literals
 
 import glob
 import os

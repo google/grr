@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr_response_server.aff4_objects.standard."""
+from __future__ import unicode_literals
 
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -57,7 +58,7 @@ class AFF4SparseImageTest(aff4_test_lib.AFF4ObjectTest):
 
     chunk_number = 0
     # 1024 characters.
-    blob_contents = "A" * fd.chunksize
+    blob_contents = b"A" * fd.chunksize
     blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
 
     fd.AddBlob(
@@ -72,7 +73,7 @@ class AFF4SparseImageTest(aff4_test_lib.AFF4ObjectTest):
     self.assertChunkEqual(fd, chunk_number, blob_contents)
 
     # Change the contents of the blob.
-    blob_contents = "B" * fd.chunksize
+    blob_contents = b"B" * fd.chunksize
     blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
 
     # This time we're updating the blob.
@@ -154,7 +155,7 @@ class AFF4SparseImageTest(aff4_test_lib.AFF4ObjectTest):
     fd.Seek((start_chunk + num_chunks) * fd.chunksize)
     # We should get the empty string back.
 
-    self.assertEqual(fd.Read(10000), "")
+    self.assertEqual(fd.Read(10000), b"")
 
     # Seek to before our chunks start.
     fd.Seek((start_chunk - 1) * fd.chunksize)

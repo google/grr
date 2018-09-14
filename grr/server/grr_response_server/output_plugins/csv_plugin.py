@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """CSV single-pass output plugin."""
-
+from __future__ import unicode_literals
 
 import os
 import zipfile

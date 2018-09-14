@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Cron job to process hunt results.
 """
+from __future__ import unicode_literals
 
 import logging
 

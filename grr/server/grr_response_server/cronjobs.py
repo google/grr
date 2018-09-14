@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Cron Job objects that get stored in the relational db."""
+from __future__ import unicode_literals
 
 import abc
 import logging

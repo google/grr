@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for package source checks."""
+from __future__ import unicode_literals
 
 
 from grr_response_core.lib import flags
@@ -54,7 +55,7 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
               https://dl.google.com
             Suite: testing
             Section: main contrib
-            """
+            """,
     }
 
     chk_id = "CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT"
@@ -108,7 +109,7 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
             [centosdvdiso]
             name=CentOS DVD ISO
             baseurl=file:///mnt/
-            """
+            """,
     }
 
     chk_id = "CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT"

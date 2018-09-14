@@ -32,6 +32,10 @@ def FileFinderOSFromClient(args):
 
   for path in _GetExpandedPaths(args):
     try:
+      for content_condition in _ParseContentConditions(args):
+        result = list(content_condition.Search(path))
+        if not result:
+          raise _SkipFileException()
       stat = stat_cache.Get(path, follow_symlink=opts.resolve_links)
       stat_entry = client_utils.StatEntryFromStatPathSpec(
           stat, ext_attrs=opts.collect_ext_attrs)

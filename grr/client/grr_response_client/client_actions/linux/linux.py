@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import ctypes
 import ctypes.util
 import glob
+import io
 import os
 import pwd
 import time
@@ -263,47 +264,56 @@ class EnumerateUsers(actions.ActionPlugin):
       self.SendReply(res)
 
 
+ACCEPTABLE_FILESYSTEMS = {
+    "ext2",
+    "ext3",
+    "ext4",
+    "vfat",
+    "ntfs",
+    "btrfs",
+    "Reiserfs",
+    "XFS",
+    "JFS",
+    "squashfs",
+}
+
+
+def CheckMounts(filename):
+  """Parses the currently mounted devices."""
+  with io.open(filename, "rb") as fd:
+    for line in fd:
+      try:
+        device, mnt_point, fs_type, _ = line.split(" ", 3)
+      except ValueError:
+        continue
+      if fs_type in ACCEPTABLE_FILESYSTEMS:
+        if os.path.exists(device):
+          yield device, fs_type, mnt_point
+
+
+def EnumerateFilesystemsFromClient(args):
+  """List all the filesystems mounted on the system."""
+  del args  # Unused.
+
+  filenames = ["/proc/mounts", "/etc/mtab"]
+
+  for filename in filenames:
+    for device, fs_type, mnt_point in CheckMounts(filename):
+      yield rdf_client_fs.Filesystem(
+          mount_point=mnt_point, type=fs_type, device=device)
+
+
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system.
 
   Filesystems picked from:
     https://www.kernel.org/doc/Documentation/filesystems/
   """
-  acceptable_filesystems = set([
-      "ext2", "ext3", "ext4", "vfat", "ntfs", "btrfs", "Reiserfs", "XFS", "JFS",
-      "squashfs"
-  ])
   out_rdfvalues = [rdf_client_fs.Filesystem]
 
-  def CheckMounts(self, filename):
-    """Parses the currently mounted devices."""
-    # This handles the case where the same filesystem is mounted on
-    # multiple places.
-    with open(filename, "rb") as fd:
-      for line in fd:
-        try:
-          device, mnt_point, fs_type, _ = line.split(" ", 3)
-          if fs_type in self.acceptable_filesystems:
-            try:
-              os.stat(device)
-              self.devices[device] = (fs_type, mnt_point)
-            except OSError:
-              pass
-
-        except ValueError:
-          pass
-
-  def Run(self, unused_args):
-    """List all the filesystems mounted on the system."""
-    self.devices = {}
-    # For now we check all the mounted filesystems.
-    self.CheckMounts("/proc/mounts")
-    self.CheckMounts("/etc/mtab")
-
-    for device, (fs_type, mnt_point) in iteritems(self.devices):
-      self.SendReply(
-          rdf_client_fs.Filesystem(
-              mount_point=mnt_point, type=fs_type, device=device))
+  def Run(self, args):
+    for res in EnumerateFilesystemsFromClient(args):
+      self.SendReply(res)
 
 
 class EnumerateRunningServices(actions.ActionPlugin):

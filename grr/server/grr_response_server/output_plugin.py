@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Output plugins used by flows and hunts for results exports."""
+from __future__ import unicode_literals
 
 import abc
 import logging

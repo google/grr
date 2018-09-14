@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """RDF values for representing stats in the data-store."""
+from __future__ import unicode_literals
 
 
 from grr_response_core.lib import stats

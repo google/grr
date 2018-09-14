@@ -2116,3 +2116,7 @@ def IterValuesInSortedKeysOrder(d):
 
   for key in sorted(iterkeys(d)):
     yield d[key]
+
+
+def RegexListDisjunction(regex_list):
+  return "(" + ")|(".join(regex_list) + ")"

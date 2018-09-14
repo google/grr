@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The base class for flow objects."""
+from __future__ import unicode_literals
 
 import logging
 import sys

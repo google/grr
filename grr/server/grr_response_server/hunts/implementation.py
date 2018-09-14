@@ -6,6 +6,7 @@ of clients, managing these flows, collecting and presenting the combined results
 of all these flows.
 """
 from __future__ import division
+from __future__ import unicode_literals
 
 import logging
 import threading

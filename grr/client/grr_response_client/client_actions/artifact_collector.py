@@ -15,6 +15,7 @@ from grr_response_client.client_actions import standard
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser as parser_lib
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
 # The client artifact collector parses the responses on the client. So the
 # parsers have to be loaded for the results to be processed.
 # pylint: disable=unused-import
@@ -155,9 +156,9 @@ class ArtifactCollector(actions.ActionPlugin):
     type_name = rdf_artifacts.ArtifactSource.SourceType
     switch = {
         type_name.COMMAND: self._ProcessCommandSource,
-        type_name.DIRECTORY: _NotImplemented,
+        type_name.DIRECTORY: self._ProcessFileSource,
         type_name.FILE: self._ProcessFileSource,
-        type_name.GREP: _NotImplemented,
+        type_name.GREP: self._ProcessGrepSource,
         type_name.REGISTRY_KEY: _NotImplemented,
         type_name.REGISTRY_VALUE: self._ProcessRegistryValueSource,
         type_name.WMI: self._ProcessWmiSource,
@@ -173,6 +174,28 @@ class ArtifactCollector(actions.ActionPlugin):
 
     for res in source_type_action(source):
       yield res
+
+  def _ProcessGrepSource(self, source):
+    """Find files fulfilling regex conditions."""
+    attributes = source.base_source.attributes
+    paths = artifact_utils.InterpolateListKbAttributes(
+        attributes["paths"], self.knowledge_base,
+        self.ignore_interpolation_errors)
+    regex_list = artifact_utils.InterpolateListKbAttributes(
+        attributes["content_regex_list"], self.knowledge_base,
+        self.ignore_interpolation_errors)
+    regex = utils.RegexListDisjunction(regex_list)
+    condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
+        regex=regex, mode="ALL_HITS")
+    file_finder_action = rdf_file_finder.FileFinderAction.Stat()
+    request = rdf_file_finder.FileFinderArgs(
+        paths=paths,
+        action=file_finder_action,
+        conditions=[condition],
+        follow_links=True)
+    action = file_finder.FileFinderOSFromClient
+
+    yield action, request
 
   def _ProcessArtifactFilesSource(self, source):
     """Get artifact responses, extract paths and send corresponding files."""
@@ -202,16 +225,14 @@ class ArtifactCollector(actions.ActionPlugin):
     yield action, request
 
   def _ProcessFileSource(self, source):
-    """Prepare a request for the client file finder."""
+    """Glob paths and return StatEntry objects."""
 
     if source.path_type != rdf_paths.PathSpec.PathType.OS:
       raise ValueError("Only supported path type is OS.")
 
-    paths = []
-    for path in source.base_source.attributes["paths"]:
-      paths.extend(
-          artifact_utils.InterpolateKbAttributes(
-              path, self.knowledge_base, self.ignore_interpolation_errors))
+    paths = artifact_utils.InterpolateListKbAttributes(
+        source.base_source.attributes["paths"], self.knowledge_base,
+        self.ignore_interpolation_errors)
 
     file_finder_action = rdf_file_finder.FileFinderAction.Stat()
     request = rdf_file_finder.FileFinderArgs(
@@ -235,8 +256,6 @@ class ArtifactCollector(actions.ActionPlugin):
       yield action, request
 
   def _ProcessClientActionSource(self, source):
-    # TODO(user): Add support for remaining client actions
-    # EnumerateFilesystems and OSXEnumerateRunningServices
 
     request = {}
     action_name = source.base_source.attributes["client_action"]
@@ -257,8 +276,8 @@ class ArtifactCollector(actions.ActionPlugin):
     elif action_name == "EnumerateUsers":
       action = operating_system.EnumerateUsersFromClient
 
-    # elif action_name == "EnumerateFilesystems":
-    #   action = operating_system.EnumerateFilesystemsFromClient
+    elif action_name == "EnumerateFilesystems":
+      action = operating_system.EnumerateFilesystemsFromClient
 
     elif action_name == "StatFS":
       action = standard.StatFSFromClient
@@ -269,8 +288,8 @@ class ArtifactCollector(actions.ActionPlugin):
       request = rdf_client_action.StatFSRequest(
           path_list=paths, pathtype=source.path_type)
 
-    # elif action_name == "OSXEnumerateRunningServices":
-    #   action = operating_system.OSXEnumerateRunningServicesFromClient
+    elif action_name == "OSXEnumerateRunningServices":
+      action = operating_system.EnumerateRunningServices
 
     else:
       raise ValueError("Incorrect action type: %s" % action_name)
@@ -347,15 +366,14 @@ def ParseSingleResponse(parser_obj, response, knowledge_base, path_type):
   elif isinstance(parser_obj, parser_lib.WMIQueryParser):
     # At the moment no WMIQueryParser actually uses the passed arguments query
     # and knowledge_base.
-    result_iterator = parse(None, response, None)
+    result_iterator = parse(response)
   elif isinstance(parser_obj, parser_lib.FileParser):
     file_obj = vfs.VFSOpen(response.pathspec)
     stat = rdf_client_fs.StatEntry(pathspec=response.pathspec)
     result_iterator = parse(stat, file_obj, None)
   elif isinstance(parser_obj,
                   (parser_lib.RegistryParser, parser_lib.RekallPluginParser,
-                   parser_lib.RegistryValueParser, parser_lib.GrepParser,
-                   parser_lib.GenericResponseParser)):
+                   parser_lib.RegistryValueParser, parser_lib.GrepParser)):
     result_iterator = parse(response, knowledge_base)
   elif isinstance(parser_obj, parser_lib.ArtifactFilesParser):
     result_iterator = parse(response, knowledge_base, path_type)

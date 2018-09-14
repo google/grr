@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """REL_DB-based file store implementation."""
-
 from __future__ import unicode_literals
 
 import abc

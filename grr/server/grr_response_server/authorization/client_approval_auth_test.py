@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.server.authorization.client_approval_auth."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client

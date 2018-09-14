@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Tests for fleetspeak_utils module."""
-
 from __future__ import division
+from __future__ import unicode_literals
 
 import mock
 

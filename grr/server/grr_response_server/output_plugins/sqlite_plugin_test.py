@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the SQLite instant output plugin."""
+from __future__ import unicode_literals
 
 import datetime
 import os
@@ -124,7 +125,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     schema = self.plugin._GetSqliteSchema(SqliteTestStruct)
     test_struct = SqliteTestStruct(
         string_field="string_value",
-        bytes_field="bytes_value",
+        bytes_field=b"bytes_value",
         uint_field=123,
         int_field=456,
         float_field=0.123,
@@ -145,7 +146,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         sql_dict,
         {
             "string_field": "string_value",
-            "bytes_field": "bytes_value",
+            "bytes_field": b"bytes_value",
             "uint_field": 123,
             "int_field": 456,
             "float_field": 0.123,

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Map the conditions that trigger checks to the methods that perform them."""
+from __future__ import unicode_literals
+
 import itertools
 
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Load all aff4 objects in order to populate the registry.
 """
+from __future__ import unicode_literals
+
 # pylint: disable=unused-import
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import collects

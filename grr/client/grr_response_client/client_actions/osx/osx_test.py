@@ -67,8 +67,7 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
     osx_version_mock.return_value = version_value_mock
 
     with mock.patch.object(
-        self.osx.OSXEnumerateRunningServices,
-        "GetRunningLaunchDaemons") as get_running_launch_daemons_mock:
+        self.osx, "GetRunningLaunchDaemons") as get_running_launch_daemons_mock:
       with mock.patch.object(self.osx.OSXEnumerateRunningServices,
                              "SendReply") as send_reply_mock:
 
@@ -95,8 +94,7 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
     osx_version_mock.return_value = version_value_mock
 
     with mock.patch.object(
-        self.osx.OSXEnumerateRunningServices,
-        "GetRunningLaunchDaemons") as get_running_launch_daemons_mock:
+        self.osx, "GetRunningLaunchDaemons") as get_running_launch_daemons_mock:
       with mock.patch.object(self.osx.OSXEnumerateRunningServices,
                              "SendReply") as send_reply_mock:
 

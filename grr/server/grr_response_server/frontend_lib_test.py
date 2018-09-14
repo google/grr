@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for frontend server, client communicator, and the GRRHTTPClient."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import array
 import logging
@@ -1159,7 +1160,10 @@ class HTTPClientTests(test_lib.GRRBaseTest):
           # This converts encryption keys to a string so we can corrupt them.
           field_data = field_data.SerializeToString()
 
-        modified_data = array.array("c", field_data)
+        # TODO(hanuszczak): On Python 2.7.6 and lower `array.array` accepts only
+        # bytestrings as argument so the call below is necessary. Once support
+        # for old Python versions is dropped, this call should be removed.
+        modified_data = array.array(str("c"), field_data)
         offset = len(field_data) // 2
         char = field_data[offset]
         modified_data[offset] = chr((ord(char) % 250) + 1).encode("latin-1")

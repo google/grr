@@ -4,6 +4,7 @@
 This contains an AFF4 data model implementation.
 """
 from __future__ import division
+from __future__ import unicode_literals
 
 import __builtin__
 import abc
@@ -445,7 +446,8 @@ class Factory(object):
     Returns:
        A key into the cache.
     """
-    return "%s:%s" % (utils.SmartStr(urn), self.ParseAgeSpecification(age))
+    utils.AssertType(urn, unicode)
+    return "%s:%s" % (urn, self.ParseAgeSpecification(age))
 
   def CreateWithLock(self,
                      urn,
@@ -2682,7 +2684,7 @@ class AFF4MemoryStream(AFF4MemoryStreamBase):
         "aff4:content",
         rdfvalue.RDFBytes,
         "Total content of this file.",
-        default="")
+        default=b"")
 
 
 class AFF4UnversionedMemoryStream(AFF4MemoryStreamBase):
@@ -2693,7 +2695,7 @@ class AFF4UnversionedMemoryStream(AFF4MemoryStreamBase):
         "aff4:content",
         rdfvalue.RDFBytes,
         "Total content of this file.",
-        default="",
+        default=b"",
         versioned=False)
 
 
@@ -2955,7 +2957,7 @@ class AFF4ImageBase(AFF4Stream):
 
   def Read(self, length):
     """Read a block of data from the file."""
-    result = ""
+    result = b""
 
     # The total available size in the file
     length = int(length)
@@ -2988,9 +2990,9 @@ class AFF4ImageBase(AFF4Stream):
     return data[available_to_write:]
 
   def Write(self, data):
+    utils.AssertType(data, bytes)
+
     self._dirty = True
-    if isinstance(data, unicode):
-      raise IOError("Cannot write unencoded string.")
     while data:
       data = self._WritePartial(data)
 

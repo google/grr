@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Client label approvals authorization manager."""
+from __future__ import unicode_literals
 
 from grr_response_core import config
 from grr_response_core.lib import registry

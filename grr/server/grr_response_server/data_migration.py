@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Helper class to migrate data."""
-
 from __future__ import division
+from __future__ import unicode_literals
 
 from multiprocessing import pool
 import sys

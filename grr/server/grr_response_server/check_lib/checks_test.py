@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for checks."""
+from __future__ import unicode_literals
+
 import os
 
 
@@ -52,7 +54,7 @@ def GetWMIData():
   with open(test_data, "rb") as f:
     wmi = yaml.safe_load(f)
     for sw in wmi:
-      WMI_SW.extend(parser.Parse(None, sw, None))
+      WMI_SW.extend(parser.Parse(sw))
 
 
 def GetSSHDConfig():

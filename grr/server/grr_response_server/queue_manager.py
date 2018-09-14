@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This is the manager for the various queues."""
+from __future__ import unicode_literals
 
 import collections
 import logging

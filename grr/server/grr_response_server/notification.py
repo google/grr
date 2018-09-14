@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Module containing code for user notifications reading/writing."""
+from __future__ import unicode_literals
 
 import logging
 

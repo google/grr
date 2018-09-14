@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """These are standard aff4 objects."""
 from __future__ import division
+from __future__ import unicode_literals
 
 import io
 
@@ -240,7 +241,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
       length -= len(data)
       result.append(data)
 
-    return "".join(result)
+    return b"".join(result)
 
   def Initialize(self):
     super(AFF4SparseImage, self).Initialize()

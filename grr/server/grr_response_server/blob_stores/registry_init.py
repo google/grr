@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Load all blob stores so that they are visible in the registry."""
+from __future__ import unicode_literals
 
 # pylint: disable=g-import-not-at-top,unused-import
 
