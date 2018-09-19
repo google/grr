@@ -501,7 +501,7 @@ class FlowBase(with_metaclass(registry.AFF4FlowRegistry, aff4.AFF4Volume)):
 
   def NotifyAboutEnd(self):
     """Send out a final notification about the end of this flow."""
-    if not self.runner.ShouldSendNotifications():
+    if not self.GetRunner().ShouldSendNotifications():
       return
 
     flow_ref = None
@@ -511,8 +511,7 @@ class FlowBase(with_metaclass(registry.AFF4FlowRegistry, aff4.AFF4Volume)):
 
     num_results = len(self.ResultCollection())
     notification_lib.Notify(
-        self.token.username,
-        rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+        self.creator, rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
         "Flow %s completed with %d %s" % (self.__class__.__name__, num_results,
                                           num_results == 1 and "result" or
                                           "results"),
@@ -521,7 +520,7 @@ class FlowBase(with_metaclass(registry.AFF4FlowRegistry, aff4.AFF4Volume)):
             flow=flow_ref))
 
   def ShouldSendNotifications(self):
-    return self.runner.ShouldSendNotifications()
+    return self.GetRunner().ShouldSendNotifications()
 
   def Terminate(self, status=None):
     self.NotifyAboutEnd()
@@ -533,7 +532,7 @@ class FlowBase(with_metaclass(registry.AFF4FlowRegistry, aff4.AFF4Volume)):
     the flow a chance to clean up.
 
     Args:
-      responses: An flow_responses.Responses object.
+      responses: A flow_responses.Responses object.
     """
 
   def Start(self):
@@ -566,6 +565,10 @@ class FlowBase(with_metaclass(registry.AFF4FlowRegistry, aff4.AFF4Volume)):
   @property
   def session_id(self):
     return self.context.session_id
+
+  @property
+  def creator(self):
+    return self.context.creator
 
   def Log(self, format_str, *args):
     """Logs the message using the flow's standard logging.
@@ -805,12 +808,8 @@ class GRRFlow(FlowBase):
     return self.__class__.__name__
 
   @property
-  def creator(self):
-    return self.token.username
-
-  @property
   def outstanding_requests(self):
-    return self.runner.OutstandingRequests()
+    return self.GetRunner().OutstandingRequests()
 
   @classmethod
   def MarkForTermination(cls, flow_urn, reason=None, mutation_pool=None):
