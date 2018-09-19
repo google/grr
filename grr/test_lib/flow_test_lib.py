@@ -3,6 +3,7 @@
 
 import logging
 import pdb
+import sys
 
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -577,7 +578,44 @@ def RunFlow(client_id,
     for client_id, flow_id in all_processed_flows:
       rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
       if rdf_flow.flow_state != rdf_flow.FlowState.FINISHED:
-        raise RuntimeError("Flow %s on %s completed in state %s" %
-                           (flow_id, client_id, unicode(rdf_flow.flow_state)))
+        raise RuntimeError(
+            "Flow %s on %s completed in state %s (error message: %s)" %
+            (flow_id, client_id, unicode(rdf_flow.flow_state),
+             rdf_flow.error_message))
 
   return flow_id
+
+
+def GetFlowResults(client_id, flow_id):
+  """Gets flow results for a given flow.
+
+  Args:
+    client_id: String with a client id or a ClientURN.
+    flow_id: String with a flow_id or an URN.
+
+  Returns:
+    List with flow results values (i.e. with payloads).
+  """
+  if isinstance(client_id, rdfvalue.RDFURN):
+    client_id = client_id.Basename()
+
+  if isinstance(flow_id, rdfvalue.RDFURN):
+    flow_id = flow_id.Basename()
+
+  if not data_store.RelationalDBFlowsEnabled():
+    coll = flow.GRRFlow.ResultCollectionForFID(
+        rdf_client.ClientURN(client_id).Add("flows").Add(flow_id))
+    return list(coll.GenerateItems())
+  else:
+    results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
+                                                sys.maxsize)
+    return [r.payload for r in results]
+
+
+def GetFlowResultsByTag(client_id, flow_id):
+  utils.AssertType(client_id, unicode)
+  utils.AssertType(flow_id, unicode)
+
+  results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
+                                              sys.maxsize)
+  return {r.tag or "": r.payload for r in results}

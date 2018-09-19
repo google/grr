@@ -44,7 +44,9 @@
 @import 'grr/server/grr_response_server/gui/static/angular-components/forms/semantic-proto-form';
 @import 'grr/server/grr_response_server/gui/static/angular-components/forms/semantic-proto-union-form';
 @import 'grr/server/grr_response_server/gui/static/angular-components/hunt/hunt-graph';
+@import 'grr/server/grr_response_server/gui/static/angular-components/hunt/hunt-overview';
 @import 'grr/server/grr_response_server/gui/static/angular-components/hunt/new-hunt-wizard/configure-flow-page';
+@import 'grr/server/grr_response_server/gui/static/angular-components/hunt/new-hunt-wizard/review-page';
 @import 'grr/server/grr_response_server/gui/static/angular-components/semantic/rekall/rekall';
 @import 'grr/server/grr_response_server/gui/static/angular-components/semantic/semantic-diff-annotated-proto';
 @import 'grr/server/grr_response_server/gui/static/angular-components/semantic/semantic-versioned-proto';

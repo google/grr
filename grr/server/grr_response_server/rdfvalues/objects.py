@@ -656,3 +656,18 @@ class BlobReferences(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       BlobReference,
   ]
+
+
+class SerializedValueOfUnrecognizedType(rdf_structs.RDFProtoStruct):
+  """Class used to represent objects that can't be deserialized properly.
+
+  When deserializing certain objects stored in the database (FlowResults, for
+  example), we don't want to fail hard if for some reason the type of the value
+  is unknown and can no longer be found in the system. When this happens,
+  SerializedValueOfUnrecognizedType is used as a stub. This way, affected
+  API calls won't simply fail and raise, but will rather return all the results
+  they can and the user will be able to fetch the data, albeit in serialized
+  form.
+  """
+  protobuf = objects_pb2.SerializedValueOfUnrecognizedType
+  rdf_deps = []

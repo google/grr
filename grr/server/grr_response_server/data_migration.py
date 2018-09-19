@@ -335,14 +335,12 @@ class ClientVfsMigrator(object):
   Attributes:
     thread_count: A number of threads to use to perform the migration.
     client_batch_size: A size of a batch into which all client URNs to migrate
-                       are divided into.
+      are divided into.
     init_vfs_group_size: An upper bound for a size of a group into which VFS
-                         URNs of a particular batch are divided into to perform
-                         path initialization (clearing any old entries and
-                         writing latest known information).
+      URNs of a particular batch are divided into to perform path initialization
+      (clearing any old entries and writing latest known information).
     history_vfs_group_size: A size of a group into which VFS URNs of a
-                            particular batch are divided into to write the
-                            history information.
+      particular batch are divided into to write the history information.
   """
 
   def __init__(self):
@@ -561,10 +559,14 @@ class BlobsMigrator(object):
     sys.stdout.write(message)
     sys.stdout.flush()
 
-  def Execute(self, thread_count):
+  def Execute(self, thread_count, urns=None):
     """Runs the migration with a given thread count."""
 
-    blob_urns = list(aff4.FACTORY.ListChildren("aff4:/blobs"))
+    if urns is None:
+      blob_urns = list(aff4.FACTORY.ListChildren("aff4:/blobs"))
+    else:
+      blob_urns = [rdfvalue.RDFURN(urn) for urn in urns]
+
     sys.stdout.write("Blobs to migrate: {}\n".format(len(blob_urns)))
     sys.stdout.write("Threads to use: {}\n".format(thread_count))
 

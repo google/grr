@@ -50,6 +50,20 @@ class FlowStatus(FlowMessage, rdf_structs.RDFProtoStruct):
   ]
 
 
+class FlowResult(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.FlowResult
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
+
+
+class FlowLogEntry(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.FlowLogEntry
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
+
+
 class Flow(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.Flow
   rdf_deps = [

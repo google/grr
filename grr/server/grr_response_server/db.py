@@ -1565,6 +1565,116 @@ class Database(with_metaclass(abc.ABCMeta, object)):
   def UnregisterFlowProcessingHandler(self):
     """Unregisters any registered flow processing handler."""
 
+  @abc.abstractmethod
+  def WriteFlowResults(self, client_id, flow_id, results):
+    """Writes flow results for a given flow.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to write results for.
+      results: An iterable with FlowLogResult rdfvalues.
+    """
+
+  @abc.abstractmethod
+  def ReadFlowResults(self,
+                      client_id,
+                      flow_id,
+                      offset,
+                      count,
+                      with_tag=None,
+                      with_type=None,
+                      with_substring=None):
+    """Reads flow results of a given flow using given query options.
+
+    If both with_tag and with_type and/or with_substring arguments are provided,
+    they will be applied using AND boolean operator.
+
+    Args:
+      client_id: The client id on which this flow is running.
+      flow_id: The id of the flow to read results for.
+      offset: An integer specifying an offset to be used when reading results.
+        "offset" is applied after with_tag/with_type/with_substring filters are
+        applied.
+      count: Number of results to read. "count" is applied after
+        with_tag/with_type/with_substring filters are applied.
+      with_tag: (Optional) When specified, should be a string. Only results
+        having specified tag will be returned.
+      with_type: (Optional) When specified, should be a string. Only results of
+        a specified type will be returned.
+      with_substring: (Optional) When specified, should be a string. Only
+        results having the specified string as a substring in their serialized
+        form will be returned.
+
+    Returns:
+      A list of FlowResult values sorted by timestamp in ascending order.
+    """
+
+  @abc.abstractmethod
+  def CountFlowResults(self, client_id, flow_id, with_tag=None, with_type=None):
+    """Counts flow results of a given flow using given query options.
+
+    If both with_tag and with_type arguments are provided, they will be applied
+    using AND boolean operator.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to count results for.
+      with_tag: (Optional) When specified, should be a string. Only results
+        having specified tag will be accounted for.
+      with_type: (Optional) When specified, should be a string. Only results of
+        a specified type will be accounted for.
+
+    Returns:
+      A number of flow results of a given flow matching given query options.
+    """
+
+  @abc.abstractmethod
+  def WriteFlowLogEntries(self, client_id, flow_id, entries):
+    """Writes flow log entries for a given flow.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to write log entries for.
+      entries: An iterable of FlowLogEntry values.
+    """
+
+  @abc.abstractmethod
+  def ReadFlowLogEntries(self,
+                         client_id,
+                         flow_id,
+                         offset,
+                         count,
+                         with_substring=None):
+    """Reads flow log entries of a given flow using given query options.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to read log entries for.
+      offset: An integer specifying an offset to be used when reading log
+        entries. "offset" is applied after the with_substring filter is applied
+        (if specified).
+      count: Number of log entries to read. "count" is applied after the
+        with_substring filter is applied (if specified).
+      with_substring: (Optional) When specified, should be a string. Only log
+        entries having the specified string as a message substring will be
+        returned.
+
+    Returns:
+      A list of FlowLogEntry values sorted by timestamp in ascending order.
+    """
+
+  @abc.abstractmethod
+  def CountFlowLogEntries(self, client_id, flow_id):
+    """Returns number of flow log entries of a given flow.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to count log entries for.
+
+    Returns:
+      Number of flow log entries of a given flow.
+    """
+
 
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
@@ -2226,6 +2336,89 @@ class DatabaseValidationWrapper(Database):
 
   def UnregisterFlowProcessingHandler(self):
     return self.delegate.UnregisterFlowProcessingHandler()
+
+  def WriteFlowResults(self, client_id, flow_id, results):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    utils.AssertIterableType(results, rdf_flow_objects.FlowResult)
+
+    return self.delegate.WriteFlowResults(client_id, flow_id, results)
+
+  def ReadFlowResults(self,
+                      client_id,
+                      flow_id,
+                      offset,
+                      count,
+                      with_tag=None,
+                      with_type=None,
+                      with_substring=None):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+
+    if with_tag is not None:
+      utils.AssertType(with_tag, unicode)
+
+    if with_type is not None:
+      utils.AssertType(with_type, unicode)
+
+    if with_substring is not None:
+      utils.AssertType(with_substring, unicode)
+
+    return self.delegate.ReadFlowResults(
+        client_id,
+        flow_id,
+        offset,
+        count,
+        with_tag=with_tag,
+        with_type=with_type,
+        with_substring=with_substring)
+
+  def CountFlowResults(
+      self,
+      client_id,
+      flow_id,
+      with_tag=None,
+      with_type=None,
+  ):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+
+    if with_tag is not None:
+      utils.AssertType(with_tag, unicode)
+
+    if with_type is not None:
+      utils.AssertType(with_type, unicode)
+
+    return self.delegate.CountFlowResults(
+        client_id, flow_id, with_tag=with_tag, with_type=with_type)
+
+  def WriteFlowLogEntries(self, client_id, flow_id, entries):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    utils.AssertIterableType(entries, rdf_flow_objects.FlowLogEntry)
+
+    return self.delegate.WriteFlowLogEntries(client_id, flow_id, entries)
+
+  def ReadFlowLogEntries(self,
+                         client_id,
+                         flow_id,
+                         offset,
+                         count,
+                         with_substring=None):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+
+    if with_substring is not None:
+      utils.AssertType(with_substring, unicode)
+
+    return self.delegate.ReadFlowLogEntries(
+        client_id, flow_id, offset, count, with_substring=with_substring)
+
+  def CountFlowLogEntries(self, client_id, flow_id):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+
+    return self.delegate.CountFlowLogEntries(client_id, flow_id)
 
 
 def _ValidateEnumType(value, expected_enum_type):

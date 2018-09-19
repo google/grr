@@ -27,8 +27,6 @@ from grr_response_server import aff4
 from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
-from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import collectors
@@ -36,6 +34,7 @@ from grr_response_server.flows.general import filesystem
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
@@ -204,11 +203,7 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
         token=self.token,
         **kw)
 
-    if data_store.RelationalDBFlowsEnabled():
-      # TODO(amoser): Return results here once we store them.
-      return None
-
-    return flow.GRRFlow.ResultCollectionForFID(session_id)
+    return flow_test_lib.GetFlowResults(client_id, session_id)
 
 
 class GRRArtifactTest(ArtifactTest):
@@ -402,7 +397,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
           artifact_list=["TestCmdArtifact"],
           token=self.token)
 
-    results = flow.GRRFlow.ResultCollectionForFID(session_id)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertEqual(len(results), 3)
     packages = [p for p in results if isinstance(p, rdf_client.SoftwarePackage)]
     self.assertEqual(len(packages), 2)
@@ -415,20 +410,18 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     """Check GetFiles artifacts."""
     client_id = test_lib.TEST_CLIENT_ID
     with vfs_test_lib.FakeTestDataVFSOverrider():
-      self.RunCollectorAndGetCollection(
-          ["TestFilesArtifact"],
-          client_mock=self.client_mock,
-          client_id=client_id)
+      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
+                                        client_mock=self.client_mock,
+                                        client_id=client_id)
       urn = client_id.Add("fs/os/").Add("var/log/auth.log")
       aff4.FACTORY.Open(urn, aff4_type=aff4_grr.VFSBlobImage, token=self.token)
 
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
     with vfs_test_lib.FakeTestDataVFSOverrider():
-      fd = self.RunCollectorAndGetCollection(
-          ["LinuxPasswdHomedirs"],
-          client_mock=self.client_mock,
-          client_id=test_lib.TEST_CLIENT_ID)
+      fd = self.RunCollectorAndGetCollection(["LinuxPasswdHomedirs"],
+                                             client_mock=self.client_mock,
+                                             client_id=test_lib.TEST_CLIENT_ID)
 
       self.assertEqual(len(fd), 5)
       self.assertItemsEqual(
@@ -448,36 +441,31 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                    vfs_test_lib.FakeTestDataVFSHandler):
       # Will raise if something goes wrong.
-      self.RunCollectorAndGetCollection(
-          ["TestFilesArtifact"],
-          client_mock=self.client_mock,
-          client_id=client_id)
+      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
+                                        client_mock=self.client_mock,
+                                        client_id=client_id)
 
       # Will raise if something goes wrong.
-      self.RunCollectorAndGetCollection(
-          ["TestFilesArtifact"],
-          client_mock=self.client_mock,
-          client_id=client_id,
-          split_output_by_artifact=True)
+      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
+                                        client_mock=self.client_mock,
+                                        client_id=client_id,
+                                        split_output_by_artifact=True)
 
       # Test the error_on_no_results option.
       with self.assertRaises(RuntimeError) as context:
         with test_lib.SuppressLogs():
-          self.RunCollectorAndGetCollection(
-              ["NullArtifact"],
-              client_mock=self.client_mock,
-              client_id=client_id,
-              split_output_by_artifact=True,
-              error_on_no_results=True)
-      if "collector returned 0 responses" not in str(context.exception):
+          self.RunCollectorAndGetCollection(["NullArtifact"],
+                                            client_mock=self.client_mock,
+                                            client_id=client_id,
+                                            split_output_by_artifact=True,
+                                            error_on_no_results=True)
+      if "collector returned 0 responses" not in context.exception.message:
         raise RuntimeError("0 responses should have been returned")
 
 
-# TODO(amoser): All these use the custom result collections in the artifact
-# collector. Enable once we write results to the relational db properly.
-# class RelFlowsArtifactFlowLinuxTest(db_test_lib.RelationalFlowsEnabledMixin,
-#                                     ArtifactFlowLinuxTest):
-#   pass
+class RelFlowsArtifactFlowLinuxTest(db_test_lib.RelationalFlowsEnabledMixin,
+                                    ArtifactFlowLinuxTest):
+  pass
 
 
 class ArtifactFlowWindowsTest(ArtifactTest):
@@ -490,8 +478,8 @@ class ArtifactFlowWindowsTest(ArtifactTest):
 
   def testWMIQueryArtifact(self):
     """Check we can run WMI based artifacts."""
-    col = self.RunCollectorAndGetCollection(
-        ["WMIInstalledSoftware"], client_id=test_lib.TEST_CLIENT_ID)
+    col = self.RunCollectorAndGetCollection(["WMIInstalledSoftware"],
+                                            client_id=test_lib.TEST_CLIENT_ID)
 
     self.assertEqual(len(col), 3)
     descriptions = [package.description for package in col]
@@ -506,10 +494,11 @@ class ArtifactFlowWindowsTest(ArtifactTest):
         "Rekall.profile_server":
             rekall_test_lib.TestRekallRepositoryProfileServer.__name__
     }):
-      fd = self.RunCollectorAndGetCollection(
-          ["RekallPsList"],
-          RekallMock(client_id, "rekall_pslist_result.dat.gz"),
-          client_id=client_id)
+      fd = self.RunCollectorAndGetCollection(["RekallPsList"],
+                                             RekallMock(
+                                                 client_id,
+                                                 "rekall_pslist_result.dat.gz"),
+                                             client_id=client_id)
 
     self.assertEqual(len(fd), 35)
     self.assertEqual(fd[0].exe, "System")
@@ -529,10 +518,11 @@ class ArtifactFlowWindowsTest(ArtifactTest):
         "Rekall.profile_server":
             rekall_test_lib.TestRekallRepositoryProfileServer.__name__
     }):
-      fd = self.RunCollectorAndGetCollection(
-          ["FullVADBinaryList"],
-          RekallMock(client_id, "rekall_vad_result.dat.gz"),
-          client_id=client_id)
+      fd = self.RunCollectorAndGetCollection(["FullVADBinaryList"],
+                                             RekallMock(
+                                                 client_id,
+                                                 "rekall_vad_result.dat.gz"),
+                                             client_id=client_id)
 
     self.assertEqual(len(fd), 1705)
     self.assertEqual(fd[0].path, u"c:\\Windows\\System32\\ntdll.dll")
@@ -542,11 +532,9 @@ class ArtifactFlowWindowsTest(ArtifactTest):
       self.assertIn(extension, ["exe", "dll", "pyd", "drv", "mui", "cpl"])
 
 
-# TODO(amoser): All these tests check for results and are therefore disabled for
-# now.
-# class RelFlowsArtifactFlowWindowsTest(db_test_lib.RelationalFlowsEnabledMixin,
-#                                       ArtifactFlowWindowsTest):
-#   pass
+class RelFlowsArtifactFlowWindowsTest(db_test_lib.RelationalFlowsEnabledMixin,
+                                      ArtifactFlowWindowsTest):
+  pass
 
 
 class GrrKbTest(ArtifactTest):
@@ -559,8 +547,7 @@ class GrrKbTest(ArtifactTest):
         token=self.token,
         **kw)
 
-    col = flow.GRRFlow.ResultCollectionForFID(session_id)
-    results = list(col)
+    results = flow_test_lib.GetFlowResults(test_lib.TEST_CLIENT_ID, session_id)
     self.assertEqual(len(results), 1)
     return results[0]
 
@@ -690,21 +677,27 @@ class GrrKbWindowsTest(GrrKbTest):
             artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             client_id=test_lib.TEST_CLIENT_ID,
-            check_flow_errors=False,
             token=self.token)
       finally:
         logging.disable(logging.NOTSET)
     return session_id
 
   def testKnowledgeBaseNoProvides(self):
-    session_id = self._RunKBIFlow(["NoProvides"])
-    flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertIn("does not have a provide", flow_obj.context.backtrace)
+    with self.assertRaises(RuntimeError) as context:
+      self._RunKBIFlow(["NoProvides"])
+
+    self.assertIn("does not have a provide", context.exception.message)
 
   def testKnowledgeBaseMultipleProvidesNoDict(self):
-    session_id = self._RunKBIFlow(["TooManyProvides"])
-    flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertIn("multiple provides clauses", flow_obj.context.backtrace)
+    with self.assertRaises(RuntimeError) as context:
+      self._RunKBIFlow(["TooManyProvides"])
+
+    self.assertIn("multiple provides clauses", context.exception.message)
+
+
+class RelGrrKbWindowsTest(db_test_lib.RelationalFlowsEnabledMixin,
+                          GrrKbWindowsTest):
+  pass
 
 
 class GrrKbLinuxTest(GrrKbTest):
@@ -780,6 +773,11 @@ class GrrKbLinuxTest(GrrKbTest):
     self.assertItemsEqual([x.username for x in kb.users], [])
 
 
+class RelGrrKbLinuxTest(db_test_lib.RelationalFlowsEnabledMixin,
+                        GrrKbLinuxTest):
+  pass
+
+
 class GrrKbDarwinTest(GrrKbTest):
 
   def setUp(self):
@@ -799,6 +797,11 @@ class GrrKbDarwinTest(GrrKbTest):
     self.assertItemsEqual([x.username for x in kb.users], ["scalzi"])
     user = kb.GetUser(username="scalzi")
     self.assertEqual(user.homedir, "/Users/scalzi")
+
+
+class RelGrrKbDarwinTest(db_test_lib.RelationalFlowsEnabledMixin,
+                         GrrKbDarwinTest):
+  pass
 
 
 def main(argv):

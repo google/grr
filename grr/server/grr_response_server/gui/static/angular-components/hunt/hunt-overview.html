@@ -49,9 +49,15 @@
       <dd ng-if="::!controller.hunt.value.client_rate">-</dd>
       <dd ng-if="::controller.hunt.value.client_rate">
         <grr-semantic-value value="::controller.hunt.value.client_rate" />
+
+        <span ng-if="::controller.hunt.value.client_rate.value === 0">
+          (<grr-rapid-hunt-status flow-name="::controller.hunt.value.flow_name.value"
+                                  flow-args="::controller.hunt.value.flow_args"
+                                  client-rate="::controller.hunt.value.client_rate.value">
+          </grr-rapid-hunt-status>)
+        </span>
       </dd>
       <br>
-
 
       <dt>Status</dt>
       <dd><grr-semantic-value value="::controller.hunt.value.state" /></dd>

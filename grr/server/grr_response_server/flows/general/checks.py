@@ -7,6 +7,7 @@ from future.utils import iteritems
 
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
@@ -18,6 +19,12 @@ from grr_response_server.flows.general import collectors
 
 class CheckFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CheckFlowArgs
+
+  # TODO(hanuszczak): Add a `use_tsk` field to the flow args because otherwise
+  # it is useless on Windows.
+  @property
+  def path_type(self):
+    return rdf_paths.PathSpec.PathType.OS
 
 
 class CheckRunner(flow.GRRFlow):
@@ -88,7 +95,7 @@ class CheckRunner(flow.GRRFlow):
     # Now parse the data and set state.
     artifact_data = self.state.host_data.get(artifact_name)
     result_iterator = artifact.ApplyParserToResponses(processor, responses,
-                                                      self, self.token)
+                                                      self)
 
     for rdf in result_iterator:
       if isinstance(rdf, rdf_anomaly.Anomaly):
@@ -119,7 +126,15 @@ class CheckRunner(flow.GRRFlow):
     for response in responses:
       if processors:
         for processor_cls in processors:
-          processor = processor_cls()
+          # TODO(hanuszczak): This is a shameful hack that should be refactored
+          # as soon as possible, see explanation of similar construct in the
+          # client-side artifact collector.
+          if issubclass(processor_cls, parser.FileParser):
+            processor = processor_cls(
+                lambda pathspec: artifact.OpenAff4File(self, pathspec))
+          else:
+            processor = processor_cls()
+
           if processor.process_together:
             # Store the response until we have them all.
             processor_name = processor.__class__.__name__

@@ -129,7 +129,16 @@ class ArtifactCollector(actions.ActionPlugin):
     multi_parsers = []
     single_parsers = []
     for parser in parsers:
-      parser_obj = parser()
+      # TODO(hanuszczak): This is absolutely disgusting and should be refactored
+      # with some kind of factory, that produces different parser instances
+      # depending whether we are on the server or on the client. Doing so would
+      # probably solve issues with this very artificial metclass registry that
+      # we have here.
+      if issubclass(parser, parser_lib.FileParser):
+        parser_obj = parser(vfs.VFSOpen)
+      else:
+        parser_obj = parser()
+
       if parser_obj.process_together:
         multi_parsers.append(parser_obj)
       else:
@@ -140,9 +149,9 @@ class ArtifactCollector(actions.ActionPlugin):
 
     for response in responses:
       for parser in single_parsers:
-        for res in ParseSingleResponse(parser, response, self.knowledge_base,
-                                       path_type):
-          parsed_responses.append(res)
+        utils.AssertType(parser, parser_lib.SingleResponseParser)
+        parsed_responses.extend(
+            parser.ParseResponse(self.knowledge_base, response, path_type))
 
     for parser in multi_parsers:
       for res in ParseMultipleResponses(parser, responses, self.knowledge_base,
@@ -335,53 +344,7 @@ class ArtifactCollector(actions.ActionPlugin):
         yield action, request
 
 
-# TODO(user): Think about a different way to call the Parse method of each
-# supported parser. If the method signature is declared in the parser subtype
-# classes then isinstance has to be used. And if it was declared in Parser then
-# every Parser would have to be changed.
-def ParseSingleResponse(parser_obj, response, knowledge_base, path_type):
-  """Call the parser for the response and yield rdf values.
-
-  Args:
-    parser_obj: An instance of the parser.
-    response: An rdf value response from a client action.
-    knowledge_base: containing information about the client.
-    path_type: Specifying whether OS or TSK paths are used.
-  Returns:
-    An iterable of rdf value responses.
-  Raises:
-    ValueError: If the requested parser is not supported.
-  """
-  parse = parser_obj.Parse
-
-  if isinstance(parser_obj, parser_lib.CommandParser):
-    result_iterator = parse(
-        cmd=response.request.cmd,
-        args=response.request.args,
-        stdout=response.stdout,
-        stderr=response.stderr,
-        return_val=response.exit_status,
-        time_taken=response.time_used,
-        knowledge_base=knowledge_base)
-  elif isinstance(parser_obj, parser_lib.WMIQueryParser):
-    # At the moment no WMIQueryParser actually uses the passed arguments query
-    # and knowledge_base.
-    result_iterator = parse(response)
-  elif isinstance(parser_obj, parser_lib.FileParser):
-    file_obj = vfs.VFSOpen(response.pathspec)
-    stat = rdf_client_fs.StatEntry(pathspec=response.pathspec)
-    result_iterator = parse(stat, file_obj, None)
-  elif isinstance(parser_obj,
-                  (parser_lib.RegistryParser, parser_lib.RekallPluginParser,
-                   parser_lib.RegistryValueParser, parser_lib.GrepParser)):
-    result_iterator = parse(response, knowledge_base)
-  elif isinstance(parser_obj, parser_lib.ArtifactFilesParser):
-    result_iterator = parse(response, knowledge_base, path_type)
-  else:
-    raise ValueError("Unsupported parser: %s" % parser_obj)
-  return result_iterator
-
-
+# TODO(hanuszczak): Apply the same treatment as for single response parsing.
 def ParseMultipleResponses(parser_obj, responses, knowledge_base, path_type):
   """Call the parser for the responses and yield rdf values.
 

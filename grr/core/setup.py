@@ -36,8 +36,8 @@ def find_data_files(source, ignore_dirs=None):
 def sync_artifacts():
   """Sync the artifact repo with upstream for distribution."""
 
-  subprocess.check_call(
-      ["python", "makefile.py"], cwd="grr_response_core/artifacts")
+  subprocess.check_call(["python", "makefile.py"],
+                        cwd="grr_response_core/artifacts")
 
 
 def get_config():
@@ -110,6 +110,7 @@ setup_args = dict(
     url="https://github.com/google/grr",
     maintainer="GRR Development Team",
     maintainer_email="grr-dev@googlegroups.com",
+    python_requires=">=2.7.11",
     packages=find_packages(),
     zip_safe=False,
     include_package_data=True,
@@ -129,7 +130,6 @@ setup_args = dict(
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
         "ipython==5.0.0",
-        "future==0.16.0",
         "pip>=8.1.1",
         "psutil==5.4.3",
         "python-crontab==2.0.1",

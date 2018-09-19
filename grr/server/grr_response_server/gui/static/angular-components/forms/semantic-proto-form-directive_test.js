@@ -56,13 +56,15 @@ describe('semantic proto form directive', () => {
   };
 
   describe('form for structure with 3 primitive fields', () => {
-    const defaultFooStructValue = {
-      type: 'Foo',
-      mro: ['Foo', 'RDFProtoStruct'],
-      value: {},
-    };
+    let defaultFooStructValue;
 
     beforeEach(() => {
+      defaultFooStructValue = {
+        type: 'Foo',
+        mro: ['Foo', 'RDFProtoStruct'],
+        value: {},
+      };
+
       // Reflection service is a mock. Stub out the getRDFValueDescriptor method
       // and return a promise with the reflection data.
       const data = {
@@ -294,6 +296,115 @@ describe('semantic proto form directive', () => {
           type: 'PrimitiveType',
           value: '42',
         },
+      });
+    });
+
+    it('updates fields when value.field_1 is changed externally', () => {
+      const fooValue = defaultFooStructValue;
+      const element = renderTestTemplate(fooValue);
+
+      let field = element.find('grr-form-proto-single-field:nth(0)');
+      let fieldValue = field.scope().$eval(field.attr('value'));
+      expect(fieldValue['value']).toBe('');
+
+      fooValue['value']['field_1'] = {
+        type: 'PrimitiveType',
+        value: 'foo',
+      };
+
+      $rootScope.$apply();
+
+      field = element.find('grr-form-proto-single-field:nth(0)');
+      fieldValue = field.scope().$eval(field.attr('value'));
+      expect(fieldValue).toEqual({
+        type: 'PrimitiveType',
+        value: 'foo',
+      });
+    });
+
+    it('with set fields: updates only changed on external change', () => {
+      const fooValue = defaultFooStructValue;
+      fooValue['value']['field_1'] = {
+        type: 'PrimitiveType',
+        value: 'foo',
+      };
+      fooValue['value']['field_2'] = {
+        type: 'PrimitiveType',
+        value: 'bar',
+      };
+      const element = renderTestTemplate(fooValue);
+
+      const field1 = element.find('grr-form-proto-single-field:nth(0)');
+      const field2 = element.find('grr-form-proto-single-field:nth(1)');
+      const field1Value = field1.scope().$eval(field1.attr('value'));
+      const field2Value = field2.scope().$eval(field2.attr('value'));
+
+      fooValue['value']['field_1'] = {
+        type: 'PrimitiveType',
+        value: 'fooNew',
+      };
+
+      $rootScope.$apply();
+
+      const field1New = element.find('grr-form-proto-single-field:nth(0)');
+      const field2New = element.find('grr-form-proto-single-field:nth(1)');
+      const field1ValueNew = field1New.scope().$eval(field1New.attr('value'));
+      const field2ValueNew = field2New.scope().$eval(field2New.attr('value'));
+
+      // Only field1 value has to actually change since the field got
+      // updated. field2 should simply stay the same.
+      expect(field1ValueNew).not.toBe(field1Value);
+      expect(field2ValueNew).toBe(field2Value);
+    });
+
+    it('with unset fields: updates only changed on external change', () => {
+      const fooValue = defaultFooStructValue;
+      const element = renderTestTemplate(fooValue);
+
+      const field1 = element.find('grr-form-proto-single-field:nth(0)');
+      const field2 = element.find('grr-form-proto-single-field:nth(1)');
+      const field1Value = field1.scope().$eval(field1.attr('value'));
+      const field2Value = field2.scope().$eval(field2.attr('value'));
+
+      fooValue['value']['field_1'] = {
+        type: 'PrimitiveType',
+        value: 'foo',
+      };
+
+      $rootScope.$apply();
+
+      const field1New = element.find('grr-form-proto-single-field:nth(0)');
+      const field2New = element.find('grr-form-proto-single-field:nth(1)');
+      const field1ValueNew = field1New.scope().$eval(field1New.attr('value'));
+      const field2ValueNew = field2New.scope().$eval(field2New.attr('value'));
+
+      // Only field1 value has to actually change since the field got
+      // updated. field2 should simply stay the same.
+      expect(field1ValueNew).not.toBe(field1Value);
+      expect(field2ValueNew).toBe(field2Value);
+    });
+
+    it('updates fields when value.field_1 is cleared externally', () => {
+      const fooValue = defaultFooStructValue;
+      fooValue['value']['field_1'] = {
+        type: 'PrimitiveType',
+        value: 'foo',
+      };
+      const element = renderTestTemplate(fooValue);
+
+      let field = element.find('grr-form-proto-single-field:nth(0)');
+      let fieldValue = field.scope().$eval(field.attr('value'));
+      expect(fieldValue['value']).toBe('foo');
+
+      fooValue['value']['field_1'] = undefined;
+
+      $rootScope.$apply();
+
+      field = element.find('grr-form-proto-single-field:nth(0)');
+      fieldValue = field.scope().$eval(field.attr('value'));
+      expect(fieldValue).toEqual({
+        type: 'PrimitiveType',
+        value: '',
       });
     });
 
@@ -537,6 +648,25 @@ describe('semantic proto form directive', () => {
           },
         ],
       });
+    });
+
+    it('updates fields when repeated field is changed externally', () => {
+      const fooValue = {
+        type: 'Foo',
+        value: {},
+      };
+      const element = renderTestTemplate(fooValue);
+
+      let field = element.find('grr-form-proto-repeated-field:nth(0)');
+      let fieldValue = field.scope().$eval(field.attr('value'));
+      expect(fieldValue).toEqual([]);
+
+      fooValue['value']['field_1'] = [{'type': 'PrimitiveType', value: '42'}];
+      $rootScope.$apply();
+
+      field = element.find('grr-form-proto-repeated-field:nth(0)');
+      fieldValue = field.scope().$eval(field.attr('value'));
+      expect(fieldValue).toEqual([{'type': 'PrimitiveType', value: '42'}]);
     });
 
     it('renders the repeated field with corresponding directive', () => {

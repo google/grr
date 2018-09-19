@@ -727,8 +727,8 @@ class PathParser(parser.FileParser):
   # Omits more fancy parameter expansion e.g. ${unset_val:=../..}
   _SHELLVAR_RE = re.compile(r'"?\$\{?\s*(\w+)\s*\}?"?')
 
-  def __init__(self):
-    super(PathParser, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(PathParser, self).__init__(*args, **kwargs)
     # Terminate entries on ";" to capture multiple values on one line.
     self.parser = config_file.FieldParser(term=r"[\r\n;]")
 

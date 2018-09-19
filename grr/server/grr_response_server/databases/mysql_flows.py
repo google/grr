@@ -343,3 +343,46 @@ class MySQLDBFlowMixin(object):
   def UnregisterFlowProcessingHandler(self):
     """Unregisters any registered flow processing handler."""
     raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def WriteFlowResults(self, client_id, flow_id, results, cursor=None):
+    """Writes flow results for a given flow."""
+
+  @mysql_utils.WithTransaction()
+  def ReadFlowResults(self,
+                      client_id,
+                      flow_id,
+                      offset,
+                      count,
+                      with_tag=None,
+                      with_type=None,
+                      with_substring=None,
+                      cursor=None):
+    """Reads flow results of a given flow using given query options."""
+
+  @mysql_utils.WithTransaction()
+  def CountFlowResults(self,
+                       client_id,
+                       flow_id,
+                       with_tag=None,
+                       with_type=None,
+                       cursor=None):
+    """Counts flow results of a given flow using given query options."""
+
+  @mysql_utils.WithTransaction()
+  def WriteFlowLogEntries(self, client_id, flow_id, entries, cursor=None):
+    """Writes flow log entries for a given flow."""
+
+  @mysql_utils.WithTransaction()
+  def ReadFlowLogEntries(self,
+                         client_id,
+                         flow_id,
+                         offset,
+                         count,
+                         with_substring=None,
+                         cursor=None):
+    """Reads flow log entries of a given flow using given query options."""
+
+  @mysql_utils.WithTransaction()
+  def CountFlowLogEntries(self, client_id, flow_id, cursor=None):
+    """Returns number of flow log entries of a given flow."""

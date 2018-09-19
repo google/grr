@@ -81,6 +81,10 @@ class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
     self.flow_responses = {}
     # Maps (client_id, flow_id, request_id) to FlowProcessingRequest rdfvalues.
     self.flow_processing_requests = {}
+    # Maps (client_id, flow_id) to [FlowResult].
+    self.flow_results = {}
+    # Maps (client_id, flow_id) to [FlowLogEntry].
+    self.flow_log_entries = {}
     self.flow_handler_target = None
     self.flow_handler_thread = None
     self.flow_handler_stop = True

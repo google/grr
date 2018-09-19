@@ -66,6 +66,11 @@ flags.DEFINE_bool(
     "headless mode. Useful when running tests in a window-manager-less "
     "environment.")
 
+flags.DEFINE_bool(
+    "disable_chrome_sandboxing", False,
+    "Whether to disable chrome sandboxing (e.g when running in a Docker "
+    "container).")
+
 # A increasing sequence of times.
 TIME_0 = test_lib.FIXED_TIME
 TIME_1 = TIME_0 + rdfvalue.Duration("1d")
@@ -218,6 +223,9 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     if flags.FLAGS.use_headless_chrome:
       options.add_argument("--headless")
       options.add_argument("--window-size=1400,1080")
+
+    if flags.FLAGS.disable_chrome_sandboxing:
+      options.add_argument("--no-sandbox")
 
     if flags.FLAGS.chrome_driver_path:
       GRRSeleniumTest.driver = webdriver.Chrome(

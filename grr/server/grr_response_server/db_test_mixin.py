@@ -70,7 +70,7 @@ class DatabaseTestMixin(
 
     Args:
       client_id: A specific client id to use for initialized client. If none is
-                 provided a randomly generated one is used.
+        provided a randomly generated one is used.
 
     Returns:
       A client id for initialized client.

@@ -313,3 +313,8 @@ message MessageHandlerRequest {
   optional string leased_by = 6;
   optional EmbeddedRDFValue request = 7;
 }
+
+message SerializedValueOfUnrecognizedType {
+  optional string type_name = 1;
+  optional bytes value = 2;
+}

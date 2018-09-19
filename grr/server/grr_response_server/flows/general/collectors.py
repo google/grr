@@ -579,36 +579,36 @@ class ArtifactCollectorFlowMixin(object):
         self.state.artifacts_failed.append(artifact_name)
       return
 
-    output_collection_map = {}
-
     # Now process the responses.
     processors = parser.Parser.GetClassesByArtifact(artifact_name)
     saved_responses = {}
     for response in responses:
       if processors and self.args.apply_parsers:
         for processor in processors:
-          processor_obj = processor()
+          # TODO(hanuszczak): Terrible hack, see similar comment in the client-
+          # side artifact collector for more information.
+          if issubclass(processor, parser.FileParser):
+            processor_obj = processor(
+                lambda pathspec: artifact.OpenAff4File(self, pathspec))
+          else:
+            processor_obj = processor()
+
           if processor_obj.process_together:
             # Store the response until we have them all.
             saved_responses.setdefault(processor.__name__, []).append(response)
           else:
             # Process the response immediately
             self._ParseResponses(processor_obj, response, responses,
-                                 artifact_name, source, output_collection_map)
+                                 artifact_name, source)
       else:
         # We don't have any defined processors for this artifact.
-        self._ParseResponses(None, response, responses, artifact_name, source,
-                             output_collection_map)
+        self._ParseResponses(None, response, responses, artifact_name, source)
 
     # If we were saving responses, process them now:
     for processor_name, responses_list in iteritems(saved_responses):
       processor_obj = parser.Parser.classes[processor_name]()
       self._ParseResponses(processor_obj, responses_list, responses,
-                           artifact_name, source, output_collection_map)
-
-    # Flush the results to the objects.
-    if self.args.split_output_by_artifact:
-      self._FinalizeSplitCollection(output_collection_map)
+                           artifact_name, source)
 
   def ProcessCollectedRegistryStatEntry(self, responses):
     """Create AFF4 objects for registry statentries.
@@ -704,7 +704,7 @@ class ArtifactCollectorFlowMixin(object):
       return source["returned_types"]
 
   def _ParseResponses(self, processor_obj, responses, responses_obj,
-                      artifact_name, source, output_collection_map):
+                      artifact_name, source):
     """Create a result parser sending different arguments for diff parsers.
 
     Args:
@@ -714,69 +714,32 @@ class ArtifactCollectorFlowMixin(object):
       responses_obj: The responses object itself.
       artifact_name: Name of the artifact that generated the responses.
       source: The source responsible for producing the responses.
-      output_collection_map: dict of collections when splitting by artifact
 
     Raises:
       RuntimeError: On bad parser.
     """
     _ = responses_obj
     result_iterator = artifact.ApplyParserToResponses(processor_obj, responses,
-                                                      self, self.token)
+                                                      self)
 
     artifact_return_types = self._GetArtifactReturnTypes(source)
 
     if result_iterator:
-      with data_store.DB.GetMutationPool() as pool:
-        # If we have a parser, do something with the results it produces.
-        for result in result_iterator:
-          result_type = result.__class__.__name__
-          if result_type == "Anomaly":
-            self.SendReply(result)
-          elif (not artifact_return_types or
-                result_type in artifact_return_types):
-            self.state.response_count += 1
-            self.SendReply(result)
-            self._WriteResultToSplitCollection(result, artifact_name,
-                                               output_collection_map, pool)
+      # If we have a parser, do something with the results it produces.
+      for result in result_iterator:
+        result_type = result.__class__.__name__
+        if result_type == "Anomaly":
+          self.SendReply(result)
+        elif (not artifact_return_types or
+              result_type in artifact_return_types):
+          self.state.response_count += 1
+          self.SendReply(result, tag="artifact:%s" % artifact_name)
 
   @classmethod
   def ResultCollectionForArtifact(cls, session_id, artifact_name):
     urn = rdfvalue.RDFURN("_".join((str(session_id.Add(flow.RESULTS_SUFFIX)),
                                     utils.SmartStr(artifact_name))))
     return sequential_collection.GeneralIndexedCollection(urn)
-
-  def _WriteResultToSplitCollection(self, result, artifact_name,
-                                    output_collection_map, mutation_pool):
-    """Write any results to the collection if we are splitting by artifact.
-
-    If not splitting, SendReply will handle writing to the collection.
-
-    Args:
-      result: result to write
-      artifact_name: artifact name string
-      output_collection_map: dict of collections when splitting by artifact
-      mutation_pool: A MutationPool object to write to.
-    """
-    if self.args.split_output_by_artifact and self.runner.IsWritingResults():
-      if artifact_name not in output_collection_map:
-        # TODO(amoser): Make this work in the UI...
-        # Create the new collections in the same directory but not as children,
-        # so they are visible in the GUI
-        collection = self.ResultCollectionForArtifact(self.urn, artifact_name)
-        output_collection_map[artifact_name] = collection
-      output_collection_map[artifact_name].Add(
-          result, mutation_pool=mutation_pool)
-
-  def _FinalizeSplitCollection(self, output_collection_map):
-    """Flush all of the collections that were split by artifact."""
-    total = 0
-    for artifact_name, collection in iteritems(output_collection_map):
-      l = len(collection)
-      total += l
-      self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
-               artifact_name, collection.collection_id, l)
-
-    self.Log("Total collection size: %d", total)
 
   def End(self, responses):
     del responses

@@ -766,8 +766,8 @@ class GRRFlow(FlowBase):
       protodict = rdf_protodict.AttributedDict().FromDict(self.state)
       self.Set(self.Schema.FLOW_STATE_DICT(protodict))
 
-  def SendReply(self, response):
-    return self.runner.SendReply(response)
+  def SendReply(self, response, tag=None):
+    return self.runner.SendReply(response, tag=tag)
 
   def Error(self, backtrace, client_id=None):
     return self.runner.Error(backtrace, client_id=client_id)

@@ -109,6 +109,12 @@ config_lib.DEFINE_semantic_struct(
     rdf_config.AdminUIClientWarningsConfigOption, "AdminUI.client_warnings",
     None, "List of per-client-label warning messages to be shown.")
 
+config_lib.DEFINE_bool(
+    "AdminUI.rapid_hunts_enabled", False,
+    "If True, enabled 'rapid hunts' feature in the Hunts Wizard. Rapid hunts "
+    "support will automatically set client rate to 0 in FileFinder hunts "
+    "matching certain criteria (no recursive globs, no file downloads, etc).")
+
 # Temporary option that allows limiting access to legacy UI renderers. Useful
 # when giving access to GRR AdminUI to parties that have to use the HTTP API
 # only.

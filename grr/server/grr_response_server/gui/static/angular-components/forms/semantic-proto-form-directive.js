@@ -17,9 +17,6 @@ const SemanticProtoFormController = function(
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @type {?} */
-  this.scope_.value;
-
   /** @private {!grrUi.core.reflectionService.ReflectionService} */
   this.grrReflectionService_ = grrReflectionService;
 
@@ -32,8 +29,11 @@ const SemanticProtoFormController = function(
   /** @type {boolean} */
   this.expanded = false;
 
-  /** @type {Object|undefined} */
+  /** @type {?Object|undefined} */
   this.editedValue;
+
+  /** @type {?Object|undefined} */
+  this.lastAssignedScopeValue_;
 
   if (angular.isDefined($attrs['hiddenFields']) &&
       angular.isDefined($attrs['visibleFields'])) {
@@ -41,13 +41,16 @@ const SemanticProtoFormController = function(
                     'be specified, not both.');
   }
 
-  this.scope_.$watch('value', this.onValueChange_.bind(this));
+  this.scope_.$watch('value',
+                     this.onValueChange_.bind(this),
+                     true);
   this.scope_.$watch('controller.editedValue.value',
                      this.onEditedValueChange_.bind(this),
                      true);
 
   this.boundNotExplicitlyHiddenFields =
       this.notExplicitlyHiddenFields_.bind(this);
+
 };
 
 
@@ -83,9 +86,9 @@ SemanticProtoFormController.prototype.notExplicitlyHiddenFields_ = function(
  */
 SemanticProtoFormController.prototype.regularFieldsOnly = function(
     field, index) {
-  return angular.isUndefined(field.labels) ||
-      field.labels.indexOf('HIDDEN') == -1 &&
-      field.labels.indexOf('ADVANCED') == -1;
+  return angular.isUndefined(field['labels']) ||
+      field['labels'].indexOf('HIDDEN') == -1 &&
+      field['labels'].indexOf('ADVANCED') == -1;
 };
 
 
@@ -99,9 +102,9 @@ SemanticProtoFormController.prototype.regularFieldsOnly = function(
  */
 SemanticProtoFormController.prototype.advancedFieldsOnly = function(
     field, index) {
-  return angular.isDefined(field.labels) &&
-      field.labels.indexOf('HIDDEN') == -1 &&
-      field.labels.indexOf('ADVANCED') != -1;
+  return angular.isDefined(field['labels']) &&
+      field['labels'].indexOf('HIDDEN') == -1 &&
+      field['labels'].indexOf('ADVANCED') != -1;
 };
 
 
@@ -122,21 +125,61 @@ SemanticProtoFormController.prototype.onValueChange_ = function(
   }
 
   /**
-   * Please note that if the value bound to the 'value' binding gets replaced
-   * with a new object, the UI will get updated. But if one of the attributes
-   * of the value bound to 'value' binding changes, then UI won't get updated,
-   * because all the UI elements are bound to 'editedValue' which only
-   * gets updated when 'value' gets replaced.
+   * onEditedValueChange_ updates scope['value']. In order not to
+   * trigger an endless onEditedValueChange_<->onValueChange_ loop,
+   * onEditedValueChange_ stores the last updated version of
+   * scope['value'] in lastAssignedScopeValue_. By comparing
+   * this stored value to the incoming newValue we can check
+   * if this onValueChange_ call is triggered by the changes
+   * done in onEditedValueChange_ and therefore should do nothing.
    *
-   * We consider this behavior OK for now, because there seems to be no
-   * legitimate use-case of changing the contents of the currently edited value
-   * from the outside.
+   * If this onValueChange_ call has nothing to do with a change made
+   * in onEditedValueChange_, it means that the scope['value']
+   * binding was changed from the outside and therefore we
+   * should rerender the UI to get everythign updated.
+   *
+   * NOTE: current implementation assumes that such external changes
+   * are not done too often since every onDescriptorsFetched_ call
+   * is expensive. I.e. we shouldn't have 2 forms on the same page
+   * editing same object in parallel - it would work, but will eat
+   * quite a lot of CPU.
    */
-  if (newValue !== oldValue || angular.isUndefined(this.valueDescriptor)) {
-    this.grrReflectionService_.getRDFValueDescriptor(
-        this.scope_.value.type, true).then(
-            this.onDescriptorsFetched_.bind(this));
+  if (angular.isDefined(this.lastAssignedScopeValue_) &&
+      angular.isDefined(newValue) &&
+      this.lastAssignedScopeValue_['type'] === newValue['type']) {
+    /**
+     * Find a field that:
+     * a) Does not have a HIDDEN label.
+     * b) Is not considered hidden due to hiddenFields/visibleFields directive
+     *    bindings.
+     * c) Has a different value in lastAssignedScopeValue_ and "value" directive
+     *    binding.
+     *
+     * If such field is found, it means that the scope's "value" binding got
+     * updated from the outside. This should trigger this.onDescriptorsFetched_
+     * call.
+     *
+     * This custom comparison logic is needed in order not to trigger form
+     * updates when hidden fields are being updated.
+     */
+    const updatedField = this.valueDescriptor['fields'].find((field) => {
+      const hasHiddenLabel = (field['labels'] &&
+                              field['labels'].indexOf('HIDDEN') != -1);
+      return (!hasHiddenLabel &&
+              this.notExplicitlyHiddenFields_(field) &&
+              !angular.equals(
+                  newValue['value'][field['name']],
+                  this.lastAssignedScopeValue_['value'][field['name']]));
+    });
+
+    if (updatedField === undefined) {
+      return;
+    }
   }
+
+  this.grrReflectionService_.getRDFValueDescriptor(
+      this.scope_['value']['type'], true).then(
+          this.onDescriptorsFetched_.bind(this));
 };
 
 /**
@@ -155,10 +198,10 @@ SemanticProtoFormController.prototype.onEditedValueChange_ = function(
     newValue, oldValue) {
   if (angular.isDefined(newValue)) {
     /**
-     * Only apply changes to scope_.value if oldValue is defined, i.e.
+     * Only apply changes to scope_['value'] if oldValue is defined, i.e.
      * if the changes were actually made by the user editing the form.
      * oldValue === null means that editedValue was just initialized
-     * from scope_.value, so no need to migrate any changes.
+     * from scope_['value'], so no need to migrate any changes.
      */
     if (angular.isDefined(oldValue)) {
       /**
@@ -167,7 +210,7 @@ SemanticProtoFormController.prototype.onEditedValueChange_ = function(
        */
       angular.forEach(newValue, function(value, key) {
         if (!angular.equals(oldValue[key], newValue[key])) {
-          this.scope_.value.value[key] = value;
+          this.scope_['value']['value'][key] = angular.copy(value);
         }
       }.bind(this));
     }
@@ -178,9 +221,9 @@ SemanticProtoFormController.prototype.onEditedValueChange_ = function(
      */
     angular.forEach(this.valueDescriptor['fields'], function(field) {
       if (this.notExplicitlyHiddenFields_(field)) {
-        if (field.type &&
-            angular.equals(this.scope_.value.value[field.name],
-                           this.descriptors[field.type]['default']) &&
+        if (field['type'] &&
+            angular.equals(this.scope_['value']['value'][field['name']],
+                           this.descriptors[field['type']]['default']) &&
             /**
              * If the field has a per-field special default value that's
              * different from the field type's default value, we shouldn't erase
@@ -196,12 +239,13 @@ SemanticProtoFormController.prototype.onEditedValueChange_ = function(
              */
             (angular.isUndefined(field['default']) ||
              angular.equals(field['default'],
-                            this.descriptors[field.type]['default']))) {
-          delete this.scope_.value.value[field.name];
+                            this.descriptors[field['type']]['default']))) {
+          delete this.scope_['value']['value'][field['name']];
         }
       }
     }.bind(this));
 
+    this.lastAssignedScopeValue_ = angular.copy(this.scope_['value']);
   }
 };
 
@@ -215,49 +259,74 @@ SemanticProtoFormController.prototype.onEditedValueChange_ = function(
 SemanticProtoFormController.prototype.onDescriptorsFetched_ = function(
     descriptors) {
   this.descriptors = descriptors;
-  this.valueDescriptor = angular.copy(descriptors[this.scope_.value.type]);
+  this.valueDescriptor = angular.copy(
+      descriptors[this.scope_['value']['type']]);
 
-  this.editedValue = angular.copy(this.scope_.value);
-  if (angular.isUndefined(this.editedValue.value)) {
+  if (angular.isUndefined(this.editedValue)) {
+    this.editedValue = angular.copy(this.scope_['value']);
+  }
+  if (angular.isUndefined(this.editedValue['value'])) {
     this.editedValue.value = {};
   }
 
   angular.forEach(this.valueDescriptor['fields'], function(field) {
-    if (angular.isDefined(field.labels)) {
-      if (field.labels.indexOf('HIDDEN') != -1) {
+    if (angular.isDefined(field['labels'])) {
+      if (field['labels'].indexOf('HIDDEN') != -1) {
         return;
       }
 
-      if (field.labels.indexOf('ADVANCED') != -1) {
+      if (field['labels'].indexOf('ADVANCED') != -1) {
         this.hasAdvancedFields = true;
       }
     }
 
+    // Determine appropriate default value for this field.
+    let defaultFieldValue = undefined;
     // We can't initialize dynamic fields in any way - we don't know which
     // type they should be.
-    if (field.dynamic) {
-      return;
-    }
-
-    if (field.repeated) {
-      field.depth = 0;
-
-      if (angular.isUndefined(this.editedValue.value[field.name])) {
-        this.editedValue.value[field.name] = [];
-      }
-    } else {
-      field.depth = (this.scope_.$eval('metadata.depth') || 0) + 1;
-
-      if (angular.isUndefined(this.editedValue.value[field.name])) {
+    if (!field['dynamic']) {
+      if (field['repeated']) {
+        field['depth'] = 0;
+        defaultFieldValue = [];
+      } else {
+        field['depth'] = (this.scope_.$eval('metadata.depth') || 0) + 1;
         if (angular.isDefined(field['default'])) {
-          this.editedValue.value[field.name] = angular.copy(field['default']);
+          defaultFieldValue = angular.copy(field['default']);
         } else {
-          this.editedValue.value[field.name] = angular.copy(
-              descriptors[field.type]['default']);
+          defaultFieldValue = angular.copy(
+              descriptors[field['type']]['default']);
         }
       }
     }
+
+    // Copy each field only when its value has actually changed from what
+    // we currently have. This prevents unnecessary UI updates.
+    const scopeValueContent = this.scope_['value']['value'];
+    const editedValueConent = this.editedValue['value'];
+
+    const fieldName = field['name'];
+    const fieldValueChanged = !angular.equals(
+        scopeValueContent[fieldName],
+        editedValueConent[fieldName]);
+    // Update the field only if its value has changed. Ignore cases when
+    // the field should have a default value (since the source field is
+    // undefined) and already has it, meaning that we shouldn't assign
+    // anything.
+    if (fieldValueChanged &&
+        !(scopeValueContent[fieldName] === undefined &&
+          angular.equals(editedValueConent[fieldName],defaultFieldValue))) {
+      editedValueConent[fieldName] = angular.copy(scopeValueContent[fieldName]);
+    }
+
+    // Now initialize unset fields with default values, if needed and possible.
+    if (defaultFieldValue !== undefined &&
+        angular.isUndefined(editedValueConent[fieldName])) {
+      editedValueConent[fieldName] = defaultFieldValue;
+    }
+
   }.bind(this));
+
+  this.lastAssignedScopeValue_ = angular.copy(this.scope_['value']);
 };
 
 /**

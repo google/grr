@@ -351,7 +351,7 @@ class KnowledgeBaseInitializationFlowMixin(object):
                            " KnowledgeBase" % self.client_id)
 
 
-def ApplyParserToResponses(processor_obj, responses, flow_obj, token):
+def ApplyParserToResponses(processor_obj, responses, flow_obj):
   """Parse responses using the specified processor and the right args.
 
   Args:
@@ -359,7 +359,6 @@ def ApplyParserToResponses(processor_obj, responses, flow_obj, token):
     responses: A list of, or single response depending on the processors
       process_together setting.
     flow_obj: An artifact collection flow.
-    token: The token used in an artifact collection flow.
 
   Raises:
     RuntimeError: On bad parser.
@@ -367,6 +366,7 @@ def ApplyParserToResponses(processor_obj, responses, flow_obj, token):
   Returns:
     An iterator of the processor responses.
   """
+  # TODO(hanuszczak): Is it ever possible that we have `None`?
   if not processor_obj:
     # We don't do any parsing, the results are raw as they came back.
     # If this is an RDFValue we don't want to unpack it further
@@ -377,57 +377,37 @@ def ApplyParserToResponses(processor_obj, responses, flow_obj, token):
 
   else:
     # We have some processors to run.
+    state = flow_obj.state
+
+    # TODO(hanuszczak): Implement new-style parsing method with support for
+    # multiple responses.
     if processor_obj.process_together:
       # We are processing things in a group which requires specialized
       # handling by the parser. This is used when multiple responses need to
       # be combined to parse successfully. E.g parsing passwd and shadow files
       # together.
       parse_method = processor_obj.ParseMultiple
-    else:
-      parse_method = processor_obj.Parse
-
-    state = flow_obj.state
-    if isinstance(processor_obj, parser.CommandParser):
-      # Command processor only supports one response at a time.
-      response = responses
-      result_iterator = parse_method(
-          cmd=response.request.cmd,
-          args=response.request.args,
-          stdout=response.stdout,
-          stderr=response.stderr,
-          return_val=response.exit_status,
-          time_taken=response.time_used,
-          knowledge_base=state.knowledge_base)
-
-    elif isinstance(processor_obj, parser.WMIQueryParser):
-      result_iterator = parse_method(responses)
-
-    elif isinstance(processor_obj, parser.FileParser):
-      if processor_obj.process_together:
+      if isinstance(processor_obj, parser.FileParser):
         # TODO(amoser): This is very brittle, one day we should come
         # up with a better API here.
         urns = [r.AFF4Path(flow_obj.client_urn) for r in responses]
-        file_objects = list(aff4.FACTORY.MultiOpen(urns, token=token))
+        file_objects = list(aff4.FACTORY.MultiOpen(urns, token=flow_obj.token))
         file_objects.sort(key=lambda file_object: file_object.urn)
         stats = sorted(responses, key=lambda r: r.pathspec.path)
         result_iterator = parse_method(stats, file_objects,
                                        state.knowledge_base)
+      elif isinstance(processor_obj, parser.RegistryParser):
+        result_iterator = parse_method(responses, state.knowledge_base)
+      elif isinstance(processor_obj, parser.ArtifactFilesParser):
+        result_iterator = parse_method(responses, state.knowledge_base,
+                                       flow_obj.args.path_type)
       else:
-        fd = aff4.FACTORY.Open(
-            responses.AFF4Path(flow_obj.client_urn), token=token)
-        result_iterator = parse_method(responses, fd, state.knowledge_base)
-
-    elif isinstance(processor_obj,
-                    (parser.RegistryParser, parser.RekallPluginParser,
-                     parser.RegistryValueParser, parser.GrepParser)):
-      result_iterator = parse_method(responses, state.knowledge_base)
-
-    elif isinstance(processor_obj, (parser.ArtifactFilesParser)):
-      result_iterator = parse_method(responses, state.knowledge_base,
-                                     flow_obj.args.path_type)
-
+        raise RuntimeError("Unsupported parser detected %s" % processor_obj)
     else:
-      raise RuntimeError("Unsupported parser detected %s" % processor_obj)
+      utils.AssertType(processor_obj, parser.SingleResponseParser)
+      result_iterator = processor_obj.ParseResponse(
+          state.knowledge_base, responses, flow_obj.args.path_type)
+
   return result_iterator
 
 
@@ -481,6 +461,14 @@ def UploadArtifactYamlFile(file_content,
   # YAML is parsed.
   for artifact_value in loaded_artifacts:
     artifact_registry.ValidateDependencies(artifact_value)
+
+
+# TODO(hanuszczak): This function is not very elegant and should probably be
+# placed in some other module. Or maybe it should be a method of the `Flow`
+# class...?
+def OpenAff4File(flow_obj, pathspec):
+  aff4_path = pathspec.AFF4Path(flow_obj.client_urn)
+  return aff4.FACTORY.Open(aff4_path, token=flow_obj.token)
 
 
 class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):

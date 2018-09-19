@@ -15,6 +15,7 @@ const {HuntStatusIconDirective} = goog.require('grrUi.hunt.huntStatusIconDirecti
 const {HuntsListDirective} = goog.require('grrUi.hunt.huntsListDirective');
 const {HuntsViewDirective} = goog.require('grrUi.hunt.huntsViewDirective');
 const {ModifyHuntDialogDirective} = goog.require('grrUi.hunt.modifyHuntDialogDirective');
+const {RapidHuntStatusDirective} = goog.require('grrUi.hunt.rapidHuntStatusDirective');
 const {coreModule} = goog.require('grrUi.core.core');
 const {newHuntWizardModule} = goog.require('grrUi.hunt.newHuntWizard.newHuntWizard');
 
@@ -53,3 +54,5 @@ exports.huntModule.directive(
     HuntsViewDirective.directive_name, HuntsViewDirective);
 exports.huntModule.directive(
     ModifyHuntDialogDirective.directive_name, ModifyHuntDialogDirective);
+exports.huntModule.directive(
+    RapidHuntStatusDirective.directive_name, RapidHuntStatusDirective);

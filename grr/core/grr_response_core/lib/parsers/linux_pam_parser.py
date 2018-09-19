@@ -188,8 +188,8 @@ class PAMParser(parser.FileParser):
   supported_artifacts = ["LinuxPamConfigs"]
   process_together = True
 
-  def __init__(self):
-    super(PAMParser, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(PAMParser, self).__init__(*args, **kwargs)
     self._field_parser = PAMFieldParser()
 
   def ParseMultiple(self, stats, file_objects, knowledge_base):

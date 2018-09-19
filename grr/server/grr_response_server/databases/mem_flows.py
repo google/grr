@@ -15,6 +15,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import db
 from grr_response_server import db_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class InMemoryDBFlowMixin(object):
@@ -550,3 +551,88 @@ class InMemoryDBFlowMixin(object):
         handler(request)
 
       time.sleep(0.2)
+
+  def WriteFlowResults(self, client_id, flow_id, results):
+    """Writes flow results for a given flow."""
+    dest = self.flow_results.setdefault((client_id, flow_id), [])
+    for r in results:
+      to_write = r.Copy()
+      to_write.timestamp = rdfvalue.RDFDatetime.Now()
+      dest.append(to_write)
+
+  def ReadFlowResults(self,
+                      client_id,
+                      flow_id,
+                      offset,
+                      count,
+                      with_tag=None,
+                      with_type=None,
+                      with_substring=None):
+    """Reads flow results of a given flow using given query options."""
+    results = sorted(
+        [x.Copy() for x in self.flow_results.get((client_id, flow_id), [])],
+        key=lambda r: r.timestamp)
+
+    # This is done in order to pass the tests that try to deserialize
+    # value of an unrecognized type.
+    for r in results:
+      if utils.GetName(r.payload.__class__) not in rdfvalue.RDFValue.classes:
+        r.payload = rdf_objects.SerializedValueOfUnrecognizedType(
+            type_name=utils.GetName(r.payload.__class__),
+            value=r.payload.SerializeToString())
+
+    if with_tag is not None:
+      results = [i for i in results if i.tag == with_tag]
+
+    if with_type is not None:
+      results = [
+          i for i in results if utils.GetName(i.payload.__class__) == with_type
+      ]
+
+    if with_substring is not None:
+      encoded_substring = with_substring.encode("utf8")
+      results = [
+          i for i in results
+          if encoded_substring in i.payload.SerializeToString()
+      ]
+
+    return results[offset:offset + count]
+
+  def CountFlowResults(self, client_id, flow_id, with_tag=None, with_type=None):
+    """Counts flow results of a given flow using given query options."""
+    return len(
+        self.ReadFlowResults(
+            client_id,
+            flow_id,
+            0,
+            sys.maxsize,
+            with_tag=with_tag,
+            with_type=with_type))
+
+  def WriteFlowLogEntries(self, client_id, flow_id, entries):
+    """Writes flow log entries for a given flow."""
+    dest = self.flow_log_entries.setdefault((client_id, flow_id), [])
+    for e in entries:
+      to_write = e.Copy()
+      to_write.timestamp = rdfvalue.RDFDatetime.Now()
+      dest.append(to_write)
+
+  def ReadFlowLogEntries(self,
+                         client_id,
+                         flow_id,
+                         offset,
+                         count,
+                         with_substring=None):
+    """Reads flow log entries of a given flow using given query options."""
+    entries = sorted(
+        self.flow_log_entries.get((client_id, flow_id), []),
+        key=lambda e: e.timestamp)
+
+    if with_substring is not None:
+      entries = [i for i in entries if with_substring in i.message]
+
+    return entries[offset:offset + count]
+
+  def CountFlowLogEntries(self, client_id, flow_id):
+    """Returns number of flow log entries of a given flow."""
+    return len(self.ReadFlowLogEntries(client_id, flow_id, 0, sys.maxsize))

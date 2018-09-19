@@ -313,8 +313,8 @@ class NfsExportsParser(parser.FileParser):
   output_types = ["NfsExport"]
   supported_artifacts = ["NfsExportsFile"]
 
-  def __init__(self):
-    super(NfsExportsParser, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(NfsExportsParser, self).__init__(*args, **kwargs)
     self._field_parser = FieldParser()
 
   def Parse(self, unused_stat, file_obj, unused_knowledge_base):
@@ -523,8 +523,8 @@ class SshdConfigParser(parser.FileParser):
   supported_artifacts = ["SshdConfigFile"]
   output_types = ["SshdConfig"]
 
-  def __init__(self):
-    super(SshdConfigParser, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(SshdConfigParser, self).__init__(*args, **kwargs)
     self._field_parser = SshdFieldParser()
 
   def Parse(self, stat, file_object, knowledge_base):
@@ -562,8 +562,8 @@ class SshdConfigCmdParser(parser.CommandParser):
   supported_artifacts = ["SshdConfigCmd"]
   output_types = ["SshdConfig"]
 
-  def __init__(self):
-    super(SshdConfigCmdParser, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(SshdConfigCmdParser, self).__init__(*args, **kwargs)
     self._field_parser = SshdFieldParser()
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -583,8 +583,8 @@ class MtabParser(parser.FileParser):
   output_types = ["Filesystem"]
   supported_artifacts = ["LinuxProcMounts", "LinuxFstab"]
 
-  def __init__(self):
-    super(MtabParser, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(MtabParser, self).__init__(*args, **kwargs)
     self._field_parser = FieldParser()
 
   def Parse(self, unused_stat, file_obj, unused_knowledge_base):
@@ -611,8 +611,8 @@ class MountCmdParser(parser.CommandParser):
 
   mount_re = re.compile(r"(.*) on (.*) type (.*) \((.*)\)")
 
-  def __init__(self):
-    super(MountCmdParser, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(MountCmdParser, self).__init__(*args, **kwargs)
     self._field_parser = FieldParser()
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -694,8 +694,8 @@ class RsyslogParser(parser.FileParser):
   supported_artifacts = ["LinuxRsyslogConfigs"]
   process_together = True
 
-  def __init__(self):
-    super(RsyslogParser, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(RsyslogParser, self).__init__(*args, **kwargs)
     self._field_parser = RsyslogFieldParser()
 
   def ParseMultiple(self, unused_stats, file_objs, unused_knowledge_base):
@@ -1126,8 +1126,8 @@ class SudoersParser(parser.FileParser):
   output_types = ["SudoersConfig"]
   supported_artifacts = ["UnixSudoersConfiguration"]
 
-  def __init__(self):
-    super(SudoersParser, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(SudoersParser, self).__init__(*args, **kwargs)
     self._field_parser = SudoersFieldParser()
 
   def Parse(self, unused_stat, file_obj, unused_knowledge_base):

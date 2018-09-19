@@ -2172,7 +2172,24 @@ message FlowResponse {
   optional uint64 request_id = 3;
   optional uint64 response_id = 4;
   optional google.protobuf.Any payload = 5;
+  optional string tag = 6;
 }
+
+message FlowResult {
+  optional uint64 timestamp = 1 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional string tag = 2;
+  optional google.protobuf.Any payload = 3;
+}
+
+message FlowLogEntry {
+  optional uint64 timestamp = 1 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional string message = 2;
+}
+
 
 message FlowStatus {
   optional string client_id = 1;

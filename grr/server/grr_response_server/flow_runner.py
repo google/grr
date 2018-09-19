@@ -766,17 +766,21 @@ class FlowRunner(object):
 
     return child_urn
 
-  def SendReply(self, response):
+  def SendReply(self, response, tag=None):
     """Allows this flow to send a message to its parent flow.
 
     If this flow does not have a parent, the message is ignored.
 
     Args:
       response: An RDFValue() instance to be sent to the parent.
+      tag: If specified, tag the result with the following tag. NOTE: supported
+        in REL_DB implementation only.
 
     Raises:
       ValueError: If responses is not of the correct type.
     """
+    del tag
+
     if not isinstance(response, rdfvalue.RDFValue):
       raise ValueError("SendReply can only send a Semantic Value")
 

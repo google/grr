@@ -107,7 +107,7 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     Args:
       initializer: Optional parameter to construct from.
       age: The age of this entry as an RDFDatetime. If not provided, create a
-           new instance.
+        new instance.
 
     Raises:
       InitializeError: if we can not be initialized from this parameter.
@@ -703,12 +703,12 @@ class RDFDatetime(RDFInteger):
 
     Args:
       string: The string to parse.
-      eoy: If True, sets the default value to the end of the year.
-           Usually this method returns a timestamp where each field that is
-           not present in the given string is filled with values from the date
-           January 1st of the current year, midnight. Sometimes it makes more
-           sense to compare against the end of a period so if eoy is set, the
-           default values are copied from the 31st of December of the current
+      eoy: If True, sets the default value to the end of the year. Usually this
+        method returns a timestamp where each field that is not present in the
+        given string is filled with values from the date January 1st of the
+        current year, midnight. Sometimes it makes more sense to compare against
+        the end of a period so if eoy is set, the default values are copied from
+        the 31st of December of the current
            year, 23:59h.
 
     Returns:
@@ -1135,9 +1135,8 @@ class RDFURN(RDFPrimitive):
     Args:
       count: If count is specified, the output will be exactly this many path
         components, possibly extended with the empty string. This is useful for
-        tuple assignments without worrying about ValueErrors:
-
-           namespace, path = urn.Split(2)
+        tuple assignments without worrying about ValueErrors:  namespace, path =
+          urn.Split(2)
 
     Returns:
       A list of path components of this URN.
@@ -1201,6 +1200,7 @@ class SessionID(RDFURN):
       base: The base namespace this session id lives in.
       queue: The queue to use.
       flow_name: The name of this flow or its random id.
+
     Raises:
       InitializeError: The given URN cannot be converted to a SessionID.
     """

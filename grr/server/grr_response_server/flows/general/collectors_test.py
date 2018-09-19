@@ -28,7 +28,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
-from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import flow
 from grr_response_server import sequential_collection
@@ -36,6 +35,7 @@ from grr_response_server.flows.general import collectors
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -45,12 +45,12 @@ def ProcessIter():
   return iter([client_test_lib.MockWindowsProcess()])
 
 
-class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
-  """Test the artifact collection mechanism with fake artifacts."""
+class ArtifactCollectorsTestMixin(object):
+  """A mixin for artifact collectors tests."""
 
   def setUp(self):
     """Make sure things are initialized."""
-    super(TestArtifactCollectors, self).setUp()
+    super(ArtifactCollectorsTestMixin, self).setUp()
 
     self._patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
     self._patcher.start()
@@ -64,17 +64,16 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
     self.output_count = 0
 
-    self.client_id = self.SetupClient(0)
-
-    with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
-      fd.Set(fd.Schema.SYSTEM("Linux"))
-      kb = fd.Schema.KNOWLEDGE_BASE()
-      artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
-      fd.Set(kb)
+    self.client_id = self.SetupClient(0, system="Linux")
 
   def tearDown(self):
     self._patcher.stop()
-    super(TestArtifactCollectors, self).tearDown()
+    super(ArtifactCollectorsTestMixin, self).tearDown()
+
+
+class TestArtifactCollectors(ArtifactCollectorsTestMixin,
+                             flow_test_lib.FlowTestsBaseclass):
+  """Test the artifact collection mechanism with fake artifacts."""
 
   def testInterpolateArgs(self):
     collect_flow = aff4_flows.ArtifactCollectorFlow(None, token=self.token)
@@ -248,40 +247,6 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
       self.assertTrue(len(fd) == 1)
 
-  def testRunGrrClientActionArtifactSplit(self):
-    """Test that artifacts get split into separate collections."""
-    with utils.Stubber(psutil, "process_iter", ProcessIter):
-      client_mock = action_mocks.ActionMock(standard.ListProcesses)
-      client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-      client.Set(client.Schema.SYSTEM("Linux"))
-      client.Flush()
-
-      coll1 = rdf_artifacts.ArtifactSource(
-          type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={"client_action": standard.ListProcesses.__name__})
-      self.fakeartifact.sources.append(coll1)
-      self.fakeartifact2.sources.append(coll1)
-      artifact_list = ["FakeArtifact", "FakeArtifact2"]
-      session_id = flow_test_lib.TestFlowHelper(
-          aff4_flows.ArtifactCollectorFlow.__name__,
-          client_mock,
-          artifact_list=artifact_list,
-          token=self.token,
-          client_id=self.client_id,
-          split_output_by_artifact=True)
-
-      # Check that we got two separate collections based on artifact name
-      fd = aff4_flows.ArtifactCollectorFlow.ResultCollectionForArtifact(
-          session_id, "FakeArtifact")
-
-      self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
-      self.assertEqual(len(fd), 1)
-
-      fd = aff4_flows.ArtifactCollectorFlow.ResultCollectionForArtifact(
-          session_id, "FakeArtifact2")
-      self.assertEqual(len(fd), 1)
-      self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
-
   def testConditions(self):
     """Test we can get a GRR client artifact with conditions."""
     with utils.Stubber(psutil, "process_iter", ProcessIter):
@@ -423,6 +388,36 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id)
 
     return flow.GRRFlow.ResultCollectionForFID(session_id)
+
+
+# TODO(user): migrate all tests in this file to use DualDBTest.
+class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
+                                       db_test_lib.RelationalFlowsEnabledMixin,
+                                       test_lib.GRRBaseTest):
+
+  def testRunGrrClientActionArtifactSplit(self):
+    """Test that artifacts get split into separate collections."""
+    with utils.Stubber(psutil, "process_iter", ProcessIter):
+      client_mock = action_mocks.ActionMock(standard.ListProcesses)
+
+      coll1 = rdf_artifacts.ArtifactSource(
+          type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+          attributes={"client_action": standard.ListProcesses.__name__})
+      self.fakeartifact.sources.append(coll1)
+      self.fakeartifact2.sources.append(coll1)
+      artifact_list = ["FakeArtifact", "FakeArtifact2"]
+      session_id = flow_test_lib.TestFlowHelper(
+          aff4_flows.ArtifactCollectorFlow.__name__,
+          client_mock,
+          artifact_list=artifact_list,
+          token=self.token,
+          client_id=self.client_id,
+          split_output_by_artifact=True)
+
+      results_by_tag = flow_test_lib.GetFlowResultsByTag(
+          self.client_id.Basename(), session_id)
+      self.assertItemsEqual(results_by_tag.keys(),
+                            ["artifact:FakeArtifact", "artifact:FakeArtifact2"])
 
 
 class MeetsConditionsTest(test_lib.GRRBaseTest):

@@ -218,6 +218,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
                  flow_args=None,
                  client_rule_set=None,
                  original_object=None,
+                 client_rate=0,
                  token=None,
                  **kwargs):
     # Only initialize default flow_args value if default flow_runner_args value
@@ -226,8 +227,8 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       flow_args = (
           flow_args or transfer.GetFileArgs(
               pathspec=rdf_paths.PathSpec(
-                  path="/tmp/evil.txt",
-                  pathtype=rdf_paths.PathSpec.PathType.OS)))
+                  path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType
+                  .OS)))
 
     flow_runner_args = (
         flow_runner_args or
@@ -239,7 +240,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
         flow_runner_args=flow_runner_args,
         flow_args=flow_args,
         client_rule_set=client_rule_set,
-        client_rate=0,
+        client_rate=client_rate,
         original_object=original_object,
         token=token or self.token,
         **kwargs)

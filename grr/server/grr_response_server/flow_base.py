@@ -280,13 +280,14 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
         parent_flow_obj=self,
         **kwargs)
 
-  def SendReply(self, response):
+  def SendReply(self, response, tag=None):
     """Allows this flow to send a message to its parent flow.
 
     If this flow does not have a parent, the message is ignored.
 
     Args:
       response: An RDFValue() instance to be sent to the parent.
+      tag: If specified, tag the result with this tag.
 
     Raises:
       ValueError: If responses is not of the correct type.
@@ -301,10 +302,12 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
               flow_id=self.rdf_flow.parent_flow_id,
               request_id=self.rdf_flow.parent_request_id,
               response_id=self.GetNextResponseId(),
-              payload=response))
+              payload=response,
+              tag=tag))
     else:
-      self.replies_to_write.append(response)
-      self.replies_to_process.append(response)
+      reply = rdf_flow_objects.FlowResult(payload=response, tag=tag)
+      self.replies_to_write.append(reply)
+      self.replies_to_process.append(reply)
 
   def SaveResourceUsage(self, status):
     """Method to tally resources."""
@@ -416,6 +419,9 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       format_str: Format string
       *args: arguments to the format string
     """
+    log_entry = rdf_flow_objects.FlowLogEntry(message=format_str % args)
+    data_store.REL_DB.WriteFlowLogEntries(self.rdf_flow.client_id,
+                                          self.rdf_flow.flow_id, [log_entry])
 
   def RunStateMethod(self, method_name, request=None, responses=None):
     """Completes the request by calling the state method.
@@ -478,9 +484,10 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       stats.STATS.IncrementCounter(
           "flow_errors", fields=[self.rdf_flow.flow_class_name])
       logging.exception("Flow %s on %s raised %s.", self.rdf_flow.flow_id,
-                        client_id, e)
+                        client_id, utils.SmartUnicode(e))
 
-      self.Error(backtrace=traceback.format_exc())
+      self.Error(
+          error_message=utils.SmartUnicode(e), backtrace=traceback.format_exc())
 
     finally:
       self.PersistState()
@@ -508,7 +515,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
     if processed and self.IsRunning() and not self.outstanding_requests:
       self.RunStateMethod("End")
-      if not self.outstanding_requests:
+      if (self.rdf_flow.flow_state == self.rdf_flow.FlowState.RUNNING and
+          not self.outstanding_requests):
         self.MarkDone()
 
     if not self.IsRunning():
@@ -568,7 +576,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       self.completed_requests = []
 
     if self.replies_to_write:
-      # TODO(amoser): Actually write the results to the db.
+      data_store.REL_DB.WriteFlowResults(
+          self.rdf_flow.client_id, self.rdf_flow.flow_id, self.replies_to_write)
       self.replies_to_write = []
 
   def _ProcessRepliesWithOutputPlugins(self, replies):
@@ -578,7 +587,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       output_plugin = output_plugin_state.GetPlugin()
 
       try:
-        output_plugin.ProcessResponses(replies)
+        output_plugin.ProcessResponses([r.payload for r in replies])
         output_plugin.Flush()
 
         log_item = output_plugin_lib.OutputPluginBatchProcessingStatus(

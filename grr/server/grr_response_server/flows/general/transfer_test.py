@@ -20,7 +20,6 @@ from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server import db
 from grr_response_server import file_store
-from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
@@ -196,7 +195,8 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         pathspec=pathspec)
 
-    results = flow.GRRFlow.ResultCollectionForFID(session_id)
+    results = flow_test_lib.GetFlowResults(self.client_id.Basename(),
+                                           session_id)
     self.assertEqual(len(results), 1)
     res_pathspec = results[0].pathspec
 
@@ -230,10 +230,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
 class GetFileRelationalFlowTest(db_test_lib.RelationalFlowsEnabledMixin,
                                 GetFileFlowTest):
-
-  def testGetFilePathCorrection(self):
-    # TODO(amoser): Enable when we have results for relational flows.
-    pass
+  pass
 
 
 @db_test_lib.DualDBTest
@@ -635,10 +632,6 @@ class MultiGetFileRelationalFlowTest(db_test_lib.RelationalFlowsEnabledMixin,
   def _GetFlowState(self, client_id, flow_id):
     rdf_flow = data_store.REL_DB.ReadFlowObject(client_id.Basename(), flow_id)
     return rdf_flow.persistent_data
-
-  def testGetFilePathCorrection(self):
-    # TODO(amoser): Enable when we have results for relational flows.
-    pass
 
 
 def main(argv):
