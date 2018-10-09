@@ -12,40 +12,40 @@ from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
-ETC_PAM_CONF_EMPTY = """
+ETC_PAM_CONF_EMPTY = b"""
 # Nothing to do here.
    # white space
 
 # ^ blank line
 """
-ETC_PAM_CONF_SIMPLE = """
+ETC_PAM_CONF_SIMPLE = b"""
 ssh auth required test.so
 telnet auth required unix.so
 ssh session    required     pam_limits.so
 """
-ETC_PAM_CONF_COMPLEX = ETC_PAM_CONF_SIMPLE + """
+ETC_PAM_CONF_COMPLEX = ETC_PAM_CONF_SIMPLE + b"""
 telnet account include filt_include
 ssh @include full_include
 """
-ETC_PAMD_FILT_INCLUDE = """
+ETC_PAMD_FILT_INCLUDE = b"""
 account    required     pam_nologin.so
 auth       required     pam_env.so envfile=/etc/default/locale
 """
 ETC_PAMD_FULL_INCLUDE = ETC_PAMD_FILT_INCLUDE
-ETC_PAMD_SSH = """
+ETC_PAMD_SSH = b"""
 auth required test.so  # Comment
 session    required     pam_limits.so random=option  # Comment
 account include filt_include  # only include 'account' entries from file.
 @include full_include  # Include everything from file 'full_include'
 """
-ETC_PAMD_TELNET = """
+ETC_PAMD_TELNET = b"""
 # Blank line
 
 # Multi line and 'type' with a leading '-'.
 -auth [success=ok new_authtok_reqd=ok ignore=ignore default=bad] \
   testing.so module arguments  # Comments
 """
-ETC_PAMD_EXTERNAL = """
+ETC_PAMD_EXTERNAL = b"""
 password substack nonexistant
 auth optional testing.so
 @include /external/nonexistant
@@ -65,8 +65,8 @@ TELNET_WITH_PAMCONF = {
 TELNET_WITH_PAMCONF_EXPECTED = TELNET_ONLY_CONFIG_EXPECTED
 
 PAM_CONF_SIMPLE = {'/etc/pam.conf': ETC_PAM_CONF_SIMPLE}
-PAM_CONF_SIMPLE_EXPECTED = [('ssh', 'auth', 'required', 'test.so',
-                             ''), ('telnet', 'auth', 'required', 'unix.so', ''),
+PAM_CONF_SIMPLE_EXPECTED = [('ssh', 'auth', 'required', 'test.so', ''),
+                            ('telnet', 'auth', 'required', 'unix.so', ''),
                             ('ssh', 'session', 'required', 'pam_limits.so', '')]
 
 PAM_CONF_OVERRIDE = {

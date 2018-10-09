@@ -22,6 +22,7 @@ from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -316,6 +317,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 class TestRegistryFlows(RegistryFlowTest):
   """Test the Run Key registry flows."""
 
+  @parser_test_lib.WithAllParsers
   def testCollectRunKeyBinaries(self):
     """Read Run key from the client_fixtures to test parsing and storage."""
     client_id = self.SetupClient(0)

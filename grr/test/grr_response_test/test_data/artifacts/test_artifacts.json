@@ -324,5 +324,14 @@
       }
     ],
     "doc": "List system processes using the GRR List Processes client action."
+  },
+
+  { "name": "TestRegistryKey",
+    "sources": [
+      { "type": "REGISTRY_KEY",
+        "attributes": { "keys": ['HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager']}
+      }
+    ],
+    "doc": "Test registry key artifact."
   }
 ]

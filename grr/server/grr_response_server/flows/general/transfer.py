@@ -169,7 +169,7 @@ class GetFileMixin(object):
           fd.Set(fd.Schema.STAT(stat_entry))
 
           for data, length in self.state.blobs:
-            fd.AddBlob(data, length)
+            fd.AddBlob(rdf_objects.BlobID.FromBytes(data), length)
             fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
         if data_store.RelationalDBWriteEnabled():
@@ -775,10 +775,10 @@ class MultiGetFileLogic(object):
     blob_hashes = []
     for file_tracker in itervalues(self.state.pending_files):
       for hash_response in file_tracker.get("hash_list", []):
-        blob_hashes.append(hash_response.data.encode("hex"))
+        blob_hashes.append(rdf_objects.BlobID.FromBytes(hash_response.data))
 
     # This is effectively a BlobStore call.
-    existing_blobs = data_store.DB.BlobsExist(blob_hashes, token=self.token)
+    existing_blobs = data_store.BLOBS.CheckBlobsExist(blob_hashes)
 
     self.state.blob_hashes_pending = 0
 
@@ -789,7 +789,7 @@ class MultiGetFileLogic(object):
         # Make sure we read the correct pathspec on the client.
         hash_response.pathspec = file_tracker["stat_entry"].pathspec
 
-        if existing_blobs[hash_response.data.encode("hex")]:
+        if existing_blobs[rdf_objects.BlobID.FromBytes(hash_response.data)]:
           # If we have the data we may call our state directly.
           self.CallStateInline(
               messages=[hash_response],
@@ -840,7 +840,7 @@ class MultiGetFileLogic(object):
 
           for index in sorted(blob_dict):
             digest, length = blob_dict[index]
-            fd.AddBlob(digest, length)
+            fd.AddBlob(rdf_objects.BlobID.FromBytes(digest), length)
 
         if data_store.RelationalDBWriteEnabled():
           path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
@@ -1097,7 +1097,7 @@ class TransferStore(flow.WellKnownFlow):
 
       blobs.append(data)
 
-    data_store.DB.StoreBlobs(blobs, token=self.token)
+    data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
 
   def ProcessMessage(self, message):
     """Write the blob into the AFF4 blob storage area."""
@@ -1127,7 +1127,7 @@ class BlobHandler(message_handlers.MessageHandler):
 
       blobs.append(data)
 
-    data_store.DB.StoreBlobs(blobs, token=self.token)
+    data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
 
 
 class SendFile(flow.GRRFlow):

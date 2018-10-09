@@ -16,7 +16,7 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-
+from grr_response_core.lib.util import compatibility
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import cronjobs
@@ -596,15 +596,15 @@ def DualDBSystemCronJob(legacy_name=None, stateful=False):
 
     # Generate legacy class. Register it within the module as it's not going
     # to be returned from the decorator.
-    aff4_cls = utils.MakeType(
+    aff4_cls = compatibility.MakeType(
         legacy_name, (cls, LegacyCronJobAdapterMixin, aff4_base_cls), {})
     module = sys.modules[cls.__module__]
     setattr(module, legacy_name, aff4_cls)
 
     # Generate new class. No need to register it in the module (like the legacy
     # one) since it will replace the original decorated class.
-    reldb_cls = utils.MakeType(
-        utils.GetName(cls), (cls, cronjobs.SystemCronJobBase), {})
+    reldb_cls = compatibility.MakeType(
+        compatibility.GetName(cls), (cls, cronjobs.SystemCronJobBase), {})
     return reldb_cls
 
   return Decorator

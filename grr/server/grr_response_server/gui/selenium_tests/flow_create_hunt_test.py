@@ -3,7 +3,6 @@
 from __future__ import unicode_literals
 
 
-import unittest
 from grr_response_core.lib import flags
 
 from grr_response_server import flow
@@ -14,6 +13,7 @@ from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -108,11 +108,5 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
                    "css=button[name=create_hunt]:not([disabled])")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

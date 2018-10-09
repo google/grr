@@ -2,7 +2,7 @@
 """Test the Rekall flows-related UI."""
 from __future__ import unicode_literals
 
-import unittest
+
 from grr_response_core.lib import flags
 from grr_response_server.flows.general import memory
 from grr_response_server.gui import gui_test_lib
@@ -54,10 +54,5 @@ class TestRekallFlows(gui_test_lib.GRRSeleniumTest):
       memory.MemoryFlowsInit().RunOnce()
 
 
-def main(argv):
-  del argv  # Unused
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

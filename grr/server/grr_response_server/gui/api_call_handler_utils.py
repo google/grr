@@ -18,6 +18,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import collection
 from grr_response_proto import api_utils_pb2
 from grr_response_server import aff4
 from grr_response_server.aff4_objects import aff4_grr
@@ -137,22 +138,22 @@ class CollectionArchiveGenerator(object):
     yield self.archive_generator.WriteFileChunk(summary)
     yield self.archive_generator.WriteFileFooter()
 
-  def Generate(self, collection, token=None):
+  def Generate(self, items, token=None):
     """Generates archive from a given collection.
 
     Iterates the collection and generates an archive by yielding contents
     of every referenced AFF4Stream.
 
     Args:
-      collection: Iterable with items that point to aff4 paths.
+      items: Iterable with items that point to aff4 paths.
       token: User's ACLToken.
 
     Yields:
       Binary chunks comprising the generated archive.
     """
     clients = set()
-    for fd_urn_batch in utils.Grouper(
-        self._ItemsToUrns(collection), self.BATCH_SIZE):
+    for fd_urn_batch in collection.Batch(
+        self._ItemsToUrns(items), self.BATCH_SIZE):
 
       fds_to_write = {}
       for fd in aff4.FACTORY.MultiOpen(fd_urn_batch, token=token):
@@ -199,7 +200,7 @@ class CollectionArchiveGenerator(object):
           yield self.archive_generator.WriteFileFooter()
 
     if clients:
-      for client_urn_batch in utils.Grouper(clients, self.BATCH_SIZE):
+      for client_urn_batch in collection.Batch(clients, self.BATCH_SIZE):
         for fd in aff4.FACTORY.MultiOpen(
             client_urn_batch, aff4_type=aff4_grr.VFSGRRClient, token=token):
           for chunk in self._GenerateClientInfo(fd):
@@ -265,7 +266,7 @@ class ApiDataObject(rdf_structs.RDFProtoStruct):
     return self
 
 
-def FilterCollection(collection, offset, count=0, filter_value=None):
+def FilterCollection(aff4_collection, offset, count=0, filter_value=None):
   """Filters an aff4 collection, getting count elements, starting at offset."""
 
   if offset < 0:
@@ -278,7 +279,7 @@ def FilterCollection(collection, offset, count=0, filter_value=None):
   if filter_value:
     index = 0
     items = []
-    for item in collection.GenerateItems():
+    for item in aff4_collection.GenerateItems():
       serialized_item = item.SerializeToString()
       if re.search(re.escape(filter_value), serialized_item, re.I):
         if index >= offset:
@@ -288,6 +289,6 @@ def FilterCollection(collection, offset, count=0, filter_value=None):
         if len(items) >= count:
           break
   else:
-    items = list(itertools.islice(collection.GenerateItems(offset), count))
+    items = list(itertools.islice(aff4_collection.GenerateItems(offset), count))
 
   return items

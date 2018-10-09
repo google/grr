@@ -34,6 +34,7 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import precondition
 
 # Default is set in distro_entry.py to be taken from package resource.
 flags.DEFINE_string(
@@ -594,7 +595,7 @@ def _ParseYamlFromFile(filedesc):
   """Parses given YAML file."""
 
   def StrConstructor(loader, node):
-    utils.AssertType(node.value, unicode)
+    precondition.AssertType(node.value, unicode)
     return loader.construct_scalar(node)
 
   # This makes sure that all string literals in the YAML file are parsed as an

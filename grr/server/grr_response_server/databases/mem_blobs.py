@@ -3,11 +3,9 @@
 from __future__ import unicode_literals
 
 
-from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import utils
-from grr_response_server import db
 
 
 class _BlobRecord(object):
@@ -26,42 +24,9 @@ class InMemoryDBBlobsMixin(object):
   """InMemoryDB mixin for blobs related functions."""
 
   @utils.Synchronized
-  def WriteClientPathBlobReferences(self, references_by_client_path_id):
-    """Writes blob references for given client path ids."""
-    all_path_ids = self._AllPathIDs()
-
-    for client_path_id, blob_refs in iteritems(references_by_client_path_id):
-      path_idx = (client_path_id.client_id, client_path_id.path_type,
-                  client_path_id.path_id)
-
-      if path_idx not in all_path_ids:
-        raise db.AtLeastOneUnknownPathError(
-            itervalues(references_by_client_path_id))
-
-      blob_record = self.blob_records.setdefault(path_idx, _BlobRecord())
-
-      for blob_ref in blob_refs:
-        blob_record.AddBlobReference(blob_ref)
-
-  @utils.Synchronized
-  def ReadClientPathBlobReferences(self, client_path_ids):
-    """Reads blob references of given client path ids."""
-
-    result = {}
-    for cpid in client_path_ids:
-      try:
-        blob_record = self.blob_records[(cpid.client_id, cpid.path_type,
-                                         cpid.path_id)]
-        result[cpid] = blob_record.GetBlobReferences()
-      except KeyError:
-        result[cpid] = []
-
-    return result
-
-  @utils.Synchronized
-  def WriteBlobs(self, blob_id_data_pairs):
+  def WriteBlobs(self, blob_id_data_map):
     """Writes given blobs."""
-    self.blobs.update(blob_id_data_pairs)
+    self.blobs.update(blob_id_data_map)
 
   @utils.Synchronized
   def ReadBlobs(self, blob_ids):

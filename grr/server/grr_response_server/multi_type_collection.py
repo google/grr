@@ -33,18 +33,13 @@ class MultiTypeCollection(object):
 
     Args:
       collection_urn: The urn of the collection to add to.
-
       rdf_value: The rdf value to add to the collection. If this value is not
-          GrrMessage, it will be wrapped into GrrMessage (later when
-          collection is iterated, this value will still be returned wrapped
-          in GrrMessage).
-
-      timestamp: The timestamp (in microseconds) to store the rdf value
-          at. Defaults to the current time.
-
+        GrrMessage, it will be wrapped into GrrMessage (later when collection is
+        iterated, this value will still be returned wrapped in GrrMessage).
+      timestamp: The timestamp (in microseconds) to store the rdf value at.
+        Defaults to the current time.
       suffix: A 'fractional timestamp' suffix to reduce the chance of
-          collisions. Defaults to a random number.
-
+        collisions. Defaults to a random number.
       mutation_pool: A MutationPool object to write to.
 
     Returns:
@@ -94,13 +89,10 @@ class MultiTypeCollection(object):
 
     Args:
       type_name: Type of the records to scan.
-
       after_timestamp: If set, only returns values recorded after timestamp.
-
       include_suffix: If true, the timestamps returned are pairs of the form
         (micros_since_epoc, suffix) where suffix is a 24 bit random refinement
         to avoid collisions. Otherwise only micros_since_epoc is returned.
-
       max_records: The maximum number of records to return. Defaults to
         unlimited.
 
@@ -132,16 +124,12 @@ class MultiTypeCollection(object):
 
     Args:
       rdf_value: The rdf value to add to the collection. If this value is not
-          GrrMessage, it will be wrapped into GrrMessage (later when
-          collection is iterated, this value will still be returned wrapped
-          in GrrMessage).
-
-      timestamp: The timestamp (in microseconds) to store the rdf value
-          at. Defaults to the current time.
-
+        GrrMessage, it will be wrapped into GrrMessage (later when collection is
+        iterated, this value will still be returned wrapped in GrrMessage).
+      timestamp: The timestamp (in microseconds) to store the rdf value at.
+        Defaults to the current time.
       suffix: A 'fractional timestamp' suffix to reduce the chance of
-          collisions. Defaults to a random number.
-
+        collisions. Defaults to a random number.
       mutation_pool: A MutationPool object to write to.
 
     Returns:
@@ -188,7 +176,8 @@ class MultiTypeCollection(object):
     with mutation_pool:
       mutation_pool.DeleteSubject(self.collection_id)
       for urn, _, _ in data_store.DB.ScanAttribute(
-          self.collection_id, data_store.DataStore.COLLECTION_ATTRIBUTE):
+          unicode(self.collection_id),
+          data_store.DataStore.COLLECTION_ATTRIBUTE):
         mutation_pool.DeleteSubject(rdfvalue.RDFURN(urn))
         if mutation_pool.Size() > 50000:
           mutation_pool.Flush()

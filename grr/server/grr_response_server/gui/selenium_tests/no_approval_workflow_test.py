@@ -3,12 +3,13 @@
 """Tests acl policies when approvals system is disabled."""
 from __future__ import unicode_literals
 
-import unittest
+
 from grr_response_core.lib import flags
 
 from grr_response_server.gui import gui_test_lib
 
 from grr.test_lib import db_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -70,11 +71,5 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
                       "css=h3:contains('Create a new approval')")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

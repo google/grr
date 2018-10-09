@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 from __future__ import unicode_literals
 
-import unittest
-from grr_response_core.lib import flags
 
+from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_server import events
@@ -117,11 +116,5 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     self.assertFalse("duration" in self.GetCurrentUrlPath())
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

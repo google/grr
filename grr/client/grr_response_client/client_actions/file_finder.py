@@ -6,15 +6,33 @@ import psutil
 
 from grr_response_client import actions
 from grr_response_client import client_utils
+from grr_response_client import vfs
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_client.client_actions.file_finder_utils import subactions
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
 class _SkipFileException(Exception):
   pass
+
+
+def RegistryKeyFromClient(args):
+  """This function expands paths from the args and returns registry keys.
+
+  Args:
+    args: An `rdf_file_finder.FileFinderArgs` object.
+
+  Yields:
+    `rdf_client_fs.StatEntry` instances.
+  """
+  for path in GetExpandedPaths(args):
+    pathspec = rdf_paths.PathSpec(
+        path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+    with vfs.VFSOpen(pathspec) as file_obj:
+      yield file_obj.Stat()
 
 
 def FileFinderOSFromClient(args):
@@ -30,7 +48,7 @@ def FileFinderOSFromClient(args):
 
   opts = args.action.stat
 
-  for path in _GetExpandedPaths(args):
+  for path in GetExpandedPaths(args):
     try:
       for content_condition in _ParseContentConditions(args):
         result = list(content_condition.Search(path))
@@ -54,7 +72,7 @@ class FileFinderOS(actions.ActionPlugin):
     self.stat_cache = utils.StatCache()
 
     action = self._ParseAction(args)
-    for path in _GetExpandedPaths(args):
+    for path in GetExpandedPaths(args):
       self.Progress()
       try:
         matches = self._Validate(args, path)
@@ -118,7 +136,7 @@ def _ParseContentConditions(args):
   return conditions.ContentCondition.Parse(args.conditions)
 
 
-def _GetExpandedPaths(args):
+def GetExpandedPaths(args):
   """Expands given path patterns.
 
   Args:
@@ -127,10 +145,21 @@ def _GetExpandedPaths(args):
 
   Yields:
     Absolute paths (as string objects) derived from input patterns.
+
+  Raises:
+    ValueError: For unsupported path types.
   """
+  if args.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+    pathtype = rdf_paths.PathSpec.PathType.REGISTRY
+  elif args.pathtype == rdf_paths.PathSpec.PathType.OS:
+    pathtype = rdf_paths.PathSpec.PathType.OS
+  else:
+    raise ValueError("Unsupported path type: ", args.pathtype)
+
   opts = globbing.PathOpts(
       follow_links=args.follow_links,
-      recursion_blacklist=_GetMountpointBlacklist(args.xdev))
+      recursion_blacklist=_GetMountpointBlacklist(args.xdev),
+      pathtype=pathtype)
 
   for path in args.paths:
     for expanded_path in globbing.ExpandPath(unicode(path), opts):

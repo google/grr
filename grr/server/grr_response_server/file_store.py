@@ -12,6 +12,7 @@ from future.utils import with_metaclass
 
 from grr_response_core import config
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import collection
 from grr_response_server import data_store
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -26,6 +27,10 @@ class BlobNotFound(Error):
 
 class FileHasNoContent(Error):
   """Raised when trying to read a file that was never downloaded."""
+
+
+class MissingBlobReferences(Error):
+  """Raised when blob refs are supposed to be there but couldn't be found."""
 
 
 class OversizedRead(Error):
@@ -98,7 +103,7 @@ class BlobStream(object):
     if self._current_ref != found_ref:
       self._current_ref = found_ref
 
-      data = data_store.REL_DB.ReadBlobs([found_ref.blob_id])
+      data = data_store.BLOBS.ReadBlobs([found_ref.blob_id])
       self._current_chunk = data[found_ref.blob_id]
 
     return self._current_chunk, self._current_ref
@@ -125,7 +130,7 @@ class BlobStream(object):
         break
 
       result.write(part)
-      self._offset += len(part)
+      self._offset += min(length, len(part))
 
     return result.getvalue()[:length]
 
@@ -170,9 +175,9 @@ def AddFileWithUnknownHash(blob_ids):
   blob_refs = []
   offset = 0
   sha256 = hashlib.sha256()
-  for blob_ids_batch in utils.Grouper(blob_ids, _BLOBS_READ_BATCH_SIZE):
+  for blob_ids_batch in collection.Batch(blob_ids, _BLOBS_READ_BATCH_SIZE):
     unique_ids = set(blob_ids_batch)
-    data = data_store.REL_DB.ReadBlobs(unique_ids)
+    data = data_store.BLOBS.ReadBlobs(unique_ids)
     for k, v in iteritems(data):
       if v is None:
         raise BlobNotFound("Couldn't find one of referenced blobs: %s" % k)
@@ -211,35 +216,73 @@ def CheckHashes(hash_ids):
   }
 
 
-def OpenLatestFileVersion(client_path):
+def GetLastCollectionPathInfos(client_paths, max_timestamp=None):
+  """Returns PathInfos corresponding to last collection times.
+
+  Args:
+    client_paths: An iterable of ClientPath objects.
+    max_timestamp: When specified, onlys PathInfo with a timestamp lower or
+      equal to max_timestamp will be returned.
+
+  Returns:
+    A dict of ClientPath -> PathInfo where each PathInfo corresponds to a
+    collected
+    file. PathInfo may be None if no collection happened (ever or with a
+    timestamp
+    lower or equal then max_timestamp).
+  """
+  return data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
+      client_paths, max_timestamp=max_timestamp)
+
+
+def GetLastCollectionPathInfo(client_path, max_timestamp=None):
+  """Returns PathInfo corresponding to the last file collection time.
+
+  Args:
+    client_path: A ClientPath object.
+    max_timestamp: When specified, the returned PathInfo will correspond to the
+      latest file collection with a timestamp lower or equal to max_timestamp.
+
+  Returns:
+    PathInfo object corresponding to the latest collection or None if file
+    wasn't collected (ever or, when max_timestamp is specified, before
+    max_timestamp).
+  """
+
+  return GetLastCollectionPathInfos([client_path],
+                                    max_timestamp=max_timestamp)[client_path]
+
+
+def OpenFile(client_path, max_timestamp=None):
   """Opens latest content of a given file for reading.
 
   Args:
     client_path: A db.ClientPath object describing path to a file.
+    max_timestamp: If specified, will open the last collected version with a
+      timestamp equal or lower than max_timestamp. If not specified, will simply
+      open the latest version.
 
   Returns:
     A file like object with random access support.
 
   Raises:
     FileHasNoContent: if the file was never collected.
+    MissingBlobReferences: if one of the blobs was not found.
   """
 
-  # TODO(user): optimize the code by introducing a dedicated DB API.
-  history = data_store.REL_DB.ReadPathInfoHistory(
-      client_path.client_id, client_path.path_type, client_path.components)
-  hashes = []
-  for path_info in history:
-    if path_info.hash_entry:
-      # Current file store design assumes that if a hash entry is ever
-      # set in a PathInfo, then it has "sha256" set.
-      hashes.append(
-          rdf_objects.SHA256HashID.FromBytes(
-              path_info.hash_entry.sha256.AsBytes()))
+  path_info = data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
+      [client_path], max_timestamp=max_timestamp)[client_path]
 
-  blob_references = data_store.REL_DB.ReadHashBlobReferences(hashes)
-  for h in reversed(hashes):
-    found_refs = blob_references[h]
-    if found_refs is not None:
-      return BlobStream(found_refs, h)
+  if path_info is None:
+    raise FileHasNoContent("File was never collected.")
 
-  raise FileHasNoContent("File has no content (it was never collected).")
+  hash_id = rdf_objects.SHA256HashID.FromBytes(
+      path_info.hash_entry.sha256.AsBytes())
+  blob_references = data_store.REL_DB.ReadHashBlobReferences([hash_id])[hash_id]
+
+  if blob_references is None:
+    raise MissingBlobReferences(
+        "File hash was expected to have corresponding "
+        "blob references, but they were not found: %r" % hash_id)
+
+  return BlobStream(blob_references, hash_id)

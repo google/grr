@@ -15,12 +15,12 @@ from future.utils import iteritems
 
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import wmi as rdf_wmi
+from grr_response_core.lib.util import precondition
 
 
 def BinarySIDtoStringSID(sid):
@@ -46,7 +46,7 @@ def BinarySIDtoStringSID(sid):
   Raises:
     ValueError: If the binary SID is malformed.
   """
-  utils.AssertType(sid, bytes)
+  precondition.AssertType(sid, bytes)
 
   # TODO(hanuszczak): This seemingly no-op is actually not a no-op. The reason
   # is that `sid` might be either `bytes` from the future package or `str` (e.g.

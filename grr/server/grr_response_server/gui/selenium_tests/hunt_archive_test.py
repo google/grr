@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 
 import mock
-import unittest
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 
@@ -19,6 +19,7 @@ from grr_response_server.flows.general import export as flow_export
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -310,11 +311,5 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Couldn't download the file.")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

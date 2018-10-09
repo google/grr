@@ -3,16 +3,16 @@
 from __future__ import unicode_literals
 
 import abc
-import errno
 import fnmatch
 import itertools
-import logging
 import os
 import platform
 import re
 from future.utils import with_metaclass
 
-from grr_response_core.lib import utils
+from grr_response_client import vfs
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import precondition
 
 
 class PathOpts(object):
@@ -25,11 +25,16 @@ class PathOpts(object):
     follow_links: Whether glob expansion mechanism should follow symlinks.
     recursion_blacklist: List of folders that the glob expansion should not
                          recur to.
+    pathtype: The pathtype to use.
   """
 
-  def __init__(self, follow_links=False, recursion_blacklist=None):
+  def __init__(self,
+               follow_links=False,
+               recursion_blacklist=None,
+               pathtype=None):
     self.follow_links = follow_links
     self.recursion_blacklist = set(recursion_blacklist or [])
+    self.pathtype = pathtype or rdf_paths.PathSpec.PathType.OS
 
 
 class PathComponent(with_metaclass(abc.ABCMeta, object)):
@@ -68,7 +73,7 @@ class RecursiveComponent(PathComponent):
     if depth > self.max_depth:
       return
 
-    for item in _ListDir(dirpath):
+    for item in _ListDir(dirpath, self.opts.pathtype):
       itempath = os.path.join(dirpath, item)
       yield itempath
 
@@ -99,12 +104,13 @@ class GlobComponent(PathComponent):
     glob: A string with potential glob elements (e.g. `foo*`).
   """
 
-  def __init__(self, glob):
+  def __init__(self, glob, opts=None):
     super(GlobComponent, self).__init__()
     self.regex = re.compile(fnmatch.translate(glob), re.I)
+    self.opts = opts or PathOpts()
 
   def Generate(self, dirpath):
-    for item in _ListDir(dirpath):
+    for item in _ListDir(dirpath, self.opts.pathtype):
       if self.regex.match(item):
         yield os.path.join(dirpath, item)
 
@@ -160,7 +166,7 @@ def ParsePathItem(item, opts=None):
 
   recursion = PATH_RECURSION_REGEX.search(item)
   if not recursion:
-    return GlobComponent(item)
+    return GlobComponent(item, opts)
 
   start, end = recursion.span()
   if not (start == 0 and end == len(item)):
@@ -187,7 +193,7 @@ def ParsePath(path, opts=None):
   Raises:
     ValueError: If path contains more than one recursive component.
   """
-  utils.AssertType(path, unicode)
+  precondition.AssertType(path, unicode)
 
   rcount = 0
   for item in path.split(os.path.sep):
@@ -209,10 +215,10 @@ def ExpandPath(path, opts=None):
   Yields:
     All paths possible to obtain from a given path by performing expansions.
   """
-  utils.AssertType(path, unicode)
+  precondition.AssertType(path, unicode)
 
   for grouped_path in ExpandGroups(path):
-    for globbed_path in ExpandGlobs(grouped_path, opts=opts):
+    for globbed_path in ExpandGlobs(grouped_path, opts):
       yield globbed_path
 
 
@@ -228,7 +234,7 @@ def ExpandGroups(path):
   Yields:
     Paths that can be obtained from given path by expanding groups.
   """
-  utils.AssertType(path, unicode)
+  precondition.AssertType(path, unicode)
 
   chunks = []
   offset = 0
@@ -261,7 +267,7 @@ def ExpandGlobs(path, opts=None):
   Raises:
     ValueError: If given path is empty or relative.
   """
-  utils.AssertType(path, unicode)
+  precondition.AssertType(path, unicode)
   if not path:
     raise ValueError("Path is empty")
 
@@ -278,13 +284,12 @@ def _ExpandComponents(basepath, components, index=0):
   if index == len(components):
     yield basepath
     return
-
   for childpath in components[index].Generate(basepath):
     for path in _ExpandComponents(childpath, components, index + 1):
       yield path
 
 
-def _ListDir(dirpath):
+def _ListDir(dirpath, pathtype):
   """Returns children of a given directory.
 
   This function is intended to be used by the `PathComponent` subclasses to get
@@ -293,28 +298,24 @@ def _ListDir(dirpath):
 
   Args:
     dirpath: A path to the directory.
-  """
-  try:
-    childpaths = os.listdir(dirpath)
-  except OSError as error:
-    if error.errno == errno.EACCES:
-      logging.info(error)
-    return []
+    pathtype: The pathtype to use.
 
-  # TODO(hanuszczak): `os.listdir` already returns an unicode string in Python
-  # 3, there is no need to decode. Remove that once support for Python 2 is
-  # dropped.
-  string_childpaths = []
-  for childpath in childpaths:
-    try:
-      if isinstance(childpath, unicode):
-        string_childpaths.append(childpath)
-      elif isinstance(childpath, bytes):
-        string_childpaths.append(childpath.decode("utf-8"))
-      else:
-        message = "Unexpected value `%s` of type `%s`"
-        message %= (childpath, type(childpath))
-        raise TypeError(message)
-    except UnicodeDecodeError as error:
-      logging.warning(error)
-  return string_childpaths
+  Raises:
+    ValueError: in case of unsupported path types.
+  """
+  pathspec = rdf_paths.PathSpec(path=dirpath)
+  if pathtype == rdf_paths.PathSpec.PathType.OS:
+    pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+  elif pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+    pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
+  else:
+    raise ValueError("Unsupported pathtype: ", pathtype)
+
+  childpaths = []
+  try:
+    file_obj = vfs.VFSOpen(pathspec)
+    for path in file_obj.ListNames():
+      childpaths.append(path)
+  except IOError:
+    pass
+  return childpaths

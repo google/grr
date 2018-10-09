@@ -12,6 +12,7 @@ from future.utils import iteritems
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
@@ -70,7 +71,9 @@ class FieldParser(lexer.Lexer):
                sep=r"[ \t\f\v]+",
                term=r"[\r\n]",
                verbose=0):
-    r"""A generalized field-based parser. Handles whitespace, csv etc.
+    r"""A generalized field-based parser.
+
+    Handles whitespace, csv etc.
 
     Args:
       comments: Line comment patterns (e.g. "#").
@@ -212,7 +215,9 @@ class KeyValueParser(FieldParser):
                sep=r"[ \t\f\v]+",
                term=r"[\r\n]",
                verbose=0):
-    """A generalized key-value parser. Handles whitespace, csv etc.
+    """A generalized key-value parser.
+
+    Handles whitespace, csv etc.
 
     Args:
       comments: Line comment patterns (e.g. "#").
@@ -318,7 +323,8 @@ class NfsExportsParser(parser.FileParser):
     self._field_parser = FieldParser()
 
   def Parse(self, unused_stat, file_obj, unused_knowledge_base):
-    for entry in self._field_parser.ParseEntries(file_obj.read()):
+    for entry in self._field_parser.ParseEntries(
+        utils.ReadFileBytesAsUnicode(file_obj)):
       if not entry:
         continue
       result = rdf_config_file.NfsExport()
@@ -546,7 +552,10 @@ class SshdConfigParser(parser.FileParser):
     _, _ = stat, knowledge_base
     # Clean out any residual state.
     self._field_parser.Flush()
-    lines = [l.strip() for l in file_object.read().splitlines()]
+    lines = [
+        l.strip()
+        for l in utils.ReadFileBytesAsUnicode(file_object).splitlines()
+    ]
     for line in lines:
       # Remove comments (will break if it includes a quoted/escaped #)
       line = line.split("#")[0].strip()
@@ -588,7 +597,8 @@ class MtabParser(parser.FileParser):
     self._field_parser = FieldParser()
 
   def Parse(self, unused_stat, file_obj, unused_knowledge_base):
-    for entry in self._field_parser.ParseEntries(file_obj.read()):
+    for entry in self._field_parser.ParseEntries(
+        utils.ReadFileBytesAsUnicode(file_obj)):
       if not entry:
         continue
       result = rdf_client_fs.Filesystem()
@@ -687,12 +697,11 @@ class RsyslogFieldParser(FieldParser):
     return rslt
 
 
-class RsyslogParser(parser.FileParser):
+class RsyslogParser(parser.FileMultiParser):
   """Artifact parser for syslog configurations."""
 
   output_types = ["AttributedDict"]
   supported_artifacts = ["LinuxRsyslogConfigs"]
-  process_together = True
 
   def __init__(self, *args, **kwargs):
     super(RsyslogParser, self).__init__(*args, **kwargs)
@@ -702,7 +711,8 @@ class RsyslogParser(parser.FileParser):
     # TODO(user): review quoting and line continuation.
     result = rdf_config_file.LogConfig()
     for file_obj in file_objs:
-      for entry in self._field_parser.ParseEntries(file_obj.read()):
+      for entry in self._field_parser.ParseEntries(
+          utils.ReadFileBytesAsUnicode(file_obj)):
         directive = entry[0]
         log_rule = self._field_parser.log_rule_re.match(directive)
         if log_rule and entry[1:]:
@@ -794,7 +804,7 @@ class APTPackageSourceParser(PackageSourceParser):
     rfc822_format = ""  # will contain all lines not in legacy format
     uris_to_parse = []
 
-    for line in file_obj.read().splitlines(True):
+    for line in utils.ReadFileBytesAsUnicode(file_obj).splitlines(True):
       # check if legacy style line - if it is then extract URL
       m = re.search(r"^\s*deb(?:-\S+)?(?:\s+\[[^\]]*\])*\s+(\S+)(?:\s|$)", line)
       if m:
@@ -812,7 +822,8 @@ class YumPackageSourceParser(PackageSourceParser):
 
   def FindPotentialURIs(self, file_obj):
     """Given a file, this will return all potenial Yum source URIs."""
-    return self.ParseURIFromKeyValues(file_obj.read(), "=", "baseurl")
+    return self.ParseURIFromKeyValues(
+        utils.ReadFileBytesAsUnicode(file_obj), "=", "baseurl")
 
 
 class CronAtAllowDenyParser(parser.FileParser):
@@ -821,7 +832,9 @@ class CronAtAllowDenyParser(parser.FileParser):
   supported_artifacts = ["CronAtAllowDenyFiles"]
 
   def Parse(self, stat, file_obj, unused_knowledge_base):
-    lines = set([l.strip() for l in file_obj.read().splitlines()])
+    lines = set([
+        l.strip() for l in utils.ReadFileBytesAsUnicode(file_obj).splitlines()
+    ])
 
     users = []
     bad_lines = []
@@ -849,7 +862,6 @@ class NtpdFieldParser(FieldParser):
   """Field parser for ntpd.conf file."""
   output_types = ["NtpConfig"]
   supported_artifacts = ["NtpConfFile"]
-  process_together = True
 
   # The syntax is based on:
   #   https://www.freebsd.org/cgi/man.cgi?query=ntp.conf&sektion=5
@@ -978,7 +990,8 @@ class NtpdParser(parser.FileParser):
     # TODO(hanuszczak): This parser only allows single use because it messes
     # with its state. This should be fixed.
     field_parser = NtpdFieldParser()
-    for line in field_parser.ParseEntries(file_object.read()):
+    for line in field_parser.ParseEntries(
+        utils.ReadFileBytesAsUnicode(file_object)):
       field_parser.ParseLine(line)
 
     yield rdf_config_file.NtpConfig(
@@ -1132,7 +1145,7 @@ class SudoersParser(parser.FileParser):
 
   def Parse(self, unused_stat, file_obj, unused_knowledge_base):
     self._field_parser.ParseEntries(
-        self._field_parser.Preprocess(file_obj.read()))
+        self._field_parser.Preprocess(utils.ReadFileBytesAsUnicode(file_obj)))
     result = rdf_config_file.SudoersConfig()
     for entry in self._field_parser.entries:
       # Handle multiple entries in one line, eg:

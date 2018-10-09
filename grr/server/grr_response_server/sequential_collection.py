@@ -10,9 +10,9 @@ import time
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import precondition
 
 from grr_response_server import data_store
 
@@ -29,7 +29,7 @@ class SequentialCollection(object):
   RDF_TYPE = None
 
   def __init__(self, collection_id):
-    utils.AssertType(collection_id, rdfvalue.RDFURN)
+    precondition.AssertType(collection_id, rdfvalue.RDFURN)
 
     super(SequentialCollection, self).__init__()
     # The collection_id for this collection is a RDFURN for now.

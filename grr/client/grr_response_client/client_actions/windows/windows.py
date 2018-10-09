@@ -78,7 +78,7 @@ def EnumerateInterfacesFromClient(args):
   del args  # Unused.
 
   pythoncom.CoInitialize()
-  for interface in wmi.WMI().Win32_NetworkAdapterConfiguration():
+  for interface in (wmi.WMI().Win32_NetworkAdapterConfiguration() or []):
     addresses = []
     for ip_address in interface.IPAddress or []:
       addresses.append(

@@ -25,6 +25,7 @@ from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import notification_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -291,6 +292,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.token.username = "discovery_test_user"
     self.CreateUser(self.token.username)
 
+  @parser_test_lib.WithAllParsers
   def testInterrogateCloudMetadataLinux(self):
     """Check google cloud metadata on linux."""
     self.client_id = self.SetupClient(0, system="Linux", os_version="12.04")
@@ -314,6 +316,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
     self._CheckCloudMetadata()
 
+  @parser_test_lib.WithAllParsers
   def testInterrogateCloudMetadataWindows(self):
     """Check google cloud metadata on windows."""
     self.client_id = self.SetupClient(
@@ -335,6 +338,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
         self._CheckCloudMetadata()
 
+  @parser_test_lib.WithAllParsers
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
     self.client_id = self.SetupClient(0, system="Linux", os_version="12.04")
@@ -379,6 +383,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self._CheckClientLibraries()
     self._CheckMemory()
 
+  @parser_test_lib.WithAllParsers
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
     self.client_id = self.SetupClient(

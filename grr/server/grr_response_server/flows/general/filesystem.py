@@ -379,7 +379,7 @@ class UpdateSparseImageChunksMixin(object):
           mode="rw") as fd:
         for chunk_number, response in self.state.blobs:
           fd.AddBlob(
-              blob_hash=response.data,
+              blob_hash=rdf_objects.BlobID.FromBytes(response.data),
               length=response.length,
               chunk_number=chunk_number)
 
@@ -479,7 +479,7 @@ class FetchBufferForSparseImageMixin(object):
           mode="rw") as fd:
         for chunk_number, response in self.state.blobs:
           fd.AddBlob(
-              blob_hash=response.data,
+              blob_hash=rdf_objects.BlobID.FromBytes(response.data),
               length=response.length,
               chunk_number=chunk_number)
 

@@ -26,6 +26,7 @@ from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -110,6 +111,7 @@ supported_os: [ "Linux" ]
       with self.assertRaises(rdf_artifacts.ArtifactNotRegisteredError):
         artifact_registry.REGISTRY.GetArtifact("NotInDatastore")
 
+  @parser_test_lib.WithAllParsers
   def testProcessCollectedArtifacts(self):
     """Test downloading files from artifacts."""
     self.client_id = self.SetupClient(0, system="Windows", os_version="6.2")

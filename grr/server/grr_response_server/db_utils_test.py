@@ -6,9 +6,11 @@ import logging
 import mock
 
 import unittest
+from grr_response_core.lib import flags
 from grr_response_server import db
 from grr_response_server import db_utils
 from grr.test_lib import stats_test_lib
+from grr.test_lib import test_lib
 
 
 class CallLoggedAndAccountedTest(stats_test_lib.StatsTestMixin,
@@ -91,4 +93,4 @@ class CallLoggedAndAccountedTest(stats_test_lib.StatsTestMixin,
 
 
 if __name__ == "__main__":
-  unittest.main()
+  flags.StartMain(test_lib.main)

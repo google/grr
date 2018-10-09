@@ -408,6 +408,7 @@ ApiService.prototype.downloadFile = function(apiPath, opt_params) {
 
     var iframe = document.createElement('iframe');
     iframe.src = url;
+    angular.element(iframe).addClass('grr-binary-download');
     document.body.appendChild(iframe);
 
     var intervalPromise = this.interval_(function() {

@@ -294,8 +294,8 @@ class GlobExpression(rdfvalue.RDFString):
       # sequences).
       pattern = utils.NormalizePath(pattern.replace("\\", "/"))
 
-      for pattern in self.InterpolateGrouping(pattern):
-        yield pattern
+      for p in self.InterpolateGrouping(pattern):
+        yield p
 
   def InterpolateGrouping(self, pattern):
     """Interpolate inline globbing groups."""

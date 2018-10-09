@@ -78,16 +78,9 @@ class File(vfs.VFSHandler):
   alignment = 1
   file_offset = 0
 
-  def __init__(self,
-               base_fd,
-               pathspec=None,
-               progress_callback=None,
-               full_pathspec=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
     super(File, self).__init__(
-        base_fd,
-        pathspec=pathspec,
-        full_pathspec=full_pathspec,
-        progress_callback=progress_callback)
+        base_fd, pathspec=pathspec, progress_callback=progress_callback)
     if base_fd is None:
       self.pathspec.Append(pathspec)
 
@@ -204,33 +197,6 @@ class File(vfs.VFSHandler):
       logging.error("Failed to obtain device for '%s' (%s)", path, error)
       return None
 
-  def RecursiveListNames(self, depth=0, cross_devs=False):
-    path = client_utils.CanonicalPathToLocalPath(self.path)
-    path_depth = self._GetDepth(self.path)
-
-    if not cross_devs:
-      path_dev = self._GetDevice(path)
-
-    for root, dirs, files in os.walk(self.path):
-      dirs.sort()
-      files.sort()
-
-      root_depth = self._GetDepth(root)
-
-      # The recursion of the `os.walk` procedure is guided by the `dirs`
-      # variable [1]. By clearing `dirs` below we force the generator to omit
-      # certain rdf_paths.
-      #
-      # [1]: https://docs.python.org/2/library/os.html#os.walk
-
-      if not cross_devs and self._GetDevice(root) != path_dev:
-        dirs[:] = []  # We don't need to go deeper (clear the list)
-      elif root_depth - path_depth >= depth:
-        yield (root, dirs[:], files)  # Shallow copy
-        dirs[:] = []
-      else:
-        yield (root, dirs, files)
-
   def ListNames(self):
     return self.files or []
 
@@ -260,12 +226,14 @@ class File(vfs.VFSHandler):
 
       return data[pre_padding:]
 
-  def Stat(self, path=None, ext_attrs=False):
+  def Stat(self, ext_attrs=False):
+    return self._Stat(self.path, ext_attrs=ext_attrs)
+
+  def _Stat(self, path, ext_attrs=False):
     """Returns stat information of a specific path.
 
     Args:
-      path: a Unicode string containing the path or None.
-            If path is None the value in self.path is used.
+      path: A unicode string containing the path.
       ext_attrs: Whether the call should also collect extended attributes.
 
     Returns:
@@ -275,7 +243,7 @@ class File(vfs.VFSHandler):
       IOError when call to os.stat() fails
     """
     # Note that the encoding of local path is system specific
-    local_path = client_utils.CanonicalPathToLocalPath(path or self.path)
+    local_path = client_utils.CanonicalPathToLocalPath(path)
     result = client_utils.StatEntryFromPath(
         local_path, self.pathspec, ext_attrs=ext_attrs)
 
@@ -294,8 +262,8 @@ class File(vfs.VFSHandler):
 
     for path in self.files:
       try:
-        response = self.Stat(
-            path=utils.JoinPath(self.path, path), ext_attrs=ext_attrs)
+        filepath = utils.JoinPath(self.path, path)
+        response = self._Stat(filepath, ext_attrs=ext_attrs)
         pathspec = self.pathspec.Copy()
         pathspec.last.path = utils.JoinPath(pathspec.last.path, path)
         response.pathspec = pathspec

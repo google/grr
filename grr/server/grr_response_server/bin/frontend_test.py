@@ -132,7 +132,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       self.assertEqual(aff4_obj.Read(100), data[:100])
 
       if data_store.RelationalDBReadEnabled(category="filestore"):
-        fd = file_store.OpenLatestFileVersion(
+        fd = file_store.OpenFile(
             db.ClientPath.FromPathSpec(self.client_id.Basename(),
                                        r.stat_entry.pathspec))
         self.assertEqual(fd.read(100), data[:100])

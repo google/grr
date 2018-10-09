@@ -8,6 +8,7 @@ from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import registry
 from grr_response_core.lib import stats
+from grr_response_core.lib.parsers import all as all_parsers
 
 
 def ClientInit():
@@ -19,6 +20,7 @@ def ClientInit():
   config_lib.ParseConfigCommandLine()
 
   client_logging.LogInit()
+  all_parsers.Register()
   registry.Init()
 
   if not config.CONFIG.ContextApplied(contexts.CLIENT_BUILD_CONTEXT):

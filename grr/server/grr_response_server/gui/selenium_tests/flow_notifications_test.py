@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 import os
 
 
-import unittest
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 
@@ -17,6 +16,7 @@ from grr_response_server.gui import gui_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -118,11 +118,5 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
                    "Downloaded archive of flow %s" % flow_urn.Basename())
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

@@ -11,6 +11,7 @@ from grr_response_client import vfs
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import precondition
 
 
 class CachedFilesystem(object):
@@ -89,11 +90,7 @@ class TSKFile(vfs.VFSHandler):
       stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK
       | stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
 
-  def __init__(self,
-               base_fd,
-               pathspec=None,
-               progress_callback=None,
-               full_pathspec=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
     """Use TSK to read the pathspec.
 
     Args:
@@ -101,16 +98,12 @@ class TSKFile(vfs.VFSHandler):
       pathspec: An optional pathspec to open directly.
       progress_callback: A callback to indicate that the open call is still
         working but needs more time.
-      full_pathspec: The full pathspec we are trying to open.
 
     Raises:
       IOError: If the file can not be opened.
     """
     super(TSKFile, self).__init__(
-        base_fd,
-        pathspec=pathspec,
-        progress_callback=progress_callback,
-        full_pathspec=full_pathspec)
+        base_fd, pathspec=pathspec, progress_callback=progress_callback)
     if self.base_fd is None:
       raise IOError("TSK driver must have a file base.")
 
@@ -182,52 +175,6 @@ class TSKFile(vfs.VFSHandler):
 
     return None
 
-  def _Walk(self, depth, top_path, top_tsk_dir):
-    if depth < 0:
-      return
-
-    dirs, files = [], []
-    tsk_dir_map = {}
-
-    for f in top_tsk_dir:
-      name = f.info.name.name.decode("utf-8")
-      if name in [".", ".."] or name in self.BLACKLIST_FILES:
-        continue
-
-      try:
-        inode = f.info.meta.addr
-        fd = self.fs.open_meta(inode)
-        tsk_dir = fd.as_directory()
-
-      except (IOError, AttributeError):  # Not a directory
-        files.append(name)
-
-      else:  # Is a directory
-        dirs.append(name)
-        tsk_dir_map[name] = tsk_dir
-
-    dirs.sort()
-    files.sort()
-
-    yield top_path, dirs, files
-
-    for d in dirs:
-      path = "%s/%s" % (top_path if top_path != "/" else "", d)
-      tsk_dir = tsk_dir_map[d]
-
-      for item in self._Walk(depth - 1, path, tsk_dir):
-        yield item
-
-  def RecursiveListNames(self, depth=0, unused_cross_devs=None):
-    path = self.pathspec.last.path
-
-    try:
-      tsk_dir = self.fd.as_directory()
-    except IOError:  # Not a directory
-      return
-
-    return self._Walk(depth, path, tsk_dir)
-
   def ListNames(self):
     directory_handle = self.fd.as_directory()
     for f in directory_handle:
@@ -254,8 +201,7 @@ class TSKFile(vfs.VFSHandler):
     Returns:
       A StatEntry which can be used to re-open this exact VFS node.
     """
-    if append_name is not None:
-      utils.AssertType(append_name, unicode)
+    precondition.AssertOptionalType(append_name, unicode)
 
     info = tsk_file.info
     response = rdf_client_fs.StatEntry()
@@ -337,9 +283,9 @@ class TSKFile(vfs.VFSHandler):
       return data
     return ""
 
-  def Stat(self, path=None, ext_attrs=None):
+  def Stat(self, ext_attrs=None):
     """Return a stat of the file."""
-    del path, ext_attrs  # Unused.
+    del ext_attrs  # Unused.
     return self.MakeStatResponse(self.fd, tsk_attribute=self.tsk_attribute)
 
   def ListFiles(self, ext_attrs=None):
@@ -351,7 +297,7 @@ class TSKFile(vfs.VFSHandler):
 
     for f in self.fd.as_directory():
       try:
-        name = f.info.name.name.decode("utf-8")
+        name = utils.SmartUnicode(f.info.name.name)
         # Drop these useless entries.
         if name in [".", ".."] or name in self.BLACKLIST_FILES:
           continue
@@ -389,12 +335,7 @@ class TSKFile(vfs.VFSHandler):
     return self.fd.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG
 
   @classmethod
-  def Open(cls,
-           fd,
-           component,
-           pathspec=None,
-           progress_callback=None,
-           full_pathspec=None):
+  def Open(cls, fd, component, pathspec=None, progress_callback=None):
     # A Pathspec which starts with TSK means we need to resolve the mount point
     # at runtime.
     if fd is None and component.pathtype == rdf_paths.PathSpec.PathType.TSK:
@@ -422,17 +363,9 @@ class TSKFile(vfs.VFSHandler):
 
     # If an inode is specified, just use it directly.
     elif component.HasField("inode"):
-      return TSKFile(
-          fd,
-          component,
-          progress_callback=progress_callback,
-          full_pathspec=full_pathspec)
+      return TSKFile(fd, component, progress_callback=progress_callback)
 
     # Otherwise do the usual case folding.
     else:
       return vfs.VFSHandler.Open(
-          fd,
-          component,
-          pathspec=pathspec,
-          progress_callback=progress_callback,
-          full_pathspec=full_pathspec)
+          fd, component, pathspec=pathspec, progress_callback=progress_callback)

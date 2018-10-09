@@ -353,6 +353,17 @@ class HTTPManager(object):
         self.last_proxy_index = proxy_index + 1
         tries += 1
         last_error = 500
+      # Catch unexpected exceptions. If the error is proxy related it makes
+      # sense to cycle the proxy before reraising. One error we have seen here
+      # is ProxySchemeUnknown but urllib can raise many different exceptions, it
+      # doesn't make sense to enumerate them all.
+      except Exception:  # pylint: disable=broad-except
+        logging.exception(
+            "Got an unexpected exception while connecting to the server.")
+        # Try the next proxy
+        self.last_proxy_index = proxy_index + 1
+        tries += 1
+        last_error = 500
 
     # We failed to connect at all here.
     return HTTPObject(code=last_error)

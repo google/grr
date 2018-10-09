@@ -13,8 +13,11 @@ from grr_response_core.lib import stats
 # pylint: disable=unused-import
 from grr_response_core.lib.local import plugins
 # pylint: enable=unused-import
+from grr_response_core.lib.parsers import all as all_parsers
 from grr_response_server import server_logging
 from grr_response_server import threadpool
+from grr_response_server.blob_stores import registry_init as bs_registry_init
+from grr_response_server.decoders import all as all_decoders
 from grr_response_server.local import registry_init
 
 # pylint: disable=g-import-not-at-top
@@ -71,6 +74,9 @@ def Init():
   threadpool.InitializeMetrics()
   server_logging.ServerLoggingStartupInit()
 
+  bs_registry_init.RegisterBlobStores()
+  all_decoders.Register()
+  all_parsers.Register()
   registry.Init()
 
   # Exempt config updater from this check because it is the one responsible for

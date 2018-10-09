@@ -16,6 +16,7 @@ from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_core.lib.util import collection
 from grr_response_server import aff4
 from grr_response_server import cronjobs
 from grr_response_server import data_store
@@ -129,7 +130,7 @@ CLIENT_READ_BATCH_SIZE = 50000
 def _IterateAllClients():
   """Fetches client data from the relational db."""
   all_client_ids = data_store.REL_DB.ReadAllClientIDs()
-  for batch in utils.Grouper(all_client_ids, CLIENT_READ_BATCH_SIZE):
+  for batch in collection.Batch(all_client_ids, CLIENT_READ_BATCH_SIZE):
     client_map = data_store.REL_DB.MultiReadClientFullInfo(batch)
     fs_client_ids = [
         cid for (cid, client) in iteritems(client_map)
@@ -146,7 +147,7 @@ def _IterateAllLegacyClients(token):
   """Fetches client data from the legacy db."""
   root_children = aff4.FACTORY.Open(
       aff4.ROOT_URN, token=token).OpenChildren(mode="r")
-  for batch in utils.Grouper(root_children, CLIENT_READ_BATCH_SIZE):
+  for batch in collection.Batch(root_children, CLIENT_READ_BATCH_SIZE):
     fs_client_map = {}
     non_fs_clients = []
     for child in batch:
@@ -614,7 +615,7 @@ class PurgeClientStats(aff4_cronjobs.SystemCronFlow):
 
     client_urns = export_utils.GetAllClients(token=self.token)
 
-    for batch in utils.Grouper(client_urns, 10000):
+    for batch in collection.Batch(client_urns, 10000):
       with data_store.DB.GetMutationPool() as mutation_pool:
         for client_urn in batch:
           mutation_pool.DeleteAttributes(
@@ -639,7 +640,7 @@ class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
 
     client_urns = export_utils.GetAllClients(token=self.token)
 
-    for batch in utils.Grouper(client_urns, 10000):
+    for batch in collection.Batch(client_urns, 10000):
       with data_store.DB.GetMutationPool() as mutation_pool:
         for client_urn in batch:
           mutation_pool.DeleteAttributes(

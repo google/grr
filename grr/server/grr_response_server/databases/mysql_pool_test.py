@@ -7,7 +7,9 @@ import mock
 import MySQLdb
 
 import unittest
+from grr_response_core.lib import flags
 from grr_response_server.databases import mysql_pool
+from grr.test_lib import test_lib
 
 
 class TestPool(unittest.TestCase):
@@ -136,4 +138,4 @@ class TestPool(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  flags.StartMain(test_lib.main)

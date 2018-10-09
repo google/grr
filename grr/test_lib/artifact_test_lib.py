@@ -9,6 +9,7 @@ from future.utils import iteritems
 import mock
 
 from grr_response_core import config
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
@@ -29,6 +30,7 @@ def PatchCleanArtifactRegistry(decoration_target=None):
 
   Args:
     decoration_target: Class or function to be decorated if used as a decorator.
+
   Returns:
     mock.patch.object patcher when called without arguments or decorated
     class/method when used as a decorator.
@@ -57,6 +59,7 @@ def PatchDefaultArtifactRegistry(decoration_target=None):
 
   Args:
     decoration_target: Class or function to be decorated if used as a decorator.
+
   Returns:
     mock.patch.object patcher when called without arguments or decorated
     class/method when used as a decorator.
@@ -84,6 +87,7 @@ def PatchDatastoreOnlyArtifactRegistry(decoration_target=None):
 
   Args:
     decoration_target: Class or function to be decorated if used as a decorator.
+
   Returns:
     mock.patch.object patcher when called without arguments or decorated
     class/method when used as a decorator.
@@ -113,6 +117,7 @@ def PatchTestArtifactRegistry(decoration_target=None):
 
   Args:
     decoration_target: Class or function to be decorated if used as a decorator.
+
   Returns:
     mock.patch.object patcher when called without arguments or decorated
     class/method when used as a decorator.
@@ -160,15 +165,15 @@ def GenFileData(paths, data, stats=None, files=None, modes=None):
     p = rdf_paths.PathSpec(path=path, pathtype="OS")
     stats.append(rdf_client_fs.StatEntry(pathspec=p, **modes))
   for val in data:
-    files.append(io.StringIO(val))
+    files.append(io.BytesIO(utils.SmartStr(val)))
   return stats, files
 
 
-def GenStatFileData(data, modes=None):
+def GenStatFileData(data):
   """Gen a tuple of list of stats and list of file contents from a dict."""
   paths = []
   contents = []
   for path, content in iteritems(data):
     paths.append(path)
     contents.append(content)
-  return GenFileData(paths, contents, modes=modes)
+  return GenFileData(paths, contents)

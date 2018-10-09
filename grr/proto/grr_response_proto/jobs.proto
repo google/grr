@@ -2064,7 +2064,6 @@ message EndToEndTestResult {
 message EmptyMessage {
 }
 
-
 message NSRLInformation {
   enum FileType {
     NORMAL_FILE = 0;

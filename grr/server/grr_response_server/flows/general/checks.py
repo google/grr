@@ -3,9 +3,7 @@
 from __future__ import unicode_literals
 
 
-from future.utils import iteritems
-
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -83,26 +81,6 @@ class CheckRunner(flow.GRRFlow):
           next_state="AddResponses")
     self.CallState(next_state="RunChecks")
 
-  def _ProcessData(self, processor, responses, artifact_name):
-    """Runs parsers over the raw data and maps it to artifact_data types.
-
-    Args:
-      processor: A processor method to use.
-      responses: One or more response items, depending on whether the processor
-        uses Parse or ParseMultiple.
-      artifact_name: The name of the artifact.
-    """
-    # Now parse the data and set state.
-    artifact_data = self.state.host_data.get(artifact_name)
-    result_iterator = artifact.ApplyParserToResponses(processor, responses,
-                                                      self)
-
-    for rdf in result_iterator:
-      if isinstance(rdf, rdf_anomaly.Anomaly):
-        artifact_data["ANOMALY"].append(rdf)
-      else:
-        artifact_data["PARSER"].append(rdf)
-
   def _RunProcessors(self, artifact_name, responses):
     """Manages processing of raw data from the artifact collection.
 
@@ -115,38 +93,17 @@ class CheckRunner(flow.GRRFlow):
 
     Args:
       artifact_name: The name of the artifact being processed as a string.
-      responses: Input from previous states as an rdfvalue.Dict
+      responses: A list of RDF value responses.
     """
-    # Find all the parsers that should apply to an artifact.
-    processors = parser.Parser.GetClassesByArtifact(artifact_name)
-    saved_responses = {}
-    # For each item of collected host data, identify whether to parse
-    # immediately or once all the artifact data is collected.
-    # Then, send the host data for parsing and demuxing.
-    for response in responses:
-      if processors:
-        for processor_cls in processors:
-          # TODO(hanuszczak): This is a shameful hack that should be refactored
-          # as soon as possible, see explanation of similar construct in the
-          # client-side artifact collector.
-          if issubclass(processor_cls, parser.FileParser):
-            processor = processor_cls(
-                lambda pathspec: artifact.OpenAff4File(self, pathspec))
-          else:
-            processor = processor_cls()
+    parser_factory = parsers.ArtifactParserFactory(artifact_name)
+    artifact_data = self.state.host_data.get(artifact_name)
 
-          if processor.process_together:
-            # Store the response until we have them all.
-            processor_name = processor.__class__.__name__
-            saved_responses.setdefault(processor_name, []).append(response)
-          else:
-            # Process the response immediately
-            self._ProcessData(processor, response, artifact_name)
-
-    # If we were saving responses, process them now:
-    for processor_name, responses_list in iteritems(saved_responses):
-      processor = parser.Parser.classes[processor_name]()
-      self._ProcessData(processor, responses_list, artifact_name)
+    results = artifact.ApplyParsersToResponses(parser_factory, responses, self)
+    for result in results:
+      if isinstance(result, rdf_anomaly.Anomaly):
+        artifact_data["ANOMALY"].append(result)
+      else:
+        artifact_data["PARSER"].append(result)
 
   def AddResponses(self, responses):
     """Process the raw response data from this artifact collection.
@@ -161,7 +118,7 @@ class CheckRunner(flow.GRRFlow):
     Args:
       responses: Input from previous states as an rdfvalue.Dict
     """
-    artifact_name = responses.request_data["artifact_name"]
+    artifact_name = unicode(responses.request_data["artifact_name"])
     # In some cases, artifacts may not find anything. We create an empty set of
     # host data so the checks still run.
     artifact_data = self.state.host_data.get(artifact_name, {})
@@ -172,7 +129,7 @@ class CheckRunner(flow.GRRFlow):
 
     # If there are respones, run them through the parsers.
     if responses:
-      self._RunProcessors(artifact_name, responses)
+      self._RunProcessors(artifact_name, list(responses))
 
   def RunChecks(self, responses):
     if not responses.success:

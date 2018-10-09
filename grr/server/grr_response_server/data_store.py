@@ -58,6 +58,8 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server import blob_store
 from grr_response_server import db
@@ -71,6 +73,8 @@ flags.DEFINE_bool("list_storage", False, "List all storage subsystems present.")
 DB = None
 # The global relational db handle.
 REL_DB = None
+# The global blobstore handle.
+BLOBS = None
 
 
 def RelationalDBWriteEnabled():
@@ -82,11 +86,12 @@ def RelationalDBReadEnabled(category=None):
   """Returns True if reads from a relational database are enabled.
 
   Args:
-    category: string identifying the category. Useful when a large piece
-              of functionality gets converted to REL_DB iteratively, step
-              by step and when enabling already implemented steps may
-              break the rest of the system (example: reading single approvals
-              is implemented, but listing them is not).
+    category: string identifying the category. Useful when a large piece of
+      functionality gets converted to REL_DB iteratively, step by step and when
+      enabling already implemented steps may break the rest of the system. For
+      example - reading single approvals is implemented, but listing them is
+      not.
+
   Returns:
     True if reads are enabled, False otherwise.
   """
@@ -275,7 +280,7 @@ class MutationPool(object):
 
   def CollectionDelete(self, collection_id):
     for subject, _, _ in DB.ScanAttribute(
-        collection_id.Add("Results"), DataStore.COLLECTION_ATTRIBUTE):
+        unicode(collection_id.Add("Results")), DataStore.COLLECTION_ATTRIBUTE):
       self.DeleteSubject(subject)
       if self.Size() > 50000:
         self.Flush()
@@ -310,7 +315,7 @@ class MutationPool(object):
     filtered_count = 0
 
     for subject, values in DB.ScanAttributes(
-        queue_id.Add("Records"),
+        unicode(queue_id.Add("Records")),
         [DataStore.COLLECTION_ATTRIBUTE, DataStore.QUEUE_LOCK_ATTRIBUTE],
         max_records=4 * limit,
         after_urn=after_urn):
@@ -379,7 +384,7 @@ class MutationPool(object):
 
   def QueueScheduleTasks(self, tasks, timestamp):
     for queue, queued_tasks in iteritems(
-        utils.GroupBy(tasks, lambda x: x.queue)):
+        collection.Group(tasks, lambda x: x.queue)):
       to_schedule = {}
       for task in queued_tasks:
         to_schedule[DataStore.QueueTaskIdToColumn(
@@ -394,6 +399,7 @@ class MutationPool(object):
       lease_seconds: The tasks will be leased for this long.
       limit: Number of values to fetch.
       timestamp: Range of times for consideration.
+
     Returns:
         A list of GrrMessage() objects leased.
     """
@@ -528,7 +534,7 @@ class MutationPool(object):
 
   def AFF4AddChild(self, subject, child, extra_attributes=None):
     """Adds a child to the specified parent."""
-    utils.AssertType(child, unicode)
+    precondition.AssertType(child, unicode)
 
     attributes = {
         DataStore.AFF4_INDEX_DIR_TEMPLATE % child: [
@@ -590,15 +596,6 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
       self.flusher_thread.start()
     self.monitor_thread = None
 
-  def InitializeBlobstore(self):
-    blobstore_name = config.CONFIG.Get("Blobstore.implementation")
-    try:
-      cls = blob_store.Blobstore.GetPlugin(blobstore_name)
-    except KeyError:
-      raise ValueError("No blob store %s found." % blobstore_name)
-
-    self.blobstore = cls()
-
   def InitializeMonitorThread(self):
     """Start the thread that registers the size of the DataStore."""
     if self.monitor_thread:
@@ -625,7 +622,6 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
 
   def Initialize(self):
     """Initialization of the datastore."""
-    self.InitializeBlobstore()
 
   @abc.abstractmethod
   def DeleteSubject(self, subject, sync=False):
@@ -649,8 +645,8 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
       subject: The subject this applies to.
       attribute: Attribute name.
       value: serialized value into one of the supported types.
-      timestamp: The timestamp for this entry in microseconds since the
-              epoch. If None means now.
+      timestamp: The timestamp for this entry in microseconds since the epoch.
+        If None means now.
       replace: Bool whether or not to overwrite current records.
       sync: If true we ensure the new values are committed before returning.
     """
@@ -673,7 +669,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
       subject: The subject which the lock applies to.
       retrywrap_timeout: How long to wait before retrying the lock.
       retrywrap_max_timeout: The maximum time to wait for a retry until we
-         raise.
+        raise.
       blocking: If False, raise on first lock failure.
       lease_time: lock lease time in seconds.
 
@@ -709,10 +705,9 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     isn't obtained on the first try.
 
     Args:
-        subject: The subject which the lock applies to. Only a
-          single subject may be locked in a lock.
-        lease_time: The minimum amount of time the lock should remain
-          alive.
+        subject: The subject which the lock applies to. Only a single subject
+          may be locked in a lock.
+        lease_time: The minimum amount of time the lock should remain alive.
 
     Returns:
         A lock object.
@@ -731,10 +726,10 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     Args:
       subject: The subject this applies to.
       values: A dict with keys containing attributes and values, serializations
-              to be set. values can be a tuple of (value, timestamp). Value must
-              be one of the supported types.
-      timestamp: The timestamp for this entry in microseconds since the
-              epoch. None means now.
+        to be set. values can be a tuple of (value, timestamp). Value must be
+        one of the supported types.
+      timestamp: The timestamp for this entry in microseconds since the epoch.
+        None means now.
       replace: Bool whether or not to overwrite current records.
       sync: If true we block until the operation completes.
       to_delete: An array of attributes to clear prior to setting.
@@ -817,11 +812,9 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     Args:
       subjects: A list of subjects.
       attribute_prefix: The attribute prefix.
-
-      timestamp: A range of times for consideration (In
-          microseconds). Can be a constant such as ALL_TIMESTAMPS or
-          NEWEST_TIMESTAMP or a tuple of ints (start, end). Inclusive of both
-          lower and upper bounds.
+      timestamp: A range of times for consideration (In microseconds). Can be a
+        constant such as ALL_TIMESTAMPS or NEWEST_TIMESTAMP or a tuple of ints
+        (start, end). Inclusive of both lower and upper bounds.
       limit: The total number of result values to return.
 
     Returns:
@@ -843,11 +836,9 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     Args:
       subject: The subject that we will search.
       attribute_prefix: The attribute prefix.
-
-      timestamp: A range of times for consideration (In
-          microseconds). Can be a constant such as ALL_TIMESTAMPS or
-          NEWEST_TIMESTAMP or a tuple of ints (start, end).
-
+      timestamp: A range of times for consideration (In microseconds). Can be a
+        constant such as ALL_TIMESTAMPS or NEWEST_TIMESTAMP or a tuple of ints
+        (start, end).
       limit: The number of results to fetch.
 
     Returns:
@@ -860,8 +851,10 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     Raises:
       AccessError: if anything goes wrong.
     """
-    for _, values in self.MultiResolvePrefix(
-        [subject], attribute_prefix, timestamp=timestamp, limit=limit):
+    for _, values in self.MultiResolvePrefix([subject],
+                                             attribute_prefix,
+                                             timestamp=timestamp,
+                                             limit=limit):
       values.sort(key=lambda a: a[0])
       return values
 
@@ -875,10 +868,10 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     Args:
       subject: The subject to resolve.
       attributes: The attribute string or list of strings to match. Note this is
-          an exact match, not a regex.
-      timestamp: A range of times for consideration (In
-          microseconds). Can be a constant such as ALL_TIMESTAMPS or
-          NEWEST_TIMESTAMP or a tuple of ints (start, end).
+        an exact match, not a regex.
+      timestamp: A range of times for consideration (In microseconds). Can be a
+        constant such as ALL_TIMESTAMPS or NEWEST_TIMESTAMP or a tuple of ints
+        (start, end).
       limit: The maximum total number of results we return.
     """
 
@@ -930,25 +923,18 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     each row.
 
     Args:
-      subject_prefix: Subject beginning with this prefix can be scanned. Must
-        be an aff4 object and a directory - "/" will be appended if necessary.
-        User must have read and query permissions on this directory.
-
+      subject_prefix: Subject beginning with this prefix can be scanned. Must be
+        an aff4 object and a directory - "/" will be appended if necessary. User
+        must have read and query permissions on this directory.
       attributes: A list of attribute names to scan.
-
       after_urn: If set, only scan records which come after this urn.
-
       max_records: The maximum number of records to scan.
-
       relaxed_order: By default, ScanAttribute yields results in lexographic
         order. If this is set, a datastore may yield results in a more
-        convenient order. For certain datastores this might greatly increase
-        the performance of large scans.
-
-
+        convenient order. For certain datastores this might greatly increase the
+        performance of large scans.
     Yields: Pairs (subject, result_dict) where result_dict maps attribute to
       (timestamp, value) pairs.
-
     """
 
   def ScanAttribute(self,
@@ -964,24 +950,6 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
         relaxed_order=relaxed_order):
       ts, v = r[attribute]
       yield (s, ts, v)
-
-  def ReadBlob(self, identifier, token=None):
-    return self.ReadBlobs([identifier], token=token)[identifier]
-
-  def ReadBlobs(self, identifiers, token=None):
-    return self.blobstore.ReadBlobs(identifiers, token=token)
-
-  def StoreBlob(self, content, token=None):
-    return self.blobstore.StoreBlob(content, token=token)
-
-  def StoreBlobs(self, contents, token=None):
-    return self.blobstore.StoreBlobs(contents, token=token)
-
-  def BlobExists(self, identifier, token=None):
-    return self.BlobsExist([identifier], token=token)[identifier]
-
-  def BlobsExist(self, identifiers, token=None):
-    return self.blobstore.BlobsExist(identifiers, token=token)
 
   def GetMutationPool(self):
     return self.mutation_pool_cls()
@@ -1149,12 +1117,12 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     """Stores new flow requests and responses to the data store.
 
     Args:
-      new_requests: A list of tuples (request, timestamp) to store in the
-                    data store.
-      new_responses: A list of tuples (response, timestamp) to store in the
-                     data store.
+      new_requests: A list of tuples (request, timestamp) to store in the data
+        store.
+      new_responses: A list of tuples (response, timestamp) to store in the data
+        store.
       requests_to_delete: A list of requests that should be deleted from the
-                          data store.
+        data store.
     """
     to_write = {}
     if new_requests is not None:
@@ -1395,7 +1363,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
                           after_timestamp=None,
                           after_suffix=None,
                           limit=None):
-    utils.AssertType(collection_id, rdfvalue.RDFURN)
+    precondition.AssertType(collection_id, rdfvalue.RDFURN)
 
     after_urn = None
     if after_timestamp:
@@ -1421,7 +1389,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
 
     Args:
       collection_id: ID of the collection for which the indexes should be
-                     retrieved.
+        retrieved.
 
     Yields:
       Tuples (index, ts, suffix).
@@ -1452,8 +1420,9 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
 
     Args:
       queue: The task queue that this task belongs to, usually client.Queue()
-            where client is the ClientURN object you want to schedule msgs on.
+        where client is the ClientURN object you want to schedule msgs on.
       limit: Number of values to fetch.
+
     Returns:
       A list of Task() objects.
     """
@@ -1533,10 +1502,10 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
 
     Args:
        subject: The index to use. Should be a urn that points to the sha256
-                namespace.
+         namespace.
        target_prefix: The prefix to match against the index.
        limit: Either a tuple of (start, limit) or a maximum number of results to
-              return.
+         return.
 
     Yields:
       URNs of files which have the same data as this file - as read from the
@@ -1606,6 +1575,7 @@ class DBSubjectLock(object):
       subject: The name of a subject to lock.
       lease_time: The minimum length of time the lock will remain valid in
         seconds. Note this will be converted to usec for storage.
+
     Raises:
       ValueError: No lease time was provided.
     """
@@ -1669,6 +1639,7 @@ class DataStoreInit(registry.InitHook):
     """Initialize the data_store."""
     global DB  # pylint: disable=global-statement
     global REL_DB  # pylint: disable=global-statement
+    global BLOBS  # pylint: disable=global-statement
 
     if flags.FLAGS.list_storage:
       self._ListStorageOptions()
@@ -1698,6 +1669,14 @@ class DataStoreInit(registry.InitHook):
           units="BYTES")
       DB.InitializeMonitorThread()
 
+    # Initialize the blobstore.
+    blobstore_name = config.CONFIG.Get("Blobstore.implementation")
+    try:
+      cls = blob_store.REGISTRY[blobstore_name]
+    except KeyError:
+      raise ValueError("No blob store %s found." % blobstore_name)
+    BLOBS = blob_store.BlobStoreValidationWrapper(cls())
+
     # Initialize a relational DB if configured.
     rel_db_name = config.CONFIG["Database.implementation"]
     if not rel_db_name:
@@ -1705,10 +1684,10 @@ class DataStoreInit(registry.InitHook):
 
     try:
       cls = registry_init.REGISTRY[rel_db_name]
-      logging.info("Using database implementation %s", rel_db_name)
-      REL_DB = db.DatabaseValidationWrapper(cls())
     except KeyError:
       raise ValueError("Database %s not found." % rel_db_name)
+    logging.info("Using database implementation %s", rel_db_name)
+    REL_DB = db.DatabaseValidationWrapper(cls())
 
   def RunOnce(self):
     """Initialize some Varz."""

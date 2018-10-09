@@ -359,11 +359,7 @@ class ApiGetCronJobRunArgs(rdf_structs.RDFProtoStruct):
 
 
 class ApiGetCronJobRunHandler(api_call_handler_base.ApiCallHandler):
-  """Renders given cron run.
-
-  Only top-level flows can be targeted. Times returned in the response are micro
-  seconds since epoch.
-  """
+  """Renders given cron run."""
 
   args_type = ApiGetCronJobRunArgs
   result_type = ApiCronJobRun

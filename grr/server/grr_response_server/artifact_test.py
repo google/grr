@@ -16,6 +16,9 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.parsers import linux_file_parser
+from grr_response_core.lib.parsers import rekall_artifact_parser
+from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -36,6 +39,7 @@ from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -384,6 +388,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
 
     self.LoadTestArtifacts()
 
+  @parser_test_lib.WithParser("Cmd", CmdProcessor)
   def testCmdArtifact(self):
     """Check we can run command based artifacts and get anomalies."""
     client_id = test_lib.TEST_CLIENT_ID
@@ -416,6 +421,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
       urn = client_id.Add("fs/os/").Add("var/log/auth.log")
       aff4.FACTORY.Open(urn, aff4_type=aff4_grr.VFSBlobImage, token=self.token)
 
+  @parser_test_lib.WithParser("Passwd", linux_file_parser.PasswdBufferParser)
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
     with vfs_test_lib.FakeTestDataVFSOverrider():
@@ -476,6 +482,8 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     self.SetupClient(0, system="Windows", os_version="6.2", arch="AMD64")
     self.LoadTestArtifacts()
 
+  @parser_test_lib.WithParser("WmiInstalledSoftware",
+                              wmi_parser.WMIInstalledSoftwareParser)
   def testWMIQueryArtifact(self):
     """Check we can run WMI based artifacts."""
     col = self.RunCollectorAndGetCollection(["WMIInstalledSoftware"],
@@ -485,6 +493,8 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     descriptions = [package.description for package in col]
     self.assertIn("Google Chrome", descriptions)
 
+  @parser_test_lib.WithParser("RekallPsList",
+                              rekall_artifact_parser.RekallPsListParser)
   def testRekallPsListArtifact(self):
     """Check we can run Rekall based artifacts."""
     client_id = test_lib.TEST_CLIENT_ID
@@ -505,6 +515,8 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     self.assertEqual(fd[0].pid, 4)
     self.assertIn("DumpIt.exe", [x.exe for x in fd])
 
+  @parser_test_lib.WithParser("RekallVad",
+                              rekall_artifact_parser.RekallVADParser)
   def testRekallVadArtifact(self):
     """Check we can run Rekall based artifacts."""
     client_id = test_lib.TEST_CLIENT_ID
@@ -574,6 +586,7 @@ class GrrKbWindowsTest(GrrKbTest):
     except AttributeError:
       pass
 
+  @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalWindows(self):
     """Check we can retrieve a knowledge base from a client."""
     kb = self._RunKBI()
@@ -594,6 +607,7 @@ class GrrKbWindowsTest(GrrKbTest):
     self.assertEqual(user.username, "jim")
     self.assertEqual(user.sid, "S-1-5-21-702227068-2140022151-3110739409-1000")
 
+  @parser_test_lib.WithParser("MultiProvide", MultiProvideParser)
   def testKnowledgeBaseMultiProvides(self):
     """Check we can handle multi-provides."""
     # Replace some artifacts with test one that will run the MultiProvideParser.
@@ -631,6 +645,7 @@ class GrrKbWindowsTest(GrrKbTest):
     self.assertEqual(
         fd.Get(fd.Schema.STAT).registry_data.GetValue(), "%SystemDrive%\\Users")
 
+  @parser_test_lib.WithAllParsers
   def testGetKBDependencies(self):
     """Test that KB dependencies are calculated correctly."""
     artifact_registry.REGISTRY.ClearSources()
@@ -682,6 +697,7 @@ class GrrKbWindowsTest(GrrKbTest):
         logging.disable(logging.NOTSET)
     return session_id
 
+  @parser_test_lib.WithAllParsers
   def testKnowledgeBaseNoProvides(self):
     with self.assertRaises(RuntimeError) as context:
       self._RunKBIFlow(["NoProvides"])
@@ -706,6 +722,7 @@ class GrrKbLinuxTest(GrrKbTest):
     super(GrrKbLinuxTest, self).setUp()
     self.SetupClient(0, system="Linux", os_version="12.04")
 
+  @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalLinux(self):
     """Check we can retrieve a Linux kb."""
     with test_lib.ConfigOverrider({
@@ -728,6 +745,7 @@ class GrrKbLinuxTest(GrrKbTest):
     self.assertEqual(user.last_logon.AsSecondsSinceEpoch(), 1296552099)
     self.assertEqual(user.homedir, "/home/user1")
 
+  @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalLinuxPasswd(self):
     """Check we can retrieve a Linux kb."""
     with vfs_test_lib.FakeTestDataVFSOverrider():
@@ -755,6 +773,7 @@ class GrrKbLinuxTest(GrrKbTest):
 
     self.assertFalse(kb.GetUser(username="buguser3"))
 
+  @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalLinuxNoUsers(self):
     """Cause a users.username dependency failure."""
     with test_lib.ConfigOverrider({
@@ -784,6 +803,7 @@ class GrrKbDarwinTest(GrrKbTest):
     super(GrrKbDarwinTest, self).setUp()
     self.SetupClient(0, system="Darwin", os_version="10.9")
 
+  @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalDarwin(self):
     """Check we can retrieve a Darwin kb."""
     with test_lib.ConfigOverrider({"Artifacts.knowledge_base": ["MacOSUsers"]}):

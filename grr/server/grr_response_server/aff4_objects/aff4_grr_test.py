@@ -2,7 +2,6 @@
 """Test the grr aff4 objects."""
 from __future__ import unicode_literals
 
-import hashlib
 import io
 import time
 
@@ -22,6 +21,7 @@ from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import transfer
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import flow_test_lib
@@ -296,9 +296,8 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         self.assertEqual(summary.system_uuid, system_uuid)
 
 
-def StoreBlobStub(blob, token=None):
-  del token  # Unused.
-  return hashlib.sha256(blob).hexdigest()
+def WriteBlobWithUnknownHashStub(blob):
+  return rdf_objects.BlobID.FromBlobData(blob)
 
 
 class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
@@ -419,13 +418,16 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
-      # Patching StoreBlob prevents the blobs from actually being written.
+      # Patching WriteBlobWithUnknownHash prevents the blobs from actually being
+      # written.
       with mock.patch.object(
-          data_store.DB, "StoreBlob", side_effect=StoreBlobStub):
+          data_store.BLOBS,
+          "WriteBlobWithUnknownHash",
+          side_effect=WriteBlobWithUnknownHashStub):
         fd.AppendContent(io.BytesIO(b"123456789"))
 
       fd.index.seek(0)
-      blob_id = fd.index.read(fd._HASH_SIZE).encode("hex")
+      blob_id = rdf_objects.BlobID.FromBytes(fd.index.read(fd._HASH_SIZE))
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     returned_fd, _, e = list(aff4.AFF4Stream.MultiStream([fd]))[0]
@@ -439,9 +441,12 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
       fd.SetChunksize(10)
       fd.AppendContent(io.BytesIO(b"*" * 10))
 
-      # Patching StoreBlob prevents the blobs from actually being written.
+      # Patching WriteBlobWithUnknownHash prevents the blobs from actually being
+      # written.
       with mock.patch.object(
-          data_store.DB, "StoreBlob", side_effect=StoreBlobStub):
+          data_store.BLOBS,
+          "WriteBlobWithUnknownHash",
+          side_effect=WriteBlobWithUnknownHashStub):
         fd.AppendContent(io.BytesIO(b"123456789"))
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
@@ -462,9 +467,12 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
       fd.SetChunksize(10)
       fd.AppendContent(io.BytesIO(b"*" * 10))
 
-      # Patching StoreBlob prevents the blobs from actually being written.
+      # Patching WriteBlobWithUnknownHash prevents the blobs from actually being
+      # written.
       with mock.patch.object(
-          data_store.DB, "StoreBlob", side_effect=StoreBlobStub):
+          data_store.BLOBS,
+          "WriteBlobWithUnknownHash",
+          side_effect=WriteBlobWithUnknownHashStub):
         fd.AppendContent(io.BytesIO(b"123456789"))
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
@@ -487,9 +495,12 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
         "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
 
-      # Patching StoreBlob prevents the blobs from actually being written.
+      # Patching WriteBlobWithUnknownHash prevents the blobs from actually being
+      # written.
       with mock.patch.object(
-          data_store.DB, "StoreBlob", side_effect=StoreBlobStub):
+          data_store.BLOBS,
+          "WriteBlobWithUnknownHash",
+          side_effect=WriteBlobWithUnknownHashStub):
         fd.AppendContent(io.BytesIO(b"*" * 10))
 
       fd.AppendContent(io.BytesIO(b"123456789"))

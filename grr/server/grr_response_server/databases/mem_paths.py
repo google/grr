@@ -6,10 +6,10 @@ from __future__ import unicode_literals
 from builtins import filter  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import iterkeys
-from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import collection
 from grr_response_server import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -23,83 +23,105 @@ class _PathRecord(object):
   """
 
   def __init__(self, path_type, components):
-    self._path_info = rdf_objects.PathInfo(
-        path_type=path_type, components=components)
+    self._path_type = path_type
+    self._components = components
 
-    self._stat_entries = {}
-    self._hash_entries = {}
-    self._blob_references = {}
+    self._path_infos = {}
     self._children = set()
 
-  def AddBlobReference(self, blob_ref):
-    self._blob_references[blob_ref.offset] = blob_ref.Copy()
+  @property
+  def _stat_entries(self):
+    return {
+        ts: pi.stat_entry
+        for ts, pi in iteritems(self._path_infos)
+        if pi.stat_entry
+    }
+
+  @property
+  def _hash_entries(self):
+    return {
+        ts: pi.hash_entry
+        for ts, pi in iteritems(self._path_infos)
+        if pi.hash_entry
+    }
 
   def AddStatEntry(self, stat_entry, timestamp):
+    """Registers stat entry at a given timestamp."""
+
     if timestamp in self._stat_entries:
       message = ("Duplicated stat entry write for path '%s' of type '%s' at "
                  "timestamp '%s'. Old: %s. New: %s.")
-      message %= ("/".join(self._path_info.components),
-                  self._path_info.path_type, timestamp,
+      message %= ("/".join(self._components), self._path_type, timestamp,
                   self._stat_entries[timestamp], stat_entry)
       raise db.Error(message)
 
-    self._stat_entries[timestamp] = stat_entry.Copy()
+    if timestamp not in self._path_infos:
+      path_info = rdf_objects.PathInfo(
+          path_type=self._path_type,
+          components=self._components,
+          timestamp=timestamp,
+          stat_entry=stat_entry)
+      self.AddPathInfo(path_info)
+    else:
+      self._path_infos[timestamp].stat_entry = stat_entry
 
   def GetStatEntries(self):
     return self._stat_entries.items()
 
   def AddHashEntry(self, hash_entry, timestamp):
+    """Registers hash entry at a given timestamp."""
+
     if timestamp in self._hash_entries:
       message = ("Duplicated hash entry write for path '%s' of type '%s' at "
                  "timestamp '%s'. Old: %s. New: %s.")
-      message %= ("/".join(self._path_info.components),
-                  self._path_info.path_type, timestamp,
+      message %= ("/".join(self._components), self._path_type, timestamp,
                   self._hash_entries[timestamp], hash_entry)
       raise db.Error(message)
 
-    self._hash_entries[timestamp] = hash_entry.Copy()
+    if timestamp not in self._path_infos:
+      path_info = rdf_objects.PathInfo(
+          path_type=self._path_type,
+          components=self._components,
+          timestamp=timestamp,
+          hash_entry=hash_entry)
+      self.AddPathInfo(path_info)
+    else:
+      self._path_infos[timestamp].hash_entry = hash_entry
 
   def GetHashEntries(self):
     return self._hash_entries.items()
 
-  def AddPathHistory(self, path_info):
-    """Extends the path record history and updates existing information."""
-    self.AddPathInfo(path_info)
-
-    timestamp = rdfvalue.RDFDatetime.Now()
-    if path_info.HasField("stat_entry"):
-      self.AddStatEntry(path_info.stat_entry, timestamp)
-    if path_info.HasField("hash_entry"):
-      self.AddHashEntry(path_info.hash_entry, timestamp)
-
   def ClearHistory(self):
-    self._stat_entries = {}
-    self._hash_entries = {}
+    self._path_infos = {}
 
   def AddPathInfo(self, path_info):
     """Updates existing path information of the path record."""
-    if self._path_info.path_type != path_info.path_type:
-      message = "Incompatible path types: `%s` and `%s`"
-      raise ValueError(
-          message % (self._path_info.path_type, path_info.path_type))
-    if self._path_info.components != path_info.components:
-      message = "Incompatible path components: `%s` and `%s`"
-      raise ValueError(
-          message % (self._path_info.components, path_info.components))
 
-    self._path_info.timestamp = rdfvalue.RDFDatetime.Now()
-    self._path_info.directory |= path_info.directory
+    if self._path_type != path_info.path_type:
+      message = "Incompatible path types: `%s` and `%s`"
+      raise ValueError(message % (self._path_type, path_info.path_type))
+    if self._components != path_info.components:
+      message = "Incompatible path components: `%s` and `%s`"
+      raise ValueError(message % (self._components, path_info.components))
+
+    if path_info.timestamp in self._path_infos:
+      raise ValueError(
+          "PathInfo with timestamp %r was added before." % path_info.timestamp)
+
+    new_path_info = path_info.Copy()
+    if new_path_info.timestamp is None:
+      new_path_info.timestamp = rdfvalue.RDFDatetime.Now()
+    self._path_infos[new_path_info.timestamp] = new_path_info
 
   def AddChild(self, path_info):
     """Makes the path aware of some child."""
-    if self._path_info.path_type != path_info.path_type:
+
+    if self._path_type != path_info.path_type:
       message = "Incompatible path types: `%s` and `%s`"
-      raise ValueError(
-          message % (self._path_info.path_type, path_info.path_type))
-    if self._path_info.components != path_info.components[:-1]:
+      raise ValueError(message % (self._path_type, path_info.path_type))
+    if self._components != path_info.components[:-1]:
       message = "Incompatible path components, expected `%s` but got `%s`"
-      raise ValueError(
-          message % (self._path_info.components, path_info.components[:-1]))
+      raise ValueError(message % (self._components, path_info.components[:-1]))
 
     self._children.add(path_info.GetPathID())
 
@@ -112,7 +134,8 @@ class _PathRecord(object):
     Returns:
       A `rdf_objects.PathInfo` instance.
     """
-    result = self._path_info.Copy()
+    path_info_timestamp = self._LastEntryTimestamp(self._path_infos, timestamp)
+    result = self._path_infos[path_info_timestamp].Copy()
 
     stat_entry_timestamp = self._LastEntryTimestamp(self._stat_entries,
                                                     timestamp)
@@ -129,15 +152,12 @@ class _PathRecord(object):
   def GetChildren(self):
     return set(self._children)
 
-  def GetBlobReferences(self):
-    return itervalues(self._blob_references)
-
   @staticmethod
-  def _LastEntryTimestamp(collection, upper_bound_timestamp):
+  def _LastEntryTimestamp(dct, upper_bound_timestamp):
     """Searches for greatest timestamp lower than the specified one.
 
     Args:
-      collection: A dictionary from timestamps to some items.
+      dct: A dictionary from timestamps to some items.
       upper_bound_timestamp: An upper bound for timestamp to be returned.
 
     Returns:
@@ -145,12 +165,12 @@ class _PathRecord(object):
       exists, `None` is returned.
     """
     if upper_bound_timestamp is None:
-      upper_bound_timestamp = rdfvalue.RDFDatetime.Now()
-
-    upper_bound = lambda key: key <= upper_bound_timestamp
+      upper_bound = lambda _: True
+    else:
+      upper_bound = lambda key: key <= upper_bound_timestamp
 
     try:
-      return max(filter(upper_bound, iterkeys(collection)))
+      return max(filter(upper_bound, iterkeys(dct)))
     except ValueError:  # Thrown if `max` input (result of filtering) is empty.
       return None
 
@@ -197,7 +217,7 @@ class InMemoryDBPathMixin(object):
         continue
       if len(other_components) == len(components):
         continue
-      if not utils.IterableStartsWith(other_components, components):
+      if not collection.StartsWith(other_components, components):
         continue
       if (max_depth is not None and
           len(other_components) - len(components) > max_depth):
@@ -219,16 +239,13 @@ class InMemoryDBPathMixin(object):
     else:
       return self.path_records.get(path_idx, None)
 
-  def _WritePathInfo(self, client_id, path_info, ancestor):
+  def _WritePathInfo(self, client_id, path_info):
     """Writes a single path info record for given client."""
     if client_id not in self.metadatas:
       raise db.UnknownClientError(client_id)
 
     path_record = self._GetPathRecord(client_id, path_info)
-    if not ancestor:
-      path_record.AddPathHistory(path_info)
-    else:
-      path_record.AddPathInfo(path_info)
+    path_record.AddPathInfo(path_info)
 
     parent_path_info = path_info.GetParent()
     if parent_path_info is not None:
@@ -243,9 +260,9 @@ class InMemoryDBPathMixin(object):
   @utils.Synchronized
   def WritePathInfos(self, client_id, path_infos):
     for path_info in path_infos:
-      self._WritePathInfo(client_id, path_info, ancestor=False)
+      self._WritePathInfo(client_id, path_info)
       for ancestor_path_info in path_info.GetAncestors():
-        self._WritePathInfo(client_id, ancestor_path_info, ancestor=True)
+        self._WritePathInfo(client_id, ancestor_path_info)
 
   @utils.Synchronized
   def MultiClearPathHistory(self, path_infos):
@@ -322,5 +339,50 @@ class InMemoryDBPathMixin(object):
       results[components] = [
           entries_by_ts[k] for k in sorted(iterkeys(entries_by_ts))
       ]
+
+    return results
+
+  @utils.Synchronized
+  def ReadLatestPathInfosWithHashBlobReferences(self,
+                                                client_paths,
+                                                max_timestamp=None):
+    """Returns PathInfos that have corresponding HashBlobReferences."""
+
+    results = {}
+    for cp in client_paths:
+      results[cp] = None
+
+      try:
+        path_record = self.path_records[(cp.client_id, cp.path_type,
+                                         cp.components)]
+      except KeyError:
+        continue
+
+      stat_entries_by_ts = {
+          ts: stat_entry for ts, stat_entry in path_record.GetStatEntries()
+      }
+
+      for ts, hash_entry in sorted(
+          path_record.GetHashEntries(), key=lambda e: e[0], reverse=True):
+        if max_timestamp is not None and ts > max_timestamp:
+          continue
+
+        hash_id = rdf_objects.SHA256HashID.FromBytes(
+            hash_entry.sha256.AsBytes())
+        if hash_id not in self.blob_refs_by_hashes:
+          continue
+
+        pi = rdf_objects.PathInfo(
+            path_type=cp.path_type,
+            components=cp.components,
+            timestamp=ts,
+            hash_entry=hash_entry)
+        try:
+          pi.stat_entry = stat_entries_by_ts[ts]
+        except KeyError:
+          pass
+
+        results[cp] = pi
+        break
 
     return results

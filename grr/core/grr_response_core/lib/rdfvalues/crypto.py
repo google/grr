@@ -30,6 +30,7 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import precondition
 
 from grr_response_proto import jobs_pb2
 
@@ -102,11 +103,11 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     self.GetCN()
 
   def ParseFromHumanReadable(self, string):
-    utils.AssertType(string, unicode)
+    precondition.AssertType(string, unicode)
     self.ParseFromString(string.encode("ascii"))
 
   def ParseFromDatastore(self, value):
-    utils.AssertType(value, bytes)
+    precondition.AssertType(value, bytes)
     self.ParseFromString(value)
 
   def SerializeToString(self):
@@ -228,7 +229,7 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
     self._value = x509.load_pem_x509_csr(csr_as_pem, backend=openssl.backend)
 
   def ParseFromDatastore(self, value):
-    utils.AssertType(value, bytes)
+    precondition.AssertType(value, bytes)
     self.ParseFromString(value)
 
   def SerializeToString(self):
@@ -285,7 +286,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     return self._value
 
   def ParseFromString(self, pem_string):
-    utils.AssertType(pem_string, bytes)
+    precondition.AssertType(pem_string, bytes)
     try:
       self._value = serialization.load_pem_public_key(
           pem_string, backend=openssl.backend)
@@ -293,11 +294,11 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
       raise type_info.TypeValueError("Public key invalid: %s" % e)
 
   def ParseFromDatastore(self, value):
-    utils.AssertType(value, bytes)
+    precondition.AssertType(value, bytes)
     self.ParseFromString(value)
 
   def ParseFromHumanReadable(self, string):
-    utils.AssertType(string, unicode)
+    precondition.AssertType(string, unicode)
     self.ParseFromString(string.encode("ascii"))
 
   def SerializeToString(self):
@@ -379,7 +380,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
             "Cannot initialize %s from %s." % (self.__class__, initializer))
 
   def ParseFromHumanReadable(self, string):
-    utils.AssertType(string, unicode)
+    precondition.AssertType(string, unicode)
     self.ParseFromString(string.encode("ascii"))
 
   def GetRawPrivateKey(self):
@@ -390,7 +391,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
 
   def Sign(self, message, use_pss=False):
     """Sign a given message."""
-    utils.AssertType(message, bytes)
+    precondition.AssertType(message, bytes)
 
     # TODO(amoser): This should use PSS by default at some point.
     if not use_pss:
@@ -422,7 +423,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
     return cls(key)
 
   def ParseFromString(self, pem_string):
-    utils.AssertType(pem_string, bytes)
+    precondition.AssertType(pem_string, bytes)
     try:
       self._value = serialization.load_pem_private_key(
           pem_string, password=None, backend=openssl.backend)
@@ -462,7 +463,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
       raise type_info.TypeValueError("Unable to load private key: %s" % e)
 
   def ParseFromDatastore(self, value):
-    utils.AssertType(value, bytes)
+    precondition.AssertType(value, bytes)
     self.ParseFromString(value)
 
   def SerializeToString(self):

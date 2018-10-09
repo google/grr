@@ -18,6 +18,7 @@ from future.utils import iteritems
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import precondition
 
 
 class RegistryConfigParser(config_lib.GRRConfigParser):
@@ -56,8 +57,9 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
         name, value, value_type = _winreg.EnumValue(self.root_key, i)
         # Only support strings here.
         if value_type == _winreg.REG_SZ:
-          result[name] = utils.SmartStr(value)
-      except (exceptions.WindowsError, TypeError):
+          precondition.AssertType(value, unicode)
+          result[name] = value
+      except exceptions.WindowsError:
         break
 
       i += 1

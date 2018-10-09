@@ -3,7 +3,7 @@
 """Test the fileview interface."""
 from __future__ import unicode_literals
 
-import unittest
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_server import aff4
@@ -14,6 +14,7 @@ from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins.client import ApiSearchClientsHandler
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import db_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -123,7 +124,8 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
 
     # The stats pane shows the target file
-    self.WaitUntil(self.IsTextPresent, "%s/fs/os/proc/10/exe" % self.client_id)
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-file-details:contains('proc/10/exe')")
 
     # Now select a FlowStatus notification,
     # should navigate to the broken flow.
@@ -184,11 +186,5 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
                                self.GetText, "css=div[name=ServerErrorDialog]")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

@@ -12,6 +12,7 @@ from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import precondition
 from grr_response_server import aff4
 from grr_response_server import data_store
 
@@ -168,6 +169,9 @@ class FakeDataStore(data_store.DataStore):
                      after_urn="",
                      max_records=None,
                      relaxed_order=False):
+    precondition.AssertType(subject_prefix, unicode)
+    precondition.AssertIterableType(attributes, unicode)
+
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
       subject_prefix += "/"

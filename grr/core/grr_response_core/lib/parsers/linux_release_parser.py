@@ -7,6 +7,7 @@ import itertools
 import re
 
 from grr_response_core.lib import parser
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
@@ -122,12 +123,11 @@ class ReleaseFileParseHandler(ReleaseParseHandler):
     return complete, ParsedRelease(self.name, major, minor)
 
 
-class LinuxReleaseParser(parser.FileParser):
+class LinuxReleaseParser(parser.FileMultiParser):
   """Parser for Linux distribution information."""
 
   output_types = ['Dict']
   supported_artifacts = ['LinuxRelease']
-  process_together = True
 
   # Multiple files exist to define a Linux distribution, some of which are more
   # accurate than others under certain circumstances. We assign a weight and
@@ -155,7 +155,7 @@ class LinuxReleaseParser(parser.FileParser):
     for stat, file_object in itertools.izip(stats, file_objects):
       path = stat.pathspec.path
       file_object.seek(0)
-      contents = file_object.read()
+      contents = utils.ReadFileBytesAsUnicode(file_object)
       result[path] = contents
     return result
 

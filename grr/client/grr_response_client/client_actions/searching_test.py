@@ -45,16 +45,9 @@ class MockVFSHandlerFind(vfs.VFSHandler):
       "/mock2/directory3/long_file.text": (b"space " * 100000 + b"A Secret")
   }
 
-  def __init__(self,
-               base_fd,
-               pathspec=None,
-               progress_callback=None,
-               full_pathspec=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
     super(MockVFSHandlerFind, self).__init__(
-        base_fd,
-        pathspec=pathspec,
-        progress_callback=progress_callback,
-        full_pathspec=full_pathspec)
+        base_fd, pathspec=pathspec, progress_callback=progress_callback)
 
     self.pathspec.Append(pathspec)
     self.path = self.pathspec.CollapsePath()

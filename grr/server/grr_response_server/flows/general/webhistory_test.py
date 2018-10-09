@@ -7,6 +7,8 @@ import os
 from grr_response_client import client_utils
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
+from grr_response_core.lib.parsers import chrome_history
+from grr_response_core.lib.parsers import firefox3_history
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -20,6 +22,7 @@ from grr_response_server.flows.general import webhistory
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 
 
@@ -123,7 +126,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     if data_store.RelationalDBReadEnabled(category="filestore"):
       cp = db.ClientPath.TSK(self.client_id.Basename(),
                              tuple(output_path.Split()[3:]))
-      rel_fd = file_store.OpenLatestFileVersion(cp)
+      rel_fd = file_store.OpenFile(cp)
       self.assertEqual(rel_fd.read(15), "SQLite format 3")
 
     # Check for analysis file.
@@ -197,6 +200,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
 
     return flow.GRRFlow.ResultCollectionForFID(session_id)
 
+  @parser_test_lib.WithParser("Chrome", chrome_history.ChromeHistoryParser)
   def testChrome(self):
     """Check we can run WMI based artifacts."""
     with self.MockClientRawDevWithImage():
@@ -214,6 +218,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
     self.assertTrue(fd[0].source_urn.Path().endswith(
         "/home/test/.config/google-chrome/Default/History"))
 
+  @parser_test_lib.WithParser("Firefox", firefox3_history.FirefoxHistoryParser)
   def testFirefox(self):
     """Check we can run WMI based artifacts."""
     with self.MockClientRawDevWithImage():

@@ -4,10 +4,9 @@
 from __future__ import unicode_literals
 
 
-import unittest
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
+from grr_response_core.lib.util import compatibility
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import notification
@@ -102,7 +101,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Click on the first flow and wait for flow details panel to appear.
     runs = cronjobs.GetCronManager().ReadJobRuns(
-        utils.GetName(cron_system.OSBreakDown))
+        compatibility.GetName(cron_system.OSBreakDown))
     try:
       run_id = runs[0].run_id
     except AttributeError:
@@ -424,11 +423,5 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=dd:contains('OSBreakDown')")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

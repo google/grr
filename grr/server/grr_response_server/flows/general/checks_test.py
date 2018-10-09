@@ -8,6 +8,8 @@ from future.utils import iterkeys
 
 from grr_response_core import config
 from grr_response_core.lib import flags
+from grr_response_core.lib.parsers import config_file
+from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import aff4
 from grr_response_server import flow
@@ -16,6 +18,7 @@ from grr_response_server.check_lib import checks_test_lib
 from grr_response_server.flows.general import checks as flow_checks
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -99,6 +102,8 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
     expected = ["SHADOW-HASH", "SSHD-CHECK", "SSHD-PERMS", "SW-CHECK"]
     self.assertRanChecks(expected, results)
 
+  @parser_test_lib.WithParser("Sshd", config_file.SshdConfigParser)
+  @parser_test_lib.WithParser("Pswd", linux_file_parser.LinuxSystemPasswdParser)
   def testChecksProcessResultContext(self):
     """Test the flow returns parser results."""
     self.SetLinuxKB()

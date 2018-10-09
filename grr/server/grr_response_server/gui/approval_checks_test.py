@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 import mock
 
-import unittest
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_server import access_control
@@ -233,10 +232,5 @@ class CheckCronJobApprovalRequestTest(
       rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
 
 
-def main(argv):
-  _ = argv
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

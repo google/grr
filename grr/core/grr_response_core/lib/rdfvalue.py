@@ -33,6 +33,7 @@ from typing import cast
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import precondition
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
@@ -251,15 +252,15 @@ class RDFBytes(RDFPrimitive):
       self.ParseFromString(initializer)
 
   def ParseFromString(self, string):
-    utils.AssertType(string, bytes)
+    precondition.AssertType(string, bytes)
     self._value = string
 
   def ParseFromDatastore(self, value):
-    utils.AssertType(value, bytes)
+    precondition.AssertType(value, bytes)
     self._value = value
 
   def ParseFromHumanReadable(self, string):
-    utils.AssertType(string, unicode)
+    precondition.AssertType(string, unicode)
     self._value = string.encode("utf-8")
 
   def AsBytes(self):
@@ -376,15 +377,15 @@ class RDFString(RDFPrimitive):
     raise TypeError(message)
 
   def ParseFromString(self, string):
-    utils.AssertType(string, bytes)
+    precondition.AssertType(string, bytes)
     self._value = string.decode("utf-8")
 
   def ParseFromDatastore(self, value):
-    utils.AssertType(value, unicode)
+    precondition.AssertType(value, unicode)
     self._value = value
 
   def ParseFromHumanReadable(self, string):
-    utils.AssertType(string, unicode)
+    precondition.AssertType(string, unicode)
     self._value = string
 
   def SerializeToString(self):
@@ -446,11 +447,11 @@ class RDFInteger(RDFPrimitive):
         raise DecodeError(e)
 
   def ParseFromDatastore(self, value):
-    utils.AssertType(value, int)
+    precondition.AssertType(value, int)
     self._value = value
 
   def ParseFromHumanReadable(self, string):
-    utils.AssertType(string, unicode)
+    precondition.AssertType(string, unicode)
     self._value = int(string)
 
   def __str__(self):
@@ -551,7 +552,7 @@ class RDFBool(RDFInteger):
   data_store_type = "unsigned_integer"
 
   def ParseFromHumanReadable(self, string):
-    utils.AssertType(string, unicode)
+    precondition.AssertType(string, unicode)
 
     upper_string = string.upper()
     if upper_string == u"TRUE" or string == u"1":
@@ -1022,11 +1023,11 @@ class RDFURN(RDFPrimitive):
     Args:
       initializer: url string
     """
-    utils.AssertType(initializer, bytes)
+    precondition.AssertType(initializer, bytes)
     self.ParseFromUnicode(initializer.decode("utf-8"))
 
   def ParseFromUnicode(self, initializer):
-    utils.AssertType(initializer, unicode)
+    precondition.AssertType(initializer, unicode)
     # Strip off the aff4: prefix if necessary.
     if initializer.startswith("aff4:/"):
       initializer = initializer[5:]
@@ -1034,7 +1035,7 @@ class RDFURN(RDFPrimitive):
     self._string_urn = utils.NormalizePath(initializer)
 
   def ParseFromDatastore(self, value):
-    utils.AssertType(value, unicode)
+    precondition.AssertType(value, unicode)
     # TODO(hanuszczak): We should just assign the `self._string_urn` here
     # instead of including all of the parsing magic since the data store values
     # should be normalized already. But sadly this is not the case and for now

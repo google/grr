@@ -6,8 +6,6 @@ from __future__ import unicode_literals
 
 import mock
 
-import unittest
-
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -23,6 +21,7 @@ from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -272,11 +271,5 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
                    "css=grr-client-flows-view tr.row-selected")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

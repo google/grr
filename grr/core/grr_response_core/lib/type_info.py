@@ -18,6 +18,7 @@ from past.builtins import long
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import precondition
 
 
 class Error(Exception):
@@ -386,7 +387,7 @@ class String(TypeInfoObject):
       raise TypeValueError("Not a valid unicode string")
 
   def ToString(self, value):
-    utils.AssertType(value, unicode)
+    precondition.AssertType(value, unicode)
     return value
 
 
@@ -402,11 +403,11 @@ class Bytes(String):
     return value
 
   def FromString(self, string):
-    utils.AssertType(string, unicode)
+    precondition.AssertType(string, unicode)
     return string.encode("utf-8")
 
   def ToString(self, value):
-    utils.AssertType(value, bytes)
+    precondition.AssertType(value, bytes)
     return value.decode("utf-8")
 
 

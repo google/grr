@@ -86,7 +86,6 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
 
   def do_GET(self):  # pylint: disable=g-bad-name
     """Serve the server pem with GET requests."""
-
     if self.path.startswith("/server.pem"):
       stats.STATS.IncrementCounter(
           "frontend_http_requests", fields=["cert", "http"])
@@ -235,7 +234,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
       if flags.FLAGS.debug:
         pdb.post_mortem()
 
-      logging.error("Had to respond with status 500: %s.", e)
+      logging.exception("Had to respond with status 500.")
       self.Send("Error: %s" % e, status=500)
 
   @stats.Counted("frontend_request_count", fields=["http"])

@@ -9,13 +9,13 @@ from grr_response_core.lib import config_lib
 from grr_response_core.lib import flags
 from grr_response_core.lib import registry
 from grr_response_core.lib import stats
-from grr_response_core.lib import utils
+from grr_response_core.lib.util import compatibility
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import server_logging
 from grr_response_server import threadpool
-from grr_response_server.blob_stores import db_blob_store
 from grr_response_server.data_stores import fake_data_store
+from grr.test_lib import blob_store_test_lib
 
 # Make sure we do not reinitialize multiple times.
 INIT_RAN = False
@@ -59,16 +59,15 @@ def TestInit():
 
   test_ds = flags.FLAGS.test_data_store
   if test_ds is None:
-    test_ds = utils.GetName(fake_data_store.FakeDataStore)
+    test_ds = compatibility.GetName(fake_data_store.FakeDataStore)
 
   config.CONFIG.Set("Datastore.implementation", test_ds)
-  config.CONFIG.Set("Blobstore.implementation",
-                    utils.GetName(db_blob_store.DbBlobstore))
 
   if not INIT_RAN:
     server_logging.ServerLoggingStartupInit()
     server_logging.SetTestVerbosity()
 
+  blob_store_test_lib.UseTestBlobStore()
   registry.TestInit()
 
   db = data_store.DB.SetupTestDB()

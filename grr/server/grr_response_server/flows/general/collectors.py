@@ -10,7 +10,7 @@ from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 # For file collection artifacts. pylint: disable=unused-import
@@ -24,6 +24,7 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import collection
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
@@ -564,7 +565,7 @@ class ArtifactCollectorFlowMixin(object):
       artifact_utils.ArtifactProcessingError: On failure to process.
     """
     flow_name = self.__class__.__name__
-    artifact_name = responses.request_data["artifact_name"]
+    artifact_name = unicode(responses.request_data["artifact_name"])
     source = responses.request_data.GetItem("source", None)
 
     if responses.success:
@@ -580,35 +581,7 @@ class ArtifactCollectorFlowMixin(object):
       return
 
     # Now process the responses.
-    processors = parser.Parser.GetClassesByArtifact(artifact_name)
-    saved_responses = {}
-    for response in responses:
-      if processors and self.args.apply_parsers:
-        for processor in processors:
-          # TODO(hanuszczak): Terrible hack, see similar comment in the client-
-          # side artifact collector for more information.
-          if issubclass(processor, parser.FileParser):
-            processor_obj = processor(
-                lambda pathspec: artifact.OpenAff4File(self, pathspec))
-          else:
-            processor_obj = processor()
-
-          if processor_obj.process_together:
-            # Store the response until we have them all.
-            saved_responses.setdefault(processor.__name__, []).append(response)
-          else:
-            # Process the response immediately
-            self._ParseResponses(processor_obj, response, responses,
-                                 artifact_name, source)
-      else:
-        # We don't have any defined processors for this artifact.
-        self._ParseResponses(None, response, responses, artifact_name, source)
-
-    # If we were saving responses, process them now:
-    for processor_name, responses_list in iteritems(saved_responses):
-      processor_obj = parser.Parser.classes[processor_name]()
-      self._ParseResponses(processor_obj, responses_list, responses,
-                           artifact_name, source)
+    self._ParseResponses(list(responses), artifact_name, source)
 
   def ProcessCollectedRegistryStatEntry(self, responses):
     """Create AFF4 objects for registry statentries.
@@ -703,37 +676,30 @@ class ArtifactCollectorFlowMixin(object):
     if source:
       return source["returned_types"]
 
-  def _ParseResponses(self, processor_obj, responses, responses_obj,
-                      artifact_name, source):
+  def _ParseResponses(self, responses, artifact_name, source):
     """Create a result parser sending different arguments for diff parsers.
 
     Args:
-      processor_obj: A Processor object that inherits from Parser.
-      responses: A list of, or single response depending on the processors
-        process_together setting.
-      responses_obj: The responses object itself.
+      responses: A list of responses.
       artifact_name: Name of the artifact that generated the responses.
       source: The source responsible for producing the responses.
-
-    Raises:
-      RuntimeError: On bad parser.
     """
-    _ = responses_obj
-    result_iterator = artifact.ApplyParserToResponses(processor_obj, responses,
-                                                      self)
-
     artifact_return_types = self._GetArtifactReturnTypes(source)
 
-    if result_iterator:
-      # If we have a parser, do something with the results it produces.
-      for result in result_iterator:
-        result_type = result.__class__.__name__
-        if result_type == "Anomaly":
-          self.SendReply(result)
-        elif (not artifact_return_types or
-              result_type in artifact_return_types):
-          self.state.response_count += 1
-          self.SendReply(result, tag="artifact:%s" % artifact_name)
+    if self.args.apply_parsers:
+      parser_factory = parsers.ArtifactParserFactory(artifact_name)
+      results = artifact.ApplyParsersToResponses(parser_factory, responses,
+                                                 self)
+    else:
+      results = responses
+
+    for result in results:
+      result_type = result.__class__.__name__
+      if result_type == "Anomaly":
+        self.SendReply(result)
+      elif (not artifact_return_types or result_type in artifact_return_types):
+        self.state.response_count += 1
+        self.SendReply(result, tag="artifact:%s" % artifact_name)
 
   @classmethod
   def ResultCollectionForArtifact(cls, session_id, artifact_name):
@@ -833,8 +799,8 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic, flow.GRRFlow):
             original_result=response)
         results_without_pathspecs.append(result)
 
-    grouped_results = utils.GroupBy(results_with_pathspecs,
-                                    lambda x: x.found_pathspec)
+    grouped_results = collection.Group(results_with_pathspecs,
+                                       lambda x: x.found_pathspec)
     for pathspec, group in iteritems(grouped_results):
       self.StartFileFetch(pathspec, request_data=dict(results=group))
 

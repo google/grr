@@ -12,6 +12,8 @@ import os
 from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import flags
+from grr_response_core.lib.parsers import windows_registry_parser
+from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -28,6 +30,7 @@ from grr_response_server.flows.general import collectors
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -78,6 +81,10 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
     # Filesystem gives WINDOWS, registry gives Windows
     self.assertTrue(str(fd[0]) in [r"C:\Windows", r"C:\WINDOWS"])
 
+  @parser_test_lib.WithParser("WinSystemDrive",
+                              windows_registry_parser.WinSystemDriveParser)
+  @parser_test_lib.WithParser("WinSystemRoot",
+                              windows_registry_parser.WinSystemRootParser)
   def testSystemDriveArtifact(self):
     client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
@@ -108,6 +115,8 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
                                    vfs_test_lib.FakeRegistryVFSHandler):
       self._CheckDriveAndRoot()
 
+  @parser_test_lib.WithParser("WmiComputerSystemProduct",
+                              wmi_parser.WMIComputerSystemProductParser)
   def testRunWMIComputerSystemProductArtifact(self):
     client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
@@ -141,6 +150,8 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(str(hardware.serial_number), "2RXYYZ1")
     self.assertEqual(str(hardware.system_manufacturer), "Dell Inc.")
 
+  @parser_test_lib.WithParser("WmiLogicalDisks",
+                              wmi_parser.WMILogicalDisksParser)
   def testRunWMIArtifact(self):
     client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
@@ -171,6 +182,8 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(result.Name(), "homefileshare$")
         self.assertAlmostEqual(result.FreeSpacePercent(), 58.823, delta=0.001)
 
+  @parser_test_lib.WithParser("WmiActiveScriptEventConsumer",
+                              wmi_parser.WMIActiveScriptEventConsumerParser)
   def testWMIBaseObject(self):
     client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 

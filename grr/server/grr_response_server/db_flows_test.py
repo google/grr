@@ -14,6 +14,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import compatibility
 from grr_response_server import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -1060,7 +1061,7 @@ class DatabaseTestFlowMixin(object):
         flow_id,
         0,
         100,
-        with_type=utils.GetName(rdf_client.ClientInformation))
+        with_type=compatibility.GetName(rdf_client.ClientInformation))
     self.assertFalse(results)
 
     results = self.db.ReadFlowResults(
@@ -1068,7 +1069,7 @@ class DatabaseTestFlowMixin(object):
         flow_id,
         0,
         100,
-        with_type=utils.GetName(rdf_client.ClientSummary))
+        with_type=compatibility.GetName(rdf_client.ClientSummary))
     self.assertItemsEqual(
         [i.payload for i in results],
         [i.payload for i in sample_results[:10]],
@@ -1104,7 +1105,9 @@ class DatabaseTestFlowMixin(object):
         "manufacturer": set(sample_results),
         "manufacturer_1": set([sample_results[1]])
     }
-    types = {utils.GetName(rdf_client.ClientSummary): set(sample_results)}
+    types = {
+        compatibility.GetName(rdf_client.ClientSummary): set(sample_results)
+    }
 
     no_tag = [(None, set(sample_results))]
 
@@ -1133,7 +1136,7 @@ class DatabaseTestFlowMixin(object):
     sample_results = self._WriteFlowResults(
         client_id, flow_id, multiple_timestamps=True)
 
-    type_name = utils.GetName(rdf_client.ClientSummary)
+    type_name = compatibility.GetName(rdf_client.ClientSummary)
     try:
       cls = rdfvalue.RDFValue.classes.pop(type_name)
 
@@ -1187,15 +1190,19 @@ class DatabaseTestFlowMixin(object):
     num_results = self.db.CountFlowResults(
         client_id,
         flow_id,
-        with_type=utils.GetName(rdf_client.ClientInformation))
+        with_type=compatibility.GetName(rdf_client.ClientInformation))
     self.assertEqual(num_results, 0)
 
     num_results = self.db.CountFlowResults(
-        client_id, flow_id, with_type=utils.GetName(rdf_client.ClientSummary))
+        client_id,
+        flow_id,
+        with_type=compatibility.GetName(rdf_client.ClientSummary))
     self.assertEqual(num_results, 10)
 
     num_results = self.db.CountFlowResults(
-        client_id, flow_id, with_type=utils.GetName(rdf_client.ClientCrash))
+        client_id,
+        flow_id,
+        with_type=compatibility.GetName(rdf_client.ClientCrash))
     self.assertEqual(num_results, 10)
 
   def testCountFlowResultsCorrectlyAppliesWithTagAndWithTypeFilters(self):
@@ -1206,7 +1213,7 @@ class DatabaseTestFlowMixin(object):
         client_id,
         flow_id,
         with_tag="tag_1",
-        with_type=utils.GetName(rdf_client.ClientSummary))
+        with_type=compatibility.GetName(rdf_client.ClientSummary))
     self.assertEqual(num_results, 1)
 
   def testWritesAndReadsSingleFlowLogEntry(self):

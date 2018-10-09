@@ -2,6 +2,7 @@
 """This file implements a VFS abstraction on the client."""
 from __future__ import unicode_literals
 
+import functools
 import os
 
 
@@ -14,6 +15,7 @@ from grr_response_core import config
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import precondition
 
 # A central Cache for vfs handlers. This can be used to keep objects alive
 # for a limited time.
@@ -39,26 +41,20 @@ class VFSHandler(with_metaclass(registry.MetaclassRegistry, object)):
   pathspec = None
   base_fd = None
 
-  def __init__(self,
-               base_fd,
-               pathspec=None,
-               progress_callback=None,
-               full_pathspec=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
     """Constructor.
 
     Args:
       base_fd: A handler to the predecessor handler.
       pathspec: The pathspec to open.
       progress_callback: A callback to indicate that the open call is still
-                         working but needs more time.
-      full_pathspec: The full pathspec we are trying to open.
+        working but needs more time.
 
     Raises:
       IOError: if this handler can not be instantiated over the
       requested path.
     """
     _ = pathspec
-    _ = full_pathspec
     self.base_fd = base_fd
     self.progress_callback = progress_callback
     if base_fd is None:
@@ -90,9 +86,9 @@ class VFSHandler(with_metaclass(registry.MetaclassRegistry, object)):
     """Reads some data from the file."""
     raise NotImplementedError
 
-  def Stat(self, path=None, ext_attrs=None):
+  def Stat(self, ext_attrs=None):
     """Returns a StatEntry about this file."""
-    del path, ext_attrs  # Unused.
+    del ext_attrs  # Unused.
     raise NotImplementedError
 
   def IsDirectory(self):
@@ -180,12 +176,7 @@ class VFSHandler(with_metaclass(registry.MetaclassRegistry, object)):
   close = utils.Proxy("Close")
 
   @classmethod
-  def Open(cls,
-           fd,
-           component,
-           pathspec=None,
-           progress_callback=None,
-           full_pathspec=None):
+  def Open(cls, fd, component, pathspec=None, progress_callback=None):
     """Try to correct the casing of component.
 
     This method is called when we failed to open the component directly. We try
@@ -199,8 +190,7 @@ class VFSHandler(with_metaclass(registry.MetaclassRegistry, object)):
       component: The component we should open.
       pathspec: The rest of the pathspec object.
       progress_callback: A callback to indicate that the open call is still
-                         working but needs more time.
-      full_pathspec: The full pathspec we are trying to open.
+        working but needs more time.
 
     Returns:
       A file object.
@@ -237,7 +227,6 @@ class VFSHandler(with_metaclass(registry.MetaclassRegistry, object)):
         fd = handler(
             base_fd=fd,
             pathspec=new_pathspec,
-            full_pathspec=full_pathspec,
             progress_callback=progress_callback)
       except IOError:
         # Can not open the first component, we must raise here.
@@ -369,7 +358,7 @@ def VFSOpen(pathspec, progress_callback=None):
   Args:
     pathspec: A Path() protobuf to normalize.
     progress_callback: A callback to indicate that the open call is still
-                       working but needs more time.
+      working but needs more time.
 
   Returns:
     The open filelike object. This will contain the expanded Path() protobuf as
@@ -414,12 +403,29 @@ def VFSOpen(pathspec, progress_callback=None):
           fd,
           component,
           pathspec=working_pathspec,
-          full_pathspec=pathspec,
           progress_callback=progress_callback)
     except IOError as e:
       raise IOError("%s: %s" % (e, pathspec))
 
   return fd
+
+
+def VFSMultiOpen(pathspecs, progress_callback=None):
+  """Opens multiple files specified by given path-specs.
+
+  See documentation for `VFSOpen` for more information.
+
+  Args:
+    pathspecs: A list of pathspec instances of files to open.
+    progress_callback: A callback function to call to notify about progress
+
+  Returns:
+    A context manager yielding file-like objects.
+  """
+  precondition.AssertIterableType(pathspecs, rdf_paths.PathSpec)
+
+  vfs_open = functools.partial(VFSOpen, progress_callback=progress_callback)
+  return utils.MultiContext(map(vfs_open, pathspecs))
 
 
 def ReadVFS(pathspec, offset, length, progress_callback=None):
@@ -430,7 +436,7 @@ def ReadVFS(pathspec, offset, length, progress_callback=None):
     offset: number of bytes to skip
     length: number of bytes to read
     progress_callback: A callback to indicate that the open call is still
-                       working but needs more time.
+      working but needs more time.
 
   Returns:
     VFS file contents

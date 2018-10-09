@@ -357,14 +357,14 @@ class ClientVfsMigratorTest(test_lib.GRRBaseTest):
 class BlobStoreMigratorTest(test_lib.GRRBaseTest):
 
   def testBlobsAreCorrectlyMigrated(self):
-    mem_bs = memory_stream_bs.MemoryStreamBlobstore()
-    db_bs = db_blob_store.DbBlobstore()
+    mem_bs = memory_stream_bs.MemoryStreamBlobStore()
+    db_bs = db_blob_store.DbBlobStore()
 
     blob_contents_1 = b"A" * 1024
-    blob_hash_1 = mem_bs.StoreBlob(blob_contents_1)
+    blob_hash_1 = mem_bs.WriteBlobWithUnknownHash(blob_contents_1)
 
     blob_contents_2 = b"B" * 1024
-    blob_hash_2 = mem_bs.StoreBlob(blob_contents_2)
+    blob_hash_2 = mem_bs.WriteBlobWithUnknownHash(blob_contents_2)
 
     data_migration.BlobsMigrator().Execute(2)
 

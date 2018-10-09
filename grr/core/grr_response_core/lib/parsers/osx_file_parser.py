@@ -14,17 +14,16 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
 
 
-class OSXUsersParser(parser.ArtifactFilesParser):
+class OSXUsersParser(parser.ArtifactFilesMultiParser):
   """Parser for Glob of /Users/*."""
 
   output_types = ["User"]
   supported_artifacts = ["MacOSUsers"]
   blacklist = ["Shared"]
-  process_together = True
 
-  def ParseMultiple(self, stat_entries, knowledge_base, path_type):
+  def ParseMultiple(self, stat_entries, knowledge_base):
     """Parse the StatEntry objects."""
-    _, _ = knowledge_base, path_type
+    _ = knowledge_base
 
     for stat_entry in stat_entries:
       if stat.S_ISDIR(stat_entry.st_mode):

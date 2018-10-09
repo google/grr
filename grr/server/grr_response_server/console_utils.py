@@ -24,6 +24,7 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import collection
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import client_index
@@ -303,7 +304,7 @@ def _GetHWInfos(client_list, batch_size=10000, token=None):
 
   c = 0
 
-  for batch in utils.Grouper(client_list, batch_size):
+  for batch in collection.Batch(client_list, batch_size):
     logging.info("Processing batch: %d-%d", c, c + batch_size)
     c += len(batch)
 
@@ -455,7 +456,7 @@ def CleanVacuousVersions(clients=None, dry_run=True):
   with data_store.DB.GetMutationPool() as pool:
 
     logging.info("checking %d clients", len(clients))
-    for batch in utils.Grouper(clients, 10000):
+    for batch in collection.Batch(clients, 10000):
       # TODO(amoser): This only works on datastores that use the Bigtable
       # scheme.
       client_infos = data_store.DB.MultiResolvePrefix(

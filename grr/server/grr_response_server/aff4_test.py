@@ -1325,6 +1325,39 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
         sorted([x.urn for x in all_children]),
         [root_urn.Add("some1"), root_urn.Add("some2")])
 
+  def testMultiOpenOrdered(self):
+    foo_urn = aff4.ROOT_URN.Add("foo")
+    with aff4.FACTORY.Create(
+        foo_urn, aff4_type=aff4.AFF4MemoryStream, token=self.token) as filedesc:
+      filedesc.Write(b"FOO")
+
+    bar_urn = aff4.ROOT_URN.Add("bar")
+    with aff4.FACTORY.Create(
+        bar_urn, aff4_type=aff4.AFF4MemoryStream, token=self.token) as filedesc:
+      filedesc.Write(b"BAR")
+
+    baz_urn = aff4.ROOT_URN.Add("baz")
+    with aff4.FACTORY.Create(
+        baz_urn, aff4_type=aff4.AFF4MemoryStream, token=self.token) as filedesc:
+      filedesc.Write(b"BAZ")
+
+    filedescs = list(aff4.FACTORY.MultiOpenOrdered([foo_urn, bar_urn, baz_urn]))
+    self.assertEqual(len(filedescs), 3)
+    self.assertEqual(filedescs[0].Read(1337), b"FOO")
+    self.assertEqual(filedescs[1].Read(1337), b"BAR")
+    self.assertEqual(filedescs[2].Read(1337), b"BAZ")
+
+  def testMultiOpenOrderedNonExistingObject(self):
+    foo_urn = aff4.ROOT_URN.Add("foo")
+    bar_urn = aff4.ROOT_URN.Add("bar")
+
+    with aff4.FACTORY.Create(
+        foo_urn, aff4_type=aff4.AFF4MemoryStream, token=self.token) as filedesc:
+      del filedesc  # Unused.
+
+    with self.assertRaisesRegexp(IOError, "bar"):
+      aff4.FACTORY.MultiOpenOrdered([foo_urn, bar_urn], token=self.token)
+
   def testObjectListChildren(self):
     root_urn = aff4.ROOT_URN.Add("path")
 

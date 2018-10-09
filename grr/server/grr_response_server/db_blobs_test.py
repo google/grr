@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 from builtins import range  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
 
-from grr_response_server import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -58,81 +57,6 @@ class DatabaseTestBlobsMixin(object):
 
     result = d.ReadBlobs(blob_ids)
     self.assertEqual(result, dict(zip(blob_ids, blob_data)))
-
-  def testWritingBlobReferenceToNonExistentPathRaises(self):
-    d = self.db
-
-    path = rdf_objects.ClientPathID(
-        client_id="C.bbbbbbbbbbbbbbbb",
-        path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["foo", "bar"]))
-    blob_ref = rdf_objects.BlobReference(
-        offset=0, size=3, blob_id=rdf_objects.BlobID.FromBlobData(b"foo"))
-
-    with self.assertRaises(db.AtLeastOneUnknownPathError):
-      d.WriteClientPathBlobReferences({path: [blob_ref]})
-
-  def testReadingBlobReferenceFromNonExistentPathReturnsEmptyResult(self):
-    d = self.db
-
-    path = rdf_objects.ClientPathID(
-        client_id="C.bbbbbbbbbbbbbbbb",
-        path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["foo", "bar"]))
-
-    res = d.ReadClientPathBlobReferences([path])
-    self.assertEqual(res, {path: []})
-
-  def testSingleBlobReferenceCanBeWrittenAndThenRead(self):
-    d = self.db
-
-    client_id = self.InitializeClient()
-    self.db.WritePathInfos(
-        client_id,
-        [rdf_objects.PathInfo.OS(components=["foo", "bar"], directory=False)])
-
-    path = rdf_objects.ClientPathID(
-        client_id=client_id,
-        path_type=rdf_objects.PathInfo.PathType.OS,
-        path_id=rdf_objects.PathID.FromComponents(["foo", "bar"]))
-    blob_ref = rdf_objects.BlobReference(
-        offset=0, size=3, blob_id=rdf_objects.BlobID.FromBlobData(b"foo"))
-
-    d.WriteClientPathBlobReferences({path: [blob_ref]})
-
-    read_refs = d.ReadClientPathBlobReferences([path])
-    self.assertEqual(read_refs, {path: [blob_ref]})
-
-  def testMultipleBlobReferencesCanBeWrittenAndThenRead(self):
-    d = self.db
-
-    paths = []
-    refs = []
-
-    for i in range(10):
-      client_id = self.InitializeClient()
-      self.db.WritePathInfos(client_id, [
-          rdf_objects.PathInfo.OS(
-              components=["foo%d" % i, "bar%d" % i], directory=False)
-      ])
-
-      path = rdf_objects.ClientPathID(
-          client_id=client_id,
-          path_type=rdf_objects.PathInfo.PathType.OS,
-          path_id=rdf_objects.PathID.FromComponents(["foo%d" % i,
-                                                     "bar%d" % i]))
-      blob_ref = rdf_objects.BlobReference(
-          offset=0,
-          size=i,
-          blob_id=rdf_objects.BlobID.FromBlobData("foo%d" % i))
-
-      paths.append(path)
-      refs.append([blob_ref])
-
-    d.WriteClientPathBlobReferences(dict(zip(paths, refs)))
-
-    read_refs = d.ReadClientPathBlobReferences(paths)
-    self.assertEqual(read_refs, dict(zip(paths, refs)))
 
   def testCheckBlobsExistCorrectlyReportsPresentAndMissingBlobs(self):
     d = self.db

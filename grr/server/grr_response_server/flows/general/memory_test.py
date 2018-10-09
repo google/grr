@@ -16,6 +16,7 @@ from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
 from grr_response_core import config
 from grr_response_core.lib import flags
+from grr_response_core.lib.parsers import rekall_artifact_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
@@ -35,6 +36,7 @@ from grr_response_server.flows.general import memory
 from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -278,6 +280,7 @@ class ListVADBinariesTest(MemoryTest):
     self.os_overrider.Stop()
     self.reg_overrider.Stop()
 
+  @parser_test_lib.WithParser("VAD", rekall_artifact_parser.RekallVADParser)
   def testListVADBinariesIsDisabledByDefault(self):
     with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
       flow.StartAFF4Flow(
@@ -285,6 +288,7 @@ class ListVADBinariesTest(MemoryTest):
           flow_name=memory.ListVADBinaries.__name__,
           token=self.token)
 
+  @parser_test_lib.WithParser("VAD", rekall_artifact_parser.RekallVADParser)
   def testListsBinaries(self):
     client_mock = ListVADBinariesActionMock()
 
@@ -302,6 +306,7 @@ class ListVADBinariesTest(MemoryTest):
     self.assertIn(u"C:\\Windows\\System32\\wintrust.dll", paths)
     self.assertIn(u"C:\\Program Files\\Internet Explorer\\ieproxy.dll", paths)
 
+  @parser_test_lib.WithParser("VAD", rekall_artifact_parser.RekallVADParser)
   def testFetchesAndStoresBinary(self):
     process1_exe = "\\WINDOWS\\bar.exe"
     process2_exe = "\\WINDOWS\\foo.exe"
@@ -333,6 +338,7 @@ class ListVADBinariesTest(MemoryTest):
         binaries[1].AFF4Path(self.client_id), token=self.token)
     self.assertEqual(fd.Read(1024), "this is foo")
 
+  @parser_test_lib.WithParser("VAD", rekall_artifact_parser.RekallVADParser)
   def testDoesNotFetchDuplicates(self):
     process = "\\WINDOWS\\bar.exe"
     client_mock = ListVADBinariesActionMock([process, process])
@@ -354,6 +360,7 @@ class ListVADBinariesTest(MemoryTest):
         binaries[0].AFF4Path(self.client_id), token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
 
+  @parser_test_lib.WithParser("VAD", rekall_artifact_parser.RekallVADParser)
   def testConditionsOutBinariesUsingRegex(self):
     process1_exe = "\\WINDOWS\\bar.exe"
     process2_exe = "\\WINDOWS\\foo.exe"
@@ -378,6 +385,7 @@ class ListVADBinariesTest(MemoryTest):
         binaries[0].AFF4Path(self.client_id), token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
 
+  @parser_test_lib.WithParser("VAD", rekall_artifact_parser.RekallVADParser)
   def testIgnoresMissingFiles(self):
     process1_exe = "\\WINDOWS\\bar.exe"
 

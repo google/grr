@@ -2,9 +2,8 @@
 """Tests for the main content view."""
 from __future__ import unicode_literals
 
-import unittest
-from grr_response_core.lib import flags
 
+from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import aff4
 from grr_response_server import client_index
@@ -12,6 +11,7 @@ from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -280,11 +280,5 @@ class TestDefaultGUISettings(gui_test_lib.GRRSeleniumTest):
                         "css=label:contains('Mode') ~ div.controls select")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

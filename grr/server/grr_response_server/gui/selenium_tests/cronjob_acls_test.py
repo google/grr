@@ -3,16 +3,15 @@
 """Tests Cronjob ACLs."""
 from __future__ import unicode_literals
 
-import unittest
 from grr_response_core.lib import flags
-from grr_response_core.lib import utils
-
+from grr_response_core.lib.util import compatibility
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -22,10 +21,10 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
   def _ScheduleCronJob(self):
     if data_store.RelationalDBReadEnabled(category="cronjobs"):
-      cron_job_id = utils.GetName(cron_system.OSBreakDownCronJob)
+      cron_job_id = compatibility.GetName(cron_system.OSBreakDownCronJob)
       cronjobs.ScheduleSystemCronJobs(names=[cron_job_id])
     else:
-      cron_job_id = utils.GetName(cron_system.OSBreakDown)
+      cron_job_id = compatibility.GetName(cron_system.OSBreakDown)
       aff4_cronjobs.ScheduleSystemCronFlows(
           names=[cron_job_id], token=self.token)
     aff4_cronjobs.GetCronManager().DisableJob(job_id=cron_job_id)
@@ -163,11 +162,5 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Cron job was ENABLED successfully!")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

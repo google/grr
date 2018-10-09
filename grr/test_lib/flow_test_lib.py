@@ -14,11 +14,11 @@ from grr_response_client.client_actions import standard
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import precondition
 from grr_response_proto import tests_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -309,7 +309,7 @@ class MockClient(object):
     if client_mock is None:
       client_mock = action_mocks.InvalidActionMock()
     else:
-      utils.AssertType(client_mock, action_mocks.ActionMock)
+      precondition.AssertType(client_mock, action_mocks.ActionMock)
 
     self._mock_task_queue = getattr(client_mock, "mock_task_queue", [])
     self.client_id = client_id
@@ -613,8 +613,8 @@ def GetFlowResults(client_id, flow_id):
 
 
 def GetFlowResultsByTag(client_id, flow_id):
-  utils.AssertType(client_id, unicode)
-  utils.AssertType(flow_id, unicode)
+  precondition.AssertType(client_id, unicode)
+  precondition.AssertType(flow_id, unicode)
 
   results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
                                               sys.maxsize)

@@ -33,6 +33,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import proto2 as rdf_proto2
+from grr_response_core.lib.util import precondition
 from grr_response_proto import semantic_pb2
 # pylint: disable=super-init-not-called
 # pylint: enable=g-import-not-at-top
@@ -212,7 +213,7 @@ def _SerializeEntries(entries):
                                type_descriptor.IsDirty(python_format)):
       wire_format = type_descriptor.ConvertToWireFormat(python_format)
 
-    utils.AssertTupleType(wire_format, bytes)
+    precondition.AssertIterableType(wire_format, bytes)
     output.extend(wire_format)
 
   return b"".join(output)
@@ -506,7 +507,7 @@ class ProtoBinary(ProtoType):
   proto_type_name = "bytes"
 
   def __init__(self, default=b"", **kwargs):
-    utils.AssertType(default, bytes)
+    precondition.AssertType(default, bytes)
 
     # Byte strings default to "" if not specified.
     super(ProtoBinary, self).__init__(**kwargs)
@@ -1000,8 +1001,7 @@ class ProtoDynamicEmbedded(ProtoType):
       return cls()
 
   def Format(self, value):
-    for line in value.Format():
-      yield "  %s" % line
+    yield "  %r" % value
 
   def _FormatDefault(self):
     return ""
@@ -1721,7 +1721,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     self.dirty = True
 
   def ParseFromDatastore(self, value):
-    utils.AssertType(value, bytes)
+    precondition.AssertType(value, bytes)
     self.ParseFromString(value)
 
   def __eq__(self, other):

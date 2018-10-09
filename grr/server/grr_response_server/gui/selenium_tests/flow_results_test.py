@@ -4,14 +4,15 @@
 from __future__ import unicode_literals
 
 
-import unittest
 from grr_response_core.lib import flags
 
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server.gui import gui_test_lib
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import db_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -52,11 +53,32 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
         r"css=grr-flow-inspector:contains('\\\\x00\\\\x00\\\\x00\\\\x00')")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
+class RelTestFlowResults(db_test_lib.RelationalFlowsEnabledMixin,
+                         TestFlowResults):
+
+  def testLaunchBinaryFlowResultsHaveReadableStdOutAndStdErr(self):
+    flow_id = flow.StartFlow(
+        client_id=self.client_id, flow_cls=gui_test_lib.RecursiveTestFlow)
+
+    stderr = "Oh, ok, this is just a string 昨"
+    stdout = "\00\00\00\00"
+    response = rdf_client_action.ExecuteResponse(
+        stderr=stderr.encode("utf-8"), stdout=stdout.encode("utf-8"))
+    flow_result = rdf_flow_objects.FlowResult(tag="tag", payload=response)
+
+    data_store.REL_DB.WriteFlowResults(self.client_id, flow_id, [flow_result])
+
+    self.Open("/#/clients/%s/flows/%s/results" % (self.client_id, flow_id))
+    # jQuery treats the backslash ('\') character as a special one, hence we
+    # have to escape it twice: once for Javascript itself and second time
+    # for jQuery.
+    self.WaitUntil(
+        self.IsElementPresent, r"css=grr-flow-inspector:contains('Oh, ok, "
+        r"this is just a string \\\\xe6\\\\x98\\\\xa8')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        r"css=grr-flow-inspector:contains('\\\\x00\\\\x00\\\\x00\\\\x00')")
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

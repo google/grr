@@ -10,6 +10,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.parsers import parsers_test_lib
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server.check_lib import checks_test_lib
 from grr.test_lib import test_lib
 
@@ -140,12 +141,24 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
     cls.LoadCheck("services.yaml")
 
   def GenHostData(self):
+
+    def Listener(ip, port, family):
+      conn = rdf_client_network.NetworkConnection()
+      conn.state = rdf_client_network.NetworkConnection.State.LISTEN
+      conn.family = family
+      conn.type = rdf_client_network.NetworkConnection.Type.SOCK_STREAM
+      conn.local_address.ip = ip
+      conn.port = port
+      return conn
+
     # Create some host_data..
+    family = rdf_client_network.NetworkConnection.Family
+    loop4 = Listener(ip="127.0.0.1", port=6000, family=family.INET)
+    loop6 = Listener(ip="::1", port=6000, family=family.INET6)
+    ext4 = Listener(ip="10.1.1.1", port=6000, family=family.INET)
+    ext6 = Listener(ip="fc00::1", port=6000, family=family.INET6)
+
     host_data = self.SetKnowledgeBase()
-    loop4 = self.AddListener("127.0.0.1", 6000)
-    loop6 = self.AddListener("::1", 6000, "INET6")
-    ext4 = self.AddListener("10.1.1.1", 6000)
-    ext6 = self.AddListener("fc00::1", 6000, "INET6")
     x11 = rdf_client.Process(name="x11", pid=1233, connections=[loop4, loop6])
     xorg = rdf_client.Process(
         name="xorg", pid=1234, connections=[loop4, loop6, ext4, ext6])

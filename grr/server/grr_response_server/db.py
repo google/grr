@@ -25,6 +25,8 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import precondition
 from grr_response_server import foreman_rules
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -217,6 +219,10 @@ class ClientPath(object):
   def components(self):
     return self._repr[2]
 
+  @property
+  def vfs_path(self):
+    return rdf_objects.ToCategorizedPath(self.path_type, self.components)
+
   def __eq__(self, other):
     return self._repr == other._repr  # pylint: disable=protected-access
 
@@ -232,13 +238,13 @@ class ClientPathHistory(object):
     self.hash_entries = {}
 
   def AddStatEntry(self, timestamp, stat_entry):
-    utils.AssertType(timestamp, rdfvalue.RDFDatetime)
-    utils.AssertType(stat_entry, rdf_client_fs.StatEntry)
+    precondition.AssertType(timestamp, rdfvalue.RDFDatetime)
+    precondition.AssertType(stat_entry, rdf_client_fs.StatEntry)
     self.stat_entries[timestamp] = stat_entry
 
   def AddHashEntry(self, timestamp, hash_entry):
-    utils.AssertType(timestamp, rdfvalue.RDFDatetime)
-    utils.AssertType(hash_entry, rdf_crypto.Hash)
+    precondition.AssertType(timestamp, rdfvalue.RDFDatetime)
+    precondition.AssertType(hash_entry, rdf_crypto.Hash)
     self.hash_entries[timestamp] = hash_entry
 
 
@@ -718,7 +724,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
     all_client_ids = self.ReadAllClientIDs()
 
-    for batch in utils.Grouper(all_client_ids, batch_size):
+    for batch in collection.Batch(all_client_ids, batch_size):
       res = self.MultiReadClientFullInfo(batch, min_last_ping=min_last_ping)
       for full_info in itervalues(res):
         yield full_info
@@ -734,7 +740,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
     all_client_ids = self.ReadAllClientIDs()
 
-    for batch in utils.Grouper(all_client_ids, batch_size):
+    for batch in collection.Batch(all_client_ids, batch_size):
       res = self.MultiReadClientSnapshot(batch)
       for snapshot in itervalues(res):
         if snapshot:
@@ -944,6 +950,28 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
     histories = self.ReadPathInfosHistories(client_id, path_type, [components])
     return histories[components]
+
+  @abc.abstractmethod
+  def ReadLatestPathInfosWithHashBlobReferences(self,
+                                                client_paths,
+                                                max_timestamp=None):
+    """Returns PathInfos that have corresponding HashBlobReferences.
+
+    Args:
+      client_paths: ClientPath objects pointing to files.
+      max_timestamp: If not specified, then for every path simply the latest
+        PathInfo that has a matching HashBlobReference entry will be returned.
+        If specified, should be an rdfvalue.RDFDatetime, then the latest
+        PathInfo with a timestamp less or equal to max_timestamp will be
+        returned for every path.
+
+    Returns:
+      A dictionary mapping client paths to PathInfo objects. Every client path
+      from the client_paths argument is guaranteed to be a key in the resulting
+      dictionary. If a particular path won't have a PathInfo with a
+      corresponding HashBlobReference entry, None will be used as a dictionary
+      value.
+    """
 
   @abc.abstractmethod
   def WriteUserNotification(self, notification):
@@ -1206,32 +1234,6 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def WriteClientPathBlobReferences(self, references_by_client_path_id):
-    """Writes blob references for given client path ids.
-
-    Args:
-      references_by_client_path_id: Dictionary of ClientPathID ->
-        [BlobReference].
-
-    Raises:
-      AtLeastOneUnknownPathError: if one or more ClientPathIDs are not known
-      to the database.
-    """
-
-  @abc.abstractmethod
-  def ReadClientPathBlobReferences(self, client_path_ids):
-    """Reads blob references of given client path ids.
-
-    Args:
-      client_path_ids: A list of ClientPathIDs.
-
-    Returns:
-      Dictionary of ClientPathID -> [BlobReference]. Every path id from
-      the path_ids argument will be present in the result. "No blob references"
-      will be expressed as empty list.
-    """
-
-  @abc.abstractmethod
   def WriteHashBlobReferences(self, references_by_hash):
     """Writes blob references for a given set of hashes.
 
@@ -1278,17 +1280,13 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def WriteBlobs(self, blob_id_data_pairs):
+  def WriteBlobs(self, blob_id_data_map):
     """Writes given blobs.
 
     Args:
-      blob_id_data_pairs: An iterable of (blob_id, blob_data) tuples. Each
-        blob_id should be a blob hash (i.e. uniquely idenitify the blob)
-        expressed as bytes. blob_data should be expressed in bytes.
-
-    Raises:
-      ValueError: If anything but a tuple of 2 elements is encountered in
-                  blob_id_data_pairs.
+      blob_id_data_map: A map of blob_id -> blob_data. Each blob_id should be a
+        rdf_objects.BlobID blob hash uniquely idenitify the blob. blob_data
+        should be expressed in bytes.
     """
 
   @abc.abstractmethod
@@ -1296,11 +1294,12 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """Reads given blobs.
 
     Args:
-      blob_ids: An iterable with blob hashes expressed as bytes.
+      blob_ids: An iterable with blob hashes expressed as rdf_objects.BlobID
+        objects.
 
     Returns:
       A map of {blob_id: blob_data} where blob_data is blob bytes previously
-      written with WriteBlobs. If blob_data for particular blob are not found,
+      written with WriteBlobs. If blob_data for particular blob is not found,
       blob_data is expressed as None.
     """
 
@@ -1309,7 +1308,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """Checks if given blobs exist.
 
     Args:
-      blob_ids: An iterable with blob hashes expressed as bytes.
+      blob_ids: An iterable with blob hashes expressed as rdf_objects.BlobID
+        objects.
 
     Returns:
       A map of {blob_id: status} where status is a boolean (True if blob exists,
@@ -1693,12 +1693,8 @@ class DatabaseValidationWrapper(Database):
                           last_ip=None,
                           last_foreman=None):
     _ValidateClientId(client_id)
-
-    if certificate is not None:
-      utils.AssertType(certificate, rdf_crypto.RDFX509Cert)
-
-    if last_ip is not None:
-      utils.AssertType(last_ip, rdf_client_network.NetworkAddress)
+    precondition.AssertOptionalType(certificate, rdf_crypto.RDFX509Cert)
+    precondition.AssertOptionalType(last_ip, rdf_client_network.NetworkAddress)
 
     return self.delegate.WriteClientMetadata(
         client_id,
@@ -1715,7 +1711,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.MultiReadClientMetadata(client_ids)
 
   def WriteClientSnapshot(self, client):
-    utils.AssertType(client, rdf_objects.ClientSnapshot)
+    precondition.AssertType(client, rdf_objects.ClientSnapshot)
     return self.delegate.WriteClientSnapshot(client)
 
   def MultiReadClientSnapshot(self, client_ids):
@@ -1736,7 +1732,7 @@ class DatabaseValidationWrapper(Database):
 
     client_id = None
     for client in clients:
-      utils.AssertType(client, rdf_objects.ClientSnapshot)
+      precondition.AssertType(client, rdf_objects.ClientSnapshot)
 
       if client.timestamp is None:
         raise AttributeError("Client without a `timestamp` attribute")
@@ -1757,7 +1753,7 @@ class DatabaseValidationWrapper(Database):
         client_id, timerange=timerange)
 
   def WriteClientStartupInfo(self, client_id, startup_info):
-    utils.AssertType(startup_info, rdf_client.StartupInfo)
+    precondition.AssertType(startup_info, rdf_client.StartupInfo)
     _ValidateClientId(client_id)
 
     return self.delegate.WriteClientStartupInfo(client_id, startup_info)
@@ -1776,7 +1772,7 @@ class DatabaseValidationWrapper(Database):
         client_id, timerange=timerange)
 
   def WriteClientCrashInfo(self, client_id, crash_info):
-    utils.AssertType(crash_info, rdf_client.ClientCrash)
+    precondition.AssertType(crash_info, rdf_client.ClientCrash)
     _ValidateClientId(client_id)
 
     return self.delegate.WriteClientCrashInfo(client_id, crash_info)
@@ -1837,7 +1833,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadAllClientLabels()
 
   def WriteForemanRule(self, rule):
-    utils.AssertType(rule, foreman_rules.ForemanCondition)
+    precondition.AssertType(rule, foreman_rules.ForemanCondition)
 
     if not rule.hunt_id:
       raise ValueError("Foreman rule has no hunt_id: %s" % rule)
@@ -1878,7 +1874,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadAllGRRUsers()
 
   def WriteApprovalRequest(self, approval_request):
-    utils.AssertType(approval_request, rdf_objects.ApprovalRequest)
+    precondition.AssertType(approval_request, rdf_objects.ApprovalRequest)
     _ValidateUsername(approval_request.requestor_username)
     _ValidateApprovalType(approval_request.approval_type)
 
@@ -1929,7 +1925,7 @@ class DatabaseValidationWrapper(Database):
   def ReadPathInfos(self, client_id, path_type, components_list):
     _ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
-    utils.AssertType(components_list, list)
+    precondition.AssertType(components_list, list)
     for components in components_list:
       _ValidatePathComponents(components)
 
@@ -1974,7 +1970,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WritePathInfos(client_id, path_infos)
 
   def MultiWritePathInfos(self, path_infos):
-    utils.AssertType(path_infos, dict)
+    precondition.AssertType(path_infos, dict)
     for client_id, client_path_infos in iteritems(path_infos):
       _ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
@@ -1987,7 +1983,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.InitPathInfos(client_id, path_infos)
 
   def MultiInitPathInfos(self, path_infos):
-    utils.AssertType(path_infos, dict)
+    precondition.AssertType(path_infos, dict)
     for client_id, client_path_infos in iteritems(path_infos):
       _ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
@@ -2001,7 +1997,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ClearPathHistory(client_id, path_infos)
 
   def MultiClearPathHistory(self, path_infos):
-    utils.AssertType(path_infos, dict)
+    precondition.AssertType(path_infos, dict)
     for client_id, client_path_infos in iteritems(path_infos):
       _ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
@@ -2009,10 +2005,10 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.MultiClearPathHistory(path_infos)
 
   def MultiWritePathHistory(self, client_path_histories):
-    utils.AssertType(client_path_histories, dict)
+    precondition.AssertType(client_path_histories, dict)
     for client_path, client_path_history in iteritems(client_path_histories):
-      utils.AssertType(client_path, ClientPath)
-      utils.AssertType(client_path_history, ClientPathHistory)
+      precondition.AssertType(client_path, ClientPath)
+      precondition.AssertType(client_path_history, ClientPathHistory)
 
     self.delegate.MultiWritePathHistory(client_path_histories)
 
@@ -2024,7 +2020,7 @@ class DatabaseValidationWrapper(Database):
         client_id, path_type, path_id, max_depth=max_depth)
 
   def WriteUserNotification(self, notification):
-    utils.AssertType(notification, rdf_objects.UserNotification)
+    precondition.AssertType(notification, rdf_objects.UserNotification)
     _ValidateUsername(notification.username)
     _ValidateNotificationType(notification.notification_type)
     _ValidateNotificationState(notification.state)
@@ -2044,12 +2040,20 @@ class DatabaseValidationWrapper(Database):
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
     _ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
-    utils.AssertType(components_list, list)
+    precondition.AssertType(components_list, list)
     for components in components_list:
       _ValidatePathComponents(components)
 
     return self.delegate.ReadPathInfosHistories(client_id, path_type,
                                                 components_list)
+
+  def ReadLatestPathInfosWithHashBlobReferences(self,
+                                                client_paths,
+                                                max_timestamp=None):
+    precondition.AssertIterableType(client_paths, ClientPath)
+    precondition.AssertOptionalType(max_timestamp, rdfvalue.RDFDatetime)
+    return self.delegate.ReadLatestPathInfosWithHashBlobReferences(
+        client_paths, max_timestamp=max_timestamp)
 
   def UpdateUserNotifications(self, username, timestamps, state=None):
     _ValidateNotificationState(state)
@@ -2061,11 +2065,11 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadAllAuditEvents()
 
   def WriteAuditEvent(self, event):
-    utils.AssertType(event, rdf_events.AuditEvent)
+    precondition.AssertType(event, rdf_events.AuditEvent)
     return self.delegate.WriteAuditEvent(event)
 
   def WriteMessageHandlerRequests(self, requests):
-    utils.AssertListType(requests, rdf_objects.MessageHandlerRequest)
+    precondition.AssertIterableType(requests, rdf_objects.MessageHandlerRequest)
     return self.delegate.WriteMessageHandlerRequests(requests)
 
   def DeleteMessageHandlerRequests(self, requests):
@@ -2086,7 +2090,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.UnregisterMessageHandler()
 
   def WriteCronJob(self, cronjob):
-    utils.AssertType(cronjob, rdf_cronjobs.CronJob)
+    precondition.AssertType(cronjob, rdf_cronjobs.CronJob)
     return self.delegate.WriteCronJob(cronjob)
 
   def ReadCronJob(self, cronjob_id):
@@ -2139,11 +2143,11 @@ class DatabaseValidationWrapper(Database):
 
   def ReturnLeasedCronJobs(self, jobs):
     for job in jobs:
-      utils.AssertType(job, rdf_cronjobs.CronJob)
+      precondition.AssertType(job, rdf_cronjobs.CronJob)
     return self.delegate.ReturnLeasedCronJobs(jobs)
 
   def WriteCronJobRun(self, run_object):
-    utils.AssertType(run_object, rdf_cronjobs.CronJobRun)
+    precondition.AssertType(run_object, rdf_cronjobs.CronJobRun)
     return self.delegate.WriteCronJobRun(run_object)
 
   def ReadCronJobRun(self, job_id, run_id):
@@ -2159,37 +2163,23 @@ class DatabaseValidationWrapper(Database):
     _ValidateTimestamp(cutoff_timestamp)
     return self.delegate.DeleteOldCronJobRuns(cutoff_timestamp)
 
-  def WriteClientPathBlobReferences(self, references_by_client_path_id):
-    for client_path_id, refs in iteritems(references_by_client_path_id):
-      _ValidateClientPathID(client_path_id)
-      for ref in refs:
-        _ValidateBlobReference(ref)
-
-    self.delegate.WriteClientPathBlobReferences(references_by_client_path_id)
-
-  def ReadClientPathBlobReferences(self, client_path_ids):
-    for p in client_path_ids:
-      _ValidateClientPathID(p)
-
-    return self.delegate.ReadClientPathBlobReferences(client_path_ids)
-
   def WriteHashBlobReferences(self, references_by_hash):
     for h, refs in references_by_hash.items():
       _ValidateSHA256HashID(h)
-      utils.AssertIterableType(refs, rdf_objects.BlobReference)
+      precondition.AssertIterableType(refs, rdf_objects.BlobReference)
 
     self.delegate.WriteHashBlobReferences(references_by_hash)
 
   def ReadHashBlobReferences(self, hashes):
-    utils.AssertIterableType(hashes, rdf_objects.SHA256HashID)
+    precondition.AssertIterableType(hashes, rdf_objects.SHA256HashID)
     return self.delegate.ReadHashBlobReferences(hashes)
 
-  def WriteBlobs(self, blob_id_data_pairs):
-    for bid, data in iteritems(blob_id_data_pairs):
+  def WriteBlobs(self, blob_id_data_map):
+    for bid, data in iteritems(blob_id_data_map):
       _ValidateBlobID(bid)
       _ValidateBytes(data)
 
-    return self.delegate.WriteBlobs(blob_id_data_pairs)
+    return self.delegate.WriteBlobs(blob_id_data_map)
 
   def ReadBlobs(self, blob_ids):
     for bid in blob_ids:
@@ -2205,7 +2195,7 @@ class DatabaseValidationWrapper(Database):
 
   def WriteClientMessages(self, messages):
     for message in messages:
-      utils.AssertType(message, rdf_flows.GrrMessage)
+      precondition.AssertType(message, rdf_flows.GrrMessage)
     return self.delegate.WriteClientMessages(messages)
 
   def LeaseClientMessages(self, client_id, lease_time=None, limit=1000000):
@@ -2220,11 +2210,11 @@ class DatabaseValidationWrapper(Database):
 
   def DeleteClientMessages(self, messages):
     for message in messages:
-      utils.AssertType(message, rdf_flows.GrrMessage)
+      precondition.AssertType(message, rdf_flows.GrrMessage)
     return self.delegate.DeleteClientMessages(messages)
 
   def WriteFlowObject(self, flow_obj):
-    utils.AssertType(flow_obj, rdf_flow_objects.Flow)
+    precondition.AssertType(flow_obj, rdf_flow_objects.Flow)
     return self.delegate.WriteFlowObject(flow_obj)
 
   def ReadFlowObject(self, client_id, flow_id):
@@ -2245,7 +2235,7 @@ class DatabaseValidationWrapper(Database):
                                                processing_time)
 
   def ReturnProcessedFlow(self, flow_obj):
-    utils.AssertType(flow_obj, rdf_flow_objects.Flow)
+    precondition.AssertType(flow_obj, rdf_flow_objects.Flow)
     return self.delegate.ReturnProcessedFlow(flow_obj)
 
   def UpdateFlow(self,
@@ -2260,12 +2250,12 @@ class DatabaseValidationWrapper(Database):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
     if flow_obj != Database.unchanged:
-      utils.AssertType(flow_obj, rdf_flow_objects.Flow)
+      precondition.AssertType(flow_obj, rdf_flow_objects.Flow)
     if client_crash_info != Database.unchanged:
-      utils.AssertType(client_crash_info, rdf_client.ClientCrash)
+      precondition.AssertType(client_crash_info, rdf_client.ClientCrash)
     if pending_termination != Database.unchanged:
-      utils.AssertType(pending_termination,
-                       rdf_flow_objects.PendingFlowTermination)
+      precondition.AssertType(pending_termination,
+                              rdf_flow_objects.PendingFlowTermination)
     if processing_since != Database.unchanged:
       if processing_since is not None:
         _ValidateTimestamp(processing_since)
@@ -2283,15 +2273,15 @@ class DatabaseValidationWrapper(Database):
         processing_deadline=processing_deadline)
 
   def WriteFlowRequests(self, requests):
-    utils.AssertListType(requests, rdf_flow_objects.FlowRequest)
+    precondition.AssertIterableType(requests, rdf_flow_objects.FlowRequest)
     return self.delegate.WriteFlowRequests(requests)
 
   def DeleteFlowRequests(self, requests):
-    utils.AssertListType(requests, rdf_flow_objects.FlowRequest)
+    precondition.AssertIterableType(requests, rdf_flow_objects.FlowRequest)
     return self.delegate.DeleteFlowRequests(requests)
 
   def WriteFlowResponses(self, responses):
-    utils.AssertListType(responses, (rdf_flow_objects.FlowMessage))
+    precondition.AssertIterableType(responses, (rdf_flow_objects.FlowMessage))
     return self.delegate.WriteFlowResponses(responses)
 
   def ReadAllFlowRequestsAndResponses(self, client_id, flow_id):
@@ -2316,14 +2306,14 @@ class DatabaseValidationWrapper(Database):
         client_id, flow_id, next_needed_request=next_needed_request)
 
   def WriteFlowProcessingRequests(self, requests):
-    utils.AssertListType(requests, rdf_flows.FlowProcessingRequest)
+    precondition.AssertIterableType(requests, rdf_flows.FlowProcessingRequest)
     return self.delegate.WriteFlowProcessingRequests(requests)
 
   def ReadFlowProcessingRequests(self):
     return self.delegate.ReadFlowProcessingRequests()
 
   def AckFlowProcessingRequests(self, requests):
-    utils.AssertListType(requests, rdf_flows.FlowProcessingRequest)
+    precondition.AssertIterableType(requests, rdf_flows.FlowProcessingRequest)
     return self.delegate.AckFlowProcessingRequests(requests)
 
   def DeleteAllFlowProcessingRequests(self):
@@ -2340,7 +2330,7 @@ class DatabaseValidationWrapper(Database):
   def WriteFlowResults(self, client_id, flow_id, results):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
-    utils.AssertIterableType(results, rdf_flow_objects.FlowResult)
+    precondition.AssertIterableType(results, rdf_flow_objects.FlowResult)
 
     return self.delegate.WriteFlowResults(client_id, flow_id, results)
 
@@ -2354,15 +2344,9 @@ class DatabaseValidationWrapper(Database):
                       with_substring=None):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
-
-    if with_tag is not None:
-      utils.AssertType(with_tag, unicode)
-
-    if with_type is not None:
-      utils.AssertType(with_type, unicode)
-
-    if with_substring is not None:
-      utils.AssertType(with_substring, unicode)
+    precondition.AssertOptionalType(with_tag, unicode)
+    precondition.AssertOptionalType(with_type, unicode)
+    precondition.AssertOptionalType(with_substring, unicode)
 
     return self.delegate.ReadFlowResults(
         client_id,
@@ -2382,12 +2366,8 @@ class DatabaseValidationWrapper(Database):
   ):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
-
-    if with_tag is not None:
-      utils.AssertType(with_tag, unicode)
-
-    if with_type is not None:
-      utils.AssertType(with_type, unicode)
+    precondition.AssertOptionalType(with_tag, unicode)
+    precondition.AssertOptionalType(with_type, unicode)
 
     return self.delegate.CountFlowResults(
         client_id, flow_id, with_tag=with_tag, with_type=with_type)
@@ -2395,7 +2375,7 @@ class DatabaseValidationWrapper(Database):
   def WriteFlowLogEntries(self, client_id, flow_id, entries):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
-    utils.AssertIterableType(entries, rdf_flow_objects.FlowLogEntry)
+    precondition.AssertIterableType(entries, rdf_flow_objects.FlowLogEntry)
 
     return self.delegate.WriteFlowLogEntries(client_id, flow_id, entries)
 
@@ -2407,9 +2387,7 @@ class DatabaseValidationWrapper(Database):
                          with_substring=None):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
-
-    if with_substring is not None:
-      utils.AssertType(with_substring, unicode)
+    precondition.AssertOptionalType(with_substring, unicode)
 
     return self.delegate.ReadFlowLogEntries(
         client_id, flow_id, offset, count, with_substring=with_substring)
@@ -2428,7 +2406,7 @@ def _ValidateEnumType(value, expected_enum_type):
 
 
 def _ValidateStringId(typename, value):
-  utils.AssertType(value, unicode)
+  precondition.AssertType(value, unicode)
   if not value:
     message = "Expected %s `%s` to be non-empty" % (typename, value)
     raise ValueError(message)
@@ -2443,7 +2421,7 @@ def _ValidateClientId(client_id):
 
 
 def _ValidateClientIds(client_ids):
-  utils.AssertListType(client_ids, unicode)
+  precondition.AssertIterableType(client_ids, unicode)
   for client_id in client_ids:
     _ValidateClientId(client_id)
 
@@ -2487,7 +2465,7 @@ def _ValidateLabel(label):
 
 
 def _ValidatePathInfo(path_info):
-  utils.AssertType(path_info, rdf_objects.PathInfo)
+  precondition.AssertType(path_info, rdf_objects.PathInfo)
   if not path_info.path_type:
     raise ValueError(
         "Expected path_type to be set, got: %s" % path_info.path_type)
@@ -2495,7 +2473,7 @@ def _ValidatePathInfo(path_info):
 
 def _ValidatePathInfos(path_infos):
   """Validates a sequence of path infos."""
-  utils.AssertIterableType(path_infos, rdf_objects.PathInfo)
+  precondition.AssertIterableType(path_infos, rdf_objects.PathInfo)
 
   validated = set()
   for path_info in path_infos:
@@ -2512,7 +2490,7 @@ def _ValidatePathInfos(path_infos):
 
 
 def _ValidatePathComponents(components):
-  utils.AssertTupleType(components, unicode)
+  precondition.AssertIterableType(components, unicode)
 
 
 def _ValidateNotificationType(notification_type):
@@ -2537,35 +2515,33 @@ def _ValidateTimeRange(timerange):
     raise ValueError("Timerange should be a sequence with 2 items.")
 
   (start, end) = timerange
-  if start is not None:
-    utils.AssertType(start, rdfvalue.RDFDatetime)
-  if end is not None:
-    utils.AssertType(end, rdfvalue.RDFDatetime)
+  precondition.AssertOptionalType(start, rdfvalue.RDFDatetime)
+  precondition.AssertOptionalType(end, rdfvalue.RDFDatetime)
 
 
 def _ValidateDuration(duration):
-  utils.AssertType(duration, rdfvalue.Duration)
+  precondition.AssertType(duration, rdfvalue.Duration)
 
 
 def _ValidateTimestamp(timestamp):
-  utils.AssertType(timestamp, rdfvalue.RDFDatetime)
+  precondition.AssertType(timestamp, rdfvalue.RDFDatetime)
 
 
 def _ValidateClientPathID(client_path_id):
-  utils.AssertType(client_path_id, rdf_objects.ClientPathID)
+  precondition.AssertType(client_path_id, rdf_objects.ClientPathID)
 
 
 def _ValidateBlobReference(blob_ref):
-  utils.AssertType(blob_ref, rdf_objects.BlobReference)
+  precondition.AssertType(blob_ref, rdf_objects.BlobReference)
 
 
 def _ValidateBlobID(blob_id):
-  utils.AssertType(blob_id, rdf_objects.BlobID)
+  precondition.AssertType(blob_id, rdf_objects.BlobID)
 
 
 def _ValidateBytes(value):
-  utils.AssertType(value, bytes)
+  precondition.AssertType(value, bytes)
 
 
 def _ValidateSHA256HashID(sha256_hash_id):
-  utils.AssertType(sha256_hash_id, rdf_objects.SHA256HashID)
+  precondition.AssertType(sha256_hash_id, rdf_objects.SHA256HashID)

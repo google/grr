@@ -161,7 +161,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       self.assertGreater(size, 100)
 
       if data_store.RelationalDBReadEnabled(category="filestore"):
-        fd = file_store.OpenLatestFileVersion(
+        fd = file_store.OpenFile(
             db.ClientPath(
                 self.client_id.Basename(),
                 rdf_objects.PathInfo.PathType.OS,

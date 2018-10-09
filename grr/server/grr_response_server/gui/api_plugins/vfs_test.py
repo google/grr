@@ -11,7 +11,9 @@ import zipfile
 from builtins import range  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems
+import mock
 
+from grr_response_core.lib import factory
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -21,6 +23,8 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import decoders
 from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import discovery
@@ -36,10 +40,12 @@ from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
 class VfsTestMixin(object):
   """A helper mixin providing methods to prepare files and flows for testing.
+
   """
 
   time_0 = rdfvalue.RDFDatetime(42)
@@ -52,41 +58,16 @@ class VfsTestMixin(object):
   def CreateFileVersions(self, client_id, file_path):
     """Add a new version for a file."""
     path_type, components = rdf_objects.ParseCategorizedPath(file_path)
+    client_path = db.ClientPath(client_id.Basename(), path_type, components)
+    token = access_control.ACLToken(username="test")
 
     with test_lib.FakeTime(self.time_1):
-      token = access_control.ACLToken(username="test")
-      fd = aff4.FACTORY.Create(
-          client_id.Add(file_path),
-          aff4.AFF4MemoryStream,
-          mode="w",
-          token=token)
-      fd.Write("Hello World".encode("utf-8"))
-      fd.Close()
-
-      if data_store.RelationalDBWriteEnabled():
-        path_info = rdf_objects.PathInfo()
-        path_info.path_type = path_type
-        path_info.components = components
-        path_info.directory = False
-
-        data_store.REL_DB.WritePathInfos(client_id.Basename(), [path_info])
+      vfs_test_lib.CreateFile(
+          client_path, "Hello World".encode("utf-8"), token=token)
 
     with test_lib.FakeTime(self.time_2):
-      fd = aff4.FACTORY.Create(
-          client_id.Add(file_path),
-          aff4.AFF4MemoryStream,
-          mode="w",
-          token=token)
-      fd.Write("Goodbye World".encode("utf-8"))
-      fd.Close()
-
-      if data_store.RelationalDBWriteEnabled():
-        path_info = rdf_objects.PathInfo()
-        path_info.path_type = path_type
-        path_info.components = components
-        path_info.directory = False
-
-        data_store.REL_DB.WritePathInfos(client_id.Basename(), [path_info])
+      vfs_test_lib.CreateFile(
+          client_path, "Goodbye World".encode("utf-8"), token=token)
 
   def CreateRecursiveListFlow(self, client_id, token):
     flow_args = filesystem.RecursiveListDirectoryArgs()
@@ -175,9 +156,9 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(args, token=self.token)
 
     attributes_by_type = {}
-    attributes_by_type["AFF4MemoryStream"] = ["CONTENT"]
-    attributes_by_type["AFF4MemoryStreamBase"] = ["SIZE"]
-    attributes_by_type["AFF4Object"] = ["LAST", "SUBJECT", "TYPE"]
+    attributes_by_type["VFSFile"] = ["STAT"]
+    attributes_by_type["AFF4Stream"] = ["HASH", "SIZE"]
+    attributes_by_type["AFF4Object"] = ["TYPE"]
 
     details = result.file.details
     for type_name, attrs in iteritems(attributes_by_type):
@@ -386,22 +367,19 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 
   def testLargeFileIsReturnedInMultipleChunks(self):
     chars = [b"a", b"b", b"x"]
-    huge_file_path = "fs/os/c/Downloads/huge.txt"
 
     # Overwrite CHUNK_SIZE in handler for smaller test streams.
     self.handler.CHUNK_SIZE = 5
 
-    # Create a file that requires several chunks to load.
-    with aff4.FACTORY.Create(
-        self.client_id.Add(huge_file_path),
-        aff4.AFF4MemoryStream,
-        mode="w",
-        token=self.token) as fd:
-      for char in chars:
-        fd.Write(char * self.handler.CHUNK_SIZE)
+    client_path = db.ClientPath.OS(self.client_id.Basename(),
+                                   ["c", "Downloads", "huge.txt"])
+    vfs_test_lib.CreateFile(
+        client_path,
+        content=b"".join([c * self.handler.CHUNK_SIZE for c in chars]),
+        token=self.token)
 
     args = vfs_plugin.ApiGetFileBlobArgs(
-        client_id=self.client_id, file_path=huge_file_path)
+        client_id=self.client_id, file_path="fs/os/c/Downloads/huge.txt")
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
@@ -705,6 +683,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
 
 class VfsTimelineTestMixin(object):
   """A helper mixin providing methods to prepare timelines for testing.
+
   """
 
   def SetupTestTimeline(self):
@@ -740,12 +719,17 @@ class VfsTimelineTestMixin(object):
 
     with aff4.FACTORY.Create(
         file_urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
-      fd.Set(fd.Schema.STAT, stat_entry)
-      fd.Set(fd.Schema.HASH, hash_entry)
+      if stat_entry is not None:
+        fd.Set(fd.Schema.STAT, stat_entry)
+      if hash_entry is not None:
+        fd.Set(fd.Schema.HASH, hash_entry)
 
     if data_store.RelationalDBWriteEnabled():
       client_id = client_urn.Basename()
-      path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+      if stat_entry:
+        path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+      else:
+        path_info = rdf_objects.PathInfo.OS(components=vfs_path.split("/"))
       path_info.hash_entry = hash_entry
       data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
@@ -844,6 +828,20 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
     expected_csv = u"71757578|fs/os/foo/bar|0|----------|0|0|1337|0|0|0|0\n"
     self.assertEqual(content, expected_csv.encode("utf-8"))
 
+  def testTimelineEntriesWithHashOnlyAreIgnoredOnBodyExport(self):
+    client_urn = self.SetupClient(1)
+    hash_entry = rdf_crypto.Hash(md5=b"quux")
+    self.SetupFileMetadata(
+        client_urn, u"fs/os/foo/bar", stat_entry=None, hash_entry=hash_entry)
+    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
+        client_id=client_urn,
+        file_path=u"fs/os/foo",
+        format=vfs_plugin.ApiGetVfsTimelineAsCsvArgs.Format.BODY)
+    result = self.handler.Handle(args, token=self.token)
+
+    content = b"".join(result.GenerateContent())
+    self.assertEqual(content, b"")
+
 
 @db_test_lib.DualDBTest
 class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
@@ -885,7 +883,6 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.client_id = self.SetupClient(0)
 
     self.CreateFileVersions(self.client_id, "fs/os/c/Downloads/a.txt")
-
     self.CreateFileVersions(self.client_id, "fs/os/c/b.txt")
 
   def testGeneratesZipArchiveWhenPathIsNotPassed(self):
@@ -976,6 +973,178 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertItemsEqual(zip_fd.namelist(), [archive_path1, archive_path2])
     self.assertEqual(zip_fd.read(archive_path1), "Hello World")
     self.assertEqual(zip_fd.read(archive_path2), "Hello World")
+
+
+class DecodersTestMixin(object):
+
+  def setUp(self):
+    super(DecodersTestMixin, self).setUp()
+    self.client_id = self.SetupClient(0)
+
+    self.decoders_patcher = mock.patch.object(
+        decoders, "FACTORY", factory.Factory(decoders.AbstractDecoder))
+    self.decoders_patcher.start()
+
+  def tearDown(self):
+    super(DecodersTestMixin, self).tearDown()
+    self.decoders_patcher.stop()
+
+  def Touch(self, vfs_path, content=b""):
+    path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
+    client_path = db.ClientPath(
+        client_id=self.client_id.Basename(),
+        path_type=path_type,
+        components=components)
+    vfs_test_lib.CreateFile(client_path, content=content)
+
+
+@db_test_lib.DualDBTest
+class ApiGetFileDecodersHandler(DecodersTestMixin,
+                                api_test_lib.ApiCallHandlerTest):
+
+  def setUp(self):
+    super(ApiGetFileDecodersHandler, self).setUp()
+    self.handler = vfs_plugin.ApiGetFileDecodersHandler()
+
+  def testSimple(self):
+    self.Touch("fs/os/foo/bar/baz")
+
+    class FooDecoder(decoders.AbstractDecoder):
+
+      def Check(self, filedesc):
+        del filedesc  # Unused.
+        return True
+
+      def Decode(self, filedesc):
+        raise NotImplementedError()
+
+    decoders.FACTORY.Register("Foo", FooDecoder)
+
+    args = vfs_plugin.ApiGetFileDecodersArgs()
+    args.client_id = self.client_id
+    args.filepath = "fs/os/foo/bar/baz"
+
+    result = self.handler.Handle(args, token=self.token)
+    self.assertEqual(result.decoder_names, ["Foo"])
+
+  def testMultipleDecoders(self):
+    self.Touch("fs/os/foo/bar", content=b"bar")
+    self.Touch("fs/os/foo/baz", content=b"baz")
+    self.Touch("fs/os/foo/quux", content=b"quux")
+
+    class BarQuuxDecoder(decoders.AbstractDecoder):
+
+      def Check(self, filedesc):
+        return filedesc.Read(1024) in [b"bar", b"quux"]
+
+      def Decode(self, filedesc):
+        raise NotImplementedError()
+
+    class BazQuuxDecoder(decoders.AbstractDecoder):
+
+      def Check(self, filedesc):
+        return filedesc.Read(1024) in [b"baz", b"quux"]
+
+      def Decode(self, filedesc):
+        raise NotImplementedError()
+
+    decoders.FACTORY.Register("BarQuux", BarQuuxDecoder)
+    decoders.FACTORY.Register("BazQuux", BazQuuxDecoder)
+
+    args = vfs_plugin.ApiGetFileDecodersArgs()
+    args.client_id = self.client_id
+
+    args.filepath = "fs/os/foo/bar"
+    result = self.handler.Handle(args, token=self.token)
+    self.assertItemsEqual(result.decoder_names, ["BarQuux"])
+
+    args.filepath = "fs/os/foo/baz"
+    result = self.handler.Handle(args)
+    self.assertItemsEqual(result.decoder_names, ["BazQuux"])
+
+    args.filepath = "fs/os/foo/quux"
+    result = self.handler.Handle(args)
+    self.assertItemsEqual(result.decoder_names, ["BarQuux", "BazQuux"])
+
+
+@db_test_lib.DualDBTest
+class ApiGetDecodedFileHandlerTest(DecodersTestMixin,
+                                   api_test_lib.ApiCallHandlerTest):
+
+  def setUp(self):
+    super(ApiGetDecodedFileHandlerTest, self).setUp()
+    self.handler = vfs_plugin.ApiGetDecodedFileHandler()
+
+  def _Result(self, args):
+    stream = self.handler.Handle(args, token=self.token)
+    return b"".join(stream.GenerateContent())
+
+  def testSimpleDecoder(self):
+    self.Touch("fs/os/foo", b"foo")
+
+    class FooDecoder(decoders.AbstractDecoder):
+
+      def Check(self, filedesc):
+        del filedesc  # Unused.
+        raise NotImplementedError()
+
+      def Decode(self, filedesc):
+        del filedesc  # Unused.
+        yield b"bar"
+
+    decoders.FACTORY.Register("Foo", FooDecoder)
+
+    args = vfs_plugin.ApiGetDecodedFileArgs()
+    args.client_id = self.client_id
+    args.filepath = "fs/os/foo"
+    args.decoder_name = "Foo"
+
+    self.assertEqual(self._Result(args), b"bar")
+
+  def testMultiChunkDecoder(self):
+    self.Touch("fs/os/quux", b"QUUX" * 100)
+    self.Touch("fs/os/thud", b"THUD" * 100)
+
+    class BarDecoder(decoders.AbstractDecoder):
+
+      def Check(self, filedesc):
+        del filedesc  # Unused.
+        raise NotImplementedError()
+
+      def Decode(self, filedesc):
+        while True:
+          chunk = filedesc.Read(4)
+          if not chunk:
+            return
+
+          if chunk == b"QUUX":
+            yield b"NORF"
+
+          if chunk == b"THUD":
+            yield b"BLARGH"
+
+    decoders.FACTORY.Register("Bar", BarDecoder)
+
+    args = vfs_plugin.ApiGetDecodedFileArgs()
+    args.client_id = self.client_id
+    args.decoder_name = "Bar"
+
+    args.filepath = "fs/os/quux"
+    self.assertEqual(self._Result(args), b"NORF" * 100)
+
+    args.filepath = "fs/os/thud"
+    self.assertEqual(self._Result(args), b"BLARGH" * 100)
+
+  def testUnknownDecoder(self):
+    self.Touch("fs/os/baz")
+
+    args = vfs_plugin.ApiGetDecodedFileArgs()
+    args.client_id = self.client_id
+    args.filepath = "fs/os/baz"
+    args.decoder_name = "Baz"
+
+    with self.assertRaisesRegexp(ValueError, "'Baz'"):
+      self._Result(args)
 
 
 def main(argv):

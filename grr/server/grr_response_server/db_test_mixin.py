@@ -22,15 +22,18 @@ from grr_response_server import db_users_test
 
 
 class DatabaseTestMixin(
-    with_metaclass(abc.ABCMeta, db_blobs_test.DatabaseTestBlobsMixin,
-                   db_clients_test.DatabaseTestClientsMixin,
-                   db_cronjob_test.DatabaseTestCronJobMixin,
-                   db_events_test.DatabaseEventsTestMixin,
-                   db_flows_test.DatabaseTestFlowMixin,
-                   db_foreman_rules_test.DatabaseTestForemanRulesMixin,
-                   db_message_handler_test.DatabaseTestHandlerMixin,
-                   db_paths_test.DatabaseTestPathsMixin,
-                   db_users_test.DatabaseTestUsersMixin)):
+    with_metaclass(
+        abc.ABCMeta,
+        db_blobs_test.DatabaseTestBlobsMixin,
+        db_clients_test.DatabaseTestClientsMixin,
+        db_cronjob_test.DatabaseTestCronJobMixin,
+        db_events_test.DatabaseEventsTestMixin,
+        db_flows_test.DatabaseTestFlowMixin,
+        db_foreman_rules_test.DatabaseTestForemanRulesMixin,
+        db_message_handler_test.DatabaseTestHandlerMixin,
+        db_paths_test.DatabaseTestPathsMixin,
+        db_users_test.DatabaseTestUsersMixin,
+    )):
   """An abstract class for testing db.Database implementations.
 
   Implementations should override CreateDatabase in order to produce

@@ -5,15 +5,15 @@ from __future__ import unicode_literals
 
 
 import mock
-import unittest
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
-
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -54,11 +54,12 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
         token=self.token)
 
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c")
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     # Wait until the folder gets selected and its information displayed in
     # the details pane.
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/c")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-file-details:contains('VFSDirectory')")
 
     # Click on the "foo?bar&oh" subfolder.
     self.Click("css=#_fs-os-c-foo_3Fbar_26oh a:visible")
@@ -67,7 +68,8 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     self.Click(u"css=tr:contains(\"a&=?b.txt\")")
     self.Click("css=li[heading=Download]")
 
-    self.WaitUntil(self.IsTextPresent, u"a&=?b.txt")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-file-details:contains('a&=?b.txt')")
 
     # Test the text viewer.
     self.Click("css=li[heading=TextView]")
@@ -157,11 +159,5 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
         token=mock.ANY)
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

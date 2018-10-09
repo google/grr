@@ -17,6 +17,7 @@ import yaml
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import collection
 from grr_response_server import instant_output_plugin
 
 
@@ -133,7 +134,7 @@ class SqliteInstantOutputPlugin(
     for sql in self._FlushAllRows(db_connection, table_name):
       yield sql
     counter = 1
-    for batch in utils.Grouper(exported_values, self.ROW_BATCH):
+    for batch in collection.Batch(exported_values, self.ROW_BATCH):
       counter += len(batch)
       with db_connection:
         for value in batch:

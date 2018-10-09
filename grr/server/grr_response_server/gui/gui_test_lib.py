@@ -30,14 +30,16 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import output_plugin
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
 from grr_response_server.aff4_objects import users
 from grr_response_server.flows.general import processes
@@ -55,6 +57,7 @@ from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib as ar_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 flags.DEFINE_string(
     "chrome_driver_path", None,
@@ -87,20 +90,24 @@ def DateTimeString(t):
 
 def CreateFileVersions(client_id, token):
   """Add new versions for a file."""
+  content_1 = b"Hello World"
+  content_2 = b"Goodbye World"
   # This file already exists in the fixture at TIME_0, we write a
   # later version.
   CreateFileVersion(
       client_id,
       "fs/os/c/Downloads/a.txt",
-      "Hello World".encode("utf-8"),
+      content_1,
       timestamp=TIME_1,
       token=token)
   CreateFileVersion(
       client_id,
       "fs/os/c/Downloads/a.txt",
-      "Goodbye World".encode("utf-8"),
+      content_2,
       timestamp=TIME_2,
       token=token)
+
+  return (content_1, content_2)
 
 
 def CreateFileVersion(client_id, path, content=b"", timestamp=None, token=None):
@@ -109,21 +116,9 @@ def CreateFileVersion(client_id, path, content=b"", timestamp=None, token=None):
     timestamp = rdfvalue.RDFDatetime.Now()
 
   with test_lib.FakeTime(timestamp):
-    with aff4.FACTORY.Create(
-        client_id.Add(path), aff4_type=aff4_grr.VFSFile, mode="w",
-        token=token) as fd:
-      fd.Write(content)
-      fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
-
-    if data_store.RelationalDBWriteEnabled():
-      path_type, components = rdf_objects.ParseCategorizedPath(path)
-
-      path_info = rdf_objects.PathInfo()
-      path_info.path_type = path_type
-      path_info.components = components
-      path_info.directory = False
-
-      data_store.REL_DB.WritePathInfos(client_id.Basename(), [path_info])
+    path_type, components = rdf_objects.ParseCategorizedPath(path)
+    client_path = db.ClientPath(client_id.Basename(), path_type, components)
+    vfs_test_lib.CreateFile(client_path, content=content, token=token)
 
 
 def CreateFolder(client_id, path, timestamp, token=None):
@@ -791,7 +786,8 @@ class RecursiveTestFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.RecursiveTestFlowArgs
 
 
-class RecursiveTestFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class RecursiveTestFlowMixin(object):
   """A test flow which starts some subflows."""
   args_type = RecursiveTestFlowArgs
 
@@ -804,7 +800,7 @@ class RecursiveTestFlow(flow.GRRFlow):
       for i in range(2):
         self.Log("Subflow call %d", i)
         self.CallFlow(
-            RecursiveTestFlow.__name__,
+            compatibility.GetName(self.__class__),
             depth=self.args.depth + 1,
             next_state="End")
 

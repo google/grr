@@ -2,8 +2,6 @@
 """Tests for the rapid hunts feature."""
 from __future__ import unicode_literals
 
-import unittest
-
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server.flows.general import file_finder
@@ -345,11 +343,5 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         "dd:contains('rapid hunting')")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

@@ -3,9 +3,8 @@
 """Test the inspect interface."""
 from __future__ import unicode_literals
 
-import unittest
-from grr_response_core.lib import flags
 
+from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import flow
 from grr_response_server import queue_manager
@@ -14,6 +13,7 @@ from grr_response_server.flows.general import processes
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class TestInspectViewBase(gui_test_lib.GRRSeleniumTest):
@@ -99,11 +99,5 @@ class TestDebugClientRequestsView(TestInspectViewBase):
     self.WaitUntil(self.IsTextPresent, "Task id")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

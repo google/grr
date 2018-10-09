@@ -13,14 +13,15 @@ from future.utils import iterkeys
 import yaml
 
 from grr_response_core import config
+from grr_response_core.lib import parser as parser_lib
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import precondition
 from grr_response_server.check_lib import checks
 from grr_response_server.check_lib import filters
 from grr_response_server.check_lib import hints
@@ -99,19 +100,6 @@ class HostCheckTest(test_lib.GRRBaseTest):
     results["RAW"].extend(raw or [])
     return results
 
-  def AddData(self, parser, *args, **kwargs):
-    """Initialize the parser and add parsed data to host_data."""
-    return [parser().Parse(*args, **kwargs)]
-
-  def AddListener(self, ip, port, family="INET", sock_type="SOCK_STREAM"):
-    """Create a network connection."""
-    conn = rdf_client_network.NetworkConnection()
-    conn.state = "LISTEN"
-    conn.family = family
-    conn.type = sock_type
-    conn.local_address = rdf_client_network.NetworkEndpoint(ip=ip, port=port)
-    return conn
-
   def RunChecks(self, host_data, labels=None, restrict_checks=None):
     """Runs the registered checks against the provided host data.
 
@@ -150,7 +138,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
 
   def _AddToHostData(self, host_data, artifact, data, parser):
     """Parse raw data collected for an artifact into the host_data table."""
-    utils.AssertType(data, dict)
+    precondition.AssertType(data, dict)
 
     rdfs = []
     stats = []
@@ -158,12 +146,13 @@ class HostCheckTest(test_lib.GRRBaseTest):
     for path, lines in iteritems(data):
       stat = self.CreateStat(path)
       stats.append(stat)
-      file_obj = io.StringIO(lines)
+      file_obj = io.BytesIO(utils.SmartStr(lines))
       files.append(file_obj)
-      if not parser.process_together:
-        rdfs.extend(list(parser.Parse(stat, file_obj, None)))
-    if parser.process_together:
-      rdfs = list(parser.ParseMultiple(stats, files, None))
+      if isinstance(parser, parser_lib.SingleFileParser):
+        rdfs.extend(parser.ParseFile(None, stat.pathspec, file_obj))
+    if isinstance(parser, parser_lib.MultiFileParser):
+      pathspecs = [stat_entry.pathspec for stat_entry in stats]
+      rdfs.extend(parser.ParseFiles(None, pathspecs, files))
     host_data[artifact] = self.SetArtifactData(
         anomaly=[a for a in rdfs if isinstance(a, rdf_anomaly.Anomaly)],
         parsed=[r for r in rdfs if not isinstance(r, rdf_anomaly.Anomaly)],
@@ -187,11 +176,11 @@ class HostCheckTest(test_lib.GRRBaseTest):
 
     Args:
       artifact_list: list of artifacts to add to host_data for running checks
-      sources_list: list of dictionaries containing file names and file data.
-        If parser_list is empty then sources_list must contain a list of lists
+      sources_list: list of dictionaries containing file names and file data. If
+        parser_list is empty then sources_list must contain a list of lists
         containing StatEntry or lists of other raw artifact data.
-      parser_list: list of parsers to apply to file data from sources_list.
-        This can be empty if no parser is to be applied.
+      parser_list: list of parsers to apply to file data from sources_list. This
+        can be empty if no parser is to be applied.
 
     Returns:
       CheckResult containing any findings in sources_list against loaded checks.
@@ -232,14 +221,6 @@ class HostCheckTest(test_lib.GRRBaseTest):
     host_data["ListProcessesGrr"] = self.SetArtifactData(raw=data)
     return host_data
 
-  @classmethod
-  def _GenFileData(cls, paths, data, stats=None, files=None, modes=None):
-    return artifact_test_lib.GenFileData(paths, data, stats, files, modes)
-
-  @classmethod
-  def GenStatFileData(cls, data, modes=None):
-    return artifact_test_lib.GenStatFileData(data, modes)
-
   def GenFileData(self, artifact, data, parser=None, modes=None, include=None):
     """Create a set of host_data results based on file parser results.
 
@@ -271,21 +252,27 @@ class HostCheckTest(test_lib.GRRBaseTest):
       modes = {}
     kb = host_data["KnowledgeBase"]
     files = []
-    rdfs = []
     stats = []
     for path in data:
       if include and path not in include:
         continue
       file_modes = modes.get(path, {})
-      stats, files = self._GenFileData(
-          [path], [data[path]], stats=stats, files=files, modes=file_modes)
-    if parser.process_together:
-      rdfs = list(parser.ParseMultiple(stats, files, kb))
+      stats, files = artifact_test_lib.GenFileData([path], [data[path]],
+                                                   stats=stats,
+                                                   files=files,
+                                                   modes=file_modes)
+
+    rdfs = []
+    if isinstance(parser, parser_lib.SingleFileParser):
+      for stat_entry, filedesc in zip(stats, files):
+        pathspec = stat_entry.pathspec
+        rdfs.extend(parser.ParseFile(kb, pathspec, filedesc))
+    elif isinstance(parser, parser_lib.MultiFileParser):
+      pathspecs = [stat_entry.pathspec for stat_entry in stats]
+      rdfs.extend(parser.ParseFiles(kb, pathspecs, files))
     else:
-      for stat, file_obj in zip(stats, files):
-        # Make sure the parser result is iterable.
-        rslt = parser.Parse(stat, file_obj, kb) or []
-        rdfs.extend(rslt)
+      raise TypeError("Incorrect parser type: %s" % parser)
+
     anomaly = [a for a in rdfs if isinstance(a, rdf_anomaly.Anomaly)]
     parsed = [r for r in rdfs if not isinstance(r, rdf_anomaly.Anomaly)]
     host_data[artifact] = self.SetArtifactData(

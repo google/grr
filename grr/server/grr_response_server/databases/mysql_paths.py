@@ -43,3 +43,9 @@ class MySQLDBPathMixin(object):
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
     """Reads a collection of hash and stat entries for given paths."""
     raise NotImplementedError()
+
+  def ReadLatestPathInfosWithHashBlobReferences(self,
+                                                client_paths,
+                                                max_timestamp=None):
+    """Returns PathInfos that have corresponding HashBlobReferences."""
+    raise NotImplementedError()

@@ -2,7 +2,7 @@
 """Test of "New Hunt" wizard."""
 from __future__ import unicode_literals
 
-import unittest
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -1087,11 +1087,5 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.assertFalse(rule.os.os_windows)
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

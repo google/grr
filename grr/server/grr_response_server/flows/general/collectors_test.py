@@ -17,8 +17,10 @@ import psutil
 from grr_response_client.client_actions import artifact_collector
 from grr_response_client.client_actions import standard
 from grr_response_core import config
+from grr_response_core.lib import factory
 from grr_response_core.lib import flags
 from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -818,8 +820,140 @@ supported_os: [Linux]
 
     self.assertEqual(artifact_response, expected)
 
+  def testBasicRegistryKeyArtifact(self):
+    """Test that a registry key artifact can be collected."""
+
+    artifact_list = ["TestRegistryKey"]
+
+    self.cleanup = InitGRRWithTestSources(r"""
+name: TestRegistryKey
+doc: A sample registry key artifact.
+sources:
+- type: REGISTRY_KEY
+  attributes:
+    keys: [
+      'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager'
+    ]
+""")
+
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
+
+        # Run the ArtifactCollector to get the expected result.
+        session_id = flow_test_lib.TestFlowHelper(
+            aff4_flows.ArtifactCollectorFlow.__name__,
+            action_mocks.FileFinderClientMock(),
+            artifact_list=artifact_list,
+            token=self.token,
+            client_id=self.client_id,
+            apply_parsers=False)
+        expected = flow.GRRFlow.ResultCollectionForFID(session_id)[0]
+        self.assertIsInstance(expected, rdf_client_fs.StatEntry)
+
+        # Run the ClientArtifactCollector to get the actual result.
+        results = self._RunFlow(
+            aff4_flows.ClientArtifactCollector,
+            artifact_collector.ArtifactCollector,
+            artifact_list,
+            apply_parsers=False)
+        artifact_response = results[0]
+        self.assertIsInstance(artifact_response, rdf_client_fs.StatEntry)
+
+        self.assertEqual(artifact_response, expected)
+
+  def testRegistryKeyArtifactWithWildcard(self):
+    """Test that a registry key artifact can be collected."""
+
+    artifact_list = ["TestRegistryKey"]
+
+    self.cleanup = InitGRRWithTestSources(r"""
+name: TestRegistryKey
+doc: A sample registry key artifact.
+sources:
+- type: REGISTRY_KEY
+  attributes:
+    keys: [
+      'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\*'
+    ]
+""")
+
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
+
+        # Run the ArtifactCollector to get the expected result.
+        session_id = flow_test_lib.TestFlowHelper(
+            aff4_flows.ArtifactCollectorFlow.__name__,
+            action_mocks.FileFinderClientMock(),
+            artifact_list=artifact_list,
+            token=self.token,
+            client_id=self.client_id,
+            apply_parsers=False)
+        expected = flow.GRRFlow.ResultCollectionForFID(session_id)[0]
+        self.assertIsInstance(expected, rdf_client_fs.StatEntry)
+
+        # Run the ClientArtifactCollector to get the actual result.
+        results = self._RunFlow(
+            aff4_flows.ClientArtifactCollector,
+            artifact_collector.ArtifactCollector,
+            artifact_list,
+            apply_parsers=False)
+        artifact_response = results[0]
+        self.assertIsInstance(artifact_response, rdf_client_fs.StatEntry)
+
+        self.assertEqual(artifact_response, expected)
+
+  def testRegistryKeyArtifactWithPathRecursion(self):
+    """Test that a registry key artifact can be collected."""
+
+    artifact_list = ["TestRegistryKey"]
+
+    self.cleanup = InitGRRWithTestSources(r"""
+name: TestRegistryKey
+doc: A sample registry key artifact.
+sources:
+- type: REGISTRY_KEY
+  attributes:
+    keys: [
+      'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\**\Session Manager\*'
+    ]
+""")
+
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
+
+        # Run the ArtifactCollector to get the expected result.
+        session_id = flow_test_lib.TestFlowHelper(
+            aff4_flows.ArtifactCollectorFlow.__name__,
+            action_mocks.FileFinderClientMock(),
+            artifact_list=artifact_list,
+            token=self.token,
+            client_id=self.client_id,
+            apply_parsers=False)
+        expected = flow.GRRFlow.ResultCollectionForFID(session_id)[0]
+        self.assertIsInstance(expected, rdf_client_fs.StatEntry)
+
+        # Run the ClientArtifactCollector to get the actual result.
+        results = self._RunFlow(
+            aff4_flows.ClientArtifactCollector,
+            artifact_collector.ArtifactCollector,
+            artifact_list,
+            apply_parsers=False)
+        artifact_response = results[0]
+        self.assertIsInstance(artifact_response, rdf_client_fs.StatEntry)
+
+        self.assertEqual(artifact_response, expected)
+
+  @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
+                     factory.Factory(parser.SingleResponseParser))
   def testCmdArtifactWithParser(self):
     """Test a command artifact and parsing the response."""
+    parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("TestCmd", TestCmdParser)
 
     client_test_lib.Command("/bin/echo", args=["1"])
 
@@ -847,8 +981,11 @@ supported_os: [Linux]
 
     self.assertEqual(artifact_response, expected)
 
+  @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
+                     factory.Factory(parser.SingleFileParser))
   def testFileArtifactWithParser(self):
     """Test collecting a file artifact and parsing the response."""
+    parsers.SINGLE_FILE_PARSER_FACTORY.Register("TestFile", TestFileParser)
 
     artifact_list = ["TestFileArtifact"]
 

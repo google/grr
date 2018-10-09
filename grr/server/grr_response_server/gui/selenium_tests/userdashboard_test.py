@@ -5,9 +5,7 @@ from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
 
-import unittest
 from grr_response_core.lib import flags
-
 from grr_response_core.lib import rdfvalue
 from grr_response_server import access_control
 from grr_response_server.gui import gui_test_lib
@@ -181,11 +179,5 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
     self.WaitUntil(self.IsTextPresent, client_id.Basename())
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

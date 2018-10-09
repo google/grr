@@ -26,7 +26,7 @@ class BlobStreamTest(test_lib.GRRBaseTest):
             offset=i * self.blob_size, size=self.blob_size, blob_id=blob_id)
         for i, blob_id in enumerate(self.blob_ids)
     ]
-    data_store.REL_DB.WriteBlobs(dict(zip(self.blob_ids, self.blob_data)))
+    data_store.BLOBS.WriteBlobs(dict(zip(self.blob_ids, self.blob_data)))
 
     self.blob_stream = file_store.BlobStream(self.blob_refs, None)
 
@@ -85,7 +85,7 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
     self.blob_ids = [
         rdf_objects.BlobID.FromBlobData(bd) for bd in self.blob_data
     ]
-    data_store.REL_DB.WriteBlobs(dict(zip(self.blob_ids, self.blob_data)))
+    data_store.BLOBS.WriteBlobs(dict(zip(self.blob_ids, self.blob_data)))
 
   def testRaisesIfSingleBlobIsNotFound(self):
     blob_id = rdf_objects.BlobID.FromBlobData("")
@@ -108,11 +108,11 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
         rdf_objects.SHA256HashID.FromData(b"".join(self.blob_data)))
 
 
-class OpenLatestFileVersionTest(test_lib.GRRBaseTest):
-  """Tests for OpenLatestFileVersion."""
+class OpenFileTest(test_lib.GRRBaseTest):
+  """Tests for OpenFile."""
 
   def setUp(self):
-    super(OpenLatestFileVersionTest, self).setUp()
+    super(OpenFileTest, self).setUp()
     self.client_id = self.SetupClient(0).Basename()
     self.client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
 
@@ -121,7 +121,7 @@ class OpenLatestFileVersionTest(test_lib.GRRBaseTest):
     self.blob_ids = [
         rdf_objects.BlobID.FromBlobData(bd) for bd in self.blob_data
     ]
-    data_store.REL_DB.WriteBlobs(dict(zip(self.blob_ids, self.blob_data)))
+    data_store.BLOBS.WriteBlobs(dict(zip(self.blob_ids, self.blob_data)))
 
     self.hash_id = file_store.AddFileWithUnknownHash(self.blob_ids[:3])
     self.data = b"".join(self.blob_data[:3])
@@ -138,19 +138,19 @@ class OpenLatestFileVersionTest(test_lib.GRRBaseTest):
   def testOpensFileWithSinglePathInfoWithHash(self):
     data_store.REL_DB.WritePathInfos(self.client_id,
                                      [self._PathInfo(self.hash_id)])
-    fd = file_store.OpenLatestFileVersion(self.client_path)
+    fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
   def testRaisesForFileWithSinglePathInfoWithoutHash(self):
     data_store.REL_DB.WritePathInfos(self.client_id, [self._PathInfo()])
     with self.assertRaises(file_store.FileHasNoContent):
-      file_store.OpenLatestFileVersion(self.client_path)
+      file_store.OpenFile(self.client_path)
 
   def testRaisesForFileWithSinglePathInfoWithUnknownHash(self):
     data_store.REL_DB.WritePathInfos(self.client_id,
                                      [self._PathInfo(self.invalid_hash_id)])
     with self.assertRaises(file_store.FileHasNoContent):
-      file_store.OpenLatestFileVersion(self.client_path)
+      file_store.OpenFile(self.client_path)
 
   def testOpensFileWithTwoPathInfosWhereOldestHasHash(self):
     # Oldest.
@@ -158,7 +158,7 @@ class OpenLatestFileVersionTest(test_lib.GRRBaseTest):
                                      [self._PathInfo(self.hash_id)])
     # Newest.
     data_store.REL_DB.WritePathInfos(self.client_id, [self._PathInfo()])
-    fd = file_store.OpenLatestFileVersion(self.client_path)
+    fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
   def testOpensFileWithTwoPathInfosWhereNewestHasHash(self):
@@ -167,7 +167,7 @@ class OpenLatestFileVersionTest(test_lib.GRRBaseTest):
     # Newest.
     data_store.REL_DB.WritePathInfos(self.client_id,
                                      [self._PathInfo(self.hash_id)])
-    fd = file_store.OpenLatestFileVersion(self.client_path)
+    fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
   def testOpensFileWithTwoPathInfosWhereOldestHashIsUnknown(self):
@@ -177,7 +177,7 @@ class OpenLatestFileVersionTest(test_lib.GRRBaseTest):
     # Newest.
     data_store.REL_DB.WritePathInfos(self.client_id,
                                      [self._PathInfo(self.hash_id)])
-    fd = file_store.OpenLatestFileVersion(self.client_path)
+    fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
   def testOpensFileWithTwoPathInfosWhereNewestHashIsUnknown(self):
@@ -187,7 +187,7 @@ class OpenLatestFileVersionTest(test_lib.GRRBaseTest):
     # Newest.
     data_store.REL_DB.WritePathInfos(self.client_id,
                                      [self._PathInfo(self.invalid_hash_id)])
-    fd = file_store.OpenLatestFileVersion(self.client_path)
+    fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
   def testOpensLatestVersionForPathWithTwoPathInfosWithHashes(self):
@@ -197,7 +197,7 @@ class OpenLatestFileVersionTest(test_lib.GRRBaseTest):
     # Newest.
     data_store.REL_DB.WritePathInfos(self.client_id,
                                      [self._PathInfo(self.hash_id)])
-    fd = file_store.OpenLatestFileVersion(self.client_path)
+    fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
 

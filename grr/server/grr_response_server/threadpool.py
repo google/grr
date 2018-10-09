@@ -38,6 +38,7 @@ import psutil
 
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import collection
 
 STOP_MESSAGE = "Stop message"
 
@@ -542,7 +543,7 @@ class BatchConverter(object):
     pool.Start()
     try:
       for batch_index, batch in enumerate(
-          utils.Grouper(val_iterator, self.batch_size)):
+          collection.Batch(val_iterator, self.batch_size)):
         logging.debug("Processing batch %d out of %d", batch_index,
                       total_batch_count)
 

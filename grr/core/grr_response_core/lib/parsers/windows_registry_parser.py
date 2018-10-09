@@ -182,7 +182,7 @@ class WinUserSids(parser.RegistryParser):
       yield kb_user
 
 
-class WinUserSpecialDirs(parser.RegistryParser):
+class WinUserSpecialDirs(parser.RegistryMultiParser):
   r"""Parser for extracting special folders from registry.
 
   Keys will come from HKEY_USERS and will list the Shell Folders and user's
@@ -194,7 +194,6 @@ class WinUserSpecialDirs(parser.RegistryParser):
   """
   output_types = ["User"]
   supported_artifacts = ["WindowsUserShellFolders"]
-  process_together = True
   # Required for environment variable expansion
   knowledgebase_dependencies = [
       "environ_systemdrive", "environ_systemroot", "users.userprofile"
@@ -258,7 +257,6 @@ class WinServicesParser(parser.RegistryValueParser):
 
   output_types = ["WindowsServiceInformation"]
   supported_artifacts = ["WindowsServices"]
-  process_together = True
 
   def __init__(self):
     # The key can be "services" or "Services" on different versions of windows.

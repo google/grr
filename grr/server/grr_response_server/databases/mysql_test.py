@@ -12,10 +12,12 @@ from builtins import range  # pylint: disable=redefined-builtin
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 
 import unittest
+from grr_response_core.lib import flags
 from grr_response_server import db_test_mixin
 from grr_response_server import db_utils
 from grr_response_server.databases import mysql
 from grr.test_lib import stats_test_lib
+from grr.test_lib import test_lib
 
 
 def _GetEnvironOrSkip(key):
@@ -328,18 +330,6 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testMultipleHashBlobReferencesCanBeWrittenAndReadBack(self):
     pass
 
-  def testWritingBlobReferenceToNonExistentPathRaises(self):
-    pass
-
-  def testReadingBlobReferenceFromNonExistentPathReturnsEmptyResult(self):
-    pass
-
-  def testSingleBlobReferenceCanBeWrittenAndThenRead(self):
-    pass
-
-  def testMultipleBlobReferencesCanBeWrittenAndThenRead(self):
-    pass
-
   def testReadPathInfoOlder(self):
     pass
 
@@ -559,6 +549,31 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testCountFlowLogEntriesReturnsCorrectFlowLogEntriesCount(self):
     pass
 
+  def testReadLatestPathInfosReturnsNothingForNonExistingPaths(self):
+    pass
+
+  def testReadLatestPathInfosReturnsNothingWhenNoFilesCollected(self):
+    pass
+
+  def testReadLatestPathInfosFindsTwoCollectedFilesWhenTheyAreTheOnlyEntries(
+      self):
+    pass
+
+  def testReadLatestPathInfosCorrectlyFindsCollectedFileWithNonLatestEntry(
+      self):
+    pass
+
+  def testReadLatestPathInfosCorrectlyFindsLatestOfTwoCollectedFiles(self):
+    pass
+
+  def testReadLatestPathInfosCorrectlyFindsLatestCollectedFileBeforeTimestamp(
+      self):
+    pass
+
+  def testReadLatestPathInfosIncludesStatEntryIfThereIsOneWithSameTimestamp(
+      self):
+    pass
+
 
 if __name__ == "__main__":
-  unittest.main()
+  flags.StartMain(test_lib.main)

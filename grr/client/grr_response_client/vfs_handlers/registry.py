@@ -319,16 +319,9 @@ class RegistryFile(vfs.VFSHandler):
           rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ,
   }
 
-  def __init__(self,
-               base_fd,
-               pathspec=None,
-               progress_callback=None,
-               full_pathspec=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None):
     super(RegistryFile, self).__init__(
-        base_fd,
-        pathspec=pathspec,
-        full_pathspec=full_pathspec,
-        progress_callback=progress_callback)
+        base_fd, pathspec=pathspec, progress_callback=progress_callback)
 
     if base_fd is None:
       self.pathspec.Append(pathspec)
@@ -377,8 +370,8 @@ class RegistryFile(vfs.VFSHandler):
       except exceptions.WindowsError:
         raise IOError("Unable to open key %s" % self.key_name)
 
-  def Stat(self, path=None, ext_attrs=None):
-    del path, ext_attrs  # Unused.
+  def Stat(self, ext_attrs=None):
+    del ext_attrs  # Unused.
     # mtime is only available for keys, not values.
     if self.is_directory and not self.last_modified:
       with OpenKey(self.hive, self.local_path) as key:
@@ -409,65 +402,6 @@ class RegistryFile(vfs.VFSHandler):
       response.registry_type = self.registry_map.get(value_type, 0)
       response.registry_data = rdf_protodict.DataBlob().SetValue(value)
     return response
-
-  def _Walk(self, depth=0, hive=None, hive_name=None, top=""):
-    if depth < 0:
-      return
-
-    if hive is None:
-      hives = sorted([(name, KeyHandle(getattr(_winreg, name)))
-                      for name in dir(_winreg) if name.startswith("HKEY_")])
-
-      yield "", [name for name, _ in hives], []
-
-      for new_hive_name, new_hive in hives:
-        for tup in self._Walk(depth - 1, new_hive, new_hive_name):
-          yield tup
-    else:
-      keys, value_names = [], []
-
-      try:
-        with OpenKey(hive, top[1:]) as key:
-          (number_of_keys, number_of_values,
-           unused_last_modified) = QueryInfoKey(key)
-
-          # First keys
-          for i in range(number_of_keys):
-            try:
-              keys.append(EnumKey(key, i))
-            except exceptions.WindowsError:
-              pass
-
-          keys.sort()
-
-          # Now Values
-          for i in range(number_of_values):
-            try:
-              name, unused_value, unused_value_type = EnumValue(key, i)
-              value_names.append(name)
-            except exceptions.WindowsError:
-              pass
-
-          value_names.sort()
-
-      except exceptions.WindowsError:
-        pass
-
-      yield "%s%s" % (hive_name, top), keys, value_names
-
-      for key in keys:
-        for tup in self._Walk(depth - 1, hive, hive_name, r"%s\%s" % (top,
-                                                                      key)):
-          yield tup
-
-  def RecursiveListNames(self, depth=0, unused_cross_devs=None):
-    if not self.IsDirectory():
-      return iter(())
-
-    if self.hive is None:
-      return self._Walk(depth)
-
-    return self._Walk(depth, self.hive, self.hive_name, self.local_path)
 
   def ListNames(self):
     """List the names of all keys and values."""

@@ -35,6 +35,7 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import precondition
 
 
 class ReadBuffer(actions.ActionPlugin):
@@ -455,7 +456,7 @@ class StdOutHook(object):
     self.buf = buf
 
   def write(self, text):  # pylint: disable=invalid-name
-    utils.AssertType(text, unicode)
+    precondition.AssertType(text, unicode)
     self.buf.write(text)
 
 

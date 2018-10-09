@@ -14,6 +14,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import collection
 from grr_response_server import aff4
 from grr_response_server import client_index
 from grr_response_server import sequential_collection
@@ -113,7 +114,7 @@ class IterateAllClients(IterateAllClientUrns):
     """Yield client urns."""
     client_list = GetAllClients(token=self.token)
     logging.debug("Got %d clients", len(client_list))
-    for client_group in utils.Grouper(client_list, self.client_chunksize):
+    for client_group in collection.Batch(client_list, self.client_chunksize):
       for fd in aff4.FACTORY.MultiOpen(
           client_group,
           mode="r",
@@ -208,13 +209,13 @@ def RecursiveDownload(dir_obj,
 
 def _OpenCollectionPath(coll_path):
   """Tries to open various types of collections at the given path."""
-  collection = results.HuntResultCollection(coll_path)
-  if collection and collection[0].payload:
-    return collection
+  hunt_collection = results.HuntResultCollection(coll_path)
+  if hunt_collection and hunt_collection[0].payload:
+    return hunt_collection
 
-  collection = sequential_collection.GeneralIndexedCollection(coll_path)
-  if collection:
-    return collection
+  indexed_collection = sequential_collection.GeneralIndexedCollection(coll_path)
+  if indexed_collection:
+    return indexed_collection
 
 
 def DownloadCollection(coll_path,

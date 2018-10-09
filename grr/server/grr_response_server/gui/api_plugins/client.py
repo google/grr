@@ -23,6 +23,7 @@ from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import collection
 from grr_response_proto.api import client_pb2
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
@@ -381,7 +382,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
         all_client_ids.update(index.LookupClients(label_filter))
 
       index = 0
-      for cid_batch in utils.Grouper(sorted(all_client_ids), batch_size):
+      for cid_batch in collection.Batch(sorted(all_client_ids), batch_size):
         client_infos = data_store.REL_DB.MultiReadClientFullInfo(cid_batch)
 
         for _, client_info in sorted(iteritems(client_infos)):

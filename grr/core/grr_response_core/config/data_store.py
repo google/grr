@@ -12,7 +12,7 @@ config_lib.DEFINE_integer("Datastore.maximum_blob_size", 512 * 1024,
 config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
                          "Storage subsystem to use.")
 
-config_lib.DEFINE_string("Blobstore.implementation", "MemoryStreamBlobstore",
+config_lib.DEFINE_string("Blobstore.implementation", "MemoryStreamBlobStore",
                          "Blob storage subsystem to use.")
 
 config_lib.DEFINE_string("Database.implementation", "",

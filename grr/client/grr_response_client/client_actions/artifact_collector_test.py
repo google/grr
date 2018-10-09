@@ -13,8 +13,10 @@ import psutil
 
 from grr_response_client.client_actions import artifact_collector
 from grr_response_core import config
+from grr_response_core.lib import factory
 from grr_response_core.lib import flags
 from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifact
@@ -206,6 +208,44 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
         self.assertTrue(isinstance(file_stat, rdf_client_fs.StatEntry))
         urn = file_stat.pathspec.AFF4Path(self.SetupClient(0))
         self.assertTrue(str(urn).endswith("BootExecute"))
+
+  def testRegistryKeyArtifact(self):
+    """Test the basic Registry Key collection."""
+
+    source = rdf_artifact.ArtifactSource(
+        type=self.source_type.REGISTRY_KEY,
+        attributes={
+            "keys": [
+                r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet"
+                r"\Control\Session Manager\*"
+            ],
+        })
+    request = GetRequest(source, "TestRegistryKey")
+
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
+        collected_artifact = self.RunArtifactCollector(request)
+        self.assertEqual(len(collected_artifact.action_results), 1)
+        file_stat = collected_artifact.action_results[0].value
+        self.assertTrue(isinstance(file_stat, rdf_client_fs.StatEntry))
+
+  def testRegistryNoKeysArtifact(self):
+    """Test the basic Registry Key collection."""
+
+    source = rdf_artifact.ArtifactSource(
+        type=self.source_type.REGISTRY_KEY, attributes={
+            "keys": [],
+        })
+    request = GetRequest(source, "TestRegistryKey")
+
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
+        collected_artifact = self.RunArtifactCollector(request)
+        self.assertEqual(len(collected_artifact.action_results), 0)
 
   def testDirectoryArtifact(self):
     """Test the source type `DIRECTORY`."""
@@ -520,11 +560,10 @@ class FakeFileParser(parser.FileParser):
     yield rdf_protodict.AttributedDict(**cfg)
 
 
-class FakeFileParserProcessTogether(parser.FileParser):
+class FakeFileMultiParser(parser.FileMultiParser):
 
   output_types = ["AttributedDict"]
   supported_artifacts = ["FakeFileArtifact2"]
-  process_together = True
 
   def ParseMultiple(self, stats, file_objects, knowledge_base):
 
@@ -545,8 +584,12 @@ class FakeFileParserProcessTogether(parser.FileParser):
 
 class ParseResponsesTest(client_test_lib.EmptyActionTest):
 
+  @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
+                     factory.Factory(parser.SingleResponseParser))
   def testCmdArtifactAction(self):
     """Test the actual client action with parsers."""
+    parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("Cmd", TestEchoCmdParser)
+
     client_test_lib.Command("/bin/echo", args=["1"])
 
     source = rdf_artifact.ArtifactSource(
@@ -570,8 +613,11 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
     self.assertIsInstance(res, rdf_client.SoftwarePackage)
     self.assertEqual(res.description, "1\n")
 
+  @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
+                     factory.Factory(parser.SingleFileParser))
   def testFakeFileArtifactAction(self):
     """Test collecting a file artifact and parsing the response."""
+    parsers.SINGLE_FILE_PARSER_FACTORY.Register("Fake", FakeFileParser)
 
     file_path = os.path.join(self.base_path, "numbers.txt")
     source = rdf_artifact.ArtifactSource(
@@ -593,8 +639,11 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
     self.assertEqual(len(res.users), 1000)
     self.assertEqual(res.filename, file_path)
 
+  @mock.patch.object(parsers, "MULTI_FILE_PARSER_FACTORY",
+                     factory.Factory(parser.MultiFileParser))
   def testFakeFileArtifactActionProcessTogether(self):
     """Test collecting a file artifact and parsing the responses together."""
+    parsers.MULTI_FILE_PARSER_FACTORY.Register("Fake", FakeFileMultiParser)
 
     file_path = os.path.join(self.base_path, "numbers.txt")
     source = rdf_artifact.ArtifactSource(

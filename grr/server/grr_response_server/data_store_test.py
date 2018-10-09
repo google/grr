@@ -8,7 +8,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import functools
-import hashlib
 import inspect
 import logging
 import operator
@@ -45,6 +44,7 @@ from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard
 from grr_response_server.flows.general import filesystem
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import benchmark_test_lib
 from grr.test_lib import test_lib
 
@@ -1140,28 +1140,28 @@ class DataStoreTestMixin(object):
   def testBlobs(self):
     data = b"randomdata" * 50
 
-    identifier = data_store.DB.StoreBlob(data)
+    identifier = data_store.BLOBS.WriteBlobWithUnknownHash(data)
 
-    self.assertTrue(data_store.DB.BlobExists(identifier))
-    self.assertEqual(data_store.DB.ReadBlob(identifier), data)
+    self.assertTrue(data_store.BLOBS.CheckBlobExists(identifier))
+    self.assertEqual(data_store.BLOBS.ReadBlob(identifier), data)
 
-    empty_digest = hashlib.sha256().hexdigest()
+    empty_digest = rdf_objects.BlobID.FromBlobData(b"")
 
-    self.assertFalse(data_store.DB.BlobExists(empty_digest))
-    self.assertIsNone(data_store.DB.ReadBlob(empty_digest))
+    self.assertFalse(data_store.BLOBS.CheckBlobExists(empty_digest))
+    self.assertIsNone(data_store.BLOBS.ReadBlob(empty_digest))
 
   def testAFF4BlobImage(self):
     # 500k
     data = b"randomdata" * 50 * 1024
 
-    identifier = data_store.DB.StoreBlob(data)
+    identifier = data_store.BLOBS.WriteBlobWithUnknownHash(data)
 
     # Now create the image containing the blob.
     with aff4.FACTORY.Create("aff4:/C.1235/image", aff4_grr.VFSBlobImage) as fd:
       fd.SetChunksize(512 * 1024)
       fd.Set(fd.Schema.STAT())
 
-      fd.AddBlob(identifier.decode("hex"), len(data))
+      fd.AddBlob(identifier, len(data))
 
     # Check if we can read back the data.
     with aff4.FACTORY.Open("aff4:/C.1235/image") as fd:
@@ -1326,8 +1326,6 @@ class DataStoreTestMixin(object):
   def testApi(self):
     # pyformat: disable
     api = [
-        "BlobExists",
-        "BlobsExist",
         "CheckRequestsForCompletion",
         "CollectionReadIndex",
         "CollectionReadStoredTypes",
@@ -1352,8 +1350,6 @@ class DataStoreTestMixin(object):
         "MultiDestroyFlowStates",
         "MultiResolvePrefix",
         "MultiSet",
-        "ReadBlob",
-        "ReadBlobs",
         "ReadCompletedRequests",
         "ReadRequestsAndResponses",
         "ReadResponses",
@@ -1364,8 +1360,6 @@ class DataStoreTestMixin(object):
         "ScanAttribute",
         "ScanAttributes",
         "Set",
-        "StoreBlob",
-        "StoreBlobs",
         "StoreRequestsAndResponses",
     ]
 
@@ -1970,7 +1964,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
     for count in range(howmany):
       data = self._GenerateRandomString(1024 * size)
-      data_store.DB.StoreBlob(data)
+      data_store.WriteBlobWithUnknownHash(data)
 
       if count % often == 0:
         # Because adding blobs, takes too long we force the output of

@@ -192,22 +192,22 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
           subject, [data_store.DataStore.COLLECTION_ATTRIBUTE], sync=True)
     data_store.DB.Flush()
 
-    self.assertEqual(100,
-                     sum(1
-                         for _ in data_store.DB.ScanAttribute(
-                             queue.urn.Add("Records"),
-                             data_store.DataStore.QUEUE_LOCK_ATTRIBUTE)))
+    self.assertEqual(
+        100,
+        sum(1 for _ in data_store.DB.ScanAttribute(
+            unicode(queue.urn.Add("Records")), data_store.DataStore
+            .QUEUE_LOCK_ATTRIBUTE)))
 
     with aff4.FACTORY.OpenWithLock(
         queue_urn, lease_time=200, token=self.token) as queue:
       queue.ClaimRecords()
     data_store.DB.Flush()
 
-    self.assertEqual(0,
-                     sum(1
-                         for _ in data_store.DB.ScanAttribute(
-                             queue.urn.Add("Records"),
-                             data_store.DataStore.QUEUE_LOCK_ATTRIBUTE)))
+    self.assertEqual(
+        0,
+        sum(1 for _ in data_store.DB.ScanAttribute(
+            unicode(queue.urn.Add("Records")), data_store.DataStore
+            .QUEUE_LOCK_ATTRIBUTE)))
 
 
 def main(argv):

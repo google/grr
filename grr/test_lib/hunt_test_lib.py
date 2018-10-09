@@ -76,8 +76,9 @@ class SampleHuntMock(action_mocks.ActionMock):
 
     return [response]
 
-  def GenerateStatusMessage(self, message, response_id):
-    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
+  def GenerateStatusMessage(self, message, response_id, status=None):
+    status = rdf_flows.GrrStatus(
+        status=status or rdf_flows.GrrStatus.ReturnedStatus.OK)
 
     if message.name in ["StatFile", "GetFileStat"]:
       # Create status message to report sample resource usage
@@ -113,7 +114,7 @@ class SampleHuntMock(action_mocks.ActionMock):
     sha256.update(self.data[offset:])
     response.data = sha256.digest()
     response.length = len(self.data[offset:])
-    data_store.DB.StoreBlob(self.data[offset:])
+    data_store.BLOBS.WriteBlobWithUnknownHash(self.data[offset:])
 
     return [response]
 

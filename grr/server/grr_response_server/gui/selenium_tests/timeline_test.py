@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 
 import mock
-import unittest
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -52,8 +52,10 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
     stat_entry.st_ctime = gui_test_lib.TIME_0.AsSecondsSinceEpoch() - 1000
 
     with test_lib.FakeTime(gui_test_lib.TIME_0):
-      filesystem.WriteStatEntries(
-          [stat_entry], client_id.Basename(), mutation_pool=None, token=token)
+      filesystem.WriteStatEntries([stat_entry],
+                                  client_id.Basename(),
+                                  mutation_pool=None,
+                                  token=token)
 
     # Add a version with a stat entry, but without timestamps.
     stat_entry = rdf_client_fs.StatEntry()
@@ -62,8 +64,10 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
     stat_entry.st_ino = 99
 
     with test_lib.FakeTime(gui_test_lib.TIME_1):
-      filesystem.WriteStatEntries(
-          [stat_entry], client_id.Basename(), mutation_pool=None, token=token)
+      filesystem.WriteStatEntries([stat_entry],
+                                  client_id.Basename(),
+                                  mutation_pool=None,
+                                  token=token)
 
   def testTimelineContainsAllChangesForDirectory(self):
     # Open VFS view for client 1 on a specific location.
@@ -259,11 +263,5 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
         token=mock.ANY)
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

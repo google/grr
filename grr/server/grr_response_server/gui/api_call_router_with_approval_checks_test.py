@@ -127,6 +127,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       "GetVfsTimeline",
       "GetVfsTimelineAsCsv",
       "UpdateVfsFileContent",
+      "GetFileDecoders",
+      "GetDecodedFileBlob",
   ])
 
   def testVfsMethodsAreAccessChecked(self):

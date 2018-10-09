@@ -7,6 +7,7 @@ import io
 
 
 from grr_response_core.lib import flags
+from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_sysctl_parser
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -24,7 +25,7 @@ class ProcSysParserTest(test_lib.GRRBaseTest):
       p = rdf_paths.PathSpec(path=path)
       stats.append(rdf_client_fs.StatEntry(pathspec=p))
     for val in data:
-      files.append(io.StringIO(val))
+      files.append(io.BytesIO(utils.SmartStr(val)))
     return stats, files
 
   def testParseSysctl(self):

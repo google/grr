@@ -4,8 +4,8 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.util import compatibility
 from grr_response_server import aff4
 from grr_response_server import cronjobs
 from grr_response_server import data_store
@@ -96,12 +96,13 @@ def _SetupAndRunVersionBreakDownCronjob(token=None):
     manager = aff4_cronjobs.GetCronManager()
 
     if data_store.RelationalDBReadEnabled():
-      cron_job_name = utils.GetName(cron_system.GRRVersionBreakDownCronJob)
+      cron_job_name = compatibility.GetName(
+          cron_system.GRRVersionBreakDownCronJob)
       cronjobs.ScheduleSystemCronJobs(names=[cron_job_name])
       manager.RunOnce()
       manager._GetThreadPool().Join()
     else:
-      cron_job_name = utils.GetName(cron_system.GRRVersionBreakDown)
+      cron_job_name = compatibility.GetName(cron_system.GRRVersionBreakDown)
       aff4_cronjobs.ScheduleSystemCronFlows(names=[cron_job_name], token=token)
       manager.RunOnce(token=token)
       run_id = _GetRunId(cron_job_name, token=token)

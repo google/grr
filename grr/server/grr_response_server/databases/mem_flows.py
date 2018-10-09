@@ -12,6 +12,7 @@ from future.utils import itervalues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import compatibility
 from grr_response_server import db
 from grr_response_server import db_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -576,17 +577,18 @@ class InMemoryDBFlowMixin(object):
     # This is done in order to pass the tests that try to deserialize
     # value of an unrecognized type.
     for r in results:
-      if utils.GetName(r.payload.__class__) not in rdfvalue.RDFValue.classes:
+      cls_name = compatibility.GetName(r.payload.__class__)
+      if cls_name not in rdfvalue.RDFValue.classes:
         r.payload = rdf_objects.SerializedValueOfUnrecognizedType(
-            type_name=utils.GetName(r.payload.__class__),
-            value=r.payload.SerializeToString())
+            type_name=cls_name, value=r.payload.SerializeToString())
 
     if with_tag is not None:
       results = [i for i in results if i.tag == with_tag]
 
     if with_type is not None:
       results = [
-          i for i in results if utils.GetName(i.payload.__class__) == with_type
+          i for i in results
+          if compatibility.GetName(i.payload.__class__) == with_type
       ]
 
     if with_substring is not None:

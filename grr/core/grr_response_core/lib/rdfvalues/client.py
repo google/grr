@@ -22,13 +22,12 @@ import psutil
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
-
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-
+from grr_response_core.lib.util import precondition
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import sysinfo_pb2
@@ -66,7 +65,7 @@ class ClientURN(rdfvalue.RDFURN):
     Args:
       value: string value to parse
     """
-    utils.AssertType(value, unicode)
+    precondition.AssertType(value, unicode)
     value = value.strip()
 
     super(ClientURN, self).ParseFromUnicode(value)

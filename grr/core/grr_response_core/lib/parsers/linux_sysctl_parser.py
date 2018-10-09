@@ -12,12 +12,11 @@ from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 
-class ProcSysParser(parser.FileParser):
+class ProcSysParser(parser.FileMultiParser):
   """Parser for /proc/sys entries."""
 
   output_types = ["AttributedDict"]
   supported_artifacts = ["LinuxProcSysHardeningSettings"]
-  process_together = True
 
   def _Parse(self, stat, file_obj):
     # Remove /proc/sys

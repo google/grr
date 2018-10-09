@@ -5,12 +5,12 @@ from __future__ import unicode_literals
 import os
 
 
-import unittest
 from grr_response_core.lib import flags
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import compatibility
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -38,21 +38,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
   def setUp(self):
     super(TestFlowManagement, self).setUp()
 
-    self.client_id = self.SetupClient(0).Basename()
-
-    hostname = "Host000011112222"
-    if data_store.RelationalDBReadEnabled():
-      snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-      snapshot.knowledge_base.fqdn = hostname
-      data_store.REL_DB.WriteClientSnapshot(snapshot)
-    else:
-      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
-        kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
-        kb.fqdn = hostname
-        fd.Set(fd.Schema.KNOWLEDGE_BASE(kb))
-        fd.Set(fd.Schema.HOSTNAME(hostname))
-        fd.Set(fd.Schema.FQDN(hostname))
-
+    self.client_id = self.SetupClient(0, fqdn="Host000011112222").Basename()
     self.RequestAndGrantClientApproval(self.client_id)
     self.action_mock = action_mocks.FileFinderClientMock()
 
@@ -67,15 +53,21 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent,
                    "You do not have an approval for this client.")
 
+  def _StartFlow(self, flow_cls, **kw):
+    if data_store.RelationalDBFlowsEnabled():
+      return flow.StartFlow(flow_cls=flow_cls, client_id=self.client_id, **kw)
+    else:
+      return flow.StartAFF4Flow(
+          flow_name=compatibility.GetName(flow_cls),
+          client_id=self.client_id,
+          token=self.token,
+          **kw)
+
   def testPageTitleReflectsSelectedFlow(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=flows_transfer.GetFile.__name__,
-        client_id=self.client_id,
-        pathspec=pathspec,
-        token=self.token)
+    flow_urn = self._StartFlow(flows_transfer.GetFile, pathspec=pathspec)
 
     self.Open("/#/clients/%s/flows/" % self.client_id)
     self.WaitUntilEqual("GRR | %s | Flows" % self.client_id, self.GetPageTitle)
@@ -667,11 +659,5 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=grr-results-collection grr-download-collection-files")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

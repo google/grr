@@ -24,9 +24,9 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.util import compatibility
 from grr_response_server import access_control
 from grr_response_server import aff4
-
 from grr_response_server import flow
 from grr_response_server.aff4_objects import security
 from grr_response_server.aff4_objects import users as aff4_users
@@ -52,7 +52,7 @@ class LoggedACL(object):
           logging.debug(
               u"%s GRANTED by %s to %s%s (%s, %s) with reason: %s",
               utils.SmartUnicode(self.access_type),
-              utils.GetName(this.__class__.__name__),
+              compatibility.GetName(this.__class__.__name__),
               utils.SmartUnicode(token and token.username),
               utils.SmartUnicode(
                   token and token.supervisor and " (supervisor)" or ""),
@@ -65,7 +65,7 @@ class LoggedACL(object):
           logging.debug(
               u"%s REJECTED by %s to %s%s (%s, %s) with reason: %s",
               utils.SmartUnicode(self.access_type),
-              utils.GetName(this.__class__.__name__),
+              compatibility.GetName(this.__class__.__name__),
               utils.SmartUnicode(token and token.username),
               utils.SmartUnicode(
                   token and token.supervisor and " (supervisor)" or ""),

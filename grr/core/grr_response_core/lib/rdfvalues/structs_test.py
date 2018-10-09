@@ -14,13 +14,13 @@ from google.protobuf import message_factory
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_core.lib.util import compatibility
 from grr.test_lib import test_lib
 
 # pylint: mode=test
@@ -295,7 +295,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Now let's define an RDFProtoStruct for the dynamically generated
     # proto_class.
-    new_dynamic_class = utils.MakeType(
+    new_dynamic_class = compatibility.MakeType(
         "DynamicTypeTestReversed", (rdf_structs.RDFProtoStruct,),
         dict(protobuf=proto_class, rdf_deps=[rdf_client.User]))
     new_dynamic_instance = new_dynamic_class(
@@ -317,7 +317,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Now let's define an RDFProtoStruct for the dynamically generated
     # proto_class.
-    new_dynamic_class = utils.MakeType(
+    new_dynamic_class = compatibility.MakeType(
         "DynamicAnyValueTypeTestReversed",
         (rdf_structs.RDFProtoStruct,),
         dict(protobuf=proto_class),

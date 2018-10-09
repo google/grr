@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """VFS-related test classes."""
 
+import io
 import os
 import time
 
@@ -15,12 +16,20 @@ from grr_response_client import vfs
 # terrible and has to be fixed as soon as possible.
 from grr_response_client.vfs_handlers import files  # pylint: disable=unused-import
 from grr_response_core import config
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import precondition
+from grr_response_server import aff4
 from grr_response_server import client_fixture
+from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class VFSOverrider(object):
@@ -110,13 +119,9 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
                base_fd=None,
                prefix=None,
                pathspec=None,
-               progress_callback=None,
-               full_pathspec=None):
+               progress_callback=None):
     super(ClientVFSHandlerFixture, self).__init__(
-        base_fd,
-        pathspec=pathspec,
-        progress_callback=progress_callback,
-        full_pathspec=full_pathspec)
+        base_fd, pathspec=pathspec, progress_callback=progress_callback)
 
     self.prefix = self.prefix or prefix
     self.pathspec.Append(pathspec)
@@ -265,13 +270,9 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
                base_fd=None,
                prefix=None,
                pathspec=None,
-               progress_callback=None,
-               full_pathspec=None):
+               progress_callback=None):
     super(FakeTestDataVFSHandler, self).__init__(
-        base_fd,
-        pathspec=pathspec,
-        progress_callback=progress_callback,
-        full_pathspec=full_pathspec)
+        base_fd, pathspec=pathspec, progress_callback=progress_callback)
     # This should not really be done since there might be more information
     # in the pathspec than the path but here in the test is ok.
     if not base_fd:
@@ -456,3 +457,52 @@ class RegistryVFSStubber(object):
 
     self.module_patcher.stop()
     self.stubber.Stop()
+
+
+def CreateFile(client_path, content=b"", token=None):
+  """Creates a file in datastore-agnostic way.
+
+  Args:
+    client_path: A `ClientPath` instance specifying location of the file.
+    content: A content to write to the file.
+    token: A GRR token for accessing the data store.
+  """
+  precondition.AssertType(client_path, db.ClientPath)
+  precondition.AssertType(content, bytes)
+
+  blob_id = rdf_objects.BlobID.FromBlobData(content)
+
+  if data_store.RelationalDBWriteEnabled():
+    data_store.BLOBS.WriteBlobs({blob_id: content})
+    hash_id = file_store.AddFileWithUnknownHash([blob_id])
+
+    path_info = rdf_objects.PathInfo()
+    path_info.path_type = client_path.path_type
+    path_info.components = client_path.components
+    path_info.hash_entry.sha256 = hash_id.AsBytes()
+
+    data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
+
+  urn = aff4.ROOT_URN.Add(client_path.client_id).Add(client_path.vfs_path)
+  with aff4.FACTORY.Create(urn, aff4_grr.VFSBlobImage, token=token) as filedesc:
+    bio = io.BytesIO()
+    bio.write(content)
+    bio.seek(0)
+
+    filedesc.AppendContent(bio)
+    filedesc.Set(
+        filedesc.Schema.STAT,
+        rdf_client_fs.StatEntry(
+            pathspec=rdf_paths.PathSpec(
+                pathtype=client_path.path_type,
+                path="/".join(client_path.components)),
+            st_mode=16877,
+            st_size=len(content)))
+
+    filedesc.Set(
+        filedesc.Schema.HASH,
+        rdf_crypto.Hash(
+            sha256=rdf_objects.SHA256HashID.FromData(content).AsBytes(),
+            num_bytes=len(content)))
+
+    filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())

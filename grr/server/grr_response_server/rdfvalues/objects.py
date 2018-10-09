@@ -17,7 +17,6 @@ import stat
 from future.utils import python_2_unicode_compatible
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
@@ -26,6 +25,7 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import precondition
 from grr_response_proto import objects_pb2
 
 
@@ -242,7 +242,7 @@ class HashID(rdfvalue.RDFValue):
       self._value = string
 
   def ParseFromDatastore(self, value):
-    utils.AssertType(value, bytes)
+    precondition.AssertType(value, bytes)
     self.ParseFromString(value)
 
   def SerializeToString(self):
@@ -258,6 +258,9 @@ class HashID(rdfvalue.RDFValue):
 
   def AsBytes(self):
     return self._value
+
+  def AsHexString(self):
+    return self._value.encode("hex")
 
   def __repr__(self):
     return "%s(%s)" % (self.__class__.__name__, repr(self._value.encode("hex")))
@@ -400,6 +403,23 @@ class PathInfo(rdf_structs.RDFProtoStruct):
       return ""
     else:
       return self.components[-1]
+
+  def AsPathSpec(self):
+    pathspec = rdf_paths.PathSpec()
+    if self.path_type == self.PathType.TSK:
+      pathspec.pathtype = pathspec.PathType.TSK
+    elif self.path_type == self.PathType.OS:
+      pathspec.pathtype = pathspec.PathType.OS
+    elif self.path_type == self.PathType.REGISTRY:
+      pathspec.pathtype = pathspec.PathType.REGISTRY
+    elif self.path_type == self.PathType.TMPFILE:
+      pathspec.pathtype = pathspec.PathType.TEMP
+    else:
+      raise ValueError("Invalid path_type: %r" % self.path_type)
+
+    pathspec.path = "/".join(self.components)
+
+    return pathspec
 
   def GetPathID(self):
     return PathID.FromComponents(self.components)

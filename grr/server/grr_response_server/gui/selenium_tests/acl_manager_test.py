@@ -3,12 +3,12 @@
 """Tests the access control authorization workflow."""
 from __future__ import unicode_literals
 
-import unittest
 from grr_response_core.lib import flags
 
 from grr_response_core.lib import utils
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -231,11 +231,5 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(utils.SmartUnicode(approvals[0].reason), test_reason)
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

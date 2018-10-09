@@ -31,12 +31,6 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
             "Artifact parser %s has an invalid output "
             "type %s." % (parser.__name__, out_type))
 
-    if parser.process_together:
-      if not hasattr(parser, "ParseMultiple"):
-        raise lib_parser.ParserDefinitionError(
-            "Parser %s has set process_together, but "
-            "has not defined a ParseMultiple method." % parser.__name__)
-
     # Additional, parser specific validation.
     supported_artifact_objects = []
     for artifact_to_parse in parser.supported_artifacts:

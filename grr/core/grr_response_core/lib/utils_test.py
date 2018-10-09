@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 
 import datetime
+import functools
 import io
 import os
 import platform
@@ -17,6 +18,7 @@ import zipfile
 
 
 from builtins import int  # pylint: disable=redefined-builtin
+from builtins import map  # pylint: disable=redefined-builtin
 from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
@@ -28,39 +30,6 @@ from grr.test_lib import test_lib
 
 # Test method names don't conform with Google style
 # pylint: disable=g-bad-name
-
-
-class TrimTest(unittest.TestCase):
-
-  def testEmpty(self):
-    lst = []
-    clipping = utils.Trim(lst, limit=3)
-    self.assertEqual(lst, [])
-    self.assertEqual(clipping, [])
-
-  def testSomeClipping(self):
-    lst = [1, 2, 3, 4, 5, 6, 7]
-    clipping = utils.Trim(lst, limit=4)
-    self.assertEqual(lst, [1, 2, 3, 4])
-    self.assertEqual(clipping, [5, 6, 7])
-
-  def testNoClipping(self):
-    lst = [1, 2, 3, 4]
-    clipping = utils.Trim(lst, limit=10)
-    self.assertEqual(lst, [1, 2, 3, 4])
-    self.assertEqual(clipping, [])
-
-  def testLimit0(self):
-    lst = [1, 2, 3]
-    clipping = utils.Trim(lst, limit=0)
-    self.assertEqual(lst, [])
-    self.assertEqual(clipping, [1, 2, 3])
-
-  def testLimitNegative(self):
-    lst = [1, 2, 3]
-    clipping = utils.Trim(lst, limit=-3)
-    self.assertEqual(lst, [])
-    self.assertEqual(clipping, [1, 2, 3])
 
 
 class StoreTests(test_lib.GRRBaseTest):
@@ -695,6 +664,66 @@ class StatTest(unittest.TestCase):
     return int(date.strftime("%s"))
 
 
+class NullContextTest(unittest.TestCase):
+
+  def testIntegerValue(self):
+    with utils.NullContext(42) as value:
+      self.assertEqual(value, 42)
+
+  def testBufferValue(self):
+    buf = io.BytesIO()
+
+    with utils.NullContext(buf) as filedesc:
+      filedesc.write(b"foo")
+      filedesc.write(b"bar")
+      filedesc.write(b"baz")
+
+    self.assertEqual(buf.getvalue(), b"foobarbaz")
+
+
+class MultiContextTest(unittest.TestCase):
+
+  def testEmpty(self):
+    with utils.MultiContext([]) as values:
+      self.assertEqual(values, [])
+
+  def testWithNulls(self):
+    foo = utils.NullContext("foo")
+    bar = utils.NullContext("bar")
+    baz = utils.NullContext("baz")
+
+    with utils.MultiContext([foo, bar, baz]) as names:
+      self.assertEqual(names, ["foo", "bar", "baz"])
+
+  def testWithFiles(self):
+    foo = test_lib.AutoTempFilePath(suffix="foo")
+    bar = test_lib.AutoTempFilePath(suffix="bar")
+    baz = test_lib.AutoTempFilePath(suffix="baz")
+
+    with utils.MultiContext([foo, bar, baz]) as filepaths:
+      self.assertEqual(len(filepaths), 3)
+      self.assertTrue(filepaths[0].endswith("foo"))
+      self.assertTrue(filepaths[1].endswith("bar"))
+      self.assertTrue(filepaths[2].endswith("baz"))
+
+      wbopen = functools.partial(io.open, mode="wb")
+      with utils.MultiContext(map(wbopen, filepaths)) as filedescs:
+        self.assertEqual(len(filedescs), 3)
+        filedescs[0].write(b"FOO")
+        filedescs[1].write(b"BAR")
+        filedescs[2].write(b"BAZ")
+
+      # At this point all three files should be correctly written, closed and
+      # ready for reading.
+
+      rbopen = functools.partial(io.open, mode="rb")
+      with utils.MultiContext(map(rbopen, filepaths)) as filedescs:
+        self.assertEqual(len(filedescs), 3)
+        self.assertEqual(filedescs[0].read(), b"FOO")
+        self.assertEqual(filedescs[1].read(), b"BAR")
+        self.assertEqual(filedescs[2].read(), b"BAZ")
+
+
 class StatCacheTest(unittest.TestCase):
 
   def setUp(self):
@@ -861,138 +890,6 @@ class CsvDictWriter(unittest.TestCase):
 
     with self.assertRaises(ValueError):
       writer.WriteRow({"foo": "quux", "bar": "norf"})
-
-
-class IterableStartsWith(unittest.TestCase):
-
-  def testEmptyStartsWithEmpty(self):
-    self.assertTrue(utils.IterableStartsWith([], []))
-
-  def testNonEmptyStartsWithEmpty(self):
-    self.assertTrue(utils.IterableStartsWith([1, 2, 3], []))
-
-  def testEmptyDoesNotStartWithNonEmpty(self):
-    self.assertFalse(utils.IterableStartsWith([], [1, 2, 3]))
-
-  def testEqual(self):
-    self.assertTrue(utils.IterableStartsWith([1, 2, 3], [1, 2, 3]))
-
-  def testProperPrefix(self):
-    self.assertTrue(utils.IterableStartsWith([1, 2, 3], [1, 2]))
-    self.assertTrue(utils.IterableStartsWith([1, 2, 3], [1]))
-
-  def testDifferentElement(self):
-    self.assertFalse(utils.IterableStartsWith([1, 2, 3], [1, 4, 5]))
-
-  def testStringTypes(self):
-    self.assertTrue(
-        utils.IterableStartsWith(["foo", "bar", "baz"], ["foo", "bar"]))
-
-  def testNonListIterable(self):
-    self.assertTrue(utils.IterableStartsWith((5, 4, 3), (5, 4)))
-
-
-class AssertTypeTest(unittest.TestCase):
-
-  def testIntCorrect(self):
-    del self  # Unused.
-    utils.AssertType(108, int)
-    utils.AssertType(0xABC, int)
-    utils.AssertType(2**1024, int)
-
-  def testIntIncorrect(self):
-    with self.assertRaises(TypeError):
-      utils.AssertType(1.23, int)
-
-    with self.assertRaises(TypeError):
-      utils.AssertType("123", int)
-
-  def testStringCorrect(self):
-    utils.AssertType(u"foo", unicode)
-    utils.AssertType(u"gżegżółka", unicode)
-
-  def testStringIncorrect(self):
-    with self.assertRaises(TypeError):
-      utils.AssertType(b"foo", unicode)
-
-
-class AssertIterableTypeTest(unittest.TestCase):
-
-  def testAssertEmptyCorrect(self):
-    del self  # Unused.
-    utils.AssertIterableType([], int)
-    utils.AssertIterableType({}, unicode)
-
-  def testStringSetCorrect(self):
-    del self  # Unused.
-    utils.AssertIterableType({u"foo", u"bar", u"baz"}, unicode)
-
-  def testNonHomogeneousIntList(self):
-    with self.assertRaises(TypeError):
-      utils.AssertIterableType([4, 8, 15, 16.0, 23, 42], int)
-
-  def testIteratorIsNotIterable(self):
-    with self.assertRaises(TypeError):
-      utils.AssertIterableType(iter([u"foo", u"bar", u"baz"]), unicode)
-
-  def testGeneratorIsNotIterable(self):
-
-    def Generator():
-      yield 1
-      yield 2
-      yield 3
-
-    with self.assertRaises(TypeError):
-      utils.AssertIterableType(Generator(), int)
-
-
-class AssertListTypeTest(unittest.TestCase):
-
-  def testFloatListCorrect(self):
-    del self  # Unused.
-    utils.AssertListType([-1.0, 0.0, +1.0], float)
-
-  def testNotAListIncorrect(self):
-    with self.assertRaises(TypeError):
-      utils.AssertListType({u"foo", u"bar", u"baz"}, unicode)
-
-  def testNonHomogeneousFloatListIncorrect(self):
-    with self.assertRaises(TypeError):
-      utils.AssertListType([3.14, 2.71, 42, 1.41], float)
-
-
-class AssertTupleTypeTest(unittest.TestCase):
-
-  def testIntTupleCorrect(self):
-    del self  # Unused.
-    utils.AssertTupleType((4, 8, 15, 16, 23, 42), int)
-
-  def testNotATupleIncorrect(self):
-    with self.assertRaises(TypeError):
-      utils.AssertTupleType([u"foo", u"bar", u"baz"], unicode)
-
-  def testNonHomogeneousBytesListIncorrect(self):
-    with self.assertRaises(TypeError):
-      utils.AssertTupleType((b"foo", b"bar", u"baz"), bytes)
-
-
-class AssertDictTypeTest(unittest.TestCase):
-
-  def testIntStringDictCorrect(self):
-    del self  # Unused.
-    utils.AssertDictType({1: "foo", 2: "bar", 3: "baz"}, int, unicode)
-
-  def testNotADictIncorrect(self):
-    with self.assertRaises(TypeError):
-      utils.AssertDictType([(1, "foo"), (2, "bar"), (3, "baz")], int, unicode)
-
-  def testWrongKeyType(self):
-    with self.assertRaises(TypeError):
-      utils.AssertDictType({"foo": 1, b"bar": 2, "baz": 3}, unicode, int)
-
-  def testWrongValueType(self):
-    with self.assertRaises(TypeError):
-      utils.AssertDictType({"foo": 1, "bar": 2, "baz": 3.14}, unicode, int)
 
 
 class IterValuesInSortedKeysOrderTest(unittest.TestCase):

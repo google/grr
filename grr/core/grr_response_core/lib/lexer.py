@@ -13,6 +13,7 @@ from builtins import range  # pylint: disable=redefined-builtin
 # pytype: enable=import-error
 
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import precondition
 
 
 class Token(object):
@@ -64,7 +65,7 @@ class Lexer(object):
   flags = 0
 
   def __init__(self, data=""):
-    utils.AssertType(data, unicode)
+    precondition.AssertType(data, unicode)
     # Set the lexer up to process a new data feed.
     self.Reset()
     # Populate internal token list with class tokens, if defined.
@@ -155,7 +156,7 @@ class Lexer(object):
     return "Error"
 
   def Feed(self, data):
-    utils.AssertType(data, unicode)
+    precondition.AssertType(data, unicode)
     self.buffer += data
 
   def Empty(self):
@@ -188,7 +189,7 @@ class Lexer(object):
 
   def PushBack(self, string="", **_):
     """Push the match back on the stream."""
-    utils.AssertType(string, unicode)
+    precondition.AssertType(string, unicode)
     self.buffer = string + self.buffer
     self.processed_buffer = self.processed_buffer[:-len(string)]
 

@@ -29,6 +29,7 @@ import unittest
 from grr_response_client import comms
 
 from grr_response_core import config
+from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 
@@ -77,17 +78,6 @@ class GRRBaseTest(unittest.TestCase):
     users.GRRUser.SYSTEM_USERS.add(test_user)
     self.token = access_control.ACLToken(
         username=test_user, reason="Running tests")
-
-  _set_up_lock = threading.RLock()
-  _set_up_done = False
-
-  @classmethod
-  def setUpClass(cls):
-    super(GRRBaseTest, cls).setUpClass()
-    with GRRBaseTest._set_up_lock:
-      if not GRRBaseTest._set_up_done:
-        testing_startup.TestInit()
-        GRRBaseTest._set_up_done = True
 
   def setUp(self):
     super(GRRBaseTest, self).setUp()
@@ -1025,4 +1015,6 @@ class SuppressLogs(object):
 
 def main(argv=None):
   del argv  # Unused.
+  flags.Initialize()
+  testing_startup.TestInit()
   unittest.main()

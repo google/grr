@@ -3,9 +3,8 @@
 from __future__ import division
 from __future__ import unicode_literals
 
-import unittest
-from grr_response_core.lib import flags
 
+from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats
 from grr_response_server import aff4
@@ -68,11 +67,5 @@ class TestServerLoadView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Frontends load")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

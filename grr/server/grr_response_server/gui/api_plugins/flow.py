@@ -353,8 +353,7 @@ class ApiGetFlowArgs(rdf_structs.RDFProtoStruct):
 class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   """Renders given flow.
 
-  Only top-level flows can be targeted. Times returned in the response are micro
-  seconds since epoch.
+  Only top-level flows can be targeted.
   """
 
   args_type = ApiGetFlowArgs
@@ -446,14 +445,23 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowResultsResult
 
   def Handle(self, args, token=None):
-    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
-    output_collection = flow.GRRFlow.ResultCollectionForFID(flow_urn)
+    if data_store.RelationalDBFlowsEnabled():
+      items = data_store.REL_DB.ReadFlowResults(
+          unicode(args.client_id), unicode(args.flow_id), args.offset,
+          args.count)
+      total_count = data_store.REL_DB.CountFlowResults(
+          unicode(args.client_id), unicode(args.flow_id))
+    else:
+      flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
+      output_collection = flow.GRRFlow.ResultCollectionForFID(flow_urn)
+      total_count = len(output_collection)
 
-    items = api_call_handler_utils.FilterCollection(
-        output_collection, args.offset, args.count, args.filter)
+      items = api_call_handler_utils.FilterCollection(
+          output_collection, args.offset, args.count, args.filter)
+
     wrapped_items = [ApiFlowResult().InitFromRdfValue(item) for item in items]
     return ApiListFlowResultsResult(
-        items=wrapped_items, total_count=len(output_collection))
+        items=wrapped_items, total_count=total_count)
 
 
 class ApiListFlowLogsArgs(rdf_structs.RDFProtoStruct):
@@ -674,11 +682,16 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowOutputPluginsResult
 
   def Handle(self, args, token=None):
-    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
-    flow_obj = aff4.FACTORY.Open(
-        flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
+    if data_store.RelationalDBFlowsEnabled():
+      flow_obj = data_store.REL_DB.ReadFlowObject(
+          unicode(args.client_id), unicode(args.flow_id))
+      output_plugins_states = flow_obj.output_plugins_states
+    else:
+      flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
+      flow_obj = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
-    output_plugins_states = flow_obj.GetRunner().context.output_plugins_states
+      output_plugins_states = flow_obj.GetRunner().context.output_plugins_states
 
     type_indices = {}
     result = []

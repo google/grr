@@ -74,8 +74,8 @@ class DatabaseTestPathsMixin(object):
 
     timestamp_0 = now()
 
-    self.db.WritePathInfos(
-        client_id, [rdf_objects.PathInfo.OS(components=["foo"])])
+    self.db.WritePathInfos(client_id,
+                           [rdf_objects.PathInfo.OS(components=["foo"])])
 
     result = self.db.ReadPathInfo(
         client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
@@ -270,10 +270,9 @@ class DatabaseTestPathsMixin(object):
   def testWritePathInfosExpansion(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar", "baz"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar", "baz"]),
+    ])
 
     results = self.db.ReadPathInfos(client_id, rdf_objects.PathInfo.PathType.OS,
                                     [
@@ -339,10 +338,9 @@ class DatabaseTestPathsMixin(object):
     self.db.WritePathInfos(client_id, [
         rdf_objects.PathInfo.OS(components=["foo"], directory=False),
     ])
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar"]),
+    ])
 
     results = self.db.ReadPathInfos(client_id, rdf_objects.PathInfo.PathType.OS,
                                     [("foo",)])
@@ -353,14 +351,12 @@ class DatabaseTestPathsMixin(object):
   def testWritePathInfosDuplicatedData(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar"]),
-        ])
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar"]),
+    ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar"]),
+    ])
 
     results = self.db.ReadPathInfos(client_id, rdf_objects.PathInfo.PathType.OS,
                                     [("foo", "bar")])
@@ -742,10 +738,9 @@ class DatabaseTestPathsMixin(object):
   def testReadPathInfosNonExistent(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar"]),
+    ])
 
     results = self.db.ReadPathInfos(client_id, rdf_objects.PathInfo.PathType.OS,
                                     [
@@ -989,8 +984,8 @@ class DatabaseTestPathsMixin(object):
   def testListDescendentPathInfosEmptyResult(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [rdf_objects.PathInfo.OS(components=["foo"])])
+    self.db.WritePathInfos(client_id,
+                           [rdf_objects.PathInfo.OS(components=["foo"])])
 
     results = self.db.ListDescendentPathInfos(
         client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
@@ -1000,10 +995,9 @@ class DatabaseTestPathsMixin(object):
   def testListDescendentPathInfosSingleResult(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar"]),
+    ])
 
     results = self.db.ListDescendentPathInfos(
         client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
@@ -1014,10 +1008,9 @@ class DatabaseTestPathsMixin(object):
   def testListDescendentPathInfosSingle(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "quux"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "quux"]),
+    ])
 
     results = self.db.ListDescendentPathInfos(
         client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
@@ -1030,11 +1023,10 @@ class DatabaseTestPathsMixin(object):
   def testListDescendentPathInfosBranching(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar", "quux"]),
-            rdf_objects.PathInfo.OS(components=["foo", "baz"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar", "quux"]),
+        rdf_objects.PathInfo.OS(components=["foo", "baz"]),
+    ])
 
     results = self.db.ListDescendentPathInfos(
         client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
@@ -1047,13 +1039,11 @@ class DatabaseTestPathsMixin(object):
   def testListDescendentPathInfosLimited(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "quux"]),
-            rdf_objects.PathInfo.OS(components=["foo", "bar", "blargh"]),
-            rdf_objects.PathInfo.OS(
-                components=["foo", "norf", "thud", "plugh"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "quux"]),
+        rdf_objects.PathInfo.OS(components=["foo", "bar", "blargh"]),
+        rdf_objects.PathInfo.OS(components=["foo", "norf", "thud", "plugh"]),
+    ])
 
     results = self.db.ListDescendentPathInfos(
         client_id,
@@ -1073,11 +1063,10 @@ class DatabaseTestPathsMixin(object):
   def testListDescendentPathInfosTypeSeparated(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["usr", "bin", "javac"]),
-            rdf_objects.PathInfo.TSK(components=["usr", "bin", "gdb"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["usr", "bin", "javac"]),
+        rdf_objects.PathInfo.TSK(components=["usr", "bin", "gdb"]),
+    ])
 
     os_results = self.db.ListDescendentPathInfos(
         client_id, rdf_objects.PathInfo.PathType.OS, components=("usr", "bin"))
@@ -1092,11 +1081,10 @@ class DatabaseTestPathsMixin(object):
   def testListDescendentPathInfosAll(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar"]),
-            rdf_objects.PathInfo.OS(components=["baz", "quux"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar"]),
+        rdf_objects.PathInfo.OS(components=["baz", "quux"]),
+    ])
 
     results = self.db.ListDescendentPathInfos(
         client_id, rdf_objects.PathInfo.PathType.OS, components=())
@@ -1132,12 +1120,11 @@ class DatabaseTestPathsMixin(object):
   def testListChildPathInfosRoot(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar"]),
-            rdf_objects.PathInfo.OS(components=["foo", "baz"]),
-            rdf_objects.PathInfo.OS(components=["quux", "norf"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar"]),
+        rdf_objects.PathInfo.OS(components=["foo", "baz"]),
+        rdf_objects.PathInfo.OS(components=["quux", "norf"]),
+    ])
 
     results = self.db.ListChildPathInfos(
         client_id, rdf_objects.PathInfo.PathType.OS, components=())
@@ -1168,12 +1155,11 @@ class DatabaseTestPathsMixin(object):
   def testListChildPathInfosDeepSorted(self):
     client_id = self.InitializeClient()
 
-    self.db.WritePathInfos(
-        client_id, [
-            rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "quux"]),
-            rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "norf"]),
-            rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "thud"]),
-        ])
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "quux"]),
+        rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "norf"]),
+        rdf_objects.PathInfo.OS(components=["foo", "bar", "baz", "thud"]),
+    ])
 
     results = self.db.ListChildPathInfos(
         client_id,
@@ -1742,3 +1728,146 @@ class DatabaseTestPathsMixin(object):
         rdf_objects.PathInfo.PathType.OS,
         components=("foo", "baz"))
     self.assertEqual(len(history_b_2), 0)
+
+  def _WriteBlobReferences(self):
+    blob_ref_1 = rdf_objects.BlobReference(
+        offset=0, size=42, blob_id=rdf_objects.BlobID(b"01234567" * 4))
+    blob_ref_2 = rdf_objects.BlobReference(
+        offset=42, size=42, blob_id=rdf_objects.BlobID(b"01234568" * 4))
+    hash_id_1 = rdf_objects.SHA256HashID(b"0a1b2c3d" * 4)
+    hash_id_2 = rdf_objects.SHA256HashID(b"0a1b2c3e" * 4)
+    data = {
+        hash_id_1: [blob_ref_1],
+        hash_id_2: [blob_ref_1, blob_ref_2],
+    }
+    self.db.WriteHashBlobReferences(data)
+
+    return hash_id_1, hash_id_2
+
+  def testReadLatestPathInfosReturnsNothingForNonExistingPaths(self):
+    client_a_id = self.InitializeClient()
+    client_b_id = self.InitializeClient()
+
+    path_1 = db.ClientPath.OS(client_a_id, components=("foo", "baz"))
+    path_2 = db.ClientPath.TSK(client_b_id, components=("foo", "baz"))
+
+    results = self.db.ReadLatestPathInfosWithHashBlobReferences(
+        [path_1, path_2])
+    self.assertEqual(results, {path_1: None, path_2: None})
+
+  def testReadLatestPathInfosReturnsNothingWhenNoFilesCollected(self):
+    client_a_id = self.InitializeClient()
+    client_b_id = self.InitializeClient()
+
+    path_info_1 = rdf_objects.PathInfo.OS(components=("foo", "bar"))
+    self.db.WritePathInfos(client_a_id, [path_info_1])
+    path_info_2 = rdf_objects.PathInfo.TSK(components=("foo", "baz"))
+    self.db.WritePathInfos(client_b_id, [path_info_2])
+
+    path_1 = db.ClientPath.OS(client_a_id, components=("foo", "bar"))
+    path_2 = db.ClientPath.TSK(client_b_id, components=("foo", "baz"))
+
+    results = self.db.ReadLatestPathInfosWithHashBlobReferences(
+        [path_1, path_2])
+    self.assertEqual(results, {path_1: None, path_2: None})
+
+  def testReadLatestPathInfosFindsTwoCollectedFilesWhenTheyAreTheOnlyEntries(
+      self):
+    client_a_id = self.InitializeClient()
+    client_b_id = self.InitializeClient()
+    hash_id_1, hash_id_2 = self._WriteBlobReferences()
+
+    path_info_1 = rdf_objects.PathInfo.OS(components=("foo", "bar"))
+    path_info_1.hash_entry.sha256 = hash_id_1.AsBytes()
+    self.db.WritePathInfos(client_a_id, [path_info_1])
+    path_info_2 = rdf_objects.PathInfo.TSK(components=("foo", "baz"))
+    path_info_2.hash_entry.sha256 = hash_id_2.AsBytes()
+    self.db.WritePathInfos(client_b_id, [path_info_2])
+
+    path_1 = db.ClientPath.OS(client_a_id, components=("foo", "bar"))
+    path_2 = db.ClientPath.TSK(client_b_id, components=("foo", "baz"))
+
+    results = self.db.ReadLatestPathInfosWithHashBlobReferences(
+        [path_1, path_2])
+    self.assertItemsEqual(results.keys(), [path_1, path_2])
+    self.assertEquals(results[path_1].hash_entry, path_info_1.hash_entry)
+    self.assertEquals(results[path_2].hash_entry, path_info_2.hash_entry)
+    self.assertTrue(results[path_1].timestamp)
+    self.assertTrue(results[path_2].timestamp)
+
+  def testReadLatestPathInfosCorrectlyFindsCollectedFileWithNonLatestEntry(
+      self):
+    client_id = self.InitializeClient()
+    hash_id, _ = self._WriteBlobReferences()
+
+    path_info_1 = rdf_objects.PathInfo.OS(components=("foo", "bar"))
+    path_info_1.hash_entry.sha256 = hash_id.AsBytes()
+    self.db.WritePathInfos(client_id, [path_info_1])
+
+    path_info_2 = rdf_objects.PathInfo.OS(components=("foo", "bar"))
+    self.db.WritePathInfos(client_id, [path_info_2])
+
+    path = db.ClientPath.OS(client_id, components=("foo", "bar"))
+    results = self.db.ReadLatestPathInfosWithHashBlobReferences([path])
+
+    self.assertItemsEqual(results.keys(), [path])
+    self.assertEquals(results[path].hash_entry, path_info_1.hash_entry)
+    self.assertTrue(results[path].timestamp)
+
+  def testReadLatestPathInfosCorrectlyFindsLatestOfTwoCollectedFiles(self):
+    client_id = self.InitializeClient()
+    hash_id_1, hash_id_2 = self._WriteBlobReferences()
+
+    path_info_1 = rdf_objects.PathInfo.OS(components=("foo", "bar"))
+    path_info_1.hash_entry.sha256 = hash_id_1.AsBytes()
+    self.db.WritePathInfos(client_id, [path_info_1])
+
+    path_info_2 = rdf_objects.PathInfo.OS(components=("foo", "bar"))
+    path_info_2.hash_entry.sha256 = hash_id_2.AsBytes()
+    self.db.WritePathInfos(client_id, [path_info_2])
+
+    path = db.ClientPath.OS(client_id, components=("foo", "bar"))
+    results = self.db.ReadLatestPathInfosWithHashBlobReferences([path])
+    self.assertItemsEqual(results.keys(), [path])
+    self.assertEquals(results[path].hash_entry, path_info_2.hash_entry)
+    self.assertTrue(results[path].timestamp)
+
+  def testReadLatestPathInfosCorrectlyFindsLatestCollectedFileBeforeTimestamp(
+      self):
+    client_id = self.InitializeClient()
+    hash_id_1, hash_id_2 = self._WriteBlobReferences()
+
+    path_info_1 = rdf_objects.PathInfo.OS(components=("foo", "bar"))
+    path_info_1.hash_entry.sha256 = hash_id_1.AsBytes()
+    self.db.WritePathInfos(client_id, [path_info_1])
+
+    time_checkpoint = rdfvalue.RDFDatetime.Now()
+
+    path_info_2 = rdf_objects.PathInfo.OS(components=("foo", "bar"))
+    path_info_2.hash_entry.sha256 = hash_id_2.AsBytes()
+    self.db.WritePathInfos(client_id, [path_info_2])
+
+    path = db.ClientPath.OS(client_id, components=("foo", "bar"))
+    results = self.db.ReadLatestPathInfosWithHashBlobReferences(
+        [path], max_timestamp=time_checkpoint)
+    self.assertItemsEqual(results.keys(), [path])
+    self.assertEquals(results[path].hash_entry, path_info_1.hash_entry)
+    self.assertTrue(results[path].timestamp)
+
+  def testReadLatestPathInfosIncludesStatEntryIfThereIsOneWithSameTimestamp(
+      self):
+    client_id = self.InitializeClient()
+    hash_id, _ = self._WriteBlobReferences()
+
+    path_info = rdf_objects.PathInfo.OS(components=("foo", "bar"))
+    path_info.stat_entry = rdf_client_fs.StatEntry(st_mode=42)
+    path_info.hash_entry.sha256 = hash_id.AsBytes()
+    self.db.WritePathInfos(client_id, [path_info])
+
+    path = db.ClientPath.OS(client_id, components=("foo", "bar"))
+    results = self.db.ReadLatestPathInfosWithHashBlobReferences([path])
+
+    self.assertItemsEqual(results.keys(), [path])
+    self.assertEquals(results[path].stat_entry, path_info.stat_entry)
+    self.assertEquals(results[path].hash_entry, path_info.hash_entry)
+    self.assertTrue(results[path].timestamp)

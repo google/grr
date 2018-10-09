@@ -399,7 +399,8 @@ class ClientFileFinder(flow.GRRFlow):
 
       chunks = sorted(response.transferred_file.chunks, key=lambda _: _.offset)
       for chunk in chunks:
-        filedesc.AddBlob(chunk.digest, chunk.length)
+        filedesc.AddBlob(
+            rdf_objects.BlobID.FromBytes(chunk.digest), chunk.length)
 
       filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
@@ -416,11 +417,10 @@ class ClientFileFinder(flow.GRRFlow):
       data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
   def _WriteFileStatEntry(self, response, mutation_pool=None):
-    filesystem.WriteStatEntries(
-        [response.stat_entry],
-        client_id=self.client_id,
-        token=self.token,
-        mutation_pool=mutation_pool)
+    filesystem.WriteStatEntries([response.stat_entry],
+                                client_id=self.client_id,
+                                token=self.token,
+                                mutation_pool=mutation_pool)
 
   def End(self, responses):
     super(ClientFileFinder, self).End(responses)

@@ -35,7 +35,7 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
             st_mode=33261))
 
     parser = osx_file_parser.OSXUsersParser()
-    out = list(parser.ParseMultiple(statentries, None, None))
+    out = list(parser.ParseMultiple(statentries, None))
     self.assertItemsEqual([x.username for x in out], ["user1", "user2"])
     self.assertItemsEqual([x.homedir for x in out],
                           ["/Users/user1", "/Users/user2"])

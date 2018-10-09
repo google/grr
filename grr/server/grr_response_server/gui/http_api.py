@@ -23,6 +23,7 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.aff4_objects import users as aff4_users
@@ -352,7 +353,7 @@ class HttpRequestHandler(object):
 
   def _BuildStreamingResponse(self, binary_stream, method_name=None):
     """Builds HTTPResponse object for streaming."""
-    utils.AssertType(method_name, unicode)
+    precondition.AssertType(method_name, unicode)
 
     # We get a first chunk of the output stream. This way the likelihood
     # of catching an exception that may happen during response generation

@@ -14,6 +14,8 @@ from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.parsers import windows_registry_parser as winreg_parser
+from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -35,6 +37,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -893,6 +896,8 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
                             ["/", "/usr"])
       self.assertEqual(len(results), 2)
 
+  @parser_test_lib.WithParser("WmiDisk", wmi_parser.WMILogicalDisksParser)
+  @parser_test_lib.WithParser("WinReg", winreg_parser.WinSystemRootParser)
   def testDiskVolumeInfoWindows(self):
     self.client_id = self.SetupClient(0, system="Windows")
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,

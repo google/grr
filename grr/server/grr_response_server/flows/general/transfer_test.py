@@ -161,7 +161,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     if data_store.RelationalDBReadEnabled(category="filestore"):
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
-      fd_rel_db = file_store.OpenLatestFileVersion(cp)
+      fd_rel_db = file_store.OpenFile(cp)
       self.CompareFDs(fd2, fd_rel_db)
 
       # Only the sha256 hash of the contents should have been calculated:
@@ -208,7 +208,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     if data_store.RelationalDBReadEnabled(category="filestore"):
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), res_pathspec)
 
-      fd_rel_db = file_store.OpenLatestFileVersion(cp)
+      fd_rel_db = file_store.OpenFile(cp)
       self.CompareFDs(fd2, fd_rel_db)
 
       # Only the sha256 hash of the contents should have been calculated:
@@ -299,7 +299,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     if data_store.RelationalDBReadEnabled(category="filestore"):
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
-      fd_rel_db = file_store.OpenLatestFileVersion(cp)
+      fd_rel_db = file_store.OpenFile(cp)
       self.assertEqual(fd_rel_db.size, len(data))
       self.assertMultiLineEqual(fd_rel_db.read(), data)
 
@@ -348,7 +348,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     # Test the AFF4 file that was created.
     if data_store.RelationalDBReadEnabled(category="filestore"):
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
-      fd_rel_db = file_store.OpenLatestFileVersion(cp)
+      fd_rel_db = file_store.OpenFile(cp)
       self.CompareFDs(fd2, fd_rel_db)
 
       # Check that SHA256 hash of the file matches the contents
@@ -399,7 +399,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       # Now open each file and make sure the data is there.
       for pathspec in pathspecs:
         cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
-        fd_rel_db = file_store.OpenLatestFileVersion(cp)
+        fd_rel_db = file_store.OpenFile(cp)
         self.assertEqual("Hello", fd_rel_db.read())
 
         # Check that SHA256 hash of the file matches the contents
@@ -464,7 +464,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       for pathspec in pathspecs:
         # Check that each referenced file can be read.
         cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
-        fd_rel_db = file_store.OpenLatestFileVersion(cp)
+        fd_rel_db = file_store.OpenFile(cp)
         self.assertEqual("Hello", fd_rel_db.read())
 
         # Check that SHA256 hash of the file matches the contents
@@ -505,7 +505,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
       if data_store.RelationalDBReadEnabled(category="filestore"):
         cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
-        fd_rel_db = file_store.OpenLatestFileVersion(cp)
+        fd_rel_db = file_store.OpenFile(cp)
         self.assertEqual(fd_rel_db.size, len(data))
         self.assertEqual(fd_rel_db.read(), data)
 
@@ -556,7 +556,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     if data_store.RelationalDBReadEnabled(category="filestore"):
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
-      fd_rel_db = file_store.OpenLatestFileVersion(cp)
+      fd_rel_db = file_store.OpenFile(cp)
       self.assertEqual(fd_rel_db.hash_id.AsBytes(), h.digest())
 
       # Check that SHA256 hash of the file matches the contents
@@ -589,7 +589,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     if data_store.RelationalDBReadEnabled(category="filestore"):
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
-      fd_rel_db = file_store.OpenLatestFileVersion(cp)
+      fd_rel_db = file_store.OpenFile(cp)
 
       self.assertEqual(fd_rel_db.size, expected_size)
 

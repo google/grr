@@ -107,6 +107,12 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def GetVfsFileContentUpdateState(self, args, token=None):
     return api_vfs.ApiGetVfsFileContentUpdateStateHandler()
 
+  def GetFileDecoders(self, args, token=None):
+    return api_vfs.ApiGetFileDecodersHandler()
+
+  def GetDecodedFileBlob(self, args, token=None):
+    return api_vfs.ApiGetDecodedFileHandler()
+
   # Clients labels methods.
   # ======================
   #

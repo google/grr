@@ -23,6 +23,7 @@ from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_core.lib.util import collection
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -485,7 +486,7 @@ class HuntRunner(object):
         # Cannot append to lists in AttributedDicts.
         plugin_state["logs"] += [log_item]
 
-        self.Log("Plugin %s sucessfully processed %d flow replies.",
+        self.Log("Plugin %s successfully processed %d flow replies.",
                  plugin_descriptor, len(replies))
       except Exception as e:  # pylint: disable=broad-except
         error = output_plugin.OutputPluginBatchProcessingStatus(
@@ -1500,9 +1501,9 @@ class GRRHunt(flow.FlowBase):
     return all_clients_count, completed_clients_count, clients_errors_count
 
   def GetClientsErrors(self, client_id=None):
-    collection = grr_collections.HuntErrorCollection(
+    hunt_collection = grr_collections.HuntErrorCollection(
         self.clients_errors_collection_urn)
-    errors = collection.GenerateItems()
+    errors = hunt_collection.GenerateItems()
     if not client_id:
       return errors
     else:
@@ -1530,7 +1531,7 @@ class GRRHunt(flow.FlowBase):
 
   def GetClientStates(self, client_list, client_chunk=50):
     """Take in a client list and return dicts with their age and hostname."""
-    for client_group in utils.Grouper(client_list, client_chunk):
+    for client_group in collection.Batch(client_list, client_chunk):
       for fd in aff4.FACTORY.MultiOpen(
           client_group,
           mode="r",

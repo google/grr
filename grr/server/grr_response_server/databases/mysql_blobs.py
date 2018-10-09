@@ -5,13 +5,7 @@
 class MySQLDBBlobsMixin(object):
   """MySQLDB mixin for blobs related functions."""
 
-  def WriteClientPathBlobReferences(self, references_by_path):
-    raise NotImplementedError()
-
-  def ReadClientPathBlobReferences(self, paths):
-    raise NotImplementedError()
-
-  def WriteBlobs(self, blob_id_data_pairs):
+  def WriteBlobs(self, blob_id_data_map):
     raise NotImplementedError()
 
   def ReadBlobs(self, blob_ids):

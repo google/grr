@@ -12,6 +12,7 @@ from future.utils import itervalues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import collection
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import output_plugin
@@ -137,7 +138,7 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
         all_plugins, used_plugins = self.LoadPlugins(metadata_obj)
         num_processed = int(
             metadata_obj.Get(metadata_obj.Schema.NUM_PROCESSED_RESULTS))
-        for batch in utils.Grouper(results, batch_size):
+        for batch in collection.Batch(results, batch_size):
           results = list(
               collection_obj.MultiResolve(
                   [r.value.ResultRecord() for r in batch]))

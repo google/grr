@@ -12,7 +12,7 @@ from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
+from grr_response_core.lib.util import collection
 from grr_response_server import aff4
 from grr_response_server import export
 
@@ -232,7 +232,7 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
     Raises:
       ValueError: if any of the GrrMessage objects doesn't have "source" set.
     """
-    for batch in utils.Grouper(grr_messages, self.BATCH_SIZE):
+    for batch in collection.Batch(grr_messages, self.BATCH_SIZE):
       metadata_items = self._GetMetadataForClients([gm.source for gm in batch])
       batch_with_metadata = zip(metadata_items, [gm.payload for gm in batch])
 

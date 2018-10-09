@@ -8,10 +8,10 @@ import re
 
 from future.moves.urllib import parse as urlparse
 
-import unittest
 from grr_response_core.lib import flags
 
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import compatibility
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import email_alerts
@@ -21,6 +21,7 @@ from grr_response_server.gui import gui_test_lib
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
+from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
@@ -166,10 +167,10 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
   def _CreateOSBreakDownCronJobApproval(self):
     if data_store.RelationalDBReadEnabled():
-      job_name = utils.GetName(cron_system.OSBreakDownCronJob)
+      job_name = compatibility.GetName(cron_system.OSBreakDownCronJob)
       cronjobs.ScheduleSystemCronJobs(names=[job_name])
     else:
-      job_name = utils.GetName(cron_system.OSBreakDown)
+      job_name = compatibility.GetName(cron_system.OSBreakDown)
       aff4_cronjobs.ScheduleSystemCronFlows(names=[job_name], token=self.token)
 
     aff4_cronjobs.GetCronManager().DisableJob(job_id=job_name)
@@ -223,11 +224,5 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "OSBreakDown")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

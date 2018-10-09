@@ -28,7 +28,6 @@ import tarfile
 import tempfile
 import threading
 import time
-import types
 import weakref
 import zipfile
 import zlib
@@ -41,6 +40,8 @@ from future.utils import itervalues
 import psutil
 
 from typing import Any, List, Optional, Text
+
+from grr_response_core.lib.util import precondition
 
 
 class Error(Exception):
@@ -583,49 +584,6 @@ class Struct(object):
     return struct.calcsize(format_str)
 
 
-def GroupBy(items, key):
-  """A generator that groups all items by a key.
-
-  Args:
-    items:  A list of items or a single item.
-    key: A function which given each item will return the key.
-
-  Returns:
-    A dict with keys being each unique key and values being a list of items of
-    that key.
-  """
-  key_map = {}
-
-  # Make sure we are given a sequence of items here.
-  try:
-    item_iter = iter(items)
-  except TypeError:
-    item_iter = [items]
-
-  for item in item_iter:
-    key_id = key(item)
-    key_map.setdefault(key_id, []).append(item)
-
-  return key_map
-
-
-def Trim(lst, limit):
-  """Trims a given list so that it is not longer than given limit.
-
-  Args:
-    lst: A list to trim.
-    limit: A maximum number of elements in the list after trimming.
-
-  Returns:
-    A suffix of the input list that was trimmed.
-  """
-  limit = max(0, limit)
-
-  clipping = lst[limit:]
-  del lst[limit:]
-  return clipping
-
-
 def SmartStr(string):
   """Returns a string or encodes a unicode object.
 
@@ -671,7 +629,7 @@ def Xor(bytestr, key):
   # pytype: disable=import-error
   from builtins import bytes  # pylint: disable=redefined-builtin, g-import-not-at-top
   # pytype: enable=import-error
-  AssertType(bytestr, bytes)
+  precondition.AssertType(bytestr, bytes)
 
   # TODO(hanuszczak): This seemingly no-op operation actually changes things.
   # In Python 2 this function receives a `str` object which has different
@@ -805,20 +763,6 @@ def Join(*parts):
   """
 
   return "/".join(parts)
-
-
-def Grouper(iterable, n):
-  """Group iterable into lists of size n. Last list will be short."""
-  AssertType(n, int)
-
-  items = []
-  for count, item in enumerate(iterable):
-    items.append(item)
-    if (count + 1) % n == 0:
-      yield items
-      items = []
-  if items:
-    yield items
 
 
 def EncodeReasonString(reason):
@@ -1730,6 +1674,54 @@ class Stat(object):
     return self._stat.st_flags
 
 
+class NullContext(object):
+  """A context manager that always yields provided values.
+
+  This class is useful for providing context-like semantics for values that are
+  not context managers themselves because they do not need to manage any
+  resources but are used as context managers.
+
+  This is a backport of the `contextlib.nullcontext` class introduced in Python
+  3.7. Once support for old versions of Python is dropped, all uses of this
+  class should be replaced with the one provided by the standard library.
+  """
+
+  def __init__(self, value):
+    self._value = value
+
+  def __enter__(self):
+    return self._value
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    del exc_type, exc_value, traceback  # Unused.
+
+
+class MultiContext(object):
+  """A context managers that sequences multiple context managers.
+
+  This is similar to the monadic `sequence` operator: it takes a list of context
+  managers, enters each of them and yields list of values that the managers
+  yield.
+
+  One possible scenario where this class comes in handy is when one needs to
+  open multiple files.
+  """
+
+  def __init__(self, managers):
+    self._managers = managers
+
+  def __enter__(self):
+    values = []
+    for manager in self._managers:
+      value = manager.__enter__()
+      values.append(value)
+    return values
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    for manager in self._managers:
+      manager.__exit__(exc_type, exc_value, traceback)
+
+
 class StatCache(object):
   """An utility class for avoiding unnecessary syscalls to `[l]stat`.
 
@@ -1790,7 +1782,7 @@ class CsvWriter(object):
   """
 
   def __init__(self, delimiter=","):
-    AssertType(delimiter, unicode)
+    precondition.AssertType(delimiter, unicode)
 
     # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
     # two elements which is not true.
@@ -1812,7 +1804,7 @@ class CsvWriter(object):
     Args:
       values: A list of string values to be inserted into the CSV output.
     """
-    AssertListType(values, unicode)
+    precondition.AssertIterableType(values, unicode)
 
     # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
     # two elements which is not true.
@@ -1846,8 +1838,8 @@ class CsvDictWriter(object):
   """
 
   def __init__(self, columns, delimiter=","):
-    AssertListType(columns, unicode)
-    AssertType(delimiter, unicode)
+    precondition.AssertIterableType(columns, unicode)
+    precondition.AssertType(delimiter, unicode)
 
     self._writer = CsvWriter(delimiter=delimiter)
     self._columns = columns
@@ -1867,7 +1859,7 @@ class CsvDictWriter(object):
       values: A dictionary mapping column names to values to be inserted into
         the CSV output.
     """
-    AssertDictType(values, unicode, unicode)
+    precondition.AssertDictType(values, unicode, unicode)
 
     row = []
     for column in self._columns:
@@ -1884,233 +1876,6 @@ class CsvDictWriter(object):
     return self._writer.Content()
 
 
-# TODO(hanuszczak): We should create some module with general-purpose functions
-# that should be in standard library but are not for some reason.
-def IterableStartsWith(this, that):
-  """Checks whether an iterable `this` starts with `that`."""
-  this_iter = iter(this)
-  that_iter = iter(that)
-
-  while True:
-    try:
-      this_value = next(that_iter)
-    except StopIteration:
-      return True
-
-    try:
-      that_value = next(this_iter)
-    except StopIteration:
-      return False
-
-    if this_value != that_value:
-      return False
-
-
-def AssertType(value, expected_type):
-  """Ensures that given value has certain type.
-
-  Args:
-    value: A value to assert the type for.
-    expected_type: An expected type for the given value.
-
-  Raises:
-    TypeError: If given value does not have the expected type.
-  """
-  if not isinstance(value, expected_type):
-    message = "Expected type `%s`, but got value `%s` of type `%s`"
-    message %= (expected_type, value, type(value))
-    raise TypeError(message)
-
-
-def AssertIterableType(iterable, expected_item_type):
-  """Ensures that given iterable container has certain type.
-
-  Args:
-    iterable: An iterable container to assert the type for.
-    expected_item_type: An expected type of the container items.
-
-  Raises:
-    TypeError: If given container does is not an iterable or its items do not
-               have the expected type.
-  """
-  # We do not consider iterators to be iterables even though Python does. An
-  # "iterable" should be a type that can be iterated (that is: an iterator can
-  # be constructed for them). Iterators should not be considered to be iterable
-  # because it makes no sense to construct an iterator for iterator. The most
-  # important practical implication is that act of iterating an iterator drains
-  # it whereas act of iterating the iterable does not.
-  if isinstance(iterable, collections.Iterator):
-    message = "Expected iterable container but got iterator `%s` instead"
-    message %= iterable
-    raise TypeError(message)
-
-  AssertType(iterable, collections.Iterable)
-  for item in iterable:
-    AssertType(item, expected_item_type)
-
-
-def AssertListType(lst, expected_item_type):
-  """Ensures that given list is actually a list of items of a certain type.
-
-  Args:
-    lst: A list to assert the type for.
-    expected_item_type: An expected type for list items.
-
-  Raises:
-    TypeError: If given list is not really a list or its items do not have the
-               expected type.
-  """
-  AssertType(lst, list)
-  AssertIterableType(lst, expected_item_type)
-
-
-def AssertTupleType(tpl, expected_item_type):
-  """Ensures that given tuple is actually a tuple of items of a certain type.
-
-  Args:
-    tpl: A tuple to assert the type for.
-    expected_item_type: An expected type for tuple items.
-
-  Raises:
-    TypeError: If given tuple is not really a tuple or its items do not have the
-               expected type.
-  """
-  AssertType(tpl, tuple)
-  AssertIterableType(tpl, expected_item_type)
-
-
-def AssertDictType(dct, expected_key_type, expected_value_type):
-  """Ensures that given dictionary is actually a dictionary of specified type.
-
-  Args:
-    dct: A dictionary to assert the type for.
-    expected_key_type: An expected type for dictionary keys.
-    expected_value_type: An expected type for dicionary values.
-
-  Raises:
-    TypeError: If given dictionary is not really a dictionary or not all its
-               keys and values have the expected type.
-  """
-  AssertType(dct, dict)
-  for key, value in iteritems(dct):
-    AssertType(key, expected_key_type)
-    AssertType(value, expected_value_type)
-
-
-def MakeType(name, base_classes, namespace):
-  """A compatibility wrapper for the `type` built-in function.
-
-  In Python 2 `type` (used as a type constructor) requires the name argument to
-  be a `bytes` object whereas in Python 3 it is required to be an `unicode`
-  object. Since class name is human readable text rather than arbitrary stream
-  of bytes, the Python 3 behaviour is considered to be the sane one.
-
-  Once support for Python 2 is dropped all invocations of this call can be
-  replaced with the `type` built-in.
-
-  Args:
-    name: A name of the type to create.
-    base_classes: A tuple of base classes that the returned type is supposed to
-      derive from.
-    namespace: A dictionary of methods and fields that the returned type is
-      supposed to contain.
-
-  Returns:
-    A new type with specified parameters.
-  """
-  AssertType(name, unicode)
-
-  # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
-  # elements which is not true.
-  # pytype: disable=attribute-error
-  if sys.version_info.major == 2:
-    name = name.encode("ascii")
-  # pytype: enable=attribute-error
-
-  return type(name, base_classes, namespace)
-
-
-def GetName(obj):
-  """A compatibility wrapper for getting object's name.
-
-  In Python 2 class names are returned as `bytes` (since class names can contain
-  only ASCII characters) whereas in Python 3 they are `unicode` (since class
-  names can contain arbitrary unicode characters).
-
-  This function makes this behaviour consistent and always returns class name as
-  an unicode string.
-
-  Once support for Python 2 is dropped all invocations of this call can be
-  replaced with ordinary `__name__` access.
-
-  Args:
-    obj: A type or function object to get the name for.
-
-  Returns:
-    Name of the specified class as unicode string.
-  """
-  AssertType(obj, (types.TypeType, types.FunctionType))
-
-  # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
-  # elements which is not true.
-  # pytype: disable=attribute-error
-  if sys.version_info.major == 2:
-    return obj.__name__.decode("ascii")
-  else:
-    return obj.__name__
-  # pytype: enable=attribute-error
-
-
-def SetName(obj, name):
-  """A compatibility wrapper for setting object's name.
-
-  See documentation for `GetName` for more information.
-
-  Args:
-    obj: A type or function object to set the name for.
-    name: A name to set.
-  """
-  AssertType(obj, (types.TypeType, types.FunctionType))
-  AssertType(name, unicode)
-
-  # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
-  # elements which is not true.
-  # pytype: disable=attribute-error
-  if sys.version_info.major == 2:
-    obj.__name__ = name.encode("ascii")
-  else:
-    obj.__name__ = name
-  # pytype: disable=attribute-error
-
-
-def ListAttrs(cls):
-  """A compatibility wrapper for listing class attributes.
-
-  This method solves similar Python 2 compatibility issues for `dir` function as
-  `GetName` does for `__name__` invocations. See documentation for `GetName` for
-  more details.
-
-  Once support for Python 2 is dropped all invocations of this function should
-  be replaced with ordinary `dir` calls.
-
-  Args:
-    cls: A class object to list the attributes for.
-
-  Returns:
-    A list of attribute names as unicode strings.
-  """
-  AssertType(cls, type)
-
-  # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
-  # elements which is not true.
-  # pytype: disable=attribute-error
-  if sys.version_info.major == 2:
-    return [item.decode("ascii") for item in dir(cls)]
-  else:
-    return dir(cls)
-  # pytype: enable=attribute-error
-
-
 def IterValuesInSortedKeysOrder(d):
   """Iterates dict's values in sorted keys order."""
 
@@ -2120,3 +1885,10 @@ def IterValuesInSortedKeysOrder(d):
 
 def RegexListDisjunction(regex_list):
   return "(" + ")|(".join(regex_list) + ")"
+
+
+def ReadFileBytesAsUnicode(file_obj):
+  data = file_obj.read()
+  precondition.AssertType(data, bytes)
+
+  return data.decode("utf-8")

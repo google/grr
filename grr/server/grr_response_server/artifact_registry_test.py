@@ -5,6 +5,7 @@ import mock
 
 import unittest
 
+from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_server import artifact_registry as ar
@@ -272,4 +273,4 @@ class ArtifactSourceTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  flags.StartMain(test_lib.main)

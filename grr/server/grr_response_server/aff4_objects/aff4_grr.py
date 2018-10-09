@@ -15,7 +15,6 @@ from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
@@ -26,6 +25,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import collection
 from grr_response_proto import flows_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
@@ -36,6 +36,7 @@ from grr_response_server import foreman_rules
 from grr_response_server import grr_collections
 from grr_response_server import queue_manager
 from grr_response_server.aff4_objects import standard
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class SpaceSeparatedStringArray(rdfvalue.RDFString):
@@ -160,8 +161,7 @@ class VFSGRRClient(standard.VFSDirectory):
 
     CLOCK = aff4.Attribute(
         "metadata:clock",
-        rdfvalue.RDFDatetime,
-        "The last clock read on the client "
+        rdfvalue.RDFDatetime, "The last clock read on the client "
         "(Can be used to estimate client clock skew).",
         "Clock",
         versioned=False)
@@ -222,6 +222,7 @@ class VFSGRRClient(standard.VFSDirectory):
 
     Args:
       client_id: The id of the client, a rdfvalue.ClientURN.
+
     Returns:
       The collection containing the crash information objects for the client.
     """
@@ -431,12 +432,11 @@ class GRRForeman(aff4.AFF4Object):
       with data_store.DB.GetMutationPool() as pool:
         # Notify the worker to mark this hunt as terminated.
         manager = queue_manager.QueueManager(token=self.token)
-        manager.MultiNotifyQueue(
-            [
-                rdf_flows.GrrNotification(session_id=session_id)
-                for session_id in expired_session_ids
-            ],
-            mutation_pool=pool)
+        manager.MultiNotifyQueue([
+            rdf_flows.GrrNotification(session_id=session_id)
+            for session_id in expired_session_ids
+        ],
+                                 mutation_pool=pool)
 
     if len(new_rules) < len(rules):
       self.Set(self.Schema.RULES, new_rules)
@@ -671,10 +671,10 @@ class VFSBlobImage(VFSFile):
     for fd in fds:
       fd.index.seek(0)
       while True:
-        chunk_id = fd.index.read(cls._HASH_SIZE)
-        if not chunk_id:
+        chunk_id_bytes = fd.index.read(cls._HASH_SIZE)
+        if not chunk_id_bytes:
           break
-        yield chunk_id.encode("hex"), fd
+        yield rdf_objects.BlobID.FromBytes(chunk_id_bytes), fd
 
   MULTI_STREAM_CHUNKS_READ_AHEAD = 1000
 
@@ -697,10 +697,10 @@ class VFSBlobImage(VFSFile):
 
     broken_fds = set()
     missing_blobs_fd_pairs = []
-    for chunk_fd_pairs in utils.Grouper(
+    for chunk_fd_pairs in collection.Batch(
         cls._GenerateChunkIds(fds), cls.MULTI_STREAM_CHUNKS_READ_AHEAD):
       chunk_fds = list(map(operator.itemgetter(0), chunk_fd_pairs))
-      results_map = data_store.DB.ReadBlobs(chunk_fds, token=fds[0].token)
+      results_map = data_store.BLOBS.ReadBlobs(chunk_fds)
 
       for chunk_id, fd in chunk_fd_pairs:
         if chunk_id not in results_map or results_map[chunk_id] is None:
@@ -756,7 +756,7 @@ class VFSBlobImage(VFSFile):
     offset = chunk * self._HASH_SIZE
     self.index.seek(offset)
 
-    chunk_name = self.index.read(self._HASH_SIZE).encode("hex")
+    chunk_name = self.index.read(self._HASH_SIZE)
 
     try:
       return self.chunk_cache.Get(chunk_name)
@@ -770,9 +770,9 @@ class VFSBlobImage(VFSFile):
     readahead = []
 
     for _ in range(self._READAHEAD):
-      name = self.index.read(self._HASH_SIZE).encode("hex")
+      name = self.index.read(self._HASH_SIZE)
       if name and name not in self.chunk_cache:
-        readahead.append(name)
+        readahead.append(rdf_objects.BlobID.FromBytes(name))
 
     self._ReadChunks(readahead)
     try:
@@ -781,16 +781,16 @@ class VFSBlobImage(VFSFile):
       raise aff4.ChunkNotFoundError("Cannot open chunk %s" % chunk)
 
   def _ReadChunks(self, chunks):
-    res = data_store.DB.ReadBlobs(chunks, token=self.token)
-    for blob_hash, content in iteritems(res):
+    res = data_store.BLOBS.ReadBlobs(chunks)
+    for blob_id, content in iteritems(res):
       fd = io.BytesIO(content)
       fd.dirty = False
-      fd.chunk = blob_hash
-      self.chunk_cache.Put(blob_hash, fd)
+      fd.chunk = blob_id
+      self.chunk_cache.Put(blob_id, fd)
 
   def _WriteChunk(self, chunk):
     if chunk.dirty:
-      data_store.DB.StoreBlob(chunk.getvalue(), token=self.token)
+      data_store.BLOBS.WriteBlobWithUnknownHash(chunk.getvalue())
 
   def Flush(self):
     if self.content_dirty:
@@ -808,6 +808,7 @@ class VFSBlobImage(VFSFile):
 
     Args:
       src_fd: source file handle open for read
+
     Raises:
       IOError: if blob has already been finalized.
     """
@@ -816,20 +817,21 @@ class VFSBlobImage(VFSFile):
       if not blob:
         break
 
-      blob_hash = data_store.DB.StoreBlob(blob, token=self.token)
-      self.AddBlob(blob_hash.decode("hex"), len(blob))
+      blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(blob)
+      self.AddBlob(blob_id, len(blob))
 
     self.Flush()
 
-  def AddBlob(self, blob_hash, length):
+  def AddBlob(self, blob_id, length):
     """Add another blob to this image using its hash.
 
     Once a blob is added that is smaller than the chunksize we finalize the
     file, since handling adding more blobs makes the code much more complex.
 
     Args:
-      blob_hash: sha256 binary digest
+      blob_id: rdf_objects.BlobID object.
       length: int length of blob
+
     Raises:
       IOError: if blob has been finalized.
     """
@@ -838,7 +840,7 @@ class VFSBlobImage(VFSFile):
 
     self.content_dirty = True
     self.index.seek(0, 2)
-    self.index.write(blob_hash)
+    self.index.write(blob_id.AsBytes())
     self.size += length
 
     if length < self.chunksize:

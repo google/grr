@@ -8,6 +8,7 @@ import zipfile
 import yaml
 
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import collection
 from grr_response_server import instant_output_plugin
 
 
@@ -77,7 +78,7 @@ class CSVInstantOutputPlugin(
 
     # Counter starts from 1, as 1 value has already been written.
     counter = 1
-    for batch in utils.Grouper(exported_values, self.ROW_BATCH):
+    for batch in collection.Batch(exported_values, self.ROW_BATCH):
       counter += len(batch)
 
       writer = utils.CsvWriter()

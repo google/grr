@@ -24,6 +24,7 @@ from grr_response_core.lib import rdfvalue
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server import server_logging
 from grr_response_server.gui import http_api
@@ -35,9 +36,8 @@ CSRF_TOKEN_DURATION = rdfvalue.Duration("10h")
 
 def GenerateCSRFToken(user_id, time):
   """Generates a CSRF token based on a secret key, id and time."""
-  utils.AssertType(user_id, unicode)
-  if time is not None:
-    utils.AssertType(time, int)
+  precondition.AssertType(user_id, unicode)
+  precondition.AssertOptionalType(time, int)
 
   time = time or rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 

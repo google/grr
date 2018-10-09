@@ -6,15 +6,13 @@ from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
 
-import unittest
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 
 from grr_response_server import aff4
-from grr_response_server import data_store
-from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import vfs as api_vfs
@@ -22,6 +20,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
 @db_test_lib.DualDBTest
@@ -36,8 +35,12 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     ]
 
     fixture_test_lib.ClientFixture(self.client_id, self.token)
-    gui_test_lib.CreateFileVersions(
+    self.content_1, self.content_2 = gui_test_lib.CreateFileVersions(
         rdf_client.ClientURN(self.client_id), self.token)
+    self.content_1_hash = rdf_objects.SHA256HashID.FromData(
+        self.content_1).AsBytes()
+    self.content_2_hash = rdf_objects.SHA256HashID.FromData(
+        self.content_2).AsBytes()
     self.RequestAndGrantClientApproval(self.client_id)
 
   def testOpeningVfsOfUnapprovedClientRedirectsToHostInfoPage(self):
@@ -68,92 +71,58 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
                         self.GetPageTitle)
 
   def testSwitchingBetweenFilesRefreshesFileHashes(self):
-    # Create 2 files and set their HASH attributes to different values.
-    # Note that a string passed to fd.Schema.HASH constructor will be
-    # printed as a hexademical bytestring. Thus "111" will become "313131"
-    # and "222" will become "323232".
-    urn_a = rdfvalue.RDFURN("%s/fs/os/c/Downloads/a.txt" % self.client_id)
-    with aff4.FACTORY.Open(urn_a, mode="rw") as fd:
-      fd.Set(fd.Schema.HASH(sha256=b"111"))
-
-    urn_b = rdfvalue.RDFURN("%s/fs/os/c/Downloads/b.txt" % self.client_id)
-    with aff4.FACTORY.Open(urn_b, mode="rw") as fd:
-      fd.Set(fd.Schema.HASH(sha256=b"222"))
-
-    if data_store.RelationalDBWriteEnabled():
-      path_info_a = rdf_objects.PathInfo()
-      path_info_a.path_type = rdf_objects.PathInfo.PathType.OS
-      path_info_a.components = ["c", "Downloads", "a.txt"]
-      path_info_a.hash_entry.sha256 = b"111"
-
-      path_info_b = rdf_objects.PathInfo()
-      path_info_b.path_type = rdf_objects.PathInfo.PathType.OS
-      path_info_b.components = ["c", "Downloads", "b.txt"]
-      path_info_b.hash_entry.sha256 = b"222"
-
-      data_store.REL_DB.WritePathInfos(self.client_id,
-                                       [path_info_a, path_info_b])
+    vfs_test_lib.CreateFile(
+        db.ClientPath.OS(self.client_id, ["c", "Downloads", "a.txt"]),
+        content=self.content_1,
+        token=self.token)
+    vfs_test_lib.CreateFile(
+        db.ClientPath.OS(self.client_id, ["c", "Downloads", "b.txt"]),
+        content=self.content_2,
+        token=self.token)
 
     # Open a URL pointing to file "a".
     self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download" %
               self.client_id)
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('Sha256') td:contains('313131')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr:contains('Sha256') td:contains('%s')" %
+        self.content_1_hash.encode("hex"))
 
     # Click on a file table row with file "b". Information in the download
     # tab should get rerendered and we should see Sha256 value corresponding
     # to file "b".
     self.Click("css=tr:contains(\"b.txt\")")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('Sha256') td:contains('323232')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr:contains('Sha256') td:contains('%s')" %
+        self.content_2_hash.encode("hex"))
 
   def testSwitchingBetweenFileVersionsRefreshesDownloadTab(self):
-    urn_a = rdfvalue.RDFURN("%s/fs/os/c/Downloads/a.txt" % self.client_id)
-    path_info = rdf_objects.PathInfo.OS(components=["c", "Downloads", "a.txt"])
-
-    # Test files are set up using self.CreateFileVersions call in test's
-    # setUp method. Amend created file versions by adding different
-    # hashes to versions corresponding to different times.
-    # Note that a string passed to fd.Schema.HASH constructor will be
-    # printed as a hexademical bytestring. Thus "111" will become "313131"
-    # and "222" will become "323232".
     with test_lib.FakeTime(gui_test_lib.TIME_0):
-      with aff4.FACTORY.Create(
-          urn_a,
-          aff4_type=aff4_grr.VFSFile,
-          force_new_version=False,
-          object_exists=True) as fd:
-        fd.Set(fd.Schema.HASH(sha256=b"111"))
-
-      if data_store.RelationalDBWriteEnabled():
-        path_info.hash_entry.sha256 = b"111"
-        data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+      vfs_test_lib.CreateFile(
+          db.ClientPath.OS(self.client_id, ["c", "Downloads", "a.txt"]),
+          content=self.content_1,
+          token=self.token)
 
     with test_lib.FakeTime(gui_test_lib.TIME_1):
-      with aff4.FACTORY.Create(
-          urn_a,
-          aff4_type=aff4_grr.VFSFile,
-          force_new_version=False,
-          object_exists=True) as fd:
-        fd.Set(fd.Schema.HASH(sha256=b"222"))
-
-      if data_store.RelationalDBWriteEnabled():
-        path_info.hash_entry.sha256 = b"222"
-        data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+      vfs_test_lib.CreateFile(
+          db.ClientPath.OS(self.client_id, ["c", "Downloads", "a.txt"]),
+          content=self.content_2,
+          token=self.token)
 
     # Open a URL corresponding to a HEAD version of the file.
     self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download" %
               self.client_id)
     # Make sure displayed hash value is correct.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('Sha256') td:contains('323232')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr:contains('Sha256') td:contains('%s')" %
+        self.content_2_hash.encode("hex"))
 
     # Select the previous file version.
     self.Click("css=select.version-dropdown > option:contains(\"%s\")" %
                gui_test_lib.DateString(gui_test_lib.TIME_0))
     # Make sure displayed hash value gets updated.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('Sha256') td:contains('313131')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr:contains('Sha256') td:contains('%s')" %
+        self.content_1_hash.encode("hex"))
 
   def testVersionDropDownChangesFileContentAndDownloads(self):
     """Test the fileview interface."""
@@ -249,13 +218,20 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilContains("Hello World", self.GetText, "css=div.monospace pre")
 
   def testHexViewer(self):
+    content = b"ls\000hello world\'\000-l"
+
+    vfs_test_lib.CreateFile(
+        db.ClientPath.OS(self.client_id, ["proc", "10", "cmdline"]),
+        content=content,
+        token=self.token)
+
     self.Open("/#clients/%s/vfs/fs/os/proc/10/" % self.client_id)
 
     self.Click("css=td:contains(\"cmdline\")")
     self.Click("css=li[heading=HexView]:not(.disabled)")
 
-    self.WaitUntilEqual("6c730068656c6c6f20776f726c6427002d6c", self.GetText,
-                        "css=table.hex-area tr:first td")
+    self.WaitUntilEqual(
+        content.encode("hex"), self.GetText, "css=table.hex-area tr:first td")
 
     # The string inside the file is null-character-delimited. The way
     # a null character is displayed depends on Angular
@@ -333,12 +309,24 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
         "File(r\"\"\"fs/os/c/Downloads/a.txt\"\"\").GetBlob()."
         "WriteToFile(\"./a.txt\")'" % self.client_id)
 
+  def testTimestampsAreCorrectlyDisplayedInFileDetails(self):
+    self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt" % self.client_id)
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=tr:contains('SIZE') grr-timestamp:contains('%s')" %
+        gui_test_lib.TIME_2)
+
+    self.Click("css=td:contains('SIZE') i.fa-plus")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=tr:contains('SIZE') grr-timestamp:contains('%s')" %
+        gui_test_lib.TIME_2)
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=tr:contains('SIZE') grr-timestamp:contains('%s')" %
+        gui_test_lib.TIME_1)
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

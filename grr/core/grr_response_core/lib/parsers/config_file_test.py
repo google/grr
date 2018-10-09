@@ -17,7 +17,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import test_lib
 
-CFG = """
+CFG = b"""
 # A comment.
 Protocol 2  # Another comment.
 Ciphers aes128-ctr,aes256-ctr,aes128-cbc,aes256-cbc
@@ -42,7 +42,7 @@ class SshdConfigTest(test_lib.GRRBaseTest):
   def GetConfig(self):
     """Read in the test configuration file."""
     parser = config_file.SshdConfigParser()
-    results = list(parser.Parse(None, io.StringIO(CFG), None))
+    results = list(parser.Parse(None, io.BytesIO(CFG), None))
     self.assertEqual(1, len(results))
     return results[0]
 
@@ -84,10 +84,11 @@ class FieldParserTests(test_lib.GRRBaseTest):
     this  should be     another entry "with this quoted text as one field"
     'an entry'with" only two" fields ;; and not this comment.
     """
-    expected = [["each", "of", "these", "words", "should", "be", "fields"], [
-        "this", "should", "be", "another", "entry",
-        "with this quoted text as one field"
-    ], ["an entrywith only two", "fields"]]
+    expected = [["each", "of", "these", "words", "should", "be", "fields"],
+                [
+                    "this", "should", "be", "another", "entry",
+                    "with this quoted text as one field"
+                ], ["an entrywith only two", "fields"]]
     cfg = config_file.FieldParser(
         sep=["[ \t\f\v]+", ":", ";"], comments=["#", ";;"])
     results = cfg.ParseEntries(test_data)
@@ -144,12 +145,12 @@ class NfsExportParserTests(test_lib.GRRBaseTest):
   """Test the NFS exports parser."""
 
   def testParseNfsExportFile(self):
-    test_data = r"""
+    test_data = br"""
     /path/to/foo -rw,sync host1(ro) host2
     /path/to/bar *.example.org(all_squash,ro) \
         192.168.1.0/24 (rw) # Mistake here - space makes this default.
     """
-    exports = io.StringIO(test_data)
+    exports = io.BytesIO(test_data)
     parser = config_file.NfsExportsParser()
     results = list(parser.Parse(None, exports, None))
     self.assertEqual("/path/to/foo", results[0].share)
@@ -170,12 +171,12 @@ class MtabParserTests(test_lib.GRRBaseTest):
   """Test the mtab and proc/mounts parser."""
 
   def testParseMountData(self):
-    test_data = r"""
+    test_data = br"""
     rootfs / rootfs rw 0 0
     arnie@host.example.org:/users/arnie /home/arnie/remote fuse.sshfs rw,nosuid,nodev,max_read=65536 0 0
     /dev/sr0 /media/USB\040Drive vfat ro,nosuid,nodev
     """
-    exports = io.StringIO(test_data)
+    exports = io.BytesIO(test_data)
     parser = config_file.MtabParser()
     results = list(parser.Parse(None, exports, None))
     self.assertEqual("rootfs", results[0].device)
@@ -237,7 +238,7 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
   """Test the rsyslog parser."""
 
   def testParseRsyslog(self):
-    test_data = r"""
+    test_data = br"""
     $SomeDirective
     daemon.* @@tcp.example.com.:514;RSYSLOG_ForwardFormat
     syslog.debug,info @udp.example.com.:514;RSYSLOG_ForwardFormat
@@ -248,7 +249,7 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
     *.emerg    *
     mail.*  -/var/log/maillog
     """
-    log_conf = io.StringIO(test_data)
+    log_conf = io.BytesIO(test_data)
     parser = config_file.RsyslogParser()
     results = list(parser.ParseMultiple([None], [log_conf], None))
     self.assertEqual(1, len(results))
@@ -301,7 +302,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
   """Test the APT package source lists parser."""
 
   def testPackageSourceData(self):
-    test_data = r"""
+    test_data = br"""
     # Security updates
     deb  http://security.debian.org/ wheezy/updates main contrib non-free
     deb-src  [arch=amd64,trusted=yes]    ftp://security.debian.org/ wheezy/updates main contrib non-free
@@ -322,7 +323,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     deb-src   [arch=i386]
     deb-src abcdefghijklmnopqrstuvwxyz
     """
-    file_obj = io.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list")
     stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
@@ -356,20 +357,20 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     self.assertEqual("/", result.uris[4].path)
 
   def testEmptySourceData(self):
-    test_data = ("# comment 1\n"
-                 "# deb http://security.debian.org/ wheezy/updates main\n"
-                 "URI :\n"
-                 "URI:\n"
-                 "# Trailing whitespace on purpose\n"
-                 "URI:          \n"
-                 "\n"
-                 "URIs :\n"
-                 "URIs:\n"
-                 "# Trailing whitespace on purpose\n"
-                 "URIs:        \n"
-                 "# comment 2\n")
+    test_data = (b"# comment 1\n"
+                 b"# deb http://security.debian.org/ wheezy/updates main\n"
+                 b"URI :\n"
+                 b"URI:\n"
+                 b"# Trailing whitespace on purpose\n"
+                 b"URI:          \n"
+                 b"\n"
+                 b"URIs :\n"
+                 b"URIs:\n"
+                 b"# Trailing whitespace on purpose\n"
+                 b"URIs:        \n"
+                 b"# comment 2\n")
 
-    file_obj = io.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/test.list")
     stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
@@ -385,7 +386,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
   def testRFC822StyleSourceDataParser(self):
     """Test source list formated as per rfc822 style."""
 
-    test_data = r"""
+    test_data = br"""
     # comment comment comment
     Types: deb deb-src
     URIs:    http://example.com/debian
@@ -420,7 +421,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     [option1]: [option1-value]
 
     """
-    file_obj = io.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/rfc822.list")
     stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
@@ -482,7 +483,7 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
   """Test the Yum package source lists parser."""
 
   def testPackageSourceData(self):
-    test_data = r"""
+    test_data = br"""
     # comment 1
     [centosdvdiso]
     name=CentOS DVD ISO
@@ -502,7 +503,7 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     gpgkey=http://mirror.centos.org/CentOS/6/os/i386/RPM-GPG-KEY-CentOS-6
 
     """
-    file_obj = io.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/yum.repos.d/test1.repo")
     stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.YumPackageSourceParser()
@@ -532,16 +533,16 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     self.assertEqual("/CentOS/6/os/i386/", result.uris[3].path)
 
   def testEmptySourceData(self):
-    test_data = ("# comment 1\n"
-                 "baseurl=\n"
-                 "# Trailing whitespace on purpose\n"
-                 "baseurl=      \n"
-                 "# Trailing whitespace on purpose\n"
-                 "baseurl =            \n"
-                 "baseurl\n"
-                 "# comment 2\n")
+    test_data = (b"# comment 1\n"
+                 b"baseurl=\n"
+                 b"# Trailing whitespace on purpose\n"
+                 b"baseurl=      \n"
+                 b"# Trailing whitespace on purpose\n"
+                 b"baseurl =            \n"
+                 b"baseurl\n"
+                 b"# comment 2\n")
 
-    file_obj = io.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/yum.repos.d/emptytest.repo")
     stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.YumPackageSourceParser()
@@ -559,7 +560,7 @@ class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
   """Test the cron/at allow/deny parser."""
 
   def testParseCronData(self):
-    test_data = r"""root
+    test_data = br"""root
     user
 
     user2 user3
@@ -567,7 +568,7 @@ class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
     hi hello
     user
     pparth"""
-    file_obj = io.StringIO(test_data)
+    file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/at.allow")
     stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.CronAtAllowDenyParser()
@@ -594,7 +595,7 @@ class NtpParserTests(test_lib.GRRBaseTest):
   """Test the ntp.conf parser."""
 
   def testParseNtpConfig(self):
-    test_data = r"""
+    test_data = br"""
     # Time servers
     server 1.2.3.4 iburst
     server 4.5.6.7 iburst
@@ -619,7 +620,7 @@ class NtpParserTests(test_lib.GRRBaseTest):
     ttl 127 88
     broadcastdelay 0.01
 """
-    conffile = io.StringIO(test_data)
+    conffile = io.BytesIO(test_data)
     parser = config_file.NtpdParser()
     results = list(parser.Parse(None, conffile, None))
 
@@ -678,13 +679,13 @@ class SudoersParserTest(test_lib.GRRBaseTest):
   """Test the sudoers parser."""
 
   def testIncludes(self):
-    test_data = r"""
+    test_data = br"""
     # general comment
     #include a  # end of line comment
     #includedir b
     #includeis now a comment
     """
-    contents = io.StringIO(test_data)
+    contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
     result = list(config.Parse(None, contents, None))
 
@@ -692,13 +693,13 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     self.assertListEqual(list(result[0].entries), [])
 
   def testParseAliases(self):
-    test_data = r"""
+    test_data = br"""
     User_Alias basic = a , b, c
     User_Alias left = a, b, c :\
                right = d, e, f
     User_Alias complex = #1000, %group, %#1001, %:nonunix, %:#1002
     """
-    contents = io.StringIO(test_data)
+    contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
     result = list(config.Parse(None, contents, None))
 
@@ -730,13 +731,13 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     self.assertDictEqual(result[0].ToPrimitiveDict(), golden)
 
   def testDefaults(self):
-    test_data = r"""
+    test_data = br"""
     Defaults               syslog=auth
     Defaults>root          !set_logname
     Defaults:FULLTIMERS    !lecture
     Defaults@SERVERS       log_year, logfile=/var/log/sudo.log
     """
-    contents = io.StringIO(test_data)
+    contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
     result = list(config.Parse(None, contents, None))
 
@@ -773,14 +774,14 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     self.assertDictEqual(result[0].ToPrimitiveDict(), golden)
 
   def testSpecs(self):
-    test_data = r"""
+    test_data = br"""
     # user specs
     root        ALL = (ALL) ALL
     %wheel      ALL = (ALL) ALL
     bob     SPARC = (OP) ALL : SGI = (OP) ALL
     fred        ALL = (DB) NOPASSWD: ALL
     """
-    contents = io.StringIO(test_data)
+    contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
     result = list(config.Parse(None, contents, None))
 

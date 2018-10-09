@@ -17,6 +17,7 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_core.lib.util import collection
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import db
@@ -129,7 +130,7 @@ class ClientsMigrator(object):
     self._migrated_count = 0
     self._start_time = rdfvalue.RDFDatetime.Now()
 
-    batches = utils.Grouper(client_urns, _CLIENT_BATCH_SIZE)
+    batches = collection.Batch(client_urns, _CLIENT_BATCH_SIZE)
 
     self._Progress()
     tp = pool.ThreadPool(processes=thread_count)
@@ -389,7 +390,7 @@ class ClientVfsMigrator(object):
     to_migrate_count = len(self._client_urns_to_migrate)
     sys.stdout.write("Clients to migrate: {}\n".format(to_migrate_count))
 
-    batches = utils.Grouper(client_urns, self.client_batch_size)
+    batches = collection.Batch(client_urns, self.client_batch_size)
 
     tp = pool.ThreadPool(processes=self.thread_count)
     tp.map(self.MigrateClientBatch, list(batches))
@@ -492,7 +493,7 @@ class ClientVfsMigrator(object):
 
   def _MigrateVfsUrns(self, vfs_urns):
     """Migrates history of given list of VFS URNs."""
-    for group in utils.Grouper(vfs_urns, self.history_vfs_group_size):
+    for group in collection.Batch(vfs_urns, self.history_vfs_group_size):
       self._MigrateVfsUrnGroup(group)
 
   def _MigrateVfsUrnGroup(self, vfs_urns):
@@ -574,7 +575,7 @@ class BlobsMigrator(object):
     self._migrated_count = 0
     self._start_time = rdfvalue.RDFDatetime.Now()
 
-    batches = utils.Grouper(blob_urns, _BLOB_BATCH_SIZE)
+    batches = collection.Batch(blob_urns, _BLOB_BATCH_SIZE)
 
     self._Progress()
     tp = pool.ThreadPool(processes=thread_count)

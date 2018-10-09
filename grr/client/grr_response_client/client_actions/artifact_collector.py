@@ -13,7 +13,7 @@ from grr_response_client.client_actions import network
 from grr_response_client.client_actions import operating_system
 from grr_response_client.client_actions import standard
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import parser as parser_lib
+from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 # The client artifact collector parses the responses on the client. So the
@@ -29,13 +29,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-
-
-def _NotImplemented(args):
-  # TODO(user): Not implemented yet. This method can be deleted once the
-  # missing source types are supported.
-  del args  # Unused
-  raise NotImplementedError()
+from grr_response_core.lib.util import precondition
 
 
 class ArtifactCollector(actions.ActionPlugin):
@@ -68,11 +62,13 @@ class ArtifactCollector(actions.ActionPlugin):
     """Returns an `CollectedArtifact` rdf object for the requested artifact."""
     artifact_result = rdf_artifacts.CollectedArtifact(name=artifact.name)
 
-    parsers = []
     if apply_parsers:
-      parsers = parser_lib.Parser.GetClassesByArtifact(artifact.name)
+      parser_factory = parsers.ArtifactParserFactory(unicode(artifact.name))
+    else:
+      parser_factory = None
 
-    for source_result_list in self._ProcessSources(artifact.sources, parsers):
+    for source_result_list in self._ProcessSources(artifact.sources,
+                                                   parser_factory):
       for response in source_result_list:
         action_result = rdf_artifacts.ClientActionResult()
         action_result.type = response.__class__.__name__
@@ -111,52 +107,45 @@ class ArtifactCollector(actions.ActionPlugin):
     if value:
       self.knowledge_base.Set(attribute, value)
 
-  def _ProcessSources(self, sources, parsers):
+  def _ProcessSources(self, sources, parser_factory):
     """Iterates through sources yielding action responses."""
     for source in sources:
       for action, request in self._ParseSourceType(source):
-        yield self._RunClientAction(action, request, parsers, source.path_type)
+        yield self._RunClientAction(action, request, parser_factory,
+                                    source.path_type)
 
-  def _RunClientAction(self, action, request, parsers, path_type):
+  def _RunClientAction(self, action, request, parser_factory, path_type):
     """Runs the client action  with the request and parses the result."""
-
     responses = list(action(request))
 
-    if not parsers:
+    if parser_factory is None:
       return responses
-
-    # filter parsers by process_together setting
-    multi_parsers = []
-    single_parsers = []
-    for parser in parsers:
-      # TODO(hanuszczak): This is absolutely disgusting and should be refactored
-      # with some kind of factory, that produces different parser instances
-      # depending whether we are on the server or on the client. Doing so would
-      # probably solve issues with this very artificial metclass registry that
-      # we have here.
-      if issubclass(parser, parser_lib.FileParser):
-        parser_obj = parser(vfs.VFSOpen)
-      else:
-        parser_obj = parser()
-
-      if parser_obj.process_together:
-        multi_parsers.append(parser_obj)
-      else:
-        single_parsers.append(parser_obj)
 
     # parse the responses
     parsed_responses = []
 
     for response in responses:
-      for parser in single_parsers:
-        utils.AssertType(parser, parser_lib.SingleResponseParser)
+      for parser in parser_factory.SingleResponseParsers():
         parsed_responses.extend(
             parser.ParseResponse(self.knowledge_base, response, path_type))
 
-    for parser in multi_parsers:
-      for res in ParseMultipleResponses(parser, responses, self.knowledge_base,
-                                        path_type):
-        parsed_responses.append(res)
+      for parser in parser_factory.SingleFileParsers():
+        precondition.AssertType(response, rdf_client_fs.StatEntry)
+        pathspec = response.pathspec
+        with vfs.VFSOpen(pathspec) as filedesc:
+          parsed_responses.extend(
+              parser.ParseFile(self.knowledge_base, pathspec, filedesc))
+
+    for parser in parser_factory.MultiResponseParsers():
+      parsed_responses.extend(
+          parser.ParseResponses(self.knowledge_base, responses))
+
+    for parser in parser_factory.MultiFileParsers():
+      precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
+      pathspecs = [response.pathspec for response in responses]
+      with vfs.VFSMultiOpen(pathspecs) as filedescs:
+        parsed_responses.extend(
+            parser.ParseFiles(self.knowledge_base, pathspecs, filedescs))
 
     return parsed_responses
 
@@ -168,7 +157,7 @@ class ArtifactCollector(actions.ActionPlugin):
         type_name.DIRECTORY: self._ProcessFileSource,
         type_name.FILE: self._ProcessFileSource,
         type_name.GREP: self._ProcessGrepSource,
-        type_name.REGISTRY_KEY: _NotImplemented,
+        type_name.REGISTRY_KEY: self._ProcessRegistryKeySource,
         type_name.REGISTRY_VALUE: self._ProcessRegistryValueSource,
         type_name.WMI: self._ProcessWmiSource,
         type_name.ARTIFACT_FILES: self._ProcessArtifactFilesSource,
@@ -183,6 +172,34 @@ class ArtifactCollector(actions.ActionPlugin):
 
     for res in source_type_action(source):
       yield res
+
+  def _ProcessRegistryKeySource(self, source):
+    """Glob for paths in the registry."""
+    keys = source.base_source.attributes.get("keys", [])
+    if not keys:
+      return
+
+    interpolated_paths = artifact_utils.InterpolateListKbAttributes(
+        input_list=keys,
+        knowledge_base=self.knowledge_base,
+        ignore_errors=self.ignore_interpolation_errors)
+
+    glob_expressions = map(rdf_paths.GlobExpression, interpolated_paths)
+
+    patterns = []
+    for pattern in glob_expressions:
+      patterns.extend(pattern.Interpolate(knowledge_base=self.knowledge_base))
+    patterns.sort(key=len, reverse=True)
+
+    file_finder_action = rdf_file_finder.FileFinderAction.Stat()
+    request = rdf_file_finder.FileFinderArgs(
+        paths=patterns,
+        action=file_finder_action,
+        follow_links=True,
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+    action = file_finder.RegistryKeyFromClient
+
+    yield action, request
 
   def _ProcessGrepSource(self, source):
     """Find files fulfilling regex conditions."""
@@ -220,7 +237,7 @@ class ArtifactCollector(actions.ActionPlugin):
     pathspec_attribute = source.base_source.attributes.get("pathspec_attribute")
 
     for source_result_list in self._ProcessSources(
-        source.artifact_sources, parsers=[]):
+        source.artifact_sources, parser_factory=None):
       for response in source_result_list:
         path = _ExtractPath(response, pathspec_attribute)
         if path is not None:
@@ -342,43 +359,6 @@ class ArtifactCollector(actions.ActionPlugin):
             path=new_path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
         request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
         yield action, request
-
-
-# TODO(hanuszczak): Apply the same treatment as for single response parsing.
-def ParseMultipleResponses(parser_obj, responses, knowledge_base, path_type):
-  """Call the parser for the responses and yield rdf values.
-
-  Args:
-    parser_obj: An instance of the parser.
-    responses: A list of rdf value responses from a client action.
-    knowledge_base: containing information about the client.
-    path_type: Specifying whether OS or TSK paths are used.
-
-  Returns:
-    An iterable of rdf value responses.
-  Raises:
-    ValueError: If the requested parser is not supported.
-  """
-  parse_multiple = parser_obj.ParseMultiple
-
-  if isinstance(parser_obj, parser_lib.FileParser):
-    file_objects = []
-    stats = []
-    for res in responses:
-      try:
-        file_objects.append(vfs.VFSOpen(res.pathspec))
-        stats.append(rdf_client_fs.StatEntry(pathspec=res.pathspec))
-      except IOError:
-        continue
-    result_iterator = parse_multiple(stats, file_objects, knowledge_base)
-  elif isinstance(parser_obj,
-                  (parser_lib.RegistryParser, parser_lib.RegistryValueParser)):
-    result_iterator = parse_multiple(responses, knowledge_base)
-  elif isinstance(parser_obj, parser_lib.ArtifactFilesParser):
-    result_iterator = parse_multiple(responses, knowledge_base, path_type)
-  else:
-    raise ValueError("Unsupported parser: %s" % parser_obj)
-  return result_iterator
 
 
 def _ExtractPath(response, pathspec_attribute=None):

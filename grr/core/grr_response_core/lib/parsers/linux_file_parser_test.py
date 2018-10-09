@@ -154,23 +154,23 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
   def testPasswdParser(self):
     """Ensure we can extract users from a passwd file."""
     parser = linux_file_parser.PasswdParser()
-    dat = """
+    dat = b"""
 user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user2:/bin/bash
 """
-    out = list(parser.Parse(None, io.StringIO(dat), None))
+    out = list(parser.Parse(None, io.BytesIO(dat), None))
     self.assertEqual(len(out), 2)
     self.assertTrue(isinstance(out[1], rdf_client.User))
     self.assertTrue(isinstance(out[1], rdf_client.User))
     self.assertEqual(out[0].username, "user1")
     self.assertEqual(out[0].full_name, "User1 Name,,,")
-    dat = """
+    dat = b"""
 user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user
 """
     parser = linux_file_parser.PasswdParser()
     self.assertRaises(lib_parser.ParseError, list,
-                      parser.Parse(None, io.StringIO(dat), None))
+                      parser.Parse(None, io.BytesIO(dat), None))
 
   def testPasswdBufferParser(self):
     """Ensure we can extract users from a passwd file."""
@@ -191,7 +191,7 @@ user2:x:1001:1001:User2 Name,,,:/home/user
   def testNetgroupParser(self):
     """Ensure we can extract users from a netgroup file."""
     parser = linux_file_parser.NetgroupParser()
-    dat = u"""group1 (-,user1,) (-,user2,) (-,user3,)
+    dat = b"""group1 (-,user1,) (-,user2,) (-,user3,)
 #group1 comment
 group2 (-,user4,) (-,user2,)
 
@@ -199,7 +199,7 @@ super_group (-,user5,) (-,user6,) (-,文德文,) group1 group2
 super_group2 (-,user7,) super_group
 super_group3 (-,user5,) (-,user6,) group1 group2
 """
-    dat_fd = io.StringIO(dat)
+    dat_fd = io.BytesIO(dat)
 
     with test_lib.ConfigOverrider({
         "Artifacts.netgroup_user_blacklist": ["user2", "user3"]
@@ -241,14 +241,14 @@ super_group3 (-,user5,) (-,user6,) group1 group2
 
   def testNetgroupParserBadInput(self):
     parser = linux_file_parser.NetgroupParser()
-    dat = """group1 (-,user1,) (-,user2,) (-,user3,)
+    dat = b"""group1 (-,user1,) (-,user2,) (-,user3,)
 #group1 comment
 group2 user4 (-user2,)
 super_group (-,,user5,) (-user6,) group1 group2
 super_group2 (-,user7,) super_group
 """
     self.assertRaises(lib_parser.ParseError, list,
-                      parser.Parse(None, io.StringIO(dat), None))
+                      parser.Parse(None, io.BytesIO(dat), None))
 
   def testWtmpParser(self):
     """Test parsing of wtmp file."""
@@ -286,8 +286,8 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     for data in passwd, shadow, group, gshadow:
       if data is None:
         data = []
-      lines = "\n".join(data).format(**self.crypt)
-      files.append(io.StringIO(lines))
+      lines = "\n".join(data).format(**self.crypt).encode("utf-8")
+      files.append(io.BytesIO(lines))
     return stats, files
 
   def testNoAnomaliesWhenEverythingIsFine(self):
@@ -467,7 +467,7 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
   def testFindPaths(self):
     # TODO(user): Deal with cases where multiple vars are exported.
     # export TERM PERLLIB=.:shouldntbeignored
-    bashrc_data = io.StringIO("""
+    bashrc_data = io.BytesIO(b"""
       IGNORE='bad' PATH=${HOME}/bin:$PATH
      { PYTHONPATH=/path1:/path2 }
       export TERM=screen-256color
@@ -482,7 +482,7 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
       # Ignore PATH=foo:bar
       TERM=vt100 PS=" Foo" PERL5LIB=:shouldntbeignored
     """)
-    cshrc_data = io.StringIO("""
+    cshrc_data = io.BytesIO(b"""
       setenv PATH ${HOME}/bin:$PATH
       setenv PYTHONPATH /path1:/path2
       set term = (screen-256color)

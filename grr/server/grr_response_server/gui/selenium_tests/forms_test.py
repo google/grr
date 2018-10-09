@@ -3,7 +3,7 @@
 """Tests for the UI forms."""
 from __future__ import unicode_literals
 
-import unittest
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
@@ -11,6 +11,7 @@ from grr_response_server import flow
 from grr_response_server.flows.general import file_finder as flows_file_finder
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
+from grr.test_lib import test_lib
 
 
 class DefaultArgsTestFlowArgs(rdf_structs.RDFProtoStruct):
@@ -211,11 +212,5 @@ class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
                    "css=button:contains('Next'):not(:disabled)")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
+from grr_response_core.lib.util import collection
 from grr_response_server import aff4
 from grr_response_server import client_index
 from grr_response_server import cronjobs
@@ -138,7 +138,7 @@ class CleanInactiveClientsMixin(object):
     deadline = rdfvalue.RDFDatetime.Now() - inactive_client_ttl
     deletion_count = 0
 
-    for client_group in utils.Grouper(client_urns, 1000):
+    for client_group in collection.Batch(client_urns, 1000):
       inactive_client_urns = []
       for client in aff4.FACTORY.MultiOpen(
           client_group,

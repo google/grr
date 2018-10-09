@@ -3,14 +3,12 @@
 from __future__ import unicode_literals
 
 import abc
-import types
 
 
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 # For CronTabFile, an artifact output type. pylint: disable=unused-import
@@ -19,6 +17,7 @@ from grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr_response_core.lib.util import precondition
 
 
 class Error(Exception):
@@ -39,6 +38,8 @@ class ParseError(Error):
 
 # TODO(hanuszczak): `pytype` does not understand `with_metaclass`.
 # pytype: disable=ignored-abstractmethod
+
+
 class SingleResponseParser(with_metaclass(abc.ABCMeta)):
   """An abstract class for parsers that are able to parse individual replies."""
 
@@ -53,6 +54,61 @@ class SingleResponseParser(with_metaclass(abc.ABCMeta)):
       knowledge_base: A knowledgebase for the client that provided the response.
       response: An RDF value representing the result of artifact collection.
       path_type: A path type information used by the `ArtifactFilesParser`.
+    """
+
+
+class SingleFileParser(with_metaclass(abc.ABCMeta)):
+  """An interface for parsers that read file content."""
+
+  # TODO(hanuszczak): Define a clear file reader interface.
+
+  @abc.abstractmethod
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    """Parses a single file from the client.
+
+    Args:
+      knowledge_base: A knowledgebase for the client to whom the file belongs.
+      pathspec: A pathspec corresponding to the parsed file.
+      filedesc: A file-like object to parse.
+
+    Yields:
+      RDF values with parsed data.
+    """
+
+
+class MultiResponseParser(with_metaclass(abc.ABCMeta)):
+  """An interface for parsers requiring all replies in order to parse them."""
+
+  @abc.abstractmethod
+  def ParseResponses(self, knowledge_base, responses):
+    """Parse responses from the client.
+
+    Args:
+      knowledge_base: A knowledgebase for the client that provided responses.
+      responses: A list of RDF values with results of artifact collection.
+    """
+
+
+class MultiFileParser(with_metaclass(abc.ABCMeta)):
+  """An interface for parsers that need to read content of multiple files."""
+
+  # TODO(hanuszczak): The file interface mentioned above should also have
+  # `pathspec` property. With the current solution there is no way to enforce
+  # on the type level that `pathspecs` and `filedescs` have the same length and
+  # there is no clear correlation between the two. One possible solution would
+  # be to use a list of pairs but this is ugly to document.
+
+  @abc.abstractmethod
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+    """Parses multiple files from the client.
+
+    Args:
+      knowledge_base: A knowledgebase for the client to whome the files belong.
+      pathspecs: A list of pathspecs corresponding to the parsed files.
+      filedescs: A list fo file-like objects to parse.
+
+    Yields:
+      RDF values with parsed data.
     """
 
 
@@ -76,17 +132,12 @@ class Parser(with_metaclass(registry.MetaclassRegistry, object)):
   # The semantic types that can be produced by this parser.
   output_types = []
 
-  # If set to true results for this parser must collected and processed in one
-  # go. This allows parsers to combine the results of multiple files/registry
-  # keys. It is disabled by default as it is more efficient to stream and parse
-  # results one at a time when this is not necessary.
-  process_together = False
-
   @classmethod
   def GetClassesByArtifact(cls, artifact_name):
     """Get the classes that support parsing a given artifact."""
     return [
-        cls.classes[c] for c in cls.classes
+        cls.classes[c]
+        for c in cls.classes
         if artifact_name in cls.classes[c].supported_artifacts
     ]
 
@@ -122,7 +173,7 @@ class CommandParser(Parser, SingleResponseParser):
 
   def ParseResponse(self, knowledge_base, response, path_type):
     del path_type  # Unused.
-    utils.AssertType(response, rdf_client_action.ExecuteResponse)
+    precondition.AssertType(response, rdf_client_action.ExecuteResponse)
 
     return self.Parse(
         cmd=response.request.cmd,
@@ -140,8 +191,9 @@ class CommandParser(Parser, SingleResponseParser):
                                "command had %s return code" % (cmd, return_val))
 
 
-# TODO(hanuszczak): This class should implement only one interface.
-class FileParser(Parser, SingleResponseParser):
+# TODO(hanuszczak): This class should be removed - subclasses should implement
+# `SingleFileParser` directly.
+class FileParser(Parser, SingleFileParser):
   """Abstract parser for processing files output.
 
   Must implement the Parse function.
@@ -150,39 +202,33 @@ class FileParser(Parser, SingleResponseParser):
   # Prevents this from automatically registering.
   __abstract = True  # pylint: disable=g-bad-name
 
-  def __init__(self, fopen=None):
-    """Initializes the file parser object.
-
-    Args:
-      fopen: A function that returns file-like object for given pathspec.
-    """
-    # TODO(hanuszczak): Define clear interface for file-like objects.
-    if fopen is not None:
-      utils.AssertType(fopen, types.FunctionType)
-    self._fopen = fopen
-
   # TODO(hanuszczak): Make this abstract.
   # TODO(hanuszczak): Remove `knowledge_base` argument.
   # TODO(hanuszczak): Replace `stat` with `pathspec` argument.
   def Parse(self, stat, file_object, knowledge_base):
     """Take the file data, and yield RDFValues."""
 
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    # TODO(hanuszczak): Here we create a dummy stat entry - all implementations
+    # of this class care only about the `pathspec` attribute anyway. This method
+    # should be gone once all subclasses implement `SingleFileParser` directly.
+    stat_entry = rdf_client_fs.StatEntry(pathspec=pathspec)
+    return self.Parse(stat_entry, filedesc, knowledge_base)
+
+
+# TODO(hanuszczak): This class should be removed - subclasses should implement
+# `MultiFileParser` directly.
+class FileMultiParser(Parser, MultiFileParser):
+  """Abstract parser for processing files output."""
+
+  # TODO(hanuszczak): Make this abstract.
   def ParseMultiple(self, stats, file_objects, knowledge_base):
-    """Take the file data, and yield RDFValues."""
+    raise NotImplementedError()
 
-  def ParseResponse(self, knowledge_base, response, path_type):
-    del path_type  # Unused.
-    utils.AssertType(response, rdf_client_fs.StatEntry)
-
-    # TODO(hanuszczak): This is a temporary hack to avoid rewriting hundreds of
-    # tests for file parser. Once the tests are adapted to use the new API, the
-    # constructor should be disallowed to take `None` as file opener as soon as
-    # possible.
-    if self._fopen is None:
-      raise AssertionError("Parser constructed without file opening function")
-
-    with self._fopen(response.pathspec) as filedesc:
-      return self.Parse(response, filedesc, knowledge_base)
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+    # TODO(hanuszczak): See analogous comment in `FileParser`.
+    stat_entries = [rdf_client_fs.StatEntry(pathspec=_) for _ in pathspecs]
+    return self.ParseMultiple(stat_entries, filedescs, knowledge_base)
 
 
 # TODO(hanuszczak): This class should implement only one interface.
@@ -195,7 +241,7 @@ class WMIQueryParser(Parser, SingleResponseParser):
 
   def ParseResponse(self, knowledge_base, response, path_type):
     del knowledge_base, path_type  # Unused.
-    utils.AssertType(response, rdf_protodict.Dict)
+    precondition.AssertType(response, rdf_protodict.Dict)
 
     return self.Parse(response)
 
@@ -213,7 +259,8 @@ class RegistryValueParser(Parser, SingleResponseParser):
     del path_type  # Unused.
     # TODO(hanuszczak): Why some of the registry value parsers anticipate string
     # response? This is stupid.
-    utils.AssertType(response, (rdf_client_fs.StatEntry, rdfvalue.RDFString))
+    precondition.AssertType(response,
+                            (rdf_client_fs.StatEntry, rdfvalue.RDFString))
 
     return self.Parse(response, knowledge_base)
 
@@ -222,9 +269,6 @@ class RegistryValueParser(Parser, SingleResponseParser):
 class RegistryParser(Parser, SingleResponseParser):
   """Abstract parser for processing Registry values."""
 
-  def ParseMultiple(self, stats, knowledge_base):
-    """Parse multiple results in a single call."""
-
   # TODO(hanuszczak): Make this abstract.
   # TODO(hanuszczak): Make order of arguments consistent with other methods.
   def Parse(self, stat, knowledge_base):
@@ -232,9 +276,23 @@ class RegistryParser(Parser, SingleResponseParser):
 
   def ParseResponse(self, knowledge_base, response, path_type):
     del path_type  # Unused.
-    utils.AssertType(response, rdf_client_fs.StatEntry)
+    precondition.AssertType(response, rdf_client_fs.StatEntry)
 
     return self.Parse(response, knowledge_base)
+
+
+# TODO(hanuszczak): This class should implement only one interface.
+class RegistryMultiParser(Parser, MultiResponseParser):
+  """Abstract parser for processing registry values."""
+
+  # TODO(hanuszczak): Make this abstract.
+  def ParseMultiple(self, stats, knowledge_base):
+    raise NotImplementedError()
+
+  def ParseResponses(self, knowledge_base, responses):
+    precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
+
+    return self.ParseMultiple(responses, knowledge_base)
 
 
 # TODO(hanuszczak): This class should implement only one interface.
@@ -248,7 +306,7 @@ class GrepParser(Parser, SingleResponseParser):
 
   def ParseResponse(self, knowledge_base, response, path_type):
     del path_type  # Unused.
-    utils.AssertType(response, rdf_file_finder.FileFinderResult)
+    precondition.AssertType(response, rdf_file_finder.FileFinderResult)
 
     return self.Parse(response, knowledge_base)
 
@@ -267,6 +325,19 @@ class ArtifactFilesParser(Parser, SingleResponseParser):
 
 
 # TODO(hanuszczak): This class should implement only one interface.
+class ArtifactFilesMultiParser(Parser, MultiResponseParser):
+  """Abstract multi-parser for processing artifact files."""
+
+  # TODO(hanuszczak: Make this abstract.
+  def ParseMultiple(self, stat_entries, knowledge_base):
+    """Parse artifact files."""
+
+  def ParseResponses(self, knowledge_base, responses):
+    precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
+    return self.ParseMultiple(responses, knowledge_base)
+
+
+# TODO(hanuszczak): This class should implement only one interface.
 class RekallPluginParser(Parser, SingleResponseParser):
   """Parses Rekall responses."""
 
@@ -274,6 +345,6 @@ class RekallPluginParser(Parser, SingleResponseParser):
 
   def ParseResponse(self, knowledge_base, response, path_type):
     del path_type  # Unused.
-    utils.AssertType(response, rdf_rekall_types.RekallResponse)
+    precondition.AssertType(response, rdf_rekall_types.RekallResponse)
 
     return self.Parse(response, knowledge_base)

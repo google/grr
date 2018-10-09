@@ -19,6 +19,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import collection
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import client_index
@@ -524,7 +525,7 @@ class FrontEndServer(object):
     message_handler_requests = []
     dropped_count = 0
     for session_id, msgs in iteritems(
-        utils.GroupBy(messages, operator.attrgetter("session_id"))):
+        collection.Group(messages, operator.attrgetter("session_id"))):
 
       # Remove and handle messages to WellKnownFlows
       leftover_msgs = self.HandleWellKnownFlows(msgs)
@@ -596,7 +597,7 @@ class FrontEndServer(object):
     now = time.time()
     with queue_manager.QueueManager(token=self.token) as manager:
       for session_id, msgs in iteritems(
-          utils.GroupBy(messages, operator.attrgetter("session_id"))):
+          collection.Group(messages, operator.attrgetter("session_id"))):
 
         # Remove and handle messages to WellKnownFlows
         leftover_msgs = self.HandleWellKnownFlows(msgs)

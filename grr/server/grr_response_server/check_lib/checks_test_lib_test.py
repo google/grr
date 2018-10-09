@@ -172,9 +172,15 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     """Test for the GenFileData() method."""
     # Need a parser
     self.assertRaises(ValueError, self.GenFileData, "EMPTY", [])
+
+    class VoidParser(parser.SingleFileParser):
+
+      def ParseFile(self, knowledge_base, pathspec, filedesc):
+        del knowledge_base, pathspec, filedesc  # Unused.
+        return []
+
     # Trivial empty case.
-    file_parser = parser.FileParser()
-    result = self.GenFileData("EMPTY", [], file_parser)
+    result = self.GenFileData("EMPTY", [], VoidParser())
     self.assertTrue("KnowledgeBase" in result)
     self.assertTrue("EMPTY" in result)
     self.assertDictEqual(self.SetArtifactData(), result["EMPTY"])
@@ -182,7 +188,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     result = self.GenFileData("FILES", {
         "/tmp/foo": """blah""",
         "/tmp/bar": """meh"""
-    }, file_parser)
+    }, VoidParser())
     self.assertTrue("FILES" in result)
     # No parser information should be generated.
     self.assertEquals([], result["FILES"]["PARSER"])

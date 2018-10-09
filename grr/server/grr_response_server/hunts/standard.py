@@ -16,6 +16,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import collection
 from grr_response_proto import flows_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
@@ -381,8 +382,8 @@ class GenericHunt(implementation.GRRHunt):
     self.Log("Hunt stop. Terminating all the started flows.")
 
     # Delete hunt flows states.
-    for flows_batch in utils.Grouper(started_flows,
-                                     self.__class__.STOP_BATCH_SIZE):
+    for flows_batch in collection.Batch(started_flows,
+                                        self.__class__.STOP_BATCH_SIZE):
       with queue_manager.QueueManager(token=self.token) as manager:
         manager.MultiDestroyFlowStates(flows_batch)
 

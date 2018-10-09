@@ -9,15 +9,16 @@ from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import precondition
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import artifact_registry
@@ -351,64 +352,46 @@ class KnowledgeBaseInitializationFlowMixin(object):
                            " KnowledgeBase" % self.client_id)
 
 
-def ApplyParserToResponses(processor_obj, responses, flow_obj):
-  """Parse responses using the specified processor and the right args.
+def ApplyParsersToResponses(parser_factory, responses, flow_obj):
+  """Parse responses with applicable parsers.
 
   Args:
-    processor_obj: A Processor object that inherits from Parser.
-    responses: A list of, or single response depending on the processors
-      process_together setting.
+    parser_factory: A parser factory for specific artifact.
+    responses: A list of responses from the client.
     flow_obj: An artifact collection flow.
 
-  Raises:
-    RuntimeError: On bad parser.
-
   Returns:
-    An iterator of the processor responses.
+    A list of (possibly parsed) responses.
   """
-  # TODO(hanuszczak): Is it ever possible that we have `None`?
-  if not processor_obj:
-    # We don't do any parsing, the results are raw as they came back.
-    # If this is an RDFValue we don't want to unpack it further
-    if isinstance(responses, rdfvalue.RDFValue):
-      result_iterator = [responses]
-    else:
-      result_iterator = responses
+  # We have some processors to run.
+  knowledge_base = flow_obj.state.knowledge_base
 
-  else:
-    # We have some processors to run.
-    state = flow_obj.state
+  parsed_responses = []
 
-    # TODO(hanuszczak): Implement new-style parsing method with support for
-    # multiple responses.
-    if processor_obj.process_together:
-      # We are processing things in a group which requires specialized
-      # handling by the parser. This is used when multiple responses need to
-      # be combined to parse successfully. E.g parsing passwd and shadow files
-      # together.
-      parse_method = processor_obj.ParseMultiple
-      if isinstance(processor_obj, parser.FileParser):
-        # TODO(amoser): This is very brittle, one day we should come
-        # up with a better API here.
-        urns = [r.AFF4Path(flow_obj.client_urn) for r in responses]
-        file_objects = list(aff4.FACTORY.MultiOpen(urns, token=flow_obj.token))
-        file_objects.sort(key=lambda file_object: file_object.urn)
-        stats = sorted(responses, key=lambda r: r.pathspec.path)
-        result_iterator = parse_method(stats, file_objects,
-                                       state.knowledge_base)
-      elif isinstance(processor_obj, parser.RegistryParser):
-        result_iterator = parse_method(responses, state.knowledge_base)
-      elif isinstance(processor_obj, parser.ArtifactFilesParser):
-        result_iterator = parse_method(responses, state.knowledge_base,
-                                       flow_obj.args.path_type)
-      else:
-        raise RuntimeError("Unsupported parser detected %s" % processor_obj)
-    else:
-      utils.AssertType(processor_obj, parser.SingleResponseParser)
-      result_iterator = processor_obj.ParseResponse(
-          state.knowledge_base, responses, flow_obj.args.path_type)
+  for response in responses:
+    for parser in parser_factory.SingleResponseParsers():
+      parsed_responses.extend(
+          parser.ParseResponse(knowledge_base, response,
+                               flow_obj.args.path_type))
 
-  return result_iterator
+    for parser in parser_factory.SingleFileParsers():
+      precondition.AssertType(response, rdf_client_fs.StatEntry)
+      pathspec = response.pathspec
+      with OpenAff4File(flow_obj, pathspec) as filedesc:
+        parsed_responses.extend(
+            parser.ParseFile(knowledge_base, pathspec, filedesc))
+
+  for parser in parser_factory.MultiResponseParsers():
+    parsed_responses.extend(parser.ParseResponses(knowledge_base, responses))
+
+  for parser in parser_factory.MultiFileParsers():
+    precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
+    pathspecs = [response.pathspec for response in responses]
+    with MultiOpenAff4File(flow_obj, pathspecs) as filedescs:
+      parsed_responses.extend(
+          parser.ParseFiles(knowledge_base, pathspecs, filedescs))
+
+  return parsed_responses or responses
 
 
 ARTIFACT_STORE_ROOT_URN = aff4.ROOT_URN.Add("artifact_store")
@@ -469,6 +452,13 @@ def UploadArtifactYamlFile(file_content,
 def OpenAff4File(flow_obj, pathspec):
   aff4_path = pathspec.AFF4Path(flow_obj.client_urn)
   return aff4.FACTORY.Open(aff4_path, token=flow_obj.token)
+
+
+# TODO(hanuszczak): Same as above.
+def MultiOpenAff4File(flow_obj, pathspecs):
+  aff4_paths = [_.AFF4Path(flow_obj.client_urn) for _ in pathspecs]
+  fileopens = aff4.FACTORY.MultiOpenOrdered(aff4_paths, token=flow_obj.token)
+  return utils.MultiContext(fileopens)
 
 
 class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):

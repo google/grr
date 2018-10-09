@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib import stats
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server import aff4
 
@@ -61,7 +62,7 @@ class RelDBChecker(object):
 
   def _CheckAccess(self, username, subject_id, approval_type):
     """Checks access to a given subject by a given user."""
-    utils.AssertType(subject_id, unicode)
+    precondition.AssertType(subject_id, unicode)
 
     cache_key = (username, subject_id, approval_type)
     try:
@@ -305,6 +306,14 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # operations started by him- or herself.
 
     return self.delegate.GetVfsFileContentUpdateState(args, token=token)
+
+  def GetFileDecoders(self, args, token=None):
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
+    return self.delegate.GetFileDecoders(args, token=token)
+
+  def GetDecodedFileBlob(self, args, token=None):
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
+    return self.delegate.GetDecodedFileBlob(args, token=token)
 
   # Clients labels methods.
   # ======================

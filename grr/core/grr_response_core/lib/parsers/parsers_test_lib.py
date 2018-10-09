@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import io
 
 
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
@@ -28,7 +29,10 @@ def GenInit(svc, desc, start=("2", "3", "4", "5"), stop=("1")):
     # Short-Description:    %s
     ### END INIT INFO
     """ % (svc, " ".join(start), " ".join(stop), desc)
-  return {"/etc/insserv.conf": insserv, "/etc/init.d/%s" % svc: tmpl}
+  return {
+      "/etc/insserv.conf": insserv.encode("utf-8"),
+      "/etc/init.d/%s" % svc: tmpl.encode("utf-8")
+  }
 
 
 def GenTestData(paths, data, st_mode=33188):
@@ -38,13 +42,13 @@ def GenTestData(paths, data, st_mode=33188):
     p = rdf_paths.PathSpec(path=path, pathtype="OS")
     stats.append(rdf_client_fs.StatEntry(pathspec=p, st_mode=st_mode))
   for val in data:
-    files.append(io.StringIO(val))
+    files.append(io.BytesIO(utils.SmartStr(val)))
   return stats, files
 
 
 def GenXinetd(svc="test", disable="no"):
   """Generate xinetd file."""
-  defaults = r"""
+  defaults = br"""
     defaults
     {
        instances      = 60
@@ -55,7 +59,7 @@ def GenXinetd(svc="test", disable="no"):
     }
     includedir /etc/xinetd.d
     """
-  tmpl = """
+  tmpl = b"""
     service %s
     {
        disable         = %s

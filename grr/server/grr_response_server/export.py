@@ -28,6 +28,7 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import collection
 from grr_response_proto import export_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store_utils
@@ -917,11 +918,11 @@ class CollectionConverterBase(ExportConverter):
 
   BATCH_SIZE = 1000
 
-  def Convert(self, metadata, collection, token=None):
+  def Convert(self, metadata, aff4_collection, token=None):
     if not collection:
       return
 
-    for batch in utils.Grouper(collection, self.BATCH_SIZE):
+    for batch in collection.Batch(aff4_collection, self.BATCH_SIZE):
       converted_batch = ConvertValues(
           metadata, batch, token=token, options=self.options)
       for v in converted_batch:
@@ -2021,8 +2022,8 @@ def ConvertValuesWithMetadata(metadata_value_pairs, token=None, options=None):
   """
   no_converter_found_error = None
   for metadata_values_group in itervalues(
-      utils.GroupBy(metadata_value_pairs,
-                    lambda pair: pair[1].__class__.__name__)):
+      collection.Group(metadata_value_pairs,
+                       lambda pair: pair[1].__class__.__name__)):
 
     _, first_value = metadata_values_group[0]
     converters_classes = ExportConverter.GetConvertersByValue(first_value)

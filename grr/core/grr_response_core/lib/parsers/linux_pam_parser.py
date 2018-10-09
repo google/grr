@@ -9,6 +9,7 @@ import re
 from builtins import zip  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import parser
+from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
 
@@ -56,7 +57,7 @@ class PAMFieldParser(config_file.FieldParser):
     # simple path keyed dict of file contents.
     cache = {}
     for stat_obj, file_obj in zip(stats, file_objects):
-      cache[stat_obj.pathspec.path] = file_obj.read()
+      cache[stat_obj.pathspec.path] = utils.ReadFileBytesAsUnicode(file_obj)
 
     result = []
     external = []
@@ -181,12 +182,11 @@ class PAMFieldParser(config_file.FieldParser):
     return result, external
 
 
-class PAMParser(parser.FileParser):
+class PAMParser(parser.FileMultiParser):
   """Artifact parser for PAM configurations."""
 
   output_types = ["PamConfig"]
   supported_artifacts = ["LinuxPamConfigs"]
-  process_together = True
 
   def __init__(self, *args, **kwargs):
     super(PAMParser, self).__init__(*args, **kwargs)

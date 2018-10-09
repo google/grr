@@ -4,7 +4,6 @@
 from __future__ import unicode_literals
 
 
-import unittest
 from grr_response_core.lib import flags
 
 from grr_response_core.lib import rdfvalue
@@ -63,27 +62,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
           check_flow_errors=False)
 
   def testRefreshFileStartsFlow(self):
-    self.Open("/")
-
-    self.Type("client_query", "C.0000000000000001")
-    self.Click("client_query_submit")
-
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
-
-    # Choose client 1.
-    self.Click("css=td:contains('0001')")
-
-    # Go to Browse VFS.
-    self.Click("css=a:contains('Browse Virtual Filesystem')")
-
-    self.Click("css=#_fs i.jstree-icon")
-    self.Click("css=#_fs-os i.jstree-icon")
-    self.Click("css=#_fs-os-c i.jstree-icon")
-
-    # Test file versioning.
-    self.WaitUntil(self.IsElementPresent, "css=#_fs-os-c-Downloads")
-    self.Click("link=Downloads")
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/Downloads/")
 
     # Select a file and start a flow by requesting a newer version.
     self.Click("css=tr:contains(\"a.txt\")")
@@ -120,13 +99,12 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     # from the current one, otherwise the previous one and the new one will
     # be indistinguishable in the UI (as it has a 1s precision when
     # displaying versions).
-    with test_lib.FakeTime(time_in_future):
-      gui_test_lib.CreateFileVersion(
-          rdf_client.ClientURN("C.0000000000000001"),
-          "fs/os/c/Downloads/a.txt",
-          "The newest version!".encode("utf-8"),
-          timestamp=rdfvalue.RDFDatetime.Now(),
-          token=self.token)
+    gui_test_lib.CreateFileVersion(
+        rdf_client.ClientURN("C.0000000000000001"),
+        "fs/os/c/Downloads/a.txt",
+        "The newest version!".encode("utf-8"),
+        timestamp=time_in_future,
+        token=self.token)
 
     # Once the flow has finished, the file view should update and add the
     # newly created, latest version of the file to the list. The selected
@@ -303,11 +281,5 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "link=foo")
 
 
-def main(argv):
-  del argv  # Unused.
-  # Run the full test suite
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

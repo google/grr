@@ -7,8 +7,6 @@ import os
 import traceback
 
 
-import unittest
-
 from grr_response_core.lib import flags
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -523,10 +521,5 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
         hunt.urn.Basename())
 
 
-def main(argv):
-  del argv  # Unused.
-  unittest.main()
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(test_lib.main)

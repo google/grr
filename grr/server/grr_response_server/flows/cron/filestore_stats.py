@@ -8,7 +8,7 @@ from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import stats as stats_lib
-from grr_response_core.lib import utils
+from grr_response_core.lib.util import collection
 from grr_response_server import aff4
 
 from grr_response_server.aff4_objects import cronjobs
@@ -114,7 +114,7 @@ class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
         self.HASH_PATH, token=self.token).ListChildren(limit=10**8)
 
     try:
-      for urns in utils.Grouper(hashes, self.OPEN_FILES_LIMIT):
+      for urns in collection.Batch(hashes, self.OPEN_FILES_LIMIT):
         for fd in aff4.FACTORY.MultiOpen(
             urns, mode="r", token=self.token, age=aff4.NEWEST_TIME):
 
