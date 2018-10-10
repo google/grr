@@ -1,13 +1,22 @@
 #!/usr/bin/env python
 """setup.py file for a GRR API client library."""
+from __future__ import unicode_literals
 
-import ConfigParser
 import os
 import shutil
+import sys
 
 from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.sdist import sdist
+
+# TODO(hanuszczak): Fix this import once support for Python 2 is dropped.
+# pylint: disable=g-import-not-at-top
+if sys.version_info.major == 2:
+  import ConfigParser as configparser
+else:
+  import configparser
+# pylint: enable=g-import-not-at-top
 
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
@@ -19,13 +28,14 @@ os.chdir(THIS_DIRECTORY)
 
 def get_config():
   """Get INI parser with version.ini data."""
+  # TODO(hanuszczak): See comment in `setup.py` for `grr-response-proto`.
   ini_path = os.path.join(THIS_DIRECTORY, "version.ini")
   if not os.path.exists(ini_path):
     ini_path = os.path.join(THIS_DIRECTORY, "../../version.ini")
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
-  config = ConfigParser.SafeConfigParser()
+  config = configparser.SafeConfigParser()
   config.read(ini_path)
   return config
 
