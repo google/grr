@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A script to prepare the source tree for building."""
 from __future__ import print_function
+from __future__ import unicode_literals
 
 # This script must have no special requirements because it wont be able to
 # import any GRR stuff until the protos are built.
@@ -67,7 +68,7 @@ def MakeProto():
       raise RuntimeError("Unable to launch %s protoc compiler. Please "
                          "set the PROTOC environment variable.", protoc)
 
-    if "3.3.0" not in output:
+    if b"3.3.0" not in output:
       raise RuntimeError("Incompatible protoc compiler detected. "
                          "We need 3.3.0 not %s" % output)
 
