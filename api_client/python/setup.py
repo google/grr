@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """setup.py file for a GRR API client library."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os
@@ -71,6 +72,7 @@ setup_args = dict(
         "console_scripts": ["grr_api_shell = grr_api_client.api_shell:main",]
     },
     install_requires=[
+        "future==0.16.0",
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
         "cryptography==2.3",
         "ipython==5.0.0",
