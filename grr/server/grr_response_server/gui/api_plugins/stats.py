@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """API handlers for stats."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
 from future.utils import iterkeys
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import stats_pb2
 from grr_response_server import aff4
@@ -40,7 +41,7 @@ class ApiListStatsStoreMetricsMetadataArgs(rdf_structs.RDFProtoStruct):
 class ApiListStatsStoreMetricsMetadataResult(rdf_structs.RDFProtoStruct):
   protobuf = stats_pb2.ApiListStatsStoreMetricsMetadataResult
   rdf_deps = [
-      stats.MetricMetadata,
+      rdf_stats.MetricMetadata,
   ]
 
 

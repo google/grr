@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.windows_persistence."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags

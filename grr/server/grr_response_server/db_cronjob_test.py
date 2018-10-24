@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """Mixin tests for storing cronjob objects in the relational db."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
+from grr_response_core.lib.util import random
 from grr_response_server import db
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr.test_lib import test_lib
@@ -15,7 +16,7 @@ class DatabaseTestCronJobMixin(object):
 
   def _CreateCronJob(self):
     return rdf_cronjobs.CronJob(
-        cron_job_id="job_%s" % utils.PRNG.GetUInt16(), enabled=True)
+        cron_job_id="job_%s" % random.UInt16(), enabled=True)
 
   def testCronJobReading(self):
     job = self._CreateCronJob()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests client actions related to administrating the client."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os
@@ -15,11 +16,11 @@ from grr_response_client.client_actions import admin
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.stats import stats_collector_instance
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 
@@ -188,12 +189,9 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
 
   def testReturnsAllDataByDefault(self):
     """Checks that stats collection works."""
-
-    stats.STATS.RegisterCounterMetric("grr_client_received_bytes")
-    stats.STATS.IncrementCounter("grr_client_received_bytes", 1566)
-
-    stats.STATS.RegisterCounterMetric("grr_client_sent_bytes")
-    stats.STATS.IncrementCounter("grr_client_sent_bytes", 2000)
+    stats_collector = stats_collector_instance.Get()
+    stats_collector.IncrementCounter("grr_client_received_bytes", 1566)
+    stats_collector.IncrementCounter("grr_client_sent_bytes", 2000)
 
     results = self.RunAction(
         admin.GetClientStats,

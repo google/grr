@@ -17,6 +17,8 @@ itself. This allows callers to create a data store specific filter
 implementation, with no prior knowledge of the concrete implementation.
 
 In order to accommodate for the data store's basic filtering capabilities it is
+from __future__ import absolute_import
+
 important to allow the data store to store attribute values using the most
 appropriate types.
 
@@ -55,11 +57,12 @@ from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
+from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import stats_utils
 from grr_response_server import access_control
 from grr_response_server import blob_store
 from grr_response_server import db
@@ -111,7 +114,7 @@ def RelationalDBFlowsEnabled():
 # pylint: disable=g-doc-return-or-yield
 
 
-class Error(stats.CountingExceptionMixin, Exception):
+class Error(stats_utils.CountingExceptionMixin, Exception):
   """Base class for all exceptions in this module."""
   pass
 
@@ -445,10 +448,12 @@ class MutationPool(object):
       if task.task_ttl <= 0:
         # Remove the task if ttl is exhausted.
         delete_attrs.add(predicate)
-        stats.STATS.IncrementCounter("grr_task_ttl_expired_count")
+        stats_collector_instance.Get().IncrementCounter(
+            "grr_task_ttl_expired_count")
       else:
         if task.task_ttl != rdf_flows.GrrMessage.max_ttl - 1:
-          stats.STATS.IncrementCounter("grr_task_retransmission_count")
+          stats_collector_instance.Get().IncrementCounter(
+              "grr_task_retransmission_count")
 
         serialized_tasks_dict.setdefault(predicate,
                                          []).append(task.SerializeToString())
@@ -476,8 +481,10 @@ class MutationPool(object):
     to_set = {}
     for name, metadata in iteritems(metrics_metadata):
       if metadata.fields_defs:
-        for fields_values in stats.STATS.GetMetricFields(name):
-          value = stats.STATS.GetMetricValue(name, fields=fields_values)
+        for fields_values in stats_collector_instance.Get().GetMetricFields(
+            name):
+          value = stats_collector_instance.Get().GetMetricValue(
+              name, fields=fields_values)
 
           store_value = stats_values.StatsStoreValue()
           store_fields_values = []
@@ -493,7 +500,7 @@ class MutationPool(object):
           to_set.setdefault(DataStore.STATS_STORE_PREFIX + name,
                             []).append(store_value)
       else:
-        value = stats.STATS.GetMetricValue(name)
+        value = stats_collector_instance.Get().GetMetricValue(name)
         store_value = stats_values.StatsStoreValue()
         store_value.SetValue(value, metadata.value_type)
 
@@ -506,7 +513,7 @@ class MutationPool(object):
       raise ValueError("Can't use NEWEST_TIMESTAMP in DeleteStats.")
 
     predicates = []
-    for key in stats.STATS.GetAllMetricsMetadata():
+    for key in stats_collector_instance.Get().GetAllMetricsMetadata():
       predicates.append(DataStore.STATS_STORE_PREFIX + key)
 
     start = None
@@ -618,7 +625,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
 
   def _RegisterSize(self):
     """Measures size of DataStore."""
-    stats.STATS.SetGaugeValue("datastore_size", self.Size())
+    stats_collector_instance.Get().SetGaugeValue("datastore_size", self.Size())
 
   def Initialize(self):
     """Initialization of the datastore."""
@@ -686,7 +693,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
       except DBSubjectLockError:
         if not blocking:
           raise
-        stats.STATS.IncrementCounter("datastore_retries")
+        stats_collector_instance.Get().IncrementCounter("datastore_retries")
         time.sleep(retrywrap_timeout)
         timeout += retrywrap_timeout
 
@@ -1662,11 +1669,6 @@ class DataStoreInit(registry.InitHook):
     atexit.register(DB.Flush)
     monitor_port = config.CONFIG["Monitoring.http_port"]
     if monitor_port != 0:
-      stats.STATS.RegisterGaugeMetric(
-          "datastore_size",
-          int,
-          docstring="Size of data store in bytes",
-          units="BYTES")
       DB.InitializeMonitorThread()
 
     # Initialize the blobstore.
@@ -1688,8 +1690,3 @@ class DataStoreInit(registry.InitHook):
       raise ValueError("Database %s not found." % rel_db_name)
     logging.info("Using database implementation %s", rel_db_name)
     REL_DB = db.DatabaseValidationWrapper(cls())
-
-  def RunOnce(self):
-    """Initialize some Varz."""
-    stats.STATS.RegisterCounterMetric("grr_commit_failure")
-    stats.STATS.RegisterCounterMetric("datastore_retries")

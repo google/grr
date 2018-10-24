@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """RDFValues describing web history artifacts."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue

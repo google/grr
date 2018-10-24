@@ -10,6 +10,7 @@ Frontend Servers running without any problems as long as you don't use
 data store replication. Only if you work on a replicated database you
 will run into race conditions and have to disable the backup instances.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -19,7 +20,7 @@ from future.utils import with_metaclass
 
 from grr_response_core import config
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
+from grr_response_core.stats import stats_collector_instance
 
 
 class DefaultMasterWatcher(with_metaclass(registry.MetaclassRegistry, object)):
@@ -39,11 +40,11 @@ class DefaultMasterWatcher(with_metaclass(registry.MetaclassRegistry, object)):
 
     if master:
       logging.info("data center is now active.")
-      stats.STATS.SetGaugeValue("is_master", 1)
+      stats_collector_instance.Get().SetGaugeValue("is_master", 1)
       self.is_master = True
     else:
       logging.info("data center became inactive.")
-      stats.STATS.SetGaugeValue("is_master", 0)
+      stats_collector_instance.Get().SetGaugeValue("is_master", 0)
       self.is_master = False
 
 
@@ -54,9 +55,6 @@ class MasterInit(registry.InitHook):
   """Init hook class for the master watcher."""
 
   def RunOnce(self):
-    # stat is set to 0 at registration time.
-    stats.STATS.RegisterGaugeMetric("is_master", int)
-
     global MASTER_WATCHER  # pylint: disable=global-statement
 
     watcher_name = config.CONFIG["Server.master_watcher_class"]

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The base class for flow objects."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -10,10 +11,10 @@ from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4_flows
 from grr_response_server import data_store
@@ -370,7 +371,6 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       client_id = self.rdf_flow.client_id
       flow_id = self.rdf_flow.flow_id
 
-      flow_ref = None
       flow_ref = rdf_objects.FlowReference(client_id=client_id, flow_id=flow_id)
       notification_lib.Notify(
           self.creator, rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_FAILED,
@@ -392,7 +392,23 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     data_store.REL_DB.DeleteAllFlowRequestsAndResponses(client_id, flow_id)
 
   def NotifyAboutEnd(self):
-    pass
+    if self.ShouldSendNotifications():
+      # Sum up number of replies to write with the number of already
+      # written results.
+      num_results = (
+          len(self.replies_to_write) + data_store.REL_DB.CountFlowResults(
+              self.rdf_flow.client_id, self.rdf_flow.flow_id))
+      flow_ref = rdf_objects.FlowReference(
+          client_id=self.rdf_flow.client_id, flow_id=self.rdf_flow.flow_id)
+      notification_lib.Notify(
+          self.creator,
+          rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+          "Flow %s completed with %d %s" %
+          (self.__class__.__name__, num_results,
+           num_results == 1 and "result" or "results"),
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.FLOW,
+              flow=flow_ref))
 
   def MarkDone(self, status=None):
     """Marks this flow as done."""
@@ -464,10 +480,10 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       if responses.status is not None:
         self.SaveResourceUsage(responses.status)
 
-      stats.STATS.IncrementCounter("grr_worker_states_run")
+      stats_collector_instance.Get().IncrementCounter("grr_worker_states_run")
 
       if method_name == "Start":
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             "flow_starts", fields=[self.rdf_flow.flow_class_name])
         method()
       else:
@@ -481,7 +497,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     # to continue. Thus, we catch everything.
     except Exception as e:  # pylint: disable=broad-except
       # This flow will terminate now
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "flow_errors", fields=[self.rdf_flow.flow_class_name])
       logging.exception("Flow %s on %s raised %s.", self.rdf_flow.flow_id,
                         client_id, utils.SmartUnicode(e))

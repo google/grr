@@ -5,6 +5,7 @@ A hunt is a mechanism for automatically scheduling flows on a selective subset
 of clients, managing these flows, collecting and presenting the combined results
 of all these flows.
 """
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -13,8 +14,6 @@ import threading
 import traceback
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -24,6 +23,8 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import random
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -229,7 +230,8 @@ class HuntRunner(object):
             # automatic retransmission facilitated by the task scheduler (the
             # Task.task_ttl field) which would happen regardless of these.
             if request.transmission_count < 5:
-              stats.STATS.IncrementCounter("grr_request_retransmission_count")
+              stats_collector_instance.Get().IncrementCounter(
+                  "grr_request_retransmission_count")
               request.transmission_count += 1
               self.QueueRequest(request)
             break
@@ -312,7 +314,7 @@ class HuntRunner(object):
         if responses.status:
           self.SaveResourceUsage(request.client_id, responses.status)
 
-        stats.STATS.IncrementCounter("grr_worker_states_run")
+        stats_collector_instance.Get().IncrementCounter("grr_worker_states_run")
 
         method(responses)
 
@@ -321,9 +323,10 @@ class HuntRunner(object):
     except Exception as e:  # pylint: disable=broad-except
 
       # TODO(user): Deprecate in favor of 'flow_errors'.
-      stats.STATS.IncrementCounter("grr_flow_errors")
+      stats_collector_instance.Get().IncrementCounter("grr_flow_errors")
 
-      stats.STATS.IncrementCounter("flow_errors", fields=[self.hunt_obj.Name()])
+      stats_collector_instance.Get().IncrementCounter(
+          "flow_errors", fields=[self.hunt_obj.Name()])
       logging.exception("Hunt %s raised %s.", self.session_id, e)
 
       self.Error(traceback.format_exc(), client_id=client_id)
@@ -888,7 +891,7 @@ class HuntRunner(object):
     # flow. Randomize the request_id so we do not overwrite other messages in
     # the queue.
     request_state = rdf_flow_runner.RequestState(
-        id=utils.PRNG.GetUInt32(),
+        id=random.UInt32(),
         session_id=self.context.session_id,
         client_id=client_id,
         next_state=next_state)
@@ -1237,7 +1240,7 @@ class GRRHunt(flow.FlowBase):
         # flow. Randomize the request_id so we do not overwrite other messages
         # in the queue.
         state = rdf_flow_runner.RequestState(
-            id=utils.PRNG.GetUInt32(),
+            id=random.UInt32(),
             session_id=hunt_id,
             client_id=client_id,
             next_state="AddClient")
@@ -1352,7 +1355,8 @@ class GRRHunt(flow.FlowBase):
         self.StopHuntIfAverageLimitsExceeded()
 
         # Update stats.
-        stats.STATS.IncrementCounter("hunt_results_added", delta=len(msgs))
+        stats_collector_instance.Get().IncrementCounter(
+            "hunt_results_added", delta=len(msgs))
     else:
       self.LogClientError(
           client_id, log_message=utils.SmartStr(responses.status))
@@ -1557,10 +1561,3 @@ class GRRHunt(flow.FlowBase):
       self.Set(self.Schema.HUNT_ARGS(self.args))
       self.Set(self.Schema.HUNT_CONTEXT(self.context))
       self.Set(self.Schema.HUNT_RUNNER_ARGS(self.runner_args))
-
-
-class HuntInitHook(registry.InitHook):
-
-  def RunOnce(self):
-    """Register standard hunt-related stats."""
-    stats.STATS.RegisterCounterMetric("hunt_results_added")

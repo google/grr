@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """An implementation of a data store based on mysql."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import logging
 import os
-import Queue
-import thread
 import threading
 import time
 from warnings import filterwarnings
 
 
+import _thread
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
 import MySQLdb
 from MySQLdb import cursors
 from past.builtins import long
+import queue
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -42,12 +43,12 @@ class TooManyRetriesError(Error):
 # pylint: enable=nonstandard-exception
 
 
-class SafeQueue(Queue.Queue):
+class SafeQueue(queue.Queue):
   """Queue with RLock instead of Lock."""
 
   def __init__(self, maxsize=0):
     # Queue is an old-style class so we can't use super()
-    Queue.Queue.__init__(self, maxsize=maxsize)
+    queue.Queue.__init__(self, maxsize=maxsize)
     # This code is far from ideal as the Queue implementation makes it difficult
     # to replace Lock with RLock. Here we override the variables that use
     # self.mutex in the super class __init__.  If Queue.Queue.__init__
@@ -835,7 +836,7 @@ class MySQLDBSubjectLock(data_store.DBSubjectLock):
   """
 
   def _Acquire(self, lease_time):
-    self.lock_token = thread.get_ident()
+    self.lock_token = _thread.get_ident()
     self.expires = int((time.time() + lease_time) * 1e6)
 
     # This single query will create a new entry if one doesn't exist, and update

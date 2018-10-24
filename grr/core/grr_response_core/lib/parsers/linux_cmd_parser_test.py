@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 """Unit test for the linux cmd parser."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os
 
 
-from grr_response_core import config
+import unittest
 from grr_response_core.lib import flags
-from grr_response_core.lib import parser as lib_parser
 from grr_response_core.lib.parsers import linux_cmd_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
 
@@ -135,126 +134,102 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     self.assertEqual(hardware.bios_rom_size, "16384 kB")
     self.assertEqual(hardware.bios_revision, "2.8")
 
-  def testPsCmdParser(self):
-    """Tests for the PsCmdParser class."""
+
+class PsCmdParserTest(unittest.TestCase):
+
+  def testRealOutput(self):
+    stdout = """\
+UID         PID   PPID  C STIME TTY          TIME CMD
+root          1      0  0 Oct02 ?        00:01:35 /sbin/init splash
+root          2      0  0 Oct02 ?        00:00:00 [kthreadd]
+root          5      2  0 Oct02 ?        00:00:00 [kworker/0:0H]
+colord    68931      1  0 Oct02 ?        00:00:00 /usr/lib/colord/colord
+foobar    69081  69080  1 Oct02 ?        02:08:49 cinnamon --replace
+"""
+
     parser = linux_cmd_parser.PsCmdParser()
-    # Check the detailed 'ps' output. i.e. lots of args.
-    content = open(os.path.join(self.base_path, "pscmd.out"), "rb").read()
-    args = [
-        "h", "-ewwo",
-        "pid,ppid,comm,ruid,uid,suid,rgid,gid,sgid,user,tty,stat,nice,"
-        "thcount,pcpu,rss,vsz,pmem,cmd"
-    ]
-    processes = list(parser.Parse("/bin/ps", args, content, "", 0, 5, None))
-    # Confirm we parsed all the appropriate lines.
-    self.assertEqual(5, len(processes))
-    # Check we got a list of valid processes.
-    process = None
-    for process in processes:
-      self.assertTrue(isinstance(process, rdf_client.Process))
+    processes = list(parser.Parse("/bin/ps", "-ef", stdout, "", 0, 0, None))
 
-    # Now lets tear apart the last one.
-    self.assertEquals(136095, process.pid)
-    self.assertEquals("ps", process.name)
-    self.assertEquals(27262, process.effective_uid)
-    self.assertEquals("usernam", process.username)
-    self.assertEquals("pts/0", process.terminal)
-    self.assertEquals(0.0, process.user_cpu_time)
-    self.assertEquals(920, process.RSS_size)
-    args.insert(0, "ps")
-    self.assertEquals(args, process.cmdline)
+    self.assertEqual(len(processes), 5)
 
-    # Check the simple 'ps -ef' output.
-    content = open(os.path.join(self.base_path, "psefcmd.out"), "rb").read()
-    args = ["-ef"]
-    processes = list(parser.Parse("/bin/ps", args, content, "", 0, 5, None))
-    # Confirm we parsed all the appropriate lines.
-    self.assertEqual(6, len(processes))
-    # Check we got a list of valid processes.
-    process = None
-    for process in processes:
-      self.assertTrue(isinstance(process, rdf_client.Process))
+    self.assertEqual(processes[0].username, "root")
+    self.assertEqual(processes[0].pid, 1)
+    self.assertEqual(processes[0].ppid, 0)
+    self.assertEqual(processes[0].cpu_percent, 0.0)
+    self.assertEqual(processes[0].terminal, "?")
+    self.assertEqual(processes[0].cmdline, ["/sbin/init", "splash"])
 
-    # Now lets tear apart the last one.
-    self.assertEquals(337492, process.pid)
-    self.assertEquals(592357, process.ppid)
-    self.assertEquals("ps", process.name)
-    self.assertEquals("usernam", process.username)
-    self.assertEquals("pts/0", process.terminal)
-    self.assertEquals(0.0, process.cpu_percent)
-    args.insert(0, "ps")
-    self.assertEquals(args, process.cmdline)
+    self.assertEqual(processes[1].username, "root")
+    self.assertEqual(processes[1].pid, 2)
+    self.assertEqual(processes[1].ppid, 0)
+    self.assertEqual(processes[1].cpu_percent, 0.0)
+    self.assertEqual(processes[1].terminal, "?")
+    self.assertEqual(processes[1].cmdline, ["[kthreadd]"])
 
-  @artifact_test_lib.PatchDefaultArtifactRegistry
-  def testPsCmdParserValidation(self, registry):
-    """Test the PsCmdParser pass Validation() method."""
-    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                       "artifacts", "test_artifacts.json")
-    registry.AddFileSource(test_artifacts_file)
+    self.assertEqual(processes[2].username, "root")
+    self.assertEqual(processes[2].pid, 5)
+    self.assertEqual(processes[2].ppid, 2)
+    self.assertEqual(processes[2].cpu_percent, 0.0)
+    self.assertEqual(processes[2].terminal, "?")
+    self.assertEqual(processes[2].cmdline, ["[kworker/0:0H]"])
 
-    parser = linux_cmd_parser.PsCmdParser
+    self.assertEqual(processes[3].username, "colord")
+    self.assertEqual(processes[3].pid, 68931)
+    self.assertEqual(processes[3].ppid, 1)
+    self.assertEqual(processes[3].cpu_percent, 0.0)
+    self.assertEqual(processes[3].terminal, "?")
+    self.assertEqual(processes[3].cmdline, ["/usr/lib/colord/colord"])
 
-    # Test with no ps cmd artifact.
-    parser.Validate([])
+    self.assertEqual(processes[4].username, "foobar")
+    self.assertEqual(processes[4].pid, 69081)
+    self.assertEqual(processes[4].ppid, 69080)
+    self.assertEqual(processes[4].cpu_percent, 1.0)
+    self.assertEqual(processes[4].terminal, "?")
+    self.assertEqual(processes[4].cmdline, ["cinnamon", "--replace"])
 
-    # Test with good ps artifacts.
-    content_good1 = """name: GoodPsArgs1
-doc: "ps with the default/typical non-specified format."
-sources:
-- type: COMMAND
-  attributes:
-    cmd: "/bin/ps"
-    args: ["-ef"]
-supported_os: [Linux]
-"""
-    content_good2 = """name: GoodPsArgs2
-doc: "ps where we specify the format."
-sources:
-- type: COMMAND
-  attributes:
-    cmd: "/bin/ps"
-    args: ["h", "-ewwo", "pid,ppid,uid,comm,cmd"]
-supported_os: [Linux]
+  def testDoesNotFailOnIncorrectInput(self):
+    stdout = """\
+UID     PID   PPID  C STIME TTY          TIME CMD
+foo       1      0  0 Sep01 ?        00:01:23 /baz/norf
+bar       2      1  0 Sep02 ?        00:00:00 /baz/norf --thud --quux
+THIS IS AN INVALID LINE
+quux      5      2  0 Sep03 ?        00:00:00 /blargh/norf
+quux    ???    ???  0 Sep04 ?        00:00:00 ???
+foo       4      2  0 Sep05 ?        00:00:00 /foo/bar/baz --quux=1337
 """
 
-    supported_artifacts = []
-    supported_artifacts.extend(registry.ArtifactsFromYaml(content_good1))
-    supported_artifacts.extend(registry.ArtifactsFromYaml(content_good2))
+    parser = linux_cmd_parser.PsCmdParser()
+    processes = list(parser.Parse("/bin/ps", "-ef", stdout, "", 0, 0, None))
 
-    parser.Validate(supported_artifacts)
+    self.assertEqual(len(processes), 4)
 
-    # Now add a bad ones. This should cause the validator to raise an error.
-    content_bad1 = """name: BadPsArgsDuplicateCmd
-doc: "ps command with 'cmd' specified more than once."
-sources:
-- type: COMMAND
-  attributes:
-    cmd: "/bin/ps"
-    args: ["h", "-ewwo", "pid,ppid,uid,cmd,comm,cmd"]
-supported_os: [Linux]
-"""
-    content_bad2 = """name: BadPsArgsCmdNotAtEnd
-doc: "ps command with 'cmd' specified, but not at the end."
-sources:
-- type: COMMAND
-  attributes:
-    cmd: "/bin/ps"
-    args: ["-ewwo", "pid,ppid,uid,cmd,comm"]
-supported_os: [Linux]
-"""
+    self.assertEqual(processes[0].username, "foo")
+    self.assertEqual(processes[0].pid, 1)
+    self.assertEqual(processes[0].ppid, 0)
+    self.assertEqual(processes[0].cpu_percent, 0)
+    self.assertEqual(processes[0].terminal, "?")
+    self.assertEqual(processes[0].cmdline, ["/baz/norf"])
 
-    bad_artifacts = [content_bad1, content_bad2]
+    self.assertEqual(processes[1].username, "bar")
+    self.assertEqual(processes[1].pid, 2)
+    self.assertEqual(processes[1].ppid, 1)
+    self.assertEqual(processes[1].cpu_percent, 0)
+    self.assertEqual(processes[1].terminal, "?")
+    self.assertEqual(processes[1].cmdline, ["/baz/norf", "--thud", "--quux"])
 
-    for bad_artifact in bad_artifacts:
-      # Reset and add the new artifacts to the supported ones for the parser.
-      supported_artifacts = []
-      with self.assertRaises(lib_parser.ParserDefinitionError):
-        for artifact_name in parser.supported_artifacts:
-          supported_artifacts.append(registry.GetArtifact(artifact_name))
+    self.assertEqual(processes[2].username, "quux")
+    self.assertEqual(processes[2].pid, 5)
+    self.assertEqual(processes[2].ppid, 2)
+    self.assertEqual(processes[2].cpu_percent, 0)
+    self.assertEqual(processes[2].terminal, "?")
+    self.assertEqual(processes[2].cmdline, ["/blargh/norf"])
 
-        supported_artifacts.extend(registry.ArtifactsFromYaml(bad_artifact))
-
-        parser.Validate(supported_artifacts)
+    self.assertEqual(processes[3].username, "foo")
+    self.assertEqual(processes[3].pid, 4)
+    self.assertEqual(processes[3].ppid, 2)
+    self.assertEqual(processes[3].cpu_percent, 0)
+    self.assertEqual(processes[3].terminal, "?")
+    self.assertEqual(processes[3].cmdline, ["/foo/bar/baz", "--quux=1337"])
 
 
 def main(args):

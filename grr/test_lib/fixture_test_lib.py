@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Client fixture-related test classes."""
+from __future__ import absolute_import
 
 
 from future.utils import iteritems
@@ -17,6 +18,7 @@ from grr_response_server import client_fixture
 from grr_response_server import client_index
 from grr_response_server import data_migration
 from grr_response_server import data_store
+from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -43,7 +45,6 @@ class LegacyClientFixture(object):
       fixture: An optional fixture to install. If not provided we use
         client_fixture.VFS.
       age: Create the fixture at this timestamp. If None we use FIXTURE_TIME.
-
       **kwargs: Any other parameters which need to be interpolated by the
         fixture.
     """
@@ -69,14 +70,20 @@ class LegacyClientFixture(object):
         aff4_object = aff4.FACTORY.Create(
             self.client_id.Add(path), aff4_type, mode="rw", token=self.token)
 
+        path_info = None
+
         if data_store.RelationalDBWriteEnabled():
           data_store.REL_DB.WriteClientMetadata(
               self.client_id.Basename(), fleetspeak_enabled=False)
 
           components = [component for component in path.split("/") if component]
-          if components[0:2] == ["fs", "os"]:
+          if (len(components) > 1 and components[0] == "fs" and
+              components[1] in ["os", "tsk"]):
             path_info = rdf_objects.PathInfo()
-            path_info.path_type = rdf_objects.PathInfo.PathType.OS
+            if components[1] == "os":
+              path_info.path_type = rdf_objects.PathInfo.PathType.OS
+            else:
+              path_info.path_type = rdf_objects.PathInfo.PathType.TSK
             path_info.components = components[2:]
             if aff4_type in [aff4_grr.VFSFile, aff4_grr.VFSMemoryFile]:
               path_info.directory = False
@@ -84,9 +91,6 @@ class LegacyClientFixture(object):
               path_info.directory = True
             else:
               raise ValueError("Incorrect AFF4 type: %s" % aff4_type)
-            data_store.REL_DB.WritePathInfos(
-                client_id=self.client_id.Basename(), path_infos=[path_info])
-
         for attribute_name, value in iteritems(attributes):
           attribute = aff4.Attribute.PREDICATES[attribute_name]
           if isinstance(value, (str, unicode)):
@@ -133,7 +137,15 @@ class LegacyClientFixture(object):
           if attribute in ["aff4:content", "aff4:content"]:
             # For AFF4MemoryStreams we need to call Write() instead of
             # directly setting the contents..
-            aff4_object.Write(rdfvalue_object.AsBytes())
+            content = rdfvalue_object.AsBytes()
+            aff4_object.Write(content)
+
+            if path_info is not None:
+              blob_id = rdf_objects.BlobID.FromBlobData(content)
+              data_store.BLOBS.WriteBlobs({blob_id: content})
+              hash_id = file_store.AddFileWithUnknownHash([blob_id])
+              path_info.hash_entry.num_bytes = len(content)
+              path_info.hash_entry.sha256 = hash_id.AsBytes()
           else:
             aff4_object.AddAttribute(attribute, rdfvalue_object)
 
@@ -156,6 +168,10 @@ class LegacyClientFixture(object):
         if aff4_type == aff4_grr.VFSGRRClient:
           index = client_index.CreateClientIndex(token=self.token)
           index.AddClient(aff4_object)
+
+        if path_info is not None:
+          data_store.REL_DB.WritePathInfos(
+              client_id=self.client_id.Basename(), path_infos=[path_info])
 
 
 def ClientFixture(client_id, token=None, age=None):

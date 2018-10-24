@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 """RDFValue implementations related to flow scheduling."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import threading
 import time
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import random
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 
@@ -48,7 +49,7 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
   def GenerateTaskID(self):
     """Generates a new, unique task_id."""
     # Random number can not be zero since next_id_base must increment.
-    random_number = utils.PRNG.GetUInt16() + 1
+    random_number = random.PositiveUInt16()
 
     # 16 bit random numbers
     with GrrMessage.lock:

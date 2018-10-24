@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Cron management classes."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -13,10 +14,10 @@ from future.utils import iterkeys
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import random
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import cronjobs
@@ -56,7 +57,7 @@ class CronManager(object):
       Name of the cron job created.
     """
     if not job_id:
-      uid = utils.PRNG.GetUInt16()
+      uid = random.UInt16()
       job_id = "%s_%s" % (cron_args.flow_name, uid)
 
     flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
@@ -160,7 +161,8 @@ class CronManager(object):
           except Exception as e:  # pylint: disable=broad-except
             logging.exception("Error processing cron job %s: %s", cron_job.urn,
                               e)
-            stats.STATS.IncrementCounter("cron_internal_error")
+            stats_collector_instance.Get().IncrementCounter(
+                "cron_internal_error")
 
       except aff4.LockError:
         pass
@@ -471,9 +473,9 @@ class CronJob(aff4.AFF4Volume):
 
     if lifetime and elapsed > lifetime:
       self.StopCurrentRun()
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "cron_job_timeout", fields=[self.urn.Basename()])
-      stats.STATS.RecordEvent(
+      stats_collector_instance.Get().RecordEvent(
           "cron_job_latency", elapsed, fields=[self.urn.Basename()])
       return True
 
@@ -508,7 +510,7 @@ class CronJob(aff4.AFF4Volume):
               self.Schema.LAST_RUN_STATUS,
               rdf_cronjobs.CronJobRunStatus(
                   status=rdf_cronjobs.CronJobRunStatus.Status.ERROR))
-          stats.STATS.IncrementCounter(
+          stats_collector_instance.Get().IncrementCounter(
               "cron_job_failure", fields=[self.urn.Basename()])
         else:
           self.Set(
@@ -518,7 +520,7 @@ class CronJob(aff4.AFF4Volume):
 
           start_time = self.Get(self.Schema.LAST_RUN_TIME)
           elapsed = time.time() - start_time.AsSecondsSinceEpoch()
-          stats.STATS.RecordEvent(
+          stats_collector_instance.Get().RecordEvent(
               "cron_job_latency", elapsed, fields=[self.urn.Basename()])
 
         self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
@@ -549,14 +551,6 @@ class CronHook(registry.InitHook):
 
   def RunOnce(self):
     """Main CronHook method."""
-    stats.STATS.RegisterCounterMetric("cron_internal_error")
-    stats.STATS.RegisterCounterMetric(
-        "cron_job_failure", fields=[("cron_job_id", str)])
-    stats.STATS.RegisterCounterMetric(
-        "cron_job_timeout", fields=[("cron_job_id", str)])
-    stats.STATS.RegisterEventMetric(
-        "cron_job_latency", fields=[("cron_job_id", str)])
-
     # Start the cron thread if configured to.
     if config.CONFIG["Cron.active"]:
 

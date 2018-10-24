@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Crypto rdfvalue tests."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import hashlib

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """REL_DB-based file store implementation."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import abc
@@ -286,3 +287,87 @@ def OpenFile(client_path, max_timestamp=None):
         "blob references, but they were not found: %r" % hash_id)
 
   return BlobStream(blob_references, hash_id)
+
+
+STREAM_CHUNKS_READ_AHEAD = 500
+
+
+class StreamedFileChunk(object):
+  """An object representing a single streamed file chunk."""
+
+  def __init__(self, client_path, data, chunk_index, total_chunks, offset,
+               total_size):
+    """Initializes StreamedFileChunk object.
+
+    Args:
+      client_path: db.ClientPath identifying the file.
+      data: bytes with chunk's contents.
+      chunk_index: Index of this chunk (relative to the sequence of chunks
+        corresponding to the file).
+      total_chunks: Total number of chunks corresponding to a given file.
+      offset: Offset of this chunk in bytes from the beginning of the file.
+      total_size: Total size of the file in bytes.
+    """
+    self.client_path = client_path
+    self.data = data
+    self.offset = offset
+    self.total_size = total_size
+    self.chunk_index = chunk_index
+    self.total_chunks = total_chunks
+
+
+def StreamFilesChunks(client_paths, max_timestamp=None):
+  """Streams contents of given files.
+
+  Args:
+    client_paths: db.ClientPath objects describing paths to files.
+    max_timestamp: If specified, then for every requested file will open the
+      last collected version of the file with a timestamp equal or lower than
+      max_timestamp. If not specified, will simply open a latest version for
+      each file.
+
+  Yields:
+    StreamedFileChunk objects for every file read. Chunks will be returned
+    sequentially, their order will correspond to the client_paths order.
+    Files having no content will simply be ignored.
+  """
+
+  path_infos_by_cp = (
+      data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
+          client_paths, max_timestamp=max_timestamp))
+
+  hash_ids_by_cp = {
+      cp: rdf_objects.SHA256HashID.FromBytes(pi.hash_entry.sha256.AsBytes())
+      for cp, pi in iteritems(path_infos_by_cp)
+      if pi
+  }
+
+  blob_refs_by_hash_id = data_store.REL_DB.ReadHashBlobReferences(
+      hash_ids_by_cp.values())
+
+  all_chunks = []
+  for cp in client_paths:
+    try:
+      hash_id = hash_ids_by_cp[cp]
+    except KeyError:
+      continue
+
+    try:
+      blob_refs = blob_refs_by_hash_id[hash_id]
+    except KeyError:
+      continue
+
+    num_blobs = len(blob_refs)
+    total_size = 0
+    for ref in blob_refs:
+      total_size += ref.size
+
+    for i, ref in enumerate(blob_refs):
+      all_chunks.append((cp, ref.blob_id, i, num_blobs, ref.offset, total_size))
+
+  for batch in collection.Batch(all_chunks, STREAM_CHUNKS_READ_AHEAD):
+    blobs = data_store.BLOBS.ReadBlobs(
+        [blob_id for cp, blob_id, i, num_blobs, offset, total_size in batch])
+    for cp, blob_id, i, num_blobs, offset, total_size in batch:
+      yield StreamedFileChunk(cp, blobs[blob_id], i, num_blobs, offset,
+                              total_size)

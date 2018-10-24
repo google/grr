@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for API client and VFS-related API calls."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import io

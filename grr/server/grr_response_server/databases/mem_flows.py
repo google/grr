@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The in memory database methods for flow handling."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -57,6 +58,7 @@ class InMemoryDBFlowMixin(object):
       if r.request_id in flow_dict:
         del flow_dict[r.request_id]
 
+  @utils.Synchronized
   def RegisterMessageHandler(self, handler, lease_time, limit=1000):
     """Leases a number of message handler requests up to the indicated limit."""
     self.UnregisterMessageHandler()
@@ -69,6 +71,7 @@ class InMemoryDBFlowMixin(object):
     self.handler_thread.daemon = True
     self.handler_thread.start()
 
+  @utils.Synchronized
   def UnregisterMessageHandler(self):
     """Unregisters any registered message handler."""
     if self.handler_thread:
@@ -195,7 +198,9 @@ class InMemoryDBFlowMixin(object):
     if flow_obj.client_id not in self.metadatas:
       raise db.UnknownClientError(flow_obj.client_id)
 
-    self.flows[(flow_obj.client_id, flow_obj.flow_id)] = flow_obj.Copy()
+    clone = flow_obj.Copy()
+    clone.last_update_time = rdfvalue.RDFDatetime.Now()
+    self.flows[(flow_obj.client_id, flow_obj.flow_id)] = clone
 
   @utils.Synchronized
   def ReadFlowObject(self, client_id, flow_id):
@@ -204,6 +209,14 @@ class InMemoryDBFlowMixin(object):
       return self.flows[(client_id, flow_id)].Copy()
     except KeyError:
       raise db.UnknownFlowError(client_id, flow_id)
+
+  def ReadAllFlowObjects(self, client_id):
+    """Reads all flow objects from the database for a given client."""
+    res = []
+    for cid, fid in self.flows:
+      if cid == client_id:
+        res.append(self.flows[(cid, fid)].Copy())
+    return res
 
   @utils.Synchronized
   def ReadChildFlowObjects(self, client_id, flow_id):
@@ -266,6 +279,7 @@ class InMemoryDBFlowMixin(object):
       flow.processing_since = processing_since
     if processing_deadline != db.Database.unchanged:
       flow.processing_deadline = processing_deadline
+    flow.last_update_time = rdfvalue.RDFDatetime.Now()
 
   @utils.Synchronized
   def WriteFlowRequests(self, requests):
@@ -281,6 +295,7 @@ class InMemoryDBFlowMixin(object):
       key = (request.client_id, request.flow_id)
       request_dict = self.flow_requests.setdefault(key, {})
       request_dict[request.request_id] = request.Copy()
+      request_dict[request.request_id].timestamp = rdfvalue.RDFDatetime.Now()
 
       if request.needs_processing:
         flow = self.flows[(request.client_id, request.flow_id)]
@@ -335,8 +350,11 @@ class InMemoryDBFlowMixin(object):
         continue
 
       response_dict = self.flow_responses.setdefault(flow_key, {})
+      clone = response.Copy()
+      clone.timestamp = rdfvalue.RDFDatetime.Now()
+
       response_dict.setdefault(response.request_id,
-                               {})[response.response_id] = response.Copy()
+                               {})[response.response_id] = clone
 
       if isinstance(response, rdf_flow_objects.FlowStatus):
         status_available.add(response)

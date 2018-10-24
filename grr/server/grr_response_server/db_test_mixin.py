@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Mixin class to be used in tests for DB implementations."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import abc

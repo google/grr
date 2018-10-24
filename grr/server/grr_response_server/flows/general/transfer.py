@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """These flows are designed for high performance transfers."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 

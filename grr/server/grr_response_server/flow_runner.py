@@ -55,6 +55,7 @@ queues. Child flow runners all share their parent's queue manager.
 
 
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -63,11 +64,11 @@ import traceback
 
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.stats import stats_collector_instance
 # Note: OutputPluginDescriptor is also needed implicitly by FlowRunnerArgs
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -429,7 +430,8 @@ class FlowRunner(object):
 
           # We are missing a needed request - maybe its not completed yet.
           if request.id > self.context.next_processed_request:
-            stats.STATS.IncrementCounter("grr_response_out_of_order")
+            stats_collector_instance.Get().IncrementCounter(
+                "grr_response_out_of_order")
             break
 
           # Not the request we are looking for - we have seen it before
@@ -448,7 +450,8 @@ class FlowRunner(object):
             # automatic retransmission facilitated by the task scheduler (the
             # Task.task_ttl field) which would happen regardless of these.
             if request.transmission_count < 5:
-              stats.STATS.IncrementCounter("grr_request_retransmission_count")
+              stats_collector_instance.Get().IncrementCounter(
+                  "grr_request_retransmission_count")
               request.transmission_count += 1
               self.ReQueueRequest(request)
             break
@@ -479,9 +482,10 @@ class FlowRunner(object):
         # termination.
         if not self.OutstandingRequests():
           # TODO(user): Deprecate in favor of 'flow_completions' metric.
-          stats.STATS.IncrementCounter("grr_flow_completed_count")
+          stats_collector_instance.Get().IncrementCounter(
+              "grr_flow_completed_count")
 
-          stats.STATS.IncrementCounter(
+          stats_collector_instance.Get().IncrementCounter(
               "flow_completions", fields=[self.flow_obj.Name()])
           logging.debug(
               "Destroying session %s(%s) for client %s", self.session_id,
@@ -554,10 +558,10 @@ class FlowRunner(object):
 
       self.SaveResourceUsage(responses.status)
 
-      stats.STATS.IncrementCounter("grr_worker_states_run")
+      stats_collector_instance.Get().IncrementCounter("grr_worker_states_run")
 
       if method_name == "Start":
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             "flow_starts", fields=[self.flow_obj.Name()])
         method()
       else:
@@ -573,9 +577,10 @@ class FlowRunner(object):
       # This flow will terminate now
 
       # TODO(user): Deprecate in favor of 'flow_errors'.
-      stats.STATS.IncrementCounter("grr_flow_errors")
+      stats_collector_instance.Get().IncrementCounter("grr_flow_errors")
 
-      stats.STATS.IncrementCounter("flow_errors", fields=[self.flow_obj.Name()])
+      stats_collector_instance.Get().IncrementCounter(
+          "flow_errors", fields=[self.flow_obj.Name()])
       logging.exception("Flow %s raised %s.", self.session_id, e)
 
       self.Error(traceback.format_exc(), client_id=client_id)

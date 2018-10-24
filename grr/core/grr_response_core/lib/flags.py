@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module to allow option processing from files or registry."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import argparse
@@ -28,11 +29,20 @@ def DEFINE_string(longopt, default, help):
   PARSER.add_argument("--%s" % longopt, default=default, type=str, help=help)
 
 
+def DEFINE_multi_string(shortopt, longopt, help):
+  PARSER.add_argument(
+      "-%s" % shortopt,
+      "--%s" % longopt,
+      default=[],
+      action="append",
+      help=help)
+
+
 def DEFINE_bool(longopt, default, help):
   PARSER.add_argument(
       "--%s" % longopt, dest=longopt, action="store_true", help=help)
 
-  PARSER.set_defaults(**{longopt: default})
+  PARSER.set_defaults(**{longopt: default})  # pytype: disable=wrong-arg-types
 
 
 def DEFINE_integer(longopt, default, help):
@@ -46,24 +56,6 @@ def DEFINE_float(longopt, default, help):
 def DEFINE_enum(longopt, default, choices, help, type=unicode):
   PARSER.add_argument(
       "--%s" % longopt, default=default, choices=choices, type=type, help=help)
-
-
-_VERSION_SET = None
-
-
-def DEFINE_version(version):
-  """Adds a --version argument that shows the version and exits."""
-
-  global _VERSION_SET
-  # Defining the same version should be a no-op (argparse.PARSER
-  # raises by default if the same argument is redefined).
-  # This allows combining multiple entry points in a single binary
-  # (see tools/grr_server.py).
-  if _VERSION_SET and _VERSION_SET == version:
-    return
-
-  PARSER.add_argument("--version", action="version", version=version)
-  _VERSION_SET = version
 
 
 class ListParser(argparse.Action):
@@ -89,6 +81,16 @@ DEFINE_bool(
     "debug",
     default=False,
     help="When an unhandled exception occurs break in the debugger.")
+
+# TODO(hanuszczak): The `version` flag is relevant only for entry points and
+# should be defined separately for each. However, since currently we have a case
+# where one module has multiple entry points (`grr_server`), this cannot be done
+# due to conflicting flag definitions. Once that issue is resolved, this can be
+# moved appropriately.
+DEFINE_bool(
+    "version",
+    default=False,
+    help="Print the GRR version number and exit immediately.")
 
 
 def FlagOverrider(**flag_kwargs):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for parsers."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os
@@ -30,12 +31,6 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
         raise parser.ParserDefinitionError(
             "Artifact parser %s has an invalid output "
             "type %s." % (parser.__name__, out_type))
-
-    # Additional, parser specific validation.
-    supported_artifact_objects = []
-    for artifact_to_parse in parser.supported_artifacts:
-      supported_artifact_objects.append(registry.GetArtifact(artifact_to_parse))
-    parser.Validate(supported_artifact_objects)
 
   @artifact_test_lib.PatchDefaultArtifactRegistry
   def testValidation(self, registry):

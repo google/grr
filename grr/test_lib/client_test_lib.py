@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test classes for clients-related testing."""
+from __future__ import absolute_import
 
 import collections
 import platform

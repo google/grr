@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 """RDFValues for GRR server-side cron jobs."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import random
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
@@ -91,7 +92,7 @@ class CronJobRun(rdf_structs.RDFProtoStruct):
   ]
 
   def GenerateRunId(self):
-    self.run_id = "%08X" % utils.PRNG.GetUInt32()
+    self.run_id = "%08X" % random.UInt32()
     return self.run_id
 
 

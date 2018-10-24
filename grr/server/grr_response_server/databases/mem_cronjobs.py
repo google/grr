@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The in memory database methods for cron job handling."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from future.utils import itervalues

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """HTTP API logic that ties API call handlers with HTTP routes."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import itertools
@@ -20,10 +21,10 @@ from google.protobuf import json_format
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.aff4_objects import users as aff4_users
@@ -574,7 +575,7 @@ def RenderHttpResponse(request):
   else:
     metric_name = "api_method_latency"
 
-  stats.STATS.RecordEvent(
+  stats_collector_instance.Get().RecordEvent(
       metric_name, total_time, fields=(method_name, "http", status))
 
   return response
@@ -589,11 +590,3 @@ class HttpApiInitHook(registry.InitHook):
   def RunOnce(self):
     global HTTP_REQUEST_HANDLER
     HTTP_REQUEST_HANDLER = HttpRequestHandler()
-
-    stats.STATS.RegisterEventMetric(
-        "api_method_latency",
-        fields=[("method_name", str), ("protocol", str), ("status", str)])
-
-    stats.STATS.RegisterEventMetric(
-        "api_access_probe_latency",
-        fields=[("method_name", str), ("protocol", str), ("status", str)])

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Dummy end-to-end test classes for testing the E2ETestRunner."""
+from __future__ import absolute_import
+
 import abc
 
 

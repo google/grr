@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Raw access server-side only API shell."""
+from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -45,11 +46,13 @@ flags.DEFINE_string(
     "will be able to use a predefined global 'grrapi' "
     "object.")
 
-flags.DEFINE_version(config_server.VERSION["packageversion"])
-
 
 def main(argv=None):
   del argv  # Unused.
+
+  if flags.FLAGS.version:
+    print("GRR API shell {}".format(config_server.VERSION["packageversion"]))
+    return
 
   config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
   config.CONFIG.AddContext(contexts.CONSOLE_CONTEXT,

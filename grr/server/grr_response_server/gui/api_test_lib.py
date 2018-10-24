@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Base test classes for API handlers tests."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs

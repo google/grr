@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """End to end tests for Yara based flows."""
+from __future__ import absolute_import
 
 import re
 

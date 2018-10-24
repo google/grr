@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the worker."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import threading
@@ -234,8 +235,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     del RESULTS[:]
 
   def tearDown(self):
-    super(GrrWorkerTest, self).tearDown()
     self.patch_get_notifications.stop()
+    super(GrrWorkerTest, self).tearDown()
 
   def testProcessMessages(self):
     """Test processing of several inbound messages."""
@@ -620,11 +621,6 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     # Send a message to a WellKnownFlow - ClientStatsAuto.
     session_id = administrative.GetClientStatsAuto.well_known_session_id
     client_id = rdf_client.ClientURN("C.1100110011001100")
-    self.SendResponse(
-        session_id,
-        data=rdf_client_stats.ClientStats(RSS_size=1234),
-        client_id=client_id,
-        well_known=True)
 
     if data_store.RelationalDBReadEnabled(category="message_handlers"):
       done = threading.Event()
@@ -635,7 +631,20 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
       data_store.REL_DB.RegisterMessageHandler(
           handle, worker_obj.well_known_flow_lease_time, limit=1000)
+
+      self.SendResponse(
+          session_id,
+          data=rdf_client_stats.ClientStats(RSS_size=1234),
+          client_id=client_id,
+          well_known=True)
+
       self.assertTrue(done.wait(10))
+    else:
+      self.SendResponse(
+          session_id,
+          data=rdf_client_stats.ClientStats(RSS_size=1234),
+          client_id=client_id,
+          well_known=True)
 
     # Process all messages
     worker_obj.RunOnce()
@@ -650,9 +659,6 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         "aff4:/users/%s" % self.token.username, token=self.token)
     notifications = user.Get(user.Schema.PENDING_NOTIFICATIONS)
     self.assertIsNone(notifications)
-
-    if data_store.RelationalDBReadEnabled(category="message_handlers"):
-      data_store.REL_DB.UnregisterMessageHandler()
 
   def testWellKnownFlowResponsesAreProcessedOnlyOnce(self):
     worker_obj = worker_lib.GRRWorker(token=self.token)

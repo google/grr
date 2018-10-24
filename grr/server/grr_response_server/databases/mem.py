@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """An in memory database implementation used for testing."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import sys
@@ -91,6 +92,7 @@ class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
 
   @utils.Synchronized
   def ClearTestDB(self):
+    self.UnregisterMessageHandler()
     self._Init()
 
   def _AllPathIDs(self):

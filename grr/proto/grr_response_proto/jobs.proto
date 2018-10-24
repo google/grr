@@ -832,8 +832,8 @@ message StatEntry {
     }];
 
   message ExtAttr {
-    optional string name = 1;
-    optional string value = 2;
+    optional bytes name = 1;
+    optional bytes value = 2;
   }
 
   repeated ExtAttr ext_attrs = 23;
@@ -1914,6 +1914,10 @@ message CronJobRunStatus {
   optional Status status = 1 [default = OK];
 }
 
+// Note: Protos for representing metric metadata are deprecated, since
+// the metadata will no longer be persisted in the datastore.
+//
+// TODO(user): Delete all metric metadata protos.
 
 message MetricFieldDefinition {
   enum FieldType {
@@ -1980,6 +1984,10 @@ message MetricMetadata {
   optional MetricUnits units = 6 [(sem_type) = {
       description: "For numerical metrics - measuring unit that is used."
     }];
+  repeated double bins = 7 [(sem_type) = {
+    description: "For event metrics - consecutive bin-boundaries for the "
+                 "metric's values (Distributions)."
+  }];
 }
 
 message StatsStoreMetricsMetadata {

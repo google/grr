@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for HTTP API."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import json
 
 
 from future.moves.urllib import parse as urlparse
+import mock
 
 from grr_response_core.lib import flags
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
@@ -139,7 +140,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
   """Test for RouterMatcher."""
 
   def _CreateRequest(self, method, path, query_parameters=None):
-    request = utils.DataObject()
+    request = mock.MagicMock()
     request.method = method
     request.path = path
     request.scheme = "http"
@@ -197,7 +198,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
                      path,
                      username=u"test",
                      query_parameters=None):
-    request = utils.DataObject()
+    request = mock.MagicMock()
     request.method = method
     request.path = path
     request.scheme = "http"

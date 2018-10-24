@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Worker-related test classes."""
+from __future__ import absolute_import
 
 import itertools
 

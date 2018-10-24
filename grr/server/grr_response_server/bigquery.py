@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Library for interacting with Google BigQuery service."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import json

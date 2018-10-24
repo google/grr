@@ -8,6 +8,7 @@ register them.
 This also acts as a sensible single place to add deployment specific plugin
 modules that have been customized for your deployment.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 # pylint: disable=unused-import

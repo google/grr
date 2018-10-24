@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 """Simple parsers for the output of linux commands."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
-import os
 import re
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 
 from grr_response_core.lib import parser
@@ -241,72 +240,6 @@ class PsCmdParser(parser.CommandParser):
   output_types = ["Process"]
   supported_artifacts = ["ListProcessesPsCommand"]
 
-  @classmethod
-  def Validate(cls, supported_artifact_objects):
-    """Perform some extra sanity checks on the ps arguments."""
-    super(PsCmdParser, cls).Validate(supported_artifact_objects)
-    for artifact in supported_artifact_objects:
-      for source in artifact.sources:
-        if not cls._FindPsOutputFormat(source.attributes["cmd"],
-                                       source.attributes["args"]):
-          raise parser.ParserDefinitionError(
-              "Artifact parser %s can't process artifact %s. 'ps' command has "
-              "unacceptable arguments." % (cls.__name__, artifact.name))
-
-  @classmethod
-  def _FindPsOutputFormat(cls, cmd, args):
-    """Return our best guess the formating of the "ps" output."""
-    output_format = []
-    for arg in args:
-      # If the "ps" arg contains a comma, it's probably an output format defn.
-      if "," in arg:
-        output_format.extend(arg.split(","))
-    if not output_format:
-      # Assume a default format for the "-f" style formating.
-      output_format = [
-          "user", "pid", "ppid", "pcpu", "not_implemented", "tty",
-          "not_implemented", "cmd"
-      ]
-    # Do some sanity checking for the cmd/cmdline if present.
-    for option in ["cmd", "command", "args"]:
-      if option in output_format:
-        if output_format.count(option) > 1:
-          logging.warn(
-              "Multiple commandline outputs expected in '%s %s' "
-              "output. Skipping parsing.", cmd, " ".join(args))
-          return []
-        if output_format[-1] != option:
-          logging.warn(
-              "'ps's output has the commandline not as the last "
-              "column. We can't safely parse output of '%s %s'."
-              "Skipping parsing.", cmd, " ".join(args))
-          return []
-
-    # If we made it here, we should be able to parse the output and we have a
-    # good idea of it's format.
-    return output_format
-
-  def _SplitCmd(self, cmdline):
-    """Split up the command line."""
-    return cmdline.split()
-
-  def _HasHeaders(self, args):
-    """Look at the args and decided if we expect headers or not."""
-    # The default is on.
-    headers = True
-    for arg in args:
-      # Simple cases where it is turn off.
-      if arg in ["--no-headers", "h", "--no-heading"]:
-        headers = False
-      # Simple case where it is turned on.
-      elif arg in ["--headers"]:
-        headers = True
-      # if 'h' appears in a arg, that doesn't start with '-', and
-      # doesn't look like a format defn. Then that's probably turning it off.
-      elif "h" in arg and not arg.startswith("-") and "," not in arg:
-        headers = False
-    return headers
-
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
             knowledge_base):
     """Parse the ps output.
@@ -334,80 +267,19 @@ class PsCmdParser(parser.CommandParser):
     _ = stderr, time_taken, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
 
-    if not stdout:
-      # We have nothing to process so bug out. (Handles a input of None.)
-      return
-
-    rdf_convert_table = {
-        "pid": ("pid", int),
-        "tgid": ("pid", int),
-        "ppid": ("ppid", int),
-        "comm": ("name", str),
-        "ucomm": ("name", str),
-        "ruid": ("real_uid", int),
-        "uid": ("effective_uid", int),
-        "euid": ("effective_uid", int),
-        "suid": ("saved_uid", int),
-        "svuid": ("saved_uid", int),
-        "user": ("username", str),
-        "euser": ("username", str),
-        "uname": ("username", str),
-        "rgid": ("real_gid", int),
-        "gid": ("effective_gid", int),
-        "egid": ("effective_gid", int),
-        "sgid": ("saved_gid", int),
-        "svgid": ("saved_gid", int),
-        "tty": ("terminal", str),
-        "tt": ("terminal", str),
-        "tname": ("terminal", str),
-        "stat": ("status", str),
-        "nice": ("nice", int),
-        "ni": ("nice", int),
-        "thcount": ("num_threads", int),
-        "nlwp": ("num_threads", int),
-        "pcpu": ("cpu_percent", float),
-        "%cpu": ("cpu_percent", float),
-        "c": ("cpu_percent", float),
-        "rss": ("RSS_size", long),
-        "rssize": ("RSS_size", long),
-        "rsz": ("RSS_size", long),
-        "vsz": ("VMS_size", long),
-        "vsize": ("VMS_size", long),
-        "pmem": ("memory_percent", float),
-        "%mem": ("memory_percent", float),
-        "args": ("cmdline", self._SplitCmd),
-        "command": ("cmdline", self._SplitCmd),
-        "cmd": ("cmdline", self._SplitCmd)
-    }
-
-    expected_fields = self._FindPsOutputFormat(cmd, args)
-
-    # If we made it here, we expect we can now parse the output and we know
-    # expected its format.
-
-    lines = stdout.splitlines()
-    if self._HasHeaders(args):
-      # Ignore the headers.
-      lines = lines[1:]
-
+    lines = stdout.splitlines()[1:]  # First line is just a header.
     for line in lines:
       try:
-        # The "len() - 1" allows us to group any extra fields into
-        # the last field. e.g. cmdline.
-        entries = line.split(None, len(expected_fields) - 1)
-        # Create an empty process for us to fill in as best we can.
-        process = rdf_client.Process()
-        for name, value in zip(expected_fields, entries):
-          if name not in rdf_convert_table:
-            # If the field is not something we can process, skip it.
-            continue
-          rdf_name, method = rdf_convert_table[name]
-          setattr(process, rdf_name, method(value))
-        # Approximate the 'comm' from the cmdline if it wasn't detailed.
-        # i.e. the basename of the first arg of the commandline.
-        if not process.name and process.cmdline:
-          process.name = os.path.basename(process.cmdline[0])
-        yield process
-      except ValueError:
-        logging.warn("Unparsable line found for %s %s:\n"
-                     "  %s", cmd, args, line)
+        uid, pid, ppid, c, _, tty, _, cmd = line.split(None, 7)
+
+        rdf_process = rdf_client.Process()
+        rdf_process.username = uid
+        rdf_process.pid = int(pid)
+        rdf_process.ppid = int(ppid)
+        rdf_process.cpu_percent = float(c)
+        rdf_process.terminal = tty
+        rdf_process.cmdline = cmd.split()
+        yield rdf_process
+      except ValueError as error:
+        message = "Error while parsing `ps` output line '%s': %s"
+        logging.warning(message, line, error)

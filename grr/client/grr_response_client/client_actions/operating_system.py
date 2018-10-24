@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A facade to operating system dependent client actions."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import platform

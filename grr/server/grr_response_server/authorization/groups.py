@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Group authorization checking."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging

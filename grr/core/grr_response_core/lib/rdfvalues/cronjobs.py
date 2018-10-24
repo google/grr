@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """RDFValues for GRR client-side cron jobs parsing."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue

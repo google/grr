@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Gather information from the registry on windows."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import artifact_utils

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Tests the query lexer."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags

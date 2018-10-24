@@ -441,7 +441,7 @@ message ApiGetFileDecodersArgs {
     type: "ApiClientId",
     description: "An id of the client to which the encoded file belongs to."
   }];
-  optional string filepath = 2 [(sem_type) = {
+  optional string file_path = 2 [(sem_type) = {
     description: "A path to the encrypted file to get the decoder names for."
   }];
   // TODO(hanuszczak): Add support for listing decoders for a file as observed
@@ -459,7 +459,7 @@ message ApiGetDecodedFileArgs {
     type: "ApiClientId",
     description: "An id of the client to which the encoded file belongs to."
   }];
-  optional string filepath = 2 [(sem_type) = {
+  optional string file_path = 2 [(sem_type) = {
     description: "A path to the encrypted file to do the decoding on."
   }];
   optional string decoder_name = 3 [(sem_type) = {

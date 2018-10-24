@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Stats server implementation."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import collections
@@ -15,12 +16,13 @@ from http import server as http_server
 
 from grr_response_core import config
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_core.stats import stats_collector_instance
 
 
 def _JSONMetricValue(metric_info, value):
-  if metric_info.metric_type == stats.MetricType.EVENT:
+  if metric_info.metric_type == rdf_stats.MetricMetadata.MetricType.EVENT:
     return dict(
         sum=value.sum,
         counter=value.count,
@@ -33,7 +35,8 @@ def BuildVarzJsonString():
   """Builds Varz JSON string from all stats metrics."""
 
   results = {}
-  for name, metric_info in iteritems(stats.STATS.GetAllMetricsMetadata()):
+  for name, metric_info in iteritems(
+      stats_collector_instance.Get().GetAllMetricsMetadata()):
     info_dict = dict(metric_type=metric_info.metric_type.name)
     if metric_info.value_type:
       info_dict["value_type"] = metric_info.value_type.name
@@ -49,14 +52,16 @@ def BuildVarzJsonString():
                                          utils.SmartStr(field_def.field_type)))
 
       value = {}
-      all_fields = stats.STATS.GetMetricFields(name)
+      all_fields = stats_collector_instance.Get().GetMetricFields(name)
       for f in all_fields:
         joined_fields = ":".join(utils.SmartStr(fname) for fname in f)
-        value[joined_fields] = _JSONMetricValue(metric_info,
-                                                stats.STATS.GetMetricValue(
-                                                    name, fields=f))
+        value[joined_fields] = _JSONMetricValue(
+            metric_info,
+            stats_collector_instance.Get().GetMetricValue(name, fields=f))
     else:
-      value = _JSONMetricValue(metric_info, stats.STATS.GetMetricValue(name))
+      value = _JSONMetricValue(
+          metric_info,
+          stats_collector_instance.Get().GetMetricValue(name))
 
     results[name] = dict(info=info_dict, value=value)
 

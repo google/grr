@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Base classes for artifacts."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -18,6 +19,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import context
 from grr_response_core.lib.util import precondition
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
@@ -458,7 +460,7 @@ def OpenAff4File(flow_obj, pathspec):
 def MultiOpenAff4File(flow_obj, pathspecs):
   aff4_paths = [_.AFF4Path(flow_obj.client_urn) for _ in pathspecs]
   fileopens = aff4.FACTORY.MultiOpenOrdered(aff4_paths, token=flow_obj.token)
-  return utils.MultiContext(fileopens)
+  return context.MultiContext(fileopens)
 
 
 class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):

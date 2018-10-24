@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Configuration parameters for client builder and server packaging."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os

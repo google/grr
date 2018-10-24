@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A library for tests."""
+from __future__ import absolute_import
 from __future__ import division
 
 import codecs
@@ -9,11 +10,9 @@ import functools
 import logging
 import os
 import pdb
-import platform
 import shutil
 import socket
 import sys
-import tempfile
 import threading
 import time
 import unittest
@@ -21,23 +20,23 @@ import unittest
 
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
+from future.utils import itervalues
 import mock
 import pkg_resources
 
 import unittest
-
 from grr_response_client import comms
-
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.stats import default_stats_collector
+from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import stats_test_utils
 from grr_response_server import access_control
-
 from grr_response_server import aff4
 from grr_response_server import artifact
 from grr_response_server import client_index
@@ -47,10 +46,9 @@ from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore
 from grr_response_server.aff4_objects import users
 from grr_response_server.flows.general import audit
-
 from grr_response_server.hunts import results as hunts_results
 from grr_response_server.rdfvalues import objects as rdf_objects
-
+from grr.test_lib import temp
 from grr.test_lib import testing_startup
 
 FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
@@ -82,7 +80,7 @@ class GRRBaseTest(unittest.TestCase):
   def setUp(self):
     super(GRRBaseTest, self).setUp()
 
-    self.temp_dir = TempDirPath()
+    self.temp_dir = temp.TempDirPath()
     config.CONFIG.SetWriteBack(os.path.join(self.temp_dir, "writeback.yaml"))
 
     logging.info("Starting test: %s.%s", self.__class__.__name__,
@@ -130,6 +128,18 @@ class GRRBaseTest(unittest.TestCase):
       self.relational_read_stubber = utils.Stubber(
           data_store, "RelationalDBReadEnabled", lambda: True)
       self.relational_read_stubber.Start()
+
+    self._SetupFakeStatsContext()
+
+  def _SetupFakeStatsContext(self):
+    """Creates a stats context for running tests based on defined metrics."""
+    metrics_metadata = list(
+        itervalues(stats_collector_instance.Get().GetAllMetricsMetadata()))
+    fake_stats_collector = default_stats_collector.DefaultStatsCollector(
+        metrics_metadata)
+    fake_stats_context = stats_test_utils.FakeStatsContext(fake_stats_collector)
+    fake_stats_context.start()
+    self.addCleanup(fake_stats_context.stop)
 
   def tearDown(self):
     super(GRRBaseTest, self).tearDown()
@@ -842,153 +852,6 @@ class RemotePDB(pdb.Pdb):
     (clientsocket, address) = RemotePDB.skt.accept()
     RemotePDB.handle = clientsocket.makefile("rw", 1)
     logging.warn("Received a connection from %s", address)
-
-
-def _TempRootPath():
-  try:
-    root = os.environ.get("TEST_TMPDIR") or config.CONFIG["Test.tmpdir"]
-  except RuntimeError:
-    return None
-
-  if platform.system() != "Windows":
-    return root
-  else:
-    return None
-
-
-# TODO(hanuszczak): Consider moving this to some utility module.
-def TempDirPath(suffix="", prefix="tmp"):
-  """Creates a temporary directory based on the environment configuration.
-
-  The directory will be placed in folder as specified by the `TEST_TMPDIR`
-  environment variable if available or fallback to `Test.tmpdir` of the current
-  configuration if not.
-
-  Args:
-    suffix: A suffix to end the directory name with.
-    prefix: A prefix to begin the directory name with.
-
-  Returns:
-    An absolute path to the created directory.
-  """
-  return tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=_TempRootPath())
-
-
-# TODO(hanuszczak): Consider moving this to some utility module.
-def TempFilePath(suffix="", prefix="tmp", dir=None):  # pylint: disable=redefined-builtin
-  """Creates a temporary file based on the environment configuration.
-
-  If no directory is specified the file will be placed in folder as specified by
-  the `TEST_TMPDIR` environment variable if available or fallback to
-  `Test.tmpdir` of the current configuration if not.
-
-  If directory is specified it must be part of the default test temporary
-  directory.
-
-  Args:
-    suffix: A suffix to end the file name with.
-    prefix: A prefix to begin the file name with.
-    dir: A directory to place the file in.
-
-  Returns:
-    An absolute path to the created file.
-
-  Raises:
-    ValueError: If the specified directory is not part of the default test
-        temporary directory.
-  """
-  root = _TempRootPath()
-  if not dir:
-    dir = root
-  elif root and not os.path.commonprefix([dir, root]):
-    raise ValueError("path '%s' must start with '%s'" % (dir, root))
-
-  _, path = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=dir)
-  return path
-
-
-class AutoTempDirPath(object):
-  """Creates a temporary directory based on the environment configuration.
-
-  The directory will be placed in folder as specified by the `TEST_TMPDIR`
-  environment variable if available or fallback to `Test.tmpdir` of the current
-  configuration if not.
-
-  This object is a context manager and the directory is automatically removed
-  when it goes out of scope.
-
-  Args:
-    suffix: A suffix to end the directory name with.
-    prefix: A prefix to begin the directory name with.
-    remove_non_empty: If set to `True` the directory removal will succeed even
-      if it is not empty.
-
-  Returns:
-    An absolute path to the created directory.
-  """
-
-  def __init__(self, suffix="", prefix="tmp", remove_non_empty=False):
-    self.suffix = suffix
-    self.prefix = prefix
-    self.remove_non_empty = remove_non_empty
-
-  def __enter__(self):
-    self.path = TempDirPath(suffix=self.suffix, prefix=self.prefix)
-    return self.path
-
-  def __exit__(self, exc_type, exc_value, traceback):
-    del exc_type  # Unused.
-    del exc_value  # Unused.
-    del traceback  # Unused.
-
-    if self.remove_non_empty:
-      shutil.rmtree(self.path)
-    else:
-      os.rmdir(self.path)
-
-
-class AutoTempFilePath(object):
-  """Creates a temporary file based on the environment configuration.
-
-  If no directory is specified the file will be placed in folder as specified by
-  the `TEST_TMPDIR` environment variable if available or fallback to
-  `Test.tmpdir` of the current configuration if not.
-
-  If directory is specified it must be part of the default test temporary
-  directory.
-
-  This object is a context manager and the associated file is automatically
-  removed when it goes out of scope.
-
-  Args:
-    suffix: A suffix to end the file name with.
-    prefix: A prefix to begin the file name with.
-    dir: A directory to place the file in.
-
-  Returns:
-    An absolute path to the created file.
-
-  Raises:
-    ValueError: If the specified directory is not part of the default test
-        temporary directory.
-  """
-
-  def __init__(self, suffix="", prefix="tmp", dir=None):  # pylint: disable=redefined-builtin
-    self.suffix = suffix
-    self.prefix = prefix
-    self.dir = dir
-
-  def __enter__(self):
-    self.path = TempFilePath(
-        suffix=self.suffix, prefix=self.prefix, dir=self.dir)
-    return self.path
-
-  def __exit__(self, exc_type, exc_value, traceback):
-    del exc_type  # Unused.
-    del exc_value  # Unused.
-    del traceback  # Unused.
-
-    os.remove(self.path)
 
 
 class SuppressLogs(object):

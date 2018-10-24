@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Contains tests for api_call_handler_utils."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import hashlib

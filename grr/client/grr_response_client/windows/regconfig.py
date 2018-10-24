@@ -7,9 +7,9 @@
 # system. The clients will not share their config keys if the registry keys they
 # use are hooked by WOW64.
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import exceptions
 import logging
 import _winreg
 
@@ -43,7 +43,7 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
       self.root_key = _winreg.CreateKeyEx(
           getattr(_winreg, self.hive), self.path, 0, _winreg.KEY_ALL_ACCESS)
       self.parsed = self.path
-    except exceptions.WindowsError as e:
+    except OSError as e:
       logging.debug("Unable to open config registry key: %s", e)
       return
 
@@ -59,7 +59,7 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
         if value_type == _winreg.REG_SZ:
           precondition.AssertType(value, unicode)
           result[name] = value
-      except exceptions.WindowsError:
+      except OSError:
         break
 
       i += 1

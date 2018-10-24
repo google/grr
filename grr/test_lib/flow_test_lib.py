@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Helper classes for flows-related testing."""
+from __future__ import absolute_import
 
 import logging
 import pdb

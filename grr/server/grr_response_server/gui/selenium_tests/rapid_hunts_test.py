@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the rapid hunts feature."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags

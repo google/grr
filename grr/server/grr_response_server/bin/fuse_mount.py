@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tool for mounting AFF4 datastore over FUSE."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -95,8 +96,6 @@ flags.DEFINE_string("username", None,
 flags.DEFINE_string(
     "reason", None, "Reason to use for client authorization check. This "
     "needs to match the string in your approval request.")
-
-flags.DEFINE_version(config_server.VERSION["packageversion"])
 
 # The modes we'll use for aff4 objects that aren't really files.
 # Taken from /etc
@@ -566,6 +565,11 @@ def Usage():
 
 def main(argv):
   del argv  # Unused.
+
+  if flags.FLAGS.version:
+    print("GRR FUSE {}".format(config_server.VERSION["packageversion"]))
+    return
+
   config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT,
                            "Context applied for all command line tools")
   server_startup.Init()

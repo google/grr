@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Filesystem related client rdfvalues."""
 
+from __future__ import absolute_import
 from __future__ import division
 
 import stat

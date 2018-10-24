@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests the queue manager."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import time
@@ -10,8 +11,8 @@ import mock
 from grr_response_core.lib import flags
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import data_store
 from grr_response_server import queue_manager
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
@@ -26,8 +27,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(QueueManagerTest, self).setUp()
-
-    self.retransmission_metric_value = stats.STATS.GetMetricValue(
+    stats_collector = stats_collector_instance.Get()
+    self.retransmission_metric_value = stats_collector.GetMetricValue(
         "grr_task_retransmission_count")
 
     self._current_mock_time = 1000.015
@@ -227,8 +228,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(tasks[0].task_ttl, 4)
 
     self.assertEqual(
-        stats.STATS.GetMetricValue("grr_task_retransmission_count"),
-        self.retransmission_metric_value)
+        stats_collector_instance.Get().GetMetricValue(
+            "grr_task_retransmission_count"), self.retransmission_metric_value)
 
     # Get a lease on the task 100 seconds later
     self._current_mock_time += 110
@@ -238,7 +239,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(tasks[0].task_ttl, 3)
 
     self.assertEqual(
-        stats.STATS.GetMetricValue("grr_task_retransmission_count"),
+        stats_collector_instance.Get().GetMetricValue(
+            "grr_task_retransmission_count"),
         self.retransmission_metric_value + 1)
 
   def testDelete(self):

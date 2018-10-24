@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for aff4 flows."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import time
@@ -28,10 +29,12 @@ from grr_response_server import server_stubs
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
+from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
+from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import test_output_plugins
 from grr.test_lib import worker_test_lib
@@ -408,7 +411,8 @@ class FlowCreationTest(BasicFlowTest):
         ])
 
 
-class FlowTest(BasicFlowTest):
+class FlowTest(notification_test_lib.NotificationTestMixin,
+               acl_test_lib.AclTestMixin, BasicFlowTest):
   """Tests the Flow."""
 
   def testBrokenFlow(self):
@@ -590,6 +594,19 @@ class FlowTest(BasicFlowTest):
         flow_name="BadArgsFlow1",
         arg1=rdf_paths.PathSpec(),
         token=self.token)
+
+  def testUserGetsNotificationWithNumberOfResults(self):
+    self.token.username = "notification_test_user"
+    self.CreateUser(self.token.username)
+
+    flow_test_lib.TestFlowHelper(
+        FlowWithMultipleResultTypes.__name__,
+        action_mocks.ActionMock(),
+        token=self.token,
+        client_id=self.client_id)
+
+    notifications = self.GetUserNotifications(self.token.username)
+    self.assertIn("completed with 6 results", notifications[0].message)
 
 
 class FlowTerminationTest(BasicFlowTest):

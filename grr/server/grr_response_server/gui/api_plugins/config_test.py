@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """This modules contains tests for config API handler."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
 from future.utils import iteritems
+import mock
 
 from grr_response_core import config
 from grr_response_core.lib import flags
@@ -40,7 +42,10 @@ def GetConfigMockClass(sections=None):
   for section_name, section in iteritems(sections):
     for parameter_name, parameter_data in iteritems(section):
       name = "%s.%s" % (section_name, parameter_name)
-      descriptor = utils.DataObject(section=section_name, name=name)
+
+      descriptor = mock.MagicMock()
+      descriptor.section = section_name
+      descriptor.name = name
       type_infos.append(descriptor)
 
       if "value" in parameter_data:
@@ -79,15 +84,16 @@ class ApiGetConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = config_plugin.ApiGetConfigHandler()
 
   def _ConfigStub(self, sections=None):
-    mock = GetConfigMockClass(sections)
-    return utils.MultiStubber((config.CONFIG, "GetRaw", mock["GetRaw"]),
-                              (config.CONFIG, "Get", mock["Get"]),
-                              (config.CONFIG, "type_infos", mock["type_infos"]))
+    mock_config = GetConfigMockClass(sections)
+    return utils.MultiStubber(
+        (config.CONFIG, "GetRaw", mock_config["GetRaw"]),
+        (config.CONFIG, "Get", mock_config["Get"]),
+        (config.CONFIG, "type_infos", mock_config["type_infos"]))
 
   def _HandleConfig(self, sections):
     with self._ConfigStub(sections):
-      mock_request = utils.DataObject()
-      result = self.handler.Handle(mock_request)
+      request = mock.MagicMock()
+      result = self.handler.Handle(request)
 
     return result
 
@@ -139,10 +145,11 @@ class ApiGetConfigOptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = config_plugin.ApiGetConfigOptionHandler()
 
   def _ConfigStub(self, sections=None):
-    mock = GetConfigMockClass(sections)
-    return utils.MultiStubber((config.CONFIG, "GetRaw", mock["GetRaw"]),
-                              (config.CONFIG, "Get", mock["Get"]),
-                              (config.CONFIG, "type_infos", mock["type_infos"]))
+    mock_config = GetConfigMockClass(sections)
+    return utils.MultiStubber(
+        (config.CONFIG, "GetRaw", mock_config["GetRaw"]),
+        (config.CONFIG, "Get", mock_config["Get"]),
+        (config.CONFIG, "type_infos", mock_config["type_infos"]))
 
   def _HandleConfigOption(self, stub_sections, name):
     with self._ConfigStub(stub_sections):

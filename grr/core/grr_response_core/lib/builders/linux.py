@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """An implementation of linux client builder."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import fnmatch
@@ -12,6 +13,7 @@ import zipfile
 from grr_response_core import config
 from grr_response_core.lib import build
 from grr_response_core.lib import config_lib
+from grr_response_core.lib import package
 from grr_response_core.lib import utils
 
 
@@ -56,8 +58,10 @@ class LinuxClientBuilder(build.ClientBuilder):
   def CopyFiles(self):
     """This sets up the template directory."""
     # Copy the nanny binary.
-    shutil.copy(config_lib.Resource().Filter(
-        "install_data/debian/dpkg_client/nanny.sh.in"), self.output_dir)
+    shutil.copy(
+        package.ResourcePath("grr-response-core",
+                             "install_data/debian/dpkg_client/nanny.sh.in"),
+        self.output_dir)
 
     dpkg_dir = config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context)
 

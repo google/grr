@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 """GRR Rapid Response Framework."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import ConfigParser
 import os
 
-from grr_response_core.lib import config_lib
+import configparser
+
+from grr_response_core.lib import package
 
 
 def VersionPath():
@@ -15,10 +17,9 @@ def VersionPath():
   # Try to get a version.ini. It should be in the resources if the code
   # was packed with "pip sdist". It will be 2 levels up from grr_response_core
   # if the code was installed via "pip install -e".
-  try:
-    version_ini = config_lib.Resource().Filter("version.ini")
-  except config_lib.FilterError:
-    version_ini = config_lib.Resource().Filter("../../version.ini")
+  version_ini = (
+      package.ResourcePath("grr-response-core", "version.ini") or
+      package.ResourcePath("grr-response-core", "../../version.ini"))
 
   if not os.path.exists(version_ini):
     raise RuntimeError("Can't find version.ini at %s" % version_ini)
@@ -31,7 +32,7 @@ def Version():
 
   version_ini = VersionPath()
 
-  config = ConfigParser.SafeConfigParser()
+  config = configparser.SafeConfigParser()
   config.read(version_ini)
   return dict(
       packageversion=config.get("Version", "packageversion"),

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Configuration parameters for the server side subsystems."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core import version

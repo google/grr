@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Implementation of various cryptographic types."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -31,7 +32,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
-
+from grr_response_core.lib.util import random
 from grr_response_proto import jobs_pb2
 
 
@@ -818,7 +819,7 @@ class Password(rdf_structs.RDFProtoStruct):
     return kdf.derive(password)
 
   def SetPassword(self, password):
-    self.salt = b"%016x" % utils.PRNG.GetUInt64()
+    self.salt = b"%016x" % random.UInt64()
     self.iteration_count = 100000
     self.hashed_pwd = self._CalculateHash(password, self.salt,
                                           self.iteration_count)

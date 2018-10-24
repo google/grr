@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """This modules contains tests for VFS API handlers."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import io
@@ -1022,7 +1023,7 @@ class ApiGetFileDecodersHandler(DecodersTestMixin,
 
     args = vfs_plugin.ApiGetFileDecodersArgs()
     args.client_id = self.client_id
-    args.filepath = "fs/os/foo/bar/baz"
+    args.file_path = "fs/os/foo/bar/baz"
 
     result = self.handler.Handle(args, token=self.token)
     self.assertEqual(result.decoder_names, ["Foo"])
@@ -1054,15 +1055,15 @@ class ApiGetFileDecodersHandler(DecodersTestMixin,
     args = vfs_plugin.ApiGetFileDecodersArgs()
     args.client_id = self.client_id
 
-    args.filepath = "fs/os/foo/bar"
+    args.file_path = "fs/os/foo/bar"
     result = self.handler.Handle(args, token=self.token)
     self.assertItemsEqual(result.decoder_names, ["BarQuux"])
 
-    args.filepath = "fs/os/foo/baz"
+    args.file_path = "fs/os/foo/baz"
     result = self.handler.Handle(args)
     self.assertItemsEqual(result.decoder_names, ["BazQuux"])
 
-    args.filepath = "fs/os/foo/quux"
+    args.file_path = "fs/os/foo/quux"
     result = self.handler.Handle(args)
     self.assertItemsEqual(result.decoder_names, ["BarQuux", "BazQuux"])
 
@@ -1096,7 +1097,7 @@ class ApiGetDecodedFileHandlerTest(DecodersTestMixin,
 
     args = vfs_plugin.ApiGetDecodedFileArgs()
     args.client_id = self.client_id
-    args.filepath = "fs/os/foo"
+    args.file_path = "fs/os/foo"
     args.decoder_name = "Foo"
 
     self.assertEqual(self._Result(args), b"bar")
@@ -1129,10 +1130,10 @@ class ApiGetDecodedFileHandlerTest(DecodersTestMixin,
     args.client_id = self.client_id
     args.decoder_name = "Bar"
 
-    args.filepath = "fs/os/quux"
+    args.file_path = "fs/os/quux"
     self.assertEqual(self._Result(args), b"NORF" * 100)
 
-    args.filepath = "fs/os/thud"
+    args.file_path = "fs/os/thud"
     self.assertEqual(self._Result(args), b"BLARGH" * 100)
 
   def testUnknownDecoder(self):
@@ -1140,7 +1141,7 @@ class ApiGetDecodedFileHandlerTest(DecodersTestMixin,
 
     args = vfs_plugin.ApiGetDecodedFileArgs()
     args.client_id = self.client_id
-    args.filepath = "fs/os/baz"
+    args.file_path = "fs/os/baz"
     args.decoder_name = "Baz"
 
     with self.assertRaisesRegexp(ValueError, "'Baz'"):

@@ -21,13 +21,13 @@ Example usage:
 >>> SharedPool().Join()
 
 """
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
 import logging
 import os
-import Queue
 import threading
 import time
 
@@ -35,10 +35,11 @@ import time
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import itervalues
 import psutil
+import queue
 
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
+from grr_response_core.stats import stats_collector_instance
 
 STOP_MESSAGE = "Stop message"
 
@@ -48,23 +49,6 @@ _CPU_USE_METRIC = "threadpool_cpu_use"
 _TASK_EXCEPTIONS_METRIC = "threadpool_task_exceptions"
 _WORKING_TIME_METRIC = "threadpool_working_time"
 _QUEUEING_TIME_METRIC = "threadpool_queueing_time"
-
-
-def InitializeMetrics():
-  """Registers threadpool-related metrics.
-
-  This function must be called before any threadpools are created.
-  """
-  metric_fields = [("pool_name", str)]
-  stats.STATS.RegisterGaugeMetric(
-      _OUTSTANDING_TASKS_METRIC, int, fields=metric_fields)
-  stats.STATS.RegisterGaugeMetric(
-      _NUM_THREADS_METRIC, int, fields=metric_fields)
-  stats.STATS.RegisterGaugeMetric(_CPU_USE_METRIC, float, fields=metric_fields)
-  stats.STATS.RegisterCounterMetric(
-      _TASK_EXCEPTIONS_METRIC, fields=metric_fields)
-  stats.STATS.RegisterEventMetric(_WORKING_TIME_METRIC, fields=metric_fields)
-  stats.STATS.RegisterEventMetric(_QUEUEING_TIME_METRIC, fields=metric_fields)
 
 
 class Error(Exception):
@@ -82,13 +66,13 @@ class Full(Error):
 class _WorkerThread(threading.Thread):
   """The workers used in the ThreadPool class."""
 
-  def __init__(self, queue, pool):
+  def __init__(self, message_queue, pool):
     """Initializer.
 
     This creates a new worker object for the ThreadPool class.
 
     Args:
-      queue: A Queue.Queue object that is used by the ThreadPool class to
+      message_queue: A queue.Queue object used by the ThreadPool class to
           communicate with the workers. When a new task arrives, the ThreadPool
           notifies the workers by putting a message into this queue that has the
           format (target, args, name, queueing_time).
@@ -111,7 +95,7 @@ class _WorkerThread(threading.Thread):
       self.name = pool.name + "-" + self.name
 
     self.pool = pool
-    self._queue = queue
+    self._queue = message_queue
     self.daemon = True
     self.idle = True
     self.started = time.time()
@@ -121,7 +105,7 @@ class _WorkerThread(threading.Thread):
 
     if self.pool.name:
       time_in_queue = time.time() - queueing_time
-      stats.STATS.RecordEvent(
+      stats_collector_instance.Get().RecordEvent(
           _QUEUEING_TIME_METRIC, time_in_queue, fields=[self.pool.name])
 
       start_time = time.time()
@@ -132,14 +116,14 @@ class _WorkerThread(threading.Thread):
     # raised in the call to target().
     except Exception as e:  # pylint: disable=broad-except
       if self.pool.name:
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             _TASK_EXCEPTIONS_METRIC, fields=[self.pool.name])
       logging.exception("Caught exception in worker thread (%s): %s", name,
                         str(e))
 
     if self.pool.name:
       total_time = time.time() - start_time
-      stats.STATS.RecordEvent(
+      stats_collector_instance.Get().RecordEvent(
           _WORKING_TIME_METRIC, total_time, fields=[self.pool.name])
 
   def _RemoveFromPool(self):
@@ -185,7 +169,7 @@ class _WorkerThread(threading.Thread):
         finally:
           self._queue.task_done()
 
-      except Queue.Empty:
+      except queue.Empty:
         if self._RemoveFromPool():
           return
 
@@ -271,7 +255,7 @@ class ThreadPool(object):
 
     self.max_threads = max_threads
     self.cpu_check = cpu_check
-    self._queue = Queue.Queue(maxsize=max_threads)
+    self._queue = queue.Queue(maxsize=max_threads)
     self.name = name
     self.started = False
     self.process = psutil.Process(os.getpid())
@@ -288,11 +272,11 @@ class ThreadPool(object):
         raise DuplicateThreadpoolError(
             "A thread pool with the name %s already exists.", name)
 
-      stats.STATS.SetGaugeCallback(
+      stats_collector_instance.Get().SetGaugeCallback(
           _OUTSTANDING_TASKS_METRIC, self._queue.qsize, fields=[self.name])
-      stats.STATS.SetGaugeCallback(
+      stats_collector_instance.Get().SetGaugeCallback(
           _NUM_THREADS_METRIC, lambda: len(self), fields=[self.name])
-      stats.STATS.SetGaugeCallback(
+      stats_collector_instance.Get().SetGaugeCallback(
           _CPU_USE_METRIC, self.CPUUsage, fields=[self.name])
 
   def __del__(self):
@@ -371,7 +355,7 @@ class ThreadPool(object):
       name: The name of this task. Used to identify tasks in the log.
 
       blocking: If True we block until the task is finished, otherwise we raise
-        Queue.Full
+        queue.Full
 
       inline: If set, process the task inline when the queue is full. This
         implies no blocking. Specifying inline helps if the worker tasks are
@@ -396,7 +380,7 @@ class ThreadPool(object):
           # Push the task on the queue but raise if unsuccessful.
           self._queue.put((target, args, name, time.time()), block=False)
           return
-        except Queue.Full:
+        except queue.Full:
           # We increase the number of active threads if we do not exceed the
           # maximum _and_ our process CPU utilization is not too high. This
           # ensures that if the workers are waiting on IO we add more workers,
@@ -422,7 +406,7 @@ class ThreadPool(object):
               self._queue.put(
                   (target, args, name, time.time()), block=True, timeout=1)
               return
-            except Queue.Full:
+            except queue.Full:
               continue
 
           else:

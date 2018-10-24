@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for flows."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import mock
@@ -15,10 +16,12 @@ from grr_response_server import server_stubs
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
+from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
+from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import test_output_plugins
 
@@ -60,6 +63,21 @@ class BasicFlowTest(db_test_lib.RelationalFlowsEnabledMixin,
   def setUp(self):
     super(BasicFlowTest, self).setUp()
     self.client_id = self.SetupTestClientObject(0).client_id
+
+
+class FlowWithMultipleResultTypes(flow_base.FlowBase):
+  """Flow returning multiple results."""
+
+  def Start(self):
+    self.CallState(next_state="SendReplies")
+
+  def SendReplies(self, responses):
+    self.SendReply(rdfvalue.RDFInteger(42))
+    self.SendReply(rdfvalue.RDFString("foo bar"))
+    self.SendReply(rdfvalue.RDFString("foo1 bar1"))
+    self.SendReply(rdfvalue.RDFURN("aff4:/foo/bar"))
+    self.SendReply(rdfvalue.RDFURN("aff4:/foo1/bar1"))
+    self.SendReply(rdfvalue.RDFURN("aff4:/foo2/bar2"))
 
 
 class ParentFlow(flow_base.FlowBase):
@@ -222,7 +240,8 @@ class FlowCreationTest(BasicFlowTest):
     self.assertEqual(client_flow_obj.flow_state, "ERROR")
 
 
-class GeneralFlowsTest(BasicFlowTest):
+class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
+                       acl_test_lib.AclTestMixin, BasicFlowTest):
   """Tests some flows."""
 
   def testCallState(self):
@@ -331,6 +350,18 @@ class GeneralFlowsTest(BasicFlowTest):
     rdf_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     self.assertEqual(rdf_flow.flow_state, "ERROR")
     self.assertIn("bytes limit exceeded", rdf_flow.backtrace)
+
+  def testUserGetsNotificationWithNumberOfResults(self):
+    username = "notification_test_user"
+    self.CreateUser(username)
+
+    flow_test_lib.StartAndRunFlow(
+        FlowWithMultipleResultTypes, client_id=self.client_id, creator=username)
+
+    notifications = self.GetUserNotifications(username)
+
+    self.assertIn("FlowWithMultipleResultTypes completed with 6 results",
+                  notifications[0].message)
 
 
 class NoRequestChildFlow(flow_base.FlowBase):

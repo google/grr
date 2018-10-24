@@ -1,12 +1,13 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import time
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import flow
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.flows.general import transfer
@@ -313,9 +314,9 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
       self.assertTrue(cron_job.IsRunning())
       self.assertFalse(cron_job.KillOldFlows())
 
-    prev_timeout_value = stats.STATS.GetMetricValue(
+    prev_timeout_value = stats_collector_instance.Get().GetMetricValue(
         "cron_job_timeout", fields=[job_id])
-    prev_latency_value = stats.STATS.GetMetricValue(
+    prev_latency_value = stats_collector_instance.Get().GetMetricValue(
         "cron_job_latency", fields=[job_id])
 
     # Fast forward one day
@@ -334,12 +335,12 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
           self.assertTrue("lifetime exceeded" in str(line.log_message))
 
       # Check that timeout counter got updated.
-      current_timeout_value = stats.STATS.GetMetricValue(
+      current_timeout_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_timeout", fields=[job_id])
       self.assertEqual(current_timeout_value - prev_timeout_value, 1)
 
       # Check that latency stat got updated.
-      current_latency_value = stats.STATS.GetMetricValue(
+      current_latency_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_latency", fields=[job_id])
       self.assertEqual(current_latency_value.count - prev_latency_value.count,
                        1)
@@ -350,7 +351,7 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
     job_id = "FailingFakeCronJob"
     aff4_cronjobs.ScheduleSystemCronFlows(names=[job_id], token=self.token)
 
-    prev_metric_value = stats.STATS.GetMetricValue(
+    prev_metric_value = stats_collector_instance.Get().GetMetricValue(
         "cron_job_failure", fields=[job_id])
 
     cron_manager = aff4_cronjobs.GetCronManager()
@@ -363,7 +364,7 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
     cron_manager.RunOnce(token=self.token)
 
     # Check that stats got updated
-    current_metric_value = stats.STATS.GetMetricValue(
+    current_metric_value = stats_collector_instance.Get().GetMetricValue(
         "cron_job_failure", fields=[job_id])
     self.assertEqual(current_metric_value - prev_metric_value, 1)
 
@@ -378,7 +379,7 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
 
       cron_manager.RunOnce(token=self.token)
 
-    prev_metric_value = stats.STATS.GetMetricValue(
+    prev_metric_value = stats_collector_instance.Get().GetMetricValue(
         "cron_job_latency", fields=[cron_job_id])
 
     # Fast forward one minute
@@ -393,7 +394,7 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
       cron_manager.RunOnce(token=self.token)
 
     # Check that stats got updated
-    current_metric_value = stats.STATS.GetMetricValue(
+    current_metric_value = stats_collector_instance.Get().GetMetricValue(
         "cron_job_latency", fields=[cron_job_id])
     self.assertEqual(current_metric_value.count - prev_metric_value.count, 1)
     self.assertEqual(current_metric_value.sum - prev_metric_value.sum, 60)

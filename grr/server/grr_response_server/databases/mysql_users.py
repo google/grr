@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """The MySQL database methods for GRR users and approval handling."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import MySQLdb
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
+from grr_response_core.lib.util import random
 from grr_response_server import db
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -133,7 +134,7 @@ class MySQLDBUsersMixin(object):
     # Copy the approval_request to ensure we don't modify the source object.
     approval_request = approval_request.Copy()
     # Generate random approval id.
-    approval_id_int = utils.PRNG.GetUInt64()
+    approval_id_int = random.UInt64()
     now_str = mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
 
     grants = approval_request.grants

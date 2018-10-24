@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for triggers."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags

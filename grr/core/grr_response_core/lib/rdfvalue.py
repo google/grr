@@ -6,6 +6,8 @@ This module contains all RDFValue implementations.
 NOTE: This module uses the class registry to contain all implementations of
 RDFValue class, regardless of where they are defined. To do this reliably, these
 implementations must be imported _before_ the relevant classes are referenced
+from __future__ import absolute_import
+
 from this module.
 """
 from __future__ import division
@@ -34,6 +36,7 @@ from typing import cast
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util import random
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
@@ -1208,7 +1211,7 @@ class SessionID(RDFURN):
     if initializer is None:
       # This SessionID is being constructed from scratch.
       if flow_name is None:
-        flow_name = utils.PRNG.GetUInt32()
+        flow_name = random.UInt32()
 
       if isinstance(flow_name, int):
         initializer = RDFURN(base).Add("%s:%X" % (queue.Basename(), flow_name))

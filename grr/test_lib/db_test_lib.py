@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test utilities for RELDB-related testing."""
+from __future__ import absolute_import
 
 import functools
 import sys

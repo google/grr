@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with database migration flows."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_server import data_migration

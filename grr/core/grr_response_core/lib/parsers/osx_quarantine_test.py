@@ -2,6 +2,7 @@
 """Tests for grr.parsers.osx_quarantine."""
 
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import datetime

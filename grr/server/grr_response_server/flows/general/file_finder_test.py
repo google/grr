@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the FileFinder flow."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import collections
@@ -40,6 +41,7 @@ from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 # pylint:mode=test
@@ -329,7 +331,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   FS_UNRM_FL = 0x00000002
 
   def testFileFinderStatExtFlags(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       client_test_lib.Chattr(temp_filepath, attrs=["+d"])
 
       action = rdf_file_finder.FileFinderAction.Stat()
@@ -341,9 +343,9 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       self.assertFalse(stat_entry.st_flags_linux & self.FS_UNRM_FL)
 
   def testFileFinderStatExtAttrs(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
-      client_test_lib.SetExtAttr(temp_filepath, name="user.bar", value="baz")
-      client_test_lib.SetExtAttr(temp_filepath, name="user.quux", value="norf")
+    with temp.AutoTempFilePath() as temp_filepath:
+      client_test_lib.SetExtAttr(temp_filepath, name=b"user.bar", value=b"quux")
+      client_test_lib.SetExtAttr(temp_filepath, name=b"user.baz", value=b"norf")
 
       action = rdf_file_finder.FileFinderAction.Stat()
       results = self.RunFlow(action=action, paths=[temp_filepath])
@@ -351,8 +353,8 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
       stat_entry = results[0].stat_entry
       self.assertItemsEqual(stat_entry.ext_attrs, [
-          rdf_client_fs.ExtAttr(name="user.bar", value="baz"),
-          rdf_client_fs.ExtAttr(name="user.quux", value="norf"),
+          rdf_client_fs.ExtAttr(name=b"user.bar", value=b"quux"),
+          rdf_client_fs.ExtAttr(name=b"user.baz", value=b"norf"),
       ])
 
   def testFileFinderDownloadActionWithoutConditions(self):
@@ -904,7 +906,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     with client:
       client.Set(client.Schema.KNOWLEDGE_BASE, kb)
 
-    with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       self._Touch(os.path.join(temp_dirpath, "foo", "bar"))
       self._Touch(os.path.join(temp_dirpath, "foo", "baz"))
       self._Touch(os.path.join(temp_dirpath, "foo", "quux"))

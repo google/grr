@@ -7,6 +7,7 @@ a logical relational database model.
 WIP, will eventually replace datastore.py.
 
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import abc
@@ -1381,6 +1382,17 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def ReadAllFlowObjects(self, client_id):
+    """Reads all flow objects from the database for a given client.
+
+    Args:
+      client_id: The client id.
+
+    Returns:
+      A list of rdf_flow_objects.Flow objects.
+    """
+
+  @abc.abstractmethod
   def ReadChildFlowObjects(self, client_id, flow_id):
     """Reads flow objects that were started by a given flow from the database.
 
@@ -2221,6 +2233,10 @@ class DatabaseValidationWrapper(Database):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
     return self.delegate.ReadFlowObject(client_id, flow_id)
+
+  def ReadAllFlowObjects(self, client_id):
+    _ValidateClientId(client_id)
+    return self.delegate.ReadAllFlowObjects(client_id)
 
   def ReadChildFlowObjects(self, client_id, flow_id):
     _ValidateClientId(client_id)

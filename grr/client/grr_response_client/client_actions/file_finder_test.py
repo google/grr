@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests the client file finder action."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import collections
@@ -20,6 +22,7 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 from grr.test_lib import worker_mocks
@@ -486,7 +489,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
   EXT2_IMMUTABLE_FL = 0x00000010
 
   def testStatExtFlags(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       client_test_lib.Chattr(temp_filepath, attrs=["+c"])
 
       action = rdf_file_finder.FileFinderAction.Stat()
@@ -498,19 +501,19 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.assertFalse(stat_entry.st_flags_linux & self.EXT2_IMMUTABLE_FL)
 
   def testStatExtAttrs(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
-      client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
-      client_test_lib.SetExtAttr(temp_filepath, name="user.quux", value="norf")
+    with temp.AutoTempFilePath() as temp_filepath:
+      client_test_lib.SetExtAttr(temp_filepath, name=b"user.foo", value=b"norf")
+      client_test_lib.SetExtAttr(temp_filepath, name=b"user.bar", value=b"quux")
 
       action = rdf_file_finder.FileFinderAction.Stat()
       results = self._RunFileFinder([temp_filepath], action)
       self.assertEqual(len(results), 1)
 
       ext_attrs = results[0].stat_entry.ext_attrs
-      self.assertEqual(ext_attrs[0].name, "user.foo")
-      self.assertEqual(ext_attrs[0].value, "bar")
-      self.assertEqual(ext_attrs[1].name, "user.quux")
-      self.assertEqual(ext_attrs[1].value, "norf")
+      self.assertEqual(ext_attrs[0].name, b"user.foo")
+      self.assertEqual(ext_attrs[0].value, b"norf")
+      self.assertEqual(ext_attrs[1].name, b"user.bar")
+      self.assertEqual(ext_attrs[1].value, b"quux")
 
       action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=False)
       results = self._RunFileFinder([temp_filepath], action)
@@ -518,6 +521,56 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
       ext_attrs = results[0].stat_entry.ext_attrs
       self.assertFalse(ext_attrs)
+
+  def testStatExtAttrUnicode(self):
+    with temp.AutoTempFilePath() as temp_filepath:
+      name_0 = "user.żółć".encode("utf-8")
+      value_0 = "jaźń".encode("utf-8")
+      client_test_lib.SetExtAttr(temp_filepath, name=name_0, value=value_0)
+
+      name_1 = "user.rtęć".encode("utf-8")
+      value_1 = "kość".encode("utf-8")
+      client_test_lib.SetExtAttr(temp_filepath, name=name_1, value=value_1)
+
+      action = rdf_file_finder.FileFinderAction.Stat()
+      results = self._RunFileFinder([temp_filepath], action)
+      self.assertEqual(len(results), 1)
+
+      ext_attrs = results[0].stat_entry.ext_attrs
+      self.assertEqual(len(ext_attrs), 2)
+      self.assertEqual(ext_attrs[0].name, name_0)
+      self.assertEqual(ext_attrs[0].value, value_0)
+      self.assertEqual(ext_attrs[1].name, name_1)
+      self.assertEqual(ext_attrs[1].value, value_1)
+
+  def testStatExtAttrBytesValue(self):
+    with temp.AutoTempFilePath() as temp_filepath:
+      name = b"user.foo"
+      value = b"\xDE\xAD\xBE\xEF"
+
+      client_test_lib.SetExtAttr(temp_filepath, name=name, value=value)
+
+      action = rdf_file_finder.FileFinderAction.Stat()
+      results = self._RunFileFinder([temp_filepath], action)
+      self.assertEqual(len(results), 1)
+
+      ext_attrs = results[0].stat_entry.ext_attrs
+      self.assertEqual(len(ext_attrs), 1)
+      self.assertEqual(ext_attrs[0].name, name)
+      self.assertEqual(ext_attrs[0].value, value)
+
+  def testStatExtAttrBytesName(self):
+    with temp.AutoTempFilePath() as temp_filepath:
+      name = b"user.\xDE\xAD\xBE\xEF"
+      value = b"bar"
+
+      client_test_lib.SetExtAttr(temp_filepath, name=name, value=value)
+
+      # This should not explode (`xattr` does not handle non-unicode names).
+      action = rdf_file_finder.FileFinderAction.Stat()
+      results = self._RunFileFinder([temp_filepath], action)
+      self.assertEqual(len(results), 1)
+      self.assertEqual(len(results[0].stat_entry.ext_attrs), 0)
 
   def testLinkStat(self):
     """Tests resolving symlinks when getting stat entries."""

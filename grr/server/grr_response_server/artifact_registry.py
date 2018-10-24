@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Central registry for artifacts."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging

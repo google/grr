@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """These are filesystem related flows."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -937,10 +938,12 @@ class GlobLogic(object):
       if recursions_to_get or regexes_to_get:
         # Recursions or regexes need a base pathspec to operate on. If we
         # have neither a response or a root path, we send a default pathspec
-        # that opens the root with pathtype "OS".
+        # that opens the root with pathtype set to the pathtype expected by the
+        # user.
         base_pathspec = self._GetBasePathspec(response)
         if not base_pathspec:
-          base_pathspec = rdf_paths.PathSpec(path="/", pathtype="OS")
+          base_pathspec = rdf_paths.PathSpec(
+              path="/", pathtype=self.state.pathtype)
 
         for depth, recursions in iteritems(recursions_to_get):
           path_regex = "(?i)^" + "$|^".join(set([c.path for c in recursions

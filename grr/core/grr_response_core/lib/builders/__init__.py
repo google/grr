@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Select operating system specific implementations of builder."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import platform

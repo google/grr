@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr_response_server.aff4_objects.standard."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 

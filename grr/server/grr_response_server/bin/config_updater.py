@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Util for modifying the GRR server configuration."""
+from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -41,11 +42,6 @@ parser.description = ("Set configuration parameters for the GRR Server."
 
 # Generic arguments.
 parser.add_argument(
-    "--version",
-    action="version",
-    version=config_server.VERSION["packageversion"])
-
-parser.add_argument(
     "--share_dir",
     default="/usr/share/grr",
     help="Path to the directory containing grr data.")
@@ -54,6 +50,15 @@ subparsers = parser.add_subparsers(
     title="subcommands", dest="subparser_name", description="valid subcommands")
 
 # Subparsers.
+
+# TODO(hanuszczak): Before Python 3.3 there is no way to make subparsers
+# optional, so having a `--version` flag in a non-magic way (through `version`
+# action) is impossible. As a temporary hack we use `version` command instead
+# of a flag to achieve that. Once we migrate to Abseil this should no longer be
+# an issue and version should be declarable as an optional flag again.
+parser_version = subparsers.add_parser(
+    "version", help="Print config updater version number and exit immediately")
+
 parser_generate_keys = subparsers.add_parser(
     "generate_keys", help="Generate crypto keys in the configuration.")
 
@@ -319,6 +324,11 @@ parser_rotate_key.add_argument(
 def main(argv):
   """Main."""
   del argv  # Unused.
+
+  if flags.FLAGS.subparser_name == "version":
+    version = config_server.VERSION["packageversion"]
+    print("GRR configuration updater {}".format(version))
+    return
 
   token = config_updater_util.GetToken()
   grr_config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Find files on the client."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import stat

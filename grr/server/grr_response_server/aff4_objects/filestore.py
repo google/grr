@@ -4,6 +4,7 @@
 Filestore allows for multiple different filestore modules to register URNs
 under aff4:/files to handle new file hash and new file creations.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import hashlib

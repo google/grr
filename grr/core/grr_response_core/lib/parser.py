@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Registry for parsers and abstract classes for basic parser functionality."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import abc
@@ -147,12 +148,6 @@ class Parser(with_metaclass(registry.MetaclassRegistry, object)):
       return cls.__doc__.split("\n")[0]
     else:
       return ""
-
-  # Additional validation code can be put in this function. This will only be
-  # run in tests.
-  @classmethod
-  def Validate(cls, supported_artifact_objects):
-    pass
 
 
 # TODO(hanuszczak): This class should implement only one interface.

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for logging classes."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -9,7 +10,6 @@ import time
 from werkzeug import wrappers as werkzeug_wrappers
 
 from grr_response_core.lib import flags
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_proto import jobs_pb2
 from grr_response_server import server_logging
@@ -48,8 +48,6 @@ class ApplicationLoggerTests(test_lib.GRRBaseTest):
         "Invalid event ID generated")
 
   def testLogHttpAdminUIAccess(self):
-    stats.STATS.RegisterCounterMetric("grr_gin_request_count")
-
     request = wsgiapp.HttpRequest({
         "wsgi.url_scheme": "http",
         "SERVER_NAME": "foo.bar",

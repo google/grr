@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This file abstracts the loading of the private key."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from cryptography import x509

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Filestore stats crons."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -7,7 +8,7 @@ from __future__ import unicode_literals
 from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats as stats_lib
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import collection
 from grr_response_server import aff4
 
@@ -49,7 +50,7 @@ class ClassFileSizeCounter(ClassCounter):
     fd.Set(self.attribute, self.graph)
 
 
-class GraphDistribution(stats_lib.Distribution):
+class GraphDistribution(rdf_stats.Distribution):
   """Abstract class for building histograms."""
 
   _bins = []

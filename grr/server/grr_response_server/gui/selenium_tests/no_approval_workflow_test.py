@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests acl policies when approvals system is disabled."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with utilities for testing parsers."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import functools

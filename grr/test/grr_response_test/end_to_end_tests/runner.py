@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Helper for running end-to-end tests."""
+from __future__ import absolute_import
+
 import collections
 import getpass
 import inspect
@@ -15,7 +17,7 @@ from future.utils import itervalues
 import requests
 
 from grr_api_client import api
-from grr_response_core.lib import config_lib
+from grr_response_core.lib import package
 from grr_response_server import maintenance_utils
 from grr_response_test.end_to_end_tests import test_base
 
@@ -133,8 +135,7 @@ class E2ETestRunner(object):
     """Uploads a binary from the GRR installation dir to the datastore."""
     # TODO(user): Upload binaries via the GRR API.
     logging.info("Uploading %s binary to server.", server_path)
-    package_dir = config_lib.Resource().Filter(
-        "grr_response_test@grr-response-test")
+    package_dir = package.ResourcePath("grr-response-test", "grr_response_test")
     with open(os.path.join(package_dir, "test_data", bin_name), "rb") as f:
       maintenance_utils.UploadSignedConfigBlob(
           f.read(), "aff4:/config/executables/%s" % server_path)

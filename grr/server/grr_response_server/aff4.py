@@ -3,6 +3,7 @@
 
 This contains an AFF4 data model implementation.
 """
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -3083,7 +3084,7 @@ class AFF4UnversionedImage(AFF4ImageBase):
 # Utility functions
 class AFF4InitHook(registry.InitHook):
 
-  pre = [access_control.ACLInit, data_store.DataStoreInit]
+  pre = [data_store.DataStoreInit]
 
   def Run(self):
     """Delayed loading of aff4 plugins to break import cycles."""

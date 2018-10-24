@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """An implementation of an in-memory data store for testing."""
+from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 

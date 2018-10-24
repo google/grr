@@ -3,6 +3,7 @@
 
 An index of client machines, associating likely identifiers to client IDs.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 

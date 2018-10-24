@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """End to end tests rewrite using GRR API."""
+from __future__ import absolute_import
 
 from grr_response_test.end_to_end_tests.tests import administrative
 from grr_response_test.end_to_end_tests.tests import artifacts

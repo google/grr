@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Some multiclient flows aka hunts."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -10,13 +11,13 @@ from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
+from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import flows_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
@@ -260,7 +261,7 @@ class VerifyHuntOutputPluginsCronFlow(aff4_cronjobs.SystemCronFlow):
           self._FillResult(result, plugin_id, plugin_descriptor)
 
           results_by_hunt.setdefault(hunt.urn, []).append(result)
-          stats.STATS.IncrementCounter(
+          stats_collector_instance.Get().IncrementCounter(
               "hunt_output_plugin_verifications",
               fields=[utils.SmartStr(result.status)])
         continue
@@ -277,7 +278,7 @@ class VerifyHuntOutputPluginsCronFlow(aff4_cronjobs.SystemCronFlow):
           self._FillResult(result, plugin_id, plugin_descriptor)
 
           results_by_hunt.setdefault(hunt.urn, []).append(result)
-          stats.STATS.IncrementCounter(
+          stats_collector_instance.Get().IncrementCounter(
               "hunt_output_plugin_verifications",
               fields=[utils.SmartStr(result.status)])
 
@@ -285,7 +286,7 @@ class VerifyHuntOutputPluginsCronFlow(aff4_cronjobs.SystemCronFlow):
         logging.exception(e)
 
         errors.extend(e.errors)
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             "hunt_output_plugin_verification_errors", delta=len(e.errors))
 
     for hunt_urn, results in iteritems(results_by_hunt):
@@ -500,19 +501,3 @@ class VariableGenericHunt(GenericHunt):
         client_ids.add(client_id)
 
     self.StartClients(self.session_id, client_ids, token=token)
-
-
-class StandardHuntInitHook(registry.InitHook):
-  """Init hook for hunt related stats."""
-
-  def RunOnce(self):
-    """Register standard hunt-related stats."""
-    stats.STATS.RegisterCounterMetric(
-        "hunt_output_plugin_verifications", fields=[("status", str)])
-    stats.STATS.RegisterCounterMetric("hunt_output_plugin_verification_errors")
-    stats.STATS.RegisterCounterMetric(
-        "hunt_output_plugin_errors", fields=[("plugin", str)])
-    stats.STATS.RegisterCounterMetric(
-        "hunt_results_ran_through_plugin", fields=[("plugin", str)])
-    stats.STATS.RegisterCounterMetric("hunt_results_compacted")
-    stats.STATS.RegisterCounterMetric("hunt_results_compaction_locking_errors")

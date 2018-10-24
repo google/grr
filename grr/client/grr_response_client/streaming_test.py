@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the streaming utility classes."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import abc
@@ -13,6 +14,7 @@ import unittest
 from grr_response_client import streaming
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_core.lib import flags
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 
@@ -147,7 +149,7 @@ class StreamFilePathTest(StreamerTestMixin, unittest.TestCase):
 
   def setUp(self):
     super(StreamFilePathTest, self).setUp()
-    self.temp_filepath = test_lib.TempFilePath()
+    self.temp_filepath = temp.TempFilePath()
 
   def tearDown(self):
     super(StreamFilePathTest, self).tearDown()
@@ -216,7 +218,7 @@ class FileReaderTest(ReaderTestMixin, unittest.TestCase):
 
   def setUp(self):
     super(FileReaderTest, self).setUp()
-    self.temp_filepath = test_lib.TempFilePath()
+    self.temp_filepath = temp.TempFilePath()
 
   def tearDown(self):
     super(FileReaderTest, self).tearDown()

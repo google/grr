@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test library for blob store-related code."""
+from __future__ import absolute_import
 
 from grr_response_core import config
 from grr_response_core.lib.util import compatibility

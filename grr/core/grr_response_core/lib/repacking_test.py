@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.lib.repacking."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import glob
@@ -14,6 +15,7 @@ from grr_response_core import config
 from grr_response_core.lib import build
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import flags
+from grr_response_core.lib import package
 from grr_response_core.lib import repacking
 from grr_response_core.lib import utils
 from grr.test_lib import test_lib
@@ -25,7 +27,8 @@ class RepackingTests(test_lib.GRRBaseTest):
   @test_lib.RequiresPackage("grr-response-templates")
   def testRepackAll(self):
     """Test repacking all binaries."""
-    self.executables_dir = config_lib.Resource().Filter("executables")
+    self.executables_dir = package.ResourcePath("grr-response-core",
+                                                "executables")
     with utils.TempDirectory() as tmp_dir:
       new_dir = os.path.join(tmp_dir, "grr", "executables")
       os.makedirs(new_dir)

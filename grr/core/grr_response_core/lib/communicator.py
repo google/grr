@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Abstracts encryption and authentication."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -12,32 +13,32 @@ import zlib
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
-
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import stats_utils
 
 
-class CommunicatorInit(registry.InitHook):
+# TODO(user): Move this to server_metrics.py after server and client
+# Communicators have been decoupled. These metrics should not be tracked on
+# the client.
+def GetMetricMetadata():
+  """Returns a list of MetricMetadata for communicator-related metrics."""
+  return [
+      stats_utils.CreateCounterMetadata("grr_client_unknown"),
+      stats_utils.CreateCounterMetadata("grr_decoding_error"),
+      stats_utils.CreateCounterMetadata("grr_decryption_error"),
+      stats_utils.CreateCounterMetadata("grr_authenticated_messages"),
+      stats_utils.CreateCounterMetadata("grr_unauthenticated_messages"),
+      stats_utils.CreateCounterMetadata("grr_rsa_operations"),
+      stats_utils.CreateCounterMetadata(
+          "grr_encrypted_cipher_cache", fields=[("type", str)]),
+  ]
 
-  def RunOnce(self):
-    """This is run only once."""
-    # Counters used here
-    stats.STATS.RegisterCounterMetric("grr_client_unknown")
-    stats.STATS.RegisterCounterMetric("grr_decoding_error")
-    stats.STATS.RegisterCounterMetric("grr_decryption_error")
-    stats.STATS.RegisterCounterMetric("grr_authenticated_messages")
-    stats.STATS.RegisterCounterMetric("grr_unauthenticated_messages")
-    stats.STATS.RegisterCounterMetric("grr_rsa_operations")
 
-    stats.STATS.RegisterCounterMetric(
-        "grr_encrypted_cipher_cache", fields=[("type", str)])
-
-
-class Error(stats.CountingExceptionMixin, Exception):
+class Error(stats_utils.CountingExceptionMixin, Exception):
   """Base class for all exceptions in this module."""
   pass
 
@@ -91,7 +92,7 @@ class Cipher(object):
     self.cipher_metadata.signature = self.private_key.Sign(serialized_cipher)
 
     # Now encrypt the cipher.
-    stats.STATS.IncrementCounter("grr_rsa_operations")
+    stats_collector_instance.Get().IncrementCounter("grr_rsa_operations")
     self.encrypted_cipher = remote_public_key.Encrypt(serialized_cipher)
 
     # Encrypt the metadata block symmetrically.
@@ -255,7 +256,7 @@ class ReceivedCipher(Cipher):
     """
     if self.cipher_metadata.signature and remote_public_key:
 
-      stats.STATS.IncrementCounter("grr_rsa_operations")
+      stats_collector_instance.Get().IncrementCounter("grr_rsa_operations")
       remote_public_key.Verify(self.serialized_cipher,
                                self.cipher_metadata.signature)
       return True
@@ -469,7 +470,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
     cipher_verified = False
     try:
       cipher = self.encrypted_cipher_cache.Get(response_comms.encrypted_cipher)
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "grr_encrypted_cipher_cache", fields=["hits"])
 
       # Even though we have seen this encrypted cipher already, we should still
@@ -482,7 +483,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
       source = cipher.GetSource()
       remote_public_key = self._GetRemotePublicKey(source)
     except KeyError:
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "grr_encrypted_cipher_cache", fields=["misses"])
       cipher = ReceivedCipher(response_comms, self.private_key)
 
@@ -556,7 +557,8 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
     result = rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     if cipher_verified or cipher.VerifyCipherSignature(remote_public_key):
-      stats.STATS.IncrementCounter("grr_authenticated_messages")
+      stats_collector_instance.Get().IncrementCounter(
+          "grr_authenticated_messages")
       result = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Check for replay attacks. We expect the server to return the same

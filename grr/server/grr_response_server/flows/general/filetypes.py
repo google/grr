@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """File-type specific flows."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import plist as rdf_plist

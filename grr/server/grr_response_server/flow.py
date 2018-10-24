@@ -41,6 +41,7 @@ self.runner_args: The flow runners args. This is an instance of
   FlowRunnerArgs() which may be build from keyword args.
 
 """
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -53,13 +54,13 @@ from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import type_info
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import random
+from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import jobs_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
@@ -226,7 +227,8 @@ def StartAFF4Flow(args=None,
   try:
     flow_cls = registry.AFF4FlowRegistry.FlowClassByName(runner_args.flow_name)
   except ValueError:
-    stats.STATS.IncrementCounter("grr_flow_invalid_flow_count")
+    stats_collector_instance.Get().IncrementCounter(
+        "grr_flow_invalid_flow_count")
     raise RuntimeError("Unable to locate flow %s" % runner_args.flow_name)
 
   # If no token is specified, raise.
@@ -347,7 +349,8 @@ def StartFlow(client_id=None,
   try:
     registry.FlowRegistry.FlowClassByName(flow_cls.__name__)
   except ValueError:
-    stats.STATS.IncrementCounter("grr_flow_invalid_flow_count")
+    stats_collector_instance.Get().IncrementCounter(
+        "grr_flow_invalid_flow_count")
     raise ValueError("Unable to locate flow %s" % flow_cls.__name__)
 
   if not client_id:
@@ -376,7 +379,7 @@ def StartFlow(client_id=None,
       original_flow=original_flow,
       flow_state="RUNNING")
 
-  rdf_flow.flow_id = "%08X" % utils.PRNG.GetPositiveUInt32()
+  rdf_flow.flow_id = "%08X" % random.PositiveUInt32()
 
   if parent_flow_obj:
     parent_rdf_flow = parent_flow_obj.rdf_flow
@@ -499,31 +502,11 @@ class FlowBase(with_metaclass(registry.AFF4FlowRegistry, aff4.AFF4Volume)):
     """Write all the messages queued in the queue manager."""
     self.GetRunner().FlushMessages()
 
-  def NotifyAboutEnd(self):
-    """Send out a final notification about the end of this flow."""
-    if not self.GetRunner().ShouldSendNotifications():
-      return
-
-    flow_ref = None
-    if self.runner_args.client_id:
-      flow_ref = rdf_objects.FlowReference(
-          client_id=self.client_id, flow_id=self.urn.Basename())
-
-    num_results = len(self.ResultCollection())
-    notification_lib.Notify(
-        self.creator, rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
-        "Flow %s completed with %d %s" % (self.__class__.__name__, num_results,
-                                          num_results == 1 and "result" or
-                                          "results"),
-        rdf_objects.ObjectReference(
-            reference_type=rdf_objects.ObjectReference.Type.FLOW,
-            flow=flow_ref))
-
   def ShouldSendNotifications(self):
     return self.GetRunner().ShouldSendNotifications()
 
   def Terminate(self, status=None):
-    self.NotifyAboutEnd()
+    """Terminates the flow."""
 
   def End(self, responses):
     """Final state.
@@ -745,6 +728,26 @@ class GRRFlow(FlowBase):
     """
     return cls.args_type()
 
+  def NotifyAboutEnd(self):
+    """Send out a final notification about the end of this flow."""
+    if not self.GetRunner().ShouldSendNotifications():
+      return
+
+    flow_ref = None
+    if self.runner_args.client_id:
+      flow_ref = rdf_objects.FlowReference(
+          client_id=self.client_id, flow_id=self.urn.Basename())
+
+    num_results = len(self.ResultCollection())
+    notification_lib.Notify(
+        self.creator, rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+        "Flow %s completed with %d %s" % (self.__class__.__name__, num_results,
+                                          num_results == 1 and "result" or
+                                          "results"),
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.FLOW,
+            flow=flow_ref))
+
   def HeartBeat(self):
     if self.locked:
       lease_time = self.transaction.lease_time
@@ -777,8 +780,8 @@ class GRRFlow(FlowBase):
 
   def Terminate(self, status=None):
     super(GRRFlow, self).Terminate(status=status)
-
-    return self.runner.Terminate(status=status)
+    self.runner.Terminate(status=status)
+    self.NotifyAboutEnd()
 
   @property
   def client_id(self):
@@ -963,7 +966,7 @@ class WellKnownFlow(GRRFlow):
       self.ProcessMessage(*args, **kwargs)
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Error in WellKnownFlow.ProcessMessage: %s", e)
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "well_known_flow_errors", fields=[str(self.session_id)])
 
   @property
@@ -1021,30 +1024,3 @@ class WellKnownFlow(GRRFlow):
   def UpdateKillNotification(self):
     # For WellKnownFlows it doesn't make sense to kill them ever.
     pass
-
-
-class FlowInit(registry.InitHook):
-  """Sets up flow-related stats."""
-
-  pre = [aff4.AFF4InitHook]
-
-  def RunOnce(self):
-    # Counters defined here
-    stats.STATS.RegisterCounterMetric("grr_flow_completed_count")
-    stats.STATS.RegisterCounterMetric("grr_flow_errors")
-    stats.STATS.RegisterCounterMetric("grr_flow_invalid_flow_count")
-    stats.STATS.RegisterCounterMetric("grr_request_retransmission_count")
-    stats.STATS.RegisterCounterMetric("grr_response_out_of_order")
-    stats.STATS.RegisterCounterMetric("grr_unique_clients")
-    stats.STATS.RegisterCounterMetric("grr_worker_states_run")
-    stats.STATS.RegisterCounterMetric("grr_well_known_flow_requests")
-
-    # Flow-aware counters
-    stats.STATS.RegisterCounterMetric("flow_starts", fields=[("flow", str)])
-    stats.STATS.RegisterCounterMetric("flow_errors", fields=[("flow", str)])
-    stats.STATS.RegisterCounterMetric(
-        "flow_completions", fields=[("flow", str)])
-    stats.STATS.RegisterCounterMetric(
-        "well_known_flow_requests", fields=[("flow", str)])
-    stats.STATS.RegisterCounterMetric(
-        "well_known_flow_errors", fields=[("flow", str)])

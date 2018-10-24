@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Unit test for the linux sysctl parser."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import io

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The GRR frontend server."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -13,13 +14,14 @@ from grr_response_core import config
 from grr_response_core.lib import communicator
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import random
+from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import stats_utils
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import client_index
@@ -52,10 +54,12 @@ class ServerCommunicator(communicator.Communicator):
     try:
       # See if we have this client already cached.
       remote_key = self.pub_key_cache.Get(str(common_name))
-      stats.STATS.IncrementCounter("grr_pub_key_cache", fields=["hits"])
+      stats_collector_instance.Get().IncrementCounter(
+          "grr_pub_key_cache", fields=["hits"])
       return remote_key
     except KeyError:
-      stats.STATS.IncrementCounter("grr_pub_key_cache", fields=["misses"])
+      stats_collector_instance.Get().IncrementCounter(
+          "grr_pub_key_cache", fields=["misses"])
 
     # Fetch the client's cert and extract the key.
     client = aff4.FACTORY.Create(
@@ -65,7 +69,7 @@ class ServerCommunicator(communicator.Communicator):
         token=self.token)
     cert = client.Get(client.Schema.CERT)
     if not cert:
-      stats.STATS.IncrementCounter("grr_unique_clients")
+      stats_collector_instance.Get().IncrementCounter("grr_unique_clients")
       raise communicator.UnknownClientCert("Cert not found")
 
     if rdfvalue.RDFURN(cert.GetCN()) != rdfvalue.RDFURN(common_name):
@@ -73,8 +77,8 @@ class ServerCommunicator(communicator.Communicator):
       raise communicator.UnknownClientCert("Stored cert mismatch")
 
     self.client_cache.Put(common_name, client)
-    stats.STATS.SetGaugeValue("grr_frontendserver_client_cache_size",
-                              len(self.client_cache))
+    stats_collector_instance.Get().SetGaugeValue(
+        "grr_frontendserver_client_cache_size", len(self.client_cache))
 
     pub_key = cert.GetPublicKey()
     self.pub_key_cache.Put(common_name, pub_key)
@@ -101,7 +105,8 @@ class ServerCommunicator(communicator.Communicator):
     """
     if (not cipher_verified and
         not cipher.VerifyCipherSignature(remote_public_key)):
-      stats.STATS.IncrementCounter("grr_unauthenticated_messages")
+      stats_collector_instance.Get().IncrementCounter(
+          "grr_unauthenticated_messages")
       return rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     try:
@@ -115,8 +120,8 @@ class ServerCommunicator(communicator.Communicator):
             mode="rw",
             token=self.token)
         self.client_cache.Put(client_id, client)
-        stats.STATS.SetGaugeValue("grr_frontendserver_client_cache_size",
-                                  len(self.client_cache))
+        stats_collector_instance.Get().SetGaugeValue(
+            "grr_frontendserver_client_cache_size", len(self.client_cache))
 
       ip = response_comms.orig_request.source_ip
       client.Set(client.Schema.CLIENT_IP(ip))
@@ -141,7 +146,8 @@ class ServerCommunicator(communicator.Communicator):
         # This is likely an old message
         return rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED
 
-      stats.STATS.IncrementCounter("grr_authenticated_messages")
+      stats_collector_instance.Get().IncrementCounter(
+          "grr_authenticated_messages")
 
       # Update the client and server timestamps only if the client
       # time moves forward.
@@ -153,7 +159,7 @@ class ServerCommunicator(communicator.Communicator):
         ping = rdfvalue.RDFDatetime.Now()
 
         for label in client.Get(client.Schema.LABELS, []):
-          stats.STATS.IncrementCounter(
+          stats_collector_instance.Get().IncrementCounter(
               "client_pings_by_label", fields=[label.name])
       else:
         clock = None
@@ -201,14 +207,16 @@ class RelationalServerCommunicator(communicator.Communicator):
     try:
       # See if we have this client already cached.
       remote_key = self.pub_key_cache.Get(remote_client_id)
-      stats.STATS.IncrementCounter("grr_pub_key_cache", fields=["hits"])
+      stats_collector_instance.Get().IncrementCounter(
+          "grr_pub_key_cache", fields=["hits"])
       return remote_key
     except KeyError:
-      stats.STATS.IncrementCounter("grr_pub_key_cache", fields=["misses"])
+      stats_collector_instance.Get().IncrementCounter(
+          "grr_pub_key_cache", fields=["misses"])
 
     md = data_store.REL_DB.ReadClientMetadata(remote_client_id)
     if not md:
-      stats.STATS.IncrementCounter("grr_unique_clients")
+      stats_collector_instance.Get().IncrementCounter("grr_unique_clients")
       raise communicator.UnknownClientCert("Cert not found")
 
     cert = md.certificate
@@ -241,7 +249,8 @@ class RelationalServerCommunicator(communicator.Communicator):
     """
     if (not cipher_verified and
         not cipher.VerifyCipherSignature(remote_public_key)):
-      stats.STATS.IncrementCounter("grr_unauthenticated_messages")
+      stats_collector_instance.Get().IncrementCounter(
+          "grr_unauthenticated_messages")
       return rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     try:
@@ -267,7 +276,8 @@ class RelationalServerCommunicator(communicator.Communicator):
           # This is likely an old message
           return rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED
 
-        stats.STATS.IncrementCounter("grr_authenticated_messages")
+        stats_collector_instance.Get().IncrementCounter(
+            "grr_authenticated_messages")
 
         # Update the client and server timestamps only if the client
         # time moves forward.
@@ -276,10 +286,11 @@ class RelationalServerCommunicator(communicator.Communicator):
                           stored_client_time, client_time)
           return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
-      stats.STATS.IncrementCounter("grr_authenticated_messages")
+      stats_collector_instance.Get().IncrementCounter(
+          "grr_authenticated_messages")
 
       for label in data_store.REL_DB.ReadClientLabels(client_id):
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             "client_pings_by_label", fields=[label.name])
 
       source_ip = response_comms.orig_request.source_ip
@@ -364,8 +375,8 @@ class FrontEndServer(object):
         for flow_name in whitelist & available_wkf_set
     }
 
-  @stats.Counted("grr_frontendserver_handle_num")
-  @stats.Timed("grr_frontendserver_handle_time")
+  @stats_utils.Counted("grr_frontendserver_handle_num")
+  @stats_utils.Timed("grr_frontendserver_handle_time")
   def HandleMessageBundles(self, request_comms, response_comms):
     """Processes a queue of messages as passed from the client.
 
@@ -466,7 +477,8 @@ class FrontEndServer(object):
           else:
             manager.DeQueueClientRequest(task)
 
-    stats.STATS.IncrementCounter("grr_messages_sent", len(result))
+    stats_collector_instance.Get().IncrementCounter("grr_messages_sent",
+                                                    len(result))
     if result:
       logging.debug("Drained %d messages for %s in %s seconds.", len(result),
                     client,
@@ -673,9 +685,10 @@ class FrontEndServer(object):
 
         # TODO(user): Deprecate in favor of 'well_known_flow_requests'
         # metric.
-        stats.STATS.IncrementCounter("grr_well_known_flow_requests")
+        stats_collector_instance.Get().IncrementCounter(
+            "grr_well_known_flow_requests")
 
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             "well_known_flow_requests", fields=[str(msg.session_id)])
       else:
         # Message should be queued to be processed in the backend.
@@ -683,7 +696,7 @@ class FrontEndServer(object):
         # Well known flows have a response_id==0, but if we queue up the state
         # as that it will overwrite some other message that is queued. So we
         # change it to a random number here.
-        msg.response_id = utils.PRNG.GetUInt32()
+        msg.response_id = random.UInt32()
 
         # Queue the message in the data store.
         result.append(msg)
@@ -717,37 +730,3 @@ class FrontEndServer(object):
     except Exception as e:  # pylint: disable=broad-except
       logging.debug("Unable to serve profile %s/%s: %s", version, name, e)
       return None
-
-
-class FrontendInit(registry.InitHook):
-
-  def RunOnce(self):
-    # Frontend metrics. These metrics should be used by the code that
-    # feeds requests into the frontend.
-    stats.STATS.RegisterCounterMetric(
-        "client_pings_by_label", fields=[("label", str)])
-    stats.STATS.RegisterGaugeMetric(
-        "frontend_active_count", int, fields=[("source", str)])
-    stats.STATS.RegisterGaugeMetric("frontend_max_active_count", int)
-    stats.STATS.RegisterCounterMetric(
-        "frontend_http_requests", fields=[("action", str), ("protocol", str)])
-    stats.STATS.RegisterCounterMetric(
-        "frontend_in_bytes", fields=[("source", str)])
-    stats.STATS.RegisterCounterMetric(
-        "frontend_out_bytes", fields=[("source", str)])
-    stats.STATS.RegisterCounterMetric(
-        "frontend_request_count", fields=[("source", str)])
-    # Client requests sent to an inactive datacenter. This indicates a
-    # misconfiguration.
-    stats.STATS.RegisterCounterMetric(
-        "frontend_inactive_request_count", fields=[("source", str)])
-    stats.STATS.RegisterEventMetric(
-        "frontend_request_latency", fields=[("source", str)])
-
-    stats.STATS.RegisterEventMetric("grr_frontendserver_handle_time")
-    stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_num")
-    stats.STATS.RegisterGaugeMetric("grr_frontendserver_client_cache_size", int)
-    stats.STATS.RegisterCounterMetric("grr_messages_sent")
-
-    stats.STATS.RegisterCounterMetric(
-        "grr_pub_key_cache", fields=[("type", str)])

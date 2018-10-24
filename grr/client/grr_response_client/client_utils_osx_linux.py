@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utils common to macOS and Linux."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -64,12 +65,25 @@ def GetExtAttrs(filepath):
 
   try:
     attr_names = xattr.listxattr(path)
-  except (IOError, OSError) as error:
+  except (IOError, OSError, UnicodeDecodeError) as error:
     msg = "Failed to retrieve extended attributes for '%s': %s"
     logging.error(msg, path, error)
     return
 
+  # `xattr` (version 0.9.2) decodes names as UTF-8. Since we (and the system)
+  # allows for names and values to be arbitrary byte strings, we use `bytes`
+  # rather than `unicode` objects here. Therefore we have to re-encode what
+  # `xattr` has decoded. Additionally, because the decoding that `xattr` does
+  # may fail, we additionally guard against such exceptions.
+  def EncodeUtf8(attr_name):
+    if isinstance(attr_name, unicode):
+      return attr_name.encode("utf-8")
+    if isinstance(attr_name, bytes):
+      return attr_name
+    raise TypeError("Unexpected type `%s`" % type(attr_name))
+
   for attr_name in attr_names:
+    attr_name = EncodeUtf8(attr_name)
     try:
       attr_value = xattr.getxattr(path, attr_name)
     except (IOError, OSError) as error:

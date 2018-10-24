@@ -4,6 +4,7 @@
 
 Implementations should be able to pass these tests to be conformant.
 """
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -15,11 +16,11 @@ import os
 import random
 import string
 import tempfile
-import thread
 import threading
 import time
 
 
+import _thread
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import iterkeys
@@ -28,11 +29,11 @@ import mock
 import pytest
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import csv
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -1228,7 +1229,7 @@ class DataStoreTestMixin(object):
 
             self.opened = True
             logging.info("Thread %s holding lock for 0.2 seconds.",
-                         thread.get_ident())
+                         _thread.get_ident())
             time.sleep(0.2)
 
             # We fail if someone has closed the object while we are holding it
@@ -1237,7 +1238,7 @@ class DataStoreTestMixin(object):
               self.close_failures += 1
               self.fail("Double close!")
 
-            self.results.append(thread.get_ident())
+            self.results.append(_thread.get_ident())
 
             self.opened = False
             return
@@ -1638,7 +1639,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   def WriteCSV(self, remove=False):
     """Write results to a CSV file."""
-    writer = utils.CsvWriter(delimiter=u" ")
+    writer = csv.Writer(delimiter=u" ")
     writer.WriteRow([
         u"Benchmark",
         u"Time",

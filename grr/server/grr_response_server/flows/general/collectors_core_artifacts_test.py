@@ -4,6 +4,7 @@
 These tests ensure some key artifacts are working, particularly those used for
 windows interrogate, which is the most complex platform for interrogate.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os

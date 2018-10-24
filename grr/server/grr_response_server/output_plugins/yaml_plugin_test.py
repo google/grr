@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for YAML instant output plugin."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os

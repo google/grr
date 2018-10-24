@@ -2280,4 +2280,7 @@ message Flow {
   optional uint64 processing_deadline = 29 [(sem_type) = {
       type: "RDFDatetime",
     }];
+  optional uint64 last_update_time = 30 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
 }

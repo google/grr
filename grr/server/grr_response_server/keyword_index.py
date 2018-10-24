@@ -5,6 +5,7 @@ An aff4 keyword index class which associates keywords with names and makes it
 possible to search for those names which match all keywords.
 
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 

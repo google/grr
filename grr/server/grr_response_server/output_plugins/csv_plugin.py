@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """CSV single-pass output plugin."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os
@@ -9,6 +10,7 @@ import yaml
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import csv
 from grr_response_server import instant_output_plugin
 
 
@@ -66,7 +68,7 @@ class CSVInstantOutputPlugin(
         "%s/%s/from_%s.csv" % (self.path_prefix, first_value.__class__.__name__,
                                original_value_type.__name__))
 
-    writer = utils.CsvWriter()
+    writer = csv.Writer()
     # Write the CSV header based on first value class and write
     # the first value itself. All other values are guaranteed
     # to have the same class (see ProcessSingleTypeExportedValues definition).
@@ -81,7 +83,7 @@ class CSVInstantOutputPlugin(
     for batch in collection.Batch(exported_values, self.ROW_BATCH):
       counter += len(batch)
 
-      writer = utils.CsvWriter()
+      writer = csv.Writer()
       for value in batch:
         writer.WriteRow(self._GetCSVRow(value))
 

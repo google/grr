@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Benchmark tests for MySQL advanced data store."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 

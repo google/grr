@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for API client and approvals-related API calls."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import threading

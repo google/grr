@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Rekall-related testing classes."""
+from __future__ import absolute_import
 
 import gzip
 import json

@@ -4,6 +4,7 @@
 Use this script to make a new server key and certificate. You can just run the
 script inside a console using `run -i make_new_server_key.py`.
 """
+from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 

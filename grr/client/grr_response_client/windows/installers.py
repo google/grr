@@ -12,10 +12,10 @@ https://launchpadlibrarian.net/134750748/pyqtgraph_subprocess.patch
 We also set shell=True because that seems to avoid having an extra cmd.exe
 window pop up.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import errno
-import exceptions
 import logging
 import os
 import shutil
@@ -157,7 +157,7 @@ class CopyToSystemDir(installer.Installer):
       _winreg.DeleteValue(regkey, config.CONFIG["Client.name"])
       logging.info("Deleted value '%s' of key '%s'.",
                    config.CONFIG["Client.name"], key_path)
-    except exceptions.WindowsError as e:
+    except OSError as e:
       # Windows will raise a no-such-file-or-directory error if
       # GRR's config hasn't been written to the registry yet.
       if e.errno != errno.ENOENT:

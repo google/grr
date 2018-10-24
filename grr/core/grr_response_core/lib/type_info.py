@@ -6,6 +6,7 @@ parameters. These annotations are used to assist in rendering the UI for
 starting flows and for validating arguments.
 """
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging

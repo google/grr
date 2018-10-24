@@ -4,6 +4,7 @@
 These test cover the artifact downloader functionality which downloads files
 referenced by artifacts.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags

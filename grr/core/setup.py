@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Setup configuration for the python grr modules."""
+from __future__ import absolute_import
 from __future__ import print_function
 # TODO(hanuszczak): Add support for unicode literals in `setup.py` file.
 
@@ -124,6 +125,7 @@ setup_args = dict(
     },
     install_requires=[
         "binplist==0.1.4",
+        "configparser==3.5.0",
         "cryptography==2.3",
         "fleetspeak==0.0.7",
         "future==0.16.0",

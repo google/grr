@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test classes for ACL-related testing."""
+from __future__ import absolute_import
 
 from grr_response_server import access_control
 

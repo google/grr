@@ -1,24 +1,20 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """Tests for utility classes."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import datetime
-import functools
-import io
 import os
 import platform
 import shutil
 import socket
 import subprocess
-import tarfile
 import threading
 import unittest
-import zipfile
 
 
 from builtins import int  # pylint: disable=redefined-builtin
-from builtins import map  # pylint: disable=redefined-builtin
 from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
@@ -26,6 +22,7 @@ import unittest
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr.test_lib import client_test_lib
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 # Test method names don't conform with Google style
@@ -289,43 +286,6 @@ class UtilsTest(test_lib.GRRBaseTest):
       p1 = p1.next
     self.assertEqual(p, self.tail)
 
-  def testMemoize(self):
-
-    class Concat(object):
-      append_count = 0
-
-      @utils.Memoize()
-      def concat(self, prefix, suffix):
-        Concat.append_count += 1
-        return prefix + "," + suffix
-
-    for _ in range(5):
-      self.assertEqual(Concat().concat(prefix="a", suffix="b"), "a,b")
-    self.assertEqual(Concat.append_count, 1)
-
-    class Fibber(object):
-      fib_count = 0
-
-      @utils.Memoize()
-      def fib(self, x):
-        Fibber.fib_count += 1
-        if x < 2:
-          return x
-        return self.fib(x - 1) + self.fib(x - 2)
-
-    self.assertEqual(Fibber().fib(20), 6765)
-    # Memoized fibbonaci runs once per value of x used, naive fibbonaci runs
-    # proportionaly to the output value.
-    self.assertEqual(Fibber.fib_count, 21)
-
-  def testMemoizeFunction(self):
-
-    @utils.MemoizeFunction()
-    def concat(prefix, suffix):
-      return prefix + "," + suffix
-
-    self.assertEqual(concat(prefix="a", suffix="b"), "a,b")
-
 
 class RollingMemoryStreamTest(test_lib.GRRBaseTest):
   """Tests for RollingMemoryStream."""
@@ -355,168 +315,10 @@ class RollingMemoryStreamTest(test_lib.GRRBaseTest):
       self.stream.write(b"blah")
 
 
-class StreamingZipWriterTest(test_lib.GRRBaseTest):
-  """Tests for StreamingZipWriter."""
-
-  def testZipFileWithOneFile(self):
-    """Test the zipfile implementation."""
-    compressions = [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED]
-    for compression in compressions:
-      outfd = io.BytesIO()
-
-      # Write the zip into a file like object.
-      infd = io.BytesIO(b"this is a test string")
-      with utils.StreamingZipWriter(outfd, compression=compression) as writer:
-        writer.WriteFromFD(infd, "test.txt")
-
-      test_zip = zipfile.ZipFile(outfd, "r")
-      test_zip.testzip()
-
-      self.assertEqual(test_zip.namelist(), ["test.txt"])
-      self.assertEqual(test_zip.read("test.txt"), infd.getvalue())
-
-  def testZipFileWithMultipleFiles(self):
-    """Test the zipfile implementation."""
-    compressions = [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED]
-    for compression in compressions:
-      outfd = io.BytesIO()
-
-      # Write the zip into a file like object.
-      infd1 = io.BytesIO(b"this is a test string")
-      infd2 = io.BytesIO(b"this is another test string")
-      with utils.StreamingZipWriter(outfd, compression=compression) as writer:
-        writer.WriteFromFD(infd1, "test1.txt")
-        writer.WriteFromFD(infd2, "test2.txt")
-
-      test_zip = zipfile.ZipFile(outfd, "r")
-      test_zip.testzip()
-
-      self.assertEqual(sorted(test_zip.namelist()), ["test1.txt", "test2.txt"])
-      self.assertEqual(test_zip.read("test1.txt"), infd1.getvalue())
-
-      self.assertEqual(sorted(test_zip.namelist()), ["test1.txt", "test2.txt"])
-      self.assertEqual(test_zip.read("test2.txt"), infd2.getvalue())
-
-  def testZipFileWithSymlink(self):
-    """Test that symlinks are preserved when unpacking generated zips."""
-
-    compressions = [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED]
-    for compression in compressions:
-      outfd = io.BytesIO()
-
-      infd1 = io.BytesIO(b"this is a test string")
-      infd2 = io.BytesIO(b"this is another test string")
-      with utils.StreamingZipWriter(outfd, compression=compression) as writer:
-        writer.WriteFromFD(infd1, "test1.txt")
-        writer.WriteFromFD(infd2, "subdir/test2.txt")
-
-        writer.WriteSymlink("test1.txt", "test1.txt.link")
-        writer.WriteSymlink("subdir/test2.txt", "test2.txt.link")
-
-      with utils.TempDirectory() as temp_dir:
-        zip_path = os.path.join(temp_dir, "archive.zip")
-        with open(zip_path, "wb") as fd:
-          fd.write(outfd.getvalue())
-
-        zip_fd = zipfile.ZipFile(outfd, "r")
-
-        link_info = zip_fd.getinfo("test1.txt.link")
-        self.assertEqual(link_info.external_attr, (0o644 | 0o120000) << 16)
-        self.assertEqual(link_info.create_system, 3)
-
-        link_contents = zip_fd.read("test1.txt.link")
-        self.assertEqual(link_contents, "test1.txt")
-
-        link_info = zip_fd.getinfo("test2.txt.link")
-        self.assertEqual(link_info.external_attr, (0o644 | 0o120000) << 16)
-        self.assertEqual(link_info.create_system, 3)
-
-        link_contents = zip_fd.read("test2.txt.link")
-        self.assertEqual(link_contents, "subdir/test2.txt")
-
-
-class StreamingTarWriterTest(test_lib.GRRBaseTest):
-  """Tests for StreamingTarWriter."""
-
-  def testTarFileWithOneFile(self):
-    infd = io.BytesIO(b"this is a test string")
-    st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd.getvalue()), 0, 0, 0))
-
-    # Write the tar into a file like object.
-    outfd = io.BytesIO()
-    with utils.StreamingTarWriter(outfd, mode="w:gz") as writer:
-      writer.WriteFromFD(infd, "test.txt", st=st)
-
-    test_tar = tarfile.open(fileobj=io.BytesIO(outfd.getvalue()), mode="r")
-    tinfos = list(test_tar.getmembers())
-
-    self.assertEqual(len(tinfos), 1)
-    self.assertEqual(tinfos[0].name, "test.txt")
-
-    fd = test_tar.extractfile(tinfos[0])
-    self.assertEqual(fd.read(1024), infd.getvalue())
-
-  def testTarFileWithMultipleFiles(self):
-    outfd = io.BytesIO()
-
-    infd1 = io.BytesIO(b"this is a test string")
-    st1 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd1.getvalue()), 0, 0, 0))
-
-    infd2 = io.BytesIO(b"this is another test string")
-    st2 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd2.getvalue()), 0, 0, 0))
-
-    # Write the tar into a file like object.
-    with utils.StreamingTarWriter(outfd, mode="w:gz") as writer:
-      writer.WriteFromFD(infd1, "test1.txt", st=st1)
-      writer.WriteFromFD(infd2, "subdir/test2.txt", st=st2)
-
-    test_tar = tarfile.open(fileobj=io.BytesIO(outfd.getvalue()), mode="r")
-    tinfos = sorted(test_tar.getmembers(), key=lambda tinfo: tinfo.name)
-
-    self.assertEqual(len(tinfos), 2)
-    self.assertEqual(tinfos[0].name, "subdir/test2.txt")
-    self.assertEqual(tinfos[1].name, "test1.txt")
-
-    fd = test_tar.extractfile(tinfos[0])
-    self.assertEqual(fd.read(1024), infd2.getvalue())
-
-    fd = test_tar.extractfile(tinfos[1])
-    self.assertEqual(fd.read(1024), infd1.getvalue())
-
-  def testTarFileWithSymlink(self):
-    outfd = io.BytesIO()
-
-    infd1 = io.BytesIO(b"this is a test string")
-    st1 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd1.getvalue()), 0, 0, 0))
-
-    infd2 = io.BytesIO(b"this is another test string")
-    st2 = os.stat_result((0o644, 0, 0, 0, 0, 0, len(infd2.getvalue()), 0, 0, 0))
-
-    # Write the zip into a file like object.
-    with utils.StreamingTarWriter(outfd, mode="w:gz") as writer:
-      writer.WriteFromFD(infd1, "test1.txt", st=st1)
-      writer.WriteFromFD(infd2, "subdir/test2.txt", st=st2)
-
-      writer.WriteSymlink("test1.txt", "test1.txt.link")
-      writer.WriteSymlink("subdir/test2.txt", "test2.txt.link")
-
-    with tarfile.open(
-        fileobj=io.BytesIO(outfd.getvalue()), mode="r") as test_fd:
-      test_fd.extractall(self.temp_dir)
-
-      link_path = os.path.join(self.temp_dir, "test1.txt.link")
-      self.assertTrue(os.path.islink(link_path))
-      self.assertEqual(os.readlink(link_path), "test1.txt")
-
-      link_path = os.path.join(self.temp_dir, "test2.txt.link")
-      self.assertTrue(os.path.islink(link_path))
-      self.assertEqual(os.readlink(link_path), "subdir/test2.txt")
-
-
 class StatTest(unittest.TestCase):
 
   def testGetSize(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       with open(temp_filepath, "wb") as fd:
         fd.write("foobarbaz")
 
@@ -524,7 +326,7 @@ class StatTest(unittest.TestCase):
       self.assertEqual(stat.GetSize(), 9)
 
   def testGetPath(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       stat = utils.Stat(temp_filepath, follow_symlink=False)
       self.assertEqual(stat.GetPath(), temp_filepath)
 
@@ -533,7 +335,7 @@ class StatTest(unittest.TestCase):
     adate = datetime.datetime(2017, 10, 2, 8, 45)
     mdate = datetime.datetime(2001, 5, 3, 10, 30)
 
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       self._Touch(temp_filepath, "-a", adate)
       self._Touch(temp_filepath, "-m", mdate)
 
@@ -542,7 +344,7 @@ class StatTest(unittest.TestCase):
       self.assertEqual(stat.GetModificationTime(), self._EpochMillis(mdate))
 
   def testDirectory(self):
-    with test_lib.AutoTempDirPath() as temp_dirpath:
+    with temp.AutoTempDirPath() as temp_dirpath:
       stat = utils.Stat(temp_dirpath, follow_symlink=False)
       self.assertTrue(stat.IsDirectory())
       self.assertFalse(stat.IsRegular())
@@ -550,7 +352,7 @@ class StatTest(unittest.TestCase):
       self.assertFalse(stat.IsSymlink())
 
   def testRegular(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       stat = utils.Stat(temp_filepath, follow_symlink=False)
       self.assertFalse(stat.IsDirectory())
       self.assertTrue(stat.IsRegular())
@@ -559,7 +361,7 @@ class StatTest(unittest.TestCase):
 
   @unittest.skipIf(platform.system() == "Windows", "requires Unix-like system")
   def testSocket(self):
-    with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       temp_socketpath = os.path.join(temp_dirpath, "foo")
 
       sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -576,8 +378,8 @@ class StatTest(unittest.TestCase):
 
   @unittest.skipIf(platform.system() == "Windows", "requires Unix-like system")
   def testSymlink(self):
-    with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath,\
-         test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath,\
+         temp.AutoTempFilePath() as temp_filepath:
       with open(temp_filepath, "wb") as fd:
         fd.write("foobar")
 
@@ -603,7 +405,7 @@ class StatTest(unittest.TestCase):
   FS_NODUMP_FL = 0x00000040
 
   def testGetLinuxFlags(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       client_test_lib.Chattr(temp_filepath, attrs=["+c", "+d"])
 
       stat = utils.Stat(temp_filepath, follow_symlink=False)
@@ -619,7 +421,7 @@ class StatTest(unittest.TestCase):
   UF_HIDDEN = 0x00008000
 
   def testGetOsxFlags(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       client_test_lib.Chflags(temp_filepath, flags=["nodump", "hidden"])
 
       stat = utils.Stat(temp_filepath, follow_symlink=False)
@@ -630,8 +432,8 @@ class StatTest(unittest.TestCase):
       self.assertEqual(stat.GetLinuxFlags(), 0)
 
   def testGetFlagsSymlink(self):
-    with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath,\
-         test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath,\
+         temp.AutoTempFilePath() as temp_filepath:
       temp_linkpath = os.path.join(temp_dirpath, "foo")
       os.symlink(temp_filepath, temp_linkpath)
 
@@ -641,7 +443,7 @@ class StatTest(unittest.TestCase):
       self.assertEqual(stat.GetOsxFlags(), 0)
 
   def testGetFlagsSocket(self):
-    with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       temp_socketpath = os.path.join(temp_dirpath, "foo")
 
       sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -664,70 +466,10 @@ class StatTest(unittest.TestCase):
     return int(date.strftime("%s"))
 
 
-class NullContextTest(unittest.TestCase):
-
-  def testIntegerValue(self):
-    with utils.NullContext(42) as value:
-      self.assertEqual(value, 42)
-
-  def testBufferValue(self):
-    buf = io.BytesIO()
-
-    with utils.NullContext(buf) as filedesc:
-      filedesc.write(b"foo")
-      filedesc.write(b"bar")
-      filedesc.write(b"baz")
-
-    self.assertEqual(buf.getvalue(), b"foobarbaz")
-
-
-class MultiContextTest(unittest.TestCase):
-
-  def testEmpty(self):
-    with utils.MultiContext([]) as values:
-      self.assertEqual(values, [])
-
-  def testWithNulls(self):
-    foo = utils.NullContext("foo")
-    bar = utils.NullContext("bar")
-    baz = utils.NullContext("baz")
-
-    with utils.MultiContext([foo, bar, baz]) as names:
-      self.assertEqual(names, ["foo", "bar", "baz"])
-
-  def testWithFiles(self):
-    foo = test_lib.AutoTempFilePath(suffix="foo")
-    bar = test_lib.AutoTempFilePath(suffix="bar")
-    baz = test_lib.AutoTempFilePath(suffix="baz")
-
-    with utils.MultiContext([foo, bar, baz]) as filepaths:
-      self.assertEqual(len(filepaths), 3)
-      self.assertTrue(filepaths[0].endswith("foo"))
-      self.assertTrue(filepaths[1].endswith("bar"))
-      self.assertTrue(filepaths[2].endswith("baz"))
-
-      wbopen = functools.partial(io.open, mode="wb")
-      with utils.MultiContext(map(wbopen, filepaths)) as filedescs:
-        self.assertEqual(len(filedescs), 3)
-        filedescs[0].write(b"FOO")
-        filedescs[1].write(b"BAR")
-        filedescs[2].write(b"BAZ")
-
-      # At this point all three files should be correctly written, closed and
-      # ready for reading.
-
-      rbopen = functools.partial(io.open, mode="rb")
-      with utils.MultiContext(map(rbopen, filepaths)) as filedescs:
-        self.assertEqual(len(filedescs), 3)
-        self.assertEqual(filedescs[0].read(), b"FOO")
-        self.assertEqual(filedescs[1].read(), b"BAR")
-        self.assertEqual(filedescs[2].read(), b"BAZ")
-
-
 class StatCacheTest(unittest.TestCase):
 
   def setUp(self):
-    self.temp_dir = test_lib.TempDirPath()
+    self.temp_dir = temp.TempDirPath()
 
   def tearDown(self):
     shutil.rmtree(self.temp_dir)
@@ -808,88 +550,6 @@ class StatCacheTest(unittest.TestCase):
       other_foo_stat = stat_cache.Get(self.Path("foo"), follow_symlink=True)
       self.assertEqual(other_foo_stat.GetSize(), 5)
       self.assertFalse(stat_mock.called)
-
-
-class CsvWriterTest(unittest.TestCase):
-
-  def testEmpty(self):
-    writer = utils.CsvWriter()
-
-    self.assertEqual(writer.Content(), "")
-
-  def testSingleRow(self):
-    writer = utils.CsvWriter()
-    writer.WriteRow(["foo", "bar", "baz"])
-
-    self.assertEqual(writer.Content(), "foo,bar,baz\n")
-
-  def testMultipleRows(self):
-    writer = utils.CsvWriter()
-    writer.WriteRow(["foo", "quux"])
-    writer.WriteRow(["bar", "norf"])
-    writer.WriteRow(["baz", "thud"])
-
-    self.assertEqual(writer.Content(), "foo,quux\nbar,norf\nbaz,thud\n")
-
-  def testUnicode(self):
-    writer = utils.CsvWriter()
-    writer.WriteRow(["jodła", "świerk", "dąb"])
-    writer.WriteRow(["żyto", "jęczmień", "ryż"])
-
-    self.assertEqual(writer.Content(), "jodła,świerk,dąb\nżyto,jęczmień,ryż\n")
-
-  def testCustomDelimiter(self):
-    writer = utils.CsvWriter(delimiter="|")
-    writer.WriteRow(["foo", "bar", "baz"])
-
-    self.assertEqual(writer.Content(), "foo|bar|baz\n")
-
-
-class CsvDictWriter(unittest.TestCase):
-
-  def testEmpty(self):
-    writer = utils.CsvDictWriter(["foo", "bar", "baz"])
-
-    self.assertEqual(writer.Content(), "")
-
-  def testSingleRow(self):
-    writer = utils.CsvDictWriter(["foo", "bar", "baz"])
-    writer.WriteRow({"foo": "quux", "bar": "norf", "baz": "blargh"})
-
-    self.assertEqual(writer.Content(), "quux,norf,blargh\n")
-
-  def testMultipleRows(self):
-    writer = utils.CsvDictWriter(["x", "y", "z"])
-    writer.WriteRow({"x": "foo", "y": "bar", "z": "baz"})
-    writer.WriteRow({"x": "quux", "y": "norf", "z": "blargh"})
-
-    self.assertEqual(writer.Content(), "foo,bar,baz\nquux,norf,blargh\n")
-
-  def testCustomDelimiter(self):
-    writer = utils.CsvDictWriter(["1", "2", "3"], delimiter=" ")
-    writer.WriteRow({"1": "a", "2": "b", "3": "c"})
-
-    self.assertEqual(writer.Content(), "a b c\n")
-
-  def testIrrelevantOrder(self):
-    writer = utils.CsvDictWriter(["1", "2", "3"])
-    writer.WriteRow({"1": "a", "2": "b", "3": "c"})
-    writer.WriteRow({"3": "d", "2": "e", "1": "f"})
-
-    self.assertEqual(writer.Content(), "a,b,c\nf,e,d\n")
-
-  def testWriteHeader(self):
-    writer = utils.CsvDictWriter(["A", "B", "C"])
-    writer.WriteHeader()
-    writer.WriteRow({"A": "foo", "B": "bar", "C": "baz"})
-
-    self.assertEqual(writer.Content(), "A,B,C\nfoo,bar,baz\n")
-
-  def testRaisesOnMissingColumn(self):
-    writer = utils.CsvDictWriter(["foo", "bar", "baz"])
-
-    with self.assertRaises(ValueError):
-      writer.WriteRow({"foo": "quux", "bar": "norf"})
 
 
 class IterValuesInSortedKeysOrderTest(unittest.TestCase):

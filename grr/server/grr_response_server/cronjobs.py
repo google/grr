@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Cron Job objects that get stored in the relational db."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import abc
@@ -11,8 +12,8 @@ from future.utils import iterkeys
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
-from grr_response_core.lib import utils
+from grr_response_core.lib.util import random
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import threadpool
@@ -52,7 +53,7 @@ class CronJobBase(object):
       self.Run()
       self.run_state.status = "FINISHED"
     except Exception as e:  # pylint: disable=broad-except
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "cron_job_failure", fields=[self.job.cron_job_id])
       self.run_state.status = "ERROR"
       self.run_state.backtrace = str(e)
@@ -60,13 +61,13 @@ class CronJobBase(object):
     finally:
       self.run_state.finished_at = rdfvalue.RDFDatetime.Now()
       elapsed = self.run_state.finished_at - self.run_state.started_at
-      stats.STATS.RecordEvent(
+      stats_collector_instance.Get().RecordEvent(
           "cron_job_latency", elapsed.seconds, fields=[self.job.cron_job_id])
       if self.job.lifetime:
         expiration_time = self.run_state.started_at + self.job.lifetime
         if self.run_state.finished_at > expiration_time:
           self.run_state.status = "LIFETIME_EXCEEDED"
-          stats.STATS.IncrementCounter(
+          stats_collector_instance.Get().IncrementCounter(
               "cron_job_timeout", fields=[self.job.cron_job_id])
 
     data_store.REL_DB.WriteCronJobRun(self.run_state)
@@ -149,7 +150,7 @@ class CronManager(object):
     # cronjobs are gone.
     del token
     if not job_id:
-      uid = utils.PRNG.GetUInt16()
+      uid = random.UInt16()
       job_id = "%s_%s" % (cron_args.flow_name, uid)
 
     args = rdf_cronjobs.CronJobAction(

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for frontend server, client communicator, and the GRRHTTPClient."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -23,12 +24,12 @@ from grr_response_core.lib import communicator
 from grr_response_core.lib import flags
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
@@ -655,7 +656,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
   def testClientPingStatsUpdated(self):
     """Check client ping stats are updated."""
     self._MakeClientRecord()
-    current_pings = stats.STATS.GetMetricValue(
+    current_pings = stats_collector_instance.Get().GetMetricValue(
         "client_pings_by_label", fields=[u"testlabel"])
 
     self._LabelClient(self.client_id, u"testlabel")
@@ -664,7 +665,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(now):
       self.ClientServerCommunicate(timestamp=now)
 
-    new_pings = stats.STATS.GetMetricValue(
+    new_pings = stats_collector_instance.Get().GetMetricValue(
         "client_pings_by_label", fields=[u"testlabel"])
     self.assertEqual(new_pings, current_pings + 1)
 
@@ -833,8 +834,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # The housekeeper threads of the time based caches also call time.time and
     # interfere with some tests so we disable them here.
     utils.InterruptableThread.exit = True
-    # The same also applies to the StatsCollector thread.
-    stats.StatsCollector.exit = True
 
     # And cache it in the server
     self.CreateNewServerCommunicator()

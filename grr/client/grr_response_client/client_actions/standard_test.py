@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test client standard actions."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import gzip
@@ -21,6 +22,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 
@@ -262,7 +264,7 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
 class GetFileStatTest(client_test_lib.EmptyActionTest):
 
   def testStatSize(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       with open(temp_filepath, "wb") as temp_file:
         temp_file.write("123456")
 
@@ -276,7 +278,7 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
       self.assertEqual(results[0].st_size, 6)
 
   def testStatExtAttrsEnabled(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
 
       pathspec = rdf_paths.PathSpec(
@@ -292,7 +294,7 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
       self.assertEqual(results[0].ext_attrs[0].value, "bar")
 
   def testStatExtAttrsDisabled(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
 
       pathspec = rdf_paths.PathSpec(

@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 """Utils exporting data from AFF4 to the rest of the world."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
 import os
-import Queue
 import stat
 import time
+
+import queue
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -58,7 +60,7 @@ class IterateAllClientUrns(object):
     self.func = func
     self.broken_subjects = []  # Entries that are broken or fail to run.
 
-    self.out_queue = Queue.Queue()
+    self.out_queue = queue.Queue()
 
   def GetInput(self):
     """Yield client urns."""
@@ -84,7 +86,7 @@ class IterateAllClientUrns(object):
         if out:
           yield out
           count -= 1
-      except Queue.Empty:
+      except queue.Empty:
         break
 
     # Join and stop to clean up the threadpool.

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Root-access-level API handlers for user management."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import events as rdf_events

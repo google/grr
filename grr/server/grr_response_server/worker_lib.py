@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Module with GRRWorker implementation."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -15,10 +16,10 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import queues as queues_config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -188,8 +189,9 @@ class GRRWorker(object):
 
       fetch_messages_start = time.time()
       notifications = queue_manager.GetNotifications(queue)
-      stats.STATS.RecordEvent("worker_time_to_retrieve_notifications",
-                              time.time() - fetch_messages_start)
+      stats_collector_instance.Get().RecordEvent(
+          "worker_time_to_retrieve_notifications",
+          time.time() - fetch_messages_start)
 
       stuck_flows = []
       for n in notifications:
@@ -224,7 +226,7 @@ class GRRWorker(object):
       except Exception as e:  # pylint: disable=broad-except
         logging.error("Error processing message %s. %s.", e,
                       traceback.format_exc())
-        stats.STATS.IncrementCounter("grr_worker_exceptions")
+        stats_collector_instance.Get().IncrementCounter("grr_worker_exceptions")
         if flags.FLAGS.debug:
           pdb.post_mortem()
 
@@ -235,7 +237,8 @@ class GRRWorker(object):
     return processed
 
   def ProcessStuckFlows(self, stuck_flows, queue_manager):
-    stats.STATS.IncrementCounter("grr_flows_stuck", len(stuck_flows))
+    stats_collector_instance.Get().IncrementCounter("grr_flows_stuck",
+                                                    len(stuck_flows))
 
     for stuck_flow in stuck_flows:
       try:
@@ -293,7 +296,7 @@ class GRRWorker(object):
       logging.warn("%s is not a proper flow object (got %s)", session_id,
                    type(flow_obj))
 
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "worker_bad_flow_objects", fields=[str(type(flow_obj))])
       raise FlowProcessingError("Not a GRRFlow.")
 
@@ -341,7 +344,7 @@ class GRRWorker(object):
       queue_manager.DeleteNotification(session_id, end=notification.timestamp)
 
       if flow_name in self.well_known_flows:
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             "well_known_flow_requests", fields=[str(session_id)])
 
         # We remove requests first and then process them in the thread pool.
@@ -360,7 +363,7 @@ class GRRWorker(object):
 
       elapsed = time.time() - now
       logging.debug("Done processing %s: %s sec", session_id, elapsed)
-      stats.STATS.RecordEvent(
+      stats_collector_instance.Get().RecordEvent(
           "worker_flow_processing_time", elapsed, fields=[flow_obj.Name()])
 
       # Everything went well -> session can be run again.
@@ -374,7 +377,7 @@ class GRRWorker(object):
       # A high number of lock fails when there is plenty of work to do would
       # indicate we are wasting time trying to process work that has already
       # been completed by other workers.
-      stats.STATS.IncrementCounter("worker_flow_lock_error")
+      stats_collector_instance.Get().IncrementCounter("worker_flow_lock_error")
 
     except FlowProcessingError:
       # Do nothing as we expect the error to be correctly logged and accounted
@@ -385,7 +388,7 @@ class GRRWorker(object):
       # Something went wrong when processing this session. In order not to spin
       # here, we just remove the notification.
       logging.exception("Error processing session %s: %s", session_id, e)
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "worker_session_errors", fields=[str(type(e))])
       queue_manager.DeleteNotification(session_id)
 
@@ -430,23 +433,3 @@ class GRRWorker(object):
       if processed == 0:
         raise ValueError("ReturnProcessedFlow returned false but no request "
                          "could be processed.")
-
-
-class WorkerInit(registry.InitHook):
-  """Registers worker stats variables."""
-
-  def RunOnce(self):
-    """Exports the vars.."""
-    stats.STATS.RegisterCounterMetric("grr_flows_stuck")
-    stats.STATS.RegisterCounterMetric(
-        "worker_bad_flow_objects", fields=[("type", str)])
-    stats.STATS.RegisterCounterMetric(
-        "worker_session_errors", fields=[("type", str)])
-    stats.STATS.RegisterCounterMetric(
-        "worker_flow_lock_error",
-        docstring=("Worker lock failures. We expect "
-                   "these to be high when the system"
-                   "is idle."))
-    stats.STATS.RegisterEventMetric(
-        "worker_flow_processing_time", fields=[("flow", str)])
-    stats.STATS.RegisterEventMetric("worker_time_to_retrieve_notifications")

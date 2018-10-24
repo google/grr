@@ -5,6 +5,7 @@ Most of these actions share an interface (in/out rdfvalues) with linux actions
 of the same name. OSX-only actions are registered with the server via
 libs/server_stubs.py
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import ctypes

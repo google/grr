@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Base classes and routines used by all end to end tests."""
+from __future__ import absolute_import
 
 import abc
 import io

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import functools
@@ -8,9 +9,9 @@ from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server.flows.general import transfer
@@ -343,9 +344,9 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
 
       job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-      prev_timeout_value = stats.STATS.GetMetricValue(
+      prev_timeout_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_timeout", fields=[job_id])
-      prev_latency_value = stats.STATS.GetMetricValue(
+      prev_latency_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_latency", fields=[job_id])
 
       cron_manager.RunOnce(token=self.token)
@@ -372,12 +373,12 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
       self.assertEqual(run.status, "FINISHED")
 
       # Check that timeout counter got updated.
-      current_timeout_value = stats.STATS.GetMetricValue(
+      current_timeout_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_timeout", fields=[job_id])
       self.assertEqual(current_timeout_value, prev_timeout_value)
 
       # Check that latency stat got updated.
-      current_latency_value = stats.STATS.GetMetricValue(
+      current_latency_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_latency", fields=[job_id])
       self.assertEqual(current_latency_value.count - prev_latency_value.count,
                        1)
@@ -408,9 +409,9 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
         self.assertEqual(cron_job.current_run_id, run.run_id)
         self.assertEqual(run.status, "RUNNING")
 
-      prev_timeout_value = stats.STATS.GetMetricValue(
+      prev_timeout_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_timeout", fields=[job_id])
-      prev_latency_value = stats.STATS.GetMetricValue(
+      prev_latency_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_latency", fields=[job_id])
 
       fake_time += rdfvalue.Duration("2h")
@@ -427,12 +428,12 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
         self.assertEqual(run.status, "LIFETIME_EXCEEDED")
 
         # Check that timeout counter got updated.
-        current_timeout_value = stats.STATS.GetMetricValue(
+        current_timeout_value = stats_collector_instance.Get().GetMetricValue(
             "cron_job_timeout", fields=[job_id])
         self.assertEqual(current_timeout_value - prev_timeout_value, 1)
 
         # Check that latency stat got updated.
-        current_latency_value = stats.STATS.GetMetricValue(
+        current_latency_value = stats_collector_instance.Get().GetMetricValue(
             "cron_job_latency", fields=[job_id])
         self.assertEqual(current_latency_value.count - prev_latency_value.count,
                          1)
@@ -446,9 +447,9 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
 
       job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-      prev_failure_value = stats.STATS.GetMetricValue(
+      prev_failure_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_failure", fields=[job_id])
-      prev_latency_value = stats.STATS.GetMetricValue(
+      prev_latency_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_latency", fields=[job_id])
 
       cron_manager.RunOnce(token=self.token)
@@ -465,9 +466,9 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
       self.assertTrue(run.backtrace)
       self.assertIn("cron job error", run.backtrace)
 
-      current_failure_value = stats.STATS.GetMetricValue(
+      current_failure_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_failure", fields=[job_id])
-      current_latency_value = stats.STATS.GetMetricValue(
+      current_latency_value = stats_collector_instance.Get().GetMetricValue(
           "cron_job_latency", fields=[job_id])
 
       self.assertEqual(current_failure_value, prev_failure_value + 1)

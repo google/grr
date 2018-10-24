@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A facade for the GRR-FS server-side connection."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging

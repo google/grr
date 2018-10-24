@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test the grr aff4 objects."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import io

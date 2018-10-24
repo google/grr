@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """AFF4 Objects to enforce ACL policies."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import email
@@ -12,6 +13,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_core.lib.util import random
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import events
@@ -441,7 +443,7 @@ class ApprovalRequestor(AbstractApprovalBase):
   def Request(self):
     """Create the Approval object and notify the Approval Granter."""
 
-    approval_id = "approval:%X" % utils.PRNG.GetUInt32()
+    approval_id = "approval:%X" % random.UInt32()
     approval_urn = self.BuildApprovalUrn(approval_id)
 
     email_msg_id = email.utils.make_msgid()

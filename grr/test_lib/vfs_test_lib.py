@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """VFS-related test classes."""
+from __future__ import absolute_import
 
 import io
 import os
@@ -345,7 +346,8 @@ class RegistryFake(FakeRegistryVFSHandler):
         cache_key = "/" + cache_key
       if cache_key in self.cache[self.prefix]:
         return self.__class__.FakeKeyHandle(cache_key)
-    raise IOError()
+
+    raise OSError()
 
   def QueryValueEx(self, key, value_name):
     full_key = os.path.join(key.value.lower(), value_name).rstrip("/")
@@ -357,7 +359,7 @@ class RegistryFake(FakeRegistryVFSHandler):
     except KeyError:
       pass
 
-    raise IOError()
+    raise OSError()
 
   def QueryInfoKey(self, key):
     num_keys = len(self._GetKeys(key))
@@ -376,7 +378,7 @@ class RegistryFake(FakeRegistryVFSHandler):
     try:
       return self._GetKeys(key)[index]
     except IndexError:
-      raise IOError()
+      raise OSError()
 
   def _GetKeys(self, key):
     res = []
@@ -393,7 +395,7 @@ class RegistryFake(FakeRegistryVFSHandler):
       value, value_type = self.QueryValueEx(key, subkey)
       return subkey, value, value_type
     except IndexError:
-      raise IOError()
+      raise OSError()
 
   def _GetValues(self, key):
     res = []
@@ -422,8 +424,6 @@ class RegistryVFSStubber(object):
         "_winreg": mock.MagicMock(),
         "ctypes": mock.MagicMock(),
         "ctypes.wintypes": mock.MagicMock(),
-        # Requires mocking because exceptions.WindowsError does not exist
-        "exceptions": mock.MagicMock(),
     }
 
     self.module_patcher = mock.patch.dict("sys.modules", modules)
@@ -431,7 +431,6 @@ class RegistryVFSStubber(object):
 
     # pylint: disable= g-import-not-at-top
     from grr_response_client.vfs_handlers import registry
-    import exceptions
     import _winreg
     # pylint: enable=g-import-not-at-top
 
@@ -450,7 +449,6 @@ class RegistryVFSStubber(object):
     vfs.VFSInit().Run()
     _winreg.HKEY_USERS = "HKEY_USERS"
     _winreg.HKEY_LOCAL_MACHINE = "HKEY_LOCAL_MACHINE"
-    exceptions.WindowsError = IOError
 
   def Stop(self):
     """Uninstall the stubs."""
@@ -479,6 +477,7 @@ def CreateFile(client_path, content=b"", token=None):
     path_info = rdf_objects.PathInfo()
     path_info.path_type = client_path.path_type
     path_info.components = client_path.components
+    path_info.hash_entry.num_bytes = len(content)
     path_info.hash_entry.sha256 = hash_id.AsBytes()
 
     data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])

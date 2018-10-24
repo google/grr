@@ -5,6 +5,7 @@ We've written our own versions of socket.inet_pton and inet_ntop for ipv6
 because those functions are not available on windows before python 3.4.
 """
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import re

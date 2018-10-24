@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os
@@ -28,9 +29,6 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
     self.win32com.client = mock.MagicMock()
     modules = {
         "_winreg":
-            mock.MagicMock(),
-        # Requires mocking because exceptions.WindowsError does not exist
-        "exceptions":
             mock.MagicMock(),
         "pythoncom":
             mock.MagicMock(),

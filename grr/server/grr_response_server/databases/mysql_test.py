@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -14,7 +15,6 @@ import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 import unittest
 from grr_response_core.lib import flags
 from grr_response_server import db_test_mixin
-from grr_response_server import db_utils
 from grr_response_server.databases import mysql
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
@@ -94,10 +94,6 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     ret = cursor.fetchall()
     cursor.close()
     return ret
-
-  def setUp(self):
-    super(TestMysqlDB, self).setUp()
-    db_utils.DBMetricsInit().RunOnce()
 
   def testRunInTransaction(self):
     self.db.delegate._RunInTransaction(
@@ -405,6 +401,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testFlowWriting(self):
     pass
 
+  def testReadAllFlowObjects(self):
+    pass
+
   def testFlowWritingUnknownClient(self):
     pass
 
@@ -451,6 +450,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testReadFlowForProcessingUpdatesFlowObjects(self):
+    pass
+
+  def testFlowLastUpateTime(self):
     pass
 
   def testReturnProcessedFlow(self):

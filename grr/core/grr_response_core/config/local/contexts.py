@@ -4,6 +4,7 @@
 Put any config.CONFIG.DEFINE_context statements specific to your deployment
 in this file.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 # pylint: disable=unused-import

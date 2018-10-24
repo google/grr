@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utility classes for front-end testing."""
+from __future__ import absolute_import
 
 from grr_response_core import config
 from grr_response_core.lib import utils

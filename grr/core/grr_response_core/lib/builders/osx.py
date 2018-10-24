@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """An implementation of an OSX client builder."""
+from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -12,8 +13,8 @@ import zipfile
 
 from grr_response_core import config
 from grr_response_core.lib import build
-from grr_response_core.lib import config_lib
 from grr_response_core.lib import flags
+from grr_response_core.lib import package
 from grr_response_core.lib import utils
 
 
@@ -109,11 +110,11 @@ class DarwinClientBuilder(build.ClientBuilder):
     if self.fleetspeak_enabled:
       shutil.copy(flags.FLAGS.fleetspeak_service_config,
                   self.pkg_fleetspeak_service_dir)
-      build_files_dir = config_lib.Resource().Filter(
-          "install_data/macosx/client/fleetspeak")
+      build_files_dir = package.ResourcePath(
+          "grr-response-core", "install_data/macosx/client/fleetspeak")
     else:
-      build_files_dir = config_lib.Resource().Filter(
-          "install_data/macosx/client")
+      build_files_dir = package.ResourcePath("grr-response-core",
+                                             "install_data/macosx/client")
       self.GenerateFile(
           input_filename=os.path.join(build_files_dir, "grr.plist.in"),
           output_filename=os.path.join(self.pkg_root, "Library/LaunchDaemons",

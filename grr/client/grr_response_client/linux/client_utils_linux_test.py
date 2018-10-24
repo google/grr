@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for client_utils_linux.py."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os
@@ -12,13 +13,13 @@ from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
 import unittest
-
 from grr_response_client import client_utils_linux
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 
@@ -113,13 +114,13 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 class GetExtAttrsText(unittest.TestCase):
 
   def testEmpty(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 
       self.assertEqual(len(attrs), 0)
 
   def testMany(self):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
       client_test_lib.SetExtAttr(temp_filepath, name="user.quux", value="norf")
 
@@ -138,7 +139,7 @@ class GetExtAttrsText(unittest.TestCase):
 
   @mock.patch("xattr.listxattr", return_value=["user.foo", "user.bar"])
   def testAttrChangeAfterListing(self, listxattr):
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       client_test_lib.SetExtAttr(temp_filepath, name="user.bar", value="baz")
 
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))

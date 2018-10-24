@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Generic parsers (for GRR server and client code)."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from future.builtins import filter

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr_response_client.client_build."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import multiprocessing
@@ -11,6 +12,7 @@ import mock
 
 from grr_response_core.lib import builders
 from grr_response_core.lib import flags
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 
@@ -51,12 +53,12 @@ class MultiRepackTest(ClientBuildTests):
         multiprocessing, "Pool", return_value=self.pool_obj)
     self.mock_pool = self.pool_patcher.start()
 
-    config_dir = test_lib.TempDirPath()
+    config_dir = temp.TempDirPath()
     self.label1_config = os.path.join(config_dir, "label1.yaml")
     self.label2_config = os.path.join(config_dir, "label2.yaml")
     open(self.label1_config, mode="wb").write("Client.labels: [label1]")
     open(self.label2_config, mode="wb").write("Client.labels: [label2]")
-    self.template_dir = test_lib.TempDirPath()
+    self.template_dir = temp.TempDirPath()
     self.deb_template = os.path.join(self.template_dir,
                                      "grr_3.1.0.2_amd64.deb.zip")
     self.exe_template = os.path.join(self.template_dir,
@@ -67,7 +69,7 @@ class MultiRepackTest(ClientBuildTests):
     open(self.exe_template, mode="wb").write("windows")
     open(self.xar_template, mode="wb").write("darwin")
 
-    self.output_dir = test_lib.TempDirPath()
+    self.output_dir = temp.TempDirPath()
 
   def tearDown(self):
     super(MultiRepackTest, self).tearDown()

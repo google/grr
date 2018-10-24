@@ -15,6 +15,7 @@
 # limitations under the License.
 """Acceleration module for semantic protobuf parsing."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from distutils.core import Extension

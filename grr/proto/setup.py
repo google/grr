@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """setup.py file for a GRR API client library."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os

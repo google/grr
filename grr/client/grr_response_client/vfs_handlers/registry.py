@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Implement access to the windows registry."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import ctypes
 import ctypes.wintypes
-import exceptions
 import io
 import os
 import stat
@@ -49,8 +49,8 @@ ERROR_MORE_DATA = 234
 
 
 class FileTime(ctypes.Structure):
-  _fields_ = [("dwLowDateTime", ctypes.wintypes.DWORD), ("dwHighDateTime",
-                                                         ctypes.wintypes.DWORD)]
+  _fields_ = [("dwLowDateTime", ctypes.wintypes.DWORD),
+              ("dwHighDateTime", ctypes.wintypes.DWORD)]
 
 
 RegCloseKey = advapi32["RegCloseKey"]  # pylint: disable=g-bad-name
@@ -99,10 +99,10 @@ def OpenKey(key, sub_key):
 
   new_key = KeyHandle()
   # Don't use KEY_WOW64_64KEY (0x100) since it breaks on Windows 2000
-  rc = regopenkeyex(key.handle, sub_key, 0, KEY_READ,
-                    ctypes.cast(
-                        ctypes.byref(new_key.handle),
-                        ctypes.POINTER(ctypes.c_void_p)))
+  rc = regopenkeyex(
+      key.handle, sub_key, 0, KEY_READ,
+      ctypes.cast(
+          ctypes.byref(new_key.handle), ctypes.POINTER(ctypes.c_void_p)))
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
@@ -141,8 +141,7 @@ def QueryInfoKey(key):
   num_sub_keys = ctypes.wintypes.DWORD()
   num_values = ctypes.wintypes.DWORD()
   ft = FileTime()
-  rc = regqueryinfokey(key.handle,
-                       ctypes.c_wchar_p(), null, null,
+  rc = regqueryinfokey(key.handle, ctypes.c_wchar_p(), null, null,
                        ctypes.byref(num_sub_keys), null, null,
                        ctypes.byref(num_values), null, null, null,
                        ctypes.byref(ft))
@@ -168,16 +167,15 @@ def QueryValueEx(key, value_name):
   while True:
     tmp_size = ctypes.wintypes.DWORD(size)
     buf = ctypes.create_string_buffer(size)
-    rc = regqueryvalueex(key.handle, value_name,
-                         LPDWORD(),
-                         ctypes.byref(data_type),
-                         ctypes.cast(buf, LPBYTE), ctypes.byref(tmp_size))
+    rc = regqueryvalueex(key.handle, value_name, LPDWORD(),
+                         ctypes.byref(data_type), ctypes.cast(buf, LPBYTE),
+                         ctypes.byref(tmp_size))
     if rc != ERROR_MORE_DATA:
       break
 
     # We limit the size here to ~10 MB so the response doesn't get too big.
     if size > 10 * 1024 * 1024:
-      raise exceptions.WindowsError("Value too big to be read by GRR.")
+      raise OSError("Value too big to be read by GRR.")
 
     size *= 2
 
@@ -199,11 +197,10 @@ def EnumKey(key, index):
 
   buf = ctypes.create_unicode_buffer(257)
   length = ctypes.wintypes.DWORD(257)
-  rc = regenumkeyex(key.handle, index,
-                    ctypes.cast(buf, ctypes.c_wchar_p),
-                    ctypes.byref(length),
+  rc = regenumkeyex(key.handle, index, ctypes.cast(buf, ctypes.c_wchar_p),
+                    ctypes.byref(length), LPDWORD(), ctypes.c_wchar_p(),
                     LPDWORD(),
-                    ctypes.c_wchar_p(), LPDWORD(), ctypes.POINTER(FileTime)())
+                    ctypes.POINTER(FileTime)())
   if rc != 0:
     raise ctypes.WinError(2)
 
@@ -231,9 +228,8 @@ def EnumValue(key, index):
   value_size = ctypes.wintypes.DWORD()
   data_size = ctypes.wintypes.DWORD()
 
-  rc = regqueryinfokey(key.handle,
-                       ctypes.c_wchar_p(), null, null, null, null, null, null,
-                       ctypes.byref(value_size),
+  rc = regqueryinfokey(key.handle, ctypes.c_wchar_p(), null, null, null, null,
+                       null, null, ctypes.byref(value_size),
                        ctypes.byref(data_size), null,
                        ctypes.POINTER(FileTime)())
   if rc != ERROR_SUCCESS:
@@ -250,11 +246,10 @@ def EnumValue(key, index):
     tmp_value_size = ctypes.wintypes.DWORD(value_size.value)
     tmp_data_size = ctypes.wintypes.DWORD(data_size.value)
     data_type = ctypes.wintypes.DWORD()
-    rc = regenumvalue(key.handle, index,
-                      ctypes.cast(value, ctypes.c_wchar_p),
+    rc = regenumvalue(key.handle, index, ctypes.cast(value, ctypes.c_wchar_p),
                       ctypes.byref(tmp_value_size), null,
-                      ctypes.byref(data_type),
-                      ctypes.cast(data, LPBYTE), ctypes.byref(tmp_data_size))
+                      ctypes.byref(data_type), ctypes.cast(data, LPBYTE),
+                      ctypes.byref(tmp_data_size))
 
     if rc != ERROR_MORE_DATA:
       break
@@ -289,14 +284,6 @@ class RegistryFile(vfs.VFSHandler):
   supported_pathtype = rdf_paths.PathSpec.PathType.REGISTRY
   auto_register = True
 
-  value = None
-  value_type = _winreg.REG_NONE
-  hive = None
-  hive_name = None
-  last_modified = 0
-  is_directory = True
-  fd = None
-
   # Maps the registry types to protobuf enums
   registry_map = {
       _winreg.REG_NONE:
@@ -322,6 +309,15 @@ class RegistryFile(vfs.VFSHandler):
   def __init__(self, base_fd, pathspec=None, progress_callback=None):
     super(RegistryFile, self).__init__(
         base_fd, pathspec=pathspec, progress_callback=progress_callback)
+
+    self.value = None
+    self.value_type = _winreg.REG_NONE
+    self.hive = None
+    self.hive_name = None
+    self.local_path = None
+    self.last_modified = 0
+    self.is_directory = True
+    self.fd = None
 
     if base_fd is None:
       self.pathspec.Append(pathspec)
@@ -354,7 +350,7 @@ class RegistryFile(vfs.VFSHandler):
 
       # We are a value and therefore not a directory.
       self.is_directory = False
-    except exceptions.WindowsError:
+    except OSError:
       try:
         # Try to get the default value for this key
         with OpenKey(self.hive, self.local_path) as key:
@@ -362,18 +358,19 @@ class RegistryFile(vfs.VFSHandler):
           # Check for default value.
           try:
             self.value, self.value_type = QueryValueEx(key, "")
-          except exceptions.WindowsError:
+          except OSError:
             # Empty default value
             self.value = ""
             self.value_type = _winreg.REG_NONE
 
-      except exceptions.WindowsError:
+      except OSError:
         raise IOError("Unable to open key %s" % self.key_name)
 
   def Stat(self, ext_attrs=None):
     del ext_attrs  # Unused.
-    # mtime is only available for keys, not values.
-    if self.is_directory and not self.last_modified:
+    # mtime is only available for keys, not values. Also special-casing root
+    # entry (it's not going to have a hive defined).
+    if self.is_directory and self.hive and not self.last_modified:
       with OpenKey(self.hive, self.local_path) as key:
         (self.number_of_keys, self.number_of_values,
          self.last_modified) = QueryInfoKey(key)
@@ -425,7 +422,7 @@ class RegistryFile(vfs.VFSHandler):
         for i in range(self.number_of_keys):
           try:
             yield EnumKey(key, i)
-          except exceptions.WindowsError:
+          except OSError:
             pass
 
         # Now Values
@@ -434,10 +431,10 @@ class RegistryFile(vfs.VFSHandler):
             name, unused_value, unused_value_type = EnumValue(key, i)
 
             yield name
-          except exceptions.WindowsError:
+          except OSError:
             pass
 
-    except exceptions.WindowsError as e:
+    except OSError as e:
       raise IOError("Unable to list key %s: %s" % (self.key_name, e))
 
   def ListFiles(self, ext_attrs=None):
@@ -474,7 +471,7 @@ class RegistryFile(vfs.VFSHandler):
               # Store the default value in the stat response for values.
               with OpenKey(self.hive, key_name) as subkey:
                 value, value_type = QueryValueEx(subkey, "")
-            except exceptions.WindowsError:
+            except OSError:
               value, value_type = None, None
 
             response = self._Stat(name, value, value_type)
@@ -482,7 +479,7 @@ class RegistryFile(vfs.VFSHandler):
             response.st_mode = stat.S_IFDIR
 
             yield response
-          except exceptions.WindowsError:
+          except OSError:
             pass
 
         # Now Values - These will look like files.
@@ -496,9 +493,9 @@ class RegistryFile(vfs.VFSHandler):
 
             yield response
 
-          except exceptions.WindowsError:
+          except OSError:
             pass
-    except exceptions.WindowsError as e:
+    except OSError as e:
       raise IOError("Unable to list key %s: %s" % (self.key_name, e))
 
   def IsDirectory(self):

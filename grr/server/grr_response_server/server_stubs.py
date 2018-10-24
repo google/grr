@@ -5,6 +5,7 @@ Client actions shouldn't be used on the server, stubs should be used instead.
 This way we prevent loading effectively the whole client code into ours
 server parts.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 

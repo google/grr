@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os
@@ -7,7 +8,6 @@ import subprocess
 import unittest
 
 import unittest
-
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -15,6 +15,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr.test_lib import client_test_lib
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 
@@ -112,7 +113,7 @@ class ConditionTestMixin(object):
 
   def setUp(self):
     super(ConditionTestMixin, self).setUp()
-    self.temp_filepath = test_lib.TempFilePath()
+    self.temp_filepath = temp.TempFilePath()
 
   def tearDown(self):
     super(ConditionTestMixin, self).tearDown()

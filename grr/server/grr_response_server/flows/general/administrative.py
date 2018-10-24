@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Administrative flows for managing the clients state."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -13,8 +14,6 @@ import jinja2
 from grr_response_core import config
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
@@ -23,6 +22,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -38,13 +38,6 @@ from grr_response_server.aff4_objects import collects
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.general import discovery
 from grr_response_server.hunts import implementation
-
-
-class AdministrativeInit(registry.InitHook):
-  """Init handler to define crash metrics."""
-
-  def RunOnce(self):
-    stats.STATS.RegisterCounterMetric("grr_client_crashes")
 
 
 def ExtractHuntId(flow_session_id):
@@ -142,7 +135,7 @@ P.S. The state of the failing flow was:
       logging.info("Client crash reported, client %s.", client_urn)
 
       # Export.
-      stats.STATS.IncrementCounter("grr_client_crashes")
+      stats_collector_instance.Get().IncrementCounter("grr_client_crashes")
 
       # Write crash data to AFF4.
       if data_store.RelationalDBReadEnabled():

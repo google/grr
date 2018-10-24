@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import itertools
@@ -16,12 +17,13 @@ from future.utils import iterkeys
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import context
+from grr_response_core.lib.util import csv
 from grr_response_proto.api import vfs_pb2
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
@@ -616,10 +618,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
     return ApiListFilesResult(items=items)
 
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled(category="vfs"):
-      return self._HandleRelational(args, token=token)
-
+  def _HandleLegacy(self, args, token=None):
     path = args.file_path
     if not path:
       path = "/"
@@ -669,6 +668,12 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
     return ApiListFilesResult(
         items=[ApiFile().InitFromAff4Object(c) for c in children])
+
+  def Handle(self, args, token=None):
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      return self._HandleRelational(args, token=token)
+    else:
+      return self._HandleLegacy(args, token=token)
 
 
 class ApiGetFileTextArgs(rdf_structs.RDFProtoStruct):
@@ -728,7 +733,16 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetFileTextArgs
   result_type = ApiGetFileTextResult
 
-  def Handle(self, args, token=None):
+  def _Decode(self, codec_name, data):
+    """Decode data with the given codec name."""
+    try:
+      return data.decode(codec_name, "replace")
+    except LookupError:
+      raise RuntimeError("Codec could not be found.")
+    except AssertionError:
+      raise RuntimeError("Codec failed to decode")
+
+  def _HandleLegacy(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
     if args.timestamp:
@@ -766,14 +780,38 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
     return ApiGetFileTextResult(
         total_size=_Aff4Size(file_obj), content=text_content)
 
-  def _Decode(self, codec_name, data):
-    """Decode data with the given codec name."""
+  def _HandleRelational(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
+    path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
+    client_path = db.ClientPath(unicode(args.client_id), path_type, components)
+
     try:
-      return data.decode(codec_name, "replace")
-    except LookupError:
-      raise RuntimeError("Codec could not be found.")
-    except AssertionError:
-      raise RuntimeError("Codec failed to decode")
+      fd = file_store.OpenFile(client_path, max_timestamp=args.timestamp)
+    except file_store.FileHasNoContent:
+      raise FileContentNotFoundError(
+          "File %s with timestamp %s wasn't found on client %s" %
+          (args.file_path, args.timestamp, args.client_id))
+
+    fd.seek(args.offset)
+    # No need to protect against args.length == 0 case and large files:
+    # file_store logic has all necessary checks in place.
+    byte_content = fd.read(args.length or None)
+
+    if args.encoding:
+      encoding = args.encoding.name.lower()
+    else:
+      encoding = ApiGetFileTextArgs.Encoding.UTF_8.name.lower()
+
+    text_content = self._Decode(encoding, byte_content)
+
+    return ApiGetFileTextResult(total_size=fd.size, content=text_content)
+
+  def Handle(self, args, token=None):
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      return self._HandleRelational(args, token=token)
+    else:
+      return self._HandleLegacy(args, token=token)
 
 
 class ApiGetFileBlobArgs(rdf_structs.RDFProtoStruct):
@@ -879,7 +917,7 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetFileVersionTimesArgs
   result_type = ApiGetFileVersionTimesResult
 
-  def Handle(self, args, token=None):
+  def _HandleLegacy(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
     fd = aff4.FACTORY.Open(
@@ -891,6 +929,29 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
     type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
     return ApiGetFileVersionTimesResult(
         times=sorted([t.age for t in type_values], reverse=True))
+
+  def _HandleRelational(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
+    try:
+      path_type, components = rdf_objects.ParseCategorizedPath(
+          args.file_path.rstrip("/"))
+    except ValueError:
+      # If the path does not point to a file (i.e. "fs"), just return an
+      # empty response.
+      return ApiGetFileVersionTimesResult(times=[])
+
+    history = data_store.REL_DB.ReadPathInfoHistory(
+        unicode(args.client_id), path_type, components)
+    times = reversed([pi.timestamp for pi in history])
+
+    return ApiGetFileVersionTimesResult(times=times)
+
+  def Handle(self, args, token=None):
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      return self._HandleRelational(args, token=token)
+    else:
+      return self._HandleLegacy(args, token=token)
 
 
 class ApiGetFileDownloadCommandArgs(rdf_structs.RDFProtoStruct):
@@ -1209,7 +1270,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
   CHUNK_SIZE = 1000
 
   def _GenerateDefaultExport(self, items):
-    writer = utils.CsvWriter()
+    writer = csv.Writer()
 
     # Write header. Since we do not stick to a specific timeline format, we
     # can export a format suited for TimeSketch import.
@@ -1225,7 +1286,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
         ])
 
       yield writer.Content().encode("utf-8")
-      writer = utils.CsvWriter()
+      writer = csv.Writer()
 
   def _HandleDefaultFormat(self, args):
     items = _GetTimelineItems(args.client_id, args.file_path)
@@ -1238,7 +1299,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
       if st is None:
         continue
 
-      writer = utils.CsvWriter(delimiter=u"|")
+      writer = csv.Writer(delimiter=u"|")
 
       if hash_v and hash_v.md5:
         hash_str = hash_v.md5.HexDigest().decode("ascii")
@@ -1451,11 +1512,60 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     return api_call_handler_base.ApiBinaryStream(
         prefix + ".zip", content_generator=content_generator)
 
+  def _GenerateContentRelational(self, client_id, start_paths, timestamp,
+                                 path_prefix):
+    client_paths = []
+    for start_path in start_paths:
+      path_type, components = rdf_objects.ParseCategorizedPath(start_path)
+      for pi in data_store.REL_DB.ListDescendentPathInfos(
+          client_id, path_type, components):
+        if pi.directory:
+          continue
+
+        client_paths.append(db.ClientPath.FromPathInfo(client_id, pi))
+
+    archive_generator = utils.StreamingZipGenerator(
+        compression=zipfile.ZIP_DEFLATED)
+    for chunk in file_store.StreamFilesChunks(
+        client_paths, max_timestamp=timestamp):
+      if chunk.chunk_index == 0:
+        content_path = os.path.join(path_prefix, chunk.client_path.vfs_path)
+        # TODO(user): Export meaningful file metadata.
+        st = os.stat_result((0o644, 0, 0, 0, 0, 0, chunk.total_size, 0, 0, 0))
+        yield archive_generator.WriteFileHeader(content_path, st=st)
+
+      yield archive_generator.WriteFileChunk(chunk.data)
+
+      if chunk.chunk_index == chunk.total_chunks - 1:
+        yield archive_generator.WriteFileFooter()
+
+    yield archive_generator.Close()
+
   def _HandleRelational(self, args, token=None):
-    raise NotImplementedError()
+    client_id = unicode(args.client_id)
+    path = args.file_path
+    if not path:
+      start_paths = ["fs/os", "fs/tsk", "registry", "temp"]
+      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_", client_id)
+    else:
+      ValidateVfsPath(path)
+      if path.rstrip("/") == "fs":
+        start_paths = ["fs/os", "fs/tsk"]
+      else:
+        start_paths = [path]
+      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_",
+                               client_id + "_" + path).strip("_")
+
+    content_generator = self._GenerateContentRelational(client_id, start_paths,
+                                                        args.timestamp, prefix)
+    return api_call_handler_base.ApiBinaryStream(
+        prefix + ".zip", content_generator=content_generator)
 
   def Handle(self, args, token=None):
-    return self._HandleLegacy(args, token=token)
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      return self._HandleRelational(args, token=token)
+    else:
+      return self._HandleLegacy(args, token=token)
 
 
 class ApiGetFileDecodersArgs(rdf_structs.RDFProtoStruct):
@@ -1478,8 +1588,8 @@ class ApiGetFileDecodersHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     result = ApiGetFileDecodersResult()
 
-    path_type, components = rdf_objects.ParseCategorizedPath(args.filepath)
-    urn = args.client_id.ToClientURN().Add(args.filepath)
+    path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
+    urn = args.client_id.ToClientURN().Add(args.file_path)
     client_path = db.ClientPath(
         client_id=unicode(args.client_id),
         path_type=path_type,
@@ -1490,7 +1600,7 @@ class ApiGetFileDecodersHandler(api_call_handler_base.ApiCallHandler):
 
       if data_store.RelationalDBReadEnabled(category="vfs"):
         filedesc = file_store.OpenFile(client_path)
-        filectx = utils.NullContext(filedesc)
+        filectx = context.NullContext(filedesc)
       else:
         filectx = aff4.FACTORY.Open(urn, mode="r", token=token)
 
@@ -1512,10 +1622,27 @@ class ApiGetDecodedFileArgs(rdf_structs.RDFProtoStruct):
 class ApiGetDecodedFileHandler(api_call_handler_base.ApiCallHandler):
   """An API handler for decoding specified file."""
 
-  def Handle(self, args, token=None):
+  def _HandleLegacy(self, args, token=None):
     decoder = decoders.FACTORY.Create(args.decoder_name)
 
-    urn = args.client_id.ToClientURN().Add(args.filepath)
+    urn = args.client_id.ToClientURN().Add(args.file_path)
     with aff4.FACTORY.Open(urn, mode="r", token=token) as filedesc:
       return api_call_handler_base.ApiBinaryStream(
           filename=urn.Basename(), content_generator=decoder.Decode(filedesc))
+
+  def _HandleRelational(self, args, token=None):
+    decoder = decoders.FACTORY.Create(args.decoder_name)
+
+    path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
+    client_path = db.ClientPath(unicode(args.client_id), path_type, components)
+
+    fd = file_store.OpenFile(client_path)
+    return api_call_handler_base.ApiBinaryStream(
+        filename=client_path.components[-1],
+        content_generator=decoder.Decode(fd))
+
+  def Handle(self, args, token=None):
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      return self._HandleRelational(args, token=token)
+    else:
+      return self._HandleLegacy(args, token=token)

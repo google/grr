@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test client vfs."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import io
@@ -26,6 +27,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -554,7 +556,7 @@ class VFSMultiOpenTest(unittest.TestCase):
     self._VFS_OVERRIDER.Stop()
 
   def testMultipleFiles(self):
-    with test_lib.AutoTempDirPath(remove_non_empty=True) as tempdir:
+    with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
       foo_path = os.path.join(tempdir, "foo")
       bar_path = os.path.join(tempdir, "bar")
       baz_path = os.path.join(tempdir, "baz")
@@ -578,7 +580,7 @@ class VFSMultiOpenTest(unittest.TestCase):
         self.assertEqual(filedescs[2].Read(), b"BAZ")
 
   def testProgressCallback(self):
-    with test_lib.AutoTempFilePath() as temppath:
+    with temp.AutoTempFilePath() as temppath:
       self._Touch(temppath, b"QUUX")
 
       pathspec = rdf_paths.PathSpec(

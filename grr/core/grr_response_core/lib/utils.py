@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This file contains various utility classes used by GRR."""
+from __future__ import absolute_import
 
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -7,8 +8,6 @@ from __future__ import unicode_literals
 import array
 import base64
 import collections
-import copy
-import csv
 import errno
 import functools
 import getpass
@@ -16,14 +15,12 @@ import io
 import os
 import pipes
 import platform
-import Queue
 import random
 import re
 import shutil
 import socket
 import stat
 import struct
-import sys
 import tarfile
 import tempfile
 import threading
@@ -38,8 +35,9 @@ from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 import psutil
+import queue
 
-from typing import Any, List, Optional, Text
+from typing import Any, Optional, Text
 
 from grr_response_core.lib.util import precondition
 
@@ -443,95 +441,6 @@ class TimeBasedCache(FastStore):
     super(TimeBasedCache, self).Put(key, [time.time(), obj])
 
 
-class Memoize(object):
-  """A decorator to produce a memoizing version of a method."""
-
-  def __init__(self, deep_copy=False):
-    """Constructor.
-
-    Args:
-      deep_copy: Whether to perform a deep copy of the returned object.
-        Otherwise, a direct reference is returned.
-    """
-    self.deep_copy = deep_copy
-
-  def __call__(self, f):
-    """Produce a memoizing version of f.
-
-    Requires that all parameters are hashable. Also, it does not copy the return
-    value, so changes to a returned object may be visible in future invocations.
-
-    Args:
-      f: The function which will be wrapped.
-
-    Returns:
-      A wrapped function which memoizes all values returned by f, keyed by
-      the arguments to f.
-
-    """
-    f.memo_pad = {}
-    f.memo_deep_copy = self.deep_copy
-
-    @functools.wraps(f)
-    def Wrapped(self, *args, **kwargs):
-      # We keep args and kwargs separate to avoid confusing an arg which is a
-      # pair with a kwarg. Also, we don't try to match calls when an argument
-      # moves between args and kwargs.
-      key = tuple(args), tuple(sorted(iteritems(kwargs), key=lambda x: x[0]))
-      if key not in f.memo_pad:
-        f.memo_pad[key] = f(self, *args, **kwargs)
-      if f.memo_deep_copy:
-        return copy.deepcopy(f.memo_pad[key])
-      else:
-        return f.memo_pad[key]
-
-    return Wrapped
-
-
-class MemoizeFunction(object):
-  """A decorator to produce a memoizing version a function.
-
-  """
-
-  def __init__(self, deep_copy=False):
-    """Constructor.
-
-    Args:
-      deep_copy: Whether to perform a deep copy of the returned object.
-        Otherwise, a direct reference is returned.
-    """
-    self.deep_copy = deep_copy
-
-  def __call__(self, f):
-    """Produce a memoizing version of f.
-
-    Requires that all parameters are hashable. Also, it does not copy the return
-    value, so changes to a returned object may be visible in future invocations.
-
-    Args:
-      f: The function which will be wrapped.
-
-    Returns:
-      A wrapped function which memoizes all values returned by f, keyed by
-      the arguments to f.
-
-    """
-    f.memo_pad = {}
-    f.memo_deep_copy = self.deep_copy
-
-    @functools.wraps(f)
-    def Wrapped(*args, **kwargs):
-      key = tuple(args), tuple(sorted(iteritems(kwargs), key=lambda x: x[0]))
-      if key not in f.memo_pad:
-        f.memo_pad[key] = f(*args, **kwargs)
-      if f.memo_deep_copy:
-        return copy.deepcopy(f.memo_pad[key])
-      else:
-        return f.memo_pad[key]
-
-    return Wrapped
-
-
 class AgeBasedCache(TimeBasedCache):
   """A cache which holds objects for a maximum length of time.
 
@@ -807,37 +716,6 @@ def PassphraseCallback(verify=False,
   return p1
 
 
-class PRNG(object):
-  """An optimized PRNG."""
-
-  random_list = []  # type: List[int]
-
-  @classmethod
-  def GetUInt16(cls):
-    return cls.GetUInt32() & 0xFFFF
-
-  @classmethod
-  def GetUInt32(cls):
-    while True:
-      try:
-        return cls.random_list.pop()
-      except IndexError:
-        PRNG.random_list = list(
-            struct.unpack("=" + "L" * 1000,
-                          os.urandom(struct.calcsize("=L") * 1000)))
-
-  @classmethod
-  def GetPositiveUInt32(cls):
-    res = cls.GetUInt32()
-    while res == 0:
-      res = cls.GetUInt32()
-    return res
-
-  @classmethod
-  def GetUInt64(cls):
-    return (cls.GetUInt32() << 32) + cls.GetUInt32()
-
-
 def FormatNumberAsString(num):
   """Return a large number in human readable form."""
   for suffix in ["b", "KB", "MB", "GB"]:
@@ -851,11 +729,11 @@ class NotAValue(object):
   pass
 
 
-class HeartbeatQueue(Queue.Queue):
+class HeartbeatQueue(queue.Queue):
   """A queue that periodically calls a provided callback while waiting."""
 
   def __init__(self, callback=None, fast_poll_time=60, *args, **kw):
-    Queue.Queue.__init__(self, *args, **kw)
+    queue.Queue.__init__(self, *args, **kw)
     self.callback = callback or (lambda: None)
     self.last_item_time = time.time()
     self.fast_poll_time = fast_poll_time
@@ -868,13 +746,13 @@ class HeartbeatQueue(Queue.Queue):
         # to a more efficient polling method if there is no activity for
         # <fast_poll_time> seconds.
         if time.time() - self.last_item_time < self.fast_poll_time:
-          message = Queue.Queue.get(self, block=True, timeout=poll_interval)
+          message = queue.Queue.get(self, block=True, timeout=poll_interval)
         else:
           time.sleep(poll_interval)
-          message = Queue.Queue.get(self, block=False)
+          message = queue.Queue.get(self, block=False)
         break
 
-      except Queue.Empty:
+      except queue.Empty:
         self.callback()
 
     self.last_item_time = time.time()
@@ -1185,62 +1063,6 @@ class StreamingZipGenerator(object):
 # pytype: enable=attribute-error,wrong-arg-types
 
 
-class StreamingZipWriter(object):
-  """A streaming zip file writer which can copy from file like objects.
-
-  The streaming writer should be capable of compressing files of arbitrary
-  size without eating all the memory. It's built on top of Python's zipfile
-  module, but has to use some hacks, as standard library doesn't provide
-  all the necessary API to do streaming writes.
-  """
-
-  def __init__(self, fd_or_path, mode="wb", compression=zipfile.ZIP_STORED):
-    """Open streaming ZIP file with mode read "r", write "w" or append "a".
-
-    Args:
-      fd_or_path: Either the path to the file, or a file-like object. If it is a
-        path, the file will be opened and closed by ZipFile.
-      mode: The mode can be either read "r", write "w" or append "a".
-      compression: ZIP_STORED (no compression) or ZIP_DEFLATED (requires zlib).
-    """
-
-    if hasattr(fd_or_path, "write"):
-      self._fd = fd_or_path
-    else:
-      self._fd = open(fd_or_path, mode)
-
-    self._generator = StreamingZipGenerator(compression=compression)
-
-  def __enter__(self):
-    return self
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    self.Close()
-
-  def Close(self):
-    self._fd.write(self._generator.Close())
-
-  def WriteSymlink(self, src_arcname, dst_arcname):
-    """Writes a symlink into the archive."""
-    self._fd.write(self._generator.WriteSymlink(src_arcname, dst_arcname))
-
-  def WriteFromFD(self, src_fd, arcname=None, compress_type=None, st=None):
-    """Write a zip member from a file like object.
-
-    Args:
-      src_fd: A file like object, must support seek(), tell(), read().
-      arcname: The name in the archive this should take.
-      compress_type: Compression type (zipfile.ZIP_DEFLATED, or ZIP_STORED)
-      st: An optional stat object to be used for setting headers.
-
-    Raises:
-      ArchiveAlreadyClosedError: If the zip if already closed.
-    """
-    for chunk in self._generator.WriteFromFD(
-        src_fd, arcname=arcname, compress_type=compress_type, st=st):
-      self._fd.write(chunk)
-
-
 class StreamingTarGenerator(object):
   """A streaming tar generator that can archive file-like objects."""
 
@@ -1375,72 +1197,6 @@ class StreamingTarGenerator(object):
     return self._stream.tell()
 
 
-class StreamingTarWriter(object):
-  """A streaming tar file writer which can copy from file like objects.
-
-  The streaming writer should be capable of compressing files of arbitrary
-  size without eating all the memory. It's built on top of Python's tarfile
-  module.
-  """
-
-  def __init__(self, fd_or_path, mode="w"):
-    # TODO(hanuszczak): Incorrect type specification for `tarfile.open`.
-    # pytype: disable=wrong-arg-types
-    if hasattr(fd_or_path, "write"):
-      self.tar_fd = tarfile.open(
-          mode=mode, fileobj=fd_or_path, encoding="utf-8")
-    else:
-      self.tar_fd = tarfile.open(name=fd_or_path, mode=mode, encoding="utf-8")
-    # pytype: enable=wrong-arg-types
-
-  def __enter__(self):
-    return self
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    self.Close()
-
-  def Close(self):
-    self.tar_fd.close()
-
-  def WriteSymlink(self, src_arcname, dst_arcname):
-    """Writes a symlink into the archive."""
-
-    info = self.tar_fd.tarinfo()
-    info.tarfile = self.tar_fd
-    info.name = SmartStr(dst_arcname)
-    info.size = 0
-    info.mtime = time.time()
-    info.type = tarfile.SYMTYPE
-    info.linkname = SmartStr(src_arcname)
-
-    self.tar_fd.addfile(info)
-
-  def WriteFromFD(self, src_fd, arcname=None, st=None):
-    """Write an archive member from a file like object.
-
-    Args:
-      src_fd: A file like object, must support seek(), tell(), read().
-      arcname: The name in the archive this should take.
-      st: A stat object to be used for setting headers.
-
-    Raises:
-      ValueError: If st is omitted.
-    """
-
-    if st is None:
-      raise ValueError("Stat object can't be None.")
-
-    info = self.tar_fd.tarinfo()
-    info.tarfile = self.tar_fd
-    info.type = tarfile.REGTYPE
-    info.name = SmartStr(arcname)
-    info.size = st.st_size
-    info.mode = st.st_mode
-    info.mtime = st.st_mtime or time.time()
-
-    self.tar_fd.addfile(info, src_fd)
-
-
 class Stubber(object):
   """A context manager for doing simple stubs."""
 
@@ -1486,42 +1242,6 @@ class MultiStubber(object):
 
   def __exit__(self, t, value, traceback):
     self.Stop()
-
-
-class DataObject(dict):
-  """This class wraps a dict and provides easier access functions."""
-
-  def Register(self, item, value=None):
-    if item in self:
-      raise AttributeError("Item %s already registered." % item)
-
-    self[item] = value
-
-  def __setattr__(self, item, value):
-    self[item] = value
-
-  def __getattr__(self, item):
-    try:
-      return self[item]
-    except KeyError as e:
-      raise AttributeError(e)
-
-  def __dir__(self):
-    return sorted(iterkeys(self)) + dir(self.__class__)
-
-  def __str__(self):
-    result = []
-    for k, v in iteritems(self):
-      tmp = "  %s = " % k
-      try:
-        for line in SmartUnicode(v).splitlines():
-          tmp += "    %s\n" % line
-      except Exception as e:  # pylint: disable=broad-except
-        tmp += "Error: %s\n" % e
-
-      result.append(tmp)
-
-    return "{\n%s}\n" % "".join(result)
 
 
 def EnsureDirExists(path):
@@ -1674,54 +1394,6 @@ class Stat(object):
     return self._stat.st_flags
 
 
-class NullContext(object):
-  """A context manager that always yields provided values.
-
-  This class is useful for providing context-like semantics for values that are
-  not context managers themselves because they do not need to manage any
-  resources but are used as context managers.
-
-  This is a backport of the `contextlib.nullcontext` class introduced in Python
-  3.7. Once support for old versions of Python is dropped, all uses of this
-  class should be replaced with the one provided by the standard library.
-  """
-
-  def __init__(self, value):
-    self._value = value
-
-  def __enter__(self):
-    return self._value
-
-  def __exit__(self, exc_type, exc_value, traceback):
-    del exc_type, exc_value, traceback  # Unused.
-
-
-class MultiContext(object):
-  """A context managers that sequences multiple context managers.
-
-  This is similar to the monadic `sequence` operator: it takes a list of context
-  managers, enters each of them and yields list of values that the managers
-  yield.
-
-  One possible scenario where this class comes in handy is when one needs to
-  open multiple files.
-  """
-
-  def __init__(self, managers):
-    self._managers = managers
-
-  def __enter__(self):
-    values = []
-    for manager in self._managers:
-      value = manager.__enter__()
-      values.append(value)
-    return values
-
-  def __exit__(self, exc_type, exc_value, traceback):
-    for manager in self._managers:
-      manager.__exit__(exc_type, exc_value, traceback)
-
-
 class StatCache(object):
   """An utility class for avoiding unnecessary syscalls to `[l]stat`.
 
@@ -1766,114 +1438,6 @@ class StatCache(object):
 def ProcessIdString():
   return "%s@%s:%d" % (psutil.Process().name(), socket.gethostname(),
                        os.getpid())
-
-
-class CsvWriter(object):
-  """A compatibility class for writing CSV files.
-
-  This class should be used instead of the `csv.writer` that has API differences
-  across Python 2 and Python 3. This class provides unified interface that
-  should work the same way on both versions. Once support for Python 2 is
-  dropped, this class can be removed and code can be refactored to use the
-  native class.
-
-  Args:
-    delimiter: A delimiter to separate the values with. Defaults to a comma.
-  """
-
-  def __init__(self, delimiter=","):
-    precondition.AssertType(delimiter, unicode)
-
-    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
-    # two elements which is not true.
-    # pytype: disable=attribute-error
-    if sys.version_info.major == 2:
-      self._output = io.BytesIO()
-    else:
-      self._output = io.StringIO()
-    # pytype: enable=attribute-error
-
-    # We call `str` on the delimiter in order to ensure it is `bytes` on Python
-    # 2 and `unicode` on Python 3.
-    self._csv = csv.writer(
-        self._output, delimiter=str(delimiter), lineterminator=str("\n"))
-
-  def WriteRow(self, values):
-    """Writes a single row to the underlying buffer.
-
-    Args:
-      values: A list of string values to be inserted into the CSV output.
-    """
-    precondition.AssertIterableType(values, unicode)
-
-    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
-    # two elements which is not true.
-    # pytype: disable=attribute-error
-    if sys.version_info.major == 2:
-      self._csv.writerow([value.encode("utf-8") for value in values])
-    else:
-      self._csv.writerow(values)
-    # pytype: enable=attribute-error
-
-  def Content(self):
-    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
-    # two elements which is not true.
-    # pytype: disable=attribute-error
-    if sys.version_info.major == 2:
-      return self._output.getvalue().decode("utf-8")
-    else:
-      return self._output.getvalue()
-    # pytype: enable=attribute-error
-
-
-class CsvDictWriter(object):
-  """A compatibility class for writing CSV files.
-
-  This class is to `csv.DictWriter` what `CsvWriter` is `csv.writer`. Consult
-  documentation for `CsvWriter` for more rationale.
-
-  Args:
-    columns: A list of column names to base row writing on.
-    delimiter: A delimiter to separate the values with. Defaults to a comma.
-  """
-
-  def __init__(self, columns, delimiter=","):
-    precondition.AssertIterableType(columns, unicode)
-    precondition.AssertType(delimiter, unicode)
-
-    self._writer = CsvWriter(delimiter=delimiter)
-    self._columns = columns
-
-  def WriteHeader(self):
-    """Writes header to the CSV file.
-
-    A header consist of column names of this particular writer separated by
-    specified delimiter.
-    """
-    self._writer.WriteRow(self._columns)
-
-  def WriteRow(self, values):
-    """Writes a single row to the underlying buffer.
-
-    Args:
-      values: A dictionary mapping column names to values to be inserted into
-        the CSV output.
-    """
-    precondition.AssertDictType(values, unicode, unicode)
-
-    row = []
-    for column in self._columns:
-      try:
-        value = values[column]
-      except KeyError:
-        raise ValueError("Row does not contain required column `%s`" % column)
-
-      row.append(value)
-
-    self._writer.WriteRow(row)
-
-  def Content(self):
-    return self._writer.Content()
 
 
 def IterValuesInSortedKeysOrder(d):

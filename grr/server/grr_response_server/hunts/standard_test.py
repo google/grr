@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the standard hunts."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import glob
@@ -15,12 +16,12 @@ import mock
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import flow
@@ -538,18 +539,18 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         plugin_name="DummyHuntOutputPlugin")
     self.StartHunt(output_plugins=[failing_plugin_descriptor])
 
-    prev_success_count = stats.STATS.GetMetricValue(
+    prev_success_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_results_ran_through_plugin", fields=["DummyHuntOutputPlugin"])
-    prev_errors_count = stats.STATS.GetMetricValue(
+    prev_errors_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_output_plugin_errors", fields=["DummyHuntOutputPlugin"])
 
     self.AssignTasksToClients()
     self.RunHunt(failrate=-1)
     self.ProcessHuntOutputPlugins()
 
-    success_count = stats.STATS.GetMetricValue(
+    success_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_results_ran_through_plugin", fields=["DummyHuntOutputPlugin"])
-    errors_count = stats.STATS.GetMetricValue(
+    errors_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_output_plugin_errors", fields=["DummyHuntOutputPlugin"])
 
     # 1 result for each client makes it 10 results.
@@ -562,10 +563,10 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         plugin_name="FailingDummyHuntOutputPlugin")
     self.StartHunt(output_plugins=[failing_plugin_descriptor])
 
-    prev_success_count = stats.STATS.GetMetricValue(
+    prev_success_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_results_ran_through_plugin",
         fields=["FailingDummyHuntOutputPlugin"])
-    prev_errors_count = stats.STATS.GetMetricValue(
+    prev_errors_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_output_plugin_errors", fields=["FailingDummyHuntOutputPlugin"])
 
     self.AssignTasksToClients()
@@ -575,10 +576,10 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     except process_results.ResultsProcessingError:
       pass
 
-    success_count = stats.STATS.GetMetricValue(
+    success_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_results_ran_through_plugin",
         fields=["FailingDummyHuntOutputPlugin"])
-    errors_count = stats.STATS.GetMetricValue(
+    errors_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_output_plugin_errors", fields=["FailingDummyHuntOutputPlugin"])
 
     self.assertEqual(success_count - prev_success_count, 0)
@@ -1252,11 +1253,12 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     hunt_test_lib.VerifiableDummyHuntOutputPluginVerfier.num_calls = 0
 
   def GetVerificationsStats(self):
-    fields = stats.STATS.GetMetricFields("hunt_output_plugin_verifications")
+    fields = stats_collector_instance.Get().GetMetricFields(
+        "hunt_output_plugin_verifications")
 
     result = {}
     for field_value in fields:
-      result[field_value[0]] = stats.STATS.GetMetricValue(
+      result[field_value[0]] = stats_collector_instance.Get().GetMetricValue(
           "hunt_output_plugin_verifications", fields=field_value)
 
     return sum(itervalues(result)), result
@@ -1363,7 +1365,7 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     self.AssignTasksToClients()
     self.RunHunt()
 
-    prev_count = stats.STATS.GetMetricValue(
+    prev_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_output_plugin_verification_errors")
     try:
       flow.StartAFF4Flow(
@@ -1371,7 +1373,8 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
           token=self.token)
     except standard.HuntVerificationError:
       pass
-    count = stats.STATS.GetMetricValue("hunt_output_plugin_verification_errors")
+    count = stats_collector_instance.Get().GetMetricValue(
+        "hunt_output_plugin_verification_errors")
     self.assertEqual(count - prev_count, 1)
 
   def testChecksAllHuntsEvenIfOneRaises(self):

@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 """This module contains regression tests for stats API handlers."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
-
-from grr_response_core.lib import utils
+from grr_response_core.stats import default_stats_collector
+from grr_response_core.stats import stats_test_utils
+from grr_response_core.stats import stats_utils
 from grr_response_server import aff4
 from grr_response_server.aff4_objects import stats_store as aff4_stats_store
 from grr_response_server.gui import api_regression_test_lib
@@ -27,18 +28,16 @@ class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
   handler = stats_plugin.ApiListStatsStoreMetricsMetadataHandler
 
   def Run(self):
-    stats_collector = stats.StatsCollector()
+    stats_collector = default_stats_collector.DefaultStatsCollector([
+        stats_utils.CreateCounterMetadata(
+            "sample_counter", docstring="Sample counter metric."),
+        stats_utils.CreateGaugeMetadata(
+            "sample_gauge_value", str, docstring="Sample gauge metric."),
+        stats_utils.CreateEventMetadata(
+            "sample_event", docstring="Sample event metric."),
+    ])
 
-    stats_collector.RegisterCounterMetric(
-        "sample_counter", docstring="Sample counter metric.")
-
-    stats_collector.RegisterGaugeMetric(
-        "sample_gauge_value", str, docstring="Sample gauge metric.")
-
-    stats_collector.RegisterEventMetric(
-        "sample_event", docstring="Sample event metric.")
-
-    with utils.Stubber(stats, "STATS", stats_collector):
+    with stats_test_utils.FakeStatsContext(stats_collector):
       with aff4.FACTORY.Create(
           None, aff4_stats_store.StatsStore, mode="w",
           token=self.token) as stats_store:
@@ -57,18 +56,16 @@ class ApiGetStatsStoreMetricHandlerRegressionTest(
   handler = stats_plugin.ApiGetStatsStoreMetricHandler
 
   def Run(self):
-    stats_collector = stats.StatsCollector()
+    stats_collector = default_stats_collector.DefaultStatsCollector([
+        stats_utils.CreateCounterMetadata(
+            "sample_counter", docstring="Sample counter metric."),
+        stats_utils.CreateGaugeMetadata(
+            "sample_gauge_value", float, docstring="Sample gauge metric."),
+        stats_utils.CreateEventMetadata(
+            "sample_event", docstring="Sample event metric."),
+    ])
 
-    stats_collector.RegisterCounterMetric(
-        "sample_counter", docstring="Sample counter metric.")
-
-    stats_collector.RegisterGaugeMetric(
-        "sample_gauge_value", float, docstring="Sample gauge metric.")
-
-    stats_collector.RegisterEventMetric(
-        "sample_event", docstring="Sample event metric.")
-
-    with utils.Stubber(stats, "STATS", stats_collector):
+    with stats_test_utils.FakeStatsContext(stats_collector):
       for i in range(10):
         with test_lib.FakeTime(42 + i * 60):
           stats_collector.IncrementCounter("sample_counter")

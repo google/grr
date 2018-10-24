@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """GRR API shell implementation."""
+from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse

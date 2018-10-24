@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """Classes for stats-related testing."""
+from __future__ import absolute_import
 
-import mock
-
-from grr_response_core.lib import stats
+from grr_response_core.stats import stats_collector_instance
 
 
 class StatsDeltaAssertionContext(object):
@@ -16,15 +15,15 @@ class StatsDeltaAssertionContext(object):
     self.delta = delta
 
   def __enter__(self):
-    self.prev_count = stats.STATS.GetMetricValue(
+    self.prev_count = stats_collector_instance.Get().GetMetricValue(
         self.varname, fields=self.fields)
     # Handle the case when we're dealing with distributions.
     if hasattr(self.prev_count, "count"):
       self.prev_count = self.prev_count.count
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
-    new_count = stats.STATS.GetMetricValue(
-        varname=self.varname, fields=self.fields)
+    new_count = stats_collector_instance.Get().GetMetricValue(
+        self.varname, fields=self.fields)
     if hasattr(new_count, "count"):
       new_count = new_count.count
 
@@ -35,17 +34,7 @@ class StatsDeltaAssertionContext(object):
 
 
 class StatsTestMixin(object):
-  """Mixing for stats-related assertions."""
-
-  def setUp(self):  # pylint: disable=invalid-name
-    super(StatsTestMixin, self).setUp()
-    self._stats_patcher = mock.patch.object(stats, "STATS",
-                                            stats.StatsCollector())
-    self._stats_patcher.start()
-
-  def tearDown(self):  # pylint: disable=invalid-name
-    self._stats_patcher.stop()
-    super(StatsTestMixin, self).tearDown()
+  """Mixin for stats-related assertions."""
 
   # pylint: disable=invalid-name
   def assertStatsCounterDelta(self, delta, varname, fields=None):

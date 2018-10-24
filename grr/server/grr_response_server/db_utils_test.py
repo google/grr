@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -15,10 +16,6 @@ from grr.test_lib import test_lib
 
 class CallLoggedAndAccountedTest(stats_test_lib.StatsTestMixin,
                                  unittest.TestCase):
-
-  def setUp(self):
-    super(CallLoggedAndAccountedTest, self).setUp()
-    db_utils.DBMetricsInit().RunOnce()
 
   @db_utils.CallLoggedAndAccounted
   def SampleCall(self):

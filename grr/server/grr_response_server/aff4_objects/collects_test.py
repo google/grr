@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test the various collection objects."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core import config

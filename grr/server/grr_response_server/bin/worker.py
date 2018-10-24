@@ -4,6 +4,8 @@
 We basically pull a new task from the task master, and run the plugin
 it specifies.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 from __future__ import unicode_literals
 
 
@@ -20,12 +22,15 @@ from grr_response_server import fleetspeak_connector
 from grr_response_server import server_startup
 from grr_response_server import worker_lib
 
-flags.DEFINE_version(config_server.VERSION["packageversion"])
-
 
 def main(argv):
   """Main."""
   del argv  # Unused.
+
+  if flags.FLAGS.version:
+    print("GRR worker {}".format(config_server.VERSION["packageversion"]))
+    return
+
   config.CONFIG.AddContext(contexts.WORKER_CONTEXT,
                            "Context applied when running a worker.")
 

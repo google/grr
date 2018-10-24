@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This file contains utility functions used in ApiCallHandler classes."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import io

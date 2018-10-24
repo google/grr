@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """UI reports related rdfvalues."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import events as rdf_events

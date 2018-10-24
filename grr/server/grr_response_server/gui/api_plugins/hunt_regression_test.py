@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This modules contains regression tests for hunts API handlers."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import pdb

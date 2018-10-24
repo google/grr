@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Helper library for config testing."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import copy

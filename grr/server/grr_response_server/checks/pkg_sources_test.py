@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for package source checks."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
@@ -21,42 +22,45 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
   def testAPTDetectUnsupportedTransport(self):
     artifact = "APTSources"
     parser = config_file.APTPackageSourceParser()
+
+    # pylint: disable=line-too-long
     sources = {
         "/etc/apt/sources.list":
-            ur"""
-            # APT sources.list providing the default Ubuntu packages
-            #
-            deb https://httpredir.debian.org/debian jessie-updates main
-            deb https://security.debian.org/ wheezy/updates main
-            # comment 2
-            """,
+            """\
+# APT sources.list providing the default Ubuntu packages
+#
+deb https://httpredir.debian.org/debian jessie-updates main
+deb https://security.debian.org/ wheezy/updates main
+# comment 2
+""",
         "/etc/apt/sources.list.d/test.list":
-            ur"""
-            deb file:/tmp/debs/ distro main
-            deb [arch=amd64,blah=blah] [meh=meh] https://securitytestasdf.debian.org/ wheezy/updates main contrib non-free
-            deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main
-            """,
+            """\
+deb file:/tmp/debs/ distro main
+deb [arch=amd64,blah=blah] [meh=meh] https://securitytestasdf.debian.org/ wheezy/updates main contrib non-free
+deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main
+""",
         "/etc/apt/sources.list.d/test2.list":
-            ur"""
-            deb http://dl.google.com/linux/chrome/deb/ stable main
-            """,
+            """\
+deb http://dl.google.com/linux/chrome/deb/ stable main
+""",
         "/etc/apt/sources.list.d/test3.list":
-            ur"""
-            deb https://security.debian.org/ wheezy/updates main contrib non-free
-            """,
+            """\
+deb https://security.debian.org/ wheezy/updates main contrib non-free
+""",
         "/etc/apt/sources.list.d/file-test.list":
-            ur"""
-            deb file:/mnt/debian/debs/ distro main
-            """,
+            """\
+deb file:/mnt/debian/debs/ distro main
+""",
         "/etc/apt/sources.list.d/rfc822.list":
-            ur"""
-            Type: deb deb-src
-            URI: http://security.example.com
-              https://dl.google.com
-            Suite: testing
-            Section: main contrib
-            """,
+            """\
+Type: deb deb-src
+URI: http://security.example.com
+  https://dl.google.com
+Suite: testing
+Section: main contrib
+""",
     }
+    # pylint: enable=line-too-long
 
     chk_id = "CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT"
     sym = "Found: APT sources use unsupported transport."
@@ -74,42 +78,42 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
     parser = config_file.YumPackageSourceParser()
     sources = {
         "/etc/yum.repos.d/noproblems.repo":
-            ur"""
-            # comment 1
-            [centosdvdiso]
-            name=CentOS DVD ISO
-            baseurl=https://mirror1.centos.org/CentOS/6/os/i386/
-            enabled=1
-            gpgcheck=1
-            gpgkey=file:///mnt/RPM-GPG-KEY-CentOS-6
+            """\
+# comment 1
+[centosdvdiso]
+name=CentOS DVD ISO
+baseurl=https://mirror1.centos.org/CentOS/6/os/i386/
+enabled=1
+gpgcheck=1
+gpgkey=file:///mnt/RPM-GPG-KEY-CentOS-6
 
-            # comment2
-            [examplerepo]
-            name=Example Repository
-            baseurl = https://mirror3.centos.org/CentOS/6/os/i386/
-            enabled=1
-            gpgcheck=1
-            gpgkey=http://mirror.centos.org/CentOS/6/os/i386/RPM-GPG-KEY
-            """,
+# comment2
+[examplerepo]
+name=Example Repository
+baseurl = https://mirror3.centos.org/CentOS/6/os/i386/
+enabled=1
+gpgcheck=1
+gpgkey=http://mirror.centos.org/CentOS/6/os/i386/RPM-GPG-KEY
+""",
         "/etc/yum.repos.d/test.repo":
-            ur"""
-            [centosdvdiso]
-            name=CentOS DVD ISO
-            baseurl=file:///mnt/
-            https://mirror1.centos.org/CentOS/6/os/i386/
-            """,
+            """\
+[centosdvdiso]
+name=CentOS DVD ISO
+baseurl=file:///mnt/
+https://mirror1.centos.org/CentOS/6/os/i386/
+""",
         "/etc/yum.repos.d/test2.repo":
-            ur"""
-            [centosdvdiso]
-            name=CentOS DVD ISO
-            baseurl=http://mirror1.centos.org/CentOS/6/os/i386/
-            """,
+            """\
+[centosdvdiso]
+name=CentOS DVD ISO
+baseurl=http://mirror1.centos.org/CentOS/6/os/i386/
+""",
         "/etc/yum.repos.d/file-test.repo":
-            ur"""
-            [centosdvdiso]
-            name=CentOS DVD ISO
-            baseurl=file:///mnt/
-            """,
+            """\
+[centosdvdiso]
+name=CentOS DVD ISO
+baseurl=file:///mnt/
+""",
     }
 
     chk_id = "CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT"

@@ -4,12 +4,12 @@
 This module contains glue code necessary for Fleetspeak and the GRR client
 to work together.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
 import pdb
 import platform
-import Queue
 import struct
 import threading
 import time
@@ -17,6 +17,7 @@ import time
 
 from future.utils import iteritems
 from future.utils import itervalues
+import queue
 
 from fleetspeak.src.client.daemonservice.client import client as fs_client
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
@@ -25,9 +26,9 @@ from grr_response_core import config
 from grr_response_core.lib import communicator
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import jobs_pb2
 
 # pyformat: disable
@@ -55,7 +56,7 @@ class GRRFleetspeakClient(object):
     self._fs = fs_client.FleetspeakConnection(
         version=config.CONFIG["Source.version_string"])
 
-    self._sender_queue = Queue.Queue(
+    self._sender_queue = queue.Queue(
         maxsize=GRRFleetspeakClient._SENDER_QUEUE_MAXSIZE)
 
     self._threads = {}
@@ -143,7 +144,8 @@ class GRRFleetspeakClient(object):
       logging.critical("Broken local Fleetspeak connection (write end).")
       raise
 
-    stats.STATS.IncrementCounter("grr_client_sent_bytes", sent_bytes)
+    stats_collector_instance.Get().IncrementCounter("grr_client_sent_bytes",
+                                                    sent_bytes)
 
   def _SendOp(self):
     """Sends messages through Fleetspeak."""
@@ -167,7 +169,7 @@ class GRRFleetspeakClient(object):
           msgs.append(msg)
         count += 1
         size += len(msg.SerializeToString())
-      except Queue.Empty:
+      except queue.Empty:
         break
 
     if msgs:
@@ -189,7 +191,8 @@ class GRRFleetspeakClient(object):
           "Unexpected proto type received through Fleetspeak: %r; expected "
           "grr.GrrMessage." % received_type)
 
-    stats.STATS.IncrementCounter("grr_client_received_bytes", received_bytes)
+    stats_collector_instance.Get().IncrementCounter("grr_client_received_bytes",
+                                                    received_bytes)
 
     grr_msg = rdf_flows.GrrMessage.FromSerializedString(fs_msg.data.value)
     # Authentication is ensured by Fleetspeak.
@@ -205,7 +208,7 @@ class _FleetspeakQueueForwarder(object):
     """Constructor.
 
     Args:
-      sender_queue: Queue.Queue
+      sender_queue: queue.Queue
     """
     self._sender_queue = sender_queue
 

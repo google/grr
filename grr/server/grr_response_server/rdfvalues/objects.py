@@ -4,6 +4,7 @@
 This package contains the rdfvalue wrappers around the top level datastore
 objects defined by objects.proto.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import functools

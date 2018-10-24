@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This is the manager for the various queues."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import collections
@@ -13,8 +14,6 @@ from future.utils import itervalues
 from grr_response_core import config
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
@@ -653,12 +652,3 @@ class WellKnownQueueManager(QueueManager):
     for response in self.data_store.FetchResponsesForWellKnownFlow(
         session_id, self.response_limit, timestamp=timestamp):
       yield response
-
-
-class QueueManagerInit(registry.InitHook):
-  """Registers vars used by the QueueManager."""
-
-  def Run(self):
-    # Counters used by the QueueManager.
-    stats.STATS.RegisterCounterMetric("grr_task_retransmission_count")
-    stats.STATS.RegisterCounterMetric("grr_task_ttl_expired_count")

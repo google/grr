@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import io
@@ -12,6 +13,7 @@ from builtins import zip  # pylint: disable=redefined-builtin
 import unittest
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_core.lib import flags
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 # TODO(hanuszczak): Consider refactoring these tests with `pyfakefs`.
@@ -21,7 +23,7 @@ class DirHierarchyTestMixin(object):
 
   def setUp(self):
     super(DirHierarchyTestMixin, self).setUp()
-    self.tempdir = test_lib.TempDirPath()
+    self.tempdir = temp.TempDirPath()
 
   def tearDown(self):
     super(DirHierarchyTestMixin, self).tearDown()

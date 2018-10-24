@@ -4,6 +4,7 @@
 Includes functions that are used by interactive console utilities such as
 approval or token handling.
 """
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -25,6 +26,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import csv
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import client_index
@@ -508,7 +510,7 @@ def ExportClientsByKeywords(keywords, filename, token=None):
   if not client_list:
     return
 
-  writer = utils.CsvDictWriter([
+  writer = csv.DictWriter([
       u"client_id",
       u"hostname",
       u"last_seen",

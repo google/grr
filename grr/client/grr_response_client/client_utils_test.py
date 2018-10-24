@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test client utility functions."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import hashlib
@@ -13,6 +14,7 @@ import unittest
 from grr_response_client import client_utils_common
 from grr_response_client import client_utils_osx
 from grr_response_core.lib import flags
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 
@@ -155,7 +157,7 @@ class MultiHasherTest(unittest.TestCase):
     self.assertFalse(hash_object.sha256)
 
   def testHashFileWhole(self):
-    with test_lib.AutoTempFilePath() as tmp_path:
+    with temp.AutoTempFilePath() as tmp_path:
       with open(tmp_path, "wb") as tmp_file:
         tmp_file.write("foobar")
 
@@ -169,7 +171,7 @@ class MultiHasherTest(unittest.TestCase):
       self.assertFalse(hash_object.sha256)
 
   def testHashFilePart(self):
-    with test_lib.AutoTempFilePath() as tmp_path:
+    with temp.AutoTempFilePath() as tmp_path:
       with open(tmp_path, "wb") as tmp_file:
         tmp_file.write("foobar")
 

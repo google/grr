@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utililies for modifying the GRR server configuration."""
+from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -97,7 +98,7 @@ def GenerateCSRFKey(config):
 def GenerateKeys(config, overwrite_keys=False):
   """Generate the keys we need for a GRR server."""
   if not hasattr(key_utils, "MakeCACert"):
-    flags.PARSER.error("Generate keys can only run with open source key_utils.")
+    raise RuntimeError("Generate keys can only run with open source key_utils.")
   if (config.Get("PrivateKeys.server_key", default=None) and
       not overwrite_keys):
     print(config.Get("PrivateKeys.server_key"))

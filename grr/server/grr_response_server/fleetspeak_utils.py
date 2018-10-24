@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """FS GRR server side integration utility functions."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 

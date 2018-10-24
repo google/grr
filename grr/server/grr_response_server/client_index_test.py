@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.client_index."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import socket

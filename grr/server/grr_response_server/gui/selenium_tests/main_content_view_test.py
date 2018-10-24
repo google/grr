@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Main content view notitification tests."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 

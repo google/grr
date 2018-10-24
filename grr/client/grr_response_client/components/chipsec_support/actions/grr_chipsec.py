@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Execute a Chipsec plugin on the client."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import io

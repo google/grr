@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Unittest for grr http server."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import hashlib
@@ -26,7 +27,6 @@ from grr_response_server import data_store_utils
 from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server import flow
-from grr_response_server import frontend_lib
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore
 from grr_response_server.bin import frontend
@@ -52,9 +52,6 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
             rekall_test_lib.TestRekallRepositoryProfileServer.__name__,
     })
     cls.config_overrider.Start()
-
-    # Frontend must be initialized to register all the stats counters.
-    frontend_lib.FrontendInit().RunOnce()
 
     # Bring up a local server for testing.
     port = portpicker.PickUnusedPort()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Client actions related to administrating the client and its configuration."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -25,13 +26,13 @@ from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.stats import stats_collector_instance
 
 
 class Echo(actions.ActionPlugin):
@@ -304,12 +305,14 @@ class GetClientStats(actions.ActionPlugin):
     meminfo = proc.memory_info()
     boot_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(psutil.boot_time())
     create_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(proc.create_time())
+    stats_collector = stats_collector_instance.Get()
     response = rdf_client_stats.ClientStats(
         RSS_size=meminfo.rss,
         VMS_size=meminfo.vms,
         memory_percent=proc.memory_percent(),
-        bytes_received=stats.STATS.GetMetricValue("grr_client_received_bytes"),
-        bytes_sent=stats.STATS.GetMetricValue("grr_client_sent_bytes"),
+        bytes_received=stats_collector.GetMetricValue(
+            "grr_client_received_bytes"),
+        bytes_sent=stats_collector.GetMetricValue("grr_client_sent_bytes"),
         create_time=create_time,
         boot_time=boot_time)
 

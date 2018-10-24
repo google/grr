@@ -4,6 +4,7 @@
 To reduce the size of this module, additional collector flow tests are split out
 into collectors_*_test.py files.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import os
@@ -39,6 +40,7 @@ from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import temp
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -1112,7 +1114,7 @@ def InitGRRWithTestSources(artifacts_data):
   artifact_registry.REGISTRY.ClearSources()
   artifact_registry.REGISTRY.ClearRegistry()
 
-  artifacts_temp_dir = test_lib.TempDirPath()
+  artifacts_temp_dir = temp.TempDirPath()
   with open(os.path.join(artifacts_temp_dir, "test_artifacts.yaml"), "w") as fd:
     fd.write(artifacts_data)
 

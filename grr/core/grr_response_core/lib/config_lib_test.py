@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for config_lib classes."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import io
@@ -14,6 +15,7 @@ from past.builtins import long
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import flags
+from grr_response_core.lib import package
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
@@ -560,8 +562,8 @@ Section1.test: 2
     conf = config.CONFIG.MakeNewConfig()
 
     # Check our actual config validates
-    configpath = config_lib.Resource().Filter(
-        "install_data/etc/grr-server.yaml")
+    configpath = package.ResourcePath("grr-response-core",
+                                      "install_data/etc/grr-server.yaml")
     conf.Initialize(filename=configpath)
 
   def _DefineStringName(self, conf, name):

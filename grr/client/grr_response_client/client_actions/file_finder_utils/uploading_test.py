@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import collections
@@ -9,7 +10,7 @@ import mock
 
 import unittest
 from grr_response_client.client_actions.file_finder_utils import uploading
-from grr.test_lib import test_lib
+from grr.test_lib import temp
 
 
 class UploaderTest(unittest.TestCase):
@@ -18,7 +19,7 @@ class UploaderTest(unittest.TestCase):
     action = FakeAction()
     uploader = uploading.TransferStoreUploader(action, chunk_size=3)
 
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       blobdesc = uploader.UploadFilePath(temp_filepath)
 
       self.assertEqual(action.charged_bytes, 0)
@@ -31,7 +32,7 @@ class UploaderTest(unittest.TestCase):
     action = FakeAction()
     uploader = uploading.TransferStoreUploader(action, chunk_size=6)
 
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       with open(temp_filepath, "w") as temp_file:
         temp_file.write("foobar")
 
@@ -51,7 +52,7 @@ class UploaderTest(unittest.TestCase):
     action = FakeAction()
     uploader = uploading.TransferStoreUploader(action, chunk_size=3)
 
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       with open(temp_filepath, "w") as temp_file:
         temp_file.write("1234567890")
 
@@ -83,7 +84,7 @@ class UploaderTest(unittest.TestCase):
     action = FakeAction()
     uploader = uploading.TransferStoreUploader(action, chunk_size=3)
 
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       with open(temp_filepath, "w") as temp_file:
         temp_file.write("1234567890")
 
@@ -107,7 +108,7 @@ class UploaderTest(unittest.TestCase):
     action = FakeAction()
     uploader = uploading.TransferStoreUploader(action, chunk_size=2)
 
-    with test_lib.AutoTempFilePath() as temp_filepath:
+    with temp.AutoTempFilePath() as temp_filepath:
       with open(temp_filepath, "w") as temp_file:
         temp_file.write("0123456")
 

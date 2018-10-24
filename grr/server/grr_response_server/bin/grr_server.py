@@ -3,6 +3,8 @@
 
 To use this entry point you must run "grr_config_updater initialize" first.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 from __future__ import unicode_literals
 
 
@@ -16,11 +18,13 @@ from grr_response_server.gui import admin_ui
 flags.DEFINE_string("component", None,
                     "Component to start: [frontend|admin_ui|worker].")
 
-flags.DEFINE_version(config_server.VERSION["packageversion"])
-
 
 def main(argv):
   """Sets up all the component in their own threads."""
+
+  if flags.FLAGS.version:
+    print("GRR server {}".format(config_server.VERSION["packageversion"]))
+    return
 
   # We use .startswith so that multiple copies of services can easily be
   # created using systemd as worker1 worker2 ... worker25 etc.

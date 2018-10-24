@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API handler for rendering descriptors of GRR data structures."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 

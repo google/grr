@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Parser for sqlite database files."""
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging

@@ -3,6 +3,7 @@
 
 # Copyright 2010 Google Inc. All Rights Reserved.
 """Test client vfs."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import hashlib

@@ -32,6 +32,7 @@ Statistics is written to the data store by StatsStoreWorker. It periodically
 fetches values for all the metrics and writes them to corresponding
 object on AFF4.
 """
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -47,7 +48,7 @@ from future.utils import itervalues
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -80,7 +81,7 @@ class StatsStoreProcessData(aff4.AFF4Object):
       self.Flush()
 
   def WriteStats(self, timestamp=None):
-    metrics_metadata = stats.STATS.GetAllMetricsMetadata()
+    metrics_metadata = stats_collector_instance.Get().GetAllMetricsMetadata()
     self.WriteMetadataDescriptors(metrics_metadata, timestamp=timestamp)
     with data_store.DB.GetMutationPool() as mutation_pool:
       mutation_pool.StatsWriteMetrics(

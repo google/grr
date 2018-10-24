@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Router classes route API requests to particular handlers."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import inspect

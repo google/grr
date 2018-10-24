@@ -9,6 +9,7 @@ AccessControlManager Classes:
     labels.
   FullAccessControlManager: Provides for multiparty authorization.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import fnmatch
@@ -20,11 +21,11 @@ import re
 from builtins import map  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util import compatibility
+from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import stats_utils
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import flow
@@ -556,7 +557,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
 
     try:
       cached_token = self.acl_cache.Get(approval_root_urn)
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "approval_searches", fields=["without_reason", "cache"])
 
       token.is_emergency = cached_token.is_emergency
@@ -564,7 +565,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
 
       return True
     except KeyError:
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "approval_searches", fields=["without_reason", "data_store"])
 
       approved_token = security.Approval.GetApprovalForObject(
@@ -580,7 +581,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     return self._CheckApprovalsForTokenWithoutReason(token, target)
 
   @LoggedACL("client_access")
-  @stats.Timed("acl_check_time", fields=["client_access"])
+  @stats_utils.Timed("acl_check_time", fields=["client_access"])
   def CheckClientAccess(self, token, client_urn):
     if not client_urn:
       raise ValueError("Client urn can't be empty.")
@@ -591,7 +592,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     ]) and (token.supervisor or self._CheckApprovals(token, client_urn))
 
   @LoggedACL("hunt_access")
-  @stats.Timed("acl_check_time", fields=["hunt_access"])
+  @stats_utils.Timed("acl_check_time", fields=["hunt_access"])
   def CheckHuntAccess(self, token, hunt_urn):
     if not hunt_urn:
       raise ValueError("Hunt urn can't be empty.")
@@ -602,7 +603,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     ]) and (token.supervisor or self._CheckApprovals(token, hunt_urn))
 
   @LoggedACL("cron_job_access")
-  @stats.Timed("acl_check_time", fields=["cron_job_access"])
+  @stats_utils.Timed("acl_check_time", fields=["cron_job_access"])
   def CheckCronJobAccess(self, token, cron_job_urn):
     if not cron_job_urn:
       raise ValueError("Cron job urn can't be empty.")
@@ -613,7 +614,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     ]) and (token.supervisor or self._CheckApprovals(token, cron_job_urn))
 
   @LoggedACL("can_start_flow")
-  @stats.Timed("acl_check_time", fields=["can_start_flow"])
+  @stats_utils.Timed("acl_check_time", fields=["can_start_flow"])
   def CheckIfCanStartFlow(self, token, flow_name):
     if not flow_name:
       raise ValueError("Flow name can't be empty.")
@@ -624,7 +625,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
                                   CheckFlowAuthorizedLabels(token, flow_name)))
 
   @LoggedACL("data_store_access")
-  @stats.Timed("acl_check_time", fields=["data_store_access"])
+  @stats_utils.Timed("acl_check_time", fields=["data_store_access"])
   def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
     """Allow all access if token and requested access are valid."""
     if any(not x for x in subjects):
@@ -635,17 +636,3 @@ class FullAccessControlManager(access_control.AccessControlManager):
             ValidateToken(token, subjects) and
             (token.supervisor or
              self._CheckAccessWithHelpers(token, subjects, requested_access)))
-
-
-class UserManagersInit(registry.InitHook):
-  """Install the selected security manager.
-
-  Since many security managers depend on AFF4, we must run after the AFF4
-  subsystem is ready.
-  """
-
-  def RunOnce(self):
-    stats.STATS.RegisterEventMetric(
-        "acl_check_time", fields=[("check_type", str)])
-    stats.STATS.RegisterCounterMetric(
-        "approval_searches", fields=[("reason_presence", str), ("source", str)])

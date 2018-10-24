@@ -57,7 +57,7 @@ unzip protoc-3.3.0-linux-x86_64.zip && \
 rm protoc-3.3.0-linux-x86_64.zip
 
 RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir wheel six setuptools nodeenv && \
-    $GRR_VENV/bin/nodeenv -p --prebuilt && \
+    $GRR_VENV/bin/nodeenv -p --prebuilt --node=10.12.0 && \
     echo '{ "allow_root": true }' > /root/.bowerrc
 
 # Copy the GRR code over.

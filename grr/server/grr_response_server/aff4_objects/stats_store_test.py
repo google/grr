@@ -1,20 +1,39 @@
 #!/usr/bin/env python
 """Tests for the stats_store classes."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
-
 
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iterkeys
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_core.stats import default_stats_collector
+from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import stats_test_utils
+from grr_response_core.stats import stats_utils
 from grr_response_server import aff4
 from grr_response_server import timeseries
 from grr_response_server.aff4_objects import stats_store
 from grr.test_lib import aff4_test_lib
-
 from grr.test_lib import test_lib
+
+
+def _CreateFakeStatsCollector():
+  """Returns a stats-collector for use by tests in this file."""
+  return default_stats_collector.DefaultStatsCollector([
+      stats_utils.CreateCounterMetadata("counter"),
+      stats_utils.CreateCounterMetadata(
+          "counter_with_fields", fields=[("source", str)]),
+      stats_utils.CreateEventMetadata("events"),
+      stats_utils.CreateEventMetadata(
+          "events_with_fields", fields=[("source", str)]),
+      stats_utils.CreateGaugeMetadata("int_gauge", int),
+      stats_utils.CreateGaugeMetadata("str_gauge", str),
+      stats_utils.CreateGaugeMetadata(
+          "str_gauge_with_fields", str, fields=[("task", int)])
+  ])
 
 
 class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
@@ -25,16 +44,18 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.process_id = "some_pid"
     self.stats_store = aff4.FACTORY.Create(
         None, stats_store.StatsStore, mode="w", token=self.token)
+    fake_stats_context = stats_test_utils.FakeStatsContext(
+        _CreateFakeStatsCollector())
+    fake_stats_context.start()
+    self.addCleanup(fake_stats_context.stop)
 
   def testValuesAreFetchedCorrectly(self):
-    stats.STATS.RegisterCounterMetric("counter")
-    stats.STATS.RegisterGaugeMetric("int_gauge", int)
-    stats.STATS.SetGaugeValue("int_gauge", 4242)
+    stats_collector_instance.Get().SetGaugeValue("int_gauge", 4242)
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=43)
 
     stats_history = self.stats_store.ReadStats(
@@ -43,14 +64,12 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(stats_history["int_gauge"], [(4242, 42), (4242, 43)])
 
   def testFetchedValuesCanBeLimitedByTimeRange(self):
-    stats.STATS.RegisterCounterMetric("counter")
-    stats.STATS.RegisterGaugeMetric("int_gauge", int)
-    stats.STATS.SetGaugeValue("int_gauge", 4242)
+    stats_collector_instance.Get().SetGaugeValue("int_gauge", 4242)
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=43)
 
     stats_history = self.stats_store.ReadStats(
@@ -59,14 +78,12 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(stats_history["int_gauge"], [(4242, 42)])
 
   def testFetchedValuesCanBeLimitedByName(self):
-    stats.STATS.RegisterCounterMetric("counter")
-    stats.STATS.RegisterGaugeMetric("int_gauge", int)
-    stats.STATS.SetGaugeValue("int_gauge", 4242)
+    stats_collector_instance.Get().SetGaugeValue("int_gauge", 4242)
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=43)
 
     stats_history = self.stats_store.ReadStats(
@@ -75,14 +92,12 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertTrue("int_gauge" not in stats_history)
 
   def testDeleteStatsInTimeRangeWorksCorrectly(self):
-    stats.STATS.RegisterCounterMetric("counter")
-    stats.STATS.RegisterGaugeMetric("int_gauge", int)
-    stats.STATS.SetGaugeValue("int_gauge", 4242)
+    stats_collector_instance.Get().SetGaugeValue("int_gauge", 4242)
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=44)
 
     self.stats_store.DeleteStats(process_id=self.process_id, timestamp=(0, 43))
@@ -92,26 +107,24 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(stats_history["int_gauge"], [(4242, 44)])
 
   def testDeleteStatsInTimeRangeWorksCorrectlyWithFields(self):
-    stats.STATS.RegisterCounterMetric("counter", fields=[("source", str)])
-
-    stats.STATS.IncrementCounter("counter", fields=["http"])
+    stats_collector_instance.Get().IncrementCounter(
+        "counter_with_fields", fields=["http"])
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
-    stats.STATS.IncrementCounter("counter", fields=["http"])
-    stats.STATS.IncrementCounter("counter", fields=["rpc"])
+    stats_collector_instance.Get().IncrementCounter(
+        "counter_with_fields", fields=["http"])
+    stats_collector_instance.Get().IncrementCounter(
+        "counter_with_fields", fields=["rpc"])
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=44)
 
     self.stats_store.DeleteStats(process_id=self.process_id, timestamp=(0, 43))
 
     stats_history = self.stats_store.ReadStats(process_id=self.process_id)
 
-    self.assertEqual(stats_history["counter"]["http"], [(2, 44)])
-    self.assertEqual(stats_history["counter"]["rpc"], [(1, 44)])
+    self.assertEqual(stats_history["counter_with_fields"]["http"], [(2, 44)])
+    self.assertEqual(stats_history["counter_with_fields"]["rpc"], [(1, 44)])
 
   def testReturnsListOfAllUsedProcessIds(self):
-    stats.STATS.RegisterCounterMetric("counter")
-    stats.STATS.RegisterGaugeMetric("int_gauge", int)
-
     self.stats_store.WriteStats(process_id="pid1")
     self.stats_store.WriteStats(process_id="pid2")
 
@@ -119,14 +132,12 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
         sorted(self.stats_store.ListUsedProcessIds()), ["pid1", "pid2"])
 
   def testMultiReadStatsWorksCorrectly(self):
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id="pid1", timestamp=42)
     self.stats_store.WriteStats(process_id="pid2", timestamp=42)
     self.stats_store.WriteStats(process_id="pid2", timestamp=43)
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id="pid1", timestamp=43)
 
     results = self.stats_store.MultiReadStats()
@@ -135,14 +146,12 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(results["pid2"]["counter"], [(1, 42), (1, 43)])
 
   def testMultiReadStatsLimitsResultsByTimeRange(self):
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id="pid1", timestamp=42)
     self.stats_store.WriteStats(process_id="pid2", timestamp=42)
     self.stats_store.WriteStats(process_id="pid2", timestamp=44)
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(process_id="pid1", timestamp=44)
 
     results = self.stats_store.MultiReadStats(timestamp=(43, 100))
@@ -151,19 +160,6 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(results["pid2"]["counter"], [(1, 44)])
 
   def testReadMetadataReturnsAllUsedMetadata(self):
-    # Register metrics
-    stats.STATS.RegisterCounterMetric("counter")
-    stats.STATS.RegisterCounterMetric(
-        "counter_with_fields", fields=[("source", str)])
-
-    stats.STATS.RegisterEventMetric("events")
-    stats.STATS.RegisterEventMetric(
-        "events_with_fields", fields=[("source", str)])
-
-    stats.STATS.RegisterGaugeMetric("str_gauge", str)
-    stats.STATS.RegisterGaugeMetric(
-        "str_gauge_with_fields", str, fields=[("task", int)])
-
     # Check that there are no metadata for registered metrics.
     metadata = self.stats_store.ReadMetadata(
         process_id=self.process_id).AsDict()
@@ -183,66 +179,68 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
         process_id=self.process_id).AsDict()
 
     # Field definitions used in assertions below.
-    source_field_def = stats.MetricFieldDefinition(
+    source_field_def = rdf_stats.MetricFieldDefinition(
         field_name="source",
-        field_type=stats.MetricFieldDefinition.FieldType.STR)
-    task_field_def = stats.MetricFieldDefinition(
-        field_name="task", field_type=stats.MetricFieldDefinition.FieldType.INT)
+        field_type=rdf_stats.MetricFieldDefinition.FieldType.STR)
+    task_field_def = rdf_stats.MetricFieldDefinition(
+        field_name="task",
+        field_type=rdf_stats.MetricFieldDefinition.FieldType.INT)
 
     self.assertTrue("counter" in metadata)
     self.assertEqual(metadata["counter"].varname, "counter")
-    self.assertEqual(metadata["counter"].metric_type, stats.MetricType.COUNTER)
+    self.assertEqual(metadata["counter"].metric_type,
+                     rdf_stats.MetricMetadata.MetricType.COUNTER)
     self.assertEqual(metadata["counter"].value_type,
-                     stats.MetricMetadata.ValueType.INT)
+                     rdf_stats.MetricMetadata.ValueType.INT)
     self.assertListEqual(list(metadata["counter"].fields_defs), [])
 
     self.assertTrue("counter_with_fields" in metadata)
     self.assertEqual(metadata["counter_with_fields"].varname,
                      "counter_with_fields")
     self.assertEqual(metadata["counter_with_fields"].metric_type,
-                     stats.MetricType.COUNTER)
+                     rdf_stats.MetricMetadata.MetricType.COUNTER)
     self.assertEqual(metadata["counter_with_fields"].value_type,
-                     stats.MetricMetadata.ValueType.INT)
+                     rdf_stats.MetricMetadata.ValueType.INT)
     self.assertListEqual(
         list(metadata["counter_with_fields"].fields_defs), [source_field_def])
 
     self.assertTrue("events" in metadata)
     self.assertEqual(metadata["events"].varname, "events")
-    self.assertEqual(metadata["events"].metric_type, stats.MetricType.EVENT)
+    self.assertEqual(metadata["events"].metric_type,
+                     rdf_stats.MetricMetadata.MetricType.EVENT)
     self.assertEqual(metadata["events"].value_type,
-                     stats.MetricMetadata.ValueType.DISTRIBUTION)
+                     rdf_stats.MetricMetadata.ValueType.DISTRIBUTION)
     self.assertListEqual(list(metadata["events"].fields_defs), [])
 
     self.assertTrue("events_with_fields" in metadata)
     self.assertEqual(metadata["events_with_fields"].varname,
                      "events_with_fields")
     self.assertEqual(metadata["events_with_fields"].metric_type,
-                     stats.MetricType.EVENT)
+                     rdf_stats.MetricMetadata.MetricType.EVENT)
     self.assertEqual(metadata["events_with_fields"].value_type,
-                     stats.MetricMetadata.ValueType.DISTRIBUTION)
+                     rdf_stats.MetricMetadata.ValueType.DISTRIBUTION)
     self.assertListEqual(
         list(metadata["events_with_fields"].fields_defs), [source_field_def])
 
     self.assertTrue("str_gauge" in metadata)
     self.assertEqual(metadata["str_gauge"].varname, "str_gauge")
-    self.assertEqual(metadata["str_gauge"].metric_type, stats.MetricType.GAUGE)
+    self.assertEqual(metadata["str_gauge"].metric_type,
+                     rdf_stats.MetricMetadata.MetricType.GAUGE)
     self.assertEqual(metadata["str_gauge"].value_type,
-                     stats.MetricMetadata.ValueType.STR)
+                     rdf_stats.MetricMetadata.ValueType.STR)
     self.assertListEqual(list(metadata["str_gauge"].fields_defs), [])
 
     self.assertTrue("str_gauge_with_fields" in metadata)
     self.assertEqual(metadata["str_gauge_with_fields"].varname,
                      "str_gauge_with_fields")
     self.assertEqual(metadata["str_gauge_with_fields"].metric_type,
-                     stats.MetricType.GAUGE)
+                     rdf_stats.MetricMetadata.MetricType.GAUGE)
     self.assertEqual(metadata["str_gauge_with_fields"].value_type,
-                     stats.MetricMetadata.ValueType.STR)
+                     rdf_stats.MetricMetadata.ValueType.STR)
     self.assertListEqual(
         list(metadata["str_gauge_with_fields"].fields_defs), [task_field_def])
 
   def testMultiReadMetadataReturnsAllUsedMetadata(self):
-    stats.STATS.RegisterCounterMetric("counter")
-
     # Check that there are no metadata for registered metrics.
     metadata_by_id = self.stats_store.MultiReadMetadata(
         process_ids=["pid1", "pid2"])
@@ -276,16 +274,18 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     self.process_id = "some_pid"
     self.stats_store = aff4.FACTORY.Create(
         None, stats_store.StatsStore, mode="w", token=self.token)
+    fake_stats_context = stats_test_utils.FakeStatsContext(
+        _CreateFakeStatsCollector())
+    fake_stats_context.start()
+    self.addCleanup(fake_stats_context.stop)
 
   def testUsingInCallNarrowsQuerySpace(self):
     # Create sample data.
-    stats.STATS.RegisterCounterMetric("counter")
-    stats.STATS.RegisterCounterMetric(
-        "counter_with_fields", fields=[("source", str)])
-
-    stats.STATS.IncrementCounter("counter")
-    stats.STATS.IncrementCounter("counter_with_fields", fields=["http"])
-    stats.STATS.IncrementCounter("counter_with_fields", fields=["rpc"])
+    stats_collector_instance.Get().IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter(
+        "counter_with_fields", fields=["http"])
+    stats_collector_instance.Get().IncrementCounter(
+        "counter_with_fields", fields=["rpc"])
 
     # Write to data store.
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
@@ -305,14 +305,12 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
 
   def testInCallAcceptsRegularExpressions(self):
     # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(90))
@@ -332,20 +330,18 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(query.In("pid.*").In("counter").SeriesCount(), 2)
 
   def testInTimeRangeLimitsQueriesByTime(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    # Write test data.
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(140))
@@ -370,15 +366,13 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
           rdfvalue.RDFDatetime.FromSecondsSinceEpoch(120))
 
   def testTakeValueUsesPlainValuesToBuildTimeSeries(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    # Write test data.
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100))
@@ -392,10 +386,8 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     self.assertListEqual(ts.data, [[1, 42 * 1e6], [2, 100 * 1e6]])
 
   def testTakeValueRaisesIfDistributionIsEncountered(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterEventMetric("events")
-
-    stats.STATS.RecordEvent("events", 42)
+    # Write test data.
+    stats_collector_instance.Get().RecordEvent("events", 42)
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
@@ -407,15 +399,13 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
       query.In("events").TakeValue()
 
   def testTakeDistributionCountUsesDistributionCountsToBuildTimeSeries(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterEventMetric("events")
-
-    stats.STATS.RecordEvent("events", 42)
+    # Write test data.
+    stats_collector_instance.Get().RecordEvent("events", 42)
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
-    stats.STATS.RecordEvent("events", 43)
+    stats_collector_instance.Get().RecordEvent("events", 43)
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100))
@@ -428,10 +418,8 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     self.assertListEqual(ts.data, [[1, 42 * 1e6], [2, 100 * 1e6]])
 
   def testTakeDistributionCountRaisesIfPlainValueIsEncountered(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    # Write test data.
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
@@ -443,15 +431,13 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
       query.In("counter").TakeDistributionCount()
 
   def testTakeDistributionSumUsesDistributionSumsToBuildTimeSeries(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterEventMetric("events")
-
-    stats.STATS.RecordEvent("events", 42)
+    # Write test data.
+    stats_collector_instance.Get().RecordEvent("events", 42)
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
-    stats.STATS.RecordEvent("events", 43)
+    stats_collector_instance.Get().RecordEvent("events", 43)
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100))
@@ -464,10 +450,8 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     self.assertListEqual(ts.data, [[42, 42 * 1e6], [85, 100 * 1e6]])
 
   def testTakeDistributionSumRaisesIfPlainValueIsEncountered(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    # Write test data.
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
@@ -479,20 +463,18 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
       query.In("counter").TakeDistributionSum()
 
   def testNormalize(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    # Write test data.
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(45))
@@ -506,15 +488,13 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     self.assertListEqual(ts.data, [[1.5, 0 * 1e6], [3.0, 30 * 1e6]])
 
   def testNormalizeFillsGapsInTimeSeries(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    # Write test data.
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(120))
@@ -536,20 +516,18 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
       query.In("counter").Normalize(15, 0, 60)
 
   def testAggregateViaSumAggregatesMultipleTimeSeriesIntoOne(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    # Write test data.
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid2",
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(90))
@@ -591,61 +569,58 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
                          [0.0 * 1e6, 30.0 * 1e6, 60.0 * 1e6, 90.0 * 1e6])
 
   def testMakeIncreasingHandlesValuesResets(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
+    # Write test data.
     self.stats_store.WriteStats(
         process_id="pid1",
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(30))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(60))
 
-    stats.STATS.RegisterCounterMetric("counter")
-    self.stats_store.WriteStats(
-        process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(90))
+    # Simulate process restart by reseting the stats-collector.
+    with stats_test_utils.FakeStatsContext(_CreateFakeStatsCollector()):
+      self.stats_store.WriteStats(
+          process_id="pid1",
+          timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(90))
 
-    # We've reset the counter on 60th second, so we get following time series:
-    # 1970-01-01 00:00:00    0
-    # 1970-01-01 00:00:30    1
-    # 1970-01-01 00:01:00    2
-    # 1970-01-01 00:01:30    0
-    stats_data = self.stats_store.ReadStats(process_id="pid1")
-    query = stats_store.StatsStoreDataQuery(stats_data)
+      # We've reset the counter on 60th second, so we get following time series:
+      # 1970-01-01 00:00:00    0
+      # 1970-01-01 00:00:30    1
+      # 1970-01-01 00:01:00    2
+      # 1970-01-01 00:01:30    0
+      stats_data = self.stats_store.ReadStats(process_id="pid1")
+      query = stats_store.StatsStoreDataQuery(stats_data)
 
-    ts = query.In("counter").TakeValue().ts
+      ts = query.In("counter").TakeValue().ts
 
-    self.assertAlmostEqual(ts.data[0][0], 0)
-    self.assertAlmostEqual(ts.data[1][0], 1)
-    self.assertAlmostEqual(ts.data[2][0], 2)
-    self.assertAlmostEqual(ts.data[3][0], 0)
+      self.assertAlmostEqual(ts.data[0][0], 0)
+      self.assertAlmostEqual(ts.data[1][0], 1)
+      self.assertAlmostEqual(ts.data[2][0], 2)
+      self.assertAlmostEqual(ts.data[3][0], 0)
 
-    # EnsureIsIncremental detects the reset and increments values that follow
-    # the reset point:
-    # 1970-01-01 00:00:00    0
-    # 1970-01-01 00:00:30    1
-    # 1970-01-01 00:01:00    2
-    # 1970-01-01 00:01:30    2
-    ts = query.MakeIncreasing().ts
+      # EnsureIsIncremental detects the reset and increments values that follow
+      # the reset point:
+      # 1970-01-01 00:00:00    0
+      # 1970-01-01 00:00:30    1
+      # 1970-01-01 00:01:00    2
+      # 1970-01-01 00:01:30    2
+      ts = query.MakeIncreasing().ts
 
-    self.assertAlmostEqual(ts.data[0][0], 0)
-    self.assertAlmostEqual(ts.data[1][0], 1)
-    self.assertAlmostEqual(ts.data[2][0], 2)
-    self.assertAlmostEqual(ts.data[3][0], 2)
+      self.assertAlmostEqual(ts.data[0][0], 0)
+      self.assertAlmostEqual(ts.data[1][0], 1)
+      self.assertAlmostEqual(ts.data[2][0], 2)
+      self.assertAlmostEqual(ts.data[3][0], 2)
 
   def testSeriesCountReturnsNumberOfDataSeriesInCurrentQuery(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    # Write test data.
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
@@ -665,12 +640,10 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(query.In("pid.*").In("counter").SeriesCount(), 2)
 
   def testRate(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
+    # Write test data.
     for i in range(5):
       for _ in range(i):
-        stats.STATS.IncrementCounter("counter")
+        stats_collector_instance.Get().IncrementCounter("counter")
 
       self.stats_store.WriteStats(
           process_id=self.process_id,
@@ -702,15 +675,13 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
                           [0.30000000000000004, 20 * 1e6], [0.4, 30 * 1e6]])
 
   def testScaleAppliesScaleFunctionToSingleTimeSerie(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    # Write test data.
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
-    stats.STATS.IncrementCounter("counter")
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100))
@@ -733,10 +704,8 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(query.In("counter").TakeValue().Mean(), 0)
 
   def testMeanRaisesIfCalledOnMultipleTimeSeries(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
+    # Write test data.
+    stats_collector_instance.Get().IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
         timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
@@ -750,11 +719,9 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
       query.In("pid.*").In("counter").TakeValue().Mean()
 
   def testMeanReducesTimeSerieToSingleNumber(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
+    # Write test data.
     for i in range(5):
-      stats.STATS.IncrementCounter("counter")
+      stats_collector_instance.Get().IncrementCounter("counter")
       self.stats_store.WriteStats(
           process_id=self.process_id,
           timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 * i))

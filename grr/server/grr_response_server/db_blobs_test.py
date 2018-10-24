@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Mixin tests for blobs in the relational db."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 

@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 """Tests for the flow database api."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import itertools
-import Queue
 import random
 
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 import mock
+import queue
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -188,6 +189,9 @@ class DatabaseTestFlowMixin(object):
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
 
+    # Last update time has changed, everything else should be equal.
+    read_flow.last_update_time = None
+
     self.assertEqual(read_flow, rdf_flow)
 
     # Invalid flow id or client id raises.
@@ -196,6 +200,33 @@ class DatabaseTestFlowMixin(object):
 
     with self.assertRaises(db.UnknownFlowError):
       self.db.ReadFlowObject(u"C.1234567890000000", flow_id)
+
+  def testReadAllFlowObjects(self):
+    client_id_1 = u"C.1234567890123456"
+    client_id_2 = u"C.1234567890123457"
+    flow_id_1 = u"1234ABCD"
+    flow_id_2 = u"ABCD1234"
+
+    self.db.WriteClientMetadata(client_id_1, fleetspeak_enabled=False)
+    self.db.WriteClientMetadata(client_id_2, fleetspeak_enabled=False)
+
+    # Write a flow and a child flow for client 1.
+    rdf_flow = rdf_flow_objects.Flow(client_id=client_id_1, flow_id=flow_id_1)
+    self.db.WriteFlowObject(rdf_flow)
+    rdf_flow = rdf_flow_objects.Flow(
+        client_id=client_id_1, flow_id=flow_id_2, parent_flow_id=flow_id_1)
+    self.db.WriteFlowObject(rdf_flow)
+
+    # Same flow id for client 2.
+    rdf_flow = rdf_flow_objects.Flow(client_id=client_id_2, flow_id=flow_id_1)
+    self.db.WriteFlowObject(rdf_flow)
+
+    read = self.db.ReadAllFlowObjects(client_id_1)
+
+    self.assertEqual(len(read), 2)
+
+    for flow_obj in read:
+      self.assertEqual(flow_obj.client_id, client_id_1)
 
   def testCrashInfoUpdate(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -597,6 +628,28 @@ class DatabaseTestFlowMixin(object):
     self.assertIsNone(read_flow.processing_deadline)
     self.assertEqual(read_flow.next_request_to_process, 5)
 
+  def testFlowLastUpateTime(self):
+    now = rdfvalue.RDFDatetime.Now()
+    processing_time = rdfvalue.Duration("60s")
+
+    with test_lib.FakeTime(now):
+      client_id, flow_id = self._SetupClientAndFlow()
+
+    read_flow = self.db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(read_flow.last_update_time, now)
+
+    flow_for_processing = self.db.ReadFlowForProcessing(client_id, flow_id,
+                                                        processing_time)
+    self.assertEqual(flow_for_processing.last_update_time, now)
+
+    return_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("15s")
+
+    with test_lib.FakeTime(return_time):
+      self.db.ReturnProcessedFlow(flow_for_processing)
+
+    read_flow = self.db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(read_flow.last_update_time, return_time)
+
   def testReturnProcessedFlow(self):
     client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=1)
 
@@ -780,11 +833,11 @@ class DatabaseTestFlowMixin(object):
     client_id, _ = self._SetupClientAndFlow()
     flow_ids = [u"1234ABC%d" % i for i in range(5)]
 
-    queue = Queue.Queue()
+    request_queue = queue.Queue()
 
     def Callback(request):
       self.db.AckFlowProcessingRequests([request])
-      queue.put(request)
+      request_queue.put(request)
 
     self.db.RegisterFlowProcessingHandler(Callback)
 
@@ -798,8 +851,8 @@ class DatabaseTestFlowMixin(object):
     got = []
     while len(got) < 5:
       try:
-        l = queue.get(True, timeout=6)
-      except Queue.Empty:
+        l = request_queue.get(True, timeout=6)
+      except queue.Empty:
         self.fail(
             "Timed out waiting for messages, expected 5, got %d" % len(got))
       got.append(l)
@@ -813,11 +866,11 @@ class DatabaseTestFlowMixin(object):
     client_id, _ = self._SetupClientAndFlow()
     flow_ids = [u"1234ABC%d" % i for i in range(5)]
 
-    queue = Queue.Queue()
+    request_queue = queue.Queue()
 
     def Callback(request):
       self.db.AckFlowProcessingRequests([request])
-      queue.put(request)
+      request_queue.put(request)
 
     self.db.RegisterFlowProcessingHandler(Callback)
 
@@ -836,8 +889,8 @@ class DatabaseTestFlowMixin(object):
     got = []
     while len(got) < 5:
       try:
-        l = queue.get(True, timeout=6)
-      except Queue.Empty:
+        l = request_queue.get(True, timeout=6)
+      except queue.Empty:
         self.fail(
             "Timed out waiting for messages, expected 5, got %d" % len(got))
       got.append(l)

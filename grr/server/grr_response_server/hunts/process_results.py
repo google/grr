@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Cron job to process hunt results.
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -10,9 +11,9 @@ from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import output_plugin
@@ -88,7 +89,7 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             plugin_descriptor=plugin_def,
             status="SUCCESS",
             batch_size=len(results))
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             "hunt_results_ran_through_plugin",
             delta=len(results),
             fields=[plugin_def.plugin_name])
@@ -99,7 +100,7 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             "plugin %s", hunt_urn, utils.SmartStr(plugin))
         self.Log("Error processing hunt results (hunt %s, "
                  "plugin %s): %s" % (hunt_urn, utils.SmartStr(plugin), e))
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             "hunt_output_plugin_errors", fields=[plugin_def.plugin_name])
 
         plugin_status = output_plugin.OutputPluginBatchProcessingStatus(

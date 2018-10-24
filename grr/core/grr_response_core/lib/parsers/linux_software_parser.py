@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Simple parsers for Linux files."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import re
@@ -18,17 +19,27 @@ class DebianPackagesStatusParser(parser.FileParser):
 
   installed_re = re.compile(r"^\w+ \w+ installed$")
 
-  def __init__(self, deb822):
+  def __init__(self, deb822=None):
     """Initializes the parser.
 
     Args:
       deb822: An accessor for RFC822-like data formats.
     """
+    if deb822 is None:
+      try:
+        from debian import deb822  # pylint: disable=g-import-not-at-top
+      except ImportError:
+        deb822 = None
+
     self._deb822 = deb822
 
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the status file."""
     _, _ = stat, knowledge_base
+
+    if self._deb822 is None:
+      return
+
     try:
       sw_data = utils.ReadFileBytesAsUnicode(file_object)
       for pkg in self._deb822.Packages.iter_paragraphs(sw_data.splitlines()):

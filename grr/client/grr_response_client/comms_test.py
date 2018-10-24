@@ -1,19 +1,22 @@
 #!/usr/bin/env python
 """Test for client comms."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import Queue
 import time
 
 
 from builtins import range  # pylint: disable=redefined-builtin
 import mock
+import queue
 import requests
 
 from grr_response_client import comms
 from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import compatibility
 from grr.test_lib import test_lib
 
 
@@ -246,38 +249,39 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
 
   def testSizeLimitedQueue(self):
 
-    queue = comms.SizeLimitedQueue(maxsize=10000000, heart_beat_cb=lambda: None)
+    limited_queue = comms.SizeLimitedQueue(
+        maxsize=10000000, heart_beat_cb=lambda: None)
 
     msg_a = rdf_flows.GrrMessage(name="A")
     msg_b = rdf_flows.GrrMessage(name="B")
     msg_c = rdf_flows.GrrMessage(name="C")
 
     for _ in range(10):
-      queue.Put(msg_a)
-      queue.Put(msg_b)
-      queue.Put(msg_c)
+      limited_queue.Put(msg_a)
+      limited_queue.Put(msg_b)
+      limited_queue.Put(msg_c)
 
-    result = queue.GetMessages()
+    result = limited_queue.GetMessages()
     self.assertItemsEqual(list(result.job), [msg_c] * 10 + [msg_a, msg_b] * 10)
 
     # Tests a partial Get().
     for _ in range(7):
-      queue.Put(msg_a)
-      queue.Put(msg_b)
-      queue.Put(msg_c)
+      limited_queue.Put(msg_a)
+      limited_queue.Put(msg_b)
+      limited_queue.Put(msg_c)
 
-    result = queue.GetMessages(
+    result = limited_queue.GetMessages(
         soft_size_limit=len(msg_a.SerializeToString()) * 5 - 1)
 
     self.assertEqual(len(list(result.job)), 5)
 
     for _ in range(3):
-      queue.Put(msg_a)
-      queue.Put(msg_b)
-      queue.Put(msg_c)
+      limited_queue.Put(msg_a)
+      limited_queue.Put(msg_b)
+      limited_queue.Put(msg_c)
 
     # Append the remaining messages to the same result.
-    result.job.Extend(queue.GetMessages().job)
+    result.job.Extend(limited_queue.GetMessages().job)
     self.assertItemsEqual(list(result.job), [msg_c] * 10 + [msg_a, msg_b] * 10)
 
   def testSizeLimitedQueueOverflow(self):
@@ -287,14 +291,14 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
     msg_c = rdf_flows.GrrMessage(name="C")
     msg_d = rdf_flows.GrrMessage(name="D")
 
-    queue = comms.SizeLimitedQueue(
+    limited_queue = comms.SizeLimitedQueue(
         maxsize=3 * len(msg_a.SerializeToString()), heart_beat_cb=lambda: None)
 
-    queue.Put(msg_a, block=False)
-    queue.Put(msg_b, block=False)
-    queue.Put(msg_c, block=False)
-    with self.assertRaises(Queue.Full):
-      queue.Put(msg_d, block=False)
+    limited_queue.Put(msg_a, block=False)
+    limited_queue.Put(msg_b, block=False)
+    limited_queue.Put(msg_c, block=False)
+    with self.assertRaises(queue.Full):
+      limited_queue.Put(msg_d, block=False)
 
   def testSizeLimitedQueueHeartbeat(self):
 
@@ -305,16 +309,34 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
 
     heartbeat = mock.Mock()
 
-    queue = comms.SizeLimitedQueue(
+    limited_queue = comms.SizeLimitedQueue(
         maxsize=3 * len(msg_a.SerializeToString()), heart_beat_cb=heartbeat)
 
-    queue.Put(msg_a)
-    queue.Put(msg_b)
-    queue.Put(msg_c)
-    with self.assertRaises(Queue.Full):
-      queue.Put(msg_d, timeout=1)
+    limited_queue.Put(msg_a)
+    limited_queue.Put(msg_b)
+    limited_queue.Put(msg_c)
+    with self.assertRaises(queue.Full):
+      limited_queue.Put(msg_d, timeout=1)
 
     self.assertTrue(heartbeat.called)
+
+
+class GRRClientWorkerTest(test_lib.GRRBaseTest):
+  """Tests the GRRClientWorker class."""
+
+  def setUp(self):
+    super(GRRClientWorkerTest, self).setUp()
+    self.client_worker = comms.GRRClientWorker()
+
+  def testSendReplyHandlesFalseyPrimitivesCorrectly(self):
+    self.client_worker.SendReply(rdfvalue.RDFDatetime(0))
+    messages = self.client_worker.Drain().job
+
+    self.assertEqual(len(messages), 1)
+    self.assertEqual(messages[0].args_rdf_name,
+                     compatibility.GetName(rdfvalue.RDFDatetime))
+    self.assertTrue(isinstance(messages[0].payload, rdfvalue.RDFDatetime))
+    self.assertEqual(messages[0].payload, rdfvalue.RDFDatetime(0))
 
 
 def main(argv):

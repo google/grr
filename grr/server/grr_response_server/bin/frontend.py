@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This is the GRR frontend HTTP Server."""
+from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -8,7 +9,6 @@ import io
 import logging
 import pdb
 import socket
-import SocketServer
 import threading
 
 
@@ -16,6 +16,7 @@ from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from http import server as http_server
 import ipaddr
+import socketserver
 
 from google.protobuf import json_format
 
@@ -28,16 +29,15 @@ from grr_response_core.config import server as config_server
 from grr_response_core.lib import communicator
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import stats_utils
 from grr_response_server import aff4
 from grr_response_server import frontend_lib
 from grr_response_server import master
 from grr_response_server import server_logging
 from grr_response_server import server_startup
-
-flags.DEFINE_version(config_server.VERSION["packageversion"])
 
 
 class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
@@ -87,15 +87,15 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
   def do_GET(self):  # pylint: disable=g-bad-name
     """Serve the server pem with GET requests."""
     if self.path.startswith("/server.pem"):
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "frontend_http_requests", fields=["cert", "http"])
       self.ServerPem()
     elif self.path.startswith(self.rekall_profile_path):
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "frontend_http_requests", fields=["rekall", "http"])
       self.ServeRekallProfile(self.path)
     elif self.path.startswith(self.static_content_path):
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "frontend_http_requests", fields=["static", "http"])
       self.ServeStatic(self.path[len(self.static_content_path):])
 
@@ -220,13 +220,13 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
 
     try:
       if self.path.startswith("/upload"):
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             "frontend_http_requests", fields=["upload", "http"])
 
         logging.error("Requested no longer supported file upload through HTTP.")
         self.Send("File upload though HTTP is no longer supported", status=404)
       else:
-        stats.STATS.IncrementCounter(
+        stats_collector_instance.Get().IncrementCounter(
             "frontend_http_requests", fields=["control", "http"])
         self.Control()
 
@@ -237,14 +237,14 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
       logging.exception("Had to respond with status 500.")
       self.Send("Error: %s" % e, status=500)
 
-  @stats.Counted("frontend_request_count", fields=["http"])
-  @stats.Timed("frontend_request_latency", fields=["http"])
+  @stats_utils.Counted("frontend_request_count", fields=["http"])
+  @stats_utils.Timed("frontend_request_latency", fields=["http"])
   def Control(self):
     """Handle POSTS."""
     if not master.MASTER_WATCHER.IsMaster():
       # We shouldn't be getting requests from the client unless we
       # are the active instance.
-      stats.STATS.IncrementCounter(
+      stats_collector_instance.Get().IncrementCounter(
           "frontend_inactive_request_count", fields=["http"])
       logging.info("Request sent to inactive frontend from %s",
                    self.client_address[0])
@@ -258,7 +258,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
 
     with GRRHTTPServerHandler.active_counter_lock:
       GRRHTTPServerHandler.active_counter += 1
-      stats.STATS.SetGaugeValue(
+      stats_collector_instance.Get().SetGaugeValue(
           "frontend_active_count", self.active_counter, fields=["http"])
 
     try:
@@ -307,11 +307,11 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
     finally:
       with GRRHTTPServerHandler.active_counter_lock:
         GRRHTTPServerHandler.active_counter -= 1
-        stats.STATS.SetGaugeValue(
+        stats_collector_instance.Get().SetGaugeValue(
             "frontend_active_count", self.active_counter, fields=["http"])
 
 
-class GRRHTTPServer(SocketServer.ThreadingMixIn, http_server.HTTPServer):
+class GRRHTTPServer(socketserver.ThreadingMixIn, http_server.HTTPServer):
   """The GRR HTTP frontend server."""
 
   allow_reuse_address = True
@@ -320,8 +320,8 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, http_server.HTTPServer):
   address_family = socket.AF_INET6
 
   def __init__(self, server_address, handler, frontend=None, *args, **kwargs):
-    stats.STATS.SetGaugeValue("frontend_max_active_count",
-                              self.request_queue_size)
+    stats_collector_instance.Get().SetGaugeValue("frontend_max_active_count",
+                                                 self.request_queue_size)
 
     if frontend:
       self.frontend = frontend
@@ -373,6 +373,11 @@ def CreateServer(frontend=None):
 def main(argv):
   """Main."""
   del argv  # Unused.
+
+  if flags.FLAGS.version:
+    print("GRR frontend {}".format(config_server.VERSION["packageversion"]))
+    return
+
   config.CONFIG.AddContext("HTTPServer Context")
 
   server_startup.Init()

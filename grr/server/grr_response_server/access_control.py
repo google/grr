@@ -9,6 +9,7 @@ A UserManager class has the following responsibilities :
   - Manage add/update/set password for users (optional)
   - Validate a user authentication event (optional)
 """
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -19,8 +20,8 @@ from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import flows_pb2
 
 
@@ -148,17 +149,6 @@ class AccessControlManager(with_metaclass(registry.MetaclassRegistry, object)):
     raise NotImplementedError()
 
 
-class ACLInit(registry.InitHook):
-  """Install the selected security manager.
-
-  Since many security managers depend on AFF4, we must run after the AFF4
-  subsystem is ready.
-  """
-
-  def RunOnce(self):
-    stats.STATS.RegisterCounterMetric("grr_expired_tokens")
-
-
 class ACLToken(rdf_structs.RDFProtoStruct):
   """The access control token."""
   protobuf = flows_pb2.ACLToken
@@ -177,7 +167,7 @@ class ACLToken(rdf_structs.RDFProtoStruct):
 
   def CheckExpiry(self):
     if self.expiry and time.time() > self.expiry:
-      stats.STATS.IncrementCounter("grr_expired_tokens")
+      stats_collector_instance.Get().IncrementCounter("grr_expired_tokens")
       raise ExpiryError("Token expired.")
 
   def __str__(self):

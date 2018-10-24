@@ -3,6 +3,7 @@
 """These are tests for the file store-related RDFValues implementations."""
 
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags

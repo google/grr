@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Network-related client rdfvalues."""
 
+from __future__ import absolute_import
+
 import socket
 
 import ipaddr

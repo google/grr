@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """These flows are system-specific GRR cron flows."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import bisect

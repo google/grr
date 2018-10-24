@@ -9,17 +9,14 @@ For anyone who wants a useful reference, see this:
 http://heanet.dl.sourceforge.net/project/libmsiecf/Documentation/MSIE%20Cache%20
 File%20format/MSIE%20Cache%20File%20%28index.dat%29%20format.pdf
 """
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import datetime
-import glob
 import logging
 import operator
-import os
 import struct
-import sys
 from future.moves.urllib import parse as urlparse
 
 from grr_response_core.lib import parser
@@ -156,21 +153,3 @@ class IEParser(object):
         reclen = get4(coffset + 4) * self.BLOCK_SIZE
         yield self._GetRecord(coffset, reclen)
       coffset += self.BLOCK_SIZE
-
-
-def main(argv):
-  if len(argv) < 2:
-    print("Usage: {0} index.dat".format(os.path.basename(argv[0])))
-  else:
-    files_to_process = []
-    for input_glob in argv[1:]:
-      files_to_process += glob.glob(input_glob)
-    for input_file in files_to_process:
-      ie = IEParser(open(input_file, "rb"))
-      for dat in ie.Parse():
-        dat["ctime"] = datetime.datetime.utcfromtimestamp(dat["ctime"] // 1e6)
-        print("{ctime} {header} {url}".format(**dat))
-
-
-if __name__ == "__main__":
-  main(sys.argv)

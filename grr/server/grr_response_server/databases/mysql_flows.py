@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The MySQL database methods for flow handling."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
@@ -247,6 +248,11 @@ class MySQLDBFlowMixin(object):
   @mysql_utils.WithTransaction()
   def ReadFlowObject(self, client_id, flow_id, cursor=None):
     """Reads a flow object from the database."""
+    raise NotImplementedError()
+
+  @mysql_utils.WithTransaction()
+  def ReadAllFlowObjects(self, client_id, cursor=None):
+    """Reads all flow objects from the database for a given client."""
     raise NotImplementedError()
 
   @mysql_utils.WithTransaction()

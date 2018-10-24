@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This file implements a VFS abstraction on the client."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import functools
@@ -15,6 +16,7 @@ from grr_response_core import config
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import context
 from grr_response_core.lib.util import precondition
 
 # A central Cache for vfs handlers. This can be used to keep objects alive
@@ -425,7 +427,7 @@ def VFSMultiOpen(pathspecs, progress_callback=None):
   precondition.AssertIterableType(pathspecs, rdf_paths.PathSpec)
 
   vfs_open = functools.partial(VFSOpen, progress_callback=progress_callback)
-  return utils.MultiContext(map(vfs_open, pathspecs))
+  return context.MultiContext(map(vfs_open, pathspecs))
 
 
 def ReadVFS(pathspec, offset, length, progress_callback=None):

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Helper script for running end-to-end tests."""
+from __future__ import absolute_import
 
 import getpass
 import logging

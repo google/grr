@@ -1,27 +1,23 @@
 #!/usr/bin/env python
 """Implementation of a router class that has approvals-based ACL checks."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
-
 from grr_response_server import data_store
 from grr_response_server import flow
-
 from grr_response_server.aff4_objects import user_managers
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
-
 from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import user as api_user
-
 from grr_response_server.hunts import implementation
-
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -67,10 +63,12 @@ class RelDBChecker(object):
     cache_key = (username, subject_id, approval_type)
     try:
       self.acl_cache.Get(cache_key)
-      stats.STATS.IncrementCounter("approval_searches", fields=["-", "cache"])
+      stats_collector_instance.Get().IncrementCounter(
+          "approval_searches", fields=["-", "cache"])
       return True
     except KeyError:
-      stats.STATS.IncrementCounter("approval_searches", fields=["-", "reldb"])
+      stats_collector_instance.Get().IncrementCounter(
+          "approval_searches", fields=["-", "reldb"])
 
     approvals = data_store.REL_DB.ReadApprovalRequests(
         username, approval_type, subject_id=subject_id, include_expired=False)

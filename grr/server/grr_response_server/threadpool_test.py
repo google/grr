@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 """Tests for the ThreadPool class."""
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-import Queue
 import threading
 import time
 
 
 from builtins import range  # pylint: disable=redefined-builtin
+import queue
 
 from grr_response_core.lib import flags
-from grr_response_core.lib import stats
 from grr_response_core.lib import utils
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import threadpool
 from grr.test_lib import test_lib
 
@@ -125,7 +126,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     self.assertTrue(self.exception_args[1], "Raising")
 
     # Make sure that both exceptions have been counted.
-    exception_count = stats.STATS.GetMetricValue(
+    exception_count = stats_collector_instance.Get().GetMetricValue(
         threadpool._TASK_EXCEPTIONS_METRIC, fields=[self.test_pool.name])
     self.assertEqual(exception_count, 2)
 
@@ -240,9 +241,8 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     self.now = 0
     with utils.MultiStubber((time, "time", lambda: self.now),
                             (threading, "_time", lambda: self.now),
-                            (Queue, "_time",
-                             lambda: self.now), (self.test_pool, "CPUUsage",
-                                                 lambda: 0)):
+                            (queue, "_time", lambda: self.now),
+                            (self.test_pool, "CPUUsage", lambda: 0)):
       done_event = threading.Event()
 
       res = []
@@ -276,7 +276,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     # Do not start but push some tasks on the pool.
     for i in range(10):
       pool.AddTask(lambda: None, ())
-      outstanding_tasks = stats.STATS.GetMetricValue(
+      outstanding_tasks = stats_collector_instance.Get().GetMetricValue(
           threadpool._OUTSTANDING_TASKS_METRIC, fields=[pool_name])
       self.assertEqual(outstanding_tasks, i + 1)
 

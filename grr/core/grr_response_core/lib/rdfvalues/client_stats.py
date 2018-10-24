@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Stats-related client rdfvalues."""
 
+from __future__ import absolute_import
 from __future__ import division
 
 from future.utils import itervalues

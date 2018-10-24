@@ -7,6 +7,8 @@ run GRR tests.
 If you want to do any development, you probably want this.
 
 """
+from __future__ import absolute_import
+
 import ConfigParser
 import os
 import shutil

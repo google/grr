@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A library of client action mocks for use in tests."""
+from __future__ import absolute_import
 
 import itertools
 import socket

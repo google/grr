@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the RegistryFinder flow."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
@@ -94,6 +95,14 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(st.st_mtime, 120)
       else:
         self.fail("Unexpected value: %s" % path)
+
+  def testListingRegistryHivesWorksCorrectly(self):
+    results = self._RunRegistryFinder(["*"])
+    self.assertEqual(len(results), 2)
+    self.assertTrue(
+        [r for r in results if r.stat_entry.pathspec.pathtype == "REGISTRY"])
+    self.assertItemsEqual([r.stat_entry.pathspec.path for r in results],
+                          ["/HKEY_LOCAL_MACHINE", "/HKEY_USERS"])
 
 
 def main(argv):

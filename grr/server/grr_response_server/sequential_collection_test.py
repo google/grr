@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for SequentialCollection and related subclasses."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import threading

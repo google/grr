@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for low-level flows."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_client.client_actions import standard

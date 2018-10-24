@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Windows specific utils."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import ctypes
-import exceptions
 import logging
 import os
 import re
@@ -149,7 +149,7 @@ def FindProxies():
   for i in range(0, 100):
     try:
       sid = _winreg.EnumKey(_winreg.HKEY_USERS, i)
-    except exceptions.WindowsError:
+    except OSError:
       break
 
     try:
@@ -184,7 +184,7 @@ def FindProxies():
 
       internet_settings.Close()
 
-    except (exceptions.WindowsError, ValueError, TypeError):
+    except (OSError, ValueError, TypeError):
       continue
 
   logging.debug("Found proxy servers: %s", proxies)
@@ -264,13 +264,13 @@ class NannyController(object):
     try:
       _winreg.SetValueEx(service_key, "Nanny.heartbeat", 0, _winreg.REG_DWORD,
                          int(time.time()))
-    except exceptions.WindowsError, e:
+    except OSError as e:
       logging.debug("Failed to heartbeat nanny at %s: %s", service_key, e)
 
   def GetNannyStatus(self):
     try:
       value, _ = _winreg.QueryValueEx(_GetServiceKey(), "Nanny.status")
-    except exceptions.WindowsError:
+    except OSError:
       return None
 
     return value
@@ -278,7 +278,7 @@ class NannyController(object):
   def GetNannyMessage(self):
     try:
       value, _ = _winreg.QueryValueEx(_GetServiceKey(), "Nanny.message")
-    except exceptions.WindowsError:
+    except OSError:
       return None
 
     return value
@@ -287,7 +287,7 @@ class NannyController(object):
     """Wipes the nanny message."""
     try:
       _winreg.DeleteValue(_GetServiceKey(), "Nanny.message")
-    except exceptions.WindowsError:
+    except OSError:
       pass
 
   def StartNanny(self):
@@ -326,7 +326,7 @@ class TransactionLog(object):
       _winreg.SetValueEx(_GetServiceKey(), "Transaction", 0, _winreg.REG_BINARY,
                          grr_message)
       self._synced = False
-    except exceptions.WindowsError:
+    except OSError:
       pass
 
   def Sync(self):
@@ -339,14 +339,14 @@ class TransactionLog(object):
     try:
       _winreg.DeleteValue(_GetServiceKey(), "Transaction")
       self._synced = False
-    except exceptions.WindowsError:
+    except OSError:
       pass
 
   def Get(self):
     """Return a GrrMessage instance from the transaction log or None."""
     try:
       value, reg_type = _winreg.QueryValueEx(_GetServiceKey(), "Transaction")
-    except exceptions.WindowsError:
+    except OSError:
       return
 
     if reg_type != _winreg.REG_BINARY:
@@ -377,14 +377,14 @@ def RtlGetVersion(os_version_info_struct):
                             ctypes.sizeof(self).
 
   Raises:
-    WindowsError: if the underlaying routine fails.
+    OSError: if the underlaying routine fails.
 
   See: https://msdn.microsoft.com/en-us/library/
   windows/hardware/ff561910(v=vs.85).aspx .
   """
   rc = ctypes.windll.Ntdll.RtlGetVersion(ctypes.byref(os_version_info_struct))
   if rc != 0:
-    raise exceptions.WindowsError("Getting Windows version failed.")
+    raise OSError("Getting Windows version failed.")
 
 
 class RtlOSVersionInfoExw(ctypes.Structure):
@@ -421,7 +421,7 @@ def KernelVersion():
   rtl_osversioninfoexw = RtlOSVersionInfoExw()
   try:
     RtlGetVersion(rtl_osversioninfoexw)
-  except exceptions.WindowsError:
+  except OSError:
     return "unknown"
 
   return "%d.%d.%d" % (rtl_osversioninfoexw.dwMajorVersion,

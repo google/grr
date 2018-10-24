@@ -5,6 +5,7 @@ This handles invocations for the build across the supported platforms including
 handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
 
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import io

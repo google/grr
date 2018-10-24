@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Tests for the message handler database api."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import Queue
-
 from builtins import range  # pylint: disable=redefined-builtin
+import queue
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -64,14 +64,14 @@ class DatabaseTestHandlerMixin(object):
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)):
       self.db.WriteMessageHandlerRequests(requests)
 
-    leased = Queue.Queue()
+    leased = queue.Queue()
     self.db.RegisterMessageHandler(leased.put, lease_time, limit=5)
 
     got = []
     while len(got) < 10:
       try:
         l = leased.get(True, timeout=6)
-      except Queue.Empty:
+      except queue.Empty:
         self.fail(
             "Timed out waiting for messages, expected 10, got %d" % len(got))
       self.assertLessEqual(len(l), 5)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """AFF4 object representing grr users."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import hashlib
@@ -9,9 +10,9 @@ import time
 from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import random
 from grr_response_proto import jobs_pb2
 from grr_response_proto import user_pb2
 from grr_response_server import aff4
@@ -130,7 +131,7 @@ class CryptedPassword(rdfvalue.RDFString):
 
   def SetPassword(self, password, salt=None):
     if salt is None:
-      salt = "%08x" % utils.PRNG.GetUInt32()
+      salt = "%08x" % random.UInt32()
 
     self._value = self._CalculateHash(password, salt)
     return self

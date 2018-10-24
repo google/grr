@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """CPU/IO stats collector."""
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import threading
@@ -9,9 +10,9 @@ import psutil
 
 from grr_response_client.client_actions import admin
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import stats
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.stats import stats_collector_instance
 
 
 class ClientStatsCollector(threading.Thread):
@@ -48,11 +49,10 @@ class ClientStatsCollector(threading.Thread):
     self._last_send_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
     self._should_send = False
 
-    stats.STATS.RegisterGaugeMetric("grr_client_cpu_usage", str)
-    stats.STATS.SetGaugeCallback("grr_client_cpu_usage", self._PrintCpuSamples)
-
-    stats.STATS.RegisterGaugeMetric("grr_client_io_usage", str)
-    stats.STATS.SetGaugeCallback("grr_client_io_usage", self._PrintIOSample)
+    stats_collector = stats_collector_instance.Get()
+    stats_collector.SetGaugeCallback("grr_client_cpu_usage",
+                                     self._PrintCpuSamples)
+    stats_collector.SetGaugeCallback("grr_client_io_usage", self._PrintIOSample)
 
   def RequestSend(self):
     """Requests to send the collected data.
