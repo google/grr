@@ -479,10 +479,8 @@ class YamlParser(GRRConfigParser):
           # permissions.
           raise IOError(e)
         else:
-          logging.exception("Error encountered while parsing %s.", filename)
           self.parsed = OrderedYamlDict()
       except OSError:
-        logging.exception("Error encountered while parsing %s.", filename)
         self.parsed = OrderedYamlDict()
 
     elif data is not None:
@@ -830,7 +828,6 @@ class GrrConfigManager(object):
     Args:
       filename: A filename which will receive updates. The file is parsed first
         and merged into the raw data from this object.
-
     """
     try:
       self.writeback = self.LoadSecondaryConfig(filename)
@@ -863,7 +860,6 @@ class GrrConfigManager(object):
     Args:
       sections: A list of sections to validate. All parameters within the
         section are validated.
-
       parameters: A list of specific parameters (in the format section.name) to
         validate.
 
@@ -913,6 +909,7 @@ class GrrConfigManager(object):
     Args:
       context_string: A string which describes the global program.
       description: A description as to when this context applies.
+
     Raises:
       InvalidContextError: An undefined context was specified.
     """
@@ -958,6 +955,7 @@ class GrrConfigManager(object):
       name: The name of the parameter to set.
       value: The value to set it to. The value will be validated against the
         option's type descriptor.
+
     Raises:
       ConstModificationError: When attempting to change a constant option.
     """
@@ -1029,8 +1027,8 @@ class GrrConfigManager(object):
     Args:
       descriptor: A TypeInfoObject instance describing the option.
       constant: If this is set, the option is treated as a constant - it can be
-                read at any time (before parsing the configuration) and it's an
-                error to try to override it in a config file.
+        read at any time (before parsing the configuration) and it's an error to
+        try to override it in a config file.
 
     Raises:
       RuntimeError: The descriptor's name must contain a . to denote the section
@@ -1142,9 +1140,8 @@ class GrrConfigManager(object):
     Args:
       filename: The configuration file that will be loaded. For example
            file:///etc/grr.conf or reg://HKEY_LOCAL_MACHINE/Software/GRR.
-
       parser: An optional parser can be given. In this case, the parser's data
-           will be loaded directly.
+        will be loaded directly.
 
     Returns:
       The parser used to parse this configuration source.
@@ -1209,16 +1206,11 @@ class GrrConfigManager(object):
 
     Args:
       filename: The name of the configuration file to use.
-
       data: The configuration given directly as a long string of data.
-
       fd: A file descriptor of a configuration file.
-
       reset: If true, the previous configuration will be erased.
-
       must_exist: If true the data source must exist and be a valid
         configuration file, or we raise an exception.
-
       parser: The parser class to use (i.e. the format of the file). If not
         specified guess from the filename.
 
@@ -1277,13 +1269,11 @@ class GrrConfigManager(object):
     Args:
       name: The name of the parameter to retrieve. This should be in the format
         of "Section.name"
-
       default: If retrieving the value results in an error, return this default.
-
       context: A list of context strings to resolve the configuration. This is a
-      set of roles the caller is current executing with. For example (client,
-      windows). If not specified we take the context from the current thread's
-      TLS stack.
+        set of roles the caller is current executing with. For example (client,
+        windows). If not specified we take the context from the current thread's
+        TLS stack.
 
     Returns:
       The value of the parameter.
@@ -1497,7 +1487,7 @@ class GrrConfigManager(object):
 
     Args:
       target_os: which os we are building for in this run (linux, windows,
-                 darwin)
+        darwin)
       target_arch: which arch we are building for in this run (i386, amd64)
       target_package: which package type we are building (exe, dmg, deb, rpm)
       context: config_lib context
@@ -1698,8 +1688,8 @@ def LoadConfig(config_obj,
   """Initialize a ConfigManager with the specified options.
 
   Args:
-    config_obj: The ConfigManager object to use and update. If None, one will
-        be created.
+    config_obj: The ConfigManager object to use and update. If None, one will be
+      created.
     config_file: Filename to read the config from.
     config_fd: A file-like object to read config data from.
     secondary_configs: A list of secondary config URLs to load.
