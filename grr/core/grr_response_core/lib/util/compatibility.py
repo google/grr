@@ -79,7 +79,9 @@ def ListAttrs(cls):
   precondition.AssertType(cls, type)
 
   if _IsPython2():
-    return [item.decode("ascii") for item in dir(cls)]
+    # TODO(user): once https://github.com/google/pytype/issues/127 is fixed,
+    # pytype should be able to tell that this line is unreachable in py3.
+    return [item.decode("ascii") for item in dir(cls)]  # pytype: disable=attribute-error
   else:
     return dir(cls)
 

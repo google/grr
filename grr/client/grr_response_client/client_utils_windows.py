@@ -298,11 +298,20 @@ class NannyController(object):
 
 
 class Kernel32(object):
+  """An accessor class for loaded `Kernel32.dll` library."""
+
   _kernel32 = None
 
   def __init__(self):
     if not Kernel32._kernel32:
-      Kernel32._kernel32 = ctypes.windll.LoadLibrary("Kernel32.dll")
+      # TODO(hanuszczak): We use binary literal here because of a bug introduced
+      # in Python 2.7.13 [1, 2]. Python versions before and after it should work
+      # fine. This should be reverted to unicode literal once support for 2.7.13
+      # is officially dropped.
+      #
+      # [1]: https://bugs.python.org/issue29082
+      # [2]: https://bugs.python.org/issue29294
+      Kernel32._kernel32 = ctypes.windll.LoadLibrary(b"Kernel32.dll")
 
   @property
   def kernel32(self):

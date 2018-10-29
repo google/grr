@@ -64,12 +64,12 @@ class Writer(object):
   def Content(self):
     # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
     # two elements which is not true.
-    # pytype: disable=attribute-error
+    # pytype: disable=attribute-error,bad-return-type
     if sys.version_info.major == 2:
       return self._output.getvalue().decode("utf-8")
     else:
       return self._output.getvalue()
-    # pytype: enable=attribute-error
+    # pytype: enable=attribute-error,bad-return-type
 
 
 class DictWriter(object):

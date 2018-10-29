@@ -479,8 +479,10 @@ class YamlParser(GRRConfigParser):
           # permissions.
           raise IOError(e)
         else:
+          logging.exception("Error encountered while parsing %s.", filename)
           self.parsed = OrderedYamlDict()
       except OSError:
+        logging.exception("Error encountered while parsing %s.", filename)
         self.parsed = OrderedYamlDict()
 
     elif data is not None:
