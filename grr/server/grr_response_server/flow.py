@@ -730,9 +730,6 @@ class GRRFlow(FlowBase):
 
   def NotifyAboutEnd(self):
     """Send out a final notification about the end of this flow."""
-    if not self.GetRunner().ShouldSendNotifications():
-      return
-
     flow_ref = None
     if self.runner_args.client_id:
       flow_ref = rdf_objects.FlowReference(
@@ -781,7 +778,8 @@ class GRRFlow(FlowBase):
   def Terminate(self, status=None):
     super(GRRFlow, self).Terminate(status=status)
     self.runner.Terminate(status=status)
-    self.NotifyAboutEnd()
+    if self.GetRunner().ShouldSendNotifications():
+      self.NotifyAboutEnd()
 
   @property
   def client_id(self):

@@ -392,23 +392,21 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     data_store.REL_DB.DeleteAllFlowRequestsAndResponses(client_id, flow_id)
 
   def NotifyAboutEnd(self):
-    if self.ShouldSendNotifications():
-      # Sum up number of replies to write with the number of already
-      # written results.
-      num_results = (
-          len(self.replies_to_write) + data_store.REL_DB.CountFlowResults(
-              self.rdf_flow.client_id, self.rdf_flow.flow_id))
-      flow_ref = rdf_objects.FlowReference(
-          client_id=self.rdf_flow.client_id, flow_id=self.rdf_flow.flow_id)
-      notification_lib.Notify(
-          self.creator,
-          rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
-          "Flow %s completed with %d %s" %
-          (self.__class__.__name__, num_results,
-           num_results == 1 and "result" or "results"),
-          rdf_objects.ObjectReference(
-              reference_type=rdf_objects.ObjectReference.Type.FLOW,
-              flow=flow_ref))
+    # Sum up number of replies to write with the number of already
+    # written results.
+    num_results = (
+        len(self.replies_to_write) + data_store.REL_DB.CountFlowResults(
+            self.rdf_flow.client_id, self.rdf_flow.flow_id))
+    flow_ref = rdf_objects.FlowReference(
+        client_id=self.rdf_flow.client_id, flow_id=self.rdf_flow.flow_id)
+    notification_lib.Notify(
+        self.creator, rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+        "Flow %s completed with %d %s" % (self.__class__.__name__, num_results,
+                                          num_results == 1 and "result" or
+                                          "results"),
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.FLOW,
+            flow=flow_ref))
 
   def MarkDone(self, status=None):
     """Marks this flow as done."""
@@ -426,7 +424,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
     self.rdf_flow.flow_state = self.rdf_flow.FlowState.FINISHED
 
-    self.NotifyAboutEnd()
+    if self.ShouldSendNotifications():
+      self.NotifyAboutEnd()
 
   def Log(self, format_str, *args):
     """Logs the message using the flow's standard logging.

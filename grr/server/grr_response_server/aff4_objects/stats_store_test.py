@@ -8,7 +8,6 @@ from future.utils import iterkeys
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_test_utils
@@ -158,112 +157,6 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(sorted(iterkeys(results)), ["pid1", "pid2"])
     self.assertEqual(results["pid1"]["counter"], [(2, 44)])
     self.assertEqual(results["pid2"]["counter"], [(1, 44)])
-
-  def testReadMetadataReturnsAllUsedMetadata(self):
-    # Check that there are no metadata for registered metrics.
-    metadata = self.stats_store.ReadMetadata(
-        process_id=self.process_id).AsDict()
-    self.assertFalse("counter" in metadata)
-    self.assertFalse("counter_with_fields" in metadata)
-    self.assertFalse("events" in metadata)
-    self.assertFalse("events_with_fields" in metadata)
-    self.assertFalse("str_gauge" in metadata)
-    self.assertFalse("str_gauge_with_fields" in metadata)
-
-    # Write stats to the data store. Metadata should be
-    # written as well.
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
-
-    # Check that metadata were written into the store.
-    metadata = self.stats_store.ReadMetadata(
-        process_id=self.process_id).AsDict()
-
-    # Field definitions used in assertions below.
-    source_field_def = rdf_stats.MetricFieldDefinition(
-        field_name="source",
-        field_type=rdf_stats.MetricFieldDefinition.FieldType.STR)
-    task_field_def = rdf_stats.MetricFieldDefinition(
-        field_name="task",
-        field_type=rdf_stats.MetricFieldDefinition.FieldType.INT)
-
-    self.assertTrue("counter" in metadata)
-    self.assertEqual(metadata["counter"].varname, "counter")
-    self.assertEqual(metadata["counter"].metric_type,
-                     rdf_stats.MetricMetadata.MetricType.COUNTER)
-    self.assertEqual(metadata["counter"].value_type,
-                     rdf_stats.MetricMetadata.ValueType.INT)
-    self.assertListEqual(list(metadata["counter"].fields_defs), [])
-
-    self.assertTrue("counter_with_fields" in metadata)
-    self.assertEqual(metadata["counter_with_fields"].varname,
-                     "counter_with_fields")
-    self.assertEqual(metadata["counter_with_fields"].metric_type,
-                     rdf_stats.MetricMetadata.MetricType.COUNTER)
-    self.assertEqual(metadata["counter_with_fields"].value_type,
-                     rdf_stats.MetricMetadata.ValueType.INT)
-    self.assertListEqual(
-        list(metadata["counter_with_fields"].fields_defs), [source_field_def])
-
-    self.assertTrue("events" in metadata)
-    self.assertEqual(metadata["events"].varname, "events")
-    self.assertEqual(metadata["events"].metric_type,
-                     rdf_stats.MetricMetadata.MetricType.EVENT)
-    self.assertEqual(metadata["events"].value_type,
-                     rdf_stats.MetricMetadata.ValueType.DISTRIBUTION)
-    self.assertListEqual(list(metadata["events"].fields_defs), [])
-
-    self.assertTrue("events_with_fields" in metadata)
-    self.assertEqual(metadata["events_with_fields"].varname,
-                     "events_with_fields")
-    self.assertEqual(metadata["events_with_fields"].metric_type,
-                     rdf_stats.MetricMetadata.MetricType.EVENT)
-    self.assertEqual(metadata["events_with_fields"].value_type,
-                     rdf_stats.MetricMetadata.ValueType.DISTRIBUTION)
-    self.assertListEqual(
-        list(metadata["events_with_fields"].fields_defs), [source_field_def])
-
-    self.assertTrue("str_gauge" in metadata)
-    self.assertEqual(metadata["str_gauge"].varname, "str_gauge")
-    self.assertEqual(metadata["str_gauge"].metric_type,
-                     rdf_stats.MetricMetadata.MetricType.GAUGE)
-    self.assertEqual(metadata["str_gauge"].value_type,
-                     rdf_stats.MetricMetadata.ValueType.STR)
-    self.assertListEqual(list(metadata["str_gauge"].fields_defs), [])
-
-    self.assertTrue("str_gauge_with_fields" in metadata)
-    self.assertEqual(metadata["str_gauge_with_fields"].varname,
-                     "str_gauge_with_fields")
-    self.assertEqual(metadata["str_gauge_with_fields"].metric_type,
-                     rdf_stats.MetricMetadata.MetricType.GAUGE)
-    self.assertEqual(metadata["str_gauge_with_fields"].value_type,
-                     rdf_stats.MetricMetadata.ValueType.STR)
-    self.assertListEqual(
-        list(metadata["str_gauge_with_fields"].fields_defs), [task_field_def])
-
-  def testMultiReadMetadataReturnsAllUsedMetadata(self):
-    # Check that there are no metadata for registered metrics.
-    metadata_by_id = self.stats_store.MultiReadMetadata(
-        process_ids=["pid1", "pid2"])
-    self.assertFalse("counter" in metadata_by_id["pid1"].AsDict())
-    self.assertFalse("counter" in metadata_by_id["pid2"].AsDict())
-
-    # Write stats to the data store. Metadata should be
-    # written as well.
-    self.stats_store.WriteStats(process_id="pid1", timestamp=42)
-
-    # Now metadata should be found only for the pid1.
-    metadata_by_id = self.stats_store.MultiReadMetadata(
-        process_ids=["pid1", "pid2"])
-    self.assertTrue("counter" in metadata_by_id["pid1"].AsDict())
-    self.assertFalse("counter" in metadata_by_id["pid2"].AsDict())
-
-    # Write stats for the pid2 and check again.
-    self.stats_store.WriteStats(process_id="pid2", timestamp=42)
-
-    metadata_by_id = self.stats_store.MultiReadMetadata(
-        process_ids=["pid1", "pid2"])
-    self.assertTrue("counter" in metadata_by_id["pid1"].AsDict())
-    self.assertTrue("counter" in metadata_by_id["pid2"].AsDict())
 
 
 class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):

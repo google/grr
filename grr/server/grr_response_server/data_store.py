@@ -476,10 +476,11 @@ class MutationPool(object):
                    len(delete_attrs), subject)
     return tasks
 
-  def StatsWriteMetrics(self, subject, metrics_metadata, timestamp=None):
+  def StatsWriteMetrics(self, subject, timestamp=None):
     """Writes stats for the given metrics to the data-store."""
     to_set = {}
-    for name, metadata in iteritems(metrics_metadata):
+    metric_metadata = stats_collector_instance.Get().GetAllMetricsMetadata()
+    for name, metadata in iteritems(metric_metadata):
       if metadata.fields_defs:
         for fields_values in stats_collector_instance.Get().GetMetricFields(
             name):
@@ -1447,7 +1448,6 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
   def StatsReadDataForProcesses(self,
                                 processes,
                                 metric_name,
-                                metrics_metadata,
                                 timestamp=None,
                                 limit=10000):
     """Reads historical stats data for multiple processes at once."""
@@ -1461,16 +1461,14 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     for subject, subject_results in multi_query_results:
       subject = rdfvalue.RDFURN(subject)
       subject_results = sorted(subject_results, key=lambda x: x[2])
-      subject_metadata_map = metrics_metadata.get(
-          subject.Basename(),
-          stats_values.StatsStoreMetricsMetadata()).AsDict()
 
       part_results = {}
       for predicate, value_string, timestamp in subject_results:
         metric_name = predicate[len(DataStore.STATS_STORE_PREFIX):]
 
         try:
-          metadata = subject_metadata_map[metric_name]
+          metadata = stats_collector_instance.Get().GetMetricMetadata(
+              metric_name)
         except KeyError:
           continue
 

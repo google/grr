@@ -1990,10 +1990,6 @@ message MetricMetadata {
   }];
 }
 
-message StatsStoreMetricsMetadata {
-  repeated MetricMetadata metrics = 1;
-}
-
 
 message Distribution {
   optional float sum = 1 [(sem_type) = {

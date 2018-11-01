@@ -18858,6 +18858,7 @@
                 "type": "unicode",
                 "value": "Sample counter metric."
               },
+              "fields_defs": [],
               "metric_type": {
                 "type": "EnumNamedValue",
                 "value": "COUNTER"
@@ -18875,10 +18876,12 @@
           {
             "type": "MetricMetadata",
             "value": {
+              "bins": [],
               "docstring": {
                 "type": "unicode",
                 "value": "Sample event metric."
               },
+              "fields_defs": [],
               "metric_type": {
                 "type": "EnumNamedValue",
                 "value": "EVENT"
@@ -18900,6 +18903,7 @@
                 "type": "unicode",
                 "value": "Sample gauge metric."
               },
+              "fields_defs": [],
               "metric_type": {
                 "type": "EnumNamedValue",
                 "value": "GAUGE"
@@ -18921,18 +18925,22 @@
         "items": [
           {
             "docstring": "Sample counter metric.",
+            "fields_defs": [],
             "metric_type": "COUNTER",
             "value_type": "INT",
             "varname": "sample_counter"
           },
           {
+            "bins": [],
             "docstring": "Sample event metric.",
+            "fields_defs": [],
             "metric_type": "EVENT",
             "value_type": "DISTRIBUTION",
             "varname": "sample_event"
           },
           {
             "docstring": "Sample gauge metric.",
+            "fields_defs": [],
             "metric_type": "GAUGE",
             "value_type": "STR",
             "varname": "sample_gauge_value"

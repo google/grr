@@ -43,16 +43,13 @@ import time
 
 
 from future.utils import iteritems
-from future.utils import itervalues
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import stats_values
 from grr_response_server import timeseries
 
 
@@ -62,30 +59,10 @@ class StatsStoreProcessData(aff4.AFF4Object):
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Schema for StatsStoreProcessData."""
 
-    METRICS_METADATA = aff4.Attribute(
-        "aff4:stats_store_process_data/metrics_metadata",
-        stats_values.StatsStoreMetricsMetadata,
-        creates_new_object_version=False,
-        versioned=False)
-
-  def WriteMetadataDescriptors(self, metrics_metadata, timestamp=None):
-    current_metadata = self.Get(
-        self.Schema.METRICS_METADATA,
-        default=stats_values.StatsStoreMetricsMetadata())
-
-    if current_metadata.AsDict() != metrics_metadata:
-      store_metadata = stats_values.StatsStoreMetricsMetadata(
-          metrics=list(itervalues(metrics_metadata)))
-      self.AddAttribute(
-          self.Schema.METRICS_METADATA, store_metadata, age=timestamp)
-      self.Flush()
-
   def WriteStats(self, timestamp=None):
-    metrics_metadata = stats_collector_instance.Get().GetAllMetricsMetadata()
-    self.WriteMetadataDescriptors(metrics_metadata, timestamp=timestamp)
     with data_store.DB.GetMutationPool() as mutation_pool:
-      mutation_pool.StatsWriteMetrics(
-          self.urn, metrics_metadata, timestamp=timestamp)
+      mutation_pool.StatsWriteMetrics(self.urn, timestamp=timestamp)
+    self.Flush()  # Update indexes.
 
   def DeleteStats(self, timestamp=data_store.DataStore.ALL_TIMESTAMPS):
     """Deletes all stats in the given time range."""
@@ -129,41 +106,6 @@ class StatsStore(aff4.AFF4Volume):
     """List process ids that were used when saving data to stats store."""
     return [urn.Basename() for urn in self.ListChildren()]
 
-  def ReadMetadata(self, process_id=None):
-    """Reads metadata of stored values for the given process."""
-
-    if not process_id:
-      raise ValueError("process_id can't be None")
-
-    results = self.MultiReadMetadata(process_ids=[process_id])
-
-    try:
-      return results[process_id]
-    except KeyError:
-      return {}
-
-  def MultiReadMetadata(self, process_ids=None):
-    """Reads metadata of stored values for multiple given processes."""
-
-    if not process_ids:
-      process_ids = self.ListUsedProcessIds()
-
-    subjects = [
-        self.DATA_STORE_ROOT.Add(process_id) for process_id in process_ids
-    ]
-    subjects_data = aff4.FACTORY.MultiOpen(
-        subjects, mode="r", token=self.token, aff4_type=StatsStoreProcessData)
-
-    results = {}
-    for subject_data in subjects_data:
-      results[subject_data.urn.Basename()] = subject_data.Get(
-          subject_data.Schema.METRICS_METADATA)
-
-    for process_id in process_ids:
-      results.setdefault(process_id, stats_values.StatsStoreMetricsMetadata())
-
-    return results
-
   def ReadStats(self,
                 process_id=None,
                 metric_name=None,
@@ -192,13 +134,11 @@ class StatsStore(aff4.AFF4Volume):
     if not process_ids:
       process_ids = self.ListUsedProcessIds()
 
-    multi_metadata = self.MultiReadMetadata(process_ids=process_ids)
-
     subjects = [
         self.DATA_STORE_ROOT.Add(process_id) for process_id in process_ids
     ]
     return data_store.DB.StatsReadDataForProcesses(
-        subjects, metric_name, multi_metadata, timestamp=timestamp, limit=limit)
+        subjects, metric_name, timestamp=timestamp, limit=limit)
 
   def DeleteStats(self, process_id=None, timestamp=ALL_TIMESTAMPS):
     """Deletes all stats in the given time range."""

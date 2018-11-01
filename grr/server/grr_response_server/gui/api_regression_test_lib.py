@@ -32,6 +32,7 @@ from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_regression_http
 from grr_response_server.gui import webauth
 from grr.test_lib import test_lib
+from grr.test_lib import testing_startup
 
 flags.DEFINE_string(
     "generate", "",
@@ -197,8 +198,20 @@ class ApiRegressionTest(
 
     return test_class_name
 
-  def Check(self, method, args=None, replace=None):
-    """Does the regression check."""
+  def Check(self, method, args=None, replace=None, api_post_process_fn=None):
+    """Does the regression check.
+
+    Args:
+      method: Name of the API method to call.
+      args: RDF protobuf containing arguments for the API method.
+      replace: Can be either: 1) A dict containing strings which, if they occur
+        in the raw API response, will be replaced with the strings they map to.
+        2) A zero-argument function that returns a replacements dict like the
+        one described in 1).
+      api_post_process_fn: A function which, if provided, will be called with
+        the results of parsing the API response, allowing modification of the
+        results before they are compared with golden datasets.
+    """
     router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(self.token.username)
     mdata = router.GetAnnotatedMethods()[method]
 
@@ -207,6 +220,9 @@ class ApiRegressionTest(
 
     check["test_class"] = self.golden_file_class_name
     check["api_method"] = method
+
+    if api_post_process_fn is not None:
+      api_post_process_fn(check)
 
     self.checks.append(check)
 
@@ -303,6 +319,7 @@ class ApiRegressionGoldenOutputGenerator(object):
 
 def main(argv=None):
   if flags.FLAGS.generate:
+    testing_startup.TestInit()
     ApiRegressionGoldenOutputGenerator(flags.FLAGS.generate).Generate()
   else:
     test_lib.main(argv)

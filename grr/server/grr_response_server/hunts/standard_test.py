@@ -25,6 +25,8 @@ from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import flow
+from grr_response_server import flow_base
+from grr_response_server import notification as notification_lib
 from grr_response_server import queue_manager
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import administrative
@@ -35,8 +37,10 @@ from grr_response_server.hunts import implementation
 from grr_response_server.hunts import process_results
 from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import notification_test_lib
@@ -782,8 +786,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
               flow_name=transfer.GetFile.__name__),
           flow_args=transfer.GetFileArgs(
               pathspec=rdf_paths.PathSpec(
-                  path="/tmp/evil.txt",
-                  pathtype=rdf_paths.PathSpec.PathType.OS)),
+                  path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType
+                  .OS)),
           client_rule_set=self._CreateForemanClientRuleSet(),
           client_limit=5,
           client_rate=0,
@@ -1001,8 +1005,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
               flow_name=transfer.GetFile.__name__),
           flow_args=transfer.GetFileArgs(
               pathspec=rdf_paths.PathSpec(
-                  path="/tmp/evil.txt",
-                  pathtype=rdf_paths.PathSpec.PathType.OS)),
+                  path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType
+                  .OS)),
           client_rule_set=self._CreateForemanClientRuleSet(),
           client_limit=5,
           expiry_time=rdfvalue.Duration("1000s"),
@@ -1195,8 +1199,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
             "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres", "Cuatro"
         ])
         self.assertTrue(log.flow_name in [
-            flow_test_lib.DummyLogFlow.__name__,
-            flow_test_lib.DummyLogFlowChild.__name__
+            flow_test_lib.DummyLogFlow.__name__, flow_test_lib.DummyLogFlowChild
+            .__name__
         ])
         self.assertTrue(str(hunt_urn) in str(log.urn))
       else:
@@ -1241,6 +1245,50 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     # but they are not UnauthorizedAccess.
     for e in errors:
       self.assertTrue("UnauthorizedAccess" not in e.backtrace)
+
+
+@flow_base.DualDBFlow
+class FlowWithCustomNotifyAboutEndMixin(object):
+  """Flow that sends a notification."""
+
+  def Start(self):
+    pass
+
+  def NotifyAboutEnd(self):
+    notification_lib.Notify(
+        self.creator, rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+        "FlowWithCustomNotifyAboutEnd completed.",
+        rdf_objects.ObjectReference())
+
+
+@db_test_lib.DualDBTest
+class StandardHuntNotificationsTest(notification_test_lib.NotificationTestMixin,
+                                    hunt_test_lib.StandardHuntTestMixin,
+                                    flow_test_lib.FlowTestsBaseclass):
+  """Tests the Hunt."""
+
+  def testNotifyAboutEndDoesNothingWhenFlowsRunInsideHunt(self):
+    self.CreateUser(self.token.username)
+
+    # Create a user with a custom name to make sure the name is not in the list
+    # of system names and that notifications are going to be delivered.
+    user_token = access_control.ACLToken(username="some_user", reason="testing")
+    self.CreateUser(user_token.username)
+
+    hunt = implementation.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+            flow_name=FlowWithCustomNotifyAboutEnd.__name__),  # pylint: disable=undefined-variable
+        client_rate=0,
+        token=user_token)
+    hunt.Run()
+
+    client_ids = self.SetupClients(5)
+    self.AssignTasksToClients(client_ids=client_ids)
+    hunt_test_lib.TestHuntHelper(None, client_ids, token=self.token)
+
+    notifications = self.GetUserNotifications(user_token.username)
+    self.assertEqual(len(notifications), 0)
 
 
 class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
@@ -1342,8 +1390,8 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
   def testRaisesIfVerifierRaises(self):
     self.StartHunt(output_plugins=[
         rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier.
-            __name__)
+            plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier
+            .__name__)
     ])
     self.AssignTasksToClients()
     self.RunHunt()
@@ -1359,8 +1407,8 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
   def testUpdatesStatsCounterOnException(self):
     self.StartHunt(output_plugins=[
         rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier.
-            __name__)
+            plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier
+            .__name__)
     ])
     self.AssignTasksToClients()
     self.RunHunt()
@@ -1380,8 +1428,8 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
   def testChecksAllHuntsEvenIfOneRaises(self):
     self.StartHunt(output_plugins=[
         rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier.
-            __name__)
+            plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier
+            .__name__)
     ])
     self.StartHunt(output_plugins=[
         rdf_output_plugin.OutputPluginDescriptor(
@@ -1404,8 +1452,8 @@ class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
     with test_lib.FakeTime(now - rdfvalue.Duration("61m"), increment=1e-6):
       self.StartHunt(output_plugins=[
           rdf_output_plugin.OutputPluginDescriptor(
-              plugin_name=hunt_test_lib.VerifiableDummyHuntOutputPlugin.__name__
-          )
+              plugin_name=hunt_test_lib.VerifiableDummyHuntOutputPlugin
+              .__name__)
       ])
       self.AssignTasksToClients()
       self.RunHunt()

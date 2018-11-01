@@ -170,9 +170,6 @@ class ListDirectoryMixin(object):
 
   def NotifyAboutEnd(self):
     """Sends a notification that this flow is done."""
-    if not self.ShouldSendNotifications():
-      return
-
     if not self.state.urn:
       super(ListDirectoryMixin, self).NotifyAboutEnd()
       return
@@ -277,9 +274,6 @@ class RecursiveListDirectoryMixin(object):
         self.SendReply(stat_entry)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
-    if not self.ShouldSendNotifications():
-      return
-
     status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
 
     urn = self.state.first_directory

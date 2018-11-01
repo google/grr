@@ -74,19 +74,3 @@ class StatsStoreValue(rdf_structs.RDFProtoStruct):
       raise ValueError("Invalid value type %d." % value_type)
 
     self.value_type = value_type
-
-
-class StatsStoreMetricsMetadata(rdf_structs.RDFProtoStruct):
-  """Container with metadata for all the metrics in a given process."""
-
-  protobuf = jobs_pb2.StatsStoreMetricsMetadata
-  rdf_deps = [
-      rdf_stats.MetricMetadata,
-  ]
-
-  def AsDict(self):
-    result = {}
-    for metric in self.metrics:
-      result[metric.varname] = metric
-
-    return result

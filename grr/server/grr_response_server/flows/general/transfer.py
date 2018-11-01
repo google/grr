@@ -197,9 +197,6 @@ class GetFileMixin(object):
   def NotifyAboutEnd(self):
     super(GetFileMixin, self).NotifyAboutEnd()
 
-    if not self.ShouldSendNotifications():
-      return
-
     stat_entry = self.state.stat_entry
     if not stat_entry:
       stat_entry = rdf_client_fs.StatEntry(pathspec=self.args.pathspec)
