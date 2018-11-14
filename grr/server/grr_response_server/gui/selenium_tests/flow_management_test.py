@@ -11,18 +11,20 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util import compatibility
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server.flows.general import filesystem as flows_filesystem
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.flows.general import transfer as flows_transfer
 from grr_response_server.flows.general import webhistory as flows_webhistory
+from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
@@ -54,27 +56,23 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent,
                    "You do not have an approval for this client.")
 
-  def _StartFlow(self, flow_cls, **kw):
-    if data_store.RelationalDBFlowsEnabled():
-      return flow.StartFlow(flow_cls=flow_cls, client_id=self.client_id, **kw)
-    else:
-      return flow.StartAFF4Flow(
-          flow_name=compatibility.GetName(flow_cls),
-          client_id=self.client_id,
-          token=self.token,
-          **kw)
-
   def testPageTitleReflectsSelectedFlow(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = self._StartFlow(flows_transfer.GetFile, pathspec=pathspec)
+    args = flows_transfer.GetFileArgs(pathspec=pathspec)
+    flow_id = api_regression_test_lib.StartFlow(
+        self.client_id,
+        flows_transfer.GetFile,
+        flow_args=args,
+        token=self.token)
 
     self.Open("/#/clients/%s/flows/" % self.client_id)
+
     self.WaitUntilEqual("GRR | %s | Flows" % self.client_id, self.GetPageTitle)
 
     self.Click("css=td:contains('GetFile')")
-    self.WaitUntilEqual("GRR | %s | %s" % (self.client_id, flow_urn.Basename()),
+    self.WaitUntilEqual("GRR | %s | %s" % (self.client_id, flow_id),
                         self.GetPageTitle)
 
   def testFlowManagement(self):
@@ -102,6 +100,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "Launched Flow ListProcesses")
 
     self.Click("css=#_Browser a")
+
     # Wait until the tree has expanded.
     self.WaitUntil(self.IsTextPresent, flows_webhistory.FirefoxHistory.__name__)
 
@@ -124,10 +123,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "Launched Flow GetFile")
 
     # Test that recursive tests are shown in a tree table.
-    flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-        token=self.token)
+    api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
 
     self.Click("css=a[grrtarget='client.flows']")
 
@@ -156,16 +153,13 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsElementPresent, "css=td:contains(1)")
 
     # Check that a StatFile client action was issued as part of the GetFile
-    # flow.
+    # flow. "Stat" matches the next state that is called.
     self.WaitUntil(self.IsElementPresent,
-                   "css=.tab-content td.proto_value:contains(GetFileStat)")
+                   "css=.tab-content td.proto_value:contains(Stat)")
 
   def testOverviewIsShownForNestedFlows(self):
-    flow_test_lib.TestFlowHelper(
-        gui_test_lib.RecursiveTestFlow.__name__,
-        self.action_mock,
-        client_id=self.client_id,
-        token=self.token)
+    api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -179,11 +173,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsElementPresent,
                    "css=td:contains('Depth') ~ td:nth(0):contains('1')")
 
-    # Check that flow id of this flow has forward slash - i.e. consists of
-    # 2 components.
     self.WaitUntil(self.IsTextPresent, "Flow ID")
     flow_id = self.GetText("css=dt:contains('Flow ID') ~ dd:nth(0)")
-    self.assertTrue("/" in flow_id)
+    self.assertGreaterEqual(len(flow_id), 8)
 
   def testNestedFlowsAppearCorrectlyAfterAutoRefresh(self):
     self.Open("/#/clients/%s" % self.client_id)
@@ -191,47 +183,38 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.GetJavaScriptValue(
         "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
 
-    flow_1 = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.FlowWithOneLogStatement.__name__,
-        token=self.token)
+    flow_1 = api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.FlowWithOneLogStatement, token=self.token)
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset and wait
     # until flow_1 is visible.
     self.Click("css=a[grrtarget='client.flows']")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s')" % flow_1.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % flow_1)
 
     # Create a recursive flow_2 that will appear after auto-refresh.
-    flow_2 = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-        token=self.token)
+    flow_2 = api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
 
     # Check that the flow we started in the background appears in the list.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s')" % flow_2.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % flow_2)
 
     # Check that flow_2 is the row 1 (row 0 is the table header).
     self.WaitUntil(
         self.IsElementPresent,
-        "css=grr-client-flows-list tr:nth(1):contains('%s')" %
-        flow_2.Basename())
+        "css=grr-client-flows-list tr:nth(1):contains('%s')" % flow_2)
 
     # Click on a nested flow.
-    self.Click("css=tr:contains('%s') span.tree_branch" % flow_2.Basename())
+    self.Click("css=tr:contains('%s') span.tree_branch" % flow_2)
 
     # Check that flow_2 is still row 1 and that nested flows occupy next
     # rows.
     self.WaitUntil(
         self.IsElementPresent,
-        "css=grr-client-flows-list tr:nth(1):contains('%s')" %
-        flow_2.Basename())
+        "css=grr-client-flows-list tr:nth(1):contains('%s')" % flow_2)
 
     flow_data = api_flow.ApiGetFlowHandler().Handle(
-        api_flow.ApiGetFlowArgs(
-            client_id=self.client_id, flow_id=flow_2.Basename()),
+        api_flow.ApiGetFlowArgs(client_id=self.client_id, flow_id=flow_2),
         token=self.token)
 
     for index, nested_flow in enumerate(flow_data.nested_flows):
@@ -241,6 +224,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
           (index + 2, nested_flow.flow_id))
 
   def testOverviewIsShownForNestedHuntFlows(self):
+    if data_store.RelationalDBFlowsEnabled():
+      # TODO(amoser): Hunts don't spawn relational flows yet.
+      return
+
     with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
@@ -271,12 +258,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.assertTrue("/" in flow_id)
 
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
-    # RecursiveTestFlow doesn't send any results back.
-    flow_test_lib.TestFlowHelper(
-        gui_test_lib.FlowWithOneLogStatement.__name__,
-        self.action_mock,
-        client_id=self.client_id,
-        token=self.token)
+    api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.FlowWithOneLogStatement, token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -287,10 +270,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testLogTimestampsArePresentedInUTC(self):
     with test_lib.FakeTime(42):
-      flow_test_lib.TestFlowHelper(
-          gui_test_lib.FlowWithOneLogStatement.__name__,
-          self.action_mock,
-          client_id=self.client_id,
+      api_regression_test_lib.StartFlow(
+          self.client_id,
+          gui_test_lib.FlowWithOneLogStatement,
           token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
@@ -301,10 +283,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "1970-01-01 00:00:42 UTC")
 
   def testResultsAreDisplayedInResultsTab(self):
-    flow_test_lib.TestFlowHelper(
-        gui_test_lib.FlowWithOneStatEntryResult.__name__,
-        self.action_mock,
-        client_id=self.client_id,
+    api_regression_test_lib.StartFlow(
+        self.client_id,
+        gui_test_lib.FlowWithOneStatEntryResult,
         token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
@@ -316,10 +297,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "aff4:/%s/fs/os/some/unique/path" % self.client_id)
 
   def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
-    flow.StartAFF4Flow(
-        flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
-        client_id=self.client_id,
-        sync=False,
+    # TODO(amoser): This was sync=false.
+    api_regression_test_lib.StartFlow(
+        self.client_id,
+        gui_test_lib.FlowWithOneStatEntryResult,
         token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
@@ -331,10 +312,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "th:contains('Value')")
 
   def testHashesAreDisplayedCorrectly(self):
-    flow_test_lib.TestFlowHelper(
-        gui_test_lib.FlowWithOneHashEntryResult.__name__,
-        self.action_mock,
-        client_id=self.client_id,
+    api_regression_test_lib.StartFlow(
+        self.client_id,
+        gui_test_lib.FlowWithOneHashEntryResult,
         token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
@@ -351,6 +331,12 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "8b0a15eefe63fd41f8dc9dee01c5cf9a")
 
   def testBrokenFlowsAreShown(self):
+    if data_store.RelationalDBFlowsEnabled():
+      # Breaking flows this way doesn't make much sense since relational flows
+      # are a flat protobuf. Keeping the test for testing the legacy system
+      # though.
+      return
+
     flow_urn = flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneHashEntryResult.__name__,
         self.action_mock,
@@ -383,12 +369,11 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "Error while opening flow:")
 
   def testApiExampleIsShown(self):
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
-        client_id=self.client_id,
+    flow_id = api_regression_test_lib.StartFlow(
+        self.client_id,
+        gui_test_lib.FlowWithOneStatEntryResult,
         token=self.token)
 
-    flow_id = flow_urn.Basename()
     self.Open("/#/clients/%s/flows/%s/api" % (self.client_id, flow_id))
 
     self.WaitUntil(self.IsTextPresent,
@@ -401,12 +386,11 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         '"name": "%s"' % gui_test_lib.FlowWithOneStatEntryResult.__name__)
 
   def testChangingTabUpdatesUrl(self):
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
-        client_id=self.client_id,
+    flow_id = api_regression_test_lib.StartFlow(
+        self.client_id,
+        gui_test_lib.FlowWithOneStatEntryResult,
         token=self.token)
 
-    flow_id = flow_urn.Basename()
     base_url = "/#/clients/%s/flows/%s" % (self.client_id, flow_id)
 
     self.Open(base_url)
@@ -427,12 +411,11 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilEqual(base_url + "/api", self.GetCurrentUrlPath)
 
   def testDirectLinksToFlowsTabsWorkCorrectly(self):
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
-        client_id=self.client_id,
+    flow_id = api_regression_test_lib.StartFlow(
+        self.client_id,
+        gui_test_lib.FlowWithOneStatEntryResult,
         token=self.token)
 
-    flow_id = flow_urn.Basename()
     base_url = "/#/clients/%s/flows/%s" % (self.client_id, flow_id)
 
     self.Open(base_url + "/requests")
@@ -456,10 +439,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testCancelFlowWorksCorrectly(self):
     """Tests that cancelling flows works."""
-    flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-        token=self.token)
+    api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
 
     # Open client and find the flow
     self.Open("/")
@@ -478,10 +459,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "Cancelled in GUI")
 
   def testFlowListGetsUpdatedWithNewFlows(self):
-    flow_1 = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-        token=self.token)
+    flow_1 = api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
@@ -493,23 +472,25 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=a[grrtarget='client.flows']")
 
     # Check that the flow list is correctly loaded.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s')" % flow_1.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % flow_1)
 
-    flow_2 = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.FlowWithOneLogStatement.__name__,
-        token=self.token)
+    flow_2 = api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.FlowWithOneLogStatement, token=self.token)
 
     # Check that the flow we started in the background appears in the list.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s')" % flow_2.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % flow_2)
+
+  def _TerminateFlow(self, flow_id):
+    reason = "Because I said so"
+    if data_store.RelationalDBFlowsEnabled():
+      flow_base.TerminateFlow(self.client_id, flow_id, reason)
+    else:
+      flow_urn = rdfvalue.RDFURN(self.client_id).Add("flows").Add(flow_id)
+      flow.GRRFlow.TerminateAFF4Flow(flow_urn, reason, token=self.token)
 
   def testFlowListGetsUpdatedWithChangedFlows(self):
-    f = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-        token=self.token)
+    f = api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
@@ -522,18 +503,16 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     # Check that the flow is running.
     self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s') div[state=RUNNING]" % f.Basename())
+                   "css=tr:contains('%s') div[state=RUNNING]" % f)
 
     # Cancel the flow and check that the flow state gets updated.
-    flow.GRRFlow.TerminateAFF4Flow(f, "Because I said so", token=self.token)
+    self._TerminateFlow(f)
     self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s') div[state=ERROR]" % f.Basename())
+                   "css=tr:contains('%s') div[state=ERROR]" % f)
 
   def testFlowOverviewGetsUpdatedWhenFlowChanges(self):
-    f = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-        token=self.token)
+    f = api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
 
     self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
@@ -543,31 +522,36 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
     self.Click("css=a[grrtarget='client.flows']")
-    self.Click("css=tr:contains('%s')" % f.Basename())
+    self.Click("css=tr:contains('%s')" % f)
 
     # Check that the flow is running.
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-flow-inspector dd:contains('RUNNING')")
-    self.WaitUntil(
-        self.IsElementPresent, "css=grr-flow-inspector "
-        "tr:contains('Status'):contains('Subflow call 1')")
 
     # Cancel the flow and check that the flow state gets updated.
-    flow.GRRFlow.TerminateAFF4Flow(f, "Because I said so", token=self.token)
+    self._TerminateFlow(f)
+
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-flow-inspector dd:contains('ERROR')")
+
     self.WaitUntil(
         self.IsElementPresent, "css=grr-flow-inspector "
         "tr:contains('Status'):contains('Because I said so')")
 
-  def testFlowLogsTabGetsUpdatedWhenNewLogsAreAdded(self):
-    f = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-        token=self.token)
+  def _AddLogToFlow(self, flow_id, log_string):
+    if data_store.RelationalDBFlowsEnabled():
+      entry = rdf_flow_objects.FlowLogEntry(message=log_string)
+      data_store.REL_DB.WriteFlowLogEntries(self.client_id, flow_id, [entry])
+    else:
+      flow_urn = rdfvalue.RDFURN(self.client_id).Add("flows").Add(flow_id)
+      with aff4.FACTORY.Open(flow_urn, token=self.token) as fd:
+        fd.Log(log_string)
 
-    with aff4.FACTORY.Open(f, token=self.token) as fd:
-      fd.Log("foo-log")
+  def testFlowLogsTabGetsUpdatedWhenNewLogsAreAdded(self):
+    flow_id = api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+
+    self._AddLogToFlow(flow_id, "foo-log")
 
     self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
@@ -577,7 +561,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
     self.Click("css=a[grrtarget='client.flows']")
-    self.Click("css=tr:contains('%s')" % f.Basename())
+    self.Click("css=tr:contains('%s')" % flow_id)
     self.Click("css=li[heading=Log]:not([disabled]")
 
     self.WaitUntil(self.IsElementPresent,
@@ -585,21 +569,26 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-flow-log td:contains('bar-log')")
 
-    with aff4.FACTORY.Open(f, token=self.token) as fd:
-      fd.Log("bar-log")
+    self._AddLogToFlow(flow_id, "bar-log")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-flow-log td:contains('bar-log')")
 
-  def testFlowResultsTabGetsUpdatedWhenNewResultsAreAdded(self):
-    f = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-        token=self.token)
+  def _AddResultToFlow(self, flow_id, result):
+    if data_store.RelationalDBFlowsEnabled():
+      flow_result = rdf_flow_objects.FlowResult(payload=result)
+      data_store.REL_DB.WriteFlowResults(self.client_id, flow_id, [flow_result])
+    else:
+      flow_urn = rdfvalue.RDFURN(self.client_id).Add("flows").Add(flow_id)
+      with data_store.DB.GetMutationPool() as pool:
+        flow.GRRFlow.ResultCollectionForFID(flow_urn).Add(
+            result, mutation_pool=pool)
 
-    with data_store.DB.GetMutationPool() as pool:
-      flow.GRRFlow.ResultCollectionForFID(f).Add(
-          rdfvalue.RDFString("foo-result"), mutation_pool=pool)
+  def testFlowResultsTabGetsUpdatedWhenNewResultsAreAdded(self):
+    flow_id = api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+
+    self._AddResultToFlow(flow_id, rdfvalue.RDFString("foo-result"))
 
     self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
@@ -609,7 +598,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
     self.Click("css=a[grrtarget='client.flows']")
-    self.Click("css=tr:contains('%s')" % f.Basename())
+    self.Click("css=tr:contains('%s')" % flow_id)
     self.Click("css=li[heading=Results]:not([disabled]")
 
     self.WaitUntil(self.IsElementPresent,
@@ -617,21 +606,16 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-results-collection td:contains('bar-result')")
 
-    with data_store.DB.GetMutationPool() as pool:
-      flow.GRRFlow.ResultCollectionForFID(f).Add(
-          rdfvalue.RDFString("bar-result"), mutation_pool=pool)
+    self._AddResultToFlow(flow_id, rdfvalue.RDFString("bar-result"))
+
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-results-collection td:contains('bar-result')")
 
   def testDownloadFilesPanelIsShownWhenNewResultsAreAdded(self):
-    f = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-        token=self.token)
+    flow_id = api_regression_test_lib.StartFlow(
+        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
 
-    with data_store.DB.GetMutationPool() as pool:
-      flow.GRRFlow.ResultCollectionForFID(f).Add(
-          rdfvalue.RDFString("foo-result"), mutation_pool=pool)
+    self._AddResultToFlow(flow_id, rdfvalue.RDFString("foo-result"))
 
     self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
@@ -641,7 +625,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
     self.Click("css=a[grrtarget='client.flows']")
-    self.Click("css=tr:contains('%s')" % f.Basename())
+    self.Click("css=tr:contains('%s')" % flow_id)
     self.Click("css=li[heading=Results]:not([disabled]")
 
     self.WaitUntil(self.IsElementPresent,
@@ -653,11 +637,16 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     stat_entry = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
-    with data_store.DB.GetMutationPool() as pool:
-      flow.GRRFlow.ResultCollectionForFID(f).Add(stat_entry, mutation_pool=pool)
+
+    self._AddResultToFlow(flow_id, stat_entry)
 
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-results-collection grr-download-collection-files")
+
+
+class TestRelFlowManagement(db_test_lib.RelationalFlowsEnabledMixin,
+                            TestFlowManagement):
+  pass
 
 
 if __name__ == "__main__":

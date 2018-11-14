@@ -4,12 +4,12 @@ from __future__ import absolute_import
 import threading
 import time
 
-import unittest
+from absl.testing import absltest
 from grr_response_core.lib import rdfvalue
 from grr.test_lib import test_lib
 
 
-class FakeTimelineTest(unittest.TestCase):
+class FakeTimelineTest(absltest.TestCase):
 
   def testRunSingleSleep(self):
     log = []
@@ -223,4 +223,4 @@ class FakeTimelineTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

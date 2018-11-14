@@ -132,3 +132,9 @@ config_lib.DEFINE_string(
     "NOTE: for debugging purposes only! If set, every request AdminUI gets "
     "will be attributed to the specified user. Useful for checking how AdminUI "
     "looks like for an access-restricted user.")
+
+config_lib.DEFINE_bool(
+    "AdminUI.headless", False,
+    "When running in headless mode, AdminUI ignores checks for JS/CSS compiled "
+    "bundles being present. AdminUI.headless=True should be used to run "
+    "the AdminUI as an API endpoint only.")

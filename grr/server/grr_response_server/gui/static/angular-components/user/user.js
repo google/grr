@@ -1,6 +1,7 @@
 goog.module('grrUi.user.user');
 goog.module.declareLegacyNamespace();
 
+const {ApproverInputDirective} = goog.require('grrUi.user.approverInputDirective');
 const {UserDashboardDirective} = goog.require('grrUi.user.userDashboardDirective');
 const {UserDesktopNotificationsDirective} = goog.require('grrUi.user.userDesktopNotificationsDirective');
 const {UserLabelDirective} = goog.require('grrUi.user.userLabelDirective');
@@ -18,7 +19,8 @@ const {formsModule} = goog.require('grrUi.forms.forms');
 exports.userModule =
     angular.module('grrUi.user', [coreModule.name, formsModule.name]);
 
-
+exports.userModule.directive(
+    ApproverInputDirective.directive_name, ApproverInputDirective);
 exports.userModule.directive(
     UserDashboardDirective.directive_name, UserDashboardDirective);
 exports.userModule.directive(

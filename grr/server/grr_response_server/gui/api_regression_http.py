@@ -25,6 +25,7 @@ from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_value_renderers
 from grr_response_server.gui import http_api
 from grr_response_server.gui import wsgiapp_testlib
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
@@ -47,7 +48,7 @@ class HttpApiRegressionTestMixinBase(object):
 
     with _HTTP_ENDPOINTS_LOCK:
       if api_version not in _HTTP_ENDPOINTS:
-        port = portpicker.PickUnusedPort()
+        port = portpicker.pick_unused_port()
         logging.info("Picked free AdminUI port %d.", port)
 
         # Force creation of new APIAuthorizationManager.
@@ -151,8 +152,8 @@ class HttpApiRegressionTestMixinBase(object):
       if request_payload:
         check_result["request_payload"] = request_payload
 
-    if (method_metadata.result_type ==
-        api_call_router.RouterMethodMetadata.BINARY_STREAM_RESULT_TYPE):
+    if (method_metadata.result_type == api_call_router.RouterMethodMetadata
+        .BINARY_STREAM_RESULT_TYPE):
       check_result["response"] = replace(utils.SmartUnicode(response.content))
     else:
       check_result["response"] = self._ParseJSON(replace(response.content))
@@ -203,6 +204,27 @@ class HttpApiV2RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
 
   read_from_relational_db = True
   connection_type = "http_v2_rel_db"
+  use_golden_files_of = "http_v2"
+  skip_legacy_dynamic_proto_tests = True
+  api_version = 2
+
+  def testRelationalDBReadsEnabled(self):
+    if not getattr(self, "aff4_only_test", False):
+      self.assertTrue(data_store.RelationalDBReadEnabled())
+
+  @property
+  def output_file_name(self):
+    return os.path.join(DOCUMENT_ROOT,
+                        "angular-components/docs/api-v2-docs-examples.json")
+
+
+class HttpApiV2RelationalFlowsRegressionTestMixin(
+    db_test_lib.RelationalFlowsEnabledMixin, HttpApiRegressionTestMixinBase):
+  """Test class for HTTP v2 protocol with relational flows enabled."""
+
+  read_from_relational_db = True
+  relational_db_flows = True
+  connection_type = "http_v2_rel_flows"
   use_golden_files_of = "http_v2"
   skip_legacy_dynamic_proto_tests = True
   api_version = 2

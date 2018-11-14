@@ -32,7 +32,10 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_proto import export_pb2
 from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import data_store_utils
+from grr_response_server import db
+from grr_response_server import file_store
 from grr_response_server.aff4_objects import filestore
 from grr_response_server.flows.general import collectors as flow_collectors
 
@@ -230,8 +233,8 @@ class ExportConverter(with_metaclass(registry.MetaclassRegistry, object)):
     """Constructor.
 
     Args:
-      options: ExportOptions value, which contains settings that may or
-               or may not affect this converter's behavior.
+      options: ExportOptions value, which contains settings that may or or may
+        not affect this converter's behavior.
     """
     super(ExportConverter, self).__init__()
     self.options = options or ExportOptions()
@@ -275,8 +278,8 @@ class ExportConverter(with_metaclass(registry.MetaclassRegistry, object)):
 
     Args:
       metadata_value_pairs: a list or a generator of tuples (metadata, value),
-                            where metadata is ExportedMetadata to be used for
-                            conversion and value is an RDFValue to be converted.
+        where metadata is ExportedMetadata to be used for conversion and value
+        is an RDFValue to be converted.
       token: Security token.
 
     Yields:
@@ -408,13 +411,6 @@ class StatEntryToExportedFileConverter(ExportConverter):
 
   MAX_CONTENT_SIZE = 1024 * 64
 
-  def __init__(self, *args, **kwargs):
-    super(StatEntryToExportedFileConverter, self).__init__(*args, **kwargs)
-    # If either of these are true we need to open the file to get more
-    # information
-    self.open_file_for_read = (
-        self.options.export_files_hashes or self.options.export_files_contents)
-
   @staticmethod
   def ParseSignedData(signed_data, result):
     """Parses signed certificate data and updates result rdfvalue."""
@@ -528,21 +524,13 @@ class StatEntryToExportedFileConverter(ExportConverter):
 
   def _OpenFilesForRead(self, metadata_value_pairs, token):
     """Open files all at once if necessary."""
-    if self.open_file_for_read:
-      aff4_paths = [
-          result.AFF4Path(metadata.client_urn)
-          for metadata, result in metadata_value_pairs
-      ]
-      fds = aff4.FACTORY.MultiOpen(aff4_paths, mode="r", token=token)
-      fds_dict = dict([(fd.urn, fd) for fd in fds])
-      return fds_dict
-
-  def _ExportHash(self, aff4_object, result):
-    """Add hashes from aff4_object to result."""
-    if self.options.export_files_hashes:
-      hash_obj = data_store_utils.GetFileHashEntry(aff4_object)
-      if hash_obj:
-        self.ParseFileHash(hash_obj, result)
+    aff4_paths = [
+        result.AFF4Path(metadata.client_urn)
+        for metadata, result in metadata_value_pairs
+    ]
+    fds = aff4.FACTORY.MultiOpen(aff4_paths, mode="r", token=token)
+    fds_dict = dict([(fd.urn, fd) for fd in fds])
+    return fds_dict
 
   def _ExportFileContent(self, aff4_object, result):
     """Add file content from aff4_object to result."""
@@ -573,32 +561,79 @@ class StatEntryToExportedFileConverter(ExportConverter):
         st_rdev=stat_entry.st_rdev,
         symlink=stat_entry.symlink)
 
+  def _BatchConvertLegacy(self, metadata_value_pairs, token=None):
+    filtered_pairs = self._RemoveRegistryKeys(metadata_value_pairs)
+
+    fds_dict = None
+    if self.options.export_files_contents:
+      fds_dict = self._OpenFilesForRead(filtered_pairs, token=token)
+
+    for metadata, stat_entry in filtered_pairs:
+      result = self._CreateExportedFile(metadata, stat_entry)
+
+      if self.options.export_files_contents:
+        try:
+          aff4_object = fds_dict[stat_entry.AFF4Path(metadata.client_urn)]
+          self._ExportFileContent(aff4_object, result)
+        except KeyError:
+          pass
+      yield result
+
+  _BATCH_SIZE = 5000
+
+  def _BatchConvertRelational(self, metadata_value_pairs):
+    filtered_pairs = self._RemoveRegistryKeys(metadata_value_pairs)
+    for fp_batch in collection.Batch(filtered_pairs, self._BATCH_SIZE):
+
+      if self.options.export_files_contents:
+        pathspec_by_client_path = {}
+        for metadata, stat_entry in fp_batch:
+          # TODO(user): Deprecate client_urn in ExportedMetadata in favor of
+          # client_id (to be added).
+          client_path = db.ClientPath.FromPathSpec(
+              metadata.client_urn.Basename(), stat_entry.pathspec)
+          pathspec_by_client_path[client_path] = stat_entry.pathspec
+
+        data_by_pathspec = {}
+        for chunk in file_store.StreamFilesChunks(pathspec_by_client_path):
+          pathspec = pathspec_by_client_path[chunk.client_path]
+          data_by_pathspec.setdefault(pathspec, []).append(chunk.data)
+
+      for metadata, stat_entry in fp_batch:
+        result = self._CreateExportedFile(metadata, stat_entry)
+
+        if self.options.export_files_contents:
+          try:
+            data = data_by_pathspec[stat_entry.pathspec]
+          except KeyError:
+            continue
+
+          result.content = b"".join(data)[:self.MAX_CONTENT_SIZE]
+          result.content_sha256 = hashlib.sha256(result.content).hexdigest()
+
+        yield result
+
   def BatchConvert(self, metadata_value_pairs, token=None):
     """Converts a batch of StatEntry value to ExportedFile values at once.
 
     Args:
       metadata_value_pairs: a list or a generator of tuples (metadata, value),
-                            where metadata is ExportedMetadata to be used for
-                            conversion and value is a StatEntry to be converted.
+        where metadata is ExportedMetadata to be used for conversion and value
+        is a StatEntry to be converted.
       token: Security token:
 
     Yields:
       Resulting ExportedFile values. Empty list is a valid result and means that
       conversion wasn't possible.
     """
-    filtered_pairs = self._RemoveRegistryKeys(metadata_value_pairs)
-    fds_dict = self._OpenFilesForRead(filtered_pairs, token=token)
-    for metadata, stat_entry in filtered_pairs:
-      result = self._CreateExportedFile(metadata, stat_entry)
+    if data_store.RelationalDBReadEnabled():
+      result_generator = self._BatchConvertRelational(metadata_value_pairs)
+    else:
+      result_generator = self._BatchConvertLegacy(
+          metadata_value_pairs, token=token)
 
-      if self.open_file_for_read:
-        try:
-          aff4_object = fds_dict[stat_entry.AFF4Path(metadata.client_urn)]
-          self._ExportHash(aff4_object, result)
-          self._ExportFileContent(aff4_object, result)
-        except KeyError:
-          pass
-      yield result
+    for r in result_generator:
+      yield r
 
 
 class StatEntryToExportedRegistryKeyConverter(ExportConverter):
@@ -818,8 +853,8 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
     file_pairs = []
     match_pairs = []
     for metadata, result in metadata_value_pairs:
-      if (result.stat_entry.pathspec.pathtype ==
-          rdf_paths.PathSpec.PathType.REGISTRY):
+      if (result.stat_entry.pathspec.pathtype == rdf_paths.PathSpec.PathType
+          .REGISTRY):
         registry_pairs.append((metadata, result.stat_entry))
       else:
         file_pairs.append((metadata, result))
@@ -885,7 +920,13 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
 
 
 class RDFURNConverter(ExportConverter):
-  """Follows RDFURN and converts its target object into a set of RDFValues."""
+  """Follows RDFURN and converts its target object into a set of RDFValues.
+
+  Note: This is DEPRECATED due to REL_DB and URN-less world migration.
+
+  TODO(user): remove this as soon as REL_DB becomes the main implementation
+  and URNs are gone.
+  """
 
   input_rdf_type = "RDFURN"
 
@@ -1079,9 +1120,8 @@ class GrrMessageConverter(ExportConverter):
 
     Args:
       metadata_value_pairs: a list or a generator of tuples (metadata, value),
-                            where metadata is ExportedMetadata to be used for
-                            conversion and value is a GrrMessage to be
-                            converted.
+        where metadata is ExportedMetadata to be used for conversion and value
+        is a GrrMessage to be converted.
       token: Security token.
 
     Returns:
@@ -1105,12 +1145,22 @@ class GrrMessageConverter(ExportConverter):
         metadata_to_fetch.append(client_urn)
 
     if metadata_to_fetch:
-      client_fds = aff4.FACTORY.MultiOpen(
-          metadata_to_fetch, mode="r", token=token)
+      if data_store.RelationalDBReadEnabled():
+        client_ids = set(urn.Basename() for urn in metadata_to_fetch)
+        infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
 
-      fetched_metadata = [
-          GetMetadata(client_fd, token=token) for client_fd in client_fds
-      ]
+        fetched_metadata = [
+            GetMetadata(client_id, info) for client_id, info in infos.items()
+        ]
+      else:
+        client_fds = aff4.FACTORY.MultiOpen(
+            metadata_to_fetch, mode="r", token=token)
+
+        fetched_metadata = [
+            GetMetadataLegacy(client_fd, token=token)
+            for client_fd in client_fds
+        ]
+
       for metadata in fetched_metadata:
         self.cached_metadata[metadata.client_urn] = metadata
       metadata_objects.extend(fetched_metadata)
@@ -1255,8 +1305,8 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
 
   def IsRegistryStatEntry(self, original_result):
     """Checks if given RDFValue is a registry StatEntry."""
-    return (original_result.pathspec.pathtype ==
-            rdf_paths.PathSpec.PathType.REGISTRY)
+    return (original_result.pathspec.pathtype == rdf_paths.PathSpec.PathType
+            .REGISTRY)
 
   def IsFileStatEntry(self, original_result):
     """Checks if given RDFValue is a file StatEntry."""
@@ -1382,6 +1432,7 @@ class RekallResponseConverter(ExportConverter):
 
     Args:
       message: Rekall message.
+
     Yields:
       Converted objects suitable for export.
     """
@@ -1404,7 +1455,8 @@ class RekallResponseConverter(ExportConverter):
 
     Args:
       parsed_messages: List of Rekall messages (every Rekall message is a list
-      itself with message type being the first element).
+        itself with message type being the first element).
+
     Yields:
       Converted objects suitable for export.
     """
@@ -1935,8 +1987,54 @@ class RekallResponseToExportedRekallKernelObjectConverter(
       pass
 
 
-def GetMetadata(client, token=None):
+def GetMetadata(client_id, client_full_info):
+  """Builds ExportedMetadata object for a given client id and ClientFullInfo."""
+
+  metadata = ExportedMetadata()
+
+  last_snapshot = None
+  if client_full_info.HasField("last_snapshot"):
+    last_snapshot = client_full_info.last_snapshot
+
+  metadata.client_urn = client_id
+  metadata.client_age = client_full_info.metadata.first_seen
+
+  if last_snapshot is not None:
+    kb = client_full_info.last_snapshot.knowledge_base
+
+    metadata.hostname = kb.fqdn
+    metadata.os = kb.os
+    metadata.uname = last_snapshot.Uname()
+    metadata.os_release = last_snapshot.os_release
+    metadata.os_version = last_snapshot.os_version
+    metadata.usernames = ",".join(user.username for user in kb.users)
+
+    addresses = last_snapshot.GetMacAddresses()
+    if addresses:
+      metadata.mac_address = last_snapshot.GetMacAddresses().pop()
+    metadata.hardware_info = last_snapshot.hardware_info
+    metadata.kernel_version = last_snapshot.kernel
+
+  system_labels = set()
+  user_labels = set()
+  for l in client_full_info.labels:
+    if l.owner == "GRR":
+      system_labels.add(l.name)
+    else:
+      user_labels.add(l.name)
+
+  metadata.labels = ",".join(sorted(system_labels | user_labels))
+  metadata.system_labels = ",".join(sorted(system_labels))
+  metadata.user_labels = ",".join(sorted(user_labels))
+
+  return metadata
+
+
+def GetMetadataLegacy(client, token=None):
   """Builds ExportedMetadata object for a given client id.
+
+  Note: This is a legacy aff4-only implementation.
+  TODO(user): deprecate as soon as REL_DB migration is done.
 
   Args:
     client: RDFURN of a client or VFSGRRClient object itself.
@@ -1956,27 +2054,26 @@ def GetMetadata(client, token=None):
   metadata.client_age = client_fd.urn.age
 
   metadata.hostname = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.HOSTNAME, u""))
+      client_fd.Get(client_fd.Schema.HOSTNAME, ""))
 
-  metadata.os = utils.SmartUnicode(client_fd.Get(client_fd.Schema.SYSTEM, u""))
+  metadata.os = utils.SmartUnicode(client_fd.Get(client_fd.Schema.SYSTEM, ""))
 
-  metadata.uname = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.UNAME, u""))
+  metadata.uname = utils.SmartUnicode(client_fd.Get(client_fd.Schema.UNAME, ""))
 
   metadata.os_release = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.OS_RELEASE, u""))
+      client_fd.Get(client_fd.Schema.OS_RELEASE, ""))
 
   metadata.os_version = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.OS_VERSION, u""))
+      client_fd.Get(client_fd.Schema.OS_VERSION, ""))
 
   kb = client_fd.Get(client_fd.Schema.KNOWLEDGE_BASE)
-  usernames = u""
+  usernames = ""
   if kb:
-    usernames = [user.username for user in kb.users] or u""
+    usernames = [user.username for user in kb.users] or ""
   metadata.usernames = utils.SmartUnicode(usernames)
 
   metadata.mac_address = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.MAC_ADDRESS, u""))
+      client_fd.Get(client_fd.Schema.MAC_ADDRESS, ""))
 
   system_labels = set()
   user_labels = set()
@@ -1986,11 +2083,11 @@ def GetMetadata(client, token=None):
     else:
       user_labels.add(l.name)
 
-  metadata.labels = u",".join(sorted(system_labels | user_labels))
+  metadata.labels = ",".join(sorted(system_labels | user_labels))
 
-  metadata.system_labels = u",".join(sorted(system_labels))
+  metadata.system_labels = ",".join(sorted(system_labels))
 
-  metadata.user_labels = u",".join(sorted(user_labels))
+  metadata.user_labels = ",".join(sorted(user_labels))
 
   metadata.hardware_info = client_fd.Get(client_fd.Schema.HARDWARE_INFO)
 
@@ -2003,12 +2100,13 @@ def ConvertValuesWithMetadata(metadata_value_pairs, token=None, options=None):
   """Converts a set of RDFValues into a set of export-friendly RDFValues.
 
   Args:
-    metadata_value_pairs: Tuples of (metadata, rdf_value), where metadata is
-                          an instance of ExportedMetadata and rdf_value is
-                          an RDFValue subclass instance to be exported.
+    metadata_value_pairs: Tuples of (metadata, rdf_value), where metadata is an
+      instance of ExportedMetadata and rdf_value is an RDFValue subclass
+      instance to be exported.
     token: Security token.
     options: rdfvalue.ExportOptions instance that will be passed to
-             ExportConverters.
+      ExportConverters.
+
   Yields:
     Converted values. Converted values may be of different types.
 
@@ -2046,13 +2144,14 @@ def ConvertValues(default_metadata, values, token=None, options=None):
   """Converts a set of RDFValues into a set of export-friendly RDFValues.
 
   Args:
-    default_metadata: export.ExportedMetadata instance with basic
-                      information about where the values come from.
-                      This metadata will be passed to exporters.
+    default_metadata: export.ExportedMetadata instance with basic information
+      about where the values come from. This metadata will be passed to
+      exporters.
     values: Values to convert. They should be of the same type.
     token: Security token.
     options: rdfvalue.ExportOptions instance that will be passed to
-             ExportConverters.
+      ExportConverters.
+
   Returns:
     Converted values. Converted values may be of different types
     (unlike the source values which are all of the same type). This is due to

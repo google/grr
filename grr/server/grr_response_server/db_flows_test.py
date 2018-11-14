@@ -299,9 +299,11 @@ class DatabaseTestFlowMixin(object):
         for _, responses in read:
           self.assertEqual(responses, {})
 
+  flow_processing_req_func = "WriteFlowProcessingRequests"
+
   def _WriteRequestForProcessing(self, client_id, flow_id, request_id):
     with mock.patch.object(self.db.delegate,
-                           "WriteFlowProcessingRequests") as req_func:
+                           self.flow_processing_req_func) as req_func:
 
       request = rdf_flow_objects.FlowRequest(
           flow_id=flow_id,

@@ -11,11 +11,10 @@ import shutil
 import stat
 
 
+from absl.testing import absltest
 from builtins import range  # pylint: disable=redefined-builtin
 import mock
 import psutil
-
-import unittest
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_client import client_plugins
@@ -544,7 +543,7 @@ class VFSTest(test_lib.GRRBaseTest):
     self.assertEqual(fd.size, 100000000)
 
 
-class VFSMultiOpenTest(unittest.TestCase):
+class VFSMultiOpenTest(absltest.TestCase):
 
   _VFS_OVERRIDER = vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                              files.File)

@@ -36,7 +36,6 @@ from grr_response_proto import tests_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import db
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
@@ -251,7 +250,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     with GRRSeleniumTest._selenium_set_up_lock:
       if not GRRSeleniumTest._selenium_set_up_done:
 
-        port = portpicker.PickUnusedPort()
+        port = portpicker.pick_unused_port()
         logging.info("Picked free AdminUI port %d.", port)
 
         # Start up a server in another thread
@@ -806,14 +805,16 @@ class RecursiveTestFlowMixin(object):
             next_state="End")
 
 
-class FlowWithOneLogStatement(flow.GRRFlow):
+@flow_base.DualDBFlow
+class FlowWithOneLogStatementMixin(object):
   """Flow that logs a single statement."""
 
   def Start(self):
     self.Log("I do log.")
 
 
-class FlowWithOneStatEntryResult(flow.GRRFlow):
+@flow_base.DualDBFlow
+class FlowWithOneStatEntryResultMixin(object):
   """Test flow that calls SendReply once with a StatEntry value."""
 
   def Start(self):
@@ -824,14 +825,16 @@ class FlowWithOneStatEntryResult(flow.GRRFlow):
                 pathtype=rdf_paths.PathSpec.PathType.OS)))
 
 
-class FlowWithOneNetworkConnectionResult(flow.GRRFlow):
+@flow_base.DualDBFlow
+class FlowWithOneNetworkConnectionResultMixin(object):
   """Test flow that calls SendReply once with a NetworkConnection value."""
 
   def Start(self):
     self.SendReply(rdf_client_network.NetworkConnection(pid=42))
 
 
-class FlowWithOneHashEntryResult(flow.GRRFlow):
+@flow_base.DualDBFlow
+class FlowWithOneHashEntryResultMixin(object):
   """Test flow that calls SendReply once with a HashEntry value."""
 
   def Start(self):

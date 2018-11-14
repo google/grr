@@ -44,7 +44,7 @@ def main(_):
       "Context applied when running the admin user interface GUI.")
   server_startup.Init()
 
-  if (not os.path.exists(
+  if not config.CONFIG["AdminUI.headless"] and (not os.path.exists(
       os.path.join(config.CONFIG["AdminUI.document_root"],
                    "dist/grr-ui.bundle.js")) or not os.path.exists(
                        os.path.join(config.CONFIG["AdminUI.document_root"],

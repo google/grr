@@ -13,6 +13,10 @@ from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
+# TODO(user): find a uniform way to register client specific classes
+# needed for tests. We shouldn't do this at import time, but rather fill
+# registries at runtime.
+from grr_response_client.vfs_handlers import registry_init  # pylint: disable=unused-import
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client

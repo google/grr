@@ -61,7 +61,10 @@ class InMemoryDBClientMixin(object):
     """Reads ClientMetadata records for a list of clients."""
     res = {}
     for client_id in client_ids:
-      md = self.metadatas.get(client_id, {})
+      md = self.metadatas.get(client_id, None)
+      if md is None:
+        continue
+
       res[client_id] = rdf_objects.ClientMetadata(
           certificate=md.get("certificate"),
           fleetspeak_enabled=md.get("fleetspeak_enabled"),
@@ -119,7 +122,11 @@ class InMemoryDBClientMixin(object):
     """Reads full client information for a list of clients."""
     res = {}
     for client_id in client_ids:
-      md = self.ReadClientMetadata(client_id)
+      try:
+        md = self.ReadClientMetadata(client_id)
+      except db.UnknownClientError:
+        continue
+
       if md and min_last_ping and md.ping < min_last_ping:
         continue
       res[client_id] = rdf_objects.ClientFullInfo(

@@ -312,7 +312,7 @@ def StartAFF4Flow(args=None,
 
 
 def StartFlow(client_id=None,
-              cpu_limit=7200,
+              cpu_limit=None,
               creator=None,
               flow_args=None,
               flow_cls=None,
@@ -406,17 +406,20 @@ def StartFlow(client_id=None,
   logging.info(u"Scheduling %s(%s) on %s", rdf_flow.long_flow_id,
                rdf_flow.flow_class_name, client_id)
 
+  rdf_flow.current_state = "Start"
+
   flow_obj = flow_cls(rdf_flow)
   # Just run the first state inline. NOTE: Running synchronously means
   # that this runs on the thread that starts the flow. The advantage is
   # that that Start method can raise any errors immediately.
   flow_obj.Start()
-  flow_obj.PersistState()
 
   # The flow does not need to actually remain running.
   if not flow_obj.outstanding_requests:
     flow_obj.RunStateMethod("End")
     flow_obj.MarkDone()
+
+  flow_obj.PersistState()
 
   data_store.REL_DB.WriteFlowObject(flow_obj.rdf_flow)
 

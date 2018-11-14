@@ -7,8 +7,6 @@ from __future__ import unicode_literals
 import getpass
 import os
 import re
-# importing readline enables the raw_input calls to have history etc.
-import readline  # pylint: disable=unused-import
 import socket
 import subprocess
 import sys
@@ -32,13 +30,19 @@ from grr_response_core import config as grr_config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import repacking
-from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import access_control
 from grr_response_server import aff4
-from grr_response_server import key_utils
 from grr_response_server import maintenance_utils
 from grr_response_server import server_startup
+from grr_response_server.bin import config_updater_keys_util
+
+try:
+  # Importing readline enables the raw_input calls to have history etc.
+  import readline  # pylint: disable=unused-import,g-bad-import-order,g-import-not-at-top
+except ImportError:
+  # readline is not bundled with Python on Windows. Simply ignoring failing
+  # import then.
+  pass
 
 # These control retry behavior when checking that GRR can connect to
 # MySQL during config initialization.
@@ -77,57 +81,6 @@ def ImportConfig(filename, config):
     except Exception as e:  # pylint: disable=broad-except
       print("Exception during import of %s: %s" % (entry, e))
   return options_imported
-
-
-def GenerateCSRFKey(config):
-  """Update a config with a random csrf key."""
-  secret_key = config.Get("AdminUI.csrf_secret_key", None)
-  if not secret_key:
-    # TODO(amoser): Remove support for django_secret_key.
-    secret_key = config.Get("AdminUI.django_secret_key", None)
-    if secret_key:
-      config.Set("AdminUI.csrf_secret_key", secret_key)
-
-  if not secret_key:
-    key = utils.GeneratePassphrase(length=100)
-    config.Set("AdminUI.csrf_secret_key", key)
-  else:
-    print("Not updating csrf key as it is already set.")
-
-
-def GenerateKeys(config, overwrite_keys=False):
-  """Generate the keys we need for a GRR server."""
-  if not hasattr(key_utils, "MakeCACert"):
-    raise RuntimeError("Generate keys can only run with open source key_utils.")
-  if (config.Get("PrivateKeys.server_key", default=None) and
-      not overwrite_keys):
-    print(config.Get("PrivateKeys.server_key"))
-    raise RuntimeError("Config %s already has keys, use --overwrite_keys to "
-                       "override." % config.parser)
-
-  length = grr_config.CONFIG["Server.rsa_key_length"]
-  print("All keys will have a bit length of %d." % length)
-  print("Generating executable signing key")
-  executable_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=length)
-  config.Set("PrivateKeys.executable_signing_private_key",
-             executable_key.AsPEM())
-  config.Set("Client.executable_signing_public_key",
-             executable_key.GetPublicKey().AsPEM())
-
-  print("Generating CA keys")
-  ca_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=length)
-  ca_cert = key_utils.MakeCACert(ca_key)
-  config.Set("CA.certificate", ca_cert.AsPEM())
-  config.Set("PrivateKeys.ca_key", ca_key.AsPEM())
-
-  print("Generating Server keys")
-  server_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=length)
-  server_cert = key_utils.MakeCASignedCert(u"grr", server_key, ca_cert, ca_key)
-  config.Set("Frontend.certificate", server_cert.AsPEM())
-  config.Set("PrivateKeys.server_key", server_key.AsPEM())
-
-  print("Generating secret key for csrf protection.")
-  GenerateCSRFKey(config)
 
 
 def RetryQuestion(question_text, output_re="", default_val=None):
@@ -422,8 +375,8 @@ def InstallTemplatePackage():
 
   # Install the GRR server component to satisfy the dependency below.
   major_minor_version = ".".join(
-      pkg_resources.get_distribution("grr-response-core").version.split(".")[0:
-                                                                             2])
+      pkg_resources.get_distribution("grr-response-core").version.split(".")
+      [0:2])
   # Note that this version spec requires a recent version of pip
   subprocess.check_call([
       sys.executable, pip, "install", "--upgrade", "-f",
@@ -519,10 +472,10 @@ def Initialize(config=None, token=None):
     # pytype: disable=wrong-arg-count
     if (builtins.input("You already have keys in your config, do you want to"
                        " overwrite them? [yN]: ").upper() or "N") == "Y":
-      GenerateKeys(config, overwrite_keys=True)
+      config_updater_keys_util.GenerateKeys(config, overwrite_keys=True)
     # pytype: enable=wrong-arg-count
   else:
-    GenerateKeys(config)
+    config_updater_keys_util.GenerateKeys(config)
 
   FinalizeConfigInit(config, token)
 
@@ -590,7 +543,7 @@ def InitializeNoPrompt(config=None, token=None):
     raise ConfigInitError()
   for key, value in iteritems(config_dict):
     config.Set(key, value)
-  GenerateKeys(config)
+  config_updater_keys_util.GenerateKeys(config)
   FinalizeConfigInit(config, token)
 
 

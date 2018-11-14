@@ -8,9 +8,8 @@ import logging
 import time
 
 
+from absl.testing import absltest
 from future.utils import with_metaclass
-
-import unittest
 
 from grr_api_client import errors
 from grr_response_core.lib import flags
@@ -92,6 +91,7 @@ class EndToEndTestMetaclass(abc.ABCMeta):
 
 
 class WaitForNewFileContextManager(object):
+  """A context manager class that waits for a new file."""
 
   CHECK_TYPE_IS_PRESENT = 0
   CHECK_TYPE_LAST_COLLECTED = 1
@@ -152,7 +152,7 @@ class RunFlowAndWaitError(Error):
 init_fn = lambda: (None, None)
 
 
-class EndToEndTest(with_metaclass(EndToEndTestMetaclass, unittest.TestCase)):
+class EndToEndTest(with_metaclass(EndToEndTestMetaclass, absltest.TestCase)):
   """This is a end-to-end test base class."""
 
   class Platform(object):
@@ -219,6 +219,7 @@ class EndToEndTest(with_metaclass(EndToEndTestMetaclass, unittest.TestCase)):
 
 
 class AbstractFileTransferTest(EndToEndTest):
+  """An abstract class for file transfer tests."""
 
   def ReadFromFile(self, path, num_bytes):
     s = io.BytesIO()

@@ -67,7 +67,6 @@ class TestClientLoadView(TestInspectViewBase):
 
     self.Open("/#/clients/%s/load-stats" % self.client_id)
     self.WaitUntil(self.IsTextPresent, processes.ListProcesses.__name__)
-    self.WaitUntil(self.IsTextPresent, "Task id")
     self.WaitUntil(self.IsTextPresent, "Leased until")
 
 
@@ -97,7 +96,6 @@ class TestDebugClientRequestsView(TestInspectViewBase):
     self.WaitUntil(self.IsTextPresent, "EnumerateInterfaces")
     self.WaitUntil(self.IsTextPresent, "GENERIC_ERROR")
     self.WaitUntil(self.IsTextPresent, "STATUS")
-    self.WaitUntil(self.IsTextPresent, "Task id")
 
 
 if __name__ == "__main__":

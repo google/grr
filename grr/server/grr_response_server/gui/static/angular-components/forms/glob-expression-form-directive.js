@@ -2,125 +2,74 @@ goog.module('grrUi.forms.globExpressionFormDirective');
 goog.module.declareLegacyNamespace();
 
 
+/**
+ * Return a list of autocomplete suggestions that include a search term,
+ * delimited by %%.
+ *
+ * This function returns all suggestions, that include the rightmost search
+ * term, stripped from %%. No suggestions are returned if the search string
+ * contains no open term (thus: all opening %% have a pair of closing %%).
+ *
+ * @param {string} expression the expression string, containing terms
+ * delimited by %% e.g. '/bar/%%fq'
+ * @param {!Array<string>} entries - strings used for autocompletion
+ *
+ * @return {!Array<{stringWithSuggestion: string, suggestion: string}>}
+ *   - suggestion {string} the raw suggestion, e.g. '%%fqdn%%'
+ *   - expressionWithSuggestion {string} the expression string with an
+ *     applied suggestion, e.g. '/bar/%%fqdn%%'. This string can be used
+ *     to replace the full contents of the input field, if the user chooses
+ *     a suggestion.
+ */
+exports.getSuggestions = function(expression, entries) {
+  const DELIMITER = '%%';
+
+  // no autocomplete if query or entries are empty, null, or undefined
+  if (!expression || !entries) return [];
+
+  // no autocomplete if there is no open term, which is indicated by
+  // an even number of DELIMITERS, which in turn equals an odd number of parts.
+  const parts = expression.split(DELIMITER);
+  if (parts.length % 2 === 1) return [];
+
+  // Remove a single, trailing % from term, to keep the autocompletion visible
+  // while the user finishes writing the closing %% delimiter.
+  const term = parts.pop().replace(/%$/, '');
+  const prefix = parts.join(DELIMITER);
+
+  return entries.filter(field => field.includes(term))
+      .map(field => DELIMITER + field + DELIMITER)
+      .map(
+          field =>
+              ({expressionWithSuggestion: prefix + field, suggestion: field}));
+};
+
 
 /**
  * Controller for GlobExpressionFormDirective.
  *
  * @constructor
- * @param {!angular.jQuery} $element
- * @param {!angular.$interval} $interval
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!angular.Scope} $scope
  * @ngInject
  */
-const GlobExpressionFormController = function(
-    $element, $interval, grrApiService) {
+const GlobExpressionFormController = function(grrApiService, $scope) {
+  this.fields = [];
 
-  /** @private {!angular.jQuery} */
-  this.element_ = $element;
-
-  /** @private {!angular.$interval} */
-  this.interval_ = $interval;
-
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
-
-  this.grrApiService_.get('/clients/kb-fields').then(
-      this.onGetFields_.bind(this));
+  grrApiService
+      .get('/clients/kb-fields')
+      .then(res => res.data.items.map(item => item.value))
+      .then(fields => this.fields = fields);
 };
 
 
 /**
- * A filter function which matches the start of the completion list.
- *
- * @param {Array} completions the completion list
- * @param {string} term is the term to match.
- *
- * @return {Array} a list of matches.
- * @private
+ * @see exports.getSuggestions
+ * @param {string} expression
+ * @return {Array<{stringWithSuggestion: string, suggestion: string}>!}
  */
-GlobExpressionFormController.prototype.completionFilter_ = function(
-    completions, term) {
-  var matcher = new RegExp('^' +
-      $['ui']['autocomplete']['escapeRegex'](term), 'i');
-  return $['grep'](completions, function(value) {
-    return matcher.test(value.label || value.value || value);
-  });
-};
-
-/**
- * Build a completer on top of a text input.
- *
- * @param {string|Element|null|jQuery} element is the DOM id of the text input
- *     field or the DOM element itself.
- * @param {Array} completions are possible completions for %% sequences.
- *
- * @private
- */
-GlobExpressionFormController.prototype.buildCompleter_ = function(
-    element, completions) {
-  if (angular.isString(element)) {
-    element = $('#' + element);
-  }
-
-  // TODO(user): rewrite with Angular, drop jQuery UI dependency.
-  var self = this;
-  element.bind('keydown', function(event) {
-    if (event.keyCode === $['ui']['keyCode']['TAB'] &&
-        $(this).data('ui-autocomplete')['menu']['active']) {
-      event.preventDefault();
-    }
-  })['autocomplete']({
-    minLength: 0,
-    source: function(request, response) {
-      var terms = request['term'].split(/%%/);
-      if (terms.length % 2) {
-        response([]);
-      } else {
-        response(self.completionFilter_(completions, terms.pop()));
-      }
-    },
-    focus: function() {
-      // prevent value inserted on focus
-      return false;
-    },
-    select: function(event, ui) {
-      var terms = this.value.split(/%%/);
-      // remove the current input
-      terms.pop();
-
-      // add the selected item
-      terms.push(ui.item.value);
-      terms.push('');
-
-      this.value = terms.join('%%');
-      // Angular code has to be notificed of the change.
-      $(this).change();
-      return false;
-    }
-  }).wrap('<abbr title="Type %% to open a list of possible completions."/>');
-};
-
-
-/**
- * Handles /clients/kb-fields response.
- *
- * @param {!Object} response
- * @private
- */
-GlobExpressionFormController.prototype.onGetFields_ = function(response) {
-  var fieldsNames = [];
-  angular.forEach(response['data']['items'], function(field) {
-    fieldsNames.push(field['value']);
-  }.bind(this));
-
-  var intervalPromise = this.interval_(function() {
-    var inputBox = $(this.element_).find('input');
-    if (inputBox) {
-      this.buildCompleter_(inputBox, fieldsNames);
-
-      this.interval_.cancel(intervalPromise);
-    }
-  }.bind(this), 500, 10);
+GlobExpressionFormController.prototype.getSuggestions = function(expression) {
+  return exports.getSuggestions(expression, this.fields);
 };
 
 

@@ -214,8 +214,9 @@ class RelationalServerCommunicator(communicator.Communicator):
       stats_collector_instance.Get().IncrementCounter(
           "grr_pub_key_cache", fields=["misses"])
 
-    md = data_store.REL_DB.ReadClientMetadata(remote_client_id)
-    if not md:
+    try:
+      md = data_store.REL_DB.ReadClientMetadata(remote_client_id)
+    except db.UnknownClientError:
       stats_collector_instance.Get().IncrementCounter("grr_unique_clients")
       raise communicator.UnknownClientCert("Cert not found")
 

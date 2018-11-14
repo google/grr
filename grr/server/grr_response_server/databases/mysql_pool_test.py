@@ -3,17 +3,17 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from absl.testing import absltest
 from builtins import range  # pylint: disable=redefined-builtin
 import mock
 import MySQLdb
 
-import unittest
 from grr_response_core.lib import flags
 from grr_response_server.databases import mysql_pool
 from grr.test_lib import test_lib
 
 
-class TestPool(unittest.TestCase):
+class TestPool(absltest.TestCase):
 
   def testMaxSize(self):
     mocks = []

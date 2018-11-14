@@ -2,8 +2,6 @@
 """Helper functions and classes for use by tests."""
 from __future__ import absolute_import
 
-import re
-
 import yaml
 
 from grr_response_client import comms
@@ -26,4 +24,4 @@ def GetClientId(writeback_file):
     raise PrivateKeyNotFoundException
   pkey = rdf_crypto.RSAPrivateKey(serialized_pkey)
   client_urn = comms.ClientCommunicator(private_key=pkey).common_name
-  return re.sub("^aff4:/", "", client_urn.SerializeToString())
+  return client_urn.Basename()

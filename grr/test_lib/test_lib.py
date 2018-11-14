@@ -18,13 +18,13 @@ import time
 import unittest
 
 
+from absl.testing import absltest
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
 import mock
 import pkg_resources
 
-import unittest
 from grr_response_client import comms
 from grr_response_core import config
 from grr_response_core.lib import flags
@@ -55,7 +55,7 @@ FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
 TEST_CLIENT_ID = rdf_client.ClientURN("C.1000000000000000")
 
 
-class GRRBaseTest(unittest.TestCase):
+class GRRBaseTest(absltest.TestCase):
   """This is the base class for all GRR tests."""
 
   use_relational_reads = False
@@ -880,4 +880,4 @@ def main(argv=None):
   del argv  # Unused.
   flags.Initialize()
   testing_startup.TestInit()
-  unittest.main()
+  absltest.main()

@@ -262,7 +262,6 @@ class ApiFile(rdf_structs.RDFProtoStruct):
 
     type_obj = file_obj.Get(file_obj.Schema.TYPE)
     if type_obj is not None:
-      self.type = type_obj
       self.age = type_obj.age
 
     if with_details:
@@ -596,8 +595,12 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
       # ever been observed as a directory. Is this what we want here or should
       # we use `st_mode` information instead?
       child_item.is_directory = child_path_info.directory
-      child_item.stat = child_path_info.stat_entry
+      if child_path_info.stat_entry:
+        child_item.stat = child_path_info.stat_entry
       child_item.age = child_path_info.timestamp
+
+      child_item.last_collected = child_path_info.last_hash_entry_timestamp
+      child_item.last_collected_size = child_path_info.hash_entry.num_bytes
 
       items.append(child_item)
 
@@ -1078,16 +1081,35 @@ class ApiGetVfsRefreshOperationStateHandler(
   args_type = ApiGetVfsRefreshOperationStateArgs
   result_type = ApiGetVfsRefreshOperationStateResult
 
+  def _RaiseOperationNotFoundError(self, args):
+    raise VfsRefreshOperationNotFoundError(
+        "Operation with id %s not found" % args.operation_id)
+
   def Handle(self, args, token=None):
-    flow_obj = aff4.FACTORY.Open(args.operation_id, token=token)
+    if data_store.RelationalDBFlowsEnabled():
+      flow_id = args.operation_id.split("/")[-1]
+      try:
+        rdf_flow = data_store.REL_DB.ReadFlowObject(
+            unicode(args.client_id), flow_id)
+      except db.UnknownFlowError:
+        self._RaiseOperationNotFoundError(args)
 
-    if not isinstance(
-        flow_obj,
-        (aff4_flows.RecursiveListDirectory, aff4_flows.ListDirectory)):
-      raise VfsRefreshOperationNotFoundError(
-          "Operation with id %s not found" % args.operation_id)
+      if rdf_flow.flow_class_name not in [
+          "RecursiveListDirectory", "ListDirectory"
+      ]:
+        self._RaiseOperationNotFoundError(args)
 
-    complete = not flow_obj.GetRunner().IsRunning()
+      complete = rdf_flow.flow_state != "RUNNING"
+    else:
+      flow_obj = aff4.FACTORY.Open(args.operation_id, token=token)
+
+      if not isinstance(
+          flow_obj,
+          (aff4_flows.RecursiveListDirectory, aff4_flows.ListDirectory)):
+        self._RaiseOperationNotFoundError(args)
+
+      complete = not flow_obj.GetRunner().IsRunning()
+
     result = ApiGetVfsRefreshOperationStateResult()
     if complete:
       result.state = ApiGetVfsRefreshOperationStateResult.State.FINISHED

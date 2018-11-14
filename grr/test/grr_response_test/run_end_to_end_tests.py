@@ -43,6 +43,11 @@ flags.DEFINE_list("filenames_excluded_from_log", ["connectionpool.py"],
 flags.DEFINE_bool("upload_test_binaries", True,
                   "Whether to upload executables needed by some e2e tests.")
 
+flags.DEFINE_list(
+    "ignore_test_context", False,
+    "When set, run_end_to_end_tests doesn't load the config with a "
+    "default 'Test Context' added.")
+
 
 class E2ELogFilter(logging.Filter):
   """Logging filter that excludes log messages for particular files."""
@@ -53,7 +58,11 @@ class E2ELogFilter(logging.Filter):
 
 def main(argv):
   del argv  # Unused.
-  config.CONFIG.AddContext(contexts.TEST_CONTEXT, "Context for running tests.")
+
+  if not flags.FLAGS.ignore_test_context:
+    config.CONFIG.AddContext(contexts.TEST_CONTEXT,
+                             "Context for running tests.")
+
   server_startup.Init()
   for handler in logging.getLogger().handlers:
     handler.addFilter(E2ELogFilter())

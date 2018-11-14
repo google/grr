@@ -2,8 +2,7 @@ goog.module('grrUi.acl.requestApprovalDialogDirectiveTest');
 goog.setTestOnly();
 
 const {aclModule} = goog.require('grrUi.acl.acl');
-const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-
+const {browserTriggerEvent, testsModule, stubDirective} = goog.require('grrUi.tests');
 
 describe('request approval dialog', () => {
   let $compile;
@@ -13,7 +12,6 @@ describe('request approval dialog', () => {
   let dismissSpy;
   let grrApiService;
 
-
   beforeEach(module('/static/angular-components/acl/' +
       'request-approval-dialog.html'));
   beforeEach(module('/static/angular-components/core/' +
@@ -21,6 +19,8 @@ describe('request approval dialog', () => {
 
   beforeEach(module(aclModule.name));
   beforeEach(module(testsModule.name));
+
+  stubDirective('grrApproverInput');
 
   beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
@@ -53,6 +53,13 @@ describe('request approval dialog', () => {
 
         return element;
       });
+
+  const setApproverInput = (element, value) => {
+    const valueElement = element.find('grr-approver-input');
+    const valueAttr = valueElement.attr('ng-model');
+    const expression = `${valueAttr} = "${value}"`;
+    valueElement.scope().$eval(expression);
+  };
 
   let approvals;
   let clientApprovalRequest;
@@ -158,8 +165,7 @@ describe('request approval dialog', () => {
     const element =
         renderTestTemplate('client', 'foo/bar', clientApprovalRequest);
 
-    $('input[name=acl_approver]', element).val('foo');
-    browserTriggerEvent($('input[name=acl_approver]', element), 'change');
+    setApproverInput(element, 'foo');
 
     $('input[name=acl_reason]', element).val('bar');
     browserTriggerEvent($('input[name=acl_reason]', element), 'change');
@@ -186,8 +192,7 @@ describe('request approval dialog', () => {
     const element =
         renderTestTemplate('client', 'foo/bar', clientApprovalRequest);
 
-    $('input[name=acl_approver]', element).val('foo');
-    browserTriggerEvent($('input[name=acl_approver]', element), 'change');
+    setApproverInput(element, 'foo');
 
     $('input[name=acl_reason]', element).val('bar');
     browserTriggerEvent($('input[name=acl_reason]', element), 'change');
@@ -217,8 +222,7 @@ describe('request approval dialog', () => {
     const element =
         renderTestTemplate('client', 'foo/bar', clientApprovalRequest);
 
-    $('input[name=acl_approver]', element).val('foo');
-    browserTriggerEvent($('input[name=acl_approver]', element), 'change');
+    setApproverInput(element, 'foo');
 
     $('input[name=acl_reason]', element).val('bar');
     browserTriggerEvent($('input[name=acl_reason]', element), 'change');

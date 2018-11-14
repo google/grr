@@ -2,13 +2,13 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from absl.testing import absltest
 from future.builtins import range
 
-import unittest
 from grr_response_core.lib.util import collection
 
 
-class TrimTest(unittest.TestCase):
+class TrimTest(absltest.TestCase):
 
   def testEmpty(self):
     lst = []
@@ -41,7 +41,7 @@ class TrimTest(unittest.TestCase):
     self.assertEqual(clipping, [1, 2, 3])
 
 
-class GroupTest(unittest.TestCase):
+class GroupTest(absltest.TestCase):
 
   def testEmpty(self):
     result = collection.Group([], key=lambda _: None)
@@ -73,7 +73,7 @@ class GroupTest(unittest.TestCase):
     self.assertEqual(result, expected)
 
 
-class BatchTest(unittest.TestCase):
+class BatchTest(absltest.TestCase):
 
   def testEmpty(self):
     batches = list(collection.Batch([], 10))
@@ -92,7 +92,7 @@ class BatchTest(unittest.TestCase):
     self.assertEqual(batches, [[None] * 20])
 
 
-class StartsWithTest(unittest.TestCase):
+class StartsWithTest(absltest.TestCase):
 
   def testEmptyStartsWithEmpty(self):
     self.assertTrue(collection.StartsWith([], []))
@@ -124,4 +124,4 @@ class StartsWithTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

@@ -8,6 +8,7 @@ from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import file_finder
 
@@ -19,7 +20,8 @@ class ListProcessesArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ListProcesses(flow.GRRFlow):
+@flow_base.DualDBFlow
+class ListProcessesMixin(object):
   """List running processes on a system."""
 
   category = "/Processes/"

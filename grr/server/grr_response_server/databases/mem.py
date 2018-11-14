@@ -10,6 +10,7 @@ import threading
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import db
+from grr_response_server.databases import mem_artifacts
 from grr_response_server.databases import mem_blobs
 from grr_response_server.databases import mem_clients
 from grr_response_server.databases import mem_cronjobs
@@ -17,18 +18,21 @@ from grr_response_server.databases import mem_events
 from grr_response_server.databases import mem_flows
 from grr_response_server.databases import mem_foreman_rules
 from grr_response_server.databases import mem_paths
+from grr_response_server.databases import mem_stats
 from grr_response_server.databases import mem_users
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 # pyformat: disable
-class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
+class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
+                 mem_blobs.InMemoryDBBlobsMixin,
                  mem_clients.InMemoryDBClientMixin,
                  mem_cronjobs.InMemoryDBCronJobMixin,
                  mem_events.InMemoryDBEventMixin,
                  mem_flows.InMemoryDBFlowMixin,
                  mem_foreman_rules.InMemoryDBForemanRulesMixin,
                  mem_paths.InMemoryDBPathMixin,
+                 mem_stats.InMemoryDBStatsMixin,
                  mem_users.InMemoryDBUsersMixin,
                  db.Database):
   """An in memory database implementation used for testing."""
@@ -40,6 +44,7 @@ class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
     self.lock = threading.RLock()
 
   def _Init(self):
+    self.artifacts = {}
     self.approvals_by_username = {}
     self.clients = {}
     self.client_messages = {}
@@ -89,6 +94,7 @@ class InMemoryDB(mem_blobs.InMemoryDBBlobsMixin,
     self.flow_handler_target = None
     self.flow_handler_thread = None
     self.flow_handler_stop = True
+    self.stats_store_entries = {}
 
   @utils.Synchronized
   def ClearTestDB(self):

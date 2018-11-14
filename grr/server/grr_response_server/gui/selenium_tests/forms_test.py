@@ -4,6 +4,7 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from selenium.webdriver.common import keys
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -11,6 +12,7 @@ from grr_response_proto import tests_pb2
 from grr_response_server import flow
 from grr_response_server.flows.general import file_finder as flows_file_finder
 from grr_response_server.gui import gui_test_lib
+from grr_response_server.gui.api_plugins import user as user_plugin
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
@@ -105,6 +107,45 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsElementPresent,
                    "css=input[placeholder*='Type %% for autocompletion']")
+
+  def testApproverInputShowsAutocompletion(self):
+    self.CreateUser("sanchezrick")
+
+    # add decoy user, to assure that autocompletion results are based on the
+    # query
+    self.CreateUser("aaa")
+
+    client_id = self.SetupClient(0).Basename()
+    self.Open("/#/clients/%s/host-info" % client_id)
+
+    # We do not have an approval, so we need to request one.
+    self.Click("css=button[name=requestApproval]")
+
+    input_selector = "css=grr-approver-input input"
+
+    self.Type(input_selector, "sanchez")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=[uib-typeahead-popup]:contains(sanchezrick)")
+
+    self.GetElement(input_selector).send_keys(keys.Keys.ENTER)
+
+    self.WaitUntilEqual("sanchezrick, ", self.GetValue,
+                        input_selector + ":text")
+
+    self.Type("css=grr-request-approval-dialog input[name=acl_reason]", "Test")
+    self.Click(
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
+
+    # "Request Approval" dialog should go away
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
+
+    handler = user_plugin.ApiListClientApprovalsHandler()
+    args = user_plugin.ApiListClientApprovalsArgs(client_id=client_id)
+    res = handler.Handle(args=args, token=self.token)
+    self.assertLen(res.items, 1)
+    self.assertLen(res.items[0].notified_users, 1)
+    self.assertEqual(res.items[0].notified_users[0], "sanchezrick")
 
 
 class TestFormsValidation(gui_test_lib.GRRSeleniumTest):

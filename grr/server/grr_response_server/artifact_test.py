@@ -154,6 +154,7 @@ class RekallMock(action_mocks.MemoryClientMock):
     return [result]
 
 
+@db_test_lib.DualDBTest
 class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
   """Helper class for tests using artifacts."""
 
@@ -211,6 +212,7 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
     return flow_test_lib.GetFlowResults(client_id, session_id)
 
 
+@db_test_lib.DualDBTest
 class GRRArtifactTest(ArtifactTest):
 
   def testUploadArtifactYamlFileAndDumpToYaml(self):

@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
@@ -74,3 +75,12 @@ class StatsStoreValue(rdf_structs.RDFProtoStruct):
       raise ValueError("Invalid value type %d." % value_type)
 
     self.value_type = value_type
+
+
+class StatsStoreEntry(rdf_structs.RDFProtoStruct):
+  """Represents a single entry/row in the StatsEntries table."""
+  protobuf = jobs_pb2.StatsStoreEntry
+  rdf_deps = [
+      StatsStoreValue,
+      rdfvalue.RDFDatetime,
+  ]

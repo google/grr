@@ -600,8 +600,8 @@ class DatabaseTestClientsMixin(object):
     change_time = rdfvalue.RDFDatetime.Now()
     d.AddClientKeywords(client_id, ["hostname2"])
 
-    res = d.ListClientsForKeywords(
-        ["hostname1", "hostname2"], start_time=change_time)
+    res = d.ListClientsForKeywords(["hostname1", "hostname2"],
+                                   start_time=change_time)
     self.assertEqual(res["hostname1"], [])
     self.assertEqual(res["hostname2"], [client_id])
 
@@ -943,8 +943,8 @@ class DatabaseTestClientsMixin(object):
 
       cl = rdf_objects.ClientSnapshot(
           client_id=client_id,
-          knowledge_base=rdf_client.KnowledgeBase(fqdn="test%d.examples.com" %
-                                                  i),
+          knowledge_base=rdf_client.KnowledgeBase(
+              fqdn="test%d.examples.com" % i),
           kernel="12.3.%d" % i)
       self.db.WriteClientSnapshot(cl)
       self.db.WriteClientMetadata(client_id, certificate=CERT)
@@ -1023,3 +1023,24 @@ class DatabaseTestClientsMixin(object):
     full_infos = d.MultiReadClientFullInfo(
         list(iterkeys(client_ids_to_ping)), min_last_ping=cutoff_time)
     self.assertItemsEqual(expected_client_ids, full_infos)
+
+  def testMultiReadClientsFullInfoSkipsMissingClients(self):
+    d = self.db
+
+    present_client_id = "C.fc413187fefa1dcf"
+    # Typical initial FS enabled write
+    d.WriteClientMetadata(present_client_id, fleetspeak_enabled=True)
+
+    missing_client_id = "C.00413187fefa1dcf"
+
+    full_infos = d.MultiReadClientFullInfo(
+        [present_client_id, missing_client_id])
+    self.assertEqual(full_infos.keys(), [present_client_id])
+
+  def testReadClientMetadataRaisesWhenClientIsMissing(self):
+    with self.assertRaises(db.UnknownClientError):
+      self.db.ReadClientMetadata("C.00413187fefa1dcf")
+
+  def testReadClientFullInfoRaisesWhenClientIsMissing(self):
+    with self.assertRaises(db.UnknownClientError):
+      self.db.ReadClientFullInfo("C.00413187fefa1dcf")

@@ -312,6 +312,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def ListCronJobApprovals(self, args, token=None):
     return api_user.ApiListCronJobApprovalsHandler()
 
+  def ListApproverSuggestions(self, args, token=None):
+    return api_user.ApiListApproverSuggestionsHandler()
+
   # User settings methods.
   # =====================
   #

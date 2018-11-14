@@ -72,6 +72,7 @@ gulp.task('compile-third-party-js', function() {
                    config.nodeModulesDir + '/angular-animate/angular-animate.js',
                    config.nodeModulesDir + '/angular-cookies/angular-cookies.js',
                    config.nodeModulesDir + '/angular-resource/angular-resource.js',
+                   config.nodeModulesDir + '/angular-sanitize/angular-sanitize.js',
 
                    config.nodeModulesDir + '/angular-ui-bootstrap/dist/ui-bootstrap-tpls.js',
                    config.nodeModulesDir + '/angular-ui-router/release/angular-ui-router.js',
@@ -85,7 +86,6 @@ gulp.task('compile-third-party-js', function() {
                    config.nodeModulesDir + '/Flot/jquery.flot.stack.js',
                    config.nodeModulesDir + '/Flot/jquery.flot.time.js',
 
-                   config.nodeModulesDir + '/jquery-ui-dist/jquery-ui.js',
                    config.nodeModulesDir + '/jstree/dist/jstree.js',
                    config.nodeModulesDir + '/moment/moment.js',
                    config.nodeModulesDir + '/marked/lib/marked.js',
@@ -97,20 +97,12 @@ gulp.task('compile-third-party-js', function() {
 });
 
 
-gulp.task('copy-jquery-ui-images', function() {
-  return gulp.src([config.nodeModulesDir + '/jquery-ui-dist/images/*.png'])
-      .pipe(gulpNewer(config.distDir + '/images'))
-      .pipe(gulp.dest(config.distDir + '/images'));
-});
-
-
 gulp.task('copy-fontawesome-fonts', function() {
   return gulp.src([config.nodeModulesDir + '/font-awesome/fonts/fontawesome-webfont.*'])
       .pipe(gulp.dest('fonts')); // TODO(user): should be copied to 'dist' folder.
 });
 
-gulp.task('copy-third-party-resources', ['copy-jquery-ui-images',
-                                         'copy-fontawesome-fonts'], function() {
+gulp.task('copy-third-party-resources', ['copy-fontawesome-fonts'], function() {
   return gulp.src([config.nodeModulesDir + '/jstree/dist/themes/default/*.gif',
                    config.nodeModulesDir + '/jstree/dist/themes/default/*.png',
                    config.nodeModulesDir + '/bootstrap/fonts/glyphicons-halflings-regular.*'])
@@ -137,8 +129,6 @@ gulp.task('compile-third-party-css', ['copy-third-party-resources',
                    config.nodeModulesDir + '/bootstrap/dist/css/bootstrap.css',
                    config.nodeModulesDir + '/angular-ui-bootstrap/dist/ui-bootstrap-csp.css',
                    config.nodeModulesDir + '/font-awesome/css/font-awesome.css',
-                   config.nodeModulesDir + '/jquery-ui-dist/jquery-ui.css',
-                   config.nodeModulesDir + '/jquery-ui-dist/jquery-ui-theme.css',
 
                    config.tempDir + '/grr-bootstrap.css',
                   ])

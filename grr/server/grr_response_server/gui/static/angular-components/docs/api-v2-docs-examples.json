@@ -186,7 +186,7 @@
           },
           "name": "ListProcesses",
           "runnerArgs": {
-            "notifyToUser": false
+            "notifyToUser": true
           }
         }
       },
@@ -204,8 +204,7 @@
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "ListProcesses",
-          "notifyToUser": false,
-          "originalFlow": {}
+          "notifyToUser": true
         },
         "startedAt": "42000000",
         "state": "RUNNING",
@@ -1379,7 +1378,7 @@
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "Interrogate",
-          "originalFlow": {}
+          "notifyToUser": true
         },
         "startedAt": "42000000",
         "state": "RUNNING",
@@ -1436,7 +1435,7 @@
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "Interrogate",
-          "originalFlow": {}
+          "notifyToUser": true
         },
         "startedAt": "42000000",
         "state": "ERROR",
@@ -1859,8 +1858,7 @@
           "name": "Interrogate",
           "runnerArgs": {
             "clientId": "aff4:/C.1000000000000000",
-            "flowName": "Interrogate",
-            "originalFlow": {}
+            "flowName": "Interrogate"
           },
           "startedAt": "42000000",
           "state": "RUNNING",
@@ -5461,6 +5459,34 @@
       "url": "/api/v2/users/me/notifications"
     }
   ],
+  "ApiListApproverSuggestionsHandler": [
+    {
+      "api_method": "ListApproverSuggestions",
+      "method": "GET",
+      "response": {},
+      "test_class": "ApiListApproverSuggestionsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/users/approver-suggestions?username_query=foo"
+    },
+    {
+      "api_method": "ListApproverSuggestions",
+      "method": "GET",
+      "response": {
+        "suggestions": [
+          {
+            "username": "sanchezmorty"
+          },
+          {
+            "username": "sanchezrick"
+          },
+          {
+            "username": "sanchezsummer"
+          }
+        ]
+      },
+      "test_class": "ApiListApproverSuggestionsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/users/approver-suggestions?username_query=sanchez"
+    }
+  ],
   "ApiListArtifactsHandler": [
     {
       "api_method": "ListArtifacts",
@@ -5520,8 +5546,7 @@
           {
             "clientAction": "ListProcesses",
             "leasedUntil": "10042000000",
-            "sessionId": "aff4:/C.1000000000000000/flows/F:123456",
-            "taskId": "43"
+            "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
           }
         ]
       },
@@ -5538,20 +5563,25 @@
             "leasedUntil": "10042000000",
             "responses": [
               {
-                "args": "CAo=",
-                "argsRdfName": "GrrStatus",
-                "authState": "AUTHENTICATED",
-                "name": "ListProcesses",
+                "args": "Ggx0ZXN0X3Byb2Nlc3M=",
+                "argsRdfName": "Process",
                 "requestId": "1",
                 "responseId": "1",
-                "sessionId": "aff4:/C.1000000000000000/flows/F:123456",
-                "taskId": "43",
+                "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF",
+                "timestamp": "42000000",
+                "type": "MESSAGE"
+              },
+              {
+                "args": "CAA=",
+                "argsRdfName": "GrrStatus",
+                "requestId": "1",
+                "responseId": "2",
+                "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF",
                 "timestamp": "42000000",
                 "type": "STATUS"
               }
             ],
-            "sessionId": "aff4:/C.1000000000000000/flows/F:123456",
-            "taskId": "43"
+            "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
           }
         ]
       },
@@ -6019,8 +6049,7 @@
             "lastCollected": "42000000",
             "lastCollectedSize": "11",
             "name": "bash",
-            "path": "fs/tsk/c/bin/bash",
-            "type": "VFSMemoryFile"
+            "path": "fs/tsk/c/bin/bash"
           },
           {
             "age": "42000000",
@@ -6028,8 +6057,7 @@
             "lastCollected": "42000000",
             "lastCollectedSize": "11",
             "name": "rbash",
-            "path": "fs/tsk/c/bin/rbash",
-            "type": "VFSMemoryFile"
+            "path": "fs/tsk/c/bin/rbash"
           }
         ]
       },
@@ -6047,8 +6075,7 @@
             "lastCollected": "42000000",
             "lastCollectedSize": "11",
             "name": "bash",
-            "path": "fs/tsk/c/bin/bash",
-            "type": "VFSMemoryFile"
+            "path": "fs/tsk/c/bin/bash"
           },
           {
             "age": "42000000",
@@ -6056,8 +6083,7 @@
             "lastCollected": "42000000",
             "lastCollectedSize": "11",
             "name": "rbash",
-            "path": "fs/tsk/c/bin/rbash",
-            "type": "VFSMemoryFile"
+            "path": "fs/tsk/c/bin/rbash"
           }
         ]
       },
@@ -6112,13 +6138,11 @@
         "items": [
           {
             "flowId": "W:ABCDEF",
-            "flowName": "ListProcesses",
             "logMessage": "Sample message: foo.",
             "timestamp": "52000000"
           },
           {
             "flowId": "W:ABCDEF",
-            "flowName": "ListProcesses",
             "logMessage": "Sample message: bar.",
             "timestamp": "55000000"
           }
@@ -6135,7 +6159,6 @@
         "items": [
           {
             "flowId": "W:ABCDEF",
-            "flowName": "ListProcesses",
             "logMessage": "Sample message: foo.",
             "timestamp": "52000000"
           }
@@ -6152,7 +6175,6 @@
         "items": [
           {
             "flowId": "W:ABCDEF",
-            "flowName": "ListProcesses",
             "logMessage": "Sample message: bar.",
             "timestamp": "55000000"
           }
@@ -6175,27 +6197,20 @@
               "clientId": "aff4:/C.1000000000000000",
               "id": 1,
               "nextState": "IterateProcesses",
-              "request": {
-                "cpuLimit": 7200.0,
-                "name": "ListProcesses",
-                "queue": "aff4:/C.1000000000000000/tasks",
-                "requestId": "1",
-                "requireFastpoll": true,
-                "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF",
-                "taskId": "42"
-              },
               "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
             },
             "responses": [
               {
-                "args": "CAo=",
-                "argsRdfName": "GrrStatus",
-                "authState": "AUTHENTICATED",
-                "name": "ListProcesses",
                 "requestId": "1",
                 "responseId": "1",
                 "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF",
-                "taskId": "42",
+                "timestamp": "42000000",
+                "type": "MESSAGE"
+              },
+              {
+                "requestId": "1",
+                "responseId": "2",
+                "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF",
                 "timestamp": "42000000",
                 "type": "STATUS"
               }
@@ -6259,7 +6274,7 @@
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "ListProcesses",
-              "originalFlow": {}
+              "notifyToUser": true
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -6277,7 +6292,7 @@
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "Interrogate",
-              "originalFlow": {}
+              "notifyToUser": true
             },
             "startedAt": "43000000",
             "state": "RUNNING",

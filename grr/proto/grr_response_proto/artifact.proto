@@ -104,6 +104,8 @@ message Artifact {
     description: "A list of artifact sources.",
   }];
 
+  // TODO(hanuszczak): This field should be removed, it does not belong to the
+  // artifact definition.
   optional string error_message = 10 [(sem_type) = {
       description: "The error message for artifacts that failed validation."
     }];

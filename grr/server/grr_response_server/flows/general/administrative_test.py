@@ -28,7 +28,7 @@ from grr_response_proto import tests_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import email_alerts
-from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import maintenance_utils
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
@@ -45,6 +45,7 @@ from grr_response_server.hunts import standard as hunts_standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -55,24 +56,18 @@ class ClientActionRunnerArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.ClientActionRunnerArgs
 
 
-class ClientActionRunner(flow.GRRFlow):
+@flow_base.DualDBFlow
+class ClientActionRunnerMixin(object):
   """Just call the specified client action directly."""
   args_type = ClientActionRunnerArgs
-  # TODO(amoser): remove.
-  action_args = {}
 
   def Start(self):
     self.CallClient(
         server_stubs.ClientActionStub.classes[self.args.action],
-        next_state="End",
-        **self.action_args)
+        next_state="End")
 
 
-class AdministrativeFlowTests(flow_test_lib.FlowTestsBaseclass):
-  pass
-
-
-class TestAdministrativeFlows(AdministrativeFlowTests):
+class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
   """Tests the administrative flows."""
 
   def setUp(self):
@@ -101,7 +96,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     client_mock = action_mocks.ActionMock(admin.GetConfiguration,
                                           admin.UpdateConfiguration)
 
-    loc = "http://www.example.com"
+    loc = "http://www.example.com/"
     new_config = rdf_protodict.Dict({
         "Client.server_urls": [loc],
         "Client.foreman_check_frequency": 3600,
@@ -171,27 +166,30 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertTrue(client_id.Basename() in email_message["title"])
 
     # Make sure the flow state is included in the email message.
-    for s in [
-        "flow_name", flow_test_lib.FlowWithOneClientRequest.__name__,
-        "current_state"
-    ]:
-      self.assertTrue(s in email_message["message"])
+    self.assertIn("Host-0.example.com", email_message["message"])
+    self.assertIn("http://localhost:8000/#/clients/C.1000000000000000",
+                  email_message["message"])
 
-    flow_obj = aff4.FACTORY.Open(
-        client.flow_id, age=aff4.ALL_TIMES, token=self.token)
-    self.assertEqual(flow_obj.context.state,
-                     rdf_flow_runner.FlowContext.State.ERROR)
+    if data_store.RelationalDBFlowsEnabled():
+      rel_flow_obj = data_store.REL_DB.ReadFlowObject(client_id.Basename(),
+                                                      client.flow_id.Basename())
+      self.assertEqual(rel_flow_obj.flow_state, rel_flow_obj.FlowState.ERROR)
+    else:
+      flow_obj = aff4.FACTORY.Open(
+          client.flow_id, age=aff4.ALL_TIMES, token=self.token)
+      self.assertEqual(flow_obj.context.state,
+                       rdf_flow_runner.FlowContext.State.ERROR)
 
     # Make sure client object is updated with the last crash.
 
     # AFF4.
     client_obj = aff4.FACTORY.Open(client_id, token=self.token)
     crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
-    self.CheckCrash(crash, flow_obj.session_id, client_id)
+    self.CheckCrash(crash, client.flow_id, client_id)
 
     # Relational db.
     crash = data_store.REL_DB.ReadClientCrashInfo(client_id.Basename())
-    self.CheckCrash(crash, flow_obj.session_id, client_id)
+    self.CheckCrash(crash, client.flow_id, client_id)
 
     # Make sure crashes collections are created and written
     # into proper locations. First check the per-client crashes collection.
@@ -199,22 +197,23 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
         list(aff4_grr.VFSGRRClient.CrashCollectionForCID(client_id)),
         key=lambda x: x.timestamp)
 
-    self.assertTrue(len(client_crashes) >= 1)
+    self.assertEqual(len(client_crashes), 1)
     crash = list(client_crashes)[0]
-    self.CheckCrash(crash, flow_obj.session_id, client_id)
+    self.CheckCrash(crash, client.flow_id, client_id)
 
-    # Check per-flow crash collection. Check that crash written there is
-    # equal to per-client crash.
-    flow_crashes = sorted(
-        list(flow_obj.GetValuesForAttribute(flow_obj.Schema.CLIENT_CRASH)),
-        key=lambda x: x.timestamp)
-    self.assertEqual(len(flow_crashes), len(client_crashes))
-    for a, b in zip(flow_crashes, client_crashes):
-      self.assertEqual(a, b)
+    if not data_store.RelationalDBFlowsEnabled():
+      # Check per-flow crash collection. Check that crash written there is
+      # equal to per-client crash.
+      flow_crashes = sorted(
+          list(flow_obj.GetValuesForAttribute(flow_obj.Schema.CLIENT_CRASH)),
+          key=lambda x: x.timestamp)
+      self.assertEqual(len(flow_crashes), len(client_crashes))
+      for a, b in zip(flow_crashes, client_crashes):
+        self.assertEqual(a, b)
 
   def testAlertEmailIsSentWhenClientKilledDuringHunt(self):
     """Test that client killed messages are handled correctly for hunts."""
-    client_id = test_lib.TEST_CLIENT_ID
+    client_id = self.SetupClient(0)
     self.email_messages = []
 
     def SendEmail(address, sender, title, message, **_):
@@ -375,15 +374,16 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
   def _RunSendStartupInfo(self, client_id):
     client_mock = action_mocks.ActionMock(admin.SendStartupInfo)
+    # Undefined name since the flow class get autogenerated.
     flow_test_lib.TestFlowHelper(
-        ClientActionRunner.__name__,
+        ClientActionRunner.__name__,  # pylint: disable=undefined-variable
         client_mock,
         client_id=client_id,
         action="SendStartupInfo",
         token=self.token)
 
   def testStartupHandler(self):
-    client_id = test_lib.TEST_CLIENT_ID
+    client_id = self.SetupClient(0)
 
     with test_lib.ConfigOverrider({
         "Database.useForReads": True,
@@ -432,10 +432,10 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     with test_lib.ConfigOverrider({
         "Database.useForReads.message_handlers": False
     }):
-      client_id = test_lib.TEST_CLIENT_ID
+      client_id = self.SetupClient(0)
       rel_client_id = client_id.Basename()
       data_store.REL_DB.WriteClientMetadata(
-          rel_client_id, fleetspeak_enabled=True)
+          rel_client_id, fleetspeak_enabled=False)
 
       self._RunSendStartupInfo(client_id)
 
@@ -520,6 +520,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # this attribute.
     sys.test_code_ran_here = False
 
+    client_id = self.SetupClient(0)
+
     code = """
 import sys
 sys.test_code_ran_here = True
@@ -532,7 +534,7 @@ sys.test_code_ran_here = True
     flow_test_lib.TestFlowHelper(
         administrative.ExecutePythonHack.__name__,
         client_mock,
-        client_id=test_lib.TEST_CLIENT_ID,
+        client_id=client_id,
         hack_name="test",
         token=self.token)
 
@@ -541,10 +543,10 @@ sys.test_code_ran_here = True
   def testExecutePythonHackWithArgs(self):
     client_mock = action_mocks.ActionMock(standard.ExecutePython)
     sys.test_code_ran_here = 1234
-    code = """
-import sys
-sys.test_code_ran_here = py_args['value']
-"""
+    code = "import sys\nsys.test_code_ran_here = py_args['value']\n"
+
+    client_id = self.SetupClient(0)
+
     maintenance_utils.UploadSignedConfigBlob(
         code.encode("utf-8"),
         aff4_path="aff4:/config/python_hacks/test",
@@ -553,7 +555,7 @@ sys.test_code_ran_here = py_args['value']
     flow_test_lib.TestFlowHelper(
         administrative.ExecutePythonHack.__name__,
         client_mock,
-        client_id=test_lib.TEST_CLIENT_ID,
+        client_id=client_id,
         hack_name="test",
         py_args=dict(value=5678),
         token=self.token)
@@ -582,7 +584,7 @@ sys.test_code_ran_here = py_args['value']
       flow_test_lib.TestFlowHelper(
           administrative.LaunchBinary.__name__,
           client_mock,
-          client_id=test_lib.TEST_CLIENT_ID,
+          client_id=self.SetupClient(0),
           binary=upload_path,
           command_line="--value 356",
           token=self.token)
@@ -633,7 +635,7 @@ sys.test_code_ran_here = py_args['value']
       flow_test_lib.TestFlowHelper(
           administrative.LaunchBinary.__name__,
           client_mock,
-          client_id=test_lib.TEST_CLIENT_ID,
+          client_id=self.SetupClient(0),
           binary=upload_path,
           command_line="--value 356",
           token=self.token)
@@ -654,7 +656,7 @@ sys.test_code_ran_here = py_args['value']
           config.CONFIG["Client.tempdir_roots"][0]))
 
   def testGetClientStats(self):
-    client_id = test_lib.TEST_CLIENT_ID
+    client_id = self.SetupClient(0)
 
     class ClientMock(action_mocks.ActionMock):
 
@@ -732,7 +734,31 @@ sys.test_code_ran_here = py_args['value']
     # We expect the email to be sent.
     self.assertEqual(email_message.get("address", ""), "test@localhost")
     self.assertEqual(email_message["title"],
-                     "GRR Client on Host-0 became available.")
+                     "GRR Client on Host-0.example.com became available.")
+
+
+class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalFlowsEnabledMixin,
+                                      TestAdministrativeFlows):
+
+  def testStartupFlow(self):
+    # Replaced by handlers when running with relational flows, tested in
+    # testStartupHandler.
+    pass
+
+  def testNannyMessageFlow(self):
+    # Replaced by handlers when running with relational flows, tested in
+    # testNannyMessageHandler.
+    pass
+
+  def testClientAlertFlow(self):
+    # Replaced by handlers when running with relational flows, tested in
+    # testClientAlertHandler.
+    pass
+
+  def testAlertEmailIsSentWhenClientKilledDuringHunt(self):
+    # Starting new style flows from hunts is not yet implemented.
+    # TODO(amoser): Fix this test once hunts are feature complete.
+    pass
 
 
 def main(argv):

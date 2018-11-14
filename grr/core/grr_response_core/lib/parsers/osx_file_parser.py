@@ -4,6 +4,7 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+import datetime
 import io
 import os
 import stat
@@ -180,3 +181,35 @@ class OSXLaunchdPlistParser(parser.FileParser):
                   Month=entry.get("Month")))
 
     yield rdf_plist.LaunchdPlist(**kwargs)
+
+
+class OSXInstallHistoryPlistParser(parser.FileParser):
+  """Parse InstallHistory plist files into SoftwarePackage objects."""
+
+  output_types = [rdf_client.SoftwarePackage.__name__]
+  supported_artifacts = ["MacOSInstallationHistory"]
+
+  def Parse(self, statentry, file_object, knowledge_base):
+    """Parse the Plist file."""
+
+    plist = binplist.readPlist(file_object)
+
+    if not isinstance(plist, list):
+      raise parser.ParseError(
+          "InstallHistory plist is a '%s', expecting a list" % type(plist))
+
+    for sw in plist:
+      yield rdf_client.SoftwarePackage(
+          name=sw.get("displayName"),
+          version=sw.get("displayVersion"),
+          description=",".join(sw.get("packageIdentifiers")),
+          # TODO(hanuszczak): make installed_on an RDFDatetime
+          installed_on=_DateToEpoch(sw.get("date")),
+          install_state=rdf_client.SoftwarePackage.InstallState.INSTALLED)
+
+
+def _DateToEpoch(date):
+  """Converts python datetime to epoch microseconds."""
+  tz_zero = datetime.datetime.utcfromtimestamp(0)
+  diff_sec = int((date - tz_zero).total_seconds())
+  return diff_sec * 1000000

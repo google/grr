@@ -3,14 +3,14 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from absl.testing import absltest
 from future.builtins import int
 from future.builtins import str
 
-import unittest
 from grr_response_core.lib.util import precondition
 
 
-class AssertTypeTest(unittest.TestCase):
+class AssertTypeTest(absltest.TestCase):
 
   def testIntCorrect(self):
     del self  # Unused.
@@ -34,7 +34,7 @@ class AssertTypeTest(unittest.TestCase):
       precondition.AssertType(b"foo", str)
 
 
-class AssertOptionalTypeTest(unittest.TestCase):
+class AssertOptionalTypeTest(absltest.TestCase):
 
   def testIntCorrect(self):
     del self  # Unused.
@@ -64,7 +64,7 @@ class AssertOptionalTypeTest(unittest.TestCase):
       precondition.AssertOptionalType("quux", bytes)
 
 
-class AssertIterableTypeTest(unittest.TestCase):
+class AssertIterableTypeTest(absltest.TestCase):
 
   def testAssertEmptyCorrect(self):
     del self  # Unused.
@@ -94,7 +94,7 @@ class AssertIterableTypeTest(unittest.TestCase):
       precondition.AssertIterableType(Generator(), int)
 
 
-class AssertDictTypeTest(unittest.TestCase):
+class AssertDictTypeTest(absltest.TestCase):
 
   def testIntStringDictCorrect(self):
     del self  # Unused.
@@ -118,4 +118,4 @@ class AssertDictTypeTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

@@ -54,7 +54,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     cls.config_overrider.Start()
 
     # Bring up a local server for testing.
-    port = portpicker.PickUnusedPort()
+    port = portpicker.pick_unused_port()
     ip = utils.ResolveHostnameToIP("localhost", port)
     cls.httpd = frontend.GRRHTTPServer((ip, port),
                                        frontend.GRRHTTPServerHandler)
@@ -112,14 +112,15 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     session_id = self._RunClientFileFinder(paths, action)
     collection = flow.GRRFlow.ResultCollectionForFID(session_id)
     results = list(collection)
-    self.assertEqual(len(results), 4)
+    self.assertEqual(len(results), 5)
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in results
     ]
     self.assertItemsEqual(relpaths, [
         "History.plist", "History.xml.plist", "test.plist",
-        "parser_test/com.google.code.grr.plist"
+        "parser_test/com.google.code.grr.plist",
+        "parser_test/InstallHistory.plist"
     ])
 
     for r in results:
@@ -159,14 +160,15 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     session_id = self._RunClientFileFinder(paths, action)
     collection = flow.GRRFlow.ResultCollectionForFID(session_id)
     results = list(collection)
-    self.assertEqual(len(results), 4)
+    self.assertEqual(len(results), 5)
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in results
     ]
     self.assertItemsEqual(relpaths, [
         "History.plist", "History.xml.plist", "test.plist",
-        "parser_test/com.google.code.grr.plist"
+        "parser_test/com.google.code.grr.plist",
+        "parser_test/InstallHistory.plist"
     ])
 
     for r in results:
@@ -195,7 +197,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         skipped.append(result)
 
     self.assertEqual(len(uploaded), 2)
-    self.assertEqual(len(skipped), 2)
+    self.assertEqual(len(skipped), 3)
 
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
@@ -225,14 +227,15 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     }
     for client_id, collection in iteritems(collections):
       results = list(collection)
-      self.assertEqual(len(results), 4)
+      self.assertEqual(len(results), 5)
       relpaths = [
           os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
           for p in results
       ]
       self.assertItemsEqual(relpaths, [
           "History.plist", "History.xml.plist", "test.plist",
-          "parser_test/com.google.code.grr.plist"
+          "parser_test/com.google.code.grr.plist",
+          "parser_test/InstallHistory.plist"
       ])
 
       for r in results:

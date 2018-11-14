@@ -14,6 +14,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 
 
+# Cannot use data_store here, because of circular dependency.
 def RelationalDBReadEnabled():
   return config.CONFIG["Database.useForReads"]
 

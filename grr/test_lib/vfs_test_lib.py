@@ -15,7 +15,7 @@ from grr_response_client import vfs
 # TODO(hanuszczak): This import is required because otherwise VFS handler
 # classes are not registered correctly and things start to fail. This is
 # terrible and has to be fixed as soon as possible.
-from grr_response_client.vfs_handlers import files  # pylint: disable=unused-import
+from grr_response_client.vfs_handlers import registry_init  # pylint: disable=unused-import
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -407,6 +407,26 @@ class RegistryFake(FakeRegistryVFSHandler):
     return sorted(res)
 
 
+class FakeWinreg(object):
+  """A class to replace the _winreg module.
+
+  _winreg is only available on Windows so we use this class in tests instead.
+  """
+
+  REG_NONE = 0
+  REG_SZ = 1
+  REG_EXPAND_SZ = 2
+  REG_BINARY = 3
+  REG_DWORD = 4
+  REG_DWORD_LITTLE_ENDIAN = 4
+  REG_DWORD_BIG_ENDIAN = 5
+  REG_LINK = 6
+  REG_MULTI_SZ = 7
+
+  HKEY_USERS = "HKEY_USERS"
+  HKEY_LOCAL_MACHINE = "HKEY_LOCAL_MACHINE"
+
+
 class RegistryVFSStubber(object):
   """Stubber helper for tests that have to emulate registry VFS handler."""
 
@@ -421,7 +441,7 @@ class RegistryVFSStubber(object):
     """Install the stubs."""
 
     modules = {
-        "_winreg": mock.MagicMock(),
+        "_winreg": FakeWinreg(),
         "ctypes": mock.MagicMock(),
         "ctypes.wintypes": mock.MagicMock(),
     }
@@ -431,7 +451,6 @@ class RegistryVFSStubber(object):
 
     # pylint: disable= g-import-not-at-top
     from grr_response_client.vfs_handlers import registry
-    import _winreg
     # pylint: enable=g-import-not-at-top
 
     fixture = RegistryFake()
@@ -447,8 +466,6 @@ class RegistryVFSStubber(object):
 
     # Add the Registry handler to the vfs.
     vfs.VFSInit().Run()
-    _winreg.HKEY_USERS = "HKEY_USERS"
-    _winreg.HKEY_LOCAL_MACHINE = "HKEY_LOCAL_MACHINE"
 
   def Stop(self):
     """Uninstall the stubs."""

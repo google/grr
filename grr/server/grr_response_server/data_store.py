@@ -107,7 +107,17 @@ def RelationalDBReadEnabled(category=None):
 
 
 def RelationalDBFlowsEnabled():
-  return config.CONFIG["Database.useForReads.flows"]
+  """Returns True if relational flows are enabled.
+
+  Even with RelationalDBReadEnabled() returning True, this can be False.
+
+  @DualDBTest and RelationalDBEnabledMixin never activate relational flows.
+  Only @DualFlowTest and RelationalFlowsEnabledMixin enable relational flows.
+
+  Returns: True if relational flows are enabled.
+
+  """
+  return config.CONFIG["Database.useRelationalFlows"]
 
 
 # There are stub methods that don't return/yield as indicated by the docstring.
@@ -868,6 +878,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
 
     return []
 
+  @abc.abstractmethod
   def ResolveMulti(self, subject, attributes, timestamp=None, limit=None):
     """Resolve multiple attributes for a subject.
 
@@ -1475,18 +1486,13 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
         stored_value = stats_values.StatsStoreValue.FromSerializedString(
             value_string)
 
-        fields_values = []
         if metadata.fields_defs:
-          for stored_field_value in stored_value.fields_values:
-            fields_values.append(stored_field_value.value)
-
+          field_values = [v.value for v in stored_value.fields_values]
           current_dict = part_results.setdefault(metric_name, {})
-          for field_value in fields_values[:-1]:
-            new_dict = {}
-            current_dict.setdefault(field_value, new_dict)
-            current_dict = new_dict
+          for field_value in field_values[:-1]:
+            current_dict = current_dict.setdefault(field_value, {})
 
-          result_values_list = current_dict.setdefault(fields_values[-1], [])
+          result_values_list = current_dict.setdefault(field_values[-1], [])
         else:
           result_values_list = part_results.setdefault(metric_name, [])
 

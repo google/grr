@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 import socket
 
-import unittest
+from absl.testing import absltest
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -221,7 +221,7 @@ class UnameTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertRaises(ValueError, sample.signature)
 
 
-class CpuSampleTest(unittest.TestCase):
+class CpuSampleTest(absltest.TestCase):
 
   def testFromMany(self):
     samples = [
@@ -255,7 +255,7 @@ class CpuSampleTest(unittest.TestCase):
       rdf_client_stats.CpuSample.FromMany([])
 
 
-class IOSampleTest(unittest.TestCase):
+class IOSampleTest(absltest.TestCase):
 
   def testFromMany(self):
     samples = [
@@ -285,7 +285,7 @@ class IOSampleTest(unittest.TestCase):
       rdf_client_stats.IOSample.FromMany([])
 
 
-class ClientStatsTest(unittest.TestCase):
+class ClientStatsTest(absltest.TestCase):
 
   def testDownsampled(self):
     timestamp = rdfvalue.RDFDatetime.FromHumanReadable

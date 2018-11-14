@@ -21,15 +21,7 @@ message ExportOptions {
       "this may require additional datastore roundtrips and slow down the "
       "export process."
     }];
-  optional bool export_files_hashes = 3 [ default = true, (sem_type) = {
-      description: "If this is true, export hashes when dealing with "
-      "file-related values. The files won't be hashed during the "
-      "export, hashes will only be exported if they were collected before "
-      "the export. This option affects exporting VFSFile and StatEntry "
-      "RDFValues. This is true by default even though it requires extra "
-      " datastore roundtrips because it's very useful and users expect the "
-      "hashes to be there."
-    }];
+  reserved 3;
   repeated string annotations = 4 [(sem_type) = {
       description: "Annotations to add to exported data. This field can be "
                    "used to differentiate sets of exported data inside a "

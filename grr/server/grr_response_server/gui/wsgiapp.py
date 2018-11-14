@@ -12,6 +12,8 @@ import string
 
 from cryptography.hazmat.primitives import constant_time
 
+from future.builtins import int
+
 import jinja2
 import psutil
 

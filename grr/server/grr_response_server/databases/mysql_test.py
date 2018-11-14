@@ -9,10 +9,10 @@ import string
 import threading
 import unittest
 
+from absl.testing import absltest
 from builtins import range  # pylint: disable=redefined-builtin
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 
-import unittest
 from grr_response_core.lib import flags
 from grr_response_server import db_test_mixin
 from grr_response_server.databases import mysql
@@ -28,7 +28,7 @@ def _GetEnvironOrSkip(key):
 
 
 class TestMysqlDB(stats_test_lib.StatsTestMixin,
-                  db_test_mixin.DatabaseTestMixin, unittest.TestCase):
+                  db_test_mixin.DatabaseTestMixin, absltest.TestCase):
   """Test the mysql.MysqlDB class.
 
   Most of the tests in this suite are general blackbox tests of the db.Database
@@ -166,6 +166,51 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       self.db.ReadAllGRRUsers()
 
   # Tests that we don't expect to pass yet.
+
+  # TODO(hanuszczak): Remove these once artifacts are supported in MySQL.
+
+  def testReadArtifactThrowsForUnknownArtifacts(self):
+    pass
+
+  def testReadArtifactReadsWritten(self):
+    pass
+
+  def testReadArtifactReadsCopy(self):
+    pass
+
+  def testWriteArtifactThrowsForDuplicatedArtifacts(self):
+    pass
+
+  def testWriteArtifactThrowsForEmptyName(self):
+    pass
+
+  def testWriteArtifactWithSources(self):
+    pass
+
+  def testWriteArtifactMany(self):
+    pass
+
+  def testWriteArtifactWritesCopy(self):
+    pass
+
+  def testDeleteArtifactThrowsForUnknownArtifacts(self):
+    pass
+
+  def testDeleteArtifactDeletesSingle(self):
+    pass
+
+  def testDeleteArtifactDeletesMultiple(self):
+    pass
+
+  def testReadAllArtifactsEmpty(self):
+    pass
+
+  def testReadAllArtifactsReturnsAllArtifacts(self):
+    pass
+
+  def testReadAllArtifactsReturnsCopy(self):
+    pass
+
   # TODO(user): Finish implementation and enable these tests.
   def testWritePathInfosRawValidates(self):
     pass
@@ -574,6 +619,33 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
   def testReadLatestPathInfosIncludesStatEntryIfThereIsOneWithSameTimestamp(
       self):
+    pass
+
+  def testWriteStatsStoreEntriesValidation(self):
+    pass
+
+  def testDuplicateStatsEntryWrite_SingleDimensional(self):
+    pass
+
+  def testDuplicateStatsEntryWrite_MultiDimensional(self):
+    pass
+
+  def testReadAllStatsEntries_UnknownPrefix(self):
+    pass
+
+  def testReadAllStatsEntries_UnknownMetric(self):
+    pass
+
+  def testReadAllStatsEntries_PrefixMatch(self):
+    pass
+
+  def testReadStatsEntriesLimitMaxResults(self):
+    pass
+
+  def testReadStatsEntriesLimitTimeRange(self):
+    pass
+
+  def testDeleteStatsEntries(self):
     pass
 
 

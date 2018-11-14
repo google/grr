@@ -11,7 +11,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-
+from grr_response_core.lib.util import compatibility
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -19,7 +19,6 @@ from grr_response_server import email_alerts
 from grr_response_server import notification
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.aff4_objects import users as aff4_users
-from grr_response_server.flows.general import administrative
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_test_lib
 
@@ -146,8 +145,8 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
             approval_request=rdf_objects.ApprovalRequestReference(
-                approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-                APPROVAL_TYPE_CLIENT,
+                approval_type=rdf_objects.ApprovalRequest.ApprovalType
+                .APPROVAL_TYPE_CLIENT,
                 approval_id="foo-bar",
                 subject_id=self.client_id.Basename(),
                 requestor_username=self.token.username)))
@@ -165,8 +164,8 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
             approval_request=rdf_objects.ApprovalRequestReference(
-                approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-                APPROVAL_TYPE_HUNT,
+                approval_type=rdf_objects.ApprovalRequest.ApprovalType
+                .APPROVAL_TYPE_HUNT,
                 approval_id="foo-bar",
                 subject_id="H:123456",
                 requestor_username=self.token.username)))
@@ -182,8 +181,8 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
             approval_request=rdf_objects.ApprovalRequestReference(
-                approval_type=rdf_objects.ApprovalRequest.ApprovalType.
-                APPROVAL_TYPE_CRON_JOB,
+                approval_type=rdf_objects.ApprovalRequest.ApprovalType
+                .APPROVAL_TYPE_CRON_JOB,
                 approval_id="foo-bar",
                 subject_id="FooBar",
                 requestor_username=self.token.username)))
@@ -391,12 +390,16 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.args.keep_client_alive = True
 
     self.handler.Handle(self.args, self.token)
-    flows = aff4.FACTORY.Open(
-        self.subject_urn.Add("flows"), token=self.token).OpenChildren()
-    keep_alive_flow = [
-        f for f in flows if f.__class__ == administrative.KeepAlive
-    ]
-    self.assertEqual(len(keep_alive_flow), 1)
+
+    if data_store.RelationalDBFlowsEnabled():
+      flows = data_store.REL_DB.ReadAllFlowObjects(unicode(self.args.client_id))
+    else:
+      flows = aff4.FACTORY.Open(
+          self.subject_urn.Add("flows"), token=self.token).OpenChildren()
+      keep_alive_flow = [
+          f for f in flows if compatibility.GetName(f.__class__) == "KeepAlive"
+      ]
+      self.assertEqual(len(keep_alive_flow), 1)
 
 
 @db_test_lib.DualDBTest
@@ -898,6 +901,45 @@ class ApiDeletePendingGlobalNotificationHandlerTest(
     (pending, shown) = self._GetGlobalNotifications()
     self.assertEqual(len(pending), 2)
     self.assertEqual(len(shown), 0)
+
+
+@db_test_lib.DualDBTest
+class ApiListApproverSuggestionsHandlerTest(acl_test_lib.AclTestMixin,
+                                            api_test_lib.ApiCallHandlerTest):
+  """Test for ApiListApproverSuggestionsHandler."""
+
+  def setUp(self):
+    super(ApiListApproverSuggestionsHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiListApproverSuggestionsHandler()
+    self.CreateUser("sanchezmorty")
+    self.CreateUser("sanchezrick")
+    self.CreateUser("sanchezsummer")
+    self.CreateUser("api_user_2")
+
+  def _query(self, username):
+    args = user_plugin.ApiListApproverSuggestionsArgs(username_query=username)
+    return self.handler.Handle(args, token=self.token)
+
+  def testListsSingleSuggestions(self):
+    result = self._query("sanchezsu")
+    self.assertEqual(len(result.suggestions), 1)
+    self.assertEqual(result.suggestions[0].username, "sanchezsummer")
+
+  def testListsMultipleSuggestions(self):
+    result = self._query("san")
+    self.assertEqual(len(result.suggestions), 3)
+    self.assertEqual(result.suggestions[0].username, "sanchezmorty")
+    self.assertEqual(result.suggestions[1].username, "sanchezrick")
+    self.assertEqual(result.suggestions[2].username, "sanchezsummer")
+
+  def testEmptyResponse(self):
+    result = self._query("foo")
+    self.assertEqual(len(result.suggestions), 0)
+
+  def testExcludesCurrentUser(self):
+    result = self._query("api")
+    self.assertEqual(len(result.suggestions), 1)
+    self.assertEqual(result.suggestions[0].username, "api_user_2")
 
 
 def main(argv):

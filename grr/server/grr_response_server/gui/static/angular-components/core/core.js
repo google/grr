@@ -49,7 +49,7 @@ const {WizardFormPageDirective} = goog.require('grrUi.core.wizardFormPageDirecti
  * Angular module for core GRR UI components.
  */
 exports.coreModule =
-    angular.module('grrUi.core', ['ngCookies', 'ui.bootstrap']);
+    angular.module('grrUi.core', ['ngCookies', 'ngSanitize', 'ui.bootstrap']);
 
 
 exports.coreModule.directive(

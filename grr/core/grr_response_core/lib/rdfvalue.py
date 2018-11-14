@@ -450,7 +450,7 @@ class RDFInteger(RDFPrimitive):
         raise DecodeError(e)
 
   def ParseFromDatastore(self, value):
-    precondition.AssertType(value, int)
+    precondition.AssertType(value, (int, long))
     self._value = value
 
   def ParseFromHumanReadable(self, string):

@@ -581,3 +581,21 @@ message ApiListPendingUserNotificationsResult {
       description: "The list of notifications."
     }];
 }
+
+message ApiListApproverSuggestionsArgs {
+  optional string username_query = 1 [(sem_type) = {
+    description: "The username, based on which suggestions are queried."
+  }];
+}
+
+message ApiListApproverSuggestionsResult {
+  message ApproverSuggestion {
+    optional string username = 1 [(sem_type) = {
+      description: "The name of the user."
+    }];
+  }
+
+  repeated ApproverSuggestion suggestions = 1 [(sem_type) = {
+    description: "List of users suggested as approvers."
+  }];
+}

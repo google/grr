@@ -25,6 +25,7 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import handler_registry
 from grr_response_server import queue_manager
 from grr_response_server import server_stubs
@@ -34,7 +35,6 @@ from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
-
 from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
 
@@ -83,7 +83,8 @@ class CPULimitFlow(flow.GRRFlow):
     pass
 
 
-class FlowWithOneClientRequest(flow.GRRFlow):
+@flow_base.DualDBFlow
+class FlowWithOneClientRequestMixin(object):
   """Test flow that does one client request in Start() state."""
 
   def Start(self):

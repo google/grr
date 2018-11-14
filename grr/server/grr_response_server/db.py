@@ -20,6 +20,7 @@ from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
@@ -28,7 +29,9 @@ from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import foreman_rules
+from grr_response_server import stats_values
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -47,6 +50,36 @@ class Error(Exception):
 
 class NotFoundError(Error):
   pass
+
+
+class UnknownArtifactError(NotFoundError):
+  """An exception class for errors about unknown artifacts.
+
+  Attributes:
+    name: A name of the non-existing artifact that was referenced.
+    cause: An (optional) exception instance that triggered this error.
+  """
+
+  def __init__(self, name, cause=None):
+    message = "Artifact with name '%s' does not exist" % name
+    super(UnknownArtifactError, self).__init__(message, cause=cause)
+
+    self.name = name
+
+
+class DuplicatedArtifactError(Error):
+  """An exception class for errors about duplicated artifacts being written.
+
+  Attributes:
+    name: A name of the artifact that was referenced.
+    cause: An (optional) exception instance that triggered this error.
+  """
+
+  def __init__(self, name, cause=None):
+    message = "Artifact with name '%s' already exists" % name
+    super(DuplicatedArtifactError, self).__init__(message, cause=cause)
+
+    self.name = name
 
 
 class UnknownClientError(NotFoundError):
@@ -161,6 +194,20 @@ class UnknownFlowRequestError(NotFoundError):
     self.request_id = request_id
 
 
+class DuplicateMetricValueError(Error):
+  """Exception raised if an attempt is made to write duplicate metric values."""
+
+  def __init__(self, cause=None):
+    """Constructor.
+
+    Args:
+      cause: A lower-level Exception raised by the database driver, which might
+        have more details about the error.
+    """
+    super(DuplicateMetricValueError, self).__init__(
+        "Tried to insert a duplicate StatsStoreEntry in the DB", cause=cause)
+
+
 class ClientPath(object):
   """An immutable class representing certain path on a given client.
 
@@ -255,6 +302,46 @@ class Database(with_metaclass(abc.ABCMeta, object)):
   unchanged = "__unchanged__"
 
   @abc.abstractmethod
+  def WriteArtifact(self, artifact):
+    """Writes new artifact to the database.
+
+    Args:
+      artifact: An `rdf_artifacts.Artifact` instance to write.
+    """
+
+  # TODO(hanuszczak): Consider removing this method if it proves to be useless
+  # after the artifact registry refactoring.
+  @abc.abstractmethod
+  def ReadArtifact(self, name):
+    """Looks up an artifact with given name from the database.
+
+    Args:
+      name: A name of the artifact to return.
+
+    Raises:
+      UnknownArtifactError: If an artifact with given name does not exist.
+    """
+
+  @abc.abstractmethod
+  def ReadAllArtifacts(self):
+    """Lists all artifacts that are stored in the database.
+
+    Returns:
+      A list of artifacts stored in the database.
+    """
+
+  @abc.abstractmethod
+  def DeleteArtifact(self, name):
+    """Deletes an artifact with given name from the database.
+
+    Args:
+      name: A name of the artifact to delete.
+
+    Raises:
+      UnknownArtifactError: If an artifact with given name does not exist.
+    """
+
+  @abc.abstractmethod
   def WriteClientMetadata(self,
                           client_id,
                           certificate=None,
@@ -292,6 +379,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
   def MultiReadClientMetadata(self, client_ids):
     """Reads ClientMetadata records for a list of clients.
 
+    Note: client ids not found in the database will be omitted from the
+    resulting map.
+
     Args:
       client_ids: A collection of GRR client id strings, e.g.
         ["C.ea3b2b71840d6fa7", "C.ea3b2b71840d6fa8"]
@@ -308,8 +398,15 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Returns:
       An rdfvalues.object.ClientMetadata object.
+
+    Raises:
+      UnknownClientError: if no client with corresponding id was found.
     """
-    return self.MultiReadClientMetadata([client_id]).get(client_id)
+    result = self.MultiReadClientMetadata([client_id])
+    try:
+      return result[client_id]
+    except KeyError:
+      raise UnknownClientError(client_id)
 
   @abc.abstractmethod
   def WriteClientSnapshot(self, client):
@@ -353,6 +450,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
   def MultiReadClientFullInfo(self, client_ids, min_last_ping=None):
     """Reads full client information for a list of clients.
 
+    Note: client ids not found in the database will be omitted from the
+    resulting map.
+
     Args:
       client_ids: a collection of GRR client ids, e.g. ["C.ea3b2b71840d6fa7",
         "C.ea3b2b71840d6fa8"]
@@ -371,8 +471,15 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Returns:
       A `ClientFullInfo` instance for given client.
+
+    Raises:
+      UnknownClientError: if no client with such id was found.
     """
-    return self.MultiReadClientFullInfo([client_id]).get(client_id)
+    result = self.MultiReadClientFullInfo([client_id])
+    try:
+      return result[client_id]
+    except KeyError:
+      raise UnknownClientError(client_id)
 
   @abc.abstractmethod
   def ReadAllClientIDs(self):
@@ -1687,6 +1794,40 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       Number of flow log entries of a given flow.
     """
 
+  @abc.abstractmethod
+  def WriteStatsStoreEntries(self, stats_entries):
+    """Writes an Iterable of StatsStoreEntries to the database."""
+
+  @abc.abstractmethod
+  def ReadStatsStoreEntries(self,
+                            process_id_prefix,
+                            metric_name,
+                            time_range=None,
+                            max_results=0):
+    """Reads StatsStoreEntries matching given criteria from the DB.
+
+    Args:
+      process_id_prefix: String prefix used to filter process ids whose data
+        should be included in the results.
+      metric_name: Name of the stats metric for which to return past values.
+      time_range: An optional tuple containing two RDFDateTime objects that
+        represent the range of timestamps to filter for (if provided, only
+        StatsStoreEntries in the range will be included).
+      max_results: If > 0, indicates the maximum number of results to return.
+
+    Returns:
+      A sequence of StatsStoreEntries matching all the provided criteria.
+    """
+
+  @abc.abstractmethod
+  def DeleteStatsStoreEntriesOlderThan(self, cutoff):
+    """Deletes all StatsStoreEntries in the DB older than a given timestamp.
+
+    Args:
+      cutoff: An RDFDateTime representing the maximum age of entries that would
+        remain after deleting all older entries.
+    """
+
 
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
@@ -1694,6 +1835,24 @@ class DatabaseValidationWrapper(Database):
   def __init__(self, delegate):
     super(DatabaseValidationWrapper, self).__init__()
     self.delegate = delegate
+
+  def WriteArtifact(self, artifact):
+    precondition.AssertType(artifact, rdf_artifacts.Artifact)
+    if not artifact.name:
+      raise ValueError("Empty artifact name")
+
+    return self.delegate.WriteArtifact(artifact)
+
+  def ReadArtifact(self, name):
+    precondition.AssertType(name, unicode)
+    return self.delegate.ReadArtifact(name)
+
+  def ReadAllArtifacts(self):
+    return self.delegate.ReadAllArtifacts()
+
+  def DeleteArtifact(self, name):
+    precondition.AssertType(name, unicode)
+    return self.delegate.DeleteArtifact(name)
 
   def WriteClientMetadata(self,
                           client_id,
@@ -2414,6 +2573,40 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.CountFlowLogEntries(client_id, flow_id)
 
+  def WriteStatsStoreEntries(self, stats_entries):
+    _ValidateStatsStoreEntries(stats_entries)
+
+    self.delegate.WriteStatsStoreEntries(stats_entries)
+
+  def ReadStatsStoreEntries(self,
+                            process_id_prefix,
+                            metric_name,
+                            time_range=None,
+                            max_results=0):
+    precondition.AssertType(process_id_prefix, unicode)
+    precondition.AssertType(metric_name, unicode)
+    if time_range is not None:
+      # Both start- and end-timestamps must be provided if a time_range is
+      # given.
+      time_range_start, time_range_end = time_range
+      _ValidateTimestamp(time_range_start)
+      _ValidateTimestamp(time_range_end)
+      if time_range_start > time_range_end:
+        raise ValueError("Invalid time-range: %d > %d." %
+                         (time_range_start.AsMicrosecondsSinceEpoch(),
+                          time_range_end.AsMicrosecondsSinceEpoch()))
+
+    return self.delegate.ReadStatsStoreEntries(
+        process_id_prefix,
+        metric_name,
+        time_range=time_range,
+        max_results=max_results)
+
+  def DeleteStatsStoreEntriesOlderThan(self, cutoff):
+    _ValidateTimestamp(cutoff)
+
+    self.delegate.DeleteStatsStoreEntriesOlderThan(cutoff)
+
 
 def _ValidateEnumType(value, expected_enum_type):
   if value not in expected_enum_type.reverse_enum:
@@ -2561,3 +2754,28 @@ def _ValidateBytes(value):
 
 def _ValidateSHA256HashID(sha256_hash_id):
   precondition.AssertType(sha256_hash_id, rdf_objects.SHA256HashID)
+
+
+def _ValidateStatsStoreEntries(stats_entries):
+  """Validates an Iterable of StatsStoreEntries."""
+  for stats_entry in stats_entries:
+    precondition.AssertType(stats_entry, stats_values.StatsStoreEntry)
+    if not stats_entry.process_id:
+      raise ValueError("StatsStoreEntry must have a process_id set.")
+    if not stats_entry.metric_name:
+      raise ValueError("StatsStoreEntry must have a metric_name set.")
+    if not stats_entry.metric_value:
+      raise ValueError("StatsStoreEntry must have a metric_value set.")
+    if not stats_entry.timestamp:
+      raise ValueError("StatsStoreEntry must have a timestamp set.")
+
+    metric_metadata = stats_collector_instance.Get().GetMetricMetadata(
+        stats_entry.metric_name)
+    num_field_values = len(stats_entry.metric_value.fields_values)
+    expected_num_field_values = len(metric_metadata.fields_defs)
+    if num_field_values != expected_num_field_values:
+      raise ValueError(
+          "Value for metric %s had %d field values, yet the metric was "
+          "defined to have %d fields." % (stats_entry.metric_name,
+                                          num_field_values,
+                                          expected_num_field_values))

@@ -1,3 +1,6 @@
 <input type="text" class="form-control"
        ng-model="value.value"
-       placeholder="Type %% for autocompletion..."></input>
+       placeholder="Type %% for autocompletion..."
+       uib-typeahead="item.expressionWithSuggestion as item.suggestion for item in controller.getSuggestions($viewValue)"
+       typeahead-append-to-body="true"
+></input>

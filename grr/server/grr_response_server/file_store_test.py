@@ -374,6 +374,26 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     self.assertEqual(chunks[0].client_path, client_path)
     self.assertEqual(chunks[0].data, self.blob_data[0])
 
+  def testRespectsMaxSizeEqualToOneChunkWhenStreamingSingleFile(self):
+    client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
+    self._WriteFile(client_path, (0, 2))
+
+    chunks = list(
+        file_store.StreamFilesChunks([client_path], max_size=self.blob_size))
+    self.assertEqual(len(chunks), 1)
+    self.assertEqual(chunks[0].data, self.blob_data[0])
+
+  def testRespectsMaxSizeGreaterThanOneChunkWhenStreamingSingleFile(self):
+    client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
+    self._WriteFile(client_path, (0, 2))
+
+    chunks = list(
+        file_store.StreamFilesChunks([client_path],
+                                     max_size=self.blob_size + 1))
+    self.assertEqual(len(chunks), 2)
+    self.assertEqual(chunks[0].data, self.blob_data[0])
+    self.assertEqual(chunks[1].data, self.blob_data[1])
+
 
 def main(argv):
   # Run the full test suite

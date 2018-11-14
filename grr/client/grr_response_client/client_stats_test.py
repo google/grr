@@ -5,11 +5,11 @@ from __future__ import unicode_literals
 import collections
 import itertools
 
+from absl.testing import absltest
 from builtins import range  # pylint: disable=redefined-builtin
 import mock
 import psutil
 
-import unittest
 from grr_response_client import client_stats
 from grr_response_client.client_actions import admin
 from grr_response_core import config
@@ -18,7 +18,7 @@ from grr_response_core.lib import rdfvalue
 from grr.test_lib import test_lib
 
 
-class ClientStatsCollectorTest(unittest.TestCase):
+class ClientStatsCollectorTest(absltest.TestCase):
 
   @mock.patch.object(admin, "GetClientStatsAuto")
   def testRealSamples(self, mock_get_client_stats_auto):

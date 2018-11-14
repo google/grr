@@ -830,30 +830,34 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     action = rdf_file_finder.FileFinderAction.Action.STAT
     results = self._RunCFF(paths, action)
 
-    self.assertEqual(len(results), 4)
+    self.assertEqual(len(results), 5)
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in results
     ]
     self.assertItemsEqual(relpaths, [
         "History.plist", "History.xml.plist", "test.plist",
-        "parser_test/com.google.code.grr.plist"
+        "parser_test/com.google.code.grr.plist",
+        "parser_test/InstallHistory.plist"
     ])
 
   def testClientFileFinderPathCasing(self):
     paths = [
         os.path.join(self.base_path, "PARSER_TEST/*.plist"),
-        os.path.join(self.base_path, "history.plist")
+        os.path.join(self.base_path, "history.plist"),
+        os.path.join(self.base_path, "InstallHistory.plist")
     ]
     action = rdf_file_finder.FileFinderAction.Action.STAT
     results = self._RunCFF(paths, action)
-    self.assertEqual(len(results), 2)
+    self.assertEqual(len(results), 3)
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in results
     ]
-    self.assertItemsEqual(
-        relpaths, ["History.plist", "parser_test/com.google.code.grr.plist"])
+    self.assertItemsEqual(relpaths, [
+        "History.plist", "parser_test/InstallHistory.plist",
+        "parser_test/com.google.code.grr.plist"
+    ])
 
   def _SetupUnicodePath(self, path):
     try:

@@ -1088,6 +1088,15 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
+  @Category("User")
+  @ArgsType(api_user.ApiListApproverSuggestionsArgs)
+  @ResultType(api_user.ApiListApproverSuggestionsResult)
+  @Http("GET", "/api/users/approver-suggestions")
+  def ListApproverSuggestions(self, args, token=None):
+    """List suggestions for approver usernames."""
+
+    raise NotImplementedError()
+
   # User settings methods.
   # =====================
   #

@@ -5,14 +5,14 @@ from __future__ import unicode_literals
 import functools
 import io
 
+from absl.testing import absltest
 from future.builtins import map
 
-import unittest
 from grr_response_core.lib.util import context
 from grr.test_lib import temp
 
 
-class NullContextTest(unittest.TestCase):
+class NullContextTest(absltest.TestCase):
 
   def testIntegerValue(self):
     with context.NullContext(42) as value:
@@ -29,7 +29,7 @@ class NullContextTest(unittest.TestCase):
     self.assertEqual(buf.getvalue(), b"foobarbaz")
 
 
-class MultiContextTest(unittest.TestCase):
+class MultiContextTest(absltest.TestCase):
 
   def testEmpty(self):
     with context.MultiContext([]) as values:
@@ -73,4 +73,4 @@ class MultiContextTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

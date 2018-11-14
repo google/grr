@@ -11,7 +11,7 @@ from grr_response_client import actions
 
 # Load all the standard actions.
 # pylint: disable=unused-import
-from grr_response_client import client_actions
+from grr_response_client.client_actions import registry_init
 # pylint: enable=unused-import
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -28,8 +28,8 @@ class MockAction(actions.ActionPlugin):
 
   def Run(self, message):
     self.SendReply(
-        rdf_client_action.EchoRequest(data="Received Message: %s. Data %s" %
-                                      (message.data, "x" * 100)))
+        rdf_client_action.EchoRequest(
+            data="Received Message: %s. Data %s" % (message.data, "x" * 100)))
 
 
 class RaiseAction(actions.ActionPlugin):

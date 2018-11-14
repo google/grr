@@ -59,7 +59,7 @@ class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       if not ApiE2ETest._api_set_up_done:
 
         # Set up HTTP server
-        port = portpicker.PickUnusedPort()
+        port = portpicker.pick_unused_port()
         ApiE2ETest.server_port = port
         logging.info("Picked free AdminUI port for HTTP %d.", port)
 

@@ -219,7 +219,7 @@ class E2ETestRunner(object):
     while True:
       try:
         client = self._grr_api.Client(client_id).Get()
-        if client.data.os_info.system:
+        if client.data.os_info.system and client.data.knowledge_base.os:
           return client
         if DeadlineExceeded():
           raise E2ETestError("Timeout of %d seconds exceeded for %s." %

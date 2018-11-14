@@ -221,8 +221,8 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
 
     Args:
       notification: A rdfvalues.flows.Notification object.
-      is_pending: Indicates whether the user has already seen
-          this notification or not.
+      is_pending: Indicates whether the user has already seen this notification
+        or not.
 
     Returns:
       The current instance.
@@ -1080,11 +1080,18 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
         args, token=token)
 
     if args.keep_client_alive:
-      flow.StartAFF4Flow(
-          client_id=args.client_id.ToClientURN(),
-          flow_name=administrative.KeepAlive.__name__,
-          duration=3600,
-          token=token)
+      if data_store.RelationalDBFlowsEnabled():
+        flow.StartFlow(
+            client_id=unicode(args.client_id),
+            flow_cls=administrative.KeepAlive,
+            creator=token.username,
+            duration=3600)
+      else:
+        flow.StartAFF4Flow(
+            client_id=args.client_id.ToClientURN(),
+            flow_name=administrative.KeepAlive.__name__,
+            duration=3600,
+            token=token)
 
     return result
 
@@ -1335,8 +1342,8 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
     approvals, subjects_by_urn = self._GetApprovals(
         "hunt", args.offset, args.count, token=token)
     return ApiListHuntApprovalsResult(
-        items=self._HandleApprovals(approvals, subjects_by_urn,
-                                    self._ApprovalToApiApproval))
+        items=self._HandleApprovals(approvals, subjects_by_urn, self
+                                    ._ApprovalToApiApproval))
 
   def HandleRelationalDB(self, args, token=None):
     approvals = sorted(
@@ -1472,8 +1479,8 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
     approvals, subjects_by_urn = self._GetApprovals(
         "cron", args.offset, args.count, token=token)
     return ApiListCronJobApprovalsResult(
-        items=self._HandleApprovals(approvals, subjects_by_urn,
-                                    self._ApprovalToApiApproval))
+        items=self._HandleApprovals(approvals, subjects_by_urn, self
+                                    ._ApprovalToApiApproval))
 
   def HandleRelationalDB(self, args, token=None):
     approvals = sorted(
@@ -1842,3 +1849,46 @@ class ApiDeletePendingGlobalNotificationHandler(
           return
 
     raise GlobalNotificationNotFoundError()
+
+
+class ApiListApproverSuggestionsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiListApproverSuggestionsArgs
+  rdf_deps = []
+
+
+class ApproverSuggestion(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiListApproverSuggestionsResult.ApproverSuggestion
+  rdf_deps = []
+
+
+class ApiListApproverSuggestionsResult(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiListApproverSuggestionsResult
+  rdf_deps = [ApproverSuggestion]
+
+
+def _GetAllUsernames():
+  if data_store.RelationalDBReadEnabled():
+    users = data_store.REL_DB.ReadAllGRRUsers()
+    usernames = [user.username for user in users]
+  else:
+    urns = aff4.FACTORY.ListChildren("aff4:/users")
+    users = aff4.FACTORY.MultiOpen(urns, aff4_type=aff4_users.GRRUser)
+    usernames = [user.urn.Basename() for user in users]
+  return sorted(usernames)
+
+
+class ApiListApproverSuggestionsHandler(api_call_handler_base.ApiCallHandler):
+  """"List suggestions for approver usernames."""
+
+  args_type = ApiListApproverSuggestionsArgs
+  result_type = ApiListApproverSuggestionsResult
+
+  def Handle(self, args, token=None):
+    suggestions = []
+
+    for username in _GetAllUsernames():
+      if (username.startswith(args.username_query) and
+          username != token.username):
+        suggestions.append(ApproverSuggestion(username=username))
+
+    return ApiListApproverSuggestionsResult(suggestions=suggestions)

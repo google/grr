@@ -3,11 +3,12 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from absl.testing import absltest
+
 from grr_response_core.lib.util import csv
-import unittest
 
 
-class CsvWriterTest(unittest.TestCase):
+class CsvWriterTest(absltest.TestCase):
 
   def testEmpty(self):
     writer = csv.Writer()
@@ -42,7 +43,7 @@ class CsvWriterTest(unittest.TestCase):
     self.assertEqual(writer.Content(), "foo|bar|baz\n")
 
 
-class CsvDictWriter(unittest.TestCase):
+class CsvDictWriter(absltest.TestCase):
 
   def testEmpty(self):
     writer = csv.DictWriter(["foo", "bar", "baz"])
@@ -90,4 +91,4 @@ class CsvDictWriter(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

@@ -931,31 +931,6 @@ table.grr_flot_graph {
 }
 
 
-
-//
-//
-// Overwrite jQuery UI styles
-//
-//
-
-.ui-autocomplete {
-  max-height: 100px;
-  max-width: 400px;
-  overflow-y: auto;
-  overflow-x: hidden; // prevent horizontal scrollbar
-  z-index: 1100 !important; // ensure autocomplete is always shown above other UI elements
-  background-color: $color-default-background;
-  border: 1px solid $color-proto-border;
-}
-
-* html .ui-autocomplete {
-  // IE 6 doesn't support max-height
-  // we use height instead, but this forces the menu to always be this tall
-  height: 100px;
-}
-
-
-
 //
 //
 // Overwrite Angular UI styles
@@ -974,6 +949,10 @@ table.grr_flot_graph {
   transform: translate(0, 0);
 }
 
+// autocomplete-list, possibly spawned from inside a modal dialog
+ul.dropdown-menu[uib-typeahead-popup] {
+  z-index: 1100; // ensure autocomplete is always shown above other UI elements
+}
 
 
 //

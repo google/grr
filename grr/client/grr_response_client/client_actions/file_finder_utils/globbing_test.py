@@ -6,11 +6,12 @@ from __future__ import unicode_literals
 import io
 import os
 import shutil
+import unittest
 
 
+from absl.testing import absltest
 from builtins import zip  # pylint: disable=redefined-builtin
 
-import unittest
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_core.lib import flags
 from grr.test_lib import temp
@@ -48,7 +49,7 @@ class DirHierarchyTestMixin(object):
       raise unittest.SkipTest("Unicode not supported by the filesystem")
 
 
-class RecursiveComponentTest(DirHierarchyTestMixin, unittest.TestCase):
+class RecursiveComponentTest(DirHierarchyTestMixin, absltest.TestCase):
 
   def testSimple(self):
     self.Touch("foo", "0")
@@ -216,7 +217,7 @@ class RecursiveComponentTest(DirHierarchyTestMixin, unittest.TestCase):
     self.assertItemsEqual(results, [])
 
 
-class GlobComponentTest(DirHierarchyTestMixin, unittest.TestCase):
+class GlobComponentTest(DirHierarchyTestMixin, absltest.TestCase):
 
   def testLiterals(self):
     self.Touch("foo")
@@ -454,7 +455,7 @@ class GlobComponentTest(DirHierarchyTestMixin, unittest.TestCase):
     ])
 
 
-class CurrentComponentTest(DirHierarchyTestMixin, unittest.TestCase):
+class CurrentComponentTest(DirHierarchyTestMixin, absltest.TestCase):
 
   def testSimple(self):
     self.Touch("foo", "bar", "0")
@@ -472,7 +473,7 @@ class CurrentComponentTest(DirHierarchyTestMixin, unittest.TestCase):
     self.assertItemsEqual(results, [self.Path("foo", "baz")])
 
 
-class ParentComponentTest(DirHierarchyTestMixin, unittest.TestCase):
+class ParentComponentTest(DirHierarchyTestMixin, absltest.TestCase):
 
   def testSimple(self):
     self.Touch("foo", "0")
@@ -491,7 +492,7 @@ class ParentComponentTest(DirHierarchyTestMixin, unittest.TestCase):
     self.assertItemsEqual(results, [self.Path("foo", "bar")])
 
 
-class ParsePathItemTest(unittest.TestCase):
+class ParsePathItemTest(absltest.TestCase):
 
   def testRecursive(self):
     component = globbing.ParsePathItem("**")
@@ -529,7 +530,7 @@ class ParsePathItemTest(unittest.TestCase):
       globbing.ParsePathItem("**10bar")
 
 
-class ParsePathTest(unittest.TestCase):
+class ParsePathTest(absltest.TestCase):
 
   def assertAreInstances(self, instances, classes):
     for instance, clazz in zip(instances, classes):
@@ -564,7 +565,7 @@ class ParsePathTest(unittest.TestCase):
       list(globbing.ParsePath(path))
 
 
-class ExpandGroupsTest(unittest.TestCase):
+class ExpandGroupsTest(absltest.TestCase):
 
   def testSimple(self):
     path = "fooba{r,z}"
@@ -637,7 +638,7 @@ class ExpandGroupsTest(unittest.TestCase):
     self.assertItemsEqual(results, ["foobarbaz"])
 
 
-class ExpandGlobsTest(DirHierarchyTestMixin, unittest.TestCase):
+class ExpandGlobsTest(DirHierarchyTestMixin, absltest.TestCase):
 
   def testWildcards(self):
     self.Touch("foo", "bar", "0")
@@ -747,7 +748,7 @@ class ExpandGlobsTest(DirHierarchyTestMixin, unittest.TestCase):
     ])
 
 
-class ExpandPathTest(DirHierarchyTestMixin, unittest.TestCase):
+class ExpandPathTest(DirHierarchyTestMixin, absltest.TestCase):
 
   def testGlobAndGroup(self):
     self.Touch("foo", "bar", "0")

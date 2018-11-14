@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 import os
 
 
-import unittest
+from absl.testing import absltest
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import linux_cmd_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -135,7 +135,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     self.assertEqual(hardware.bios_revision, "2.8")
 
 
-class PsCmdParserTest(unittest.TestCase):
+class PsCmdParserTest(absltest.TestCase):
 
   def testRealOutput(self):
     stdout = """\

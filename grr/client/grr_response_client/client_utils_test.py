@@ -8,9 +8,10 @@ import hashlib
 import imp
 import os
 import sys
+
+from absl.testing import absltest
 import mock
 
-import unittest
 from grr_response_client import client_utils_common
 from grr_response_client import client_utils_osx
 from grr_response_core.lib import flags
@@ -127,7 +128,7 @@ class OSXVersionTests(test_lib.GRRBaseTest):
     self.assertEqual(osversion.VersionString(), "10.8.1")
 
 
-class MultiHasherTest(unittest.TestCase):
+class MultiHasherTest(absltest.TestCase):
 
   @staticmethod
   def _GetHash(hashfunc, data):

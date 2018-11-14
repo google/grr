@@ -2,13 +2,13 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import unittest
+from absl.testing import absltest
 from grr_response_core.lib import factory
 from grr_response_core.lib import flags
 from grr.test_lib import test_lib
 
 
-class FactoryTest(unittest.TestCase):
+class FactoryTest(absltest.TestCase):
 
   def testRegisterAndUnregister(self):
     del self  # Unused.

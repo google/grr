@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from selenium.webdriver.common import keys
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -1086,6 +1087,36 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     # Assert that the deselected union field is cleared
     self.assertFalse(rule.os.os_windows)
+
+  def testPathAutocomplete(self):
+    self.CreateHuntFixtureWithTwoClients()
+
+    # Open Hunts
+    self.Open("/#/hunts")
+
+    # Open "New Hunt" wizard
+    self.Click("css=button[name=NewHunt]")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('What to run?')")
+
+    # Click on Filesystem item in flows list
+    self.Click("css=#_Filesystem > i.jstree-icon")
+
+    # Click on the FileFinder item in Filesystem flows list
+    self.Click("link=File Finder")
+
+    input_selector = "css=grr-form-glob-expression input[uib-typeahead]"
+
+    # Change "path"
+    self.Type(input_selector, "/foo/%%path")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=[uib-typeahead-popup]:contains('%%environ_path%%')")
+
+    self.GetElement(input_selector).send_keys(keys.Keys.ENTER)
+
+    self.WaitUntilEqual("/foo/%%environ_path%%", self.GetValue,
+                        input_selector + ":text")
 
 
 if __name__ == "__main__":

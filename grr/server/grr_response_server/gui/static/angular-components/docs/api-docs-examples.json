@@ -732,7 +732,7 @@
           },
           "name": "ListProcesses",
           "runner_args": {
-            "notify_to_user": false
+            "notify_to_user": true
           }
         }
       },
@@ -785,11 +785,7 @@
               },
               "notify_to_user": {
                 "type": "RDFBool",
-                "value": false
-              },
-              "original_flow": {
-                "type": "FlowReference",
-                "value": {}
+                "value": true
               }
             }
           },
@@ -821,8 +817,7 @@
         "runner_args": {
           "client_id": "aff4:/C.1000000000000000",
           "flow_name": "ListProcesses",
-          "notify_to_user": false,
-          "original_flow": {}
+          "notify_to_user": true
         },
         "started_at": 42000000,
         "state": "RUNNING",
@@ -4721,9 +4716,9 @@
                 "type": "unicode",
                 "value": "Interrogate"
               },
-              "original_flow": {
-                "type": "FlowReference",
-                "value": {}
+              "notify_to_user": {
+                "type": "RDFBool",
+                "value": true
               }
             }
           },
@@ -4819,7 +4814,7 @@
         "runner_args": {
           "client_id": "aff4:/C.1000000000000000",
           "flow_name": "Interrogate",
-          "original_flow": {}
+          "notify_to_user": true
         },
         "started_at": 42000000,
         "state": "RUNNING",
@@ -4929,9 +4924,9 @@
                 "type": "unicode",
                 "value": "Interrogate"
               },
-              "original_flow": {
-                "type": "FlowReference",
-                "value": {}
+              "notify_to_user": {
+                "type": "RDFBool",
+                "value": true
               }
             }
           },
@@ -5028,7 +5023,7 @@
         "runner_args": {
           "client_id": "aff4:/C.1000000000000000",
           "flow_name": "Interrogate",
-          "original_flow": {}
+          "notify_to_user": true
         },
         "started_at": 42000000,
         "state": "ERROR",
@@ -6441,10 +6436,6 @@
                   "flow_name": {
                     "type": "unicode",
                     "value": "Interrogate"
-                  },
-                  "original_flow": {
-                    "type": "FlowReference",
-                    "value": {}
                   }
                 }
               },
@@ -6751,8 +6742,7 @@
           "name": "Interrogate",
           "runner_args": {
             "client_id": "aff4:/C.1000000000000000",
-            "flow_name": "Interrogate",
-            "original_flow": {}
+            "flow_name": "Interrogate"
           },
           "started_at": 42000000,
           "state": "RUNNING",
@@ -13032,6 +13022,67 @@
       "url": "/api/users/me/notifications"
     }
   ],
+  "ApiListApproverSuggestionsHandler": [
+    {
+      "api_method": "ListApproverSuggestions",
+      "method": "GET",
+      "response": {
+        "suggestions": []
+      },
+      "test_class": "ApiListApproverSuggestionsHandlerRegressionTest_http_v1",
+      "url": "/api/users/approver-suggestions?username_query=foo"
+    },
+    {
+      "api_method": "ListApproverSuggestions",
+      "method": "GET",
+      "response": {
+        "suggestions": [
+          {
+            "type": "ApproverSuggestion",
+            "value": {
+              "username": {
+                "type": "unicode",
+                "value": "sanchezmorty"
+              }
+            }
+          },
+          {
+            "type": "ApproverSuggestion",
+            "value": {
+              "username": {
+                "type": "unicode",
+                "value": "sanchezrick"
+              }
+            }
+          },
+          {
+            "type": "ApproverSuggestion",
+            "value": {
+              "username": {
+                "type": "unicode",
+                "value": "sanchezsummer"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListApproverSuggestionsHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "suggestions": [
+          {
+            "username": "sanchezmorty"
+          },
+          {
+            "username": "sanchezrick"
+          },
+          {
+            "username": "sanchezsummer"
+          }
+        ]
+      },
+      "url": "/api/users/approver-suggestions?username_query=sanchez"
+    }
+  ],
   "ApiListArtifactsHandler": [
     {
       "api_method": "ListArtifacts",
@@ -13177,11 +13228,7 @@
               },
               "session_id": {
                 "type": "RDFURN",
-                "value": "aff4:/C.1000000000000000/flows/F:123456"
-              },
-              "task_id": {
-                "type": "long",
-                "value": 43
+                "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
               }
             }
           }
@@ -13193,8 +13240,7 @@
           {
             "client_action": "ListProcesses",
             "leased_until": 10042000000,
-            "session_id": "aff4:/C.1000000000000000/flows/F:123456",
-            "task_id": 43
+            "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
           }
         ]
       },
@@ -13220,20 +13266,50 @@
                 {
                   "type": "GrrMessage",
                   "value": {
-                    "auth_state": {
-                      "type": "EnumNamedValue",
-                      "value": "AUTHENTICATED"
+                    "payload": {
+                      "type": "Process",
+                      "value": {
+                        "name": {
+                          "type": "unicode",
+                          "value": "test_process"
+                        }
+                      }
                     },
-                    "name": {
+                    "payload_type": {
                       "type": "unicode",
-                      "value": "ListProcesses"
+                      "value": "Process"
                     },
+                    "request_id": {
+                      "type": "long",
+                      "value": 1
+                    },
+                    "response_id": {
+                      "type": "long",
+                      "value": 1
+                    },
+                    "session_id": {
+                      "type": "FlowSessionID",
+                      "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+                    },
+                    "timestamp": {
+                      "type": "RDFDatetime",
+                      "value": 42000000
+                    },
+                    "type": {
+                      "type": "EnumNamedValue",
+                      "value": "MESSAGE"
+                    }
+                  }
+                },
+                {
+                  "type": "GrrMessage",
+                  "value": {
                     "payload": {
                       "type": "GrrStatus",
                       "value": {
                         "status": {
                           "type": "EnumNamedValue",
-                          "value": "GENERIC_ERROR"
+                          "value": "OK"
                         }
                       }
                     },
@@ -13247,15 +13323,11 @@
                     },
                     "response_id": {
                       "type": "long",
-                      "value": 1
+                      "value": 2
                     },
                     "session_id": {
                       "type": "FlowSessionID",
-                      "value": "aff4:/C.1000000000000000/flows/F:123456"
-                    },
-                    "task_id": {
-                      "type": "long",
-                      "value": 43
+                      "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
                     },
                     "timestamp": {
                       "type": "RDFDatetime",
@@ -13270,11 +13342,7 @@
               ],
               "session_id": {
                 "type": "RDFURN",
-                "value": "aff4:/C.1000000000000000/flows/F:123456"
-              },
-              "task_id": {
-                "type": "long",
-                "value": 43
+                "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
               }
             }
           }
@@ -13288,22 +13356,29 @@
             "leased_until": 10042000000,
             "responses": [
               {
-                "auth_state": "AUTHENTICATED",
-                "name": "ListProcesses",
                 "payload": {
-                  "status": "GENERIC_ERROR"
+                  "name": "test_process"
+                },
+                "payload_type": "Process",
+                "request_id": 1,
+                "response_id": 1,
+                "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
+                "timestamp": 42000000,
+                "type": "MESSAGE"
+              },
+              {
+                "payload": {
+                  "status": "OK"
                 },
                 "payload_type": "GrrStatus",
                 "request_id": 1,
-                "response_id": 1,
-                "session_id": "aff4:/C.1000000000000000/flows/F:123456",
-                "task_id": 43,
+                "response_id": 2,
+                "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
                 "timestamp": 42000000,
                 "type": "STATUS"
               }
             ],
-            "session_id": "aff4:/C.1000000000000000/flows/F:123456",
-            "task_id": 43
+            "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
           }
         ]
       },
@@ -14928,10 +15003,6 @@
               "path": {
                 "type": "unicode",
                 "value": "fs/tsk/c/bin/bash"
-              },
-              "type": {
-                "type": "unicode",
-                "value": "VFSMemoryFile"
               }
             }
           },
@@ -14961,10 +15032,6 @@
               "path": {
                 "type": "unicode",
                 "value": "fs/tsk/c/bin/rbash"
-              },
-              "type": {
-                "type": "unicode",
-                "value": "VFSMemoryFile"
               }
             }
           }
@@ -14979,8 +15046,7 @@
             "last_collected": 42000000,
             "last_collected_size": 11,
             "name": "bash",
-            "path": "fs/tsk/c/bin/bash",
-            "type": "VFSMemoryFile"
+            "path": "fs/tsk/c/bin/bash"
           },
           {
             "age": 42000000,
@@ -14988,8 +15054,7 @@
             "last_collected": 42000000,
             "last_collected_size": 11,
             "name": "rbash",
-            "path": "fs/tsk/c/bin/rbash",
-            "type": "VFSMemoryFile"
+            "path": "fs/tsk/c/bin/rbash"
           }
         ]
       },
@@ -15026,10 +15091,6 @@
               "path": {
                 "type": "unicode",
                 "value": "fs/tsk/c/bin/bash"
-              },
-              "type": {
-                "type": "unicode",
-                "value": "VFSMemoryFile"
               }
             }
           },
@@ -15059,10 +15120,6 @@
               "path": {
                 "type": "unicode",
                 "value": "fs/tsk/c/bin/rbash"
-              },
-              "type": {
-                "type": "unicode",
-                "value": "VFSMemoryFile"
               }
             }
           }
@@ -15077,8 +15134,7 @@
             "last_collected": 42000000,
             "last_collected_size": 11,
             "name": "bash",
-            "path": "fs/tsk/c/bin/bash",
-            "type": "VFSMemoryFile"
+            "path": "fs/tsk/c/bin/bash"
           },
           {
             "age": 42000000,
@@ -15086,8 +15142,7 @@
             "last_collected": 42000000,
             "last_collected_size": 11,
             "name": "rbash",
-            "path": "fs/tsk/c/bin/rbash",
-            "type": "VFSMemoryFile"
+            "path": "fs/tsk/c/bin/rbash"
           }
         ]
       },
@@ -15220,10 +15275,6 @@
                 "type": "ApiFlowId",
                 "value": "W:ABCDEF"
               },
-              "flow_name": {
-                "type": "unicode",
-                "value": "ListProcesses"
-              },
               "log_message": {
                 "type": "unicode",
                 "value": "Sample message: foo."
@@ -15240,10 +15291,6 @@
               "flow_id": {
                 "type": "ApiFlowId",
                 "value": "W:ABCDEF"
-              },
-              "flow_name": {
-                "type": "unicode",
-                "value": "ListProcesses"
               },
               "log_message": {
                 "type": "unicode",
@@ -15263,13 +15310,11 @@
         "items": [
           {
             "flow_id": "W:ABCDEF",
-            "flow_name": "ListProcesses",
             "log_message": "Sample message: foo.",
             "timestamp": 52000000
           },
           {
             "flow_id": "W:ABCDEF",
-            "flow_name": "ListProcesses",
             "log_message": "Sample message: bar.",
             "timestamp": 55000000
           }
@@ -15290,10 +15335,6 @@
                 "type": "ApiFlowId",
                 "value": "W:ABCDEF"
               },
-              "flow_name": {
-                "type": "unicode",
-                "value": "ListProcesses"
-              },
               "log_message": {
                 "type": "unicode",
                 "value": "Sample message: foo."
@@ -15312,7 +15353,6 @@
         "items": [
           {
             "flow_id": "W:ABCDEF",
-            "flow_name": "ListProcesses",
             "log_message": "Sample message: foo.",
             "timestamp": 52000000
           }
@@ -15333,10 +15373,6 @@
                 "type": "ApiFlowId",
                 "value": "W:ABCDEF"
               },
-              "flow_name": {
-                "type": "unicode",
-                "value": "ListProcesses"
-              },
               "log_message": {
                 "type": "unicode",
                 "value": "Sample message: bar."
@@ -15355,7 +15391,6 @@
         "items": [
           {
             "flow_id": "W:ABCDEF",
-            "flow_name": "ListProcesses",
             "log_message": "Sample message: bar.",
             "timestamp": 55000000
           }
@@ -15626,39 +15661,6 @@
                     "type": "unicode",
                     "value": "IterateProcesses"
                   },
-                  "request": {
-                    "type": "GrrMessage",
-                    "value": {
-                      "cpu_limit": {
-                        "type": "float",
-                        "value": 7200.0
-                      },
-                      "name": {
-                        "type": "unicode",
-                        "value": "ListProcesses"
-                      },
-                      "queue": {
-                        "type": "RDFURN",
-                        "value": "aff4:/C.1000000000000000/tasks"
-                      },
-                      "request_id": {
-                        "type": "long",
-                        "value": 1
-                      },
-                      "require_fastpoll": {
-                        "type": "RDFBool",
-                        "value": true
-                      },
-                      "session_id": {
-                        "type": "FlowSessionID",
-                        "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-                      },
-                      "task_id": {
-                        "type": "long",
-                        "value": 42
-                      }
-                    }
-                  },
                   "session_id": {
                     "type": "SessionID",
                     "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
@@ -15669,27 +15671,6 @@
                 {
                   "type": "GrrMessage",
                   "value": {
-                    "auth_state": {
-                      "type": "EnumNamedValue",
-                      "value": "AUTHENTICATED"
-                    },
-                    "name": {
-                      "type": "unicode",
-                      "value": "ListProcesses"
-                    },
-                    "payload": {
-                      "type": "GrrStatus",
-                      "value": {
-                        "status": {
-                          "type": "EnumNamedValue",
-                          "value": "GENERIC_ERROR"
-                        }
-                      }
-                    },
-                    "payload_type": {
-                      "type": "unicode",
-                      "value": "GrrStatus"
-                    },
                     "request_id": {
                       "type": "long",
                       "value": 1
@@ -15702,9 +15683,30 @@
                       "type": "FlowSessionID",
                       "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
                     },
-                    "task_id": {
+                    "timestamp": {
+                      "type": "RDFDatetime",
+                      "value": 42000000
+                    },
+                    "type": {
+                      "type": "EnumNamedValue",
+                      "value": "MESSAGE"
+                    }
+                  }
+                },
+                {
+                  "type": "GrrMessage",
+                  "value": {
+                    "request_id": {
                       "type": "long",
-                      "value": 42
+                      "value": 1
+                    },
+                    "response_id": {
+                      "type": "long",
+                      "value": 2
+                    },
+                    "session_id": {
+                      "type": "FlowSessionID",
+                      "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
                     },
                     "timestamp": {
                       "type": "RDFDatetime",
@@ -15730,29 +15732,20 @@
               "client_id": "aff4:/C.1000000000000000",
               "id": 1,
               "next_state": "IterateProcesses",
-              "request": {
-                "cpu_limit": 7200.0,
-                "name": "ListProcesses",
-                "queue": "aff4:/C.1000000000000000/tasks",
-                "request_id": 1,
-                "require_fastpoll": true,
-                "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
-                "task_id": 42
-              },
               "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
             },
             "responses": [
               {
-                "auth_state": "AUTHENTICATED",
-                "name": "ListProcesses",
-                "payload": {
-                  "status": "GENERIC_ERROR"
-                },
-                "payload_type": "GrrStatus",
                 "request_id": 1,
                 "response_id": 1,
                 "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
-                "task_id": 42,
+                "timestamp": 42000000,
+                "type": "MESSAGE"
+              },
+              {
+                "request_id": 1,
+                "response_id": 2,
+                "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
                 "timestamp": 42000000,
                 "type": "STATUS"
               }
@@ -15917,9 +15910,9 @@
                     "type": "unicode",
                     "value": "ListProcesses"
                   },
-                  "original_flow": {
-                    "type": "FlowReference",
-                    "value": {}
+                  "notify_to_user": {
+                    "type": "RDFBool",
+                    "value": true
                   }
                 }
               },
@@ -15976,9 +15969,9 @@
                     "type": "unicode",
                     "value": "Interrogate"
                   },
-                  "original_flow": {
-                    "type": "FlowReference",
-                    "value": {}
+                  "notify_to_user": {
+                    "type": "RDFBool",
+                    "value": true
                   }
                 }
               },
@@ -16012,7 +16005,7 @@
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
               "flow_name": "ListProcesses",
-              "original_flow": {}
+              "notify_to_user": true
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -16029,7 +16022,7 @@
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
               "flow_name": "Interrogate",
-              "original_flow": {}
+              "notify_to_user": true
             },
             "started_at": 43000000,
             "state": "RUNNING",

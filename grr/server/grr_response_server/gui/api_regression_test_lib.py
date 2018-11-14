@@ -23,6 +23,8 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
+from grr_response_server import data_store
+from grr_response_server import flow
 from grr_response_server.gui import api_auth_manager
 # This import guarantees that all API-related RDF types will get imported
 # (as they're all references by api_call_router).
@@ -69,6 +71,17 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
           getattr(cls, "uses_legacy_dynamic_protos", False)):
         continue
 
+      # Do not generate combinations where the mixin demands relational db reads
+      # but the test is aff4 only.
+      if (getattr(cls, "aff4_only_test", False) and
+          getattr(mixin, "read_from_relational_db", False)):
+        continue
+
+      # Some tests don't work yet with relational flows enabled.
+      if (getattr(cls, "aff4_flows_only_test", False) and
+          getattr(mixin, "relational_db_flows", False)):
+        continue
+
       cls_name = "%s_%s" % (name, mixin.connection_type)
       test_cls = compatibility.MakeType(
           cls_name,
@@ -85,6 +98,8 @@ ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RegressionTestMixin)
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RelationalDBRegressionTestMixin)
+ApiRegressionTestMetaclass.RegisterConnectionMixin(
+    api_regression_http.HttpApiV2RelationalFlowsRegressionTestMixin)
 
 
 @pytest.mark.small
@@ -165,7 +180,6 @@ class ApiRegressionTest(
 
   def _Replace(self, content, replace=None):
     """Applies replace function to a given content."""
-
     # replace the values of all tracebacks by <traceback content>
     regex = re.compile(r'"traceBack": "Traceback[^"\\]*(?:\\.[^"\\]*)*"',
                        re.DOTALL)
@@ -317,7 +331,45 @@ class ApiRegressionGoldenOutputGenerator(object):
     print(json_sample_data)
 
 
+def GetFlowTestReplaceDict(client_id=None,
+                           flow_id=None,
+                           replacement_flow_id="W:ABCDEF"):
+  """Creates and returns a replacement dict for flow regression tests."""
+  replace = {}
+  if data_store.RelationalDBFlowsEnabled():
+    if client_id and flow_id:
+      # New style session ids need to be converted.
+      old_style_id = "%s/%s" % (client_id, flow_id)
+      new_style_id = "%s/flows/%s" % (client_id, replacement_flow_id)
+      replace[old_style_id] = new_style_id
+
+  if flow_id:
+    replace[flow_id] = replacement_flow_id
+
+  return replace
+
+
+def StartFlow(client_id, flow_cls, flow_args=None, token=None):
+  """A test helper function to start a flow."""
+  # TODO(amoser): Once AFF4 is removed, this method should be moved to
+  # flow_test_lib.
+  if data_store.RelationalDBFlowsEnabled():
+    return flow.StartFlow(
+        creator=token and token.username,
+        flow_cls=flow_cls,
+        flow_args=flow_args,
+        client_id=client_id)
+  else:
+    return flow.StartAFF4Flow(
+        flow_name=compatibility.GetName(flow_cls),
+        notify_to_user=True,
+        client_id=client_id,
+        args=flow_args,
+        token=token).Basename()
+
+
 def main(argv=None):
+  testing_startup.TestInit()
   if flags.FLAGS.generate:
     testing_startup.TestInit()
     ApiRegressionGoldenOutputGenerator(flags.FLAGS.generate).Generate()

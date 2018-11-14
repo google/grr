@@ -296,9 +296,6 @@ class ExportTest(ExportTestBase):
         client_id=self.client_id,
         pathspec=pathspec)
 
-    events.Events.PublishEvent(
-        "LegacyFileStore.AddFileToStore", urn, token=self.token)
-
     if data_store.RelationalDBReadEnabled(category="vfs"):
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
       path_info = data_store.REL_DB.ReadPathInfo(self.client_id.Basename(),
@@ -306,25 +303,29 @@ class ExportTest(ExportTestBase):
                                                  tuple(path_info.components))
       hash_value = path_info.hash_entry
     else:
+      events.Events.PublishEvent(
+          "LegacyFileStore.AddFileToStore", urn, token=self.token)
       fd = aff4.FACTORY.Open(urn, token=self.token)
       hash_value = fd.Get(fd.Schema.HASH)
 
     self.assertTrue(hash_value)
 
-    converter = export.StatEntryToExportedFileConverter(
-        options=export.ExportOptions(export_files_hashes=True))
+    converter = export.StatEntryToExportedFileConverter()
     results = list(
         converter.Convert(
             self.metadata,
             rdf_client_fs.StatEntry(pathspec=pathspec),
             token=self.token))
 
-    self.assertEqual(results[0].hash_md5, "bb0a15eefe63fd41f8dc9dee01c5cf9a")
-    self.assertEqual(results[0].hash_sha1,
-                     "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
-    self.assertEqual(
-        results[0].hash_sha256,
-        "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5")
+    # Even though the file has a hash, it's not stored in StatEntry and
+    # doesn't influence the result. Note: this is a change in behavior.
+    # Previously StatEntry exporter was opening corresponding file objects
+    # and reading hashes from these objects. This approach was questionable
+    # at best, since there was no guarantee that hashes actually corresponded
+    # to files in question.
+    self.assertFalse(results[0].hash_md5)
+    self.assertFalse(results[0].hash_sha1)
+    self.assertFalse(results[0].hash_sha256)
 
   def testExportedFileConverterIgnoresRegistryKeys(self):
     stat = rdf_client_fs.StatEntry(
@@ -624,54 +625,6 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[2].anomaly.finding,
                      checkresults[1].anomaly[1].finding[0])
 
-  def testGetMetadata(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
-    with aff4.FACTORY.Open(
-        self.client_id, mode="rw", token=self.token) as client:
-      client.SetLabel("client-label-24")
-
-    metadata = export.GetMetadata(self.client_id, token=self.token)
-    self.assertEqual(metadata.os, u"Windows")
-    self.assertEqual(metadata.labels, u"client-label-24")
-    self.assertEqual(metadata.user_labels, u"client-label-24")
-    self.assertEqual(metadata.system_labels, u"")
-    self.assertEqual(metadata.hardware_info.bios_version, u"Version 1.23v")
-
-    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    client.SetLabels(["a", "b"])
-    client.Flush()
-    metadata = export.GetMetadata(self.client_id, token=self.token)
-    self.assertEqual(metadata.os, u"Windows")
-    self.assertEqual(metadata.labels, u"a,b")
-    self.assertEqual(metadata.user_labels, u"a,b")
-    self.assertEqual(metadata.system_labels, u"")
-
-  def testGetMetadataWithSystemLabels(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
-    with aff4.FACTORY.Open(
-        self.client_id, mode="rw", token=self.token) as client:
-      client.SetLabels(["a", "b"])
-      client.AddLabel("c", owner="GRR")
-
-    metadata = export.GetMetadata(self.client_id, token=self.token)
-    self.assertEqual(metadata.labels, u"a,b,c")
-    self.assertEqual(metadata.user_labels, u"a,b")
-    self.assertEqual(metadata.system_labels, u"c")
-
-  def testGetMetadataMissingKB(self):
-    # We do not want to use `self.client_id` in this test because we need an
-    # uninitialized client.
-    client_id = rdf_client.ClientURN("C.4815162342108108")
-
-    newclient = aff4.FACTORY.Create(
-        client_id, aff4_grr.VFSGRRClient, token=self.token, mode="rw")
-    self.assertFalse(newclient.Get(newclient.Schema.KNOWLEDGE_BASE))
-    newclient.Flush()
-
-    # Expect empty usernames field due to no knowledge base.
-    metadata = export.GetMetadata(client_id, token=self.token)
-    self.assertFalse(metadata.usernames)
-
   def testClientSummaryToExportedClientConverter(self):
     client_summary = rdf_client.ClientSummary()
     metadata = export.ExportedMetadata(hostname="ahostname")
@@ -829,10 +782,9 @@ class ExportTest(ExportTestBase):
 
     converter = export.FileFinderResultConverter()
     results = list(
-        converter.BatchConvert(
-            [(self.metadata, file_finder_result),
-             (self.metadata, file_finder_result2)],
-            token=self.token))
+        converter.BatchConvert([(self.metadata, file_finder_result),
+                                (self.metadata, file_finder_result2)],
+                               token=self.token))
 
     exported_files = [
         result for result in results if isinstance(result, export.ExportedFile)
@@ -944,8 +896,8 @@ class ExportTest(ExportTestBase):
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):
       results = list(
-          converter.BatchConvert(
-              [(metadata1, msg1), (metadata2, msg2)], token=self.token))
+          converter.BatchConvert([(metadata1, msg1), (metadata2, msg2)],
+                                 token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].original_timestamp,
@@ -977,8 +929,8 @@ class ExportTest(ExportTestBase):
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):
       results = list(
-          converter.BatchConvert(
-              [(metadata1, msg1), (metadata2, msg2)], token=self.token))
+          converter.BatchConvert([(metadata1, msg1), (metadata2, msg2)],
+                                 token=self.token))
 
     self.assertEqual(len(results), 3)
     # RDFValue3 gets converted to RDFValue2 and RDFValue, RDFValue5 stays at 5.
@@ -1351,8 +1303,8 @@ class DataAgnosticExportConverterTest(ExportTestBase):
         string_value="string value",
         int_value=42,
         bool_value=True,
-        enum_value=export_test_lib.DataAgnosticConverterTestValue.EnumOption.
-        OPTION_2,
+        enum_value=export_test_lib.DataAgnosticConverterTestValue.EnumOption
+        .OPTION_2,
         urn_value=rdfvalue.RDFURN("aff4:/bar"),
         datetime_value=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
     converted_value = self.ConvertOriginalValue(original_value)
@@ -1387,8 +1339,8 @@ class DataAgnosticExportConverterTest(ExportTestBase):
         string_value="string value",
         int_value=42,
         bool_value=True,
-        enum_value=export_test_lib.DataAgnosticConverterTestValue.EnumOption.
-        OPTION_2,
+        enum_value=export_test_lib.DataAgnosticConverterTestValue.EnumOption
+        .OPTION_2,
         urn_value=rdfvalue.RDFURN("aff4:/bar"),
         datetime_value=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
     converted_value = self.ConvertOriginalValue(original_value)
@@ -1535,7 +1487,8 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
 
   def testObjectRenderersAreAppliedCorrectly(self):
     messages = [[
-        "t", [{
+        "t",
+        [{
             "cname": "Address"
         }, {
             "cname": "Pointer"
@@ -1564,63 +1517,65 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
         }, {
             "cname": "str"
         }], {}
-    ], [
-        "r", {
-            "Address": {
-                "mro": ["Address"],
-                "value": 42
-            },
-            "Pointer": {
-                "mro": ["Pointer"],
-                "target": 43
-            },
-            "PaddedAddress": {
-                "mro": ["PaddedAddress"],
-                "value": 44
-            },
-            "AddressSpace": {
-                "mro": ["AddressSpace"],
-                "name": "some_address_space"
-            },
-            "Enumeration": {
-                "mro": ["Enumeration"],
-                "enum": "ENUM",
-                "value": 42
-            },
-            "Literal": {
-                "mro": ["Literal"],
-                "value": "some literal"
-            },
-            "NativeType": {
-                "mro": ["NativeType"],
-                "value": "some"
-            },
-            "NoneObject": {
-                "mro": ["NoneObject"]
-            },
-            "BaseObject": {
-                "mro": ["BaseObject"],
-                "offset": 42
-            },
-            "Struct": {
-                "mro": ["Struct"],
-                "offset": 42
-            },
-            "UnixTimeStamp": {
-                "mro": ["UnixTimeStamp"],
-                "epoch": 42
-            },
-            "_EPROCESS": {
-                "mro": ["_EPROCESS"],
-                "Cybox": {
-                    "PID": 4,
-                    "Name": "System"
-                }
-            },
-            "int": 42,
-            "str": "some string"
-        }
-    ]]
+    ],
+                [
+                    "r",
+                    {
+                        "Address": {
+                            "mro": ["Address"],
+                            "value": 42
+                        },
+                        "Pointer": {
+                            "mro": ["Pointer"],
+                            "target": 43
+                        },
+                        "PaddedAddress": {
+                            "mro": ["PaddedAddress"],
+                            "value": 44
+                        },
+                        "AddressSpace": {
+                            "mro": ["AddressSpace"],
+                            "name": "some_address_space"
+                        },
+                        "Enumeration": {
+                            "mro": ["Enumeration"],
+                            "enum": "ENUM",
+                            "value": 42
+                        },
+                        "Literal": {
+                            "mro": ["Literal"],
+                            "value": "some literal"
+                        },
+                        "NativeType": {
+                            "mro": ["NativeType"],
+                            "value": "some"
+                        },
+                        "NoneObject": {
+                            "mro": ["NoneObject"]
+                        },
+                        "BaseObject": {
+                            "mro": ["BaseObject"],
+                            "offset": 42
+                        },
+                        "Struct": {
+                            "mro": ["Struct"],
+                            "offset": 42
+                        },
+                        "UnixTimeStamp": {
+                            "mro": ["UnixTimeStamp"],
+                            "epoch": 42
+                        },
+                        "_EPROCESS": {
+                            "mro": ["_EPROCESS"],
+                            "Cybox": {
+                                "PID": 4,
+                                "Name": "System"
+                            }
+                        },
+                        "int": 42,
+                        "str": "some string"
+                    }
+                ]]
 
     rekall_response = rdf_rekall_types.RekallResponse(
         plugin="object_renderer_sample",
@@ -1697,7 +1652,8 @@ class RekallResponseToExportedYaraSignatureMatchConverterTest(ExportTestBase):
 
   def testConvertsCompatibleMessage(self):
     messages = [[
-        "r", {
+        "r",
+        {
             "HexDump": {
                 "highlights": None,
                 "mro": "HexDumpedString:AttributedString:object",
@@ -1793,7 +1749,8 @@ class RekallResponseToExportedRekallProcessConverterTest(ExportTestBase):
 
   def testConvertsCompatibleMessage(self):
     messages = [[
-        "r", {
+        "r",
+        {
             "_EPROCESS": {
                 "Cybox": {
                     "Creation_Time": {
@@ -1863,7 +1820,8 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
 
   def testConvertsCompatibleMessage(self):
     messages = [[
-        "r", {
+        "r",
+        {
             "_EPROCESS": {
                 "Cybox": {
                     "Creation_Time": {
@@ -1947,7 +1905,8 @@ class ExportedLinuxSyscallTableEntryConverterTest(ExportTestBase):
 
   def testConvertsCompatibleMessage(self):
     messages = [[
-        "r", {
+        "r",
+        {
             u"address": {
                 u"id": 9062,
                 u"mro": u"Pointer:NativeType:NumericProxyMixIn:"
@@ -1992,7 +1951,8 @@ class ExportedLinuxSyscallTableEntryConverterTest(ExportTestBase):
 
   def testConvertsSyscallEntriesWithMultipleSymbolNames(self):
     messages = [[
-        "r", {
+        "r",
+        {
             u"address": {
                 u"id": 33509,
                 u"mro": u"Pointer:NativeType:NumericProxyMixIn:"
@@ -2062,7 +2022,8 @@ class RekallResponseToExportedRekallLinuxTaskOpConverterTest(ExportTestBase):
 
   def testConvertsCompatibleMessage(self):
     messages = [[
-        "r", {
+        "r",
+        {
             u"address": {
                 u"id":
                     12331,
@@ -2123,7 +2084,8 @@ class RekallResponseToExportedRekallLinuxProcOpConverterTest(ExportTestBase):
 
   def testConvertsCompatibleMessage(self):
     messages = [[
-        "r", {
+        "r",
+        {
             u"address": {
                 u"id":
                     11447,
@@ -2191,7 +2153,8 @@ class RekallResponseToExportedRekallKernelObjectConverterTest(ExportTestBase):
 
   def testConvertsCompatibleMessage(self):
     messages = [[
-        "r", {
+        "r",
+        {
             u"type": u"Directory",
             "_OBJECT_HEADER": {
                 u"name": u"_OBJECT_HEADER",
@@ -2223,6 +2186,118 @@ class RekallResponseToExportedRekallKernelObjectConverterTest(ExportTestBase):
         self.converter.Convert(
             self.metadata, rekall_response, token=self.token))
     self.assertEqual(len(converted_values), 0)
+
+
+class GetMetadataLegacyTest(test_lib.GRRBaseTest):
+
+  def setUp(self):
+    super(GetMetadataLegacyTest, self).setUp()
+    self.client_id = self.SetupClient(0)
+
+  def testGetMetadataLegacy(self):
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.SetLabel("client-label-24")
+
+    metadata = export.GetMetadataLegacy(self.client_id, token=self.token)
+    self.assertEqual(metadata.os, "Windows")
+    self.assertEqual(metadata.labels, "client-label-24")
+    self.assertEqual(metadata.user_labels, "client-label-24")
+    self.assertEqual(metadata.system_labels, "")
+    self.assertEqual(metadata.hardware_info.bios_version, "Version 1.23v")
+
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.SetLabels(["a", "b"])
+
+    metadata = export.GetMetadataLegacy(self.client_id, token=self.token)
+    self.assertEqual(metadata.os, "Windows")
+    self.assertEqual(metadata.labels, "a,b")
+    self.assertEqual(metadata.user_labels, "a,b")
+    self.assertEqual(metadata.system_labels, "")
+
+  def testGetMetadataLegacyWithSystemLabels(self):
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.SetLabels(["a", "b"])
+      client.AddLabel("c", owner="GRR")
+
+    metadata = export.GetMetadataLegacy(self.client_id, token=self.token)
+    self.assertEqual(metadata.labels, "a,b,c")
+    self.assertEqual(metadata.user_labels, "a,b")
+    self.assertEqual(metadata.system_labels, "c")
+
+  def testGetMetadataLegacyMissingKB(self):
+    # We do not want to use `self.client_id` in this test because we need an
+    # uninitialized client.
+    client_id = rdf_client.ClientURN("C.4815162342108108")
+
+    newclient = aff4.FACTORY.Create(
+        client_id, aff4_grr.VFSGRRClient, token=self.token, mode="rw")
+    self.assertFalse(newclient.Get(newclient.Schema.KNOWLEDGE_BASE))
+    newclient.Flush()
+
+    # Expect empty usernames field due to no knowledge base.
+    metadata = export.GetMetadataLegacy(client_id, token=self.token)
+    self.assertFalse(metadata.usernames)
+
+
+class GetMetadataTest(db_test_lib.RelationalDBEnabledMixin,
+                      test_lib.GRRBaseTest):
+
+  def setUp(self):
+    super(GetMetadataTest, self).setUp()
+    self.client_id = "C.4815162342108107"
+
+  def testGetMetadataWithSingleUserLabel(self):
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    self.AddClientLabel(self.client_id, self.token.username, "client-label-24")
+
+    metadata = export.GetMetadata(
+        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+    self.assertEqual(metadata.os, "Windows")
+    self.assertEqual(metadata.labels, "client-label-24")
+    self.assertEqual(metadata.user_labels, "client-label-24")
+    self.assertEqual(metadata.system_labels, "")
+    self.assertEqual(metadata.hardware_info.bios_version, "Version 1.23v")
+
+  def testGetMetadataWithTwoUserLabels(self):
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    self.AddClientLabel(self.client_id, self.token.username, "a")
+    self.AddClientLabel(self.client_id, self.token.username, "b")
+
+    metadata = export.GetMetadata(
+        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+    self.assertEqual(metadata.os, "Windows")
+    self.assertEqual(metadata.labels, "a,b")
+    self.assertEqual(metadata.user_labels, "a,b")
+    self.assertEqual(metadata.system_labels, "")
+
+  def testGetMetadataWithSystemLabels(self):
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    self.AddClientLabel(self.client_id, self.token.username, "a")
+    self.AddClientLabel(self.client_id, self.token.username, "b")
+    self.AddClientLabel(self.client_id, "GRR", "c")
+
+    metadata = export.GetMetadata(
+        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+    self.assertEqual(metadata.labels, "a,b,c")
+    self.assertEqual(metadata.user_labels, "a,b")
+    self.assertEqual(metadata.system_labels, "c")
+
+  def testGetMetadataMissingKB(self):
+    # We do not want to use `self.client_id` in this test because we need an
+    # uninitialized client.
+    client_id = "C.4815162342108108"
+    data_store.REL_DB.WriteClientMetadata(
+        client_id, first_seen=rdfvalue.RDFDatetime(42))
+
+    # Expect empty usernames field due to no knowledge base.
+    metadata = export.GetMetadata(
+        client_id, data_store.REL_DB.ReadClientFullInfo(client_id))
+    self.assertFalse(metadata.usernames)
 
 
 def main(argv):

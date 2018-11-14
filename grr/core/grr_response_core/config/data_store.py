@@ -24,13 +24,21 @@ config_lib.DEFINE_bool(
     "Use relational database for reading as well as for writing.")
 
 config_lib.DEFINE_bool(
+    "Database.useForReads.artifacts", False,
+    "Enable reading artifact data from the relational database.")
+
+config_lib.DEFINE_bool(
     "Database.useForReads.message_handlers", False,
     "Enable message handlers using the relational database.")
 
 config_lib.DEFINE_bool("Database.useForReads.cronjobs", False,
                        "Enable storing cronjobs in the relational database.")
 
-config_lib.DEFINE_bool("Database.useForReads.flows", False,
+# Previously `Database.useForReads.flows`. This has been changed to allow
+# testing relational flows separately and prevent confusion in the usage of
+# RelationalDBReadEnabled(). This flag should not be True, when
+# Database.useForReads is False.
+config_lib.DEFINE_bool("Database.useRelationalFlows", False,
                        "Enable storing flows in the relational database.")
 
 config_lib.DEFINE_bool(

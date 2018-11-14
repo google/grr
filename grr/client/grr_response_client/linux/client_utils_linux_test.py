@@ -9,10 +9,10 @@ import tempfile
 import time
 import unittest
 
+from absl.testing import absltest
 from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
-import unittest
 from grr_response_client import client_utils_linux
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
@@ -111,7 +111,7 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 
 
 @unittest.skipIf(platform.system() != "Linux", "only Linux is supported")
-class GetExtAttrsText(unittest.TestCase):
+class GetExtAttrsText(absltest.TestCase):
 
   def testEmpty(self):
     with temp.AutoTempFilePath() as temp_filepath:

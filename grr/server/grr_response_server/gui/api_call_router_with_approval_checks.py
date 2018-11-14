@@ -676,6 +676,11 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.ListCronJobApprovals(args, token=token)
 
+  def ListApproverSuggestions(self, args, token=None):
+    # Everybody can list suggestions for approver usernames.
+
+    return self.delegate.ListApproverSuggestions(args, token=token)
+
   # User settings methods.
   # =====================
   #

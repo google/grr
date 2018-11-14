@@ -6,7 +6,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
-import unittest
+from absl.testing import absltest
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr.test_lib import test_lib
@@ -24,7 +24,7 @@ long_string = (
     "efficitur. Pellentesque aliquam placerat mauris non accumsan.")
 
 
-class RDFValueTest(unittest.TestCase):
+class RDFValueTest(absltest.TestCase):
   """RDFValue tests."""
 
   def testStr(self):
@@ -41,7 +41,7 @@ class RDFValueTest(unittest.TestCase):
   # The implementation should be fixed and proper tests should be written.
 
 
-class RDFBytesTest(unittest.TestCase):
+class RDFBytesTest(absltest.TestCase):
 
   def testParseFromHumanReadable(self):
     string = u"zażółć gęślą jaźń"
@@ -51,7 +51,7 @@ class RDFBytesTest(unittest.TestCase):
     self.assertEqual(result, expected)
 
 
-class RDFStringTest(unittest.TestCase):
+class RDFStringTest(absltest.TestCase):
 
   def testParseFromHumanReadable(self):
     string = u"pchnąć w tę łódź jeża lub ośm skrzyń fig"
@@ -69,7 +69,7 @@ class RDFStringTest(unittest.TestCase):
     self.assertLess(rdfvalue.RDFString(u"012"), b"\x80\x81\x81")
 
 
-class RDFIntegerTest(unittest.TestCase):
+class RDFIntegerTest(absltest.TestCase):
 
   def testParseFromHumanReadable(self):
     result = rdfvalue.RDFInteger.FromHumanReadable(u"42")
@@ -96,7 +96,7 @@ class RDFIntegerTest(unittest.TestCase):
       rdfvalue.RDFInteger.FromHumanReadable(u"12A")
 
 
-class RDFBool(unittest.TestCase):
+class RDFBool(absltest.TestCase):
 
   def testParseFromHumanReadableTrue(self):
     self.assertTrue(rdfvalue.RDFBool.FromHumanReadable(u"true"))
@@ -119,7 +119,7 @@ class RDFBool(unittest.TestCase):
       rdfvalue.RDFBool.FromHumanReadable(u"yes")
 
 
-class RDFDateTimeTest(unittest.TestCase):
+class RDFDateTimeTest(absltest.TestCase):
 
   def testLerpMiddle(self):
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01")

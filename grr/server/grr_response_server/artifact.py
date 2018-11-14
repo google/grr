@@ -435,7 +435,11 @@ def UploadArtifactYamlFile(file_content,
           source="datastore:%s" % ARTIFACT_STORE_ROOT_URN,
           overwrite_if_exists=overwrite,
           overwrite_system_artifacts=overwrite_system_artifacts)
+
       artifact_coll.Add(artifact_value, mutation_pool=pool)
+      if data_store.RelationalDBWriteEnabled():
+        data_store.REL_DB.WriteArtifact(artifact_value)
+
       loaded_artifacts.append(artifact_value)
 
       name = artifact_value.name

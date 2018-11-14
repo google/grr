@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+  <dict>
+    <key>date</key>
+    <date>2017-07-20T18:40:22Z</date>
+    <key>displayName</key>
+    <string>ESET NOD32 Antivirus</string>
+    <key>displayVersion</key>
+    <string></string>
+    <key>packageIdentifiers</key>
+    <array>
+      <string>com.eset.esetNod32Antivirus.ESETNOD32Antivirus.pkg</string>
+      <string>com.eset.esetNod32Antivirus.GUI_startup.pkg</string>
+      <string>com.eset.esetNod32Antivirus.pkgid.pkg</string>
+      <string>com.eset.esetNod32Antivirus.com.eset.esets_daemon.pkg</string>
+      <string>com.eset.esetNod32Antivirus.esetsbkp.pkg</string>
+      <string>com.eset.esetNod32Antivirus.esets_kac_64_106.pkg</string>
+    </array>
+    <key>processName</key>
+    <string>installer</string>
+  </dict>
+  <dict>
+    <key>date</key>
+    <date>2018-03-13T05:39:17Z</date>
+    <key>displayName</key>
+    <string>grr</string>
+    <key>displayVersion</key>
+    <string></string>
+    <key>packageIdentifiers</key>
+    <array>
+      <string>com.google.code.grr.grr_3.2.1.0</string>
+    </array>
+    <key>processName</key>
+    <string>installer</string>
+  </dict>
+  <dict>
+    <key>date</key>
+    <date>2018-08-07T16:07:10Z</date>
+    <key>displayName</key>
+    <string>grr</string>
+    <key>displayVersion</key>
+    <string></string>
+    <key>packageIdentifiers</key>
+    <array>
+      <string>com.google.code.grr.grr_3.2.3.2</string>
+    </array>
+    <key>processName</key>
+    <string>installer</string>
+  </dict>
+  <dict>
+    <key>date</key>
+    <date>2017-07-25T04:26:10Z</date>
+    <key>displayName</key>
+    <string>macOS Sierra Update</string>
+    <key>displayVersion</key>
+    <string>10.12.6</string>
+    <key>packageIdentifiers</key>
+    <array>
+      <string>com.apple.pkg.update.os.10.12.6Patch.16G29</string>
+      <string>com.apple.pkg.FirmwareUpdate</string>
+      <string>com.apple.update.fullbundleupdate.16G29</string>
+      <string>com.apple.pkg.EmbeddedOSFirmware</string>
+    </array>
+    <key>processName</key>
+    <string>softwareupdated</string>
+  </dict>
+</array>
+</plist>

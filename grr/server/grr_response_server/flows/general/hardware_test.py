@@ -8,10 +8,11 @@ from grr_response_client.client_actions import tempfiles
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import flow
-from grr_response_server.aff4_objects import hardware as aff4_hardware
 from grr_response_server.flows.general import hardware
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -48,6 +49,7 @@ class FailDumpMock(DumpFlashImageMock):
     raise IOError("Unexpected error")
 
 
+@db_test_lib.DualFlowTest
 class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
   """Test the Flash dump flow."""
 
@@ -62,41 +64,57 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
     """Dump Flash Image."""
     client_mock = DumpFlashImageMock()
 
-    flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         hardware.DumpFlashImage.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token)
 
-    fd = aff4.FACTORY.Open(self.client_id.Add("spiflash"), token=self.token)
+    if data_store.RelationalDBFlowsEnabled():
+      results = [
+          r.payload for r in data_store.REL_DB.ReadFlowResults(
+              self.client_id.Basename(), flow_id, 0, 100)
+      ]
+    else:
+      results = list(flow.GRRFlow.ResultCollectionForFID(flow_id))
+
+    self.assertLen(results, 1)
+    stat_entry = results[0]
+    aff4_path = stat_entry.pathspec.AFF4Path(self.client_id)
+    fd = aff4.FACTORY.Open(aff4_path, token=self.token)
     self.assertEqual(fd.Read("10"), b"\xff" * 10)
 
   def testUnknownChipset(self):
     """Fail to dump flash of unknown chipset."""
     client_mock = UnknownChipsetDumpMock()
 
-    # Manually start the flow in order to be able to read the logs
-    flow_urn = flow.StartAFF4Flow(
+    flow_id = flow_test_lib.TestFlowHelper(
+        hardware.DumpFlashImage.__name__,
+        client_mock,
         client_id=self.client_id,
-        flow_name=hardware.DumpFlashImage.__name__,
         token=self.token)
 
-    flow_test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=self.client_id, token=self.token)
+    if data_store.RelationalDBFlowsEnabled():
+      log_items = data_store.REL_DB.ReadFlowLogEntries(
+          self.client_id.Basename(), flow_id, 0, 100)
+      logs = [l.message for l in log_items]
+    else:
+      log_items = flow.GRRFlow.LogCollectionForFID(flow_id)
+      logs = [l.log_message for l in log_items]
 
-    logs = flow.GRRFlow.LogCollectionForFID(flow_urn)
-    self.assertIn("Unknown chipset", [l.log_message for l in logs])
+    self.assertIn("Unknown chipset", logs)
 
   def testFailedDumpImage(self):
     """Fail to dump flash."""
     client_mock = FailDumpMock()
 
-    flow_test_lib.TestFlowHelper(
-        hardware.DumpFlashImage.__name__,
-        client_mock,
-        client_id=self.client_id,
-        token=self.token,
-        check_flow_errors=False)
+    with test_lib.SuppressLogs():
+      flow_test_lib.TestFlowHelper(
+          hardware.DumpFlashImage.__name__,
+          client_mock,
+          client_id=self.client_id,
+          token=self.token,
+          check_flow_errors=False)
 
 
 class DumpACPITableMock(action_mocks.ActionMock):
@@ -104,17 +122,25 @@ class DumpACPITableMock(action_mocks.ActionMock):
   ACPI_TABLES = {
       "DSDT": [
           rdf_chipsec_types.ACPITableData(
-              table_address=0x1122334455667788, table_blob=b"\xAA" * 0xFF)
+              table_address=0x1122334455667788,
+              table_blob=b"\xAA" * 0xFF,
+              table_signature="DSDT")
       ],
       "XSDT": [
           rdf_chipsec_types.ACPITableData(
-              table_address=0x8877665544332211, table_blob=b"\xBB" * 0xFF)
+              table_address=0x8877665544332211,
+              table_blob=b"\xBB" * 0xFF,
+              table_signature="XSDT")
       ],
       "SSDT": [
           rdf_chipsec_types.ACPITableData(
-              table_address=0x1234567890ABCDEF, table_blob=b"\xCC" * 0xFF),
+              table_address=0x1234567890ABCDEF,
+              table_blob=b"\xCC" * 0xFF,
+              table_signature="SSDT"),
           rdf_chipsec_types.ACPITableData(
-              table_address=0x2234567890ABCDEF, table_blob=b"\xDD" * 0xFF)
+              table_address=0x2234567890ABCDEF,
+              table_blob=b"\xDD" * 0xFF,
+              table_signature="SSDT")
       ]
   }
 
@@ -136,6 +162,7 @@ class DumpACPITableMock(action_mocks.ActionMock):
     return [response]
 
 
+@db_test_lib.DualFlowTest
 class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
 
   def testDumpValidACPITableOk(self):
@@ -144,46 +171,59 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
     table_signature_list = ["DSDT", "XSDT", "SSDT"]
     client_id = self.SetupClient(0)
 
-    flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         hardware.DumpACPITable.__name__,
         client_mock,
         table_signature_list=table_signature_list,
         client_id=client_id,
         token=self.token)
 
-    fd = aff4_hardware.ACPITableDataCollection(
-        client_id.Add("/devices/chipsec/acpi/tables/DSDT"))
-    self.assertEqual(len(fd), 1)
-    self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["DSDT"][0])
+    if data_store.RelationalDBFlowsEnabled():
+      results = [
+          r.payload for r in data_store.REL_DB.ReadFlowResults(
+              client_id.Basename(), flow_id, 0, 100)
+      ]
+    else:
+      results = list(flow.GRRFlow.ResultCollectionForFID(flow_id))
 
-    fd = aff4_hardware.ACPITableDataCollection(
-        client_id.Add("/devices/chipsec/acpi/tables/XSDT"))
-    self.assertEqual(len(fd), 1)
-    self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["XSDT"][0])
+    self.assertLen(results, 4)
 
-    fd = aff4_hardware.ACPITableDataCollection(
-        client_id.Add("/devices/chipsec/acpi/tables/SSDT"))
-    self.assertEqual(len(fd), 2)
-    self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["SSDT"][0])
-    self.assertEqual(fd[1], DumpACPITableMock.ACPI_TABLES["SSDT"][1])
+    dsdt_tables = [
+        table for table in results if table.table_signature == "DSDT"
+    ]
+    xsdt_tables = [
+        table for table in results if table.table_signature == "XSDT"
+    ]
+    ssdt_tables = [
+        table for table in results if table.table_signature == "SSDT"
+    ]
+
+    self.assertCountEqual(DumpACPITableMock.ACPI_TABLES["DSDT"], dsdt_tables)
+    self.assertCountEqual(DumpACPITableMock.ACPI_TABLES["XSDT"], xsdt_tables)
+    self.assertCountEqual(DumpACPITableMock.ACPI_TABLES["SSDT"], ssdt_tables)
 
   def testDumpInvalidACPITable(self):
     """Tests dumping nonexistent ACPI table."""
     client_mock = DumpACPITableMock()
     client_id = self.SetupClient(0)
     table_signature_list = ["ABC"]
-    session_id = None
 
-    session_id = flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         hardware.DumpACPITable.__name__,
         client_mock,
         table_signature_list=table_signature_list,
         client_id=client_id,
         token=self.token)
 
-    logs = flow.GRRFlow.LogCollectionForFID(session_id)
-    self.assertIn("Unable to retrieve ACPI table with signature ABC",
-                  [log.log_message for log in logs])
+    if data_store.RelationalDBFlowsEnabled():
+      log_items = data_store.REL_DB.ReadFlowLogEntries(client_id.Basename(),
+                                                       flow_id, 0, 100)
+      logs = [l.message for l in log_items]
+    else:
+      log_items = flow.GRRFlow.LogCollectionForFID(flow_id)
+      logs = [l.log_message for l in log_items]
+
+    self.assertIn("Unable to retrieve ACPI table with signature ABC", logs)
 
   def testEmptyTableSignatureList(self):
     """Tests DumpACPITable with empty table_signature_list."""

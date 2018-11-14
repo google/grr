@@ -14,11 +14,11 @@ import threading
 import unittest
 
 
+from absl.testing import absltest
 from builtins import int  # pylint: disable=redefined-builtin
 from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
-import unittest
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr.test_lib import client_test_lib
@@ -315,7 +315,7 @@ class RollingMemoryStreamTest(test_lib.GRRBaseTest):
       self.stream.write(b"blah")
 
 
-class StatTest(unittest.TestCase):
+class StatTest(absltest.TestCase):
 
   def testGetSize(self):
     with temp.AutoTempFilePath() as temp_filepath:
@@ -466,7 +466,7 @@ class StatTest(unittest.TestCase):
     return int(date.strftime("%s"))
 
 
-class StatCacheTest(unittest.TestCase):
+class StatCacheTest(absltest.TestCase):
 
   def setUp(self):
     self.temp_dir = temp.TempDirPath()
@@ -552,7 +552,7 @@ class StatCacheTest(unittest.TestCase):
       self.assertFalse(stat_mock.called)
 
 
-class IterValuesInSortedKeysOrderTest(unittest.TestCase):
+class IterValuesInSortedKeysOrderTest(absltest.TestCase):
 
   def testYieldsSingleValueCorrectly(self):
     self.assertEqual([42], list(utils.IterValuesInSortedKeysOrder({"a": 42})))

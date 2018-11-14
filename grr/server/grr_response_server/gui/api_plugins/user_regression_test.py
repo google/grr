@@ -728,6 +728,31 @@ class ApiListPendingGlobalNotificationsHandlerRegressionTest(
     self.Check("ListPendingGlobalNotifications", replace=replace)
 
 
+class ApiListApproverSuggestionsHandlerRegressionTest(
+    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
+  """Regression test for ApiListApproverSuggestionsHandler."""
+
+  api_method = "ListApproverSuggestions"
+  handler = user_plugin.ApiListApproverSuggestionsHandler
+
+  def Run(self):
+    self.CreateUser("sanchezmorty")
+    self.CreateUser("sanchezrick")
+    self.CreateUser("sanchezsummer")
+
+    # Check 0 suggestions, since empty repeated field serialization varies with
+    # api version.
+    self.Check(
+        "ListApproverSuggestions",
+        args=user_plugin.ApiListApproverSuggestionsArgs(username_query="foo"))
+
+    # Check formatting of multiple suggestions.
+    self.Check(
+        "ListApproverSuggestions",
+        args=user_plugin.ApiListApproverSuggestionsArgs(
+            username_query="sanchez"))
+
+
 def main(argv):
   api_regression_test_lib.main(argv)
 

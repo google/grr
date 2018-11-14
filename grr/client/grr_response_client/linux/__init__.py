@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-"""This module contains linux specific client code."""
+"""Client linux-specific module root."""
 
-
-# These need to register plugins so, pylint: disable=unused-import
+from __future__ import absolute_import

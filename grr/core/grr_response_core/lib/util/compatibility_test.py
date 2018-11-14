@@ -2,11 +2,12 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from absl.testing import absltest
+
 from grr_response_core.lib.util import compatibility
-import unittest
 
 
-class GetNameTest(unittest.TestCase):
+class GetNameTest(absltest.TestCase):
 
   def testClass(self):
 
@@ -23,7 +24,7 @@ class GetNameTest(unittest.TestCase):
     self.assertEqual(compatibility.GetName(Bar), "Bar")
 
 
-class SetNameTest(unittest.TestCase):
+class SetNameTest(absltest.TestCase):
 
   def testClass(self):
 
@@ -42,7 +43,7 @@ class SetNameTest(unittest.TestCase):
     self.assertEqual(compatibility.GetName(Baz), "Thud")
 
 
-class ListAttrsTest(unittest.TestCase):
+class ListAttrsTest(absltest.TestCase):
 
   def testProperties(self):
 
@@ -70,7 +71,7 @@ class ListAttrsTest(unittest.TestCase):
     self.assertIn("Thud", attrs)
 
 
-class MakeTypeTest(unittest.TestCase):
+class MakeTypeTest(absltest.TestCase):
 
   def testSimple(self):
 
@@ -107,4 +108,4 @@ class MakeTypeTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

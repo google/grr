@@ -124,8 +124,7 @@ class TestYaraProcessDump(test_base.AbstractFileTransferTest):
     for dump_info in process_dump_response.dumped_processes:
       self.assertEqual(dump_info.process.name, process_name)
       paths_in_dump_response.update(
-          {f.path[f.path.find(process_name):]
-           for f in dump_info.dump_files})
+          {f.path[f.path.find(process_name):] for f in dump_info.dump_files})
       self.assertTrue(dump_info.dump_files)
       dump_file_count += len(dump_info.dump_files)
 

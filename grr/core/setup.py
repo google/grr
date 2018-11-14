@@ -139,7 +139,7 @@ setup_args = dict(
         "pytsk3==20170802",
         "pytz==2017.3",
         "PyYAML==3.12",
-        "requests==2.19.1",
+        "requests==2.20.0",
         "typing==3.6.4",
         "virtualenv==15.0.3",
         "wheel==0.30",

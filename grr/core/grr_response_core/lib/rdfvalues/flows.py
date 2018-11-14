@@ -119,6 +119,11 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
 
     self.args_rdf_name = value.__class__.__name__
 
+  def ClearPayload(self):
+    self.args_rdf_name = None
+    self.Set("args", None)
+    self.args_age = None
+
 
 class GrrStatus(rdf_structs.RDFProtoStruct):
   """The client status message.

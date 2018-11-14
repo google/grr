@@ -8,6 +8,7 @@ from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import hardware
 from grr_response_server.flows.general import collectors
@@ -18,7 +19,8 @@ class DumpFlashImageArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.DumpFlashImageArgs
 
 
-class DumpFlashImage(flow.GRRFlow):
+@flow_base.DualDBFlow
+class DumpFlashImageMixin(object):
   """Dump Flash image (BIOS)."""
 
   category = "/Collectors/"
@@ -73,12 +75,16 @@ class DumpFlashImage(flow.GRRFlow):
     response = responses.First()
     self.SendReply(response)
 
-    # Update the symbolic link to the new instance.
-    with aff4.FACTORY.Create(
-        self.client_urn.Add("spiflash"), aff4.AFF4Symlink,
-        token=self.token) as symlink:
-      symlink.Set(symlink.Schema.SYMLINK_TARGET,
-                  response.AFF4Path(self.client_urn))
+    # Writing files (or symlinks) into random places is not supported anymore in
+    # the relational db schema. We are going to replace this with annotations
+    # for collected temp files soon.
+    if not data_store.RelationalDBReadEnabled():
+      # Update the symbolic link to the new instance.
+      with aff4.FACTORY.Create(
+          self.client_urn.Add("spiflash"), aff4.AFF4Symlink,
+          token=self.token) as symlink:
+        symlink.Set(symlink.Schema.SYMLINK_TARGET,
+                    response.AFF4Path(self.client_urn))
 
     # Clean up the temporary image from the client.
     self.CallClient(
@@ -106,7 +112,8 @@ class DumpACPITableArgs(rdf_structs.RDFProtoStruct):
       raise ValueError("No ACPI table to dump.")
 
 
-class DumpACPITable(flow.GRRFlow):
+@flow_base.DualDBFlow
+class DumpACPITableMixin(object):
   """Flow to retrieve ACPI tables."""
 
   category = "/Collectors/"
@@ -120,6 +127,7 @@ class DumpACPITable(flow.GRRFlow):
           server_stubs.DumpACPITable,
           logging=self.args.logging,
           table_signature=table_signature,
+          request_data={"table_signature": table_signature},
           next_state="TableReceived")
 
   def TableReceived(self, responses):
@@ -128,7 +136,7 @@ class DumpACPITable(flow.GRRFlow):
       for log in response.logs:
         self.Log(log)
 
-    table_signature = responses.request.request.payload.table_signature
+    table_signature = responses.request_data["table_signature"]
 
     if not responses.success:
       self.Log(
@@ -137,14 +145,25 @@ class DumpACPITable(flow.GRRFlow):
 
     response = responses.First()
 
-    if response.acpi_tables:
-      self.Log("Retrieved ACPI table(s) with signature %s" % table_signature)
-      with data_store.DB.GetMutationPool() as mutation_pool:
+    if not response.acpi_tables:
+      return
 
+    self.Log("Retrieved ACPI table(s) with signature %s" % table_signature)
+
+    for acpi_table_response in response.acpi_tables:
+      acpi_table_response.table_signature = table_signature
+      self.SendReply(acpi_table_response)
+
+    # Writing files (or symlinks) into random places is not supported anymore in
+    # the relational db schema. We are going to replace this with annotations
+    # for collected temp files soon.
+    if not data_store.RelationalDBReadEnabled():
+
+      with data_store.DB.GetMutationPool() as mutation_pool:
         # TODO(amoser): Make this work in the UI!?
         collection_urn = self.client_urn.Add(
             "devices/chipsec/acpi/tables/%s" % table_signature)
         for acpi_table_response in response.acpi_tables:
+          acpi_table_response.table_signature = table_signature
           hardware.ACPITableDataCollection.StaticAdd(
               collection_urn, acpi_table_response, mutation_pool=mutation_pool)
-          self.SendReply(acpi_table_response)

@@ -6,9 +6,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 
+from absl.testing import absltest
 from future.utils import iteritems
 
-import unittest
 from grr_response_core.lib import objectfilter
 
 attr1 = "Backup"
@@ -115,7 +115,7 @@ class DummyFile(object):
     return 123.9823
 
 
-class ObjectFilterTest(unittest.TestCase):
+class ObjectFilterTest(absltest.TestCase):
 
   def setUp(self):
     self.file = DummyFile()
@@ -555,4 +555,4 @@ AND @exported_symbols(name is 'inject')
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

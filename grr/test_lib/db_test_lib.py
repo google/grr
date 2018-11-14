@@ -8,6 +8,7 @@ import sys
 import mock
 
 from grr_response_server import data_store
+from grr_response_server import foreman_rules
 from grr.test_lib import test_lib
 
 
@@ -16,7 +17,6 @@ class RelationalDBEnabledMixin(object):
 
   def setUp(self):  # pylint: disable=invalid-name
     """The setUp method."""
-
     self._rel_db_read_enabled_patch = mock.patch.object(
         data_store, "RelationalDBReadEnabled", return_value=True)
     self._rel_db_read_enabled_patch.start()
@@ -25,10 +25,9 @@ class RelationalDBEnabledMixin(object):
         data_store, "RelationalDBWriteEnabled", return_value=True)
     self._rel_db_write_enabled_patch.start()
 
-    self._config_overrider = test_lib.ConfigOverrider({
-        "Database.useForReads": True
-    })
-    self._config_overrider.Start()
+    self._foreman_patch = mock.patch.object(
+        foreman_rules, "RelationalDBReadEnabled", return_value=True)
+    self._foreman_patch.start()
 
     # TODO(amoser): Remove once storing the foreman rules in the
     # relational db works.
@@ -40,7 +39,12 @@ class RelationalDBEnabledMixin(object):
     self._vfs_config_overrider = test_lib.ConfigOverrider({
         "Database.useForReads.vfs": True,
     })
-    self._foreman_config_overrider.Start()
+    self._vfs_config_overrider.Start()
+
+    self._artifacts_config_overrider = test_lib.ConfigOverrider({
+        "Database.useForReads.artifacts": True,
+    })
+    self._artifacts_config_overrider.Start()
 
     super(RelationalDBEnabledMixin, self).setUp()
 
@@ -49,9 +53,10 @@ class RelationalDBEnabledMixin(object):
 
     self._rel_db_read_enabled_patch.stop()
     self._rel_db_write_enabled_patch.stop()
-    self._config_overrider.Stop()
+    self._foreman_patch.stop()
     self._foreman_config_overrider.Stop()
     self._vfs_config_overrider.Stop()
+    self._artifacts_config_overrider.Stop()
 
 
 class RelationalFlowsEnabledMixin(RelationalDBEnabledMixin):
@@ -73,6 +78,19 @@ def DualDBTest(cls):
 
   db_test_cls_name = cls.__name__ + "_RelationalDBEnabled"
   db_test_cls = type(db_test_cls_name, (RelationalDBEnabledMixin, cls), {})
+  module = sys.modules[cls.__module__]
+  setattr(module, db_test_cls_name, db_test_cls)
+
+  return cls
+
+
+def DualFlowTest(cls):
+  """Decorator that creates an additional relational flow-enabled test class."""
+
+  db_test_cls_name = cls.__name__ + "_RelationalFlowsEnabled"
+  db_test_cls = type(
+      db_test_cls_name,
+      (RelationalFlowsEnabledMixin, RelationalDBEnabledMixin, cls), {})
   module = sys.modules[cls.__module__]
   setattr(module, db_test_cls_name, db_test_cls)
 

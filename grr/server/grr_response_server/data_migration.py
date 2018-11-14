@@ -261,7 +261,6 @@ def ConvertVFSGRRClient(client):
   snapshot.filesystems = client.Get(client.Schema.FILESYSTEM)
   snapshot.hostname = client.Get(client.Schema.HOSTNAME)
   snapshot.fqdn = client.Get(client.Schema.FQDN)
-  snapshot.system = client.Get(client.Schema.SYSTEM)
   snapshot.os_release = client.Get(client.Schema.OS_RELEASE)
   snapshot.os_version = utils.SmartStr(client.Get(client.Schema.OS_VERSION))
   snapshot.arch = client.Get(client.Schema.ARCH)

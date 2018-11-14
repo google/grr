@@ -308,8 +308,8 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
     if data_store.RelationalDBReadEnabled():
       index = client_index.ClientIndex()
 
-      clients = sorted(
-          index.LookupClients(keywords))[args.offset:args.offset + end]
+      # LookupClients returns a sorted list of client ids.
+      clients = index.LookupClients(keywords)[args.offset:args.offset + end]
 
       client_infos = data_store.REL_DB.MultiReadClientFullInfo(clients)
       for client_info in itervalues(client_infos):
@@ -762,10 +762,10 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                 client=client_obj.urn,
                 description=audit_description))
     finally:
-      events.Events.PublishMultipleEvents(
-          {
-              audit.AUDIT_EVENT: audit_events
-          }, token=token)
+      events.Events.PublishMultipleEvents({
+          audit.AUDIT_EVENT: audit_events
+      },
+                                          token=token)
 
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -829,10 +829,10 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                 client=client_obj.urn,
                 description=audit_description))
     finally:
-      events.Events.PublishMultipleEvents(
-          {
-              audit.AUDIT_EVENT: audit_events
-          }, token=token)
+      events.Events.PublishMultipleEvents({
+          audit.AUDIT_EVENT: audit_events
+      },
+                                          token=token)
 
 
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):
@@ -913,6 +913,12 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
   REQUESTS_NUM_LIMIT = 1000
 
   def Handle(self, args, token=None):
+    if data_store.RelationalDBFlowsEnabled():
+      return self._HandleRelational(args)
+    else:
+      return self._HandleAFF4(args, token=token)
+
+  def _HandleAFF4(self, args, token=None):
     manager = queue_manager.QueueManager(token=token)
 
     result = ApiListClientActionRequestsResult()
@@ -921,16 +927,53 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
     for task in manager.Query(
         args.client_id.ToClientURN(), limit=self.__class__.REQUESTS_NUM_LIMIT):
       request = ApiClientActionRequest(
-          task_id=task.task_id,
           leased_until=task.leased_until,
           session_id=task.session_id,
           client_action=task.name)
 
       if args.fetch_responses:
-        request.responses = data_store.DB.ReadResponsesForRequestId(
-            task.session_id, task.request_id)
+        res = []
+        for r in data_store.DB.ReadResponsesForRequestId(
+            task.session_id, task.request_id):
+          # Clear out some internal fields.
+          r.task_id = None
+          r.auth_state = None
+          r.name = None
+          res.append(r)
+
+        request.responses = res
 
       result.items.append(request)
+
+    return result
+
+  def _HandleRelational(self, args):
+    result = ApiListClientActionRequestsResult()
+
+    for task in data_store.REL_DB.ReadClientMessages(unicode(args.client_id)):
+      request = ApiClientActionRequest(
+          leased_until=task.leased_until,
+          session_id=task.session_id,
+          client_action=task.name)
+      result.items.append(request)
+
+      if args.fetch_responses:
+        # TODO(amoser): This is slightly wasteful but this api method is not
+        # used too frequently.
+        requests_responses = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
+            unicode(args.client_id), task.session_id.Basename())
+
+        for req, responses in requests_responses:
+          if req.request_id == task.request_id:
+            res = []
+            for resp_id in sorted(responses):
+              m = responses[resp_id].AsLegacyGrrMessage()
+              # TODO(amoser): Once AFF4 is gone, leaving this as 0 is ok.
+              if m.args_age == 0:
+                m.args_age = None
+              res.append(m)
+
+            request.responses = res
 
     return result
 

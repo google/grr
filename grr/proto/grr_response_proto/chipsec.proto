@@ -39,6 +39,9 @@ message ACPITableData {
                    "by the BIOS, including the header.",
       type: "RDFBytes"
     }];
+  optional string table_signature = 3 [(sem_type) = {
+      description: "Signature of the dumped ACPI table."
+    }];
 }
 
 message DumpACPITableRequest {

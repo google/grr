@@ -83,7 +83,9 @@ setup_args = dict(
         # The following requirements are needed in Windows.
         ':sys_platform=="win32"': [
             "WMI==1.4.9",
-            "pypiwin32==219",
+            # TODO(user): bind to specific version as soon as Rekall
+            # dependency is gone.
+            "pypiwin32",
         ],
     },
 )

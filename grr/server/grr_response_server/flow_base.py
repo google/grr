@@ -76,6 +76,14 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
   # provide the args.
   args_type = flow.EmptyFlowArgs
 
+  # This is used to arrange flows into a tree view
+  category = ""
+  friendly_name = None
+
+  # Behaviors set attributes of this flow. See FlowBehavior() in
+  # grr_response_server/flow.py.
+  behaviours = flow.FlowBehaviour("ADVANCED")
+
   def __init__(self, rdf_flow):
     self.rdf_flow = rdf_flow
     self.flow_requests = []
@@ -504,9 +512,6 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       self.Error(
           error_message=utils.SmartUnicode(e), backtrace=traceback.format_exc())
 
-    finally:
-      self.PersistState()
-
   def ProcessAllReadyRequests(self):
     """Processes all requests that are due to run.
 
@@ -533,6 +538,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       if (self.rdf_flow.flow_state == self.rdf_flow.FlowState.RUNNING and
           not self.outstanding_requests):
         self.MarkDone()
+
+    self.PersistState()
 
     if not self.IsRunning():
       # All requests and responses can now be deleted.
@@ -637,8 +644,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     flow_obj.replies_to_write = []
 
   def ShouldSendNotifications(self):
-    return (not self.rdf_flow.parent_flow_id and self.creator and
-            self.creator not in aff4_users.GRRUser.SYSTEM_USERS)
+    return bool(not self.rdf_flow.parent_flow_id and self.creator and
+                self.creator not in aff4_users.GRRUser.SYSTEM_USERS)
 
   def IsRunning(self):
     return self.rdf_flow.flow_state == self.rdf_flow.FlowState.RUNNING
@@ -670,10 +677,18 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     try:
       return self._client_version
     except AttributeError:
-      self._client_version = data_store_utils.GetClientVersion(
-          self.client_id, token=self.token)
+      self._client_version = data_store_utils.GetClientVersion(self.client_id)
 
-      return self._client_version
+    return self._client_version
+
+  @property
+  def client_os(self):
+    try:
+      return self._client_os
+    except AttributeError:
+      self._client_os = data_store_utils.GetClientOs(self.client_id)
+
+    return self._client_os
 
   @property
   def creator(self):

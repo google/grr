@@ -316,7 +316,7 @@ class StreamedFileChunk(object):
     self.total_chunks = total_chunks
 
 
-def StreamFilesChunks(client_paths, max_timestamp=None):
+def StreamFilesChunks(client_paths, max_timestamp=None, max_size=None):
   """Streams contents of given files.
 
   Args:
@@ -325,6 +325,8 @@ def StreamFilesChunks(client_paths, max_timestamp=None):
       last collected version of the file with a timestamp equal or lower than
       max_timestamp. If not specified, will simply open a latest version for
       each file.
+    max_size: If specified, only the chunks covering max_size bytes will be
+      returned.
 
   Yields:
     StreamedFileChunk objects for every file read. Chunks will be returned
@@ -362,8 +364,13 @@ def StreamFilesChunks(client_paths, max_timestamp=None):
     for ref in blob_refs:
       total_size += ref.size
 
+    cur_size = 0
     for i, ref in enumerate(blob_refs):
       all_chunks.append((cp, ref.blob_id, i, num_blobs, ref.offset, total_size))
+
+      cur_size += ref.size
+      if max_size is not None and cur_size >= max_size:
+        break
 
   for batch in collection.Batch(all_chunks, STREAM_CHUNKS_READ_AHEAD):
     blobs = data_store.BLOBS.ReadBlobs(

@@ -24,6 +24,8 @@ from grr_response_core.lib.parsers import wmi_parser
 
 
 try:
+  # TODO(hanuszczak): Why is it imported conditionally? Is it possible to avoid
+  # that?
   from grr_response_core.lib.parsers import linux_software_parser
 except ImportError:
   pass

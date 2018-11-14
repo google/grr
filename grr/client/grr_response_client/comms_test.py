@@ -326,7 +326,12 @@ class GRRClientWorkerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(GRRClientWorkerTest, self).setUp()
-    self.client_worker = comms.GRRClientWorker()
+    # GRRClientWorker starts a stats collector thread that will send replies
+    # shortly after starting up. Those replies interfere with the test below so
+    # we disable the ClientStatsCollector thread here.
+    with utils.Stubber(comms.GRRClientWorker, "StartStatsCollector",
+                       lambda self: None):
+      self.client_worker = comms.GRRClientWorker()
 
   def testSendReplyHandlesFalseyPrimitivesCorrectly(self):
     self.client_worker.SendReply(rdfvalue.RDFDatetime(0))

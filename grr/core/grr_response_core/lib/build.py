@@ -181,12 +181,21 @@ class ClientBuilder(BuilderBase):
       dir_path = os.path.join(self.output_dir, path)
       try:
         shutil.rmtree(dir_path)
-        os.mkdir(dir_path)
-        # Create an empty file so the directories get put in the installers.
-        with open(os.path.join(dir_path, path), "wb"):
-          pass
       except OSError:
-        pass
+        logging.error("Unable to remove directory: %s", dir_path)
+
+      try:
+        os.mkdir(dir_path)
+      except OSError:
+        logging.error("Unable to create directory: %s", dir_path)
+
+      file_path = os.path.join(dir_path, path)
+      try:
+        # Create an empty file so the directories get put in the installers.
+        with open(file_path, "wb"):
+          pass
+      except IOError:
+        logging.error("Unable to create file: %s", file_path)
 
     version_ini = version.VersionPath()
     shutil.copy(version_ini, os.path.join(self.output_dir, "version.ini"))

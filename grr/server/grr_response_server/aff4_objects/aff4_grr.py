@@ -253,14 +253,20 @@ class VFSGRRClient(standard.VFSDirectory):
 
   def Update(self, attribute=None):
     if attribute == "CONTAINS":
-      flow_id = flow.StartAFF4Flow(
-          client_id=self.client_id,
-          # TODO(user): dependency loop with flows/general/discover.py
-          # flow_name=discovery.Interrogate.__name__,
-          flow_name="Interrogate",
-          token=self.token)
-
-      return flow_id
+      if data_store.RelationalDBFlowsEnabled():
+        # TODO(user): dependency loop with flows/general/discover.py
+        flow_cls = registry.FlowRegistry.FlowClassByName("Interrogate")
+        return flow.StartFlow(
+            client_id=self.client_id.Basename(),
+            flow_cls=flow_cls,
+            creator=self.token.username if self.token else None)
+      else:
+        return flow.StartAFF4Flow(
+            client_id=self.client_id,
+            # TODO(user): dependency loop with flows/general/discover.py
+            # flow_name=discovery.Interrogate.__name__,
+            flow_name="Interrogate",
+            token=self.token)
 
   @staticmethod
   def ClientURNFromURN(urn):

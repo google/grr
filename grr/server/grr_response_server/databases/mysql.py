@@ -18,6 +18,7 @@ from builtins import range  # pylint: disable=redefined-builtin
 import MySQLdb
 
 from grr_response_server import db as db_module
+from grr_response_server.databases import mysql_artifacts
 from grr_response_server.databases import mysql_blobs
 from grr_response_server.databases import mysql_clients
 from grr_response_server.databases import mysql_cronjobs
@@ -27,6 +28,7 @@ from grr_response_server.databases import mysql_flows
 from grr_response_server.databases import mysql_foreman_rules
 from grr_response_server.databases import mysql_paths
 from grr_response_server.databases import mysql_pool
+from grr_response_server.databases import mysql_stats
 from grr_response_server.databases import mysql_users
 
 # Maximum retry count:
@@ -51,13 +53,15 @@ def _IsRetryable(error):
 
 
 # pyformat: disable
-class MysqlDB(mysql_blobs.MySQLDBBlobsMixin,
+class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
+              mysql_blobs.MySQLDBBlobsMixin,
               mysql_clients.MySQLDBClientMixin,
               mysql_cronjobs.MySQLDBCronJobMixin,
               mysql_events.MySQLDBEventMixin,
               mysql_flows.MySQLDBFlowMixin,
               mysql_foreman_rules.MySQLDBForemanRulesMixin,
               mysql_paths.MySQLDBPathMixin,
+              mysql_stats.MySQLDBStatsMixin,
               mysql_users.MySQLDBUsersMixin,
               db_module.Database):
   """Implements db_module.Database using mysql.

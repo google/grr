@@ -7,7 +7,7 @@ import platform
 import subprocess
 import unittest
 
-import unittest
+from absl.testing import absltest
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -19,7 +19,7 @@ from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 
-class RegexMatcherTest(unittest.TestCase):
+class RegexMatcherTest(absltest.TestCase):
 
   @staticmethod
   def _RegexMatcher(string):
@@ -76,7 +76,7 @@ class RegexMatcherTest(unittest.TestCase):
     self.assertFalse(span)
 
 
-class LiteralMatcherTest(unittest.TestCase):
+class LiteralMatcherTest(absltest.TestCase):
 
   def testMatchLiteral(self):
     matcher = conditions.LiteralMatcher("bar")
@@ -134,7 +134,7 @@ class MetadataConditionTestMixin(ConditionTestMixin):
 
 
 class ModificationTimeConditionTest(MetadataConditionTestMixin,
-                                    unittest.TestCase):
+                                    absltest.TestCase):
 
   def testDefault(self):
     params = rdf_file_finder.FileFinderCondition()
@@ -173,7 +173,7 @@ class ModificationTimeConditionTest(MetadataConditionTestMixin,
     self.assertFalse(condition.Check(self.Stat()))
 
 
-class AccessTimeConditionTest(MetadataConditionTestMixin, unittest.TestCase):
+class AccessTimeConditionTest(MetadataConditionTestMixin, absltest.TestCase):
 
   def testDefault(self):
     params = rdf_file_finder.FileFinderCondition()
@@ -204,7 +204,7 @@ class AccessTimeConditionTest(MetadataConditionTestMixin, unittest.TestCase):
     self.assertFalse(condition.Check(self.Stat()))
 
 
-class SizeConditionTest(MetadataConditionTestMixin, unittest.TestCase):
+class SizeConditionTest(MetadataConditionTestMixin, absltest.TestCase):
 
   def testDefault(self):
     params = rdf_file_finder.FileFinderCondition()
@@ -245,7 +245,7 @@ class SizeConditionTest(MetadataConditionTestMixin, unittest.TestCase):
     self.assertFalse(condition.Check(self.Stat()))
 
 
-class ExtFlagsConditionTest(MetadataConditionTestMixin, unittest.TestCase):
+class ExtFlagsConditionTest(MetadataConditionTestMixin, absltest.TestCase):
 
   # https://github.com/apple/darwin-xnu/blob/master/bsd/sys/stat.h
   UF_NODUMP = 0x00000001
@@ -377,7 +377,7 @@ class ExtFlagsConditionTest(MetadataConditionTestMixin, unittest.TestCase):
 # TODO(hanuszczak): Write tests for the metadata change condition.
 
 
-class LiteralMatchConditionTest(ConditionTestMixin, unittest.TestCase):
+class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
 
   def testNoHits(self):
     with open(self.temp_filepath, "wb") as fd:
@@ -467,7 +467,7 @@ class LiteralMatchConditionTest(ConditionTestMixin, unittest.TestCase):
     self.assertEqual(results[1].length, 3)
 
 
-class RegexMatchCondition(ConditionTestMixin, unittest.TestCase):
+class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
 
   def testNoHits(self):
     with open(self.temp_filepath, "wb") as fd:

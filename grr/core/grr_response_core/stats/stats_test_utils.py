@@ -7,11 +7,11 @@ from __future__ import unicode_literals
 import abc
 import time
 
+from absl.testing import absltest
 import builtins
 from future.utils import with_metaclass
 import mock
 
-import unittest
 
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.stats import stats_collector
@@ -28,7 +28,7 @@ def FakeStatsContext(fake_stats_collector):
 
 
 # pytype: disable=ignored-abstractmethod
-class StatsCollectorTest(with_metaclass(abc.ABCMeta, unittest.TestCase)):
+class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
   """Stats collection tests.
 
   Each test method has uniquely-named metrics to accommodate implementations

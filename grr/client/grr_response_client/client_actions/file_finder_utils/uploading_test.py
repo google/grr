@@ -6,14 +6,14 @@ import collections
 import hashlib
 import zlib
 
+from absl.testing import absltest
 import mock
 
-import unittest
 from grr_response_client.client_actions.file_finder_utils import uploading
 from grr.test_lib import temp
 
 
-class UploaderTest(unittest.TestCase):
+class UploaderTest(absltest.TestCase):
 
   def testEmpty(self):
     action = FakeAction()
@@ -161,4 +161,4 @@ class FakeAction(mock.MagicMock):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

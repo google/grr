@@ -154,6 +154,8 @@ def Register():
       "Sudoers", config_file.SudoersParser)
   parsers.SINGLE_FILE_PARSER_FACTORY.Register(
       "OsxLaunchdPlist", osx_file_parser.OSXLaunchdPlistParser)
+  parsers.SINGLE_FILE_PARSER_FACTORY.Register(
+      "OSXInstallHistoryPlist", osx_file_parser.OSXInstallHistoryPlistParser)
 
   try:
     from debian import deb822  # pylint: disable=g-import-not-at-top

@@ -161,9 +161,9 @@ class GRRWorker(object):
         logging.debug("Running %d messages for handler %s",
                       len(requests_for_handler), handler_name)
         handler_cls(token=self.token).ProcessMessages(requests_for_handler)
-      except Exception:  # pylint: disable=broad-except
-        logging.exception("Exception while processing message handler %s",
-                          handler_name)
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception("Exception while processing message handler %s: %s",
+                          handler_name, e)
 
     logging.debug("Deleting message handler request ids: %s", ",".join(
         str(r.request_id) for r in requests))
@@ -431,5 +431,7 @@ class GRRWorker(object):
     while not self._ReturnProcessedFlow(flow_obj):
       processed = flow_obj.ProcessAllReadyRequests()
       if processed == 0:
-        raise ValueError("ReturnProcessedFlow returned false but no request "
-                         "could be processed.")
+        raise ValueError(
+            "%s/%s: ReturnProcessedFlow returned false but no "
+            "request could be processed (next req: %d)." %
+            (client_id, flow_id, flow_obj.rdf_flow.next_request_to_process))

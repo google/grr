@@ -8,9 +8,9 @@ import functools
 import os
 
 
+from absl.testing import absltest
 from future.utils import with_metaclass
 
-import unittest
 from grr_response_client import streaming
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_core.lib import flags
@@ -145,7 +145,7 @@ class StreamerTestMixin(with_metaclass(abc.ABCMeta, object)):
     self.assertEqual(chunks[3].overlap, 2)
 
 
-class StreamFilePathTest(StreamerTestMixin, unittest.TestCase):
+class StreamFilePathTest(StreamerTestMixin, absltest.TestCase):
 
   def setUp(self):
     super(StreamFilePathTest, self).setUp()
@@ -162,7 +162,7 @@ class StreamFilePathTest(StreamerTestMixin, unittest.TestCase):
     return functools.partial(streamer.StreamFilePath, self.temp_filepath)
 
 
-class StreamMemoryTest(StreamerTestMixin, unittest.TestCase):
+class StreamMemoryTest(StreamerTestMixin, absltest.TestCase):
 
   def Stream(self, streamer, data):
     process = StubProcess(data)
@@ -214,7 +214,7 @@ class ReaderTestMixin(with_metaclass(abc.ABCMeta, object)):
     self.Prepare(data, Assertions, offset=3)
 
 
-class FileReaderTest(ReaderTestMixin, unittest.TestCase):
+class FileReaderTest(ReaderTestMixin, absltest.TestCase):
 
   def setUp(self):
     super(FileReaderTest, self).setUp()
@@ -233,7 +233,7 @@ class FileReaderTest(ReaderTestMixin, unittest.TestCase):
       callback(reader)
 
 
-class MemoryReaderTest(ReaderTestMixin, unittest.TestCase):
+class MemoryReaderTest(ReaderTestMixin, absltest.TestCase):
 
   def Prepare(self, data, callback, offset=0):
     process = StubProcess(data)
@@ -250,7 +250,7 @@ class StubProcess(object):
     return self.memory[address:address + num_bytes]
 
 
-class ChunkTest(unittest.TestCase):
+class ChunkTest(absltest.TestCase):
 
   Span = conditions.Matcher.Span  # pylint: disable=invalid-name
 

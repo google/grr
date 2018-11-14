@@ -19,6 +19,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import flow_utils
 from grr_response_server.flows.general import file_finder
 
@@ -27,7 +28,8 @@ class ChromeHistoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ChromeHistoryArgs
 
 
-class ChromeHistory(flow.GRRFlow):
+@flow_base.DualDBFlow
+class ChromeHistoryMixin(object):
   r"""Retrieve and analyze the chrome history for a machine.
 
   Default directories as per:
@@ -142,7 +144,8 @@ class FirefoxHistoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FirefoxHistoryArgs
 
 
-class FirefoxHistory(flow.GRRFlow):
+@flow_base.DualDBFlow
+class FirefoxHistoryMixin(object):
   r"""Retrieve and analyze the Firefox history for a machine.
 
   Default directories as per:
@@ -275,7 +278,8 @@ class CacheGrepArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class CacheGrep(flow.GRRFlow):
+@flow_base.DualDBFlow
+class CacheGrepMixin(object):
   """Grep the browser profile directories for a regex.
 
   This will check Chrome, Firefox and Internet Explorer profile directories.
@@ -320,11 +324,11 @@ class CacheGrep(flow.GRRFlow):
     condition = rdf_file_finder.FileFinderCondition(
         condition_type=(
             rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
-        contents_regex_match=rdf_file_finder.
-        FileFinderContentsRegexMatchCondition(
+        contents_regex_match=rdf_file_finder
+        .FileFinderContentsRegexMatchCondition(
             regex=self.args.data_regex,
-            mode=rdf_file_finder.FileFinderContentsRegexMatchCondition.Mode.
-            FIRST_HIT))
+            mode=rdf_file_finder.FileFinderContentsRegexMatchCondition.Mode
+            .FIRST_HIT))
 
     for path in self.state.all_paths:
       full_paths = flow_utils.InterpolatePath(path, client, users=usernames)
