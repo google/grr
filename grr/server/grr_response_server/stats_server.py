@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import collections
+import errno
 import json
 import logging
 import socket
@@ -128,18 +129,31 @@ class StatsServerInit(registry.InitHook):
 
     # Figure out which port to use.
     port = config.CONFIG["Monitoring.http_port"]
-    if port != 0:
-      logging.info("Starting monitoring server on port %d.", port)
-      try:
-        # pylint: disable=g-import-not-at-top
-        from grr_response_server.local import stats_server
-        # pylint: enable=g-import-not-at-top
-        server_obj = stats_server.StatsServer(port)
-        logging.debug("Using local StatsServer")
-      except ImportError:
-        logging.debug("Using default StatsServer")
-        server_obj = StatsServer(port)
-
-      server_obj.Start()
-    else:
+    if not port:
       logging.info("Monitoring server disabled.")
+      return
+
+    max_port = config.CONFIG.Get("Monitoring.http_port_max",
+                                 config.CONFIG["Monitoring.http_port"])
+
+    try:
+      # pylint: disable=g-import-not-at-top
+      from grr_response_server.local import stats_server
+      # pylint: enable=g-import-not-at-top
+      server_cls = stats_server.StatsServer
+      logging.debug("Using local StatsServer")
+    except ImportError:
+      logging.debug("Using default StatsServer")
+      server_cls = StatsServer
+
+    for port in range(port, max_port + 1):
+      try:
+        logging.info("Starting monitoring server on port %d.", port)
+        server_obj = server_cls(port)
+        server_obj.Start()
+        return
+      except socket.error as e:
+        if e.errno == errno.EADDRINUSE and port < max_port:
+          logging.info("Port %s in use", port)
+          continue
+        raise

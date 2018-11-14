@@ -52,3 +52,9 @@ config_lib.DEFINE_option(
 
 config_lib.DEFINE_integer("Monitoring.http_port", 0,
                           "Port for stats monitoring server.")
+
+config_lib.DEFINE_integer(
+    "Monitoring.http_port_max", None,
+    "If set and Monitoring.http_port is in use, attempt "
+    "to use ports between Monitoring.http_port and "
+    "Monitoring.http_port_max.")

@@ -493,8 +493,11 @@ class FrontEndServer(object):
 
     # If already enrolled, return.
     if data_store.RelationalDBReadEnabled():
-      if data_store.REL_DB.ReadClientMetadata(client_id):
+      try:
+        data_store.REL_DB.ReadClientMetadata(client_id)
         return
+      except db.UnknownClientError:
+        pass
     else:
       if aff4.FACTORY.ExistsWithType(
           client_urn, aff4_type=aff4_grr.VFSGRRClient, token=self.token):
