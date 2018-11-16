@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """A collection of DDL for use by the mysql database implementation."""
 
+from __future__ import absolute_import
+
 SCHEMA_SETUP = [
     """
 CREATE TABLE IF NOT EXISTS clients(
@@ -145,5 +147,57 @@ CREATE TABLE IF NOT EXISTS client_messages(
     leased_by VARCHAR(128),
     PRIMARY KEY (client_id, message_id),
     FOREIGN KEY (client_id) REFERENCES clients(client_id)
+)""", """
+CREATE TABLE IF NOT EXISTS flows(
+    client_id BIGINT UNSIGNED,
+    flow_id BIGINT UNSIGNED,
+    long_flow_id VARCHAR(255),
+    parent_flow_id BIGINT UNSIGNED,
+    flow BLOB,
+    client_crash_info MEDIUMBLOB,
+    next_request_to_process INT UNSIGNED,
+    pending_termination MEDIUMBLOB,
+    processing_deadline DATETIME(6),
+    processing_on VARCHAR(128),
+    processing_since DATETIME(6),
+    timestamp DATETIME(6),
+    last_update DATETIME(6),
+    PRIMARY KEY (client_id, flow_id),
+    FOREIGN KEY (client_id) REFERENCES clients(client_id)
+)""", """
+CREATE TABLE IF NOT EXISTS flow_requests(
+    client_id BIGINT UNSIGNED,
+    flow_id BIGINT UNSIGNED,
+    request_id BIGINT UNSIGNED,
+    needs_processing BOOL,
+    responses_expected BIGINT UNSIGNED,
+    request MEDIUMBLOB,
+    timestamp DATETIME(6),
+    PRIMARY KEY (client_id, flow_id, request_id),
+    FOREIGN KEY (client_id, flow_id) REFERENCES flows(client_id, flow_id)
+)""", """
+CREATE TABLE IF NOT EXISTS flow_responses(
+    client_id BIGINT UNSIGNED,
+    flow_id BIGINT UNSIGNED,
+    request_id BIGINT UNSIGNED,
+    response_id BIGINT UNSIGNED,
+    response MEDIUMBLOB,
+    status MEDIUMBLOB,
+    iterator MEDIUMBLOB,
+    timestamp DATETIME(6),
+    PRIMARY KEY (client_id, flow_id, request_id, response_id),
+    FOREIGN KEY (client_id, flow_id, request_id)
+    REFERENCES flow_requests(client_id, flow_id, request_id)
+)""", """
+CREATE TABLE IF NOT EXISTS flow_processing_requests(
+    client_id BIGINT UNSIGNED,
+    flow_id BIGINT UNSIGNED,
+    timestamp DATETIME(6),
+    request MEDIUMBLOB,
+    delivery_time DATETIME(6),
+    leased_until DATETIME(6),
+    leased_by VARCHAR(128),
+    PRIMARY KEY (client_id, flow_id, timestamp),
+    FOREIGN KEY (client_id, flow_id) REFERENCES flows(client_id, flow_id)
 )"""
 ]

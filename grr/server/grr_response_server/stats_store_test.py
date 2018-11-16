@@ -15,6 +15,7 @@ from grr_response_server import aff4
 from grr_response_server import stats_store
 from grr_response_server import timeseries
 from grr_response_server.aff4_objects import stats_store as aff4_stats_store
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 # Metrics used for testing.
@@ -36,59 +37,106 @@ def _CreateFakeStatsCollector():
   ])
 
 
+@db_test_lib.DualDBTest
 class StatsStoreTest(test_lib.GRRBaseTest):
 
+  def setUp(self):
+    super(StatsStoreTest, self).setUp()
+
+    config_overrider = test_lib.ConfigOverrider({
+        "Database.useForReads.stats": True,
+    })
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
+
+    fake_stats_context = stats_test_utils.FakeStatsContext(
+        _CreateFakeStatsCollector())
+    fake_stats_context.start()
+    self.addCleanup(fake_stats_context.stop)
+
   def testReadStats(self):
-    stats_store_obj = aff4.FACTORY.Create(
-        None, aff4_stats_store.StatsStore, mode="w", token=self.token)
-    with stats_test_utils.FakeStatsContext(_CreateFakeStatsCollector()):
-      with test_lib.FakeTime(rdfvalue.RDFDatetime(1000)):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime(1000)):
+      stats_collector_instance.Get().IncrementCounter(_SINGLE_DIM_COUNTER)
+      stats_collector_instance.Get().IncrementCounter(
+          _COUNTER_WITH_ONE_FIELD, fields=["fieldval1"])
+      stats_collector_instance.Get().IncrementCounter(
+          _COUNTER_WITH_TWO_FIELDS, fields=["fieldval2", 3])
+      stats_store._WriteStats(process_id="fake_process_id")
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime(2000)):
+      stats_collector_instance.Get().IncrementCounter(
+          _COUNTER_WITH_TWO_FIELDS, fields=["fieldval2", 3])
+      stats_collector_instance.Get().IncrementCounter(
+          _COUNTER_WITH_TWO_FIELDS, fields=["fieldval2", 4])
+      stats_store._WriteStats(process_id="fake_process_id")
+
+    expected_single_dim_results = {
+        "fake_process_id": {
+            _SINGLE_DIM_COUNTER: [(1, 1000), (1, 2000)]
+        }
+    }
+    expected_multi_dim1_results = {
+        "fake_process_id": {
+            _COUNTER_WITH_ONE_FIELD: {
+                "fieldval1": [(1, 1000), (1, 2000)]
+            }
+        }
+    }
+    expected_multi_dim2_results = {
+        "fake_process_id": {
+            _COUNTER_WITH_TWO_FIELDS: {
+                "fieldval2": {
+                    3: [(1, 1000), (2, 2000)],
+                    4: [(1, 2000)]
+                }
+            }
+        }
+    }
+
+    self.assertDictEqual(
+        stats_store.ReadStats("f", _SINGLE_DIM_COUNTER),
+        expected_single_dim_results)
+    self.assertDictEqual(
+        stats_store.ReadStats("fake", _COUNTER_WITH_ONE_FIELD),
+        expected_multi_dim1_results)
+    self.assertEqual(
+        stats_store.ReadStats("fake_process_id", _COUNTER_WITH_TWO_FIELDS),
+        expected_multi_dim2_results)
+
+  def testDeleteStats(self):
+    with test_lib.ConfigOverrider({"StatsStore.stats_ttl_hours": 1}):
+      timestamp1 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)
+      timestamp2 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600)
+      timestamp3 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4800)
+      with test_lib.FakeTime(timestamp1):
         stats_collector_instance.Get().IncrementCounter(_SINGLE_DIM_COUNTER)
-        stats_collector_instance.Get().IncrementCounter(
-            _COUNTER_WITH_ONE_FIELD, fields=["fieldval1"])
-        stats_collector_instance.Get().IncrementCounter(
-            _COUNTER_WITH_TWO_FIELDS, fields=["fieldval2", 3])
-        stats_store_obj.WriteStats(process_id="fake_process_id")
-
-      with test_lib.FakeTime(rdfvalue.RDFDatetime(2000)):
-        stats_collector_instance.Get().IncrementCounter(
-            _COUNTER_WITH_TWO_FIELDS, fields=["fieldval2", 3])
-        stats_collector_instance.Get().IncrementCounter(
-            _COUNTER_WITH_TWO_FIELDS, fields=["fieldval2", 4])
-        stats_store_obj.WriteStats(process_id="fake_process_id")
-
-      expected_single_dim_results = {
-          "fake_process_id": {
-              _SINGLE_DIM_COUNTER: [(1, 1000), (1, 2000)]
-          }
-      }
-      expected_multi_dim1_results = {
-          "fake_process_id": {
-              _COUNTER_WITH_ONE_FIELD: {
-                  "fieldval1": [(1, 1000), (1, 2000)]
-              }
-          }
-      }
-      expected_multi_dim2_results = {
-          "fake_process_id": {
-              _COUNTER_WITH_TWO_FIELDS: {
-                  "fieldval2": {
-                      3: [(1, 1000), (2, 2000)],
-                      4: [(1, 2000)]
-                  }
-              }
-          }
-      }
-
-      self.assertDictEqual(
-          stats_store.ReadStats("f", _SINGLE_DIM_COUNTER),
-          expected_single_dim_results)
-      self.assertDictEqual(
-          stats_store.ReadStats("fake", _COUNTER_WITH_ONE_FIELD),
-          expected_multi_dim1_results)
-      self.assertEqual(
-          stats_store.ReadStats("fake_process_id", _COUNTER_WITH_TWO_FIELDS),
-          expected_multi_dim2_results)
+        stats_store._WriteStats(process_id="fake_process_id")
+        expected_results = {
+            "fake_process_id": {
+                _SINGLE_DIM_COUNTER: [(1, timestamp1)]
+            }
+        }
+        self.assertDictEqual(
+            stats_store.ReadStats("f", _SINGLE_DIM_COUNTER), expected_results)
+      with test_lib.FakeTime(timestamp2):
+        stats_store._WriteStats(process_id="fake_process_id")
+        expected_results = {
+            "fake_process_id": {
+                _SINGLE_DIM_COUNTER: [(1, timestamp1), (1, timestamp2)]
+            }
+        }
+        self.assertDictEqual(
+            stats_store.ReadStats("f", _SINGLE_DIM_COUNTER), expected_results)
+      with test_lib.FakeTime(timestamp3):
+        stats_store._DeleteStats(process_id="fake_process_id")
+        # timestamp1 is older than 1h, so it should get deleted.
+        expected_results = {
+            "fake_process_id": {
+                _SINGLE_DIM_COUNTER: [(1, timestamp2)]
+            }
+        }
+        self.assertDictEqual(
+            stats_store.ReadStats("f", _SINGLE_DIM_COUNTER), expected_results)
 
 
 class StatsStoreDataQueryTest(test_lib.GRRBaseTest):

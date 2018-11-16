@@ -193,6 +193,11 @@ config_lib.DEFINE_integer(
     help="Time in seconds between the dumps of stats "
     "data into the stats store.")
 
+config_lib.DEFINE_integer(
+    "StatsStore.stats_ttl_hours",
+    default=72,
+    help="Number of hours to keep server stats in the data-store.")
+
 config_lib.DEFINE_bool(
     "AdminUI.allow_hunt_results_delete",
     default=False,

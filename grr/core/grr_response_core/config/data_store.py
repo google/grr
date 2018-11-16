@@ -56,6 +56,9 @@ config_lib.DEFINE_bool(
     "Database.useForReads.filestore", False,
     "Use relational database for reading files from filestore.")
 
+config_lib.DEFINE_bool("Database.useForReads.stats", False,
+                       "Read server metrics from the relational database.")
+
 DATASTORE_PATHING = [
     r"%{(?P<path>files/hash/generic/sha256/...).*}",
     r"%{(?P<path>files/hash/generic/sha1/...).*}",

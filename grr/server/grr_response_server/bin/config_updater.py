@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import argparse
 import os
 import sys
 
@@ -201,47 +200,44 @@ parser_repack_clients.add_argument(
     action="store_true",
     help="Don't upload the client binaries to the datastore.")
 
-# Parent parser used in other upload based parsers.
-parser_upload_args = argparse.ArgumentParser(add_help=False)
-parser_upload_signed_args = argparse.ArgumentParser(add_help=False)
 
-# Upload arguments.
-parser_upload_args.add_argument(
-    "--file", help="The file to upload", required=True)
+def _ExtendWithUploadArgs(upload_parser):
+  upload_parser.add_argument("--file", help="The file to upload", required=True)
+  upload_parser.add_argument(
+      "--dest_path",
+      required=False,
+      default=None,
+      help="The destination path to upload the file to, specified in aff4: "
+      "form, e.g. aff4:/config/test.raw")
 
-parser_upload_args.add_argument(
-    "--dest_path",
-    required=False,
-    default=None,
-    help="The destination path to upload the file to, specified in aff4: form,"
-    "e.g. aff4:/config/test.raw")
 
-parser_upload_signed_args.add_argument(
-    "--platform",
-    required=True,
-    choices=maintenance_utils.SUPPORTED_PLATFORMS,
-    default="windows",
-    help="The platform the file will be used on. This determines which signing"
-    " keys to use, and the path on the server the file will be uploaded to.")
-
-parser_upload_signed_args.add_argument(
-    "--arch",
-    required=True,
-    choices=maintenance_utils.SUPPORTED_ARCHITECTURES,
-    default="amd64",
-    help="The architecture the file will be used on. This determines "
-    " the path on the server the file will be uploaded to.")
+def _ExtendWithUploadSignedArgs(upload_signed_parser):
+  upload_signed_parser.add_argument(
+      "--platform",
+      required=True,
+      choices=maintenance_utils.SUPPORTED_PLATFORMS,
+      default="windows",
+      help="The platform the file will be used on. This determines which "
+      "signing keys to use, and the path on the server the file will be "
+      "uploaded to.")
+  upload_signed_parser.add_argument(
+      "--arch",
+      required=True,
+      choices=maintenance_utils.SUPPORTED_ARCHITECTURES,
+      default="amd64",
+      help="The architecture the file will be used on. This determines the "
+      "path on the server the file will be uploaded to.")
 
 # Upload parsers.
 parser_upload_raw = subparsers.add_parser(
-    "upload_raw",
-    parents=[parser_upload_args],
-    help="Upload a raw file to an aff4 path.")
+    "upload_raw", help="Upload a raw file to an aff4 path.")
+
+_ExtendWithUploadArgs(parser_upload_raw)
 
 parser_upload_artifact = subparsers.add_parser(
-    "upload_artifact",
-    parents=[parser_upload_args],
-    help="Upload a raw json artifact file.")
+    "upload_artifact", help="Upload a raw json artifact file.")
+
+_ExtendWithUploadArgs(parser_upload_artifact)
 
 parser_upload_artifact.add_argument(
     "--overwrite_artifact",
@@ -250,34 +246,34 @@ parser_upload_artifact.add_argument(
     help="Overwrite existing artifact.")
 
 parser_delete_artifacts = subparsers.add_parser(
-    "delete_artifacts",
-    parents=[],
-    help="Delete a list of artifacts from the data store.")
+    "delete_artifacts", help="Delete a list of artifacts from the data store.")
 
 parser_delete_artifacts.add_argument(
     "--artifact", default=[], action="append", help="The artifacts to delete.")
 
 parser_upload_python = subparsers.add_parser(
     "upload_python",
-    parents=[parser_upload_args, parser_upload_signed_args],
     help="Sign and upload a 'python hack' which can be used to execute code on "
     "a client.")
 
+_ExtendWithUploadArgs(parser_upload_python)
+_ExtendWithUploadSignedArgs(parser_upload_python)
+
 parser_upload_exe = subparsers.add_parser(
     "upload_exe",
-    parents=[parser_upload_args, parser_upload_signed_args],
     help="Sign and upload an executable which can be used to execute code on "
     "a client.")
 
+_ExtendWithUploadArgs(parser_upload_exe)
+_ExtendWithUploadSignedArgs(parser_upload_exe)
+
 subparsers.add_parser(
     "download_missing_rekall_profiles",
-    parents=[],
     help="Downloads all Rekall profiles from the repository that are not "
     "currently present in the database.")
 
 set_global_notification = subparsers.add_parser(
     "set_global_notification",
-    parents=[],
     help="Sets a global notification for all GRR users to see.")
 
 set_global_notification.add_argument(
@@ -309,7 +305,7 @@ set_global_notification.add_argument(
     "human-readable form, i.e. 1h, 1d, etc).")
 
 parser_rotate_key = subparsers.add_parser(
-    "rotate_server_key", parents=[], help="Sets a new server key.")
+    "rotate_server_key", help="Sets a new server key.")
 
 parser_rotate_key.add_argument(
     "--common_name", default="grr", help="The common name to use for the cert.")

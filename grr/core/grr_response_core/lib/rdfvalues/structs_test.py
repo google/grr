@@ -71,7 +71,11 @@ class TestStruct(rdf_structs.RDFProtoStruct):
           name="type",
           field_number=7,
           enum_name="Type",
-          enum=dict(FIRST=1, SECOND=2, THIRD=3),
+          enum={
+              "FIRST": 1,
+              "SECOND": 2,
+              "THIRD": 3
+          },
           default=3,
           description="An enum field"),
       rdf_structs.ProtoFloat(
@@ -175,7 +179,11 @@ class UnionTest(rdf_structs.RDFProtoStruct):
           name="struct_flavor",
           field_number=1,
           enum_name="Type",
-          enum=dict(FIRST=1, SECOND=2, THIRD=3),
+          enum={
+              "FIRST": 1,
+              "SECOND": 2,
+              "THIRD": 3
+          },
           default=3,
           description="An union enum field"),
       rdf_structs.ProtoFloat(

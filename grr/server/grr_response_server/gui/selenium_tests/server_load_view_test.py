@@ -8,8 +8,7 @@ from __future__ import unicode_literals
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.stats import stats_collector_instance
-from grr_response_server import aff4
-from grr_response_server.aff4_objects import stats_store
+from grr_response_server import stats_store
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
@@ -21,9 +20,6 @@ class TestServerLoadView(gui_test_lib.GRRSeleniumTest):
 
   @staticmethod
   def SetupSampleMetrics(token=None):
-    store = aff4.FACTORY.Create(
-        None, stats_store.StatsStore, mode="w", token=token)
-
     now = rdfvalue.RDFDatetime.Now()
     handle_data = [(3, now - rdfvalue.Duration("50m")),
                    (0, now - rdfvalue.Duration("45m")),
@@ -43,7 +39,7 @@ class TestServerLoadView(gui_test_lib.GRRSeleniumTest):
       with test_lib.FakeTime(timestamp / 1e6):
         stats_collector_instance.Get().IncrementCounter(
             "grr_frontendserver_handle_num", value)
-        store.WriteStats(process_id="frontend")
+        stats_store._WriteStats(process_id="frontend")
 
   def testServerLoadPageContainsIndicatorsAndGraphs(self):
     self.Open("/#main=ServerLoadView")

@@ -86,6 +86,7 @@ class StatsCollector(with_metaclass(abc.ABCMeta, object)):
     Args:
       metadata: MetricMetadata for the metric.
     """
+    raise NotImplementedError()
 
   @abc.abstractmethod
   def IncrementCounter(self, metric_name, delta=1, fields=None):
@@ -100,6 +101,7 @@ class StatsCollector(with_metaclass(abc.ABCMeta, object)):
     Raises:
       ValueError: If delta < 0.
     """
+    raise NotImplementedError()
 
   @abc.abstractmethod
   def RecordEvent(self, metric_name, value, fields=None):
@@ -111,6 +113,7 @@ class StatsCollector(with_metaclass(abc.ABCMeta, object)):
       fields: Values for this metric's dimensions. Should only be provided if
         the metric was registered with dimensions.
     """
+    raise NotImplementedError()
 
   @abc.abstractmethod
   def SetGaugeValue(self, metric_name, value, fields=None):
@@ -122,6 +125,7 @@ class StatsCollector(with_metaclass(abc.ABCMeta, object)):
       fields: Values for this metric's dimensions. Should only be provided if
         the metric was registered with dimensions.
     """
+    raise NotImplementedError()
 
   @abc.abstractmethod
   def SetGaugeCallback(self, metric_name, callback, fields=None):
@@ -135,6 +139,7 @@ class StatsCollector(with_metaclass(abc.ABCMeta, object)):
         the metric was registered with dimensions. If provided, the callback
         will only be invoked when caller provides same field values.
     """
+    raise NotImplementedError()
 
   def GetMetricMetadata(self, metric_name):
     """Returns the MetricMetadata for the given metric.
@@ -169,6 +174,7 @@ class StatsCollector(with_metaclass(abc.ABCMeta, object)):
         Increment("renderer_type", fields=[2]),
       then GetMetricFields("renderer_type") will return [(1,), (2,)].
     """
+    raise NotImplementedError()
 
   @abc.abstractmethod
   def GetMetricValue(self, metric_name, fields=None):
@@ -186,6 +192,6 @@ class StatsCollector(with_metaclass(abc.ABCMeta, object)):
       Distribution-compatible object for event metric. Distribution-compatible
       means "with an API matching the API of the Distribution object".
     """
-
+    raise NotImplementedError()
 
 # pytype: enable=ignored-abstractmethod

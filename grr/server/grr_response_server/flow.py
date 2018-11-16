@@ -311,6 +311,11 @@ def StartAFF4Flow(args=None,
   return flow_obj.urn
 
 
+def RandomFlowId():
+  """Returns a random flow id encoded as a hex string."""
+  return "%08X" % random.PositiveUInt32()
+
+
 def StartFlow(client_id=None,
               cpu_limit=None,
               creator=None,
@@ -379,7 +384,7 @@ def StartFlow(client_id=None,
       original_flow=original_flow,
       flow_state="RUNNING")
 
-  rdf_flow.flow_id = "%08X" % random.PositiveUInt32()
+  rdf_flow.flow_id = RandomFlowId()
 
   if parent_flow_obj:
     parent_rdf_flow = parent_flow_obj.rdf_flow

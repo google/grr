@@ -35,6 +35,8 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   interface brought in by the db_test.DatabaseTestMixin.
   """
 
+  flow_processing_req_func = "_WriteFlowProcessingRequests"
+
   def CreateDatabase(self):
     # pylint: disable=unreachable
     user = _GetEnvironOrSkip("MYSQL_TEST_USER")
@@ -441,99 +443,6 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testMultiClearPathHistoryClearsMultipleHistories(self):
-    pass
-
-  def testFlowWriting(self):
-    pass
-
-  def testReadAllFlowObjects(self):
-    pass
-
-  def testFlowWritingUnknownClient(self):
-    pass
-
-  def testPersistentDataUpdate(self):
-    pass
-
-  def testCrashInfoUpdate(self):
-    pass
-
-  def testPendingTerminationUpdate(self):
-    pass
-
-  def testProcessingInformationUpdate(self):
-    pass
-
-  def testRequestWriting(self):
-    pass
-
-  def testResponsesForUnknownFlow(self):
-    pass
-
-  def testResponsesForUnknownRequest(self):
-    pass
-
-  def testResponseWriting(self):
-    pass
-
-  def testResponsesForEarlierRequestDontTriggerFlowProcessing(self):
-    pass
-
-  def testResponsesForLaterRequestDontTriggerFlowProcessing(self):
-    pass
-
-  def testResponsesForExpectedRequestTriggerFlowProcessing(self):
-    pass
-
-  def testResponsesAnyRequestTriggerClientMessageDeletion(self):
-    pass
-
-  def testReadFlowForProcessingThatIsAlreadyBeingProcessed(self):
-    pass
-
-  def testReadFlowForProcessingAfterProcessingTimeExpiration(self):
-    pass
-
-  def testReadFlowForProcessingUpdatesFlowObjects(self):
-    pass
-
-  def testFlowLastUpateTime(self):
-    pass
-
-  def testReturnProcessedFlow(self):
-    pass
-
-  def testReadChildFlows(self):
-    pass
-
-  def testRequestWritingHighIDDoesntTriggerFlowProcessing(self):
-    pass
-
-  def testRequestWritingLowIDDoesntTriggerFlowProcessing(self):
-    pass
-
-  def testRequestWritingExpectedIDTriggersFlowProcessing(self):
-    pass
-
-  def testDeleteFlowRequests(self):
-    pass
-
-  def testDeleteAllFlowRequestsAndResponses(self):
-    pass
-
-  def testReadFlowRequestsReadyForProcessing(self):
-    pass
-
-  def testFlowProcessingRequestsQueue(self):
-    pass
-
-  def testFlowProcessingRequestsQueueWithDelay(self):
-    pass
-
-  def testAcknowledgingFlowProcessingRequestsWorks(self):
-    pass
-
-  def testStatusMessagesCanBeWrittenAndRead(self):
     pass
 
   def testWritesAndReadsSingleFlowResultOfSingleType(self):

@@ -12,8 +12,7 @@ from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_test_utils
 from grr_response_core.stats import stats_utils
-from grr_response_server import aff4
-from grr_response_server.aff4_objects import stats_store as aff4_stats_store
+from grr_response_server import stats_store
 from grr_response_server.gui import api_regression_http
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import stats as stats_plugin
@@ -84,11 +83,6 @@ class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
     stats_collector = default_stats_collector.DefaultStatsCollector(
         test_metadata)
     with stats_test_utils.FakeStatsContext(stats_collector):
-      with aff4.FACTORY.Create(
-          None, aff4_stats_store.StatsStore, mode="w",
-          token=self.token) as stats_store:
-        stats_store.WriteStats(process_id="worker_1")
-
       # We use mixins to run the same tests against multiple APIs.
       # Result-filtering is only needed for HTTP API tests.
       if isinstance(self, api_regression_http.HttpApiRegressionTestMixinBase):
@@ -110,72 +104,69 @@ class ApiGetStatsStoreMetricHandlerRegressionTest(
   handler = stats_plugin.ApiGetStatsStoreMetricHandler
 
   def Run(self):
-    real_metric_metadata = list(
-        itervalues(stats_collector_instance.Get().GetAllMetricsMetadata()))
-    test_metadata = real_metric_metadata + [
-        stats_utils.CreateCounterMetadata(
-            _TEST_COUNTER, docstring="Sample counter metric."),
-        stats_utils.CreateGaugeMetadata(
-            _TEST_GAUGE_METRIC, float, docstring="Sample gauge metric."),
-        stats_utils.CreateEventMetadata(
-            _TEST_EVENT_METRIC, docstring="Sample event metric."),
-    ]
-    stats_collector = default_stats_collector.DefaultStatsCollector(
-        test_metadata)
-    with stats_test_utils.FakeStatsContext(stats_collector):
-      for i in range(10):
-        with test_lib.FakeTime(42 + i * 60):
-          stats_collector.IncrementCounter(_TEST_COUNTER)
-          stats_collector.SetGaugeValue(_TEST_GAUGE_METRIC, i * 0.5)
-          stats_collector.RecordEvent(_TEST_EVENT_METRIC, 0.42 + 0.5 * i)
+    with test_lib.ConfigOverrider({"Database.useForReads.stats": True}):
+      real_metric_metadata = list(
+          itervalues(stats_collector_instance.Get().GetAllMetricsMetadata()))
+      test_metadata = real_metric_metadata + [
+          stats_utils.CreateCounterMetadata(
+              _TEST_COUNTER, docstring="Sample counter metric."),
+          stats_utils.CreateGaugeMetadata(
+              _TEST_GAUGE_METRIC, float, docstring="Sample gauge metric."),
+          stats_utils.CreateEventMetadata(
+              _TEST_EVENT_METRIC, docstring="Sample event metric."),
+      ]
+      stats_collector = default_stats_collector.DefaultStatsCollector(
+          test_metadata)
+      with stats_test_utils.FakeStatsContext(stats_collector):
+        for i in range(10):
+          with test_lib.FakeTime(42 + i * 60):
+            stats_collector.IncrementCounter(_TEST_COUNTER)
+            stats_collector.SetGaugeValue(_TEST_GAUGE_METRIC, i * 0.5)
+            stats_collector.RecordEvent(_TEST_EVENT_METRIC, 0.42 + 0.5 * i)
+            stats_store._WriteStats(process_id="worker_1")
 
-          with aff4.FACTORY.Create(
-              None, aff4_stats_store.StatsStore, mode="w",
-              token=self.token) as stats_store:
-            stats_store.WriteStats(process_id="worker_1")
+        range_start = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
+        range_end = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600)
 
-      range_start = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
-      range_end = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600)
+        self.Check(
+            "GetStatsStoreMetric",
+            args=stats_plugin.ApiGetStatsStoreMetricArgs(
+                component="WORKER",
+                metric_name=_TEST_COUNTER,
+                start=range_start,
+                end=range_end))
+        self.Check(
+            "GetStatsStoreMetric",
+            args=stats_plugin.ApiGetStatsStoreMetricArgs(
+                component="WORKER",
+                metric_name=_TEST_COUNTER,
+                start=range_start,
+                end=range_end,
+                rate="1m"))
 
-      self.Check(
-          "GetStatsStoreMetric",
-          args=stats_plugin.ApiGetStatsStoreMetricArgs(
-              component="WORKER",
-              metric_name=_TEST_COUNTER,
-              start=range_start,
-              end=range_end))
-      self.Check(
-          "GetStatsStoreMetric",
-          args=stats_plugin.ApiGetStatsStoreMetricArgs(
-              component="WORKER",
-              metric_name=_TEST_COUNTER,
-              start=range_start,
-              end=range_end,
-              rate="1m"))
+        self.Check(
+            "GetStatsStoreMetric",
+            args=stats_plugin.ApiGetStatsStoreMetricArgs(
+                component="WORKER",
+                metric_name=_TEST_GAUGE_METRIC,
+                start=range_start,
+                end=range_end))
 
-      self.Check(
-          "GetStatsStoreMetric",
-          args=stats_plugin.ApiGetStatsStoreMetricArgs(
-              component="WORKER",
-              metric_name=_TEST_GAUGE_METRIC,
-              start=range_start,
-              end=range_end))
-
-      self.Check(
-          "GetStatsStoreMetric",
-          args=stats_plugin.ApiGetStatsStoreMetricArgs(
-              component="WORKER",
-              metric_name=_TEST_EVENT_METRIC,
-              start=range_start,
-              end=range_end))
-      self.Check(
-          "GetStatsStoreMetric",
-          args=stats_plugin.ApiGetStatsStoreMetricArgs(
-              component="WORKER",
-              metric_name=_TEST_EVENT_METRIC,
-              start=range_start,
-              end=range_end,
-              distribution_handling_mode="DH_COUNT"))
+        self.Check(
+            "GetStatsStoreMetric",
+            args=stats_plugin.ApiGetStatsStoreMetricArgs(
+                component="WORKER",
+                metric_name=_TEST_EVENT_METRIC,
+                start=range_start,
+                end=range_end))
+        self.Check(
+            "GetStatsStoreMetric",
+            args=stats_plugin.ApiGetStatsStoreMetricArgs(
+                component="WORKER",
+                metric_name=_TEST_EVENT_METRIC,
+                start=range_start,
+                end=range_end,
+                distribution_handling_mode="DH_COUNT"))
 
 
 class ApiListReportsHandlerRegressionTest(

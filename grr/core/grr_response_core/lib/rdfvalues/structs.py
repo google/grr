@@ -686,8 +686,18 @@ class EnumNamedValue(rdfvalue.RDFInteger):
                description=None,
                labels=None,
                age=None):
-    super(EnumNamedValue, self).__init__(initializer)
-    self.name = name or str(initializer)
+    super(EnumNamedValue, self).__init__(initializer, age=age)
+
+    if name is None:
+      name = unicode(initializer)
+    if labels is None:
+      labels = []
+
+    precondition.AssertType(name, unicode)
+    precondition.AssertOptionalType(description, unicode)
+    precondition.AssertIterableType(labels, int)
+
+    self.name = name
     self.description = description
     self.labels = labels
 
@@ -695,10 +705,10 @@ class EnumNamedValue(rdfvalue.RDFInteger):
     return int(self) == other or self.name == other
 
   def __str__(self):
-    return self.name
+    return self.name.encode("utf-8")
 
   def __unicode__(self):
-    return unicode(self.name)
+    return self.name
 
   def Copy(self):
     v = super(EnumNamedValue, self).Copy()
@@ -740,7 +750,7 @@ class ProtoEnum(ProtoSignedInteger):
         name=enum_name,
         descriptions=enum_descriptions,
         enum_labels=enum_labels,
-        **(enum or {}))
+        values=(enum or {}))
     self.enum = self.enum_container.enum_dict
     self.reverse_enum = self.enum_container.reverse_enum
 
@@ -805,7 +815,10 @@ class ProtoBoolean(ProtoEnum):
 
   def __init__(self, **kwargs):
     super(ProtoBoolean, self).__init__(
-        enum_name="Bool", enum=dict(True=1, False=0), **kwargs)
+        enum_name="Bool", enum={
+            "True": 1,
+            "False": 0
+        }, **kwargs)
 
     self.proto_type_name = "bool"
 
@@ -1852,15 +1865,20 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
 class EnumContainer(object):
   """A data class to hold enum objects."""
 
-  def __init__(self, name=None, descriptions=None, enum_labels=None, **kwargs):
+  def __init__(self,
+               name=None,
+               descriptions=None,
+               enum_labels=None,
+               values=None):
     descriptions = descriptions or {}
     enum_labels = enum_labels or {}
+    values = values or {}
 
     self.enum_dict = {}
     self.reverse_enum = {}
     self.name = name
 
-    for k, v in iteritems(kwargs):
+    for k, v in iteritems(values):
       v = EnumNamedValue(
           v,
           name=k,

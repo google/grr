@@ -32,9 +32,9 @@ class InMemoryDBStatsMixin(object):
   """Mixin providing an in-memory implementation of stats-related DB logic.
 
   Attributes:
-    stats_store_entries: A dict mapping stats-entry ids to StatsStoreEntries.
-      This field is initialized in mem.py, for consistency with other in-memory
-      DB mixins.
+    stats_store_entries: A dict mapping stats-entry ids to serialized
+      StatsStoreEntries. This field is initialized in mem.py, for consistency
+      with other in-memory DB mixins.
   """
 
   @utils.Synchronized
@@ -45,7 +45,7 @@ class InMemoryDBStatsMixin(object):
       entry_id = db_utils.GenerateStatsEntryId(stats_entry)
       if entry_id in self.stats_store_entries:
         raise db.DuplicateMetricValueError()
-      self.stats_store_entries[entry_id] = stats_entry
+      self.stats_store_entries[entry_id] = stats_entry.SerializeToString()
 
   @utils.Synchronized
   def ReadStatsStoreEntries(
@@ -56,7 +56,9 @@ class InMemoryDBStatsMixin(object):
       max_results = 0):
     """See db.Database."""
     stats_entries = []
-    for stats_entry in itervalues(self.stats_store_entries):
+    for serialized_stats_entry in itervalues(self.stats_store_entries):
+      stats_entry = stats_values.StatsStoreEntry.FromSerializedString(
+          serialized_stats_entry)
       if (not stats_entry.process_id.startswith(process_id_prefix) or
           stats_entry.metric_name != metric_name or
           _IsOutsideTimeRange(stats_entry.timestamp, time_range)):
@@ -70,8 +72,10 @@ class InMemoryDBStatsMixin(object):
   @utils.Synchronized
   def DeleteStatsStoreEntriesOlderThan(self, cutoff):
     """See db.Database."""
-    self.stats_store_entries = {
-        k: v
-        for k, v in iteritems(self.stats_store_entries)
-        if v.timestamp >= cutoff
-    }
+    new_entries = {}
+    for entry_id, serialized_stats_entry in iteritems(self.stats_store_entries):
+      stats_entry = stats_values.StatsStoreEntry.FromSerializedString(
+          serialized_stats_entry)
+      if stats_entry.timestamp >= cutoff:
+        new_entries[entry_id] = serialized_stats_entry
+    self.stats_store_entries = new_entries

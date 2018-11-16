@@ -21,6 +21,14 @@ def IntToClientID(client_id):
   return "C.%016x" % client_id
 
 
+def FlowIDToInt(flow_id):
+  return int(flow_id or "0", 16)
+
+
+def IntToFlowID(flow_id):
+  return "%08X" % flow_id
+
+
 def StringToRDFProto(proto_type, value):
   return value if value is None else proto_type.FromSerializedString(value)
 

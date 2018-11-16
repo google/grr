@@ -17,6 +17,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
 from grr_response_server import db
+from grr_response_server import flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
@@ -29,9 +30,8 @@ class DatabaseTestFlowMixin(object):
   """
 
   def _SetupClientAndFlow(self, **additional_flow_args):
-    flow_id = u"1234ABCD"
     client_id = u"C.1234567890123456"
-
+    flow_id = flow.RandomFlowId()
     self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
 
     rdf_flow = rdf_flow_objects.Flow(
@@ -201,6 +201,32 @@ class DatabaseTestFlowMixin(object):
     with self.assertRaises(db.UnknownFlowError):
       self.db.ReadFlowObject(u"C.1234567890000000", flow_id)
 
+  def testFlowOverwrite(self):
+    flow_id = u"1234ABCD"
+    client_id = u"C.1234567890123456"
+
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    rdf_flow = rdf_flow_objects.Flow(
+        client_id=client_id, flow_id=flow_id, next_request_to_process=4)
+    self.db.WriteFlowObject(rdf_flow)
+
+    read_flow = self.db.ReadFlowObject(client_id, flow_id)
+
+    # Last update time has changed, everything else should be equal.
+    read_flow.last_update_time = None
+
+    self.assertEqual(read_flow, rdf_flow)
+
+    # Now change the flow object.
+    rdf_flow.next_request_to_process = 5
+
+    self.db.WriteFlowObject(rdf_flow)
+
+    read_flow_after_update = self.db.ReadFlowObject(client_id, flow_id)
+
+    self.assertEqual(read_flow_after_update.next_request_to_process, 5)
+
   def testReadAllFlowObjects(self):
     client_id_1 = u"C.1234567890123456"
     client_id_2 = u"C.1234567890123457"
@@ -227,6 +253,14 @@ class DatabaseTestFlowMixin(object):
 
     for flow_obj in read:
       self.assertEqual(flow_obj.client_id, client_id_1)
+
+  def testUpdateUnknownFlow(self):
+    _, flow_id = self._SetupClientAndFlow()
+
+    crash_info = rdf_client.ClientCrash(crash_message="oh no")
+    with self.assertRaises(db.UnknownFlowError):
+      self.db.UpdateFlow(
+          u"C.1234567890AAAAAA", flow_id, client_crash_info=crash_info)
 
   def testCrashInfoUpdate(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -832,8 +866,10 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(requests_for_processing[4][1], responses)
 
   def testFlowProcessingRequestsQueue(self):
-    client_id, _ = self._SetupClientAndFlow()
-    flow_ids = [u"1234ABC%d" % i for i in range(5)]
+    flow_ids = []
+    for _ in range(5):
+      client_id, flow_id = self._SetupClientAndFlow()
+      flow_ids.append(flow_id)
 
     request_queue = queue.Queue()
 
@@ -859,14 +895,15 @@ class DatabaseTestFlowMixin(object):
             "Timed out waiting for messages, expected 5, got %d" % len(got))
       got.append(l)
 
-    got.sort(key=lambda req: req.flow_id)
-    self.assertEqual(requests, got)
+    self.assertItemsEqual(requests, got)
 
     self.db.UnregisterFlowProcessingHandler()
 
   def testFlowProcessingRequestsQueueWithDelay(self):
-    client_id, _ = self._SetupClientAndFlow()
-    flow_ids = [u"1234ABC%d" % i for i in range(5)]
+    flow_ids = []
+    for _ in range(5):
+      client_id, flow_id = self._SetupClientAndFlow()
+      flow_ids.append(flow_id)
 
     request_queue = queue.Queue()
 
@@ -898,14 +935,19 @@ class DatabaseTestFlowMixin(object):
       got.append(l)
       self.assertGreater(rdfvalue.RDFDatetime.Now(), l.delivery_time)
 
-    got.sort(key=lambda req: req.flow_id)
-    self.assertEqual(requests, got)
+    self.assertItemsEqual(requests, got)
+
+    leftover = self.db.ReadFlowProcessingRequests()
+    self.assertEqual(leftover, [])
 
     self.db.UnregisterFlowProcessingHandler()
 
   def testAcknowledgingFlowProcessingRequestsWorks(self):
-    client_id, _ = self._SetupClientAndFlow()
-    flow_ids = [u"1234ABC%d" % i for i in range(5)]
+    flow_ids = []
+    for _ in range(5):
+      client_id, flow_id = self._SetupClientAndFlow()
+      flow_ids.append(flow_id)
+    flow_ids.sort()
 
     now = rdfvalue.RDFDatetime.Now()
     delivery_time = now + rdfvalue.Duration("10m")
@@ -923,7 +965,7 @@ class DatabaseTestFlowMixin(object):
     stored_requests = self.db.ReadFlowProcessingRequests()
     stored_requests.sort(key=lambda r: r.flow_id)
     self.assertEqual(len(stored_requests), 5)
-    self.assertEqual([r.flow_id for r in stored_requests], flow_ids)
+    self.assertItemsEqual([r.flow_id for r in stored_requests], flow_ids)
 
     # Now we ack requests 1 and 2. There should be three remaining in the db.
     self.db.AckFlowProcessingRequests(stored_requests[1:3])
@@ -943,7 +985,6 @@ class DatabaseTestFlowMixin(object):
                         flow_id,
                         multiple_timestamps=False,
                         sample_results=None):
-    client_id, flow_id = self._SetupClientAndFlow()
     if sample_results is None:
       sample_results = []
       for i in range(10):

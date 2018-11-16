@@ -18,6 +18,7 @@ from builtins import range  # pylint: disable=redefined-builtin
 import MySQLdb
 
 from grr_response_server import db as db_module
+from grr_response_server import threadpool
 from grr_response_server.databases import mysql_artifacts
 from grr_response_server.databases import mysql_blobs
 from grr_response_server.databases import mysql_clients
@@ -104,6 +105,13 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     self.handler_thread = None
     self.handler_stop = True
 
+    self.flow_processing_request_handler_thread = None
+    self.flow_processing_request_handler_stop = None
+    self.flow_processing_request_handler_pool = (
+        threadpool.ThreadPool.Factory(
+            "flow_processing_pool", min_threads=2, max_threads=50))
+    self.flow_processing_request_handler_pool.Start()
+
   def Close(self):
     self.pool.close()
 
@@ -121,7 +129,6 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     # based logging. MariaDB >= 10.2.4 has MIXED logging as a
     # default, for earlier versions we set it explicitly but that
     # requires SUPER privileges.
-
     cursor.execute("show variables like 'binlog_format'")
     _, log_format = cursor.fetchone()
     if log_format == "MIXED":
@@ -177,6 +184,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
       with contextlib.closing(self.pool.get()) as connection:
         try:
           with contextlib.closing(connection.cursor()) as cursor:
+            self._SetBinlogFormat(cursor)
             cursor.execute(start_query)
 
           ret = function(connection)

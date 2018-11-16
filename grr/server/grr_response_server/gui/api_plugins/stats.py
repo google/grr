@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import stats_collector_instance
@@ -93,8 +92,8 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
         start=base_start_time, end=end_time, metric_name=args.metric_name)
 
     data = stats_store.ReadStats(
-        args.component.name.lower(),
-        utils.SmartStr(args.metric_name),
+        unicode(args.component.name.lower()),
+        args.metric_name,
         time_range=(start_time, end_time),
         token=token)
 

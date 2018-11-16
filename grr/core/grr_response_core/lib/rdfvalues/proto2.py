@@ -242,33 +242,39 @@ def DefineFromProtobuf(cls, protobuf):
                type_descriptor.type.__name__, semantic_protobuf_primitive))
 
     elif field.enum_type:  # It is an enum.
+      # TODO(hanuszczak): Protobuf descriptors use `bytes` objects to represent
+      # string values. Hence, we add additional `unicode` calls to convert them.
+      # It should be investigated whether this behaviour is needed in Python 3
+      # as well.
+
       enum_desc = field.enum_type
+      enum_desc_name = unicode(enum_desc.name)
       enum_dict = {}
       enum_descriptions = {}
       enum_labels = {}
 
       for enum_value in enum_desc.values:
-        enum_dict[enum_value.name] = enum_value.number
+        enum_value_name = unicode(enum_value.name)
+
+        enum_dict[enum_value_name] = enum_value.number
         description = enum_value.GetOptions().Extensions[
             semantic_pb2.description]
-        enum_descriptions[enum_value.name] = description
+        enum_descriptions[enum_value_name] = description
         labels = [
             label
             for label in enum_value.GetOptions().Extensions[semantic_pb2.label]
         ]
-        enum_labels[enum_value.name] = labels
-
-      enum_dict = dict((x.name, x.number) for x in enum_desc.values)
+        enum_labels[enum_value_name] = labels
 
       type_descriptor = classes_dict["ProtoEnum"](
-          enum_name=enum_desc.name,
+          enum_name=enum_desc_name,
           enum=enum_dict,
           enum_descriptions=enum_descriptions,
           enum_labels=enum_labels,
           **kwargs)
 
       # Attach the enum container to the class for easy reference:
-      setattr(cls, enum_desc.name, type_descriptor.enum_container)
+      setattr(cls, enum_desc_name, type_descriptor.enum_container)
 
     # If we do not recognize the type descriptor we ignore this field.
     if type_descriptor is not None:
