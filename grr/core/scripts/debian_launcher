@@ -32,4 +32,4 @@ fi
 # $@ is expanded specially and should be quoted:
 # http://www.gnu.org/software/bash/manual/bash.html#Special-Parameters
 # GRR_EXTRA_ARGS is an array of argv so it needs to be quoted too.
-"${GRR_PREFIX}/bin/${NAME}" "${GRR_EXTRA_ARGS[@]}" "${@}"
+exec "${GRR_PREFIX}/bin/${NAME}" "${GRR_EXTRA_ARGS[@]}" "${@}"

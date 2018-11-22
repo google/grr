@@ -31,4 +31,4 @@ fi
 # Run the script.
 # $@ is expanded specially and should be quoted:
 # http://www.gnu.org/software/bash/manual/bash.html#Special-Parameters
-"${GRR_PREFIX}/bin/${NAME}" "${@}"
+exec "${GRR_PREFIX}/bin/${NAME}" "${@}"
