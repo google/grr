@@ -222,7 +222,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   def testHandlerRespectsTimestamp(self):
     # TODO(hanuszczak): Enable this test in relational database mode once
     # timestamp-specific file listing is supported by the data store.
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBReadEnabled("vfs"):
       raise unittest.SkipTest("relational backend does not support timestamp-"
                               "specific file listing")
 

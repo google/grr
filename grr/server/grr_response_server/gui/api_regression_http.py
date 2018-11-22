@@ -54,7 +54,8 @@ class HttpApiRegressionTestMixinBase(object):
         # Force creation of new APIAuthorizationManager.
         api_auth_manager.APIACLInit.InitApiAuthManager()
 
-        trd = wsgiapp_testlib.ServerThread(port)
+        trd = wsgiapp_testlib.ServerThread(
+            port, name="ApiRegressionHttpConnectorV%d" % api_version)
         trd.StartAndWaitUntilServing()
 
         _HTTP_ENDPOINTS[api_version] = "http://localhost:%d" % port

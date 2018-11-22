@@ -7,33 +7,35 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import access_control
-from grr_response_server import flow
 from grr_response_server import throttle
 from grr_response_server.flows.general import file_finder
+from grr_response_server.gui import api_regression_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualFlowTest
 class ThrottleTest(test_lib.GRRBaseTest):
   BASE_TIME = 1439501002
 
   def setUp(self):
     super(ThrottleTest, self).setUp()
-    self.client_id = self.SetupClient(0)
+    self.client_id = self.SetupClient(0).Basename()
 
   def testCheckFlowRequestLimit(self):
     # Create a flow
     with test_lib.FakeTime(self.BASE_TIME):
-      flow.StartAFF4Flow(
+      api_regression_test_lib.StartFlow(
           client_id=self.client_id,
-          flow_name=flow_test_lib.DummyLogFlow.__name__,
+          flow_cls=flow_test_lib.DummyLogFlow,
           token=self.token)
 
     # One day + 1s later
     with test_lib.FakeTime(self.BASE_TIME + 86400 + 1):
-      flow.StartAFF4Flow(
+      api_regression_test_lib.StartFlow(
           client_id=self.client_id,
-          flow_name=flow_test_lib.DummyLogFlow.__name__,
+          flow_cls=flow_test_lib.DummyLogFlow,
           token=self.token)
 
       # Disable the dup interval checking by setting it to 0.
@@ -50,13 +52,13 @@ class ThrottleTest(test_lib.GRRBaseTest):
 
       # Start some more flows with a different user
       token2 = access_control.ACLToken(username="test2", reason="Running tests")
-      flow.StartAFF4Flow(
+      api_regression_test_lib.StartFlow(
           client_id=self.client_id,
-          flow_name=flow_test_lib.DummyLogFlow.__name__,
+          flow_cls=flow_test_lib.DummyLogFlow,
           token=token2)
-      flow.StartAFF4Flow(
+      api_regression_test_lib.StartFlow(
           client_id=self.client_id,
-          flow_name=flow_test_lib.DummyLogFlow.__name__,
+          flow_cls=flow_test_lib.DummyLogFlow,
           token=token2)
 
       # Should still succeed, since we count per-user
@@ -68,12 +70,12 @@ class ThrottleTest(test_lib.GRRBaseTest):
           token=self.token)
 
       # Add another flow at current time
-      flow.StartAFF4Flow(
+      api_regression_test_lib.StartFlow(
           client_id=self.client_id,
-          flow_name=flow_test_lib.DummyLogFlow.__name__,
+          flow_cls=flow_test_lib.DummyLogFlow,
           token=self.token)
 
-      with self.assertRaises(throttle.ErrorDailyFlowRequestLimitExceeded):
+      with self.assertRaises(throttle.DailyFlowRequestLimitExceededError):
         throttler.EnforceLimits(
             self.client_id,
             self.token.username,
@@ -95,12 +97,12 @@ class ThrottleTest(test_lib.GRRBaseTest):
           None,
           token=self.token)
 
-      flow.StartAFF4Flow(
+      api_regression_test_lib.StartFlow(
           client_id=self.client_id,
-          flow_name=flow_test_lib.DummyLogFlow.__name__,
+          flow_cls=flow_test_lib.DummyLogFlow,
           token=self.token)
 
-      with self.assertRaises(throttle.ErrorFlowDuplicate):
+      with self.assertRaises(throttle.DuplicateFlowError):
         throttler.EnforceLimits(
             self.client_id,
             self.token.username,
@@ -117,12 +119,12 @@ class ThrottleTest(test_lib.GRRBaseTest):
           None,
           token=self.token)
 
-      flow.StartAFF4Flow(
+      api_regression_test_lib.StartFlow(
           client_id=self.client_id,
-          flow_name=flow_test_lib.DummyLogFlow.__name__,
+          flow_cls=flow_test_lib.DummyLogFlow,
           token=self.token)
 
-      with self.assertRaises(throttle.ErrorFlowDuplicate):
+      with self.assertRaises(throttle.DuplicateFlowError):
         throttler.EnforceLimits(
             self.client_id,
             self.token.username,
@@ -143,14 +145,17 @@ class ThrottleTest(test_lib.GRRBaseTest):
           args,
           token=self.token)
 
-      flow.StartAFF4Flow(
-          client_id=self.client_id,
-          flow_name=file_finder.FileFinder.__name__,
-          token=self.token,
+      new_args = rdf_file_finder.FileFinderArgs(
           paths=["/tmp/1", "/tmp/2"],
           action=rdf_file_finder.FileFinderAction(action_type="STAT"))
 
-      with self.assertRaises(throttle.ErrorFlowDuplicate):
+      api_regression_test_lib.StartFlow(
+          client_id=self.client_id,
+          flow_cls=file_finder.FileFinder,
+          token=self.token,
+          flow_args=new_args)
+
+      with self.assertRaises(throttle.DuplicateFlowError):
         throttler.EnforceLimits(
             self.client_id,
             self.token.username,

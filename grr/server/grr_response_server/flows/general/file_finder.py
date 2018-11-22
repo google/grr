@@ -76,8 +76,15 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
       return
 
     self.state.files_found = 0
-    self.state.sorted_conditions = sorted(
-        self.args.conditions, key=self._ConditionWeight)
+
+    # Do not access `conditions`, if it has never been set before. Otherwise,
+    # the field is replaced with the default value `[]`, which breaks equality
+    # in unsuspected ways. Also, see the comment below.
+    if self.args.HasField("conditions"):
+      self.state.sorted_conditions = sorted(
+          self.args.conditions, key=self._ConditionWeight)
+    else:
+      self.state.sorted_conditions = []
 
     # TODO(user): We may change self.args just by accessing self.args.action
     # (a nested message will be created). Therefore we should be careful

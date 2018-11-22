@@ -62,6 +62,21 @@ class SendingTestFlow(flow.GRRFlow):
           next_state="Incoming")
 
 
+MESSAGE_EXPIRY_TIME = 100
+
+
+def ReceiveMessages(client_id, messages):
+  server = TestServer()
+  server.ReceiveMessages(client_id, messages)
+
+
+def TestServer():
+  return frontend_lib.FrontEndServer(
+      certificate=config.CONFIG["Frontend.certificate"],
+      private_key=config.CONFIG["PrivateKeys.server_key"],
+      message_expiry_time=MESSAGE_EXPIRY_TIME)
+
+
 class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
   """Tests the GRRFEServer."""
 
@@ -81,7 +96,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
     ]
 
-    self.server.ReceiveMessages(client_id, messages)
+    ReceiveMessages(client_id, messages)
 
     # Make sure the task is still on the client queue
     manager = queue_manager.QueueManager(token=self.token)
@@ -128,7 +143,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             payload=status,
             type=rdf_flows.GrrMessage.Type.STATUS))
 
-    self.server.ReceiveMessages(client_id, messages)
+    ReceiveMessages(client_id, messages)
 
     # Make sure the task is still on the client queue
     manager = queue_manager.QueueManager(token=self.token)
@@ -171,7 +186,8 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             type=rdf_flows.GrrMessage.Type.STATUS)
     ]
 
-    self.server.ReceiveMessages(client_id, messages)
+    ReceiveMessages(client_id, messages)
+
     manager = queue_manager.QueueManager(token=self.token)
     completed = list(manager.FetchCompletedRequests(session_id))
     self.assertEqual(len(completed), 1)
@@ -189,10 +205,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
     ]
 
-    self.server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
-
-    # Wait for async actions to complete
-    self.server.thread_pool.Join()
+    ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
 
     flow_test_lib.WellKnownSessionTest.messages.sort()
 
@@ -241,12 +254,10 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
     ]
 
-    # Delete the local well known flow cache is empty.
-    self.server.well_known_flows = {}
-    self.server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
-
-    # Wait for async actions to complete
-    self.server.thread_pool.Join()
+    server = TestServer()
+    # Delete the local well known flow cache.
+    server.well_known_flows = {}
+    server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
 
     # None get processed now
     self.assertEqual(flow_test_lib.WellKnownSessionTest.messages, [])
@@ -275,14 +286,12 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
               auth_state="AUTHENTICATED",
               payload=rdfvalue.RDFInteger(i)))
 
+    server = TestServer()
     # This test whitelists only one flow.
-    self.assertIn(session_id1.FlowName(), self.server.well_known_flows)
-    self.assertNotIn(session_id2.FlowName(), self.server.well_known_flows)
+    self.assertIn(session_id1.FlowName(), server.well_known_flows)
+    self.assertNotIn(session_id2.FlowName(), server.well_known_flows)
 
-    self.server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
-
-    # Wait for async actions to complete
-    self.server.thread_pool.Join()
+    server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
 
     # Flow 1 should have been processed right away.
     flow_test_lib.WellKnownSessionTest.messages.sort()
@@ -343,7 +352,8 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     # message list.
     response = rdf_flows.MessageList()
 
-    response.job = self.server.DrainTaskSchedulerQueueForClient(client_id, 5)
+    server = TestServer()
+    response.job = server.DrainTaskSchedulerQueueForClient(client_id, 5)
 
     # Check that we received only as many messages as we asked for
     self.assertEqual(len(response.job), 5)
@@ -390,10 +400,11 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
           message_count=1,
           token=self.token)
 
+    server = TestServer()
     for i in range(default_ttl):
-      with test_lib.FakeTime(base_time + i * (self.MESSAGE_EXPIRY_TIME + 1)):
+      with test_lib.FakeTime(base_time + i * (MESSAGE_EXPIRY_TIME + 1)):
 
-        tasks = self.server.DrainTaskSchedulerQueueForClient(client_id, 100000)
+        tasks = server.DrainTaskSchedulerQueueForClient(client_id, 100000)
         msgs_recvd.append(tasks)
 
     # Should return a client message (ttl-1) times and nothing afterwards.
@@ -419,9 +430,9 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
       if i == 2:
         self._ScheduleResponseAndStatus(client_id, flow_id)
 
-      with test_lib.FakeTime(base_time + i * (self.MESSAGE_EXPIRY_TIME + 1)):
+      with test_lib.FakeTime(base_time + i * (MESSAGE_EXPIRY_TIME + 1)):
 
-        tasks = self.server.DrainTaskSchedulerQueueForClient(client_id, 100000)
+        tasks = server.DrainTaskSchedulerQueueForClient(client_id, 100000)
         msgs_recvd.append(tasks)
 
         if not tasks:
@@ -461,7 +472,8 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
             type=rdf_flows.GrrMessage.Type.STATUS)
     ]
 
-    self.server.ReceiveMessages(client_urn, messages)
+    ReceiveMessages(client_urn, messages)
+
     client = aff4.FACTORY.Open(client_urn)
     crash_details = client.Get(client.Schema.LAST_CRASH)
     self.assertTrue(crash_details)
@@ -482,7 +494,10 @@ class GRRFEServerTestRelational(db_test_lib.RelationalFlowsEnabledMixin,
     flow_id = u"12345678"
     data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
 
-    rdf_flow = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+    rdf_flow = rdf_flow_objects.Flow(
+        client_id=client_id,
+        flow_id=flow_id,
+        create_time=rdfvalue.RDFDatetime.Now())
     data_store.REL_DB.WriteFlowObject(rdf_flow)
 
     req = rdf_flow_objects.FlowRequest(
@@ -500,7 +515,7 @@ class GRRFEServerTestRelational(db_test_lib.RelationalFlowsEnabledMixin,
             payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
     ]
 
-    self.server.ReceiveMessages(client_id, messages)
+    ReceiveMessages(client_id, messages)
     received = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
         client_id, flow_id)
     self.assertEqual(len(received), 1)
@@ -512,10 +527,11 @@ class FleetspeakFrontendTests(frontend_test_lib.FrontEndServerTest):
 
   def testFleetspeakEnrolment(self):
     client_id = test_lib.TEST_CLIENT_ID.Basename()
-    # An Enrolment flow should start inline and attempt to send at least message
-    # through fleetspeak as part of the resulting interrogate flow.
+    server = TestServer()
+    # An Enrolment flow should start inline and attempt to send at least
+    # message through fleetspeak as part of the resulting interrogate flow.
     with mock.patch.object(fleetspeak_connector, "CONN") as mock_conn:
-      self.server.EnrolFleetspeakClient(client_id)
+      server.EnrolFleetspeakClient(client_id)
       mock_conn.outgoing.InsertMessage.assert_called()
 
 
@@ -830,10 +846,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     # Make a new client
     self.CreateNewClientObject()
-
-    # The housekeeper threads of the time based caches also call time.time and
-    # interfere with some tests so we disable them here.
-    utils.InterruptableThread.exit = True
 
     # And cache it in the server
     self.CreateNewServerCommunicator()

@@ -605,11 +605,10 @@ class StatEntryToExportedFileConverter(ExportConverter):
         if self.options.export_files_contents:
           try:
             data = data_by_pathspec[stat_entry.pathspec]
+            result.content = b"".join(data)[:self.MAX_CONTENT_SIZE]
+            result.content_sha256 = hashlib.sha256(result.content).hexdigest()
           except KeyError:
-            continue
-
-          result.content = b"".join(data)[:self.MAX_CONTENT_SIZE]
-          result.content_sha256 = hashlib.sha256(result.content).hexdigest()
+            pass
 
         yield result
 
@@ -626,7 +625,9 @@ class StatEntryToExportedFileConverter(ExportConverter):
       Resulting ExportedFile values. Empty list is a valid result and means that
       conversion wasn't possible.
     """
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBReadEnabled("vfs") and (
+        data_store.RelationalDBReadEnabled("filestore") or
+        not self.options.export_files_contents):
       result_generator = self._BatchConvertRelational(metadata_value_pairs)
     else:
       result_generator = self._BatchConvertLegacy(

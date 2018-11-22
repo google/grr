@@ -6,7 +6,9 @@ from __future__ import unicode_literals
 import errno
 import socket
 import threading
+import time
 
+from future.builtins import range
 import portpicker
 
 from grr_response_core import config
@@ -21,7 +23,7 @@ class SharedFakeDataStoreTestMixin(object):
 
   @classmethod
   def _SetupServer(cls):
-    for _ in xrange(5):
+    for _ in range(5):
       try:
         port = portpicker.pick_unused_port()
         cls.server = shared_fake_data_store.SharedFakeDataStoreServer(port)
@@ -39,11 +41,24 @@ class SharedFakeDataStoreTestMixin(object):
 
     cls._SetupServer()
 
-    cls.server_thread = threading.Thread(target=cls.server.serve_forever)
+    cls.server_thread = threading.Thread(
+        name="SharedFDSTestThread", target=cls.server.serve_forever)
     cls.server_thread.daemon = True
     cls.server_thread.start()
+    # Give the server thread a chance to start up. If we don't sleep for at
+    # least a tiny amount here, the server thread might not be able to get to
+    # run at all before we send the first request.
+    time.sleep(0.01)
 
+    cls.prev_data_store = data_store.DB
     data_store.DB = shared_fake_data_store.SharedFakeDataStore()
+
+  @classmethod
+  def tearDownClass(cls):
+    super(SharedFakeDataStoreTestMixin, cls).tearDownClass()
+    cls.server.shutdown()
+    cls.server_thread.join()
+    data_store.DB = cls.prev_data_store
 
   def testCorrectDataStore(self):
     self.assertIsInstance(data_store.DB,

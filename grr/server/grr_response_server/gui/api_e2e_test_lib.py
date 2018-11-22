@@ -63,10 +63,16 @@ class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         ApiE2ETest.server_port = port
         logging.info("Picked free AdminUI port for HTTP %d.", port)
 
-        ApiE2ETest.trd = wsgiapp_testlib.ServerThread(port)
+        ApiE2ETest.trd = wsgiapp_testlib.ServerThread(
+            port, name="api_e2e_server")
         ApiE2ETest.trd.StartAndWaitUntilServing()
 
         ApiE2ETest._api_set_up_done = True
+
+  @classmethod
+  def tearDownClass(cls):
+    super(ApiE2ETest, cls).tearDownClass()
+    ApiE2ETest.trd.Stop()
 
 
 class RootApiBinaryManagementTestRouter(

@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import csv
+import io
 import os
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -13,6 +13,7 @@ from grr_response_server import server_plugins
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import csv
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import server_startup
@@ -36,8 +37,8 @@ def _ImportRow(store, row, product_code_list, op_system_code_list):
 
 def ImportFile(store, filename, start):
   """Import hashes from 'filename' into 'store'."""
-  with open(filename, "rb") as fp:
-    reader = csv.reader(fp, delimiter=",", quotechar="\"")
+  with io.open(filename, "r") as fp:
+    reader = csv.Reader(fp.read())
     i = 0
     current_row = None
     product_code_list = []

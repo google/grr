@@ -12,6 +12,7 @@ from grr_response_core.lib import config_lib
 from grr_response_core.lib import flags
 from grr_response_core.lib import package
 from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
@@ -84,5 +85,10 @@ def TestInit():
     data_store.DB = db
   data_store.DB.Initialize()
   aff4.AFF4InitHook().Run()
+
+  if not utils.TimeBasedCache.house_keeper_thread:
+    utils.TimeBasedCache()
+  utils.TimeBasedCache.house_keeper_thread.exit = True
+  utils.TimeBasedCache.house_keeper_thread.join()
 
   INIT_RAN = True

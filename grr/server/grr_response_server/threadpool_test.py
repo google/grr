@@ -291,24 +291,23 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     """Tests that we can get the same pool again through the factory."""
 
     prefix = "duplicate_name"
-
     pool = threadpool.ThreadPool.Factory(prefix, 10)
-    self.assertEqual(pool.started, False)
-    pool.Start()
-    self.assertEqual(pool.started, True)
+    try:
+      self.assertEqual(pool.started, False)
+      pool.Start()
+      self.assertEqual(pool.started, True)
 
-    # This should return the same pool as before.
-    pool2 = threadpool.ThreadPool.Factory(prefix, 10)
-    self.assertEqual(pool2.started, True)
+      # This should return the same pool as before.
+      pool2 = threadpool.ThreadPool.Factory(prefix, 10)
+      self.assertEqual(pool2.started, True)
+    finally:
+      pool.Stop()
 
   def testAnonymousThreadpool(self):
-    """Tests that we can starts anonymous threadpools."""
+    """Tests that we can't starts anonymous threadpools."""
     prefix = None
-    pool = threadpool.ThreadPool.Factory(prefix, 10)
-    self.assertEqual(pool.started, False)
-    pool.Start()
-    self.assertEqual(pool.started, True)
-    pool.Stop()
+    with self.assertRaises(ValueError):
+      threadpool.ThreadPool.Factory(prefix, 10)
 
 
 class DummyConverter(threadpool.BatchConverter):

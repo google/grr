@@ -13,11 +13,14 @@ import logging
 import os
 import re
 import shutil
+import socket
+import struct
 import sys
 
 
-from builtins import map  # pylint: disable=redefined-builtin
+from future.builtins import bytes
 from future.utils import iteritems
+from future.utils import itervalues
 import pytsk3
 
 from grr_response_client import actions
@@ -34,6 +37,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import precondition
 
 
 class Error(Exception):
@@ -44,6 +48,57 @@ class UnsupportedOSVersionError(Error):
   """This action not supported on this os version."""
 
 
+# https://github.com/apple/darwin-xnu/blob/master/bsd/sys/_types/_sa_family_t.h
+#
+# typedef __uint8_t sa_family_t;
+
+sa_family_t = ctypes.c_uint8  # pylint: disable=invalid-name
+
+# https://developer.apple.com/documentation/kernel/in_port_t?language=objc
+#
+# typedef __uint16_t in_port_t;
+
+in_port_t = ctypes.c_uint16  # pylint: disable=invalid-name
+
+# https://developer.apple.com/documentation/kernel/in_addr_t?language=objc
+#
+# typedef __uint32_t in_addr_t;
+
+in_addr_t = ctypes.c_uint32  # pylint: disable=invalid-name
+
+# https://github.com/apple/darwin-xnu/blob/master/bsd/netinet6/in6.h
+#
+# struct in6_addr {
+#     union {
+#         __uint8_t   __u6_addr8[16];
+#         __uint16_t  __u6_addr16[8];
+#         __uint32_t  __u6_addr32[4];
+#     } __u6_addr; /* 128-bit IP6 address */
+# };
+
+in6_addr_t = ctypes.c_uint8 * 16  # pylint: disable=invalid-name
+
+# https://github.com/apple/darwin-xnu/blob/master/bsd/sys/socket.h
+#
+# struct sockaddr {
+#     __uint8_t   sa_len;       /* total length */
+#     sa_family_t sa_family;    /* [XSI] address family */
+#     char        sa_data[14];  /* [XSI] addr value (actually larger) */
+# };
+
+
+class Sockaddr(ctypes.Structure):
+  """The sockaddr structure."""
+
+  _fields_ = [
+      ("sa_len", ctypes.c_uint8),
+      ("sa_family", sa_family_t),
+      ("sa_data", ctypes.c_ubyte * 14),
+  ]
+
+
+# https://github.com/apple/darwin-xnu/blob/master/bsd/net/if_dl.h
+#
 # struct sockaddr_dl {
 #       u_char  sdl_len;        /* Total length of sockaddr */
 #       u_char  sdl_family;     /* AF_LINK */
@@ -87,11 +142,12 @@ class Sockaddrin(ctypes.Structure):
   """The sockaddr_in struct."""
   _fields_ = [
       ("sin_len", ctypes.c_ubyte),
-      ("sin_family", ctypes.c_ubyte),
-      ("sin_port", ctypes.c_ushort),
-      ("sin_addr", ctypes.c_ubyte * 4),
-      ("sin_zero", ctypes.c_char * 8)
-  ]  # pyformat: disable
+      ("sin_family", sa_family_t),
+      ("sin_port", in_port_t),
+      ("sin_addr", in_addr_t),
+      ("sin_zero", ctypes.c_ubyte * 8),
+  ]
+
 
 # struct sockaddr_in6 {
 #         __uint8_t       sin6_len;       /* length of this struct */
@@ -107,12 +163,12 @@ class Sockaddrin6(ctypes.Structure):
   """The sockaddr_in6 struct."""
   _fields_ = [
       ("sin6_len", ctypes.c_ubyte),
-      ("sin6_family", ctypes.c_ubyte),
+      ("sin6_family", sa_family_t),
       ("sin6_port", ctypes.c_ushort),
-      ("sin6_flowinfo", ctypes.c_ubyte * 4),
-      ("sin6_addr", ctypes.c_ubyte * 16),
-      ("sin6_scope_id", ctypes.c_ubyte * 4)
-  ]  # pyformat: disable
+      ("sin6_flowinfo", ctypes.c_uint32),
+      ("sin6_addr", in6_addr_t),
+      ("sin6_scope_id", ctypes.c_uint32),
+  ]
 
 # struct ifaddrs   *ifa_next;         /* Pointer to next struct */
 #          char             *ifa_name;         /* Interface name */
@@ -128,16 +184,85 @@ class Ifaddrs(ctypes.Structure):
   pass
 
 
-setattr(Ifaddrs, "_fields_", [
+Ifaddrs._fields_ = [  # pylint: disable=protected-access
     ("ifa_next", ctypes.POINTER(Ifaddrs)),
     ("ifa_name", ctypes.POINTER(ctypes.c_char)),
     ("ifa_flags", ctypes.c_uint),
-    ("ifa_addr", ctypes.POINTER(ctypes.c_char)),
-    ("ifa_netmask", ctypes.POINTER(ctypes.c_char)),
-    ("ifa_broadaddr", ctypes.POINTER(ctypes.c_char)),
-    ("ifa_destaddr", ctypes.POINTER(ctypes.c_char)),
-    ("ifa_data", ctypes.POINTER(ctypes.c_char))
-])  # pyformat: disable
+    ("ifa_addr", ctypes.POINTER(Sockaddr)),
+    ("ifa_netmask", ctypes.POINTER(Sockaddr)),
+    ("ifa_broadaddr", ctypes.POINTER(Sockaddr)),
+    ("ifa_destaddr", ctypes.POINTER(Sockaddr)),
+    ("ifa_data", ctypes.c_void_p),
+]
+
+AF_INET = socket.AF_INET
+AF_INET6 = socket.AF_INET6
+AF_LINK = 0x12
+
+
+def IterIfaddrs(ifaddrs):
+  """Iterates over contents of the intrusive linked list of `ifaddrs`.
+
+  Args:
+    ifaddrs: A pointer to the first node of `ifaddrs` linked list. Can be NULL.
+
+  Yields:
+    Instances of `Ifaddr`.
+  """
+  precondition.AssertOptionalType(ifaddrs, ctypes.POINTER(Ifaddrs))
+
+  while ifaddrs:
+    yield ifaddrs.contents
+    ifaddrs = ifaddrs.contents.ifa_next
+
+
+def ParseIfaddrs(ifaddrs):
+  """Parses contents of the intrusive linked list of `ifaddrs`.
+
+  Args:
+    ifaddrs: A pointer to the first node of `ifaddrs` linked list. Can be NULL.
+
+  Returns:
+    An iterator over instances of `rdf_client_network.Interface`.
+  """
+  precondition.AssertOptionalType(ifaddrs, ctypes.POINTER(Ifaddrs))
+
+  ifaces = {}
+
+  for ifaddr in IterIfaddrs(ifaddrs):
+    ifname = ctypes.string_at(ifaddr.ifa_name).decode("utf-8")
+    iface = ifaces.setdefault(ifname, rdf_client_network.Interface())
+    iface.ifname = ifname
+
+    if not ifaddr.ifa_addr:
+      continue
+
+    sockaddr = ctypes.cast(ifaddr.ifa_addr, ctypes.POINTER(Sockaddr))
+    iffamily = sockaddr.contents.sa_family
+    if iffamily == AF_INET:
+      sockaddrin = ctypes.cast(ifaddr.ifa_addr, ctypes.POINTER(Sockaddrin))
+
+      address = rdf_client_network.NetworkAddress()
+      address.address_type = rdf_client_network.NetworkAddress.Family.INET
+      address.packed_bytes = struct.pack("=L", sockaddrin.contents.sin_addr)
+      iface.addresses.append(address)
+    elif iffamily == AF_INET6:
+      sockaddrin = ctypes.cast(ifaddr.ifa_addr, ctypes.POINTER(Sockaddrin6))
+
+      address = rdf_client_network.NetworkAddress()
+      address.address_type = rdf_client_network.NetworkAddress.Family.INET6
+      address.packed_bytes = bytes(list(sockaddrin.contents.sin6_addr))
+      iface.addresses.append(address)
+    elif iffamily == AF_LINK:
+      sockaddrdl = ctypes.cast(ifaddr.ifa_addr, ctypes.POINTER(Sockaddrdl))
+
+      nlen = sockaddrdl.contents.sdl_nlen
+      alen = sockaddrdl.contents.sdl_alen
+      iface.mac_address = bytes(sockaddrdl.contents.sdl_data[nlen:nlen + alen])
+    else:
+      raise ValueError("Unexpected socket address family: %s" % iffamily)
+
+  return itervalues(ifaces)
 
 
 def EnumerateInterfacesFromClient(args):
@@ -149,56 +274,10 @@ def EnumerateInterfacesFromClient(args):
   p_ifa = ctypes.pointer(ifa)
   libc.getifaddrs(ctypes.pointer(p_ifa))
 
-  addresses = {}
-  macs = {}
-  ifs = set()
-
-  m = p_ifa
-  while m:
-    ifname = ctypes.string_at(m.contents.ifa_name)
-    ifs.add(ifname)
-    try:
-      iffamily = ord(m.contents.ifa_addr[1])
-      if iffamily == 0x2:  # AF_INET
-        data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
-        ip4 = "".join(map(chr, data.contents.sin_addr))
-        address_type = rdf_client_network.NetworkAddress.Family.INET
-        address = rdf_client_network.NetworkAddress(
-            address_type=address_type, packed_bytes=ip4)
-        addresses.setdefault(ifname, []).append(address)
-
-      if iffamily == 0x12:  # AF_LINK
-        data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrdl))
-        iflen = data.contents.sdl_nlen
-        addlen = data.contents.sdl_alen
-        macs[ifname] = "".join(
-            map(chr, data.contents.sdl_data[iflen:iflen + addlen]))
-
-      if iffamily == 0x1E:  # AF_INET6
-        data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
-        ip6 = "".join(map(chr, data.contents.sin6_addr))
-        address_type = rdf_client_network.NetworkAddress.Family.INET6
-        address = rdf_client_network.NetworkAddress(
-            address_type=address_type, packed_bytes=ip6)
-        addresses.setdefault(ifname, []).append(address)
-    except ValueError:
-      # Some interfaces don't have a iffamily and will raise a null pointer
-      # exception. We still want to send back the name.
-      pass
-
-    m = m.contents.ifa_next
+  for iface in ParseIfaddrs(p_ifa):
+    yield iface
 
   libc.freeifaddrs(p_ifa)
-
-  for interface in ifs:
-    mac = macs.setdefault(interface, "")
-    address_list = addresses.setdefault(interface, "")
-    args = {"ifname": interface}
-    if mac:
-      args["mac_address"] = mac
-    if address_list:
-      args["addresses"] = address_list
-    yield rdf_client_network.Interface(**args)
 
 
 class EnumerateInterfaces(actions.ActionPlugin):

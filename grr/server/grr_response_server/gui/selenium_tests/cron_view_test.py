@@ -26,7 +26,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def AddJobStatus(self, job_id, status):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBReadEnabled("cronjobs"):
       status = cron.ApiCronJob().status_map[status]
       data_store.REL_DB.UpdateCronJob(
           job_id,
@@ -52,8 +52,8 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     manager = cronjobs.GetCronManager()
     manager.RunOnce(token=self.token)
-    if data_store.RelationalDBReadEnabled():
-      manager._GetThreadPool().Join()
+    if data_store.RelationalDBReadEnabled("cronjobs"):
+      manager._GetThreadPool().Stop()
 
   def testCronView(self):
     self.Open("/")
@@ -354,10 +354,10 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
       self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
       # Relational cron jobs will only be run the next time a worker checks in.
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBReadEnabled("cronjobs"):
         manager = cronjobs.GetCronManager()
         manager.RunOnce(token=self.token)
-        manager._GetThreadPool().Join()
+        manager._GetThreadPool().Stop()
 
       # TODO(amoser): The lower pane does not refresh automatically so we need
       # to workaround. Remove when we have implemented this auto refresh.

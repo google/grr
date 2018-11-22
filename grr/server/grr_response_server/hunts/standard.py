@@ -31,6 +31,7 @@ from grr_response_server import queue_manager
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.flows.general import transfer
 from grr_response_server.hunts import implementation
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
@@ -89,7 +90,8 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
   """Create and run a GenericHunt with the given name, args and rules.
 
   This flow is different to the CreateGenericHuntFlow in that it
-  immediately runs the hunt it created. """
+  immediately runs the hunt it created.
+  """
 
   args_type = rdf_hunts.CreateGenericHuntFlowArgs
 
@@ -373,7 +375,7 @@ class GenericHunt(implementation.GRRHunt):
 
   STOP_BATCH_SIZE = 10000
 
-  def Stop(self, reason=None):
+  def _StopLegacy(self, reason=None):
     super(GenericHunt, self).Stop(reason=reason)
 
     started_flows = grr_collections.RDFUrnCollection(
@@ -402,12 +404,33 @@ class GenericHunt(implementation.GRRHunt):
 
     self.Log("%d flows terminated.", num_terminated_flows)
 
+  def _StopRelational(self, reason=None):
+    super(GenericHunt, self).Stop(reason=reason)
+    started_flows = grr_collections.RDFUrnCollection(
+        self.started_flows_collection_urn)
+
+    client_id_flow_id_pairs = []
+    for flow_urn in started_flows:
+      components = flow_urn.Split()
+      client_id_flow_id_pairs.append((components[0], components[2]))
+
+    data_store.REL_DB.UpdateFlows(
+        client_id_flow_id_pairs,
+        pending_termination=rdf_flow_objects.PendingFlowTermination(
+            reason="Parent hunt stopped."))
+
+  def Stop(self, reason=None):
+    if data_store.RelationalDBFlowsEnabled():
+      self._StopRelational(reason=reason)
+    else:
+      self._StopLegacy(reason=reason)
+
   def GetLaunchedFlows(self, flow_type="outstanding"):
     """Returns the session IDs of all the flows we launched.
 
     Args:
       flow_type: The type of flows to fetch. Can be "all", "outstanding" or
-      "finished".
+        "finished".
 
     Returns:
       A list of flow URNs.

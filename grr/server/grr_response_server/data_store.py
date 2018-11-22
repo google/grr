@@ -607,7 +607,8 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
   monitor_thread = None
 
   def __init__(self):
-    if self.enable_flusher_thread:
+    in_test = "Test Context" in config.CONFIG.context
+    if not in_test and self.enable_flusher_thread:
       # Start the flusher thread.
       self.flusher_thread = utils.InterruptableThread(
           name="DataStore flusher thread", target=self.Flush, sleep_time=0.5)

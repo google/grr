@@ -254,7 +254,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         logging.info("Picked free AdminUI port %d.", port)
 
         # Start up a server in another thread
-        GRRSeleniumTest._server_trd = wsgiapp_testlib.ServerThread(port)
+        GRRSeleniumTest._server_trd = wsgiapp_testlib.ServerThread(
+            port, name="SeleniumServerThread")
         GRRSeleniumTest._server_trd.StartAndWaitUntilServing()
         GRRSeleniumTest._SetUpSelenium(port)
 

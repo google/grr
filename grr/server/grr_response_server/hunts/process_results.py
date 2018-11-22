@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Cron job to process hunt results.
+
 """
 from __future__ import absolute_import
 from __future__ import unicode_literals
@@ -43,7 +44,9 @@ class ResultsProcessingError(Exception):
     return "\n".join(messages)
 
 
-class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
+@cronjobs.DualDBSystemCronJob(
+    legacy_name="ProcessHuntResultCollectionsCronFlow", stateful=False)
+class ProcessHuntResultCollectionsCronJob(object):
   """Periodic cron flow that processes hunt results.
 
   The ProcessHuntResultCollectionsCronFlow reads hunt results stored in
@@ -57,6 +60,8 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
   BATCH_SIZE = 5000
 
   def CheckIfRunningTooLong(self):
+    """Return True if the cron job's time is expired."""
+
     if self.max_running_time:
       elapsed = rdfvalue.RDFDatetime.Now() - self.start_time
       if elapsed > self.max_running_time:
@@ -64,6 +69,8 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     return False
 
   def LoadPlugins(self, metadata_obj):
+    """Loads plugins from given hunt metadata object."""
+
     output_plugins = metadata_obj.Get(metadata_obj.Schema.OUTPUT_PLUGINS)
     if not output_plugins:
       return output_plugins, []
@@ -80,6 +87,8 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     return output_plugins, used_plugins
 
   def RunPlugins(self, hunt_urn, plugins, results, exceptions_by_plugin):
+    """Runs given plugins on a given hunt."""
+
     for plugin_def, plugin in plugins:
       try:
         plugin.ProcessResponses(results)
@@ -174,7 +183,8 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     logging.debug("Processed %d results.", num_processed_for_hunt)
     return len(results)
 
-  def Start(self):
+  def Run(self):
+    """Run this cron job."""
     self.start_time = rdfvalue.RDFDatetime.Now()
 
     exceptions_by_hunt = {}

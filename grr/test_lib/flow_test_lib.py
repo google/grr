@@ -39,7 +39,8 @@ from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
 
 
-class AdminOnlyFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class AdminOnlyFlowMixin(object):
   AUTHORIZED_LABELS = ["admin"]
 
   # Flow has to have a category otherwise FullAccessControlManager won't
@@ -48,15 +49,18 @@ class AdminOnlyFlow(flow.GRRFlow):
   category = "/Test/"
 
 
-class ClientFlowWithoutCategory(flow.GRRFlow):
+@flow_base.DualDBFlow
+class ClientFlowWithoutCategoryMixin(object):
   pass
 
 
-class ClientFlowWithCategory(flow.GRRFlow):
+@flow_base.DualDBFlow
+class ClientFlowWithCategoryMixin(object):
   category = "/Test/"
 
 
-class CPULimitFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class CPULimitFlowMixin(object):
   """This flow is used to test the cpu limit."""
 
   def Start(self):
@@ -91,7 +95,8 @@ class FlowWithOneClientRequestMixin(object):
     self.CallClient(client_test_lib.Test, data="test", next_state="End")
 
 
-class FlowOrderTest(flow.GRRFlow):
+@flow_base.DualDBFlow
+class FlowOrderTestMixin(object):
   """Tests ordering of inbound messages."""
 
   def __init__(self, *args, **kwargs):
@@ -113,7 +118,8 @@ class SendingFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SendingFlowArgs
 
 
-class SendingFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class SendingFlowMixin(object):
   """Tests sending messages to clients."""
   args_type = SendingFlowArgs
 
@@ -129,14 +135,16 @@ class SendingFlow(flow.GRRFlow):
           standard.ReadBuffer, offset=0, length=100, next_state="Process")
 
 
-class RaiseOnStart(flow.GRRFlow):
+@flow_base.DualDBFlow
+class RaiseOnStartMixin(object):
   """A broken flow that raises in the Start method."""
 
   def Start(self):
     raise Exception("Broken Start")
 
 
-class BrokenFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class BrokenFlowMixin(object):
   """A flow which does things wrongly."""
 
   def Start(self):
@@ -144,21 +152,24 @@ class BrokenFlow(flow.GRRFlow):
     self.CallClient(standard.ReadBuffer, next_state="WrongProcess")
 
 
-class DummyFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class DummyFlowMixin(object):
   """Dummy flow that does nothing."""
 
 
-class FlowWithOneNestedFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class FlowWithOneNestedFlowMixin(object):
   """Flow that calls a nested flow."""
 
   def Start(self):
-    self.CallFlow(DummyFlow.__name__, next_state="Done")
+    self.CallFlow("DummyFlow", next_state="Done")
 
   def Done(self, responses=None):
     del responses
 
 
-class DummyFlowWithSingleReply(flow.GRRFlow):
+@flow_base.DualDBFlow
+class DummyFlowWithSingleReplyMixin(object):
   """Just emits 1 reply."""
 
   def Start(self):
@@ -169,13 +180,27 @@ class DummyFlowWithSingleReply(flow.GRRFlow):
     self.SendReply(rdfvalue.RDFString("oh"))
 
 
-class DummyLogFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class DummyLogFlowMixin(object):
   """Just emit logs."""
 
   def Start(self):
     """Log."""
+    # TODO(user): Remove this as soon as mixed AFF4/REL_DB hunts are gone.
+    # This is needed so that REL_DB flows logic doesn't try to execute
+    # all flow states immediately in place (doing this may cause a deadlock
+    # when a flow runs inside a hunt, since the flow will try to update
+    # an already locked hunt).
+    self.CallClient(server_stubs.GetFileStat, next_state="NextState")
+
+  def NextState(self, responses=None):
+    del responses
     self.Log("First")
+    # pylint: disable=undefined-variable
+    # DummyLogFlowChild is not defined at build time, but will be at runtime.
+    # This is a temporary workaround, because of the @flow_base.DualDBFlow hack.
     self.CallFlow(DummyLogFlowChild.__name__, next_state="Done")
+    # pylint: enable=undefined-variable
     self.Log("Second")
 
   def Done(self, responses=None):
@@ -184,7 +209,8 @@ class DummyLogFlow(flow.GRRFlow):
     self.Log("Fourth")
 
 
-class DummyLogFlowChild(flow.GRRFlow):
+@flow_base.DualDBFlow
+class DummyLogFlowChildMixin(object):
   """Just emit logs."""
 
   def Start(self):
@@ -369,7 +395,12 @@ class MockClient(object):
       self._PushHandlerMessage(message)
       return
 
-    if data_store.RelationalDBFlowsEnabled():
+    # Use REL_DB if it's enabled and if message in question has to be
+    # delivered to a client. Messages for hunts have to be delivered
+    # using the legacy queue manager until REL_DB hunts implementation
+    # is complete.
+    if data_store.RelationalDBFlowsEnabled() and str(
+        message.session_id).startswith("aff4:/C."):
       data_store.REL_DB.WriteFlowResponses(
           [rdf_flow_objects.FlowResponseForLegacyResponse(message)])
     else:
@@ -519,24 +550,23 @@ def StartAndRunFlow(flow_cls,
   Returns:
     The session id of the flow that was run.
   """
-  worker = TestWorker(token=True)
-  data_store.REL_DB.RegisterFlowProcessingHandler(worker.ProcessFlow)
+  with TestWorker(token=True) as worker:
+    flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kwargs)
 
-  flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kwargs)
-
-  RunFlow(
-      client_id,
-      flow_id,
-      client_mock=client_mock,
-      check_flow_errors=check_flow_errors,
-      worker=worker)
-  return flow_id
+    RunFlow(
+        client_id,
+        flow_id,
+        client_mock=client_mock,
+        check_flow_errors=check_flow_errors,
+        worker=worker)
+    return flow_id
 
 
 class TestWorker(worker_lib.GRRWorker):
   """The same class as the real worker but logs all processed flows."""
 
   def __init__(self, *args, **kw):
+    kw["threadpool_prefix"] = "TestWorkerPool"
     super(TestWorker, self).__init__(*args, **kw)
     self.processed_flows = []
 
@@ -549,6 +579,14 @@ class TestWorker(worker_lib.GRRWorker):
     processed_flows = self.processed_flows
     self.processed_flows = []
     return processed_flows
+
+  def __enter__(self):
+    data_store.REL_DB.RegisterFlowProcessingHandler(self.ProcessFlow)
+    return self
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    data_store.REL_DB.UnregisterFlowProcessingHandler()
+    self.Shutdown()
 
 
 def RunFlow(client_id,
@@ -564,28 +602,35 @@ def RunFlow(client_id,
     client_mock = MockClient(client_id, client_mock)
 
   if worker is None:
-    worker = TestWorker(token=True)
+    test_worker = TestWorker(token=True)
     data_store.REL_DB.RegisterFlowProcessingHandler(worker.ProcessFlow)
+  else:
+    test_worker = worker
 
-  # Run the client and worker until nothing changes any more.
-  while True:
-    client_processed = client_mock.Next()
-    worker_processed = worker.ResetProcessedFlows()
-    all_processed_flows.update(worker_processed)
+  try:
+    # Run the client and worker until nothing changes any more.
+    while True:
+      client_processed = client_mock.Next()
+      worker_processed = test_worker.ResetProcessedFlows()
+      all_processed_flows.update(worker_processed)
 
-    if client_processed == 0 and not worker_processed:
-      break
+      if client_processed == 0 and not worker_processed:
+        break
 
-  if check_flow_errors:
-    for client_id, flow_id in all_processed_flows:
-      rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-      if rdf_flow.flow_state != rdf_flow.FlowState.FINISHED:
-        raise RuntimeError(
-            "Flow %s on %s completed in state %s (error message: %s)" %
-            (flow_id, client_id, unicode(rdf_flow.flow_state),
-             rdf_flow.error_message))
+    if check_flow_errors:
+      for client_id, flow_id in all_processed_flows:
+        rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+        if rdf_flow.flow_state != rdf_flow.FlowState.FINISHED:
+          raise RuntimeError(
+              "Flow %s on %s completed in state %s (error message: %s)" %
+              (flow_id, client_id, unicode(rdf_flow.flow_state),
+               rdf_flow.error_message))
 
-  return flow_id
+    return flow_id
+  finally:
+    if worker is None:
+      data_store.REL_DB.UnregisterFlowProcessingHandler()
+      worker.Shutdown()
 
 
 def GetFlowResults(client_id, flow_id):

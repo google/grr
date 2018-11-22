@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A collection of records stored sequentially.
+
 """
 from __future__ import absolute_import
 from __future__ import unicode_literals
@@ -9,6 +10,7 @@ import random
 import threading
 import time
 
+from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -51,15 +53,11 @@ class SequentialCollection(object):
 
     Args:
       collection_urn: The urn of the collection to add to.
-
       rdf_value: The rdf value to add to the collection.
-
-      timestamp: The timestamp (in microseconds) to store the rdf value
-          at. Defaults to the current time.
-
+      timestamp: The timestamp (in microseconds) to store the rdf value at.
+        Defaults to the current time.
       suffix: A 'fractional timestamp' suffix to reduce the chance of
-          collisions. Defaults to a random number.
-
+        collisions. Defaults to a random number.
       mutation_pool: A MutationPool object to write to.
 
     Returns:
@@ -99,13 +97,10 @@ class SequentialCollection(object):
 
     Args:
       rdf_value: The rdf value to add to the collection.
-
-      timestamp: The timestamp (in microseconds) to store the rdf value
-          at. Defaults to the current time.
-
+      timestamp: The timestamp (in microseconds) to store the rdf value at.
+        Defaults to the current time.
       suffix: A 'fractional timestamp' suffix to reduce the chance of
-          collisions. Defaults to a random number.
-
+        collisions. Defaults to a random number.
       mutation_pool: A MutationPool object to write to.
 
     Returns:
@@ -129,13 +124,10 @@ class SequentialCollection(object):
     Scans through the collection, returning stored values ordered by timestamp.
 
     Args:
-
       after_timestamp: If set, only returns values recorded after timestamp.
-
       include_suffix: If true, the timestamps returned are pairs of the form
         (micros_since_epoc, suffix) where suffix is a 24 bit random refinement
         to avoid collisions. Otherwise only micros_since_epoc is returned.
-
       max_records: The maximum number of records to return. Defaults to
         unlimited.
 
@@ -203,6 +195,7 @@ class BackgroundIndexUpdater(object):
     collection_cls(collection_id).UpdateIndex()
 
   def UpdateLoop(self):
+    """Main loop that usually never terminates."""
     while not self.exit_now:
       with self.cv:
         while not self.to_process:
@@ -215,8 +208,8 @@ class BackgroundIndexUpdater(object):
       next_cls = next_update[0]
       next_urn = next_update[1]
       next_time = next_update[2]
-      while now < next_time:
-        time.sleep(next_time - now)
+      while now < next_time and not self.exit_now:
+        time.sleep(1)
         now = time.time()
 
       self.ProcessCollection(next_cls, next_urn)
@@ -226,11 +219,16 @@ BACKGROUND_INDEX_UPDATER = BackgroundIndexUpdater()
 
 
 class UpdaterStartHook(registry.InitHook):
+  """Init hook to start the background index updater."""
 
   def RunOnce(self):
+    in_test = u"Test Context" in config.CONFIG.context
+    if in_test:
+      # Don't start the index updater in tests.
+      return
+
     t = threading.Thread(
-        None,
-        BACKGROUND_INDEX_UPDATER.UpdateLoop,
+        target=BACKGROUND_INDEX_UPDATER.UpdateLoop,
         name="SequentialCollectionIndexUpdater")
     t.daemon = True
     t.start()
@@ -273,8 +271,8 @@ class IndexedSequentialCollection(SequentialCollection):
       return
     self._index = {0: (0, 0)}
     self._max_indexed = 0
-    for (index, ts, suffix) in data_store.DB.CollectionReadIndex(
-        self.collection_id):
+    for (index, ts,
+         suffix) in data_store.DB.CollectionReadIndex(self.collection_id):
       self._index[index] = (ts, suffix)
       self._max_indexed = max(index, self._max_indexed)
 
@@ -365,6 +363,9 @@ class IndexedSequentialCollection(SequentialCollection):
         timestamp=timestamp,
         suffix=suffix,
         mutation_pool=mutation_pool)
+    if not isinstance(collection_urn, rdfvalue.RDFURN):
+      collection_urn = rdfvalue.RDFURN(collection_urn)
+
     if random.randint(0, cls.INDEX_SPACING) == 0:
       BACKGROUND_INDEX_UPDATER.AddIndexToUpdate(cls, collection_urn)
     return r

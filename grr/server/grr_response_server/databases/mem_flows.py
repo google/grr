@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 
+from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
@@ -210,12 +211,14 @@ class InMemoryDBFlowMixin(object):
     except KeyError:
       raise db.UnknownFlowError(client_id, flow_id)
 
-  def ReadAllFlowObjects(self, client_id):
+  def ReadAllFlowObjects(self, client_id, min_create_time=None):
     """Reads all flow objects from the database for a given client."""
     res = []
-    for cid, fid in self.flows:
-      if cid == client_id:
-        res.append(self.flows[(cid, fid)].Copy())
+    for client_flow_id, flow in iteritems(self.flows):
+      if min_create_time is not None and flow.create_time < min_create_time:
+        continue
+      if client_flow_id[0] == client_id:
+        res.append(flow.Copy())
     return res
 
   @utils.Synchronized
@@ -280,6 +283,18 @@ class InMemoryDBFlowMixin(object):
     if processing_deadline != db.Database.unchanged:
       flow.processing_deadline = processing_deadline
     flow.last_update_time = rdfvalue.RDFDatetime.Now()
+
+  @utils.Synchronized
+  def UpdateFlows(self,
+                  client_id_flow_id_pairs,
+                  pending_termination=db.Database.unchanged):
+    """Updates flow objects in the database."""
+    for client_id, flow_id in client_id_flow_id_pairs:
+      try:
+        self.UpdateFlow(
+            client_id, flow_id, pending_termination=pending_termination)
+      except db.UnknownFlowError:
+        pass
 
   @utils.Synchronized
   def WriteFlowRequests(self, requests):

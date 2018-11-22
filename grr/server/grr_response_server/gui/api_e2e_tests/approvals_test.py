@@ -64,10 +64,13 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
           approval_id=approval.approval_id,
           approver=u"foo")
 
-    threading.Thread(target=ProcessApproval).start()
-
-    result_approval = approval.WaitUntilValid()
-    self.assertTrue(result_approval.data.is_valid)
+    thread = threading.Thread(name="ProcessApprover", target=ProcessApproval)
+    thread.start()
+    try:
+      result_approval = approval.WaitUntilValid()
+      self.assertTrue(result_approval.data.is_valid)
+    finally:
+      thread.join()
 
   def testCreateHuntApproval(self):
     h = self.CreateHunt()
@@ -95,9 +98,13 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
           approver=u"approver")
 
     ProcessApproval()
-    threading.Thread(target=ProcessApproval).start()
-    result_approval = approval.WaitUntilValid()
-    self.assertTrue(result_approval.data.is_valid)
+    thread = threading.Thread(name="HuntApprover", target=ProcessApproval)
+    thread.start()
+    try:
+      result_approval = approval.WaitUntilValid()
+      self.assertTrue(result_approval.data.is_valid)
+    finally:
+      thread.join()
 
 
 def main(argv):

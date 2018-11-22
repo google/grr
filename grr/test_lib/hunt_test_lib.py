@@ -8,6 +8,7 @@ import time
 
 from future.utils import iteritems
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -18,10 +19,12 @@ from grr_response_server import flow
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import output_plugin
+from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import transfer
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import process_results
 from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -150,30 +153,35 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
       flow_test_lib.MockClient(client_id, client_mock, token=token)
       for client_id, client_mock in iteritems(client_mocks)
   ]
-  worker_mock = worker_test_lib.MockWorker(
-      check_flow_errors=check_flow_errors, token=token)
 
-  # Run the clients and worker until nothing changes any more.
-  while iteration_limit is None or iteration_limit > 0:
-    client_processed = 0
+  with flow_test_lib.TestWorker(token=True) as rel_db_worker:
+    worker_mock = worker_test_lib.MockWorker(
+        check_flow_errors=check_flow_errors, token=token)
 
-    for client_mock in client_mocks:
-      client_processed += client_mock.Next()
+    # Run the clients and worker until nothing changes any more.
+    while iteration_limit is None or iteration_limit > 0:
+      client_processed = 0
 
-    flows_run = []
+      for client_mock in client_mocks:
+        client_processed += client_mock.Next()
 
-    for flow_run in worker_mock.Next():
-      total_flows.add(flow_run)
-      flows_run.append(flow_run)
+      flows_run = []
 
-    if client_processed == 0 and not flows_run:
-      break
+      for flow_run in worker_mock.Next():
+        total_flows.add(flow_run)
+        flows_run.append(flow_run)
 
-    if iteration_limit:
-      iteration_limit -= 1
+      worker_processed = rel_db_worker.ResetProcessedFlows()
+      flows_run.extend(worker_processed)
 
-  if check_flow_errors:
-    flow_test_lib.CheckFlowErrors(total_flows, token=token)
+      if client_processed == 0 and not flows_run:
+        break
+
+      if iteration_limit:
+        iteration_limit -= 1
+
+    if check_flow_errors:
+      flow_test_lib.CheckFlowErrors(total_flows, token=token)
 
 
 def TestHuntHelper(client_mock,
@@ -253,6 +261,21 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
 
     return hunt.urn
 
+  def FindForemanRules(self, hunt, token=None):
+    if data_store.RelationalDBReadEnabled(category="foreman"):
+      rules = data_store.REL_DB.ReadAllForemanRules()
+      return [
+          rule for rule in rules
+          if hunt is None or rule.hunt_id == hunt.urn.Basename()
+      ]
+    else:
+      fman = aff4.FACTORY.Open(
+          "aff4:/foreman", mode="r", aff4_type=aff4_grr.GRRForeman, token=token)
+      rules = fman.Get(fman.Schema.RULES, [])
+      return [
+          rule for rule in rules if hunt is None or rule.hunt_id == hunt.urn
+      ]
+
   def AssignTasksToClients(self, client_ids=None):
     # Pretend to be the foreman now and dish out hunting jobs to all the
     # clients..
@@ -278,11 +301,21 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       hunt_obj.Stop()
 
   def ProcessHuntOutputPlugins(self):
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=process_results.ProcessHuntResultCollectionsCronFlow.__name__,
-        token=self.token)
-    flow_test_lib.TestFlowHelper(flow_urn, token=self.token)
-    return flow_urn
+    if data_store.RelationalDBFlowsEnabled():
+      job = rdf_cronjobs.CronJob(
+          cron_job_id="some/id", lifetime=rdfvalue.Duration("1h"))
+      run_state = rdf_cronjobs.CronJobRun(
+          cron_job_id="some/id",
+          status="RUNNING",
+          started_at=rdfvalue.RDFDatetime.Now())
+      process_results.ProcessHuntResultCollectionsCronJob(run_state, job).Run()
+    else:
+      flow_urn = flow.StartAFF4Flow(
+          flow_name=process_results.ProcessHuntResultCollectionsCronFlow
+          .__name__,
+          token=self.token)
+      flow_test_lib.TestFlowHelper(flow_urn, token=self.token)
+      return flow_urn
 
 
 class DummyHuntOutputPlugin(output_plugin.OutputPlugin):

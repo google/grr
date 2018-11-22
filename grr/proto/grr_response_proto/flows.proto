@@ -2166,9 +2166,11 @@ message FlowRequest {
   optional uint64 nr_responses_expected = 8;
 }
 
+// Next id: 8
 message FlowResponse {
   optional string client_id = 1;
   optional string flow_id = 2;
+  optional string hunt_id = 7;
   optional uint64 request_id = 3;
   optional uint64 response_id = 4;
   optional google.protobuf.Any payload = 5;
@@ -2191,9 +2193,11 @@ message FlowLogEntry {
 }
 
 
+// Next id: 11
 message FlowStatus {
   optional string client_id = 1;
   optional string flow_id = 2;
+  optional string hunt_id = 10;
   optional uint64 request_id = 3;
   optional uint64 response_id = 4;
 
@@ -2214,18 +2218,22 @@ message FlowStatus {
   optional uint64 network_bytes_sent = 9;
 }
 
+// Next id: 6
 message FlowIterator {
   optional string client_id = 1;
   optional string flow_id = 2;
+  optional string hunt_id = 5;
   optional uint64 request_id = 3;
   optional uint64 response_id = 4;
 }
 
+// Next id: 33
 message Flow {
   optional string flow_id = 1;
   optional string client_id = 2;
   optional string flow_class_name = 3;
   optional string parent_flow_id = 4;
+  optional string parent_hunt_id = 31;
   optional uint64 parent_request_id = 5;
   optional string long_flow_id = 6;
   optional google.protobuf.Any args = 7;
@@ -2243,6 +2251,7 @@ message Flow {
   optional uint64 network_bytes_sent = 17;
   optional uint64 next_outbound_id = 18 [default = 1];
   optional uint64 next_request_to_process = 19 [default = 1];
+  optional uint64 num_replies_sent = 32;
   repeated OutputPluginState output_plugins_states = 20;
 
   enum FlowState {

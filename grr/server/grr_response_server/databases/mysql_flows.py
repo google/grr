@@ -260,13 +260,14 @@ class MySQLDBFlowMixin(object):
     else:
       pfi = None
 
+    timestamp_str = mysql_utils.RDFDatetimeToMysqlString(flow_obj.create_time)
     now_str = mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
 
     args = [
         mysql_utils.ClientIDToInt(flow_obj.client_id),
         mysql_utils.FlowIDToInt(flow_obj.flow_id), flow_obj.long_flow_id, pfi,
-        flow_obj.SerializeToString(), flow_obj.next_request_to_process, now_str,
-        now_str
+        flow_obj.SerializeToString(), flow_obj.next_request_to_process,
+        timestamp_str, now_str
     ]
     try:
       cursor.execute(query, args)
@@ -318,10 +319,16 @@ class MySQLDBFlowMixin(object):
     return self._FlowObjectFromRow(row)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadAllFlowObjects(self, client_id, cursor=None):
+  def ReadAllFlowObjects(self, client_id, min_create_time=None, cursor=None):
     """Reads all flow objects from the database for a given client."""
     query = "SELECT " + self.FLOW_DB_FIELDS + " FROM flows WHERE client_id=%s"
-    cursor.execute(query, [mysql_utils.ClientIDToInt(client_id)])
+    args = [mysql_utils.ClientIDToInt(client_id)]
+
+    if min_create_time is not None:
+      query += " AND timestamp >= %s"
+      args.append(mysql_utils.RDFDatetimeToMysqlString(min_create_time))
+
+    cursor.execute(query, args)
     return [self._FlowObjectFromRow(row) for row in cursor.fetchall()]
 
   @mysql_utils.WithTransaction(readonly=True)
@@ -424,6 +431,27 @@ class MySQLDBFlowMixin(object):
     updated = cursor.execute(query, args)
     if updated == 0:
       raise db.UnknownFlowError(client_id, flow_id)
+
+  @mysql_utils.WithTransaction()
+  def UpdateFlows(self,
+                  client_id_flow_id_pairs,
+                  pending_termination=db.Database.unchanged,
+                  cursor=None):
+    """Updates flow objects in the database."""
+
+    if pending_termination == db.Database.unchanged:
+      return
+
+    serialized_termination = pending_termination.SerializeToString()
+    query = "UPDATE flows SET pending_termination=%s WHERE "
+    args = [serialized_termination]
+    for index, (client_id, flow_id) in enumerate(client_id_flow_id_pairs):
+      query += ("" if index == 0 else " OR ") + " client_id=%s AND flow_id=%s"
+      args.extend([
+          mysql_utils.ClientIDToInt(client_id),
+          mysql_utils.FlowIDToInt(flow_id)
+      ])
+    cursor.execute(query, args)
 
   def _WriteFlowProcessingRequests(self, requests, cursor):
     """Returns a (query, args) tuple that inserts the given requests."""

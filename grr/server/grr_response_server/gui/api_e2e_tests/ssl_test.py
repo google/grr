@@ -70,7 +70,8 @@ class ApiSslServerTestBase(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.config_overrider.Start()
 
     self.port = portpicker.pick_unused_port()
-    self.thread = wsgiapp_testlib.ServerThread(self.port)
+    self.thread = wsgiapp_testlib.ServerThread(
+        self.port, name="ApiSslServerTest")
     self.thread.StartAndWaitUntilServing()
 
     api_auth_manager.APIACLInit.InitApiAuthManager()
@@ -84,6 +85,7 @@ class ApiSslServerTestBase(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     self.config_overrider.Stop()
     self.thread.keep_running = False
+    self.thread.Stop()
 
 
 class ApiSslE2ETestMixin(object):

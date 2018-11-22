@@ -27,6 +27,7 @@ from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import db
+from grr_response_server import db_compat
 from grr_response_server import email_alerts
 from grr_response_server import events
 from grr_response_server import flow
@@ -79,6 +80,11 @@ def WriteAllCrashDetails(client_id,
       flow_id = flow_session_id.Basename()
       data_store.REL_DB.UpdateFlow(
           client_id, flow_id, client_crash_info=crash_details)
+
+      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      if flow_obj.parent_hunt_id:
+        db_compat.ProcessHuntClientCrash(
+            flow_obj, client_crash_info=crash_details)
     else:
       with aff4.FACTORY.Open(
           flow_session_id,

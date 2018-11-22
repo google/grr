@@ -9,9 +9,55 @@ import io
 import sys
 
 from future.builtins import str as text
-from typing import Dict, List, Text
+from typing import Iterator, Dict, List, Text
 
 from grr_response_core.lib.util import precondition
+
+
+class Reader(object):
+  """A compatibility class for reading CSV files.
+
+  This class should be used instead of the `csv.reader` that has API differences
+  across Python 2 and Python 3. This class provides unified interface that
+  should work the same way on both versions. Once support for Python 2 is
+  dropped, this class can be removed and code can be refactored to use the
+  native class.
+
+  Args:
+    delimiter: A delimiter the values are separated with. Defaults to a comma.
+  """
+
+  def __init__(self, content, delimiter = ","):
+    precondition.AssertType(content, text)
+    precondition.AssertType(delimiter, text)
+
+    self._content = content
+    self._delimiter = delimiter
+
+  def __iter__(self):
+    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
+    # two elements which is not true.
+    # pytype: disable=attribute-error
+    py2 = sys.version_info.major == 2
+
+    if py2:
+      filedesc = io.BytesIO(self._content.encode("utf-8"))
+    else:
+      filedesc = io.StringIO(self._content)
+
+    reader = csv.reader(
+        filedesc, delimiter=str(self._delimiter), lineterminator=str("\n"))
+
+    for values in reader:
+      row = []
+
+      for value in values:
+        if py2:
+          row.append(value.decode("utf-8"))
+        else:
+          row.append(value)
+
+      yield row
 
 
 class Writer(object):

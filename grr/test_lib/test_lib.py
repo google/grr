@@ -689,7 +689,8 @@ class FakeTimeline(object):
       self._worker_thread_done = True
       self._owner_thread_turn.set()
 
-    self._worker_thread = threading.Thread(target=Worker)
+    self._worker_thread = threading.Thread(
+        target=Worker, name="FakeTimelineThread")
     self._worker_thread.start()
 
     return self
@@ -699,6 +700,9 @@ class FakeTimeline(object):
 
     self._worker_thread_done = True
     self._worker_thread_turn.set()
+    self._worker_thread.join(5.0)
+    if self._worker_thread.is_alive():
+      raise RuntimeError("FakeTimelineThread did not complete.")
 
   def _Sleep(self, seconds):
     if threading.current_thread() is not self._worker_thread:

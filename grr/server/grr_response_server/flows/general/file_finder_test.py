@@ -115,7 +115,9 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         raise RuntimeError("Can't check unexpected result for correct "
                            "hashes: %s" % fname)
 
-      if data_store.RelationalDBReadEnabled(category="vfs"):
+      if data_store.RelationalDBReadEnabled(
+          category="vfs") and data_store.RelationalDBReadEnabled(
+              category="filestore"):
         path_info = data_store.REL_DB.ReadPathInfo(
             self.client_id.Basename(),
             rdf_objects.PathInfo.PathType.OS,

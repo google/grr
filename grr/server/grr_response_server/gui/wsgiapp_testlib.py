@@ -7,6 +7,7 @@ import logging
 import threading
 
 
+import requests
 from werkzeug import serving
 
 from grr_response_core import config
@@ -30,6 +31,17 @@ class ServerThread(threading.Thread):
     if not self.ready_to_serve.wait(60.0):
       raise RuntimeError("Server thread did not initialize properly.")
 
+  def Stop(self):
+    # The Werkzeug server is pretty bad at shutting down. The only way to make
+    # this work without the danger of blocking forever is to switch the
+    # shutdown_signal flag and send one more request.
+    self.server.shutdown_signal = True
+    try:
+      requests.get("http://localhost:%d" % self.port, timeout=0.3)
+    except (requests.exceptions.ConnectionError,
+            requests.exceptions.ReadTimeout):
+      pass
+
   def run(self):
     """Run the WSGI server in a thread."""
     logging.info("Listening on port %d.", self.port)
@@ -49,7 +61,7 @@ class ServerThread(threading.Thread):
     # Werkzeug only handles IPv6 if ":" is in the host (i.e. we pass
     # an IPv6 ip).
     ip = utils.ResolveHostnameToIP("localhost", self.port)
-    server = serving.make_server(
+    self.server = serving.make_server(
         ip,
         self.port,
         wsgiapp.AdminUIApp().WSGIHandler(),
@@ -59,4 +71,4 @@ class ServerThread(threading.Thread):
     # before we enter the serving loop.
     self.ready_to_serve.set()
     while self.keep_running:
-      server.handle_request()
+      self.server.handle_request()

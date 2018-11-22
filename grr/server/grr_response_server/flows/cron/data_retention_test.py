@@ -187,6 +187,9 @@ class CleanCronJobsFlowTest(flow_test_lib.FlowTestsBaseclass):
         if data_store.RelationalDBReadEnabled(category="cronjobs"):
           manager._GetThreadPool().Join()
 
+    if data_store.RelationalDBReadEnabled(category="cronjobs"):
+      manager._GetThreadPool().Stop()
+
   def _RunCleanup(self):
     self.cleaner_flow = flow.StartAFF4Flow(
         flow_name=data_retention.CleanCronJobs.__name__,

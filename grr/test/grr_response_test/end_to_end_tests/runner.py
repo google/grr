@@ -188,13 +188,13 @@ class E2ETestRunner(object):
     if not results:
       logging.warning("Failed to find any matching tests for %s.",
                       client.client_id)
-      return []
+      return {}, []
 
     # Log test results.
     report_lines = self._GenerateReportLines(client_id, results)
     for line in report_lines:
       logging.info(line)
-    return report_lines
+    return results, report_lines
 
   def _GetClient(self, client_id):
     """Fetches the given client from the GRR API.

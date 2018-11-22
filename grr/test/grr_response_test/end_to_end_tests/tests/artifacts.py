@@ -71,10 +71,12 @@ class TestParserDependency(test_base.EndToEndTest):
 
   def testWinUserShellFolder(self):
     results = self._CollectArtifact("WindowsUserShellFolders")
-    # Results should be of type User.
+    # Results should be of type User. Check that each user has
+    # a temp folder and at least one has an appdata folder.
     for r in results:
-      self.assertTrue(r.payload.appdata)
       self.assertTrue(r.payload.temp)
+
+    self.assertNonEmpty([r for r in results if r.payload.appdata])
 
 
 class TestWindowsRegistryCollector(test_base.EndToEndTest):

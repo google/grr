@@ -325,6 +325,7 @@ def StartFlow(client_id=None,
               original_flow=None,
               output_plugins=None,
               parent_flow_obj=None,
+              parent_hunt_id=None,
               **kwargs):
   """The main factory function for creating and executing a new flow.
 
@@ -341,6 +342,8 @@ def StartFlow(client_id=None,
     output_plugins: An OutputPluginDescriptor object indicating what output
       plugins should be used for this flow.
     parent_flow_obj: A parent flow object. None if this is a top level flow.
+    parent_hunt_id: String identifying parent hunt. Can't be passed together
+      with parent_flow_obj.
     **kwargs: If args or runner_args are not specified, we construct these
       protobufs from these keywords.
 
@@ -350,6 +353,11 @@ def StartFlow(client_id=None,
   Raises:
     ValueError: Unknown or invalid parameters were provided.
   """
+
+  if parent_flow_obj is not None and parent_hunt_id is not None:
+    raise ValueError(
+        "parent_flow_obj and parent_hunt_id are mutually exclusive.")
+
   # Is the required flow a known flow?
   try:
     registry.FlowRegistry.FlowClassByName(flow_cls.__name__)
@@ -386,15 +394,19 @@ def StartFlow(client_id=None,
 
   rdf_flow.flow_id = RandomFlowId()
 
-  if parent_flow_obj:
+  if parent_flow_obj:  # A flow is a nested flow.
     parent_rdf_flow = parent_flow_obj.rdf_flow
     rdf_flow.long_flow_id = "%s/%s" % (parent_rdf_flow.long_flow_id,
                                        rdf_flow.flow_id)
     rdf_flow.parent_flow_id = parent_rdf_flow.flow_id
+    rdf_flow.parent_hunt_id = parent_rdf_flow.parent_hunt_id
     rdf_flow.parent_request_id = parent_flow_obj.GetCurrentOutboundId()
     if parent_rdf_flow.creator:
       rdf_flow.creator = parent_rdf_flow.creator
-  else:
+  elif parent_hunt_id:  # A flow is a root-level hunt-induced flow.
+    rdf_flow.long_flow_id = "%s/%s" % (client_id, rdf_flow.flow_id)
+    rdf_flow.parent_hunt_id = parent_hunt_id
+  else:  # A flow is a root-level non-hunt flow.
     rdf_flow.long_flow_id = "%s/%s" % (client_id, rdf_flow.flow_id)
 
   if output_plugins:

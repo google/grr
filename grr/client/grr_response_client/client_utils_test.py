@@ -41,8 +41,8 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
     # pylint: enable=g-import-not-at-top
 
     testdata = [(r"C:\Windows", "\\\\?\\Volume{11111}", "/Windows"),
-                (r"C:\\Windows\\", "\\\\?\\Volume{11111}",
-                 "/Windows"), (r"C:\\", "\\\\?\\Volume{11111}", "/")]
+                (r"C:\\Windows\\", "\\\\?\\Volume{11111}", "/Windows"),
+                (r"C:\\", "\\\\?\\Volume{11111}", "/")]
 
     for filename, expected_device, expected_path in testdata:
       raw_pathspec, path = client_utils_windows.GetRawDevice(filename)
@@ -110,7 +110,7 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
     _, _, _, time_used = client_utils_common.Execute("/bin/sleep", ["10"], 0.1)
 
     # This should take just a bit longer than 0.1 seconds.
-    self.assertLess(time_used, 0.5)
+    self.assertLess(time_used, 1.0)
 
 
 @mock.patch(

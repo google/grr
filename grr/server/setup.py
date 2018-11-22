@@ -33,12 +33,10 @@ def find_data_files(source, ignore_dirs=None):
 def make_ui_files():
   """Builds necessary assets from sources."""
 
-  subprocess.check_call(
-      ["npm", "install"], cwd="grr_response_server/gui/static")
-  subprocess.check_call(
-      ["npm", "install", "-g", "gulp"], cwd="grr_response_server/gui/static")
-  subprocess.check_call(
-      ["gulp", "compile"], cwd="grr_response_server/gui/static")
+  # Install node_modules, but keep package(-lock).json frozen.
+  subprocess.check_call(["npm", "ci"], cwd="grr_response_server/gui/static")
+  subprocess.check_call(["npm", "run", "gulp", "compile"],
+                        cwd="grr_response_server/gui/static")
 
 
 def get_config():

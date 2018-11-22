@@ -32,7 +32,6 @@ from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import queue_manager
 from grr_response_server import rekall_profile_server
-from grr_response_server import threadpool
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -333,8 +332,7 @@ class FrontEndServer(object):
                private_key,
                max_queue_size=50,
                message_expiry_time=120,
-               max_retransmission_time=10,
-               threadpool_prefix="grr_threadpool"):
+               max_retransmission_time=10):
     # Identify ourselves as the server.
     self.token = access_control.ACLToken(
         username="GRRFrontEnd", reason="Implied.")
@@ -350,11 +348,6 @@ class FrontEndServer(object):
     self.message_expiry_time = message_expiry_time
     self.max_retransmission_time = max_retransmission_time
     self.max_queue_size = max_queue_size
-    self.thread_pool = threadpool.ThreadPool.Factory(
-        threadpool_prefix,
-        min_threads=2,
-        max_threads=config.CONFIG["Threadpool.size"])
-    self.thread_pool.Start()
 
     # There is only a single session id that we accept unauthenticated
     # messages for, the one to enroll new clients.

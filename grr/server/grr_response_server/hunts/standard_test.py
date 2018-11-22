@@ -24,11 +24,13 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
+from grr_response_server import aff4_flows
+from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import notification as notification_lib
 from grr_response_server import queue_manager
-from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server import server_stubs
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
@@ -47,16 +49,19 @@ from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
-class InfiniteFlow(flow.GRRFlow):
+@flow_base.DualDBFlow
+class InfiniteFlowMixin(object):
   """Flow that never ends."""
 
   def Start(self):
-    self.CallState(next_state="NextState")
+    self.CallClient(server_stubs.GetFileStat, next_state="NextState")
 
-  def NextState(self):
+  def NextState(self, responses):
+    _ = responses
     self.CallState(next_state="Start")
 
 
+@db_test_lib.DualFlowTest
 class StandardHuntTest(notification_test_lib.NotificationTestMixin,
                        flow_test_lib.FlowTestsBaseclass,
                        hunt_test_lib.StandardHuntTestMixin):
@@ -72,12 +77,6 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     hunt_test_lib.DummyHuntOutputPlugin.num_responses = 0
     hunt_test_lib.StatefulDummyHuntOutputPlugin.data = []
     hunt_test_lib.LongRunningDummyHuntOutputPlugin.num_calls = 0
-
-    with test_lib.FakeTime(0):
-      # Clean up the foreman to remove any rules.
-      with aff4.FACTORY.Open(
-          "aff4:/foreman", mode="rw", token=self.token) as foreman:
-        foreman.Set(foreman.Schema.RULES())
 
     self.old_logging_error = logging.error
     logging.error = self.AssertNoCollectionCorruption
@@ -118,6 +117,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(hunt.context.clients_with_results_count, 5)
     self.assertEqual(hunt.context.results_count, 5 * num_files)
 
+  @db_test_lib.LegacyDataStoreOnly
   def testCreatesSymlinksOnClientsForEveryStartedFlow(self):
     hunt_urn = self.StartHunt()
     self.AssignTasksToClients()
@@ -138,6 +138,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       # Check that the symlink points into the hunt's namespace.
       self.assertTrue(str(target).startswith(str(hunt_urn)))
 
+  @db_test_lib.LegacyDataStoreOnly
   def testDeletesSymlinksOnClientsWhenGetsDeletedItself(self):
     hunt_urn = self.StartHunt()
     self.AssignTasksToClients()
@@ -160,7 +161,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=InfiniteFlow.__name__),
+            flow_name="InfiniteFlow"),
         client_rule_set=self._CreateForemanClientRuleSet(),
         client_rate=0,
         token=self.token) as hunt:
@@ -169,30 +170,47 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.AssignTasksToClients()
 
     # Run long enough for InfiniteFlows to start.
-    self.RunHunt(iteration_limit=len(self.client_ids) * 2)
+    self.RunHunt(
+        iteration_limit=len(self.client_ids) * 2,
+        user_cpu_time=0,
+        system_cpu_time=0,
+        network_bytes_sent=0)
     self.StopHunt(hunt.urn)
 
     # All flows states should be destroyed by now.
     # If something is wrong with the GenericHunt.Stop implementation,
     # this will run forever.
-    self.RunHunt()
+    self.RunHunt(user_cpu_time=0, system_cpu_time=0, network_bytes_sent=0)
 
-    for client_id in self.client_ids:
-      flows_root = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
-      flows_list = list(flows_root.ListChildren())
-      # Only one flow (issued by the hunt) is expected.
-      self.assertEqual(len(flows_list), 1)
+    if data_store.RelationalDBFlowsEnabled():
+      for client_id in self.client_ids:
+        flows = data_store.REL_DB.ReadAllFlowObjects(client_id.Basename())
+        self.assertEqual(len(flows), 1)
 
-      # Check that flow's queues are deleted.
-      with queue_manager.QueueManager(token=self.token) as manager:
-        req_resp = list(manager.FetchRequestsAndResponses(flows_list[0]))
+        flow_obj = flows[0]
+        self.assertEqual(flow_obj.flow_state, flow_obj.FlowState.ERROR)
+        self.assertEqual(flow_obj.error_message, "Parent hunt stopped.")
+
+        req_resp = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
+            client_id.Basename(), flow_obj.flow_id)
         self.assertFalse(req_resp)
+    else:
+      for client_id in self.client_ids:
+        flows_root = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+        flows_list = list(flows_root.ListChildren())
+        # Only one flow (issued by the hunt) is expected.
+        self.assertEqual(len(flows_list), 1)
 
-      flow_obj = aff4.FACTORY.Open(
-          flows_list[0], aff4_type=InfiniteFlow, token=self.token)
-      self.assertEqual(
-          flow_obj.Get(flow_obj.Schema.PENDING_TERMINATION).reason,
-          "Parent hunt stopped.")
+        # Check that flow's queues are deleted.
+        with queue_manager.QueueManager(token=self.token) as manager:
+          req_resp = list(manager.FetchRequestsAndResponses(flows_list[0]))
+          self.assertFalse(req_resp)
+
+        flow_obj = aff4.FACTORY.Open(
+            flows_list[0], aff4_type=aff4_flows.InfiniteFlow, token=self.token)
+        self.assertEqual(
+            flow_obj.Get(flow_obj.Schema.PENDING_TERMINATION).reason,
+            "Parent hunt stopped.")
 
   def testGenericHuntWithoutOutputPlugins(self):
     """This tests running the hunt on some clients."""
@@ -241,14 +259,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
   def testHuntWithoutForemanRules(self):
     """Check no foreman rules are created if we pass add_foreman_rules=False."""
     hunt_urn = self.StartHunt(add_foreman_rules=False)
-    with aff4.FACTORY.Open(
-        "aff4:/foreman",
-        mode="r",
-        token=self.token,
-        aff4_type=aff4_grr.GRRForeman) as foreman:
-      foreman_rules = foreman.Get(
-          foreman.Schema.RULES, default=foreman.Schema.RULES())
-      self.assertFalse(foreman_rules)
+    self.assertFalse(self.FindForemanRules(None, token=self.token))
 
     self.AssignTasksToClients()
     self.RunHunt()
@@ -318,7 +329,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     hunt_urn = self.StartHunt(output_plugins=[plugin_descriptor])
 
     # Run the hunt and process output plugins.
-    self.AssignTasksToClients(self.client_ids)
+    self.AssignTasksToClients()
     self.RunHunt(failrate=-1)
     self.ProcessHuntOutputPlugins()
 
@@ -379,7 +390,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         output_plugins=[failing_plugin_descriptor, plugin_descriptor])
 
     # Run the hunt and process output plugins.
-    self.AssignTasksToClients(self.client_ids)
+    self.AssignTasksToClients()
     self.RunHunt(failrate=-1)
     try:
       self.ProcessHuntOutputPlugins()
@@ -420,7 +431,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     hunt_urn = self.StartHunt(output_plugins=[failing_plugin_descriptor])
 
     # Run the hunt and process output plugins.
-    self.AssignTasksToClients(self.client_ids)
+    self.AssignTasksToClients()
     self.RunHunt(failrate=-1)
     try:
       self.ProcessHuntOutputPlugins()
@@ -686,8 +697,11 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       # than 100s, the time LongRunningDummyHuntOutputPlugin will set on the
       # first run. This time, the flow will run in time.
       phrccf = process_results.ProcessHuntResultCollectionsCronFlow
+      phrccj = process_results.ProcessHuntResultCollectionsCronJob
       with utils.MultiStubber((phrccf, "lifetime", rdfvalue.Duration("170s")),
-                              (phrccf, "BATCH_SIZE", 1)):
+                              (phrccf, "BATCH_SIZE", 1),
+                              (phrccj, "lifetime", rdfvalue.Duration("170s")),
+                              (phrccj, "BATCH_SIZE", 1)):
         self.ProcessHuntOutputPlugins()
 
       # In normal conditions, there should be 10 results generated.
@@ -797,9 +811,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
       # Pretend to be the foreman now and dish out hunting jobs to all the
       # clients (Note we have 10 clients here).
-      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-      for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id.Basename())
+      self.AssignTasksToClients()
 
       # Run the hunt.
       client_mock = hunt_test_lib.SampleHuntMock()
@@ -1015,9 +1027,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
       # Pretend to be the foreman now and dish out hunting jobs to all the
       # clients (Note we have 10 clients here).
-      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-      for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id.Basename())
+      self.AssignTasksToClients()
 
       hunt_obj = aff4.FACTORY.Open(
           hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
@@ -1069,10 +1079,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
     # Pretend to be the foreman now and dish out hunting jobs to all the
     # client..
-    with aff4.FACTORY.Open(
-        "aff4:/foreman", mode="rw", token=self.token) as foreman:
-      for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id.Basename())
+    self.AssignTasksToClients()
 
     # Run the hunt.
     client_mock = hunt_test_lib.SampleHuntMock()
@@ -1098,11 +1105,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
     # Pretend to be the foreman now and dish out hunting jobs to all the
     # clients.
-    with aff4.FACTORY.Open(
-        "aff4:/foreman", mode="rw", token=self.token) as foreman:
-      for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id.Basename())
-
+    self.AssignTasksToClients()
     hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
                                  self.token)
 
@@ -1130,10 +1133,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         token=self.token) as hunt:
       hunt.Run()
 
-    with aff4.FACTORY.Open(
-        "aff4:/foreman", mode="rw", token=self.token) as foreman:
-      for client_id in client_ids:
-        foreman.AssignTasksToClient(client_id.Basename())
+    self.AssignTasksToClients(client_ids=client_ids)
 
     client_mock = hunt_test_lib.SampleHuntMock()
     hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
@@ -1209,6 +1209,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         self.assertEqual(log.urn, hunt_urn)
 
       count += 1
+
     # 4 logs for each flow, 2 flow run.  One hunt-level log.
     self.assertEqual(count, 8 * len(self.client_ids) + 1)
 

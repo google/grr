@@ -32,6 +32,13 @@ _CLIENT_VERSION_THRESHOLD = rdfvalue.Duration("24h")
 _PROGRESS_INTERVAL = rdfvalue.Duration("1s")
 
 
+def _MapWithPool(func, iterable, thread_count):
+  tp = pool.ThreadPool(processes=thread_count)
+  tp.map(func, iterable)
+  tp.terminate()
+  tp.join()
+
+
 class UsersMigrator(object):
   """Migrates users objects from AFF4 to REL_DB."""
 
@@ -134,8 +141,7 @@ class ClientsMigrator(object):
     batches = collection.Batch(client_urns, _CLIENT_BATCH_SIZE)
 
     self._Progress()
-    tp = pool.ThreadPool(processes=thread_count)
-    tp.map(self._MigrateBatch, list(batches))
+    _MapWithPool(self._MigrateBatch, list(batches), thread_count)
     self._Progress()
 
     if self._migrated_count == self._total_count:
@@ -392,8 +398,7 @@ class ClientVfsMigrator(object):
 
     batches = collection.Batch(client_urns, self.client_batch_size)
 
-    tp = pool.ThreadPool(processes=self.thread_count)
-    tp.map(self.MigrateClientBatch, list(batches))
+    _MapWithPool(self.MigrateClientBatch, list(batches), self.thread_count)
 
     migrated_count = len(self._client_urns_migrated)
     sys.stdout.write("Migrated clients: {}\n".format(migrated_count))
@@ -578,8 +583,7 @@ class BlobsMigrator(object):
     batches = collection.Batch(blob_urns, _BLOB_BATCH_SIZE)
 
     self._Progress()
-    tp = pool.ThreadPool(processes=thread_count)
-    tp.map(self._MigrateBatch, list(batches))
+    _MapWithPool(self._MigrateBatch, list(batches), thread_count)
     self._Progress()
 
     if self._migrated_count == self._total_count:

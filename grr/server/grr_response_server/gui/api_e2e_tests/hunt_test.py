@@ -12,11 +12,13 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import aff4
 from grr_response_server.gui import api_e2e_test_lib
 from grr_response_server.output_plugins import csv_plugin
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualFlowTest
 class ApiClientLibHuntTest(api_e2e_test_lib.ApiE2ETest,
                            hunt_test_lib.StandardHuntTestMixin):
   """Tests flows-related part of GRR Python API client library."""

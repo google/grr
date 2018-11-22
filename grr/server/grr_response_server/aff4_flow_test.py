@@ -22,6 +22,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
+from grr_response_server import aff4_flows
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import queue_manager
@@ -142,7 +143,7 @@ class FlowCreationTest(BasicFlowTest):
     with self.assertRaises(ValueError):
       flow.StartAFF4Flow(
           client_id="hello",
-          flow_name=flow_test_lib.FlowOrderTest.__name__,
+          flow_name=aff4_flows.FlowOrderTest.__name__,
           token=self.token)
 
   def testUnknownArg(self):
@@ -151,19 +152,19 @@ class FlowCreationTest(BasicFlowTest):
         type_info.UnknownArg,
         flow.StartAFF4Flow,
         client_id=self.client_id,
-        flow_name=flow_test_lib.FlowOrderTest.__name__,
+        flow_name=aff4_flows.FlowOrderTest.__name__,
         token=self.token,
         foobar=1)
 
   def testTypeAttributeIsNotAppendedWhenFlowIsClosed(self):
     session_id = flow.StartAFF4Flow(
         client_id=self.client_id,
-        flow_name=flow_test_lib.FlowOrderTest.__name__,
+        flow_name=aff4_flows.FlowOrderTest.__name__,
         token=self.token)
 
     flow_obj = aff4.FACTORY.Open(
         session_id,
-        aff4_type=flow_test_lib.FlowOrderTest,
+        aff4_type=aff4_flows.FlowOrderTest,
         age=aff4.ALL_TIMES,
         mode="rw",
         token=self.token)
@@ -171,7 +172,7 @@ class FlowCreationTest(BasicFlowTest):
 
     flow_obj = aff4.FACTORY.Open(
         session_id,
-        aff4_type=flow_test_lib.FlowOrderTest,
+        aff4_type=aff4_flows.FlowOrderTest,
         age=aff4.ALL_TIMES,
         token=self.token)
 
@@ -182,16 +183,16 @@ class FlowCreationTest(BasicFlowTest):
     """Check that we can serialize flows."""
     session_id = flow.StartAFF4Flow(
         client_id=self.client_id,
-        flow_name=flow_test_lib.FlowOrderTest.__name__,
+        flow_name=aff4_flows.FlowOrderTest.__name__,
         token=self.token)
 
     flow_obj = aff4.FACTORY.Open(
         session_id,
-        aff4_type=flow_test_lib.FlowOrderTest,
+        aff4_type=aff4_flows.FlowOrderTest,
         age=aff4.ALL_TIMES,
         token=self.token)
 
-    self.assertEqual(flow_obj.__class__, flow_test_lib.FlowOrderTest)
+    self.assertEqual(flow_obj.__class__, aff4_flows.FlowOrderTest)
 
   def testFlowSerialization2(self):
     """Check that we can serialize flows."""
@@ -221,13 +222,13 @@ class FlowCreationTest(BasicFlowTest):
   def testTerminate(self):
     session_id = flow.StartAFF4Flow(
         client_id=self.client_id,
-        flow_name=flow_test_lib.FlowOrderTest.__name__,
+        flow_name=aff4_flows.FlowOrderTest.__name__,
         token=self.token)
 
     flow.GRRFlow.TerminateAFF4Flow(session_id, token=self.token)
     flow_obj = aff4.FACTORY.Open(
         session_id,
-        aff4_type=flow_test_lib.FlowOrderTest,
+        aff4_type=aff4_flows.FlowOrderTest,
         age=aff4.ALL_TIMES,
         token=self.token)
     runner = flow_obj.GetRunner()
@@ -238,13 +239,13 @@ class FlowCreationTest(BasicFlowTest):
     reason = "no reason"
     session_id = flow.StartAFF4Flow(
         client_id=self.client_id,
-        flow_name=flow_test_lib.FlowOrderTest.__name__,
+        flow_name=aff4_flows.FlowOrderTest.__name__,
         token=self.token)
     flow.GRRFlow.TerminateAFF4Flow(session_id, reason=reason, token=self.token)
 
     flow_obj = aff4.FACTORY.Open(
         session_id,
-        aff4_type=flow_test_lib.FlowOrderTest,
+        aff4_type=aff4_flows.FlowOrderTest,
         age=aff4.ALL_TIMES,
         token=self.token)
     runner = flow_obj.GetRunner()
@@ -360,7 +361,7 @@ class FlowCreationTest(BasicFlowTest):
   def testFlowLogging(self):
     """Check that flows log correctly."""
     flow_urn = flow_test_lib.TestFlowHelper(
-        flow_test_lib.DummyLogFlow.__name__,
+        aff4_flows.DummyLogFlow.__name__,
         action_mocks.ActionMock(),
         token=self.token,
         client_id=self.client_id)
@@ -373,7 +374,7 @@ class FlowCreationTest(BasicFlowTest):
           "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres", "Cuatro"
       ])
       self.assertTrue(log.flow_name in [
-          flow_test_lib.DummyLogFlow.__name__, flow_test_lib.DummyLogFlowChild
+          aff4_flows.DummyLogFlow.__name__, aff4_flows.DummyLogFlowChild
           .__name__
       ])
       self.assertTrue(str(flow_urn) in str(log.urn))
@@ -421,7 +422,7 @@ class FlowTest(notification_test_lib.NotificationTestMixin,
     with self.assertRaises(RuntimeError):
       with test_lib.SuppressLogs():
         flow_test_lib.TestFlowHelper(
-            flow_test_lib.BrokenFlow.__name__,
+            aff4_flows.BrokenFlow.__name__,
             client_mock,
             client_id=self.client_id,
             check_flow_errors=True,
@@ -464,7 +465,7 @@ class FlowTest(notification_test_lib.NotificationTestMixin,
 
   def testReordering(self):
     """Check that out of order client messages are reordered."""
-    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(aff4_flows.FlowOrderTest.__name__)
 
     # Simulate processing messages arriving in random order
     message_ids = [2, 1, 4, 3, 5]
@@ -483,7 +484,7 @@ class FlowTest(notification_test_lib.NotificationTestMixin,
 
   def testCallClient(self):
     """Flows can send client messages using CallClient()."""
-    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(aff4_flows.FlowOrderTest.__name__)
 
     # Check that a message went out to the client
     manager = queue_manager.QueueManager(token=self.token)
@@ -499,7 +500,7 @@ class FlowTest(notification_test_lib.NotificationTestMixin,
 
   def testAuthentication1(self):
     """Test that flows refuse to processes unauthenticated messages."""
-    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(aff4_flows.FlowOrderTest.__name__)
 
     # Simulate processing messages arriving in random order
     message_ids = [2, 1, 4, 3, 5]
@@ -527,7 +528,7 @@ class FlowTest(notification_test_lib.NotificationTestMixin,
     arrive earlier. This can be an effective DoS against legitimate
     clients but would require attackers to guess session ids.
     """
-    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(aff4_flows.FlowOrderTest.__name__)
 
     # Simulate processing messages arriving in random order
     message_ids = [1, 2]
@@ -613,7 +614,7 @@ class FlowTerminationTest(BasicFlowTest):
   """Flow termination-related tests."""
 
   def testFlowMarkedForTerminationTerminatesInStateHandler(self):
-    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(aff4_flows.FlowOrderTest.__name__)
     with data_store.DB.GetMutationPool() as pool:
       flow.GRRFlow.MarkForTermination(
           flow_obj.urn, reason="because i can", mutation_pool=pool)
@@ -861,7 +862,7 @@ class FlowLimitTests(BasicFlowTest):
 
   def testCPULimit(self):
     """Tests that the cpu limit works."""
-    result = self.RunFlow(flow_test_lib.CPULimitFlow.__name__, cpu_limit=300)
+    result = self.RunFlow(aff4_flows.CPULimitFlow.__name__, cpu_limit=300)
     self.assertEqual(result["cpulimit"], [300, 295, 255])
 
 

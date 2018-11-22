@@ -153,33 +153,6 @@ class CallClientChildFlow(flow_base.FlowBase):
     self.CallClient(server_stubs.GetClientStats, next_state="End")
 
 
-class CPULimitFlow(flow_base.FlowBase):
-  """This flow is used to test the cpu limit."""
-
-  def Start(self):
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
-        string="Hey!",
-        next_state="State1")
-
-  def State1(self, responses):
-    del responses  # Unused.
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
-        string="Hey!",
-        next_state="State2")
-
-  def State2(self, responses):
-    del responses  # Unused.
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
-        string="Hey!",
-        next_state="Done")
-
-  def Done(self, responses):
-    pass
-
-
 class FlowCreationTest(BasicFlowTest):
   """Test flow creation."""
 
@@ -204,20 +177,18 @@ class FlowCreationTest(BasicFlowTest):
     data_store.REL_DB.UpdateFlow(
         self.client_id, flow_id, pending_termination=pending_termination)
 
-    worker = flow_test_lib.TestWorker(token=True)
-    data_store.REL_DB.RegisterFlowProcessingHandler(worker.ProcessFlow)
+    with flow_test_lib.TestWorker(token=True) as worker:
+      with test_lib.SuppressLogs():
+        flow_test_lib.RunFlow(
+            self.client_id,
+            flow_id,
+            client_mock=client_mock,
+            worker=worker,
+            check_flow_errors=False)
 
-    with test_lib.SuppressLogs():
-      flow_test_lib.RunFlow(
-          self.client_id,
-          flow_id,
-          client_mock=client_mock,
-          worker=worker,
-          check_flow_errors=False)
-
-    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
-    self.assertEqual(flow_obj.flow_state, "ERROR")
-    self.assertEqual(flow_obj.error_message, "testing")
+      flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+      self.assertEqual(flow_obj.flow_state, "ERROR")
+      self.assertEqual(flow_obj.error_message, "testing")
 
   def testChildTermination(self):
     flow_id = flow.StartFlow(
@@ -282,13 +253,11 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
 
     client_mock = ClientMock()
 
-    flow_id = flow.StartFlow(
-        flow_cls=ParentFlow, client_id=self.client_id, creator=username)
-    worker = flow_test_lib.TestWorker(token=True)
-    data_store.REL_DB.RegisterFlowProcessingHandler(worker.ProcessFlow)
-
-    flow_test_lib.RunFlow(
-        self.client_id, flow_id, client_mock=client_mock, worker=worker)
+    flow_id = flow_test_lib.StartAndRunFlow(
+        flow_cls=ParentFlow,
+        client_id=self.client_id,
+        creator=username,
+        client_mock=client_mock)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     self.assertEqual(flow_obj.creator, username)
@@ -306,7 +275,7 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
         user_cpu_usage=[10], system_cpu_usage=[10], network_usage=[1000])
 
     flow_test_lib.StartAndRunFlow(
-        CPULimitFlow,
+        flow_test_lib.CPULimitFlow,
         client_mock=client_mock,
         client_id=self.client_id,
         cpu_limit=1000,
@@ -322,7 +291,7 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
 
     with test_lib.SuppressLogs():
       flow_id = flow_test_lib.StartAndRunFlow(
-          CPULimitFlow,
+          flow_test_lib.CPULimitFlow,
           client_mock=client_mock,
           client_id=self.client_id,
           cpu_limit=30,
@@ -340,7 +309,7 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
 
     with test_lib.SuppressLogs():
       flow_id = flow_test_lib.StartAndRunFlow(
-          CPULimitFlow,
+          flow_test_lib.CPULimitFlow,
           client_mock=client_mock,
           client_id=self.client_id,
           cpu_limit=1000,

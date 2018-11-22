@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import getpass
 import logging
+import sys
 
 # We need to import the server_plugins module before other server init modules.
 # pylint: disable=unused-import,g-bad-import-order
@@ -76,7 +77,12 @@ def main(argv):
       blacklisted_tests=flags.FLAGS.blacklisted_tests,
       upload_test_binaries=flags.FLAGS.upload_test_binaries)
   test_runner.Initialize()
-  test_runner.RunTestsAgainstClient(flags.FLAGS.client_id)
+
+  results, _ = test_runner.RunTestsAgainstClient(flags.FLAGS.client_id)
+  # Exit with a non-0 error code if one of the tests failed.
+  for r in results.values():
+    if r.errors or r.failures:
+      sys.exit(1)
 
 
 if __name__ == "__main__":

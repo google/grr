@@ -49,4 +49,5 @@ class TestClientInterrogate(test_base.EndToEndTest):
 
     self.assertTrue(
         any(self._CheckUser(u) for u in csummary.users),
-        "No users with complete user attributes: %s" % csummary.users)
+        "No users with complete user attributes: %s" % ",".join(
+            u.username for u in csummary.users))

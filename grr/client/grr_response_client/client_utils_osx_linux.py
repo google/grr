@@ -102,7 +102,7 @@ class NannyThread(threading.Thread):
 
     Args:
       unresponsive_kill_period: The time in seconds which we wait for a
-      heartbeat.
+        heartbeat.
     """
     super(NannyThread, self).__init__(name="Nanny")
     self.last_heart_beat_time = time.time()
@@ -154,6 +154,8 @@ class NannyThread(threading.Thread):
       # Check that we do not exceeded our memory allowance.
       if self.GetMemoryUsage() > self.memory_quota:
         raise MemoryError("Exceeded memory allowance.")
+      if not self.running:
+        break
 
   def Stop(self):
     """Exits the main thread."""
@@ -194,6 +196,7 @@ class NannyController(object):
   def StopNanny(self):
     if NannyController.nanny:
       NannyController.nanny.Stop()
+      NannyController.nanny.join()
       NannyController.nanny = None
 
   def Heartbeat(self):

@@ -1489,11 +1489,12 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadAllFlowObjects(self, client_id):
+  def ReadAllFlowObjects(self, client_id, min_create_time=None):
     """Reads all flow objects from the database for a given client.
 
     Args:
       client_id: The client id.
+      min_create_time: the minimum creation time (inclusive)
 
     Returns:
       A list of rdf_flow_objects.Flow objects.
@@ -1568,6 +1569,17 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       processing_since: Timstamp when the worker started processing this flow.
       processing_deadline: Time after which this flow will be considered stuck
         if processing hasn't finished.
+    """
+
+  @abc.abstractmethod
+  def UpdateFlows(self, client_id_flow_id_pairs, pending_termination=unchanged):
+    """Updates flow objects in the database.
+
+    Args:
+      client_id_flow_id_pairs: An iterable with tuples of (client_id, flow_id)
+        identifying flows to update.
+      pending_termination: An rdf_flow_objects.PendingFlowTermination object.
+        Indicates that this flow is scheduled for termination.
     """
 
   @abc.abstractmethod
@@ -2386,6 +2398,7 @@ class DatabaseValidationWrapper(Database):
 
   def WriteFlowObject(self, flow_obj):
     precondition.AssertType(flow_obj, rdf_flow_objects.Flow)
+    precondition.AssertType(flow_obj.create_time, rdfvalue.RDFDatetime)
     return self.delegate.WriteFlowObject(flow_obj)
 
   def ReadFlowObject(self, client_id, flow_id):
@@ -2393,9 +2406,10 @@ class DatabaseValidationWrapper(Database):
     _ValidateFlowId(flow_id)
     return self.delegate.ReadFlowObject(client_id, flow_id)
 
-  def ReadAllFlowObjects(self, client_id):
+  def ReadAllFlowObjects(self, client_id, min_create_time=None):
     _ValidateClientId(client_id)
-    return self.delegate.ReadAllFlowObjects(client_id)
+    return self.delegate.ReadAllFlowObjects(
+        client_id, min_create_time=min_create_time)
 
   def ReadChildFlowObjects(self, client_id, flow_id):
     _ValidateClientId(client_id)
@@ -2446,6 +2460,20 @@ class DatabaseValidationWrapper(Database):
         processing_on=processing_on,
         processing_since=processing_since,
         processing_deadline=processing_deadline)
+
+  def UpdateFlows(self,
+                  client_id_flow_id_pairs,
+                  pending_termination=Database.unchanged):
+    for client_id, flow_id in client_id_flow_id_pairs:
+      _ValidateClientId(client_id)
+      _ValidateFlowId(flow_id)
+
+    if pending_termination != Database.unchanged:
+      precondition.AssertType(pending_termination,
+                              rdf_flow_objects.PendingFlowTermination)
+
+    return self.delegate.UpdateFlows(
+        client_id_flow_id_pairs, pending_termination=pending_termination)
 
   def WriteFlowRequests(self, requests):
     precondition.AssertIterableType(requests, rdf_flow_objects.FlowRequest)

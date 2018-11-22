@@ -243,7 +243,7 @@ def DieIfSubProcessDies(processes):
         # process.
         print(
             "Subprocess %s died unexpectedly. Killing main process..." % p.name)
-        sys.exit(-1)
+        sys.exit(1)
     time.sleep(_PROCESS_CHECK_INTERVAL)
 
 
@@ -272,8 +272,7 @@ def WaitForTCPPort(port):
       pass
     time.sleep(_PROCESS_CHECK_INTERVAL)
 
-  raise TCPPortTimeout(
-      "TCP port %d didn't open. Killing main process..." % port)
+  raise TCPPortTimeout("TCP port %d didn't open." % port)
 
 
 _CLIENT_ENROLLMENT_WAIT_TIMEOUT_SECS = 15
@@ -417,6 +416,8 @@ def main(argv):
   p.join()
   if p.exitcode != 0:
     raise RuntimeError("RunEndToEndTests execution failed.")
+
+  print("RunEndToEndTests execution succeeded.")
 
 
 if __name__ == "__main__":

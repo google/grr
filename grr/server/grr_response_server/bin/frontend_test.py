@@ -7,8 +7,10 @@ import hashlib
 import os
 import socket
 import threading
+import time
 
 
+from future.builtins import range
 from future.utils import iteritems
 import ipaddr
 import portpicker
@@ -66,18 +68,30 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       cls.address_family = socket.AF_INET
       cls.base_url = "http://%s:%d/" % (ip, port)
 
-    cls.httpd_thread = threading.Thread(target=cls.httpd.serve_forever)
+    cls.httpd_thread = threading.Thread(
+        name="GRRHTTPServerTestThread", target=cls.httpd.serve_forever)
     cls.httpd_thread.daemon = True
     cls.httpd_thread.start()
 
   @classmethod
   def tearDownClass(cls):
-    cls.httpd.shutdown()
     cls.config_overrider.Stop()
+    cls.httpd.Shutdown()
+    cls.httpd_thread.join()
 
   def setUp(self):
     super(GRRHTTPServerTest, self).setUp()
     self.client_id = self.SetupClient(0)
+
+  def tearDown(self):
+    super(GRRHTTPServerTest, self).tearDown()
+
+    # Wait until all pending http requests have been handled.
+    for _ in range(100):
+      if frontend.GRRHTTPServerHandler.active_counter == 0:
+        return
+      time.sleep(0.01)
+    self.fail("HTTP server thread did not shut down in time.")
 
   def testServerPem(self):
     req = requests.get(self.base_url + "server.pem")
@@ -150,7 +164,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     # catch specific instance that was thrown. Unfortunately, all errors are
     # intercepted in the `MockWorker` class and converted to runtime errors.
     with self.assertRaisesRegexp(RuntimeError, "exceeded network send limit"):
-      self._RunClientFileFinder(paths, action, network_bytes_limit=1500)
+      with test_lib.SuppressLogs():
+        self._RunClientFileFinder(paths, action, network_bytes_limit=1500)
 
   def testClientFileFinderUploadBound(self):
     paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
@@ -269,25 +284,30 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         self.assertFalse(filestore_fd.Get(filestore_fd.Schema.STAT))
 
   def testRekallProfiles(self):
-    req = requests.get(self.base_url + "rekall_profiles")
+    session = requests.Session()
+    req = session.get(self.base_url + "rekall_profiles")
     self.assertEqual(req.status_code, 500)
 
-    req = requests.get(self.base_url + "rekall_profiles/v1.0")
+    req = session.get(self.base_url + "rekall_profiles/v1.0")
     self.assertEqual(req.status_code, 500)
+    req.connection.close()
 
     known_profile = "F8E2A8B5C9B74BF4A6E4A48F180099942"
     unknown_profile = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 
-    req = requests.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
-                       unknown_profile)
+    req = session.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
+                      unknown_profile)
     self.assertEqual(req.status_code, 404)
+    req.connection.close()
 
-    req = requests.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
-                       known_profile)
+    req = session.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
+                      known_profile)
     self.assertEqual(req.status_code, 200)
+    data = req.content
+    req.connection.close()
 
     pb = rdf_rekall_types.RekallProfile.protobuf()
-    json_format.Parse(req.content.lstrip(")]}'\n"), pb)
+    json_format.Parse(data.lstrip(")]}'\n"), pb)
     profile = rdf_rekall_types.RekallProfile.FromSerializedString(
         pb.SerializeToString())
     self.assertEqual(profile.name, "nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942")

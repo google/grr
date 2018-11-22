@@ -111,6 +111,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(IndexedSequentialCollectionTest, self).setUp()
+
     # Create a new background thread for each test. In the default
     # configuration, this thread can sleep for quite a long time and
     # might therefore be unavailable in further tests so we just
@@ -121,9 +122,14 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
     except AttributeError:
       pass
     sequential_collection.BACKGROUND_INDEX_UPDATER = biu
-    t = threading.Thread(None, biu.UpdateLoop)
-    t.daemon = True
-    t.start()
+    self.worker_thread = threading.Thread(target=biu.UpdateLoop)
+    self.worker_thread.daemon = True
+    self.worker_thread.start()
+
+  def tearDown(self):
+    super(IndexedSequentialCollectionTest, self).tearDown()
+    sequential_collection.BACKGROUND_INDEX_UPDATER.ExitNow()
+    self.worker_thread.join()
 
   def testAddGet(self):
     collection = self._TestCollection("aff4:/sequential_collection/testAddGet")
@@ -138,13 +144,13 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(len(collection), 100)
 
   def testStaticAddGet(self):
-    collection = self._TestCollection(
-        "aff4:/sequential_collection/testStaticAddGet")
+    aff4_path = "aff4:/sequential_collection/testStaticAddGet"
+    collection = self._TestCollection(aff4_path)
     self.assertEqual(collection.CalculateLength(), 0)
     with data_store.DB.GetMutationPool() as pool:
       for i in range(100):
         TestIndexedSequentialCollection.StaticAdd(
-            "aff4:/sequential_collection/testStaticAddGet",
+            rdfvalue.RDFURN(aff4_path),
             rdfvalue.RDFInteger(i),
             mutation_pool=pool)
     for i in range(100):
@@ -222,7 +228,8 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       # slow on MySQL data store.
       with data_store.DB.GetMutationPool() as pool:
         for i in range(data_size):
-          collection.StaticAdd(urn, rdfvalue.RDFInteger(i), mutation_pool=pool)
+          collection.StaticAdd(
+              rdfvalue.RDFURN(urn), rdfvalue.RDFInteger(i), mutation_pool=pool)
       with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
                              rdfvalue.Duration("10m")):
         for i in range(data_size - 1, data_size - 20, -1):
@@ -259,10 +266,10 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
     # indexing should happen instantaneously.
     isq = sequential_collection.IndexedSequentialCollection
     biu = sequential_collection.BACKGROUND_INDEX_UPDATER
-    with utils.MultiStubber((biu, "INDEX_DELAY", 0), (isq, "INDEX_WRITE_DELAY",
-                                                      rdfvalue.Duration("0s")),
-                            (isq, "INDEX_SPACING", 8), (isq, "UpdateIndex",
-                                                        UpdateIndex)):
+    with utils.MultiStubber((biu, "INDEX_DELAY", 0),
+                            (isq, "INDEX_WRITE_DELAY", rdfvalue.Duration("0s")),
+                            (isq, "INDEX_SPACING", 8),
+                            (isq, "UpdateIndex", UpdateIndex)):
       urn = "aff4:/sequential_collection/testAutoIndexing"
       collection = self._TestCollection(urn)
       # TODO(amoser): Without using a mutation pool, this test is really

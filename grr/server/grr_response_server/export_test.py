@@ -296,7 +296,9 @@ class ExportTest(ExportTestBase):
         client_id=self.client_id,
         pathspec=pathspec)
 
-    if data_store.RelationalDBReadEnabled(category="vfs"):
+    if data_store.RelationalDBReadEnabled(
+        category="vfs") and data_store.RelationalDBReadEnabled(
+            category="filestore"):
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
       path_info = data_store.REL_DB.ReadPathInfo(self.client_id.Basename(),
                                                  path_info.path_type,

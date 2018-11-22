@@ -131,17 +131,16 @@ class ApiRobotReturnDuplicateFlowHandler(api_call_handler_base.ApiCallHandler):
   args_type = api_flow.ApiCreateFlowArgs
   result_type = api_flow.ApiFlow
 
-  def __init__(self, flow_urn=None):
+  def __init__(self, flow_id):
     super(ApiRobotReturnDuplicateFlowHandler, self).__init__()
 
-    if not flow_urn:
-      raise ValueError("flow_urn can't be empty.")
-    self.flow_urn = flow_urn
+    if not flow_id:
+      raise ValueError("flow_id can't be empty.")
+    self.flow_id = flow_id
 
   def Handle(self, args, token=None):
     return api_flow.ApiGetFlowHandler().Handle(
-        api_flow.ApiGetFlowArgs(
-            client_id=args.client_id, flow_id=self.flow_urn.Basename()),
+        api_flow.ApiGetFlowArgs(client_id=args.client_id, flow_id=self.flow_id),
         token=token)
 
 
@@ -283,10 +282,10 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
           args.flow.name,
           args.flow.args,
           token=token)
-    except throttle.ErrorFlowDuplicate as e:
+    except throttle.DuplicateFlowError as e:
       # If a similar flow did run recently, just return it.
-      return ApiRobotReturnDuplicateFlowHandler(flow_urn=e.flow_urn)
-    except throttle.ErrorDailyFlowRequestLimitExceeded as e:
+      return ApiRobotReturnDuplicateFlowHandler(flow_id=e.flow_id)
+    except throttle.DailyFlowRequestLimitExceededError as e:
       # Raise UnauthorizedAccess so that the user gets an HTTP 403.
       raise access_control.UnauthorizedAccess(str(e))
 

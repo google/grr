@@ -14,6 +14,7 @@ import threading
 import traceback
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -345,13 +346,56 @@ class HuntRunner(object):
     """Sends the message to event listeners."""
     events_lib.Events.PublishEvent(event_name, msg, delay=delay)
 
-  def CallFlow(self,
-               flow_name=None,
-               next_state=None,
-               request_data=None,
-               client_id=None,
-               base_session_id=None,
-               **kwargs):
+  def _GetSubFlowCPULimit(self):
+    """Get current CPU limit for subflows."""
+
+    subflow_cpu_limit = None
+
+    if self.runner_args.per_client_cpu_limit:
+      subflow_cpu_limit = self.runner_args.per_client_cpu_limit
+
+    if self.runner_args.cpu_limit:
+      cpu_usage_data = self.context.client_resources.cpu_usage
+      remaining_cpu_quota = (
+          self.runner_args.cpu_limit - cpu_usage_data.user_cpu_time -
+          cpu_usage_data.system_cpu_time)
+      if subflow_cpu_limit is None:
+        subflow_cpu_limit = remaining_cpu_quota
+      else:
+        subflow_cpu_limit = min(subflow_cpu_limit, remaining_cpu_quota)
+
+      if subflow_cpu_limit == 0:
+        raise RuntimeError("Out of CPU quota.")
+
+    return subflow_cpu_limit
+
+  def _GetSubFlowNetworkLimit(self):
+    """Get current network limit for subflows."""
+
+    subflow_network_limit = None
+
+    if self.runner_args.per_client_network_limit_bytes:
+      subflow_network_limit = self.runner_args.per_client_network_limit_bytes
+
+    if self.runner_args.network_bytes_limit:
+      remaining_network_quota = (
+          self.runner_args.network_bytes_limit -
+          self.context.network_bytes_sent)
+      if subflow_network_limit is None:
+        subflow_network_limit = remaining_network_quota
+      else:
+        subflow_network_limit = min(subflow_network_limit,
+                                    remaining_network_quota)
+
+    return subflow_network_limit
+
+  def _CallFlowLegacy(self,
+                      flow_name=None,
+                      next_state=None,
+                      request_data=None,
+                      client_id=None,
+                      base_session_id=None,
+                      **kwargs):
     """Creates a new flow and send its responses to a state.
 
     This creates a new flow. The flow may send back many responses which will be
@@ -403,47 +447,14 @@ class HuntRunner(object):
     # the call chain.
     write_intermediate = kwargs.pop("write_intermediate_results", False)
 
-    subflow_cpu_limit = None
-
-    if self.runner_args.per_client_cpu_limit:
-      subflow_cpu_limit = self.runner_args.per_client_cpu_limit
-
-    if self.runner_args.cpu_limit:
-      cpu_usage_data = self.context.client_resources.cpu_usage
-      remaining_cpu_quota = (
-          self.runner_args.cpu_limit - cpu_usage_data.user_cpu_time -
-          cpu_usage_data.system_cpu_time)
-      if subflow_cpu_limit is None:
-        subflow_cpu_limit = remaining_cpu_quota
-      else:
-        subflow_cpu_limit = min(subflow_cpu_limit, remaining_cpu_quota)
-
-      if subflow_cpu_limit == 0:
-        raise RuntimeError("Out of CPU quota.")
-
-    subflow_network_limit = None
-
-    if self.runner_args.per_client_network_limit_bytes:
-      subflow_network_limit = self.runner_args.per_client_network_limit_bytes
-
-    if self.runner_args.network_bytes_limit:
-      remaining_network_quota = (
-          self.runner_args.network_bytes_limit -
-          self.context.network_bytes_sent)
-      if subflow_network_limit is None:
-        subflow_network_limit = remaining_network_quota
-      else:
-        subflow_network_limit = min(subflow_network_limit,
-                                    remaining_network_quota)
-
     # Create the new child flow but do not notify the user about it.
     child_urn = self.hunt_obj.StartAFF4Flow(
         base_session_id=base_session_id or self.session_id,
         client_id=client_id,
-        cpu_limit=subflow_cpu_limit,
+        cpu_limit=self._GetSubFlowCPULimit(),
         flow_name=flow_name,
         logs_collection_urn=logs_urn,
-        network_bytes_limit=subflow_network_limit,
+        network_bytes_limit=self._GetSubFlowNetworkLimit(),
         notify_to_user=False,
         parent_flow=self.hunt_obj,
         queue=self.runner_args.queue,
@@ -456,6 +467,99 @@ class HuntRunner(object):
     self.QueueRequest(state)
 
     return child_urn
+
+  def _CallFlowRelational(self,
+                          flow_name=None,
+                          args=None,
+                          runner_args=None,
+                          client_id=None,
+                          **kwargs):
+    """Creates a new flow and send its responses to a state.
+
+    This creates a new flow. The flow may send back many responses which will be
+    queued by the framework until the flow terminates. The final status message
+    will cause the entire transaction to be committed to the specified state.
+
+    Args:
+       flow_name: The name of the flow to invoke.
+       args: Flow arguments.
+       runner_args: Flow runner arguments.
+       client_id: If given, the flow is started for this client.
+       **kwargs: Arguments for the child flow.
+
+    Returns:
+       The URN of the child flow which was created.
+
+    Raises:
+       RuntimeError: In case of no cpu quota left to start more clients.
+    """
+    if isinstance(client_id, rdfvalue.RDFURN):
+      client_id = client_id.Basename()
+
+    if flow_name is None and runner_args is not None:
+      flow_name = runner_args.flow_name
+
+    flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+
+    flow_id = flow.StartFlow(
+        client_id=client_id,
+        creator=self.hunt_obj.creator,
+        cpu_limit=self._GetSubFlowCPULimit(),
+        network_bytes_limit=self._GetSubFlowNetworkLimit(),
+        flow_cls=flow_cls,
+        flow_args=args,
+        parent_hunt_id=self.hunt_obj.urn.Basename(),
+        **kwargs)
+
+    return rdfvalue.RDFURN(client_id).Add("flows").Add(flow_id)
+
+  def CallFlow(self,
+               flow_name=None,
+               next_state=None,
+               request_data=None,
+               client_id=None,
+               base_session_id=None,
+               **kwargs):
+    """Creates a new flow and send its responses to a state.
+
+    This creates a new flow. The flow may send back many responses which will be
+    queued by the framework until the flow terminates. The final status message
+    will cause the entire transaction to be committed to the specified state.
+
+    Args:
+       flow_name: The name of the flow to invoke.
+       next_state: The state in this flow, that responses to this message should
+         go to.
+       request_data: Any dict provided here will be available in the
+         RequestState protobuf. The Responses object maintains a reference to
+         this protobuf for use in the execution of the state method. (so you can
+         access this data by responses.request). There is no format mandated on
+         this data but it may be a serialized protobuf.
+       client_id: If given, the flow is started for this client.
+       base_session_id: A URN which will be used to build a URN.
+       **kwargs: Arguments for the child flow.
+
+    Returns:
+       The URN of the child flow which was created.
+
+    Raises:
+       RuntimeError: In case of no cpu quota left to start more clients.
+    """
+    if data_store.RelationalDBFlowsEnabled():
+      if request_data is not None:
+        raise ValueError("Hunt's CallFlow does not support 'request_data' arg "
+                         "when REL_DB is enabled.")
+
+      return self._CallFlowRelational(
+          flow_name=flow_name, client_id=client_id, **kwargs)
+    else:
+      return self._CallFlowLegacy(
+          flow_name=flow_name,
+          next_state=next_state,
+          request_data=request_data,
+          client_id=client_id,
+          base_session_id=base_session_id,
+          **kwargs)
 
   def FlushQueuedReplies(self):
     # Hunts do not send replies.
@@ -974,8 +1078,7 @@ class GRRHunt(flow.FlowBase):
     # without taking a lock on the hunt object.
     STATE = aff4.Attribute(
         "aff4:hunt_state",
-        rdfvalue.RDFString,
-        "The state of a hunt can be "
+        rdfvalue.RDFString, "The state of a hunt can be "
         "'STARTED': running, "
         "'STOPPED': stopped by the user, "
         "'PAUSED': paused due to client limit, "
@@ -1470,7 +1573,10 @@ class GRRHunt(flow.FlowBase):
       client_id: Client id.
       status: The status object returned from the client.
     """
-    flow_path = status.child_session_id
+    if hasattr(status, "child_session_id"):
+      flow_path = status.child_session_id
+    else:
+      flow_path = "aff4:/%s/flows/%s" % (status.client_id, status.flow_id)
 
     resources = rdf_client_stats.ClientResources()
     resources.client_id = client_id
@@ -1485,11 +1591,11 @@ class GRRHunt(flow.FlowBase):
     collections_dict = dict(
         (urn, col_type(urn))
         for urn, col_type in [(self.all_clients_collection_urn,
-                               grr_collections.ClientUrnCollection), (
-                                   self.completed_clients_collection_urn,
-                                   grr_collections.ClientUrnCollection), (
-                                       self.clients_errors_collection_urn,
-                                       grr_collections.HuntErrorCollection)])
+                               grr_collections.ClientUrnCollection),
+                              (self.completed_clients_collection_urn,
+                               grr_collections.ClientUrnCollection),
+                              (self.clients_errors_collection_urn,
+                               grr_collections.HuntErrorCollection)])
 
     def CollectionLen(collection_urn):
       if collection_urn in collections_dict:

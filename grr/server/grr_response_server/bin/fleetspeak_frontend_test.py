@@ -106,7 +106,6 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
   def testReceiveMessagesFleetspeak(self):
     fsd = fs_frontend_tool.GRRFSServer()
-
     grr_client_nr = 0xab
     grr_client_id_urn = self.SetupClient(grr_client_nr)
 
@@ -168,7 +167,6 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
   def testReceiveMessageListFleetspeak(self):
     fsd = fs_frontend_tool.GRRFSServer()
-
     grr_client_nr = 0xab
     grr_client_id_urn = self.SetupClient(grr_client_nr)
 
