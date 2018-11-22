@@ -3,15 +3,16 @@
 
 [Unit]
 Description=GRR Service
-After=syslog.target network.target
+After=network.target
+After=syslog.target
 Documentation=https://github.com/google/grr
 
 [Service]
 Type=oneshot
+User=nobody
+Group=nogroup
+ExecStart=/bin/true
 RemainAfterExit=yes
-ExecReload=/bin/systemctl --no-block reload grr-server@admin_ui.service grr-server@frontend.service grr-server@worker.service grr-server@worker2.service
-ExecStart=/bin/systemctl --no-block start grr-server@admin_ui.service grr-server@frontend.service grr-server@worker.service grr-server@worker2.service
-ExecStop=/bin/systemctl --no-block stop grr-server@admin_ui.service grr-server@frontend.service grr-server@worker.service grr-server@worker2.service
 
 [Install]
 WantedBy=multi-user.target

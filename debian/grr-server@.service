@@ -1,8 +1,8 @@
 [Unit]
 Description=GRR %I
+After=grr-server.service
 PartOf=grr-server.service
 ReloadPropagatedFrom=grr-server.service
-After=syslog.target network.target
 Documentation=https://github.com/google/grr
 
 [Service]
@@ -15,4 +15,4 @@ ExecStartPre=/bin/mkdir -p /var/run/grr/tmp/%i
 ExecStart=/usr/bin/grr_server --component %i --disallow_missing_config_definitions -p StatsStore.process_id=%i_%m
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=grr-server.service
