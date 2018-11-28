@@ -103,7 +103,8 @@ class StatsStoreTest(test_lib.GRRBaseTest):
         stats_store.ReadStats("fake_process_id", _COUNTER_WITH_TWO_FIELDS),
         expected_multi_dim2_results)
 
-  def testDeleteStats(self):
+  @db_test_lib.LegacyDataStoreOnly
+  def testDeleteStatsFromLegacyDB(self):
     with test_lib.ConfigOverrider({"StatsStore.stats_ttl_hours": 1}):
       timestamp1 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)
       timestamp2 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600)
@@ -128,7 +129,7 @@ class StatsStoreTest(test_lib.GRRBaseTest):
         self.assertDictEqual(
             stats_store.ReadStats("f", _SINGLE_DIM_COUNTER), expected_results)
       with test_lib.FakeTime(timestamp3):
-        stats_store._DeleteStats(process_id="fake_process_id")
+        stats_store._DeleteStatsFromLegacyDB("fake_process_id")
         # timestamp1 is older than 1h, so it should get deleted.
         expected_results = {
             "fake_process_id": {

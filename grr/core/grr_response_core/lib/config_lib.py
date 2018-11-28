@@ -23,6 +23,7 @@ import traceback
 import configparser
 from future.utils import iteritems
 from future.utils import itervalues
+from future.utils import string_types
 from future.utils import with_metaclass
 import yaml
 
@@ -866,7 +867,7 @@ class GrrConfigManager(object):
     Returns:
       dict of {parameter: Exception}, where parameter is a section.name string.
     """
-    if isinstance(sections, basestring):
+    if isinstance(sections, string_types):
       sections = [sections]
 
     if sections is None:
@@ -1100,7 +1101,7 @@ class GrrConfigManager(object):
           if flags.FLAGS.disallow_missing_config_definitions:
             raise MissingConfigDefinitionError(msg)
 
-        if isinstance(v, basestring):
+        if isinstance(v, string_types):
           v = v.strip()
 
         # If we are already initialized and someone tries to modify a constant
@@ -1288,7 +1289,7 @@ class GrrConfigManager(object):
                            "Configuration hasn't been initialized yet." % name)
     if context:
       # Make sure it's not just a string and is iterable.
-      if (isinstance(context, basestring) or
+      if (isinstance(context, string_types) or
           not isinstance(context, collections.Iterable)):
         raise ValueError("context should be a list, got %s" % str(context))
 
@@ -1356,7 +1357,7 @@ class GrrConfigManager(object):
 
         value = context_raw_data.get(name)
         if value is not None:
-          if isinstance(value, basestring):
+          if isinstance(value, string_types):
             value = value.strip()
 
           yield context_raw_data, value, path + [element]

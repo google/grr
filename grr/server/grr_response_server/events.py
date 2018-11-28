@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 
 from future.utils import iteritems
+from future.utils import string_types
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
@@ -63,7 +64,7 @@ class Events(object):
     """
     event_name_map = registry.EventRegistry.EVENT_NAME_MAP
     for event_name, messages in iteritems(events):
-      if not isinstance(event_name, basestring):
+      if not isinstance(event_name, string_types):
         raise ValueError(
             "Event names should be string, got: %s" % type(event_name))
       for msg in messages:

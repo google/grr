@@ -248,25 +248,20 @@ def _ShouldUseRelationalDB():
   return data_store.RelationalDBReadEnabled(category="stats")
 
 
-def _DeleteStats(process_id = None):
-  """Deletes old data points from the DB.
+def _DeleteStatsFromLegacyDB(process_id):
+  """Deletes old data points from the legacy datastore.
 
   The cutoff age for values to delete is determined by a config option.
 
   Args:
-    process_id: If using the legacy (non-relational DB), this is an identifier
-      for the process whose data-points will be deleted from the DB. For the
-      relational DB, old data points for all processes get deleted (this value
-      isn't used).
+    process_id: An identifier for the process whose data-points will be deleted
+      from the DB.
   """
   stats_ttl = (
       rdfvalue.Duration("1h") * config.CONFIG["StatsStore.stats_ttl_hours"])
   cutoff = rdfvalue.RDFDatetime.Now() - stats_ttl
-  if _ShouldUseRelationalDB():
-    data_store.REL_DB.DeleteStatsStoreEntriesOlderThan(cutoff)
-  else:
-    aff4_stats_store.STATS_STORE.DeleteStats(
-        process_id=process_id, timestamp=(0, cutoff))
+  aff4_stats_store.STATS_STORE.DeleteStats(
+      process_id=process_id, timestamp=(0, cutoff))
 
 
 class StatsStoreDataQuery(object):
@@ -577,13 +572,15 @@ class _StatsStoreWorker(object):
       try:
         logging.debug("Writing stats to stats store.")
         _WriteStats(process_id=self.process_id)
-        logging.debug("Removing old stats from stats store.")
-        _DeleteStats(process_id=self.process_id)
-      except Exception:  # pylint: disable=broad-except
+        # We use a cronjob to delete stats from the relational DB.
+        if not _ShouldUseRelationalDB():
+          logging.debug("Removing old stats from stats store.")
+          _DeleteStatsFromLegacyDB(self.process_id)
+      except Exception as e:  # pylint: disable=broad-except
         # Log all exceptions and continue, since we do not want transient
         # errors to halt stats-processing.
         # TODO(user): Add monitoring for these exceptions.
-        logging.exception("Encountered an error while writing stats")
+        logging.exception("Encountered an error while writing stats: %s", e)
 
       time.sleep(self.sleep)
 

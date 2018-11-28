@@ -1135,6 +1135,22 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(results[1].components, ("quux",))
     self.assertTrue(results[1].directory)
 
+  def testListChildPathInfosRootDeeper(self):
+    client_id = self.InitializeClient()
+
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=("foo", "bar", "baz")),
+        rdf_objects.PathInfo.OS(components=("foo", "bar", "quux")),
+        rdf_objects.PathInfo.OS(components=("foo", "bar", "norf", "thud")),
+    ])
+
+    results = self.db.ListChildPathInfos(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=())
+
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].components, ("foo",))
+    self.assertTrue(results[0].directory)
+
   def testListChildPathInfosDetails(self):
     client_id = self.InitializeClient()
 

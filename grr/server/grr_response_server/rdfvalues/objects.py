@@ -348,6 +348,10 @@ class PathInfo(rdf_structs.RDFProtoStruct):
 
   @classmethod
   def FromPathSpec(cls, pathspec):
+    # Note that since PathSpec objects may contain more information than what is
+    # stored in a PathInfo object, we can only create a PathInfo object from a
+    # PathSpec, never the other way around.
+
     if pathspec.pathtype == rdf_paths.PathSpec.PathType.OS:
       if (len(pathspec) > 1 and
           pathspec[1].pathtype == rdf_paths.PathSpec.PathType.TSK):
@@ -404,23 +408,6 @@ class PathInfo(rdf_structs.RDFProtoStruct):
       return ""
     else:
       return self.components[-1]
-
-  def AsPathSpec(self):
-    pathspec = rdf_paths.PathSpec()
-    if self.path_type == self.PathType.TSK:
-      pathspec.pathtype = pathspec.PathType.TSK
-    elif self.path_type == self.PathType.OS:
-      pathspec.pathtype = pathspec.PathType.OS
-    elif self.path_type == self.PathType.REGISTRY:
-      pathspec.pathtype = pathspec.PathType.REGISTRY
-    elif self.path_type == self.PathType.TMPFILE:
-      pathspec.pathtype = pathspec.PathType.TEMP
-    else:
-      raise ValueError("Invalid path_type: %r" % self.path_type)
-
-    pathspec.path = "/".join(self.components)
-
-    return pathspec
 
   def GetPathID(self):
     return PathID.FromComponents(self.components)
@@ -692,3 +679,29 @@ class SerializedValueOfUnrecognizedType(rdf_structs.RDFProtoStruct):
   """
   protobuf = objects_pb2.SerializedValueOfUnrecognizedType
   rdf_deps = []
+
+
+class APIAuditEntry(rdf_structs.RDFProtoStruct):
+  """Audit entry for API calls, persistend in the relational database."""
+  protobuf = objects_pb2.APIAuditEntry
+  rdf_deps = [rdfvalue.RDFDatetime]
+
+  @classmethod
+  def FromHttpRequestResponse(cls, request, response):
+    if response.status_code == 200:
+      response_code = "OK"
+    elif response.status_code == 403:
+      response_code = "FORBIDDEN"
+    elif response.status_code == 404:
+      response_code = "NOT_FOUND"
+    elif response.status_code == 501:
+      response_code = "UNIMPLEMENTED"
+    else:
+      response_code = "ERROR"
+
+    return cls(
+        http_request_path=request.full_path,  # include query string
+        router_method_name=response.headers.get("X-API-Method", ""),
+        username=request.user,
+        response_code=response_code,
+    )

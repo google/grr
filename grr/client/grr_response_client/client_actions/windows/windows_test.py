@@ -10,6 +10,7 @@ import unittest
 
 from future.utils import iteritems
 from future.utils import iterkeys
+from future.utils import string_types
 import mock
 
 from grr_response_client import vfs
@@ -131,7 +132,7 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
     self.assertItemsEqual(iterkeys(nest["rdfvalue"]), ["a"])
 
     self.assertEqual(result["GatewayCostMetric"], [0, 256])
-    self.assertTrue(isinstance(result["OpaqueObject"], basestring))
+    self.assertTrue(isinstance(result["OpaqueObject"], string_types))
     self.assertTrue("Unsupported type" in result["OpaqueObject"])
 
 

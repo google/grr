@@ -122,6 +122,7 @@ def _Execute(cmd, args, time_limit=-1, use_client_context=False, cwd=None):
   finally:
     if alarm:
       alarm.cancel()
+      alarm.join()
 
   return (stdout, stderr, exit_status, time.time() - start_time)
 

@@ -10,6 +10,7 @@ import re
 
 from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems
+from future.utils import string_types
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
@@ -23,7 +24,7 @@ from grr_response_core.lib.rdfvalues import standard as rdf_standard
 
 def AsIter(arg):
   """Encapsulates an argument in a tuple, if it's not already iterable."""
-  if isinstance(arg, basestring):
+  if isinstance(arg, string_types):
     rslt = [arg]
   elif isinstance(arg, collections.Iterable):
     rslt = arg
@@ -940,7 +941,7 @@ class NtpdFieldParser(FieldParser):
 
     if keyword not in self._repeated | self._duplicates:
       # We have a plain and simple single key/value config line.
-      if isinstance(values[0], basestring):
+      if isinstance(values[0], string_types):
         self.config[keyword] = " ".join(values)
       else:
         self.config[keyword] = values

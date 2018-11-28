@@ -134,8 +134,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     else:
       self.assertEqual(notification.subject, rdfvalue.RDFURN(self.client_id))
 
-    # TODO(amoser): Add a check here once relational notifications are a thing.
-
   def _CheckClientSummary(self,
                           osname,
                           version,

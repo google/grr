@@ -14,6 +14,7 @@ import unittest
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
 from future.utils import itervalues
+from future.utils import string_types
 import requests
 
 from grr_api_client import api
@@ -63,9 +64,9 @@ class E2ETestRunner(object):
                max_test_attempts=3):
     if not api_endpoint:
       raise ValueError("GRR api_endpoint is required.")
-    if isinstance(whitelisted_tests, basestring):
+    if isinstance(whitelisted_tests, string_types):
       raise ValueError("whitelisted_tests should be a list.")
-    if isinstance(blacklisted_tests, basestring):
+    if isinstance(blacklisted_tests, string_types):
       raise ValueError("blacklisted_tests should be a list.")
     if max_test_attempts < 1:
       raise ValueError(

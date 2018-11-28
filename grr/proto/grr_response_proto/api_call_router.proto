@@ -124,7 +124,7 @@ message RobotRouterGetFlowFilesArchiveParams {
   optional bool skip_glob_checks_for_artifact_collector = 4;
 }
 
-// Next messade id: 9
+// Next message id: 9
 message ApiCallRobotRouterParams {
   optional RobotRouterSearchClientsParams search_clients = 1;
 

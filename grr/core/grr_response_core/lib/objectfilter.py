@@ -98,6 +98,7 @@ import re
 from builtins import filter  # pylint: disable=redefined-builtin
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
+from future.utils import string_types
 from future.utils import with_metaclass
 
 from grr_response_core.lib import lexer
@@ -334,7 +335,7 @@ class InSet(GenericBinaryOperator):
 
     # x might be an iterable
     # first we need to skip strings or we'll do silly things
-    if isinstance(x, basestring) or isinstance(x, bytes):
+    if isinstance(x, string_types) or isinstance(x, bytes):
       return False
 
     try:
@@ -503,7 +504,7 @@ class ValueExpander(object):
         if len(path) > 2:
           # Expand any additional elements underneath the key.
           sub_obj = self.Expand(sub_obj, path[2:])
-        if isinstance(sub_obj, basestring):
+        if isinstance(sub_obj, string_types):
           # If it is a string, stop here
           yield sub_obj
         elif isinstance(sub_obj, collections.Mapping):
@@ -540,7 +541,7 @@ class ValueExpander(object):
     Yields:
       The values once the object is traversed.
     """
-    if isinstance(path, basestring):
+    if isinstance(path, string_types):
       path = path.split(self.FIELD_SEPARATOR)
 
     attr_name = self._GetAttributeName(path)

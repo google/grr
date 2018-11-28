@@ -11,14 +11,15 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import flow
 from grr_response_server.flows.general import find
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
+@db_test_lib.DualFlowTest
 class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
@@ -56,15 +57,15 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         token=self.token,
         findspec=findspec)
 
-    # Check the results collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
+    # Check the results.
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
 
     # Should match ["bash" and "rbash"].
-    matches = set([x.AFF4Path(self.client_id).Basename() for x in fd])
-    self.assertEqual(sorted(matches), ["bash", "rbash"])
+    matches = set([x.AFF4Path(self.client_id).Basename() for x in results])
+    self.assertCountEqual(matches, ["bash", "rbash"])
 
-    self.assertEqual(len(fd), 4)
-    for child in fd:
+    self.assertLen(results, 4)
+    for child in results:
       path = utils.SmartStr(child.AFF4Path(self.client_id))
       self.assertTrue(path.endswith("bash"))
       self.assertEqual(child.__class__.__name__, "StatEntry")
@@ -86,15 +87,15 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         token=self.token,
         findspec=findspec)
 
-    # Check the results collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
+    # Check the results.
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
 
     # Make sure that bash is a file.
-    matches = set([x.AFF4Path(self.client_id).Basename() for x in fd])
-    self.assertEqual(sorted(matches), ["bash"])
+    matches = set([x.AFF4Path(self.client_id).Basename() for x in results])
+    self.assertEqual(matches, set(["bash"]))
 
-    self.assertEqual(len(fd), 2)
-    for child in fd:
+    self.assertLen(results, 2)
+    for child in results:
       path = utils.SmartStr(child.AFF4Path(self.client_id))
       self.assertTrue(path.endswith("bash"))
       self.assertEqual(child.__class__.__name__, "StatEntry")
@@ -117,15 +118,14 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         token=self.token,
         findspec=findspec)
 
-    # Check the results collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
+    # Check the results.
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
 
     # Make sure that bin is a directory
-    self.assertEqual(len(fd), 2)
-    for child in fd:
-      path = utils.SmartStr(child.AFF4Path(self.client_id))
-      self.assertTrue("bin" in path)
+    self.assertLen(results, 2)
+    for child in results:
       self.assertEqual(child.__class__.__name__, "StatEntry")
+      self.assertIn("bin", child.pathspec.CollapsePath())
 
   def testCollectionOverwriting(self):
     """Test we overwrite the collection every time the flow is executed."""
@@ -145,10 +145,10 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         token=self.token,
         findspec=findspec)
 
-    # Check the results collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
+    # Check the results.
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
 
-    self.assertEqual(len(fd), 2)
+    self.assertLen(results, 2)
 
     # Now find a new result, should overwrite the collection
     findspec.path_regex = "dd"
@@ -159,9 +159,9 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         token=self.token,
         findspec=findspec)
 
-    # Check the results collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertEqual(len(fd), 1)
+    # Check the results.
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    self.assertLen(results, 1)
 
 
 def main(argv):

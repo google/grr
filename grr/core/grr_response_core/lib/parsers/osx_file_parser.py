@@ -11,6 +11,7 @@ import stat
 
 
 from binplist import binplist
+from future.utils import string_types
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
@@ -111,7 +112,7 @@ class OSXLaunchdPlistParser(parser.FileParser):
     # does Apple so we check.
     for key in string_array_items:
       elements = plist.get(key)
-      if isinstance(elements, basestring):
+      if isinstance(elements, string_types):
         kwargs[key] = [elements]
       else:
         kwargs[key] = elements

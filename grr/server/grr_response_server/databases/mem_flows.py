@@ -125,7 +125,7 @@ class InMemoryDBFlowMixin(object):
         msg = orig_msg.Copy()
         current_lease = self.client_message_leases.get(msg.task_id)
         if current_lease:
-          msg.leased_until, msg.leased_by = current_lease
+          msg.leased_until, msg.leased_by, _ = current_lease
         res.append(msg)
 
     return res
@@ -172,7 +172,16 @@ class InMemoryDBFlowMixin(object):
 
         existing_lease = leases.get(msg.task_id)
         if not existing_lease or existing_lease[0] < now:
-          leases[msg.task_id] = (expiration_time, process_id_str)
+          if existing_lease:
+            lease_count = existing_lease[-1] + 1
+            # >= comparison since this check happens before the lease.
+            if lease_count >= db.Database.CLIENT_MESSAGES_TTL:
+              self._DeleteClientMessage(client_id, msg.task_id)
+              continue
+            leases[msg.task_id] = (expiration_time, process_id_str, lease_count)
+          else:
+            leases[msg.task_id] = (expiration_time, process_id_str, 0)
+
           msg.leased_until = expiration_time
           msg.leased_by = process_id_str
           leased_messages.append(msg)

@@ -36,5 +36,8 @@ build: off
 
 test_script:
 - source "${GRR_VENV}/bin/activate"
-- pytest -n 4 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/
+# We have 4 vCPUs available, but only use 3 here to avoid timeouts like
+# https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
+# which happen when tests stall.
+- pytest -n 3 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/
 - (cd grr/server/grr_response_server/gui/static/ && npm run gulp test)

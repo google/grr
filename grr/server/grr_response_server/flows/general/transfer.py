@@ -1128,7 +1128,8 @@ class BlobHandler(message_handlers.MessageHandler):
     data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
 
 
-class SendFile(flow.GRRFlow):
+@flow_base.DualDBFlow
+class SendFileMixin(object):
   """This flow sends a file to remote listener.
 
   To use this flow, choose a key and an IV in hex format (if run from the GUI,

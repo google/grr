@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Find files on the client."""
 from __future__ import absolute_import
 from __future__ import unicode_literals
@@ -11,7 +10,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard
@@ -29,7 +28,8 @@ class FindFilesArgs(rdf_structs.RDFProtoStruct):
     self.findspec.Validate()
 
 
-class FindFiles(flow.GRRFlow):
+@flow_base.DualDBFlow
+class FindFilesMixin(object):
   r"""Find files on the client.
 
     The logic is:

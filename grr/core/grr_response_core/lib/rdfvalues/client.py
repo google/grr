@@ -17,6 +17,7 @@ import struct
 
 
 from future.utils import iteritems
+from future.utils import string_types
 from past.builtins import long
 import psutil
 
@@ -122,7 +123,7 @@ class ClientURN(rdfvalue.RDFURN):
     Raises:
        ValueError: if the path component is not a string.
     """
-    if not isinstance(path, basestring):
+    if not isinstance(path, string_types):
       raise ValueError("Only strings should be added to a URN.")
 
     result = rdfvalue.RDFURN(self.Copy(age))

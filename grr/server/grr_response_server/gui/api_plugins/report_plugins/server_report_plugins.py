@@ -11,7 +11,6 @@ from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
-from grr_response_server import aff4
 
 from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.flows.general import audit
@@ -329,9 +328,9 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
       week_duration = rdfvalue.Duration("7d")
       offset = rdfvalue.Duration("%dw" % self.WEEKS)
       now = rdfvalue.RDFDatetime.Now()
-      start_time = now - offset - aff4.AUDIT_ROLLOVER_TIME
+      start_time = now - offset - audit.AUDIT_ROLLOVER_TIME
       try:
-        for fd in audit.AuditLogsForTimespan(start_time, now, token):
+        for fd in audit.LegacyAuditLogsForTimespan(start_time, now, token):
           for event in fd.GenerateItems():
             for week in range(self.__class__.WEEKS):
               start = now - week * week_duration

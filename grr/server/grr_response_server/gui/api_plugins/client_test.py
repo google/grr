@@ -138,7 +138,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
         data_store.REL_DB.ReadClientLabels(self.client_ids[2].Basename()))
 
   def _FindAuditEvent(self):
-    for fd in audit.AllAuditLogs(token=self.token):
+    for fd in audit._AllLegacyAuditLogs(token=self.token):
       for event in fd:
         if event.action == rdf_events.AuditEvent.Action.CLIENT_ADD_LABEL:
           for client_id in self.client_ids:

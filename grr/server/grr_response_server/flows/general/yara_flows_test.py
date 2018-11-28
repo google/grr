@@ -19,11 +19,11 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import rdf_yara
 from grr_response_server import aff4
-from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import yara_flows
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -130,6 +130,7 @@ class FakeMemoryProcess(object):
       yield start, len(data)
 
 
+@db_test_lib.DualFlowTest
 class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
   """Tests the Yara flows."""
 
@@ -167,20 +168,10 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           token=self.token,
           **kw)
 
-    flow_obj = aff4.FACTORY.Open(session_id)
-    results = flow_obj.TypedResultCollection()
-    matches = [
-        x[1].payload
-        for x in results.ScanByType(rdf_yara.YaraProcessScanMatch.__name__)
-    ]
-    errors = [
-        x[1].payload
-        for x in results.ScanByType(rdf_yara.YaraProcessError.__name__)
-    ]
-    misses = [
-        x[1].payload
-        for x in results.ScanByType(rdf_yara.YaraProcessScanMiss.__name__)
-    ]
+    res = flow_test_lib.GetFlowResults(self.client_id.Basename(), session_id)
+    matches = [r for r in res if isinstance(r, rdf_yara.YaraProcessScanMatch)]
+    errors = [r for r in res if isinstance(r, rdf_yara.YaraProcessError)]
+    misses = [r for r in res if isinstance(r, rdf_yara.YaraProcessScanMiss)]
     return (matches, errors, misses)
 
   def setUp(self):
@@ -384,8 +375,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           client_id=self.client_id,
           ignore_grr_process=True,
           token=self.token)
-    flow_obj = aff4.FACTORY.Open(session_id, flow.GRRFlow)
-    return flow_obj.ResultCollection()
+    return flow_test_lib.GetFlowResults(self.client_id.Basename(), session_id)
 
   def testYaraProcessDump(self):
     results = self._RunProcessDump()
@@ -501,13 +491,13 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           include_misses_in_results=True,
           dump_process_on_match=True)
 
-    flow_obj = aff4.FACTORY.Open(session_id)
-    results = list(flow_obj.ResultCollection())
+    results = flow_test_lib.GetFlowResults(self.client_id.Basename(),
+                                           session_id)
 
     # 1. Scan result match.
     # 2. Scan result miss.
     # 3. ProcDump response.
-    # 3. Stat entry for the dumped file.
+    # 4. Stat entry for the dumped file.
     self.assertEqual(len(results), 4)
     self.assertIsInstance(results[0], rdf_yara.YaraProcessScanMatch)
     self.assertIsInstance(results[1], rdf_yara.YaraProcessScanMiss)

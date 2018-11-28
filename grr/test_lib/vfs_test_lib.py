@@ -487,6 +487,13 @@ def CreateFile(client_path, content=b"", token=None):
 
   blob_id = rdf_objects.BlobID.FromBlobData(content)
 
+  stat_entry = rdf_client_fs.StatEntry(
+      pathspec=rdf_paths.PathSpec(
+          pathtype=client_path.path_type,
+          path="/".join(client_path.components)),
+      st_mode=33206,
+      st_size=len(content))
+
   if data_store.RelationalDBWriteEnabled():
     data_store.BLOBS.WriteBlobs({blob_id: content})
     hash_id = file_store.AddFileWithUnknownHash([blob_id])
@@ -496,6 +503,7 @@ def CreateFile(client_path, content=b"", token=None):
     path_info.components = client_path.components
     path_info.hash_entry.num_bytes = len(content)
     path_info.hash_entry.sha256 = hash_id.AsBytes()
+    path_info.stat_entry = stat_entry
 
     data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
 
@@ -506,14 +514,7 @@ def CreateFile(client_path, content=b"", token=None):
     bio.seek(0)
 
     filedesc.AppendContent(bio)
-    filedesc.Set(
-        filedesc.Schema.STAT,
-        rdf_client_fs.StatEntry(
-            pathspec=rdf_paths.PathSpec(
-                pathtype=client_path.path_type,
-                path="/".join(client_path.components)),
-            st_mode=16877,
-            st_size=len(content)))
+    filedesc.Set(filedesc.Schema.STAT, stat_entry)
 
     filedesc.Set(
         filedesc.Schema.HASH,
@@ -522,3 +523,34 @@ def CreateFile(client_path, content=b"", token=None):
             num_bytes=len(content)))
 
     filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+
+
+def CreateDirectory(client_path, token=None):
+  """Creates a directory in datastore-agnostic way.
+
+  Args:
+    client_path: A `ClientPath` instance specifying location of the file.
+    token: A GRR token for accessing the data store.
+  """
+  precondition.AssertType(client_path, db.ClientPath)
+
+  stat_entry = rdf_client_fs.StatEntry(
+      pathspec=rdf_paths.PathSpec(
+          pathtype=client_path.path_type,
+          path="/".join(client_path.components)),
+      st_mode=16895)
+
+  if data_store.RelationalDBWriteEnabled():
+
+    path_info = rdf_objects.PathInfo()
+    path_info.path_type = client_path.path_type
+    path_info.components = client_path.components
+    path_info.stat_entry = stat_entry
+
+    data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
+
+  urn = aff4.ROOT_URN.Add(client_path.client_id).Add(client_path.vfs_path)
+  with aff4.FACTORY.Create(
+      urn, aff4_standard.VFSDirectory, token=token) as filedesc:
+    filedesc.Set(filedesc.Schema.STAT, stat_entry)
+    filedesc.Set(filedesc.Schema.PATHSPEC, stat_entry.pathspec)

@@ -12,6 +12,7 @@ from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import artifact
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
@@ -35,7 +36,8 @@ class RegistryFinderArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class RegistryFinder(flow.GRRFlow):
+@flow_base.DualDBFlow
+class RegistryFinderMixin(object):
   """This flow looks for registry items matching given criteria."""
 
   friendly_name = "Registry Finder"
@@ -44,6 +46,7 @@ class RegistryFinder(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   def ConditionsToFileFinderConditions(self, conditions):
+    """Converts FileFinderSizeConditions to RegistryFinderConditions."""
     ff_condition_type_cls = rdf_file_finder.FileFinderCondition.Type
     result = []
     for c in conditions:

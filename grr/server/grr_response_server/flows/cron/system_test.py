@@ -14,10 +14,15 @@ from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.stats import default_stats_collector
+from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import stats_test_utils
+from grr_response_core.stats import stats_utils
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
+from grr_response_server import stats_store
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.cron import system
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
@@ -268,6 +273,7 @@ class SystemCronFlowTest(SystemCronTestMixin, flow_test_lib.FlowTestsBaseclass):
         system.PurgeClientStats.__name__, None, token=self.token)
 
 
+@db_test_lib.DualDBTest
 class SystemCronJobTest(SystemCronTestMixin, test_lib.GRRBaseTest):
   """Test system cron jobs."""
 
@@ -294,6 +300,52 @@ class SystemCronJobTest(SystemCronTestMixin, test_lib.GRRBaseTest):
     system.LastAccessStatsCronJob(run, job).Run()
 
     self._CheckLastAccessStats()
+
+  def testPurgeServerStats(self):
+    if not data_store.RelationalDBReadEnabled():
+      self.skipTest("Test is only for the relational DB. Skipping...")
+    fake_stats_collector = default_stats_collector.DefaultStatsCollector([
+        stats_utils.CreateCounterMetadata("fake_counter"),
+    ])
+    timestamp1 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)
+    timestamp2 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600)
+    timestamp3 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4800)
+    config_overrides = {
+        "Database.useForReads.stats": True,
+        "StatsStore.stats_ttl_hours": 1
+    }
+    with test_lib.ConfigOverrider(config_overrides):
+      with stats_test_utils.FakeStatsContext(fake_stats_collector):
+        with test_lib.FakeTime(rdfvalue.RDFDatetime(timestamp1)):
+          stats_collector_instance.Get().IncrementCounter("fake_counter")
+          stats_store._WriteStats(process_id="fake_process_id")
+          expected_results = {
+              "fake_process_id": {
+                  "fake_counter": [(1, timestamp1)]
+              }
+          }
+          self.assertDictEqual(
+              stats_store.ReadStats("f", "fake_counter"), expected_results)
+        with test_lib.FakeTime(timestamp2):
+          stats_store._WriteStats(process_id="fake_process_id")
+          expected_results = {
+              "fake_process_id": {
+                  "fake_counter": [(1, timestamp1), (1, timestamp2)]
+              }
+          }
+          self.assertDictEqual(
+              stats_store.ReadStats("f", "fake_counter"), expected_results)
+        with test_lib.FakeTime(timestamp3):
+          system.PurgeServerStatsCronJob(rdf_cronjobs.CronJobRun(),
+                                         rdf_cronjobs.CronJob()).Run()
+          # timestamp1 is older than 1h, so it should get deleted.
+          expected_results = {
+              "fake_process_id": {
+                  "fake_counter": [(1, timestamp2)]
+              }
+          }
+          self.assertDictEqual(
+              stats_store.ReadStats("f", "fake_counter"), expected_results)
 
   def _RunPurgeClientStats(self):
     run = rdf_cronjobs.CronJobRun()

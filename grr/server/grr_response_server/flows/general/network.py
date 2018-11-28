@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import server_stubs
 
 
@@ -13,7 +14,8 @@ class NetstatArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.NetstatArgs
 
 
-class Netstat(flow.GRRFlow):
+@flow_base.DualDBFlow
+class NetstatMixin(object):
   """List active network connections on a system."""
 
   category = "/Network/"

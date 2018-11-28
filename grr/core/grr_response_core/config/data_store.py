@@ -23,6 +23,9 @@ config_lib.DEFINE_bool(
     "Database.useForReads", False,
     "Use relational database for reading as well as for writing.")
 
+config_lib.DEFINE_bool("Database.useForReads.audit", False,
+                       "Use relational database for reading audit logs.")
+
 config_lib.DEFINE_bool(
     "Database.useForReads.artifacts", False,
     "Enable reading artifact data from the relational database.")

@@ -3,48 +3,113 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+def _SetTimestampNone(entries):
+  for entry in entries:
+    entry.timestamp = None
 
 
 class DatabaseEventsTestMixin(object):
 
-  def testWriteAuditEventFieldSerialization(self):
-    client_urn = rdf_client.ClientURN("C.4815162342000000")
+  def _MakeEntry(self,
+                 http_request_path="/test",
+                 router_method_name="TestHandler",
+                 username="user",
+                 response_code="OK"):
 
-    event = rdf_events.AuditEvent(
-        action=rdf_events.AuditEvent.Action.RUN_FLOW,
-        user="quux",
-        flow_name="foo",
-        flow_args=b"bar",
-        client=client_urn,
-        urn=client_urn.Add("flows").Add("108"),
-        description="lorem ipsum")
+    self.db.WriteGRRUser(username)
 
-    self.db.WriteAuditEvent(event)
+    return rdf_objects.APIAuditEntry(
+        http_request_path=http_request_path,
+        router_method_name=router_method_name,
+        username=username,
+        response_code=response_code,
+    )
 
-    log = self.db.ReadAllAuditEvents()
-    self.assertEqual(len(log), 1)
-    self.assertEqual(log[0].action, rdf_events.AuditEvent.Action.RUN_FLOW)
-    self.assertEqual(log[0].user, "quux")
-    self.assertEqual(log[0].flow_name, "foo")
-    self.assertEqual(log[0].flow_args, "bar")
-    self.assertEqual(log[0].client, client_urn)
-    self.assertEqual(log[0].urn, client_urn.Add("flows").Add("108"))
-    self.assertEqual(log[0].description, "lorem ipsum")
+  def testWriteDoesNotMutate(self):
+    entry = self._MakeEntry()
+    copy = entry.Copy()
+    self.db.WriteAPIAuditEntry(entry)
+    self.assertEqual(entry, copy)
 
-  def testWriteAuditEventMultipleEvents(self):
-    timestamp = rdfvalue.RDFDatetime.Now()
+  def testWriteAuditEntry(self):
+    entry = self._MakeEntry()
+    self.db.WriteAPIAuditEntry(entry)
 
-    self.db.WriteAuditEvent(rdf_events.AuditEvent(urn=rdfvalue.RDFURN("foo")))
-    self.db.WriteAuditEvent(rdf_events.AuditEvent(urn=rdfvalue.RDFURN("bar")))
-    self.db.WriteAuditEvent(rdf_events.AuditEvent(urn=rdfvalue.RDFURN("baz")))
+    entries = self.db.ReadAPIAuditEntries()
+    _SetTimestampNone(entries)
 
-    log = self.db.ReadAllAuditEvents()
-    self.assertEqual(len(log), 3)
-    self.assertEqual(log[0].urn, rdfvalue.RDFURN("foo"))
-    self.assertEqual(log[1].urn, rdfvalue.RDFURN("bar"))
-    self.assertEqual(log[2].urn, rdfvalue.RDFURN("baz"))
-    self.assertGreater(log[0].timestamp, timestamp)
-    self.assertGreater(log[1].timestamp, timestamp)
-    self.assertGreater(log[2].timestamp, timestamp)
+    self.assertItemsEqual(entries, [entry])
+
+  def testReadEntries(self):
+    entry1 = self._MakeEntry()
+    self.db.WriteAPIAuditEntry(entry1)
+
+    entry2 = self._MakeEntry(response_code="ERROR")
+    self.db.WriteAPIAuditEntry(entry2)
+
+    entries = self.db.ReadAPIAuditEntries()
+    _SetTimestampNone(entries)
+
+    self.assertItemsEqual(entries, [entry1, entry2])
+
+  def testReadEntriesOrder(self):
+    status_codes = list(range(200, 210))
+
+    for status_code in status_codes:
+      self.db.WriteAPIAuditEntry(self._MakeEntry(response_code=status_code))
+
+    entries = self.db.ReadAPIAuditEntries()
+    _SetTimestampNone(entries)
+
+    for entry, status_code in zip(entries, status_codes):
+      self.assertEqual(entry.response_code, status_code)
+
+  def testReadEntriesFilterUsername(self):
+    entry = self._MakeEntry(username="foo")
+    self.db.WriteAPIAuditEntry(entry)
+    self.db.WriteAPIAuditEntry(self._MakeEntry(username="bar"))
+    self.db.WriteAPIAuditEntry(self._MakeEntry(username="foobar"))
+
+    entries = self.db.ReadAPIAuditEntries(username="foo")
+    _SetTimestampNone(entries)
+
+    self.assertItemsEqual(entries, [entry])
+
+  def testReadEntriesFilterRouterMethodName(self):
+    entry = self._MakeEntry(router_method_name="foo")
+    self.db.WriteAPIAuditEntry(entry)
+    self.db.WriteAPIAuditEntry(self._MakeEntry(router_method_name="bar"))
+    self.db.WriteAPIAuditEntry(self._MakeEntry(router_method_name="foobar"))
+
+    entries = self.db.ReadAPIAuditEntries(router_method_name="foo")
+    _SetTimestampNone(entries)
+
+    self.assertItemsEqual(entries, [entry])
+
+  def testReadEntriesFilterTimestamp(self):
+    self.db.WriteAPIAuditEntry(self._MakeEntry(response_code="OK"))
+    self.db.WriteAPIAuditEntry(self._MakeEntry(response_code="ERROR"))
+    self.db.WriteAPIAuditEntry(self._MakeEntry(response_code="NOT_FOUND"))
+
+    tomorrow = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
+
+    entries = self.db.ReadAPIAuditEntries(min_timestamp=tomorrow)
+    self.assertLen(entries, 0)
+
+    entries = self.db.ReadAPIAuditEntries(max_timestamp=tomorrow)
+    self.assertLen(entries, 3)
+
+    timestamps = [e.timestamp for e in entries]
+
+    entries = self.db.ReadAPIAuditEntries(min_timestamp=timestamps[1])
+    self.assertEqual([e.response_code for e in entries], ["ERROR", "NOT_FOUND"])
+
+    entries = self.db.ReadAPIAuditEntries(max_timestamp=timestamps[1])
+    self.assertEqual([e.response_code for e in entries], ["OK", "ERROR"])
+
+    entries = self.db.ReadAPIAuditEntries(
+        min_timestamp=timestamps[1], max_timestamp=timestamps[1])
+    self.assertEqual([e.response_code for e in entries], ["ERROR"])

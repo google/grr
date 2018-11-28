@@ -94,13 +94,20 @@ CREATE TABLE IF NOT EXISTS user_notification(
     PRIMARY KEY (username, timestamp),
     FOREIGN KEY (username) REFERENCES grr_users (username)
 )""", """
-CREATE TABLE IF NOT EXISTS audit_event(
+CREATE TABLE IF NOT EXISTS admin_ui_access_audit_entry(
     username VARCHAR(128),
-    urn VARCHAR(128),
-    client_id BIGINT UNSIGNED,
-    timestamp DATETIME(6),
-    details MEDIUMBLOB
+    router_method_name VARCHAR(128),
+    timestamp DATETIME(6) DEFAULT CURRENT_TIMESTAMP,
+    details MEDIUMBLOB,
+    PRIMARY KEY (username, timestamp),
+    FOREIGN KEY (username) REFERENCES grr_users (username)
 )""", """
+CREATE INDEX IF NOT EXISTS timestamp_idx
+ON admin_ui_access_audit_entry(timestamp)
+""", """
+CREATE INDEX IF NOT EXISTS router_method_name_idx
+ON admin_ui_access_audit_entry(router_method_name)
+""", """
 CREATE TABLE IF NOT EXISTS message_handler_requests(
     handlername VARCHAR(128),
     timestamp DATETIME(6),
@@ -145,6 +152,7 @@ CREATE TABLE IF NOT EXISTS client_messages(
     message MEDIUMBLOB,
     leased_until DATETIME(6),
     leased_by VARCHAR(128),
+    leased_count INT DEFAULT 0,
     PRIMARY KEY (client_id, message_id),
     FOREIGN KEY (client_id) REFERENCES clients(client_id)
 )""", """

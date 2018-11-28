@@ -306,7 +306,7 @@ class ApiBytesRenderer(ApiValueRenderer):
   # ApiStringRenderer renders unicode objects. We assume that
   # non-unicode strings are effectively bytes and render them
   # as base64-encoded values.
-  value_class = basestring
+  value_class = bytes
 
   def RenderValue(self, value):
     result = base64.b64encode(value)

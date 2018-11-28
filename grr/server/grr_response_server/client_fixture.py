@@ -135,7 +135,7 @@ st_blksize: 4096
 st_rdev: 0
 pathspec {
   pathtype: OS
-  path: "/bin/bash"
+  path: "/c/bin/bash"
 }
 """
     })),

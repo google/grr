@@ -299,7 +299,7 @@ def Command(name, args=None, system=None, message=None):
     raise unittest.SkipTest("`%s` available only on `%s`" % (name, system))
   if subprocess.call(["which", name], stdout=open("/dev/null", "w")) != 0:
     raise unittest.SkipTest("`%s` command is not available" % name)
-  if subprocess.call([name] + args) != 0:
+  if subprocess.call([name] + args, stdout=open("/dev/null", "w")) != 0:
     raise unittest.SkipTest(message or "`%s` call failed" % name)
 
 

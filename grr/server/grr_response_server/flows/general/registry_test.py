@@ -21,6 +21,7 @@ from grr_response_server import flow
 from grr_response_server.flows.general import registry
 from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
@@ -42,6 +43,7 @@ class RegistryFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.vfs_overrider.Stop()
 
 
+@db_test_lib.DualFlowTest
 class TestFakeRegistryFinderFlow(RegistryFlowTest):
   """Tests for the RegistryFinder flow."""
 
@@ -71,20 +73,13 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
     return session_id
 
-  def AssertNoResults(self, session_id):
-    res = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertEqual(len(res), 0)
-
-  def GetResults(self, session_id):
-    return list(flow.GRRFlow.ResultCollectionForFID(session_id))
-
   def testFindsNothingIfNothingMatchesTheGlob(self):
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [
         "HKEY_USERS/S-1-5-20/Software/Microsoft/"
         "Windows/CurrentVersion/Run/NonMatch*"
     ])
-    self.AssertNoResults(session_id)
+    self.assertFalse(flow_test_lib.GetFlowResults(client_id, session_id))
 
   def testFindsKeysWithSingleGlobWithoutConditions(self):
     client_id = self.SetupClient(0)
@@ -93,7 +88,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
         "Windows/CurrentVersion/Run/*"
     ])
 
-    results = self.GetResults(session_id)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
@@ -109,7 +104,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
         "Windows/CurrentVersion/Run/Mct*"
     ])
 
-    results = self.GetResults(session_id)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
@@ -131,7 +126,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
         "CurrentVersion/*"
     ])
 
-    results = self.GetResults(session_id)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertEqual(len(results), 1)
 
     key = ("/HKEY_USERS/S-1-5-20/"
@@ -154,7 +149,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
             .VALUE_LITERAL_MATCH,
             value_literal_match=vlm)
     ])
-    self.AssertNoResults(session_id)
+    self.assertFalse(flow_test_lib.GetFlowResults(client_id, session_id))
 
   def testFindsKeyIfItMatchesLiteralMatchCondition(self):
     vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
@@ -170,7 +165,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
             value_literal_match=vlm)
     ])
 
-    results = self.GetResults(session_id)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertEqual(len(results), 1)
     self.assertEqual(len(results[0].matches), 1)
 
@@ -200,7 +195,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
             .VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)
     ])
-    self.AssertNoResults(session_id)
+    self.assertFalse(flow_test_lib.GetFlowResults(client_id, session_id))
 
   def testFindsKeyIfItMatchesRegexMatchCondition(self):
     value_regex_match = rdf_file_finder.FileFinderContentsRegexMatchCondition(
@@ -214,7 +209,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
             value_regex_match=value_regex_match)
     ])
 
-    results = self.GetResults(session_id)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertEqual(len(results), 1)
     self.assertEqual(len(results[0].matches), 1)
 
@@ -245,7 +240,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
             .MODIFICATION_TIME,
             modification_time=modification_time)
     ])
-    self.AssertNoResults(session_id)
+    self.assertFalse(flow_test_lib.GetFlowResults(client_id, session_id))
 
   def testFindsKeysIfModificationTimeConditionMatches(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
@@ -262,7 +257,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
             modification_time=modification_time)
     ])
 
-    results = self.GetResults(session_id)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
@@ -293,7 +288,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
             value_literal_match=vlm)
     ])
 
-    results = self.GetResults(session_id)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertEqual(len(results), 1)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
@@ -310,7 +305,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
             condition_type=registry.RegistryFinderCondition.Type.SIZE,
             size=rdf_file_finder.FileFinderSizeCondition(min_file_size=50))
     ])
-    results = self.GetResults(session_id)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertEqual(len(results), 1)
     self.assertGreater(results[0].stat_entry.st_size, 50)
 

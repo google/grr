@@ -12,6 +12,8 @@ import itertools
 import logging
 import re
 
+from future.utils import string_types
+
 from grr_response_core.lib import objectfilter
 from grr_response_core.lib import utils
 
@@ -79,7 +81,7 @@ def InterpolateKbAttributes(pattern, knowledge_base, ignore_errors=False):
         kb_value = knowledge_base.Get(base_name.lower())
         if not kb_value:
           raise AttributeError(base_name.lower())
-        elif isinstance(kb_value, basestring):
+        elif isinstance(kb_value, string_types):
           alternatives.append(kb_value)
         else:
           # Iterate over repeated fields (e.g. users)
@@ -101,7 +103,7 @@ def InterpolateKbAttributes(pattern, knowledge_base, ignore_errors=False):
         kb_value = knowledge_base.Get(match.group(1).lower())
         if not kb_value:
           raise AttributeError(match.group(1).lower())
-        elif isinstance(kb_value, basestring):
+        elif isinstance(kb_value, string_types):
           alternatives.append(kb_value)
     except AttributeError as e:
       if ignore_errors:
@@ -208,7 +210,7 @@ def ExpandWindowsEnvironmentVariables(data_string, knowledge_base):
     # KB environment variables are prefixed with environ_.
     kb_value = getattr(knowledge_base, "environ_%s" % match.group(1).lower(),
                        None)
-    if isinstance(kb_value, basestring) and kb_value:
+    if isinstance(kb_value, string_types) and kb_value:
       components.append(kb_value)
     else:
       # Failed to expand, leave the variable as it was.
@@ -263,7 +265,7 @@ def ExpandWindowsUserEnvironmentVariables(data_string,
     kb_value = None
     if kb_user:
       kb_value = getattr(kb_user, match.group(1).lower(), None)
-    if isinstance(kb_value, basestring) and kb_value:
+    if isinstance(kb_value, string_types) and kb_value:
       components.append(kb_value)
     else:
       components.append("%%%s%%" % match.group(1))

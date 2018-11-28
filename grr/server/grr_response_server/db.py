@@ -25,7 +25,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
@@ -34,6 +33,7 @@ from grr_response_server import foreman_rules
 from grr_response_server import stats_values
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -206,6 +206,31 @@ class DuplicateMetricValueError(Error):
     """
     super(DuplicateMetricValueError, self).__init__(
         "Tried to insert a duplicate StatsStoreEntry in the DB", cause=cause)
+
+
+class UnknownHuntError(NotFoundError):
+
+  def __init__(self, hunt_id, cause=None):
+    message = ("Hunt with hunt id '%s' does not exist" % hunt_id)
+    super(UnknownHuntError, self).__init__(message, cause=cause)
+    self.hunt_id = hunt_id
+
+
+# TODO(user): migrate to Python 3 enums as soon as Python 3 is default.
+class HuntFlowsCondition(object):
+  """Constants to be used with ReadHuntFlows/CountHuntFlows methods."""
+
+  UNSET = 0
+  FAILED_FLOWS_ONLY = 1
+  SUCCEEDED_FLOWS_ONLY = 2
+  COMPLETED_FLOWS_ONLY = 3
+  FLOWS_IN_PROGRESS_ONLY = 4
+  CRASHED_FLOWS_ONLY = 5
+  FLOWS_WITH_RESULTS_ONLY = 6
+
+  @classmethod
+  def MaxValue(cls):
+    return cls.FLOWS_WITH_RESULTS_ONLY
 
 
 class ClientPath(object):
@@ -727,6 +752,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
                    user_type=None):
     """Writes user object for a user with a given name.
 
+    If a user with the given username exists, it is overwritten.
+
     Args:
       username: Name of a user to insert/update.
       password: If set, should be a string with a new encrypted user password.
@@ -1119,22 +1146,32 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadAllAuditEvents(self):
-    """Reads all audit events stored in the database.
+  def ReadAPIAuditEntries(self,
+                          username=None,
+                          router_method_name=None,
+                          min_timestamp=None,
+                          max_timestamp=None):
+    """Returns audit entries stored in the database.
 
     The event log is sorted according to their timestamp (with the oldest
     recorded event being first).
 
+    Args:
+      username: username associated with the audit entries
+      router_method_name: name of router method that handled the request
+      min_timestamp: minimum rdfvalue.RDFDateTime (inclusive)
+      max_timestamp: maximum rdfvalue.RDFDateTime (inclusive)
+
     Returns:
-      List of `rdf_events.AuditEvent` instances.
+      List of `rdfvalues.objects.APIAuditEntry` instances.
     """
 
   @abc.abstractmethod
-  def WriteAuditEvent(self, event):
-    """Writes an audit event to the database.
+  def WriteAPIAuditEntry(self, entry):
+    """Writes an audit entry to the database.
 
     Args:
-      event: An `rdf_events.AuditEvent` instance.
+      entry: An `audit.APIAuditEntry` instance.
     """
 
   @abc.abstractmethod
@@ -1423,6 +1460,10 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       A map of {blob_id: status} where status is a boolean (True if blob exists,
       False if it doesn't).
     """
+
+  # If we send a message unsuccessfully to a client five times, we just give up
+  # and remove the message to avoid endless repetition of some broken action.
+  CLIENT_MESSAGES_TTL = 5
 
   @abc.abstractmethod
   def WriteClientMessages(self, messages):
@@ -1840,6 +1881,158 @@ class Database(with_metaclass(abc.ABCMeta, object)):
         remain after deleting all older entries.
     """
 
+  @abc.abstractmethod
+  def WriteHuntObject(self, hunt_obj):
+    """Writes a hunt object to the database.
+
+    Args:
+      hunt_obj: An rdf_hunt_objects.Hunt object to write.
+    """
+
+  @abc.abstractmethod
+  def ReadHuntObject(self, hunt_id):
+    """Reads a hunt object from the database.
+
+    Args:
+      hunt_id: The id of the hunt to read.
+
+    Raises:
+      UnknownHuntError: if there's no hunt with the corresponding id.
+
+    Returns:
+      An rdf_hunt_objects.Hunt object.
+    """
+
+  @abc.abstractmethod
+  def ReadAllHuntObjects(self):
+    """Reads all hunt objects from the database.
+
+    Returns:
+      A list of rdf_hunt_objects.Hunt objects.
+    """
+
+  @abc.abstractmethod
+  def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):
+    """Reads hunt log entries of a given hunt using given query options.
+
+    Args:
+      hunt_id: The id of the hunt to read log entries for.
+      offset: An integer specifying an offset to be used when reading log
+        entries. "offset" is applied after the with_substring filter is applied
+        (if specified).
+      count: Number of log entries to read. "count" is applied after the
+        with_substring filter is applied (if specified).
+      with_substring: (Optional) When specified, should be a string. Only log
+        entries having the specified string as a message substring will be
+        returned.
+
+    Returns:
+      A list of FlowLogEntry values sorted by timestamp in ascending order.
+    """
+
+  @abc.abstractmethod
+  def CountHuntLogEntries(self, hunt_id):
+    """Returns number of hunt log entries of a given hunt.
+
+    Args:
+      hunt_id: The id of the hunt to count log entries for.
+
+    Returns:
+      Number of hunt log entries of a given hunt.
+    """
+
+  @abc.abstractmethod
+  def ReadHuntResults(self,
+                      hunt_id,
+                      offset,
+                      count,
+                      with_tag=None,
+                      with_type=None,
+                      with_substring=None):
+    """Reads hunt results of a given hunt using given query options.
+
+    If both with_tag and with_type and/or with_substring arguments are provided,
+    they will be applied using AND boolean operator.
+
+    Args:
+      hunt_id: The id of the hunt to read results for.
+      offset: An integer specifying an offset to be used when reading results.
+        "offset" is applied after with_tag/with_type/with_substring filters are
+        applied.
+      count: Number of results to read. "count" is applied after
+        with_tag/with_type/with_substring filters are applied.
+      with_tag: (Optional) When specified, should be a string. Only results
+        having specified tag will be returned.
+      with_type: (Optional) When specified, should be a string. Only results of
+        a specified type will be returned.
+      with_substring: (Optional) When specified, should be a string. Only
+        results having the specified string as a substring in their serialized
+        form will be returned.
+
+    Returns:
+      A list of FlowResult values sorted by timestamp in ascending order.
+    """
+
+  @abc.abstractmethod
+  def CountHuntResults(self, hunt_id, with_tag=None, with_type=None):
+    """Counts hunt results of a given hunt using given query options.
+
+    If both with_tag and with_type arguments are provided, they will be applied
+    using AND boolean operator.
+
+    Args:
+      hunt_id: The id of the hunt to count results for.
+      with_tag: (Optional) When specified, should be a string. Only results
+        having specified tag will be accounted for.
+      with_type: (Optional) When specified, should be a string. Only results of
+        a specified type will be accounted for.
+
+    Returns:
+      A number of hunt results of a given hunt matching given query options.
+    """
+
+  @abc.abstractmethod
+  def ReadHuntFlows(self,
+                    hunt_id,
+                    offset,
+                    count,
+                    filter_condition=HuntFlowsCondition.UNSET):
+    """Reads hunt flows matching given conditins.
+
+    If more than one condition is specified, all of them have to be fulfilled
+    for a particular flow object to be returned (i.e. they're applied with AND).
+
+    Args:
+      hunt_id: The id of the hunt to read log entries for.
+      offset: An integer specifying an offset to be used when reading results.
+        "offset" is applied after with_tag/with_type/with_substring filters are
+        applied.
+      count: Number of results to read. "count" is applied after
+        with_tag/with_type/with_substring filters are applied.
+      filter_condition: One of HuntFlowsCondition constants describing a
+        condition to filter ReadHuntFlows results.
+
+    Returns:
+      A list of Flow objects.
+    """
+
+  @abc.abstractmethod
+  def CountHuntFlows(self, hunt_id, filter_condition=HuntFlowsCondition.UNSET):
+    """Counts hunt flows matching given conditions.
+
+    If more than one condition is specified, all of them have to be fulfilled
+    for a particular flow object to be returned (i.e. they're applied with AND).
+
+    Args:
+      hunt_id: The id of the hunt to read log entries for.
+        with_tag/with_type/with_substring filters are applied.
+      filter_condition: One of HuntFlowsCondition constants describing a
+        condition to influence CountHuntFlows results.
+
+    Returns:
+      A number of flows matching the specified condition.
+    """
+
 
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
@@ -2244,12 +2437,20 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.UpdateUserNotifications(
         username, timestamps, state=state)
 
-  def ReadAllAuditEvents(self):
-    return self.delegate.ReadAllAuditEvents()
+  def ReadAPIAuditEntries(self,
+                          username=None,
+                          router_method_name=None,
+                          min_timestamp=None,
+                          max_timestamp=None):
+    return self.delegate.ReadAPIAuditEntries(
+        username=username,
+        router_method_name=router_method_name,
+        min_timestamp=min_timestamp,
+        max_timestamp=max_timestamp)
 
-  def WriteAuditEvent(self, event):
-    precondition.AssertType(event, rdf_events.AuditEvent)
-    return self.delegate.WriteAuditEvent(event)
+  def WriteAPIAuditEntry(self, entry):
+    precondition.AssertType(entry, rdf_objects.APIAuditEntry)
+    return self.delegate.WriteAPIAuditEntry(entry)
 
   def WriteMessageHandlerRequests(self, requests):
     precondition.AssertIterableType(requests, rdf_objects.MessageHandlerRequest)
@@ -2635,6 +2836,70 @@ class DatabaseValidationWrapper(Database):
 
     self.delegate.DeleteStatsStoreEntriesOlderThan(cutoff)
 
+  def WriteHuntObject(self, hunt_obj):
+    precondition.AssertType(hunt_obj, rdf_hunt_objects.Hunt)
+    self.delegate.WriteHuntObject(hunt_obj)
+
+  def ReadHuntObject(self, hunt_id):
+    _ValidateHuntId(hunt_id)
+    return self.delegate.ReadHuntObject(hunt_id)
+
+  def ReadAllHuntObjects(self):
+    return self.delegate.ReadAllHuntObjects()
+
+  def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):
+    _ValidateHuntId(hunt_id)
+    precondition.AssertOptionalType(with_substring, unicode)
+
+    return self.delegate.ReadHuntLogEntries(
+        hunt_id, offset, count, with_substring=with_substring)
+
+  def CountHuntLogEntries(self, hunt_id):
+    _ValidateHuntId(hunt_id)
+    return self.delegate.CountHuntLogEntries(hunt_id)
+
+  def ReadHuntResults(self,
+                      hunt_id,
+                      offset,
+                      count,
+                      with_tag=None,
+                      with_type=None,
+                      with_substring=None):
+    _ValidateHuntId(hunt_id)
+    precondition.AssertOptionalType(with_tag, unicode)
+    precondition.AssertOptionalType(with_type, unicode)
+    precondition.AssertOptionalType(with_substring, unicode)
+    return self.delegate.ReadHuntResults(
+        hunt_id,
+        offset,
+        count,
+        with_tag=with_tag,
+        with_type=with_type,
+        with_substring=with_substring)
+
+  def CountHuntResults(self, hunt_id, with_tag=None, with_type=None):
+    _ValidateHuntId(hunt_id)
+    precondition.AssertOptionalType(with_tag, unicode)
+    precondition.AssertOptionalType(with_type, unicode)
+    return self.delegate.CountHuntResults(
+        hunt_id, with_tag=with_tag, with_type=with_type)
+
+  def ReadHuntFlows(self,
+                    hunt_id,
+                    offset,
+                    count,
+                    filter_condition=HuntFlowsCondition.UNSET):
+    _ValidateHuntId(hunt_id)
+    _ValidateHuntFlowCondition(filter_condition)
+    return self.delegate.ReadHuntFlows(
+        hunt_id, offset, count, filter_condition=filter_condition)
+
+  def CountHuntFlows(self, hunt_id, filter_condition=HuntFlowsCondition.UNSET):
+    _ValidateHuntId(hunt_id)
+    _ValidateHuntFlowCondition(filter_condition)
+    return self.delegate.CountHuntFlows(
+        hunt_id, filter_condition=filter_condition)
+
 
 def _ValidateEnumType(value, expected_enum_type):
   if value not in expected_enum_type.reverse_enum:
@@ -2807,3 +3072,8 @@ def _ValidateStatsStoreEntries(stats_entries):
           "defined to have %d fields." % (stats_entry.metric_name,
                                           num_field_values,
                                           expected_num_field_values))
+
+
+def _ValidateHuntFlowCondition(value):
+  if value < 0 or value > HuntFlowsCondition.MaxValue():
+    raise ValueError("Invalid hunt flow condition: %d" % value)

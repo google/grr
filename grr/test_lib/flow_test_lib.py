@@ -603,7 +603,7 @@ def RunFlow(client_id,
 
   if worker is None:
     test_worker = TestWorker(token=True)
-    data_store.REL_DB.RegisterFlowProcessingHandler(worker.ProcessFlow)
+    data_store.REL_DB.RegisterFlowProcessingHandler(test_worker.ProcessFlow)
   else:
     test_worker = worker
 
@@ -630,7 +630,7 @@ def RunFlow(client_id,
   finally:
     if worker is None:
       data_store.REL_DB.UnregisterFlowProcessingHandler()
-      worker.Shutdown()
+      test_worker.Shutdown()
 
 
 def GetFlowResults(client_id, flow_id):

@@ -46,6 +46,29 @@ class DatabaseTestUsersMixin(object):
 
     self.assertEqual(u_expected, u)
 
+  def testInsertUserTwice(self):
+    d = self.db
+
+    d.WriteGRRUser("foo")
+    d.WriteGRRUser("foo")
+    u = d.ReadGRRUser("foo")
+    u_expected = rdf_objects.GRRUser(username="foo")
+
+    self.assertEqual(u_expected, u)
+
+  def testUpdateUserTwice(self):
+    d = self.db
+
+    d.WriteGRRUser(
+        "foo", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_STANDARD)
+    d.WriteGRRUser(
+        "foo", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+    u = d.ReadGRRUser("foo")
+    u_expected = rdf_objects.GRRUser(
+        username="foo", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+
+    self.assertEqual(u_expected, u)
+
   def testReadingUnknownGRRUserFails(self):
     d = self.db
 

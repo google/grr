@@ -29,6 +29,7 @@ from builtins import filter  # pylint: disable=redefined-builtin
 import dateutil
 from dateutil import parser
 from future.utils import iteritems
+from future.utils import string_types
 from future.utils import with_metaclass
 from past.builtins import long
 from typing import cast
@@ -771,7 +772,7 @@ class Duration(RDFInteger):
     super(Duration, self).__init__(None, age)
     if isinstance(initializer, Duration):
       self._value = initializer._value  # pylint: disable=protected-access
-    elif isinstance(initializer, basestring):
+    elif isinstance(initializer, string_types):
       self.ParseFromHumanReadable(initializer)
     elif isinstance(initializer, (int, long, float)):
       self._value = initializer
@@ -921,7 +922,7 @@ class ByteSize(RDFInteger):
     super(ByteSize, self).__init__(None, age)
     if isinstance(initializer, ByteSize):
       self._value = initializer._value  # pylint: disable=protected-access
-    elif isinstance(initializer, basestring):
+    elif isinstance(initializer, string_types):
       self.ParseFromHumanReadable(initializer)
     elif isinstance(initializer, (int, long, float)):
       self._value = initializer
@@ -1075,7 +1076,7 @@ class RDFURN(RDFPrimitive):
     Raises:
        ValueError: if the path component is not a string.
     """
-    if not isinstance(path, basestring):
+    if not isinstance(path, string_types):
       raise ValueError("Only strings should be added to a URN.")
 
     result = self.Copy(age)
@@ -1109,7 +1110,7 @@ class RDFURN(RDFPrimitive):
     return utils.SmartUnicode(u"aff4:%s" % self._string_urn)
 
   def __eq__(self, other):
-    if isinstance(other, basestring):
+    if isinstance(other, string_types):
       other = self.__class__(other)
 
     elif other is None:

@@ -21,6 +21,7 @@ from builtins import range  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
+from future.utils import string_types
 from future.utils import with_metaclass
 
 from grr_response_core import config
@@ -979,7 +980,7 @@ class Factory(object):
     Raises:
       ValueError: A string was passed instead of an iterable.
     """
-    if isinstance(urns, basestring):
+    if isinstance(urns, string_types):
       raise ValueError("Expected an iterable, not string.")
     for subject, values in data_store.DB.MultiResolvePrefix(
         urns, ["aff4:type", "metadata:last"]):
@@ -2145,7 +2146,7 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
     if attribute is None:
       return []
 
-    elif isinstance(attribute, basestring):
+    elif isinstance(attribute, string_types):
       attribute = Attribute.GetAttributeByName(attribute)
 
     return attribute.GetValues(self)
@@ -2273,7 +2274,7 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
     if owner is None and not self.token:
       raise ValueError("Can't set label: No owner specified and "
                        "no access token available.")
-    if isinstance(labels_names, basestring):
+    if isinstance(labels_names, string_types):
       raise ValueError("Label list can't be string.")
 
     owner = owner or self.token.username
@@ -2294,7 +2295,7 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
     if owner is None and not self.token:
       raise ValueError("Can't remove label: No owner specified and "
                        "no access token available.")
-    if isinstance(labels_names, basestring):
+    if isinstance(labels_names, string_types):
       raise ValueError("Label list can't be string.")
 
     owner = owner or self.token.username
@@ -3150,20 +3151,3 @@ def issubclass(obj, cls):  # pylint: disable=redefined-builtin,g-bad-name
     True if obj is a subclass of cls and False otherwise.
   """
   return isinstance(obj, type) and __builtin__.issubclass(obj, cls)
-
-
-def AuditLogBase():
-  return ROOT_URN.Add("audit").Add("logs")
-
-
-AUDIT_ROLLOVER_TIME = rdfvalue.Duration("2w")
-
-
-def CurrentAuditLog():
-  """Get the rdfurn of the current audit log."""
-  now_sec = rdfvalue.RDFDatetime.Now().AsSecondsSinceEpoch()
-  rollover_seconds = AUDIT_ROLLOVER_TIME.seconds
-  # This gives us a filename that only changes every
-  # AUDIT_ROLLOVER_TIME seconds, but is still a valid timestamp.
-  current_log = (now_sec // rollover_seconds) * rollover_seconds
-  return AuditLogBase().Add(str(current_log))

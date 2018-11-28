@@ -14,6 +14,7 @@ from future.utils import itervalues
 from future.utils import viewkeys
 
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
+from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
@@ -649,3 +650,19 @@ class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
               start=self.start,
               end=self.end)
       self.HeartBeat()
+
+
+class PurgeServerStatsCronJob(cronjobs.SystemCronJobBase):
+  """Cronjob that deletes old stats entries from the relational DB."""
+
+  frequency = rdfvalue.Duration("3h")
+  lifetime = rdfvalue.Duration("1h")
+
+  def Run(self):
+    # Old stats in the legacy datastore get deleted after every write.
+    if not data_store.RelationalDBReadEnabled(category="stats"):
+      return
+    stats_ttl = (
+        rdfvalue.Duration("1h") * config.CONFIG["StatsStore.stats_ttl_hours"])
+    cutoff = rdfvalue.RDFDatetime.Now() - stats_ttl
+    data_store.REL_DB.DeleteStatsStoreEntriesOlderThan(cutoff)

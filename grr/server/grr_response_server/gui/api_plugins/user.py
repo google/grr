@@ -1782,11 +1782,17 @@ class ApiListAndResetUserNotificationsHandler(
 
     start = args.offset
     end = args.offset + args.count
+
+    api_notifications = []
+
+    for n in ns[start:end]:
+      try:
+        api_notifications.append(ApiNotification().InitFromUserNotification(n))
+      except ValueError as e:
+        logging.error("Unable to convert notification %s: %s", n, e)
+
     return ApiListAndResetUserNotificationsResult(
-        items=[
-            ApiNotification().InitFromUserNotification(n) for n in ns[start:end]
-        ],
-        total_count=total_count)
+        items=api_notifications, total_count=total_count)
 
   def Handle(self, args, token=None):
     """Fetches the user notifications."""

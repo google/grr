@@ -85,7 +85,7 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
     AddFakeAuditLog("Fake audit description bar.", token=self.token)
 
     audit_events = {
-        ev.description: ev for fd in audit.AuditLogsForTimespan(
+        ev.description: ev for fd in audit.LegacyAuditLogsForTimespan(
             rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d"),
             rdfvalue.RDFDatetime.Now(),
             token=self.token) for ev in fd.GenerateItems()

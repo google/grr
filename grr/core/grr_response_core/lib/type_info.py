@@ -13,6 +13,7 @@ import logging
 
 
 from future.utils import itervalues
+from future.utils import string_types
 from future.utils import with_metaclass
 from past.builtins import long
 
@@ -344,7 +345,7 @@ class List(TypeInfoObject):
 
   def Validate(self, value):
     """Validate a potential list."""
-    if isinstance(value, basestring):
+    if isinstance(value, string_types):
       raise TypeValueError("Value must be an iterable not a string.")
 
     elif not isinstance(value, (list, tuple)):
@@ -377,7 +378,7 @@ class String(TypeInfoObject):
     super(String, self).__init__(**defaults)
 
   def Validate(self, value):
-    if not isinstance(value, basestring):
+    if not isinstance(value, string_types):
       raise TypeValueError("%s: %s not a valid string" % (self.name, value))
 
     # A String means a unicode String. We must be dealing with unicode strings

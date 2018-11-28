@@ -11,6 +11,7 @@ import subprocess
 
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
+from future.utils import string_types
 from past.builtins import long
 
 # kCFStringEncodingUTF8
@@ -312,7 +313,7 @@ class CFString(CFType):
     if isinstance(obj, (ctypes.c_void_p, int)):
       super(CFString, self).__init__(obj)
       self.dll.CFRetain(obj)
-    elif isinstance(obj, basestring):
+    elif isinstance(obj, string_types):
       super(CFString, self).__init__(None)
       self.ref = self.PyStringToCFString(obj)
     else:
@@ -373,7 +374,7 @@ class CFDictionary(CFType):
   def __getitem__(self, key):
     if isinstance(key, CFType):
       cftype_key = key
-    if isinstance(key, basestring):
+    if isinstance(key, string_types):
       cftype_key = CFString(key)
     elif isinstance(key, (int, long)):
       cftype_key = CFNumber(key)

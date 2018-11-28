@@ -1187,7 +1187,7 @@
         "max_depth": 1
       },
       "response": {
-        "operation_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+        "operation_id": "W:ABCDEF"
       },
       "test_class": "ApiCreateVfsRefreshOperationHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations"
@@ -11746,7 +11746,7 @@
         "state": "RUNNING"
       },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
+      "url": "/api/clients/C.1000000000000000/vfs-update/W:ABCDEF"
     },
     {
       "api_method": "GetVfsFileContentUpdateState",
@@ -11755,16 +11755,16 @@
         "state": "FINISHED"
       },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
+      "url": "/api/clients/C.1000000000000000/vfs-update/W:ABCDEF"
     },
     {
       "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
       "response": {
-        "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
+        "message": "Operation with id W:ABCDEF not found"
       },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
+      "url": "/api/clients/C.1000000000000000/vfs-update/W:ABCDEF"
     },
     {
       "api_method": "GetVfsFileContentUpdateState",
@@ -11784,7 +11784,7 @@
         "state": "RUNNING"
       },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
+      "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/W:ABCDEF"
     },
     {
       "api_method": "GetVfsRefreshOperationState",
@@ -11793,16 +11793,16 @@
         "state": "FINISHED"
       },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
+      "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/W:ABCDEF"
     },
     {
       "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
       "response": {
-        "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
+        "message": "Operation with id W:ABCDEF not found"
       },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
+      "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/W:ABCDEF"
     },
     {
       "api_method": "GetVfsRefreshOperationState",
@@ -20004,7 +20004,7 @@
         "file_path": "fs/os/c/bin/bash"
       },
       "response": {
-        "operation_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+        "operation_id": "W:ABCDEF"
       },
       "test_class": "ApiUpdateVfsFileContentHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-update"

@@ -25,6 +25,8 @@ from cryptography.hazmat.primitives.ciphers import modes
 from cryptography.hazmat.primitives.kdf import pbkdf2
 from cryptography.x509 import oid
 
+from future.utils import string_types
+
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -64,7 +66,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     if self._value is None and initializer is not None:
       if isinstance(initializer, x509.Certificate):
         self._value = initializer
-      elif isinstance(initializer, basestring):
+      elif isinstance(initializer, string_types):
         self.ParseFromString(initializer)
       else:
         raise rdfvalue.InitializeError(
@@ -211,7 +213,7 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
     if self._value is None:
       if isinstance(initializer, x509.CertificateSigningRequest):
         self._value = initializer
-      elif isinstance(initializer, basestring):
+      elif isinstance(initializer, string_types):
         self.ParseFromString(initializer)
       elif common_name and private_key:
         self._value = x509.CertificateSigningRequestBuilder().subject_name(

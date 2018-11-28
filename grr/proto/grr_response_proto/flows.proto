@@ -2177,7 +2177,11 @@ message FlowResponse {
   optional string tag = 6;
 }
 
+// Next id: 7
 message FlowResult {
+  optional string client_id = 4;
+  optional string flow_id = 5;
+  optional string hunt_id = 6;
   optional uint64 timestamp = 1 [(sem_type) = {
       type: "RDFDatetime",
     }];
@@ -2185,7 +2189,11 @@ message FlowResult {
   optional google.protobuf.Any payload = 3;
 }
 
+// Next id: 6
 message FlowLogEntry {
+  optional string client_id = 3;
+  optional string flow_id = 4;
+  optional string hunt_id = 5;
   optional uint64 timestamp = 1 [(sem_type) = {
       type: "RDFDatetime",
     }];

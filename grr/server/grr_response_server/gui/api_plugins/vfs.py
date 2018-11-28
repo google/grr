@@ -7,6 +7,7 @@ import itertools
 import logging
 import os
 import re
+import stat
 import zipfile
 
 
@@ -20,6 +21,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import context
@@ -36,6 +38,7 @@ from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
 from grr_response_server.flows.general import filesystem
+from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -328,15 +331,15 @@ def _GenerateApiFileDetails(path_infos):
 
     type_attrs.append(_Value(pi.timestamp, rdfvalue.RDFString(object_type)))
 
-    pathspec = pi.AsPathSpec()
-    pathspec_attrs.append(_Value(pi.timestamp, pathspec))
-
     if pi.hash_entry:
       hash_attrs.append(_Value(pi.timestamp, pi.hash_entry))
       size_attrs.append(
           _Value(pi.timestamp, rdfvalue.RDFInteger(pi.hash_entry.num_bytes)))
     if pi.stat_entry:
       stat_attrs.append(_Value(pi.timestamp, pi.stat_entry))
+
+      if pi.stat_entry.pathspec:
+        pathspec_attrs.append(_Value(pi.timestamp, pi.stat_entry.pathspec))
 
   return ApiAff4ObjectRepresentation(types=[
       ApiAff4ObjectType(
@@ -448,29 +451,23 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
     last_path_info = path_infos[0]
 
-    last_collected = None
-    last_collected_size = None
-
     last_collection_pi = file_store.GetLastCollectionPathInfo(
         db.ClientPath.FromPathInfo(client_id, last_path_info),
         max_timestamp=args.timestamp)
-    if last_collection_pi:
-      last_collected = last_collection_pi.timestamp
-      last_collected_size = last_collection_pi.hash_entry.num_bytes
 
     file_obj = ApiFile(
         name=components[-1],
         path=rdf_objects.ToCategorizedPath(path_type, components),
         stat=last_path_info.stat_entry,
         hash=last_path_info.hash_entry,
-        last_collected=last_collected,
-        last_collected_size=last_collected_size,
         details=_GenerateApiFileDetails(path_infos),
-        # Setting is_directory explicitly to preserve GRR's HTTP API
-        # historical behavior.
-        is_directory=False,
+        is_directory=stat.S_ISDIR(last_path_info.stat_entry.st_mode),
         age=last_path_info.timestamp,
     )
+
+    if last_collection_pi:
+      file_obj.last_collected = last_collection_pi.timestamp
+      file_obj.last_collected_size = last_collection_pi.hash_entry.num_bytes
 
     return ApiGetFileDetailsResult(file=file_obj)
 
@@ -599,8 +596,9 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
         child_item.stat = child_path_info.stat_entry
       child_item.age = child_path_info.timestamp
 
-      child_item.last_collected = child_path_info.last_hash_entry_timestamp
-      child_item.last_collected_size = child_path_info.hash_entry.num_bytes
+      if child_path_info.last_hash_entry_timestamp:
+        child_item.last_collected = child_path_info.last_hash_entry_timestamp
+        child_item.last_collected_size = child_path_info.hash_entry.num_bytes
 
       items.append(child_item)
 
@@ -1031,9 +1029,74 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiCreateVfsRefreshOperationArgs
   result_type = ApiCreateVfsRefreshOperationResult
 
+  def _FindPathspec(self, args):
+    path_type, components = rdf_objects.ParseCategorizedPath(
+        args.file_path.rstrip("/"))
+
+    components_copy = components[:]
+    all_components = []
+    while components_copy:
+      all_components.append(components_copy)
+      components_copy = components_copy[:-1]
+
+    res = data_store.REL_DB.ReadPathInfos(
+        unicode(args.client_id), path_type, all_components)
+
+    for k in sorted(res, key=len, reverse=True):
+      path_info = res[k]
+      if path_info.stat_entry and path_info.stat_entry.pathspec:
+        ps = path_info.stat_entry.pathspec
+
+        if len(k) < len(components):
+          new_path = utils.JoinPath(*components[len(k):])
+          ps.Append(
+              rdf_paths.PathSpec(path=new_path, pathtype=ps.last.pathtype))
+        return ps
+
+    # We don't have any pathspec in the database so we just send the path we
+    # have with the correct path type and hope for the best.
+    pathspec = rdf_paths.PathSpec(path="/".join(components))
+
+    if path_type == self.PathType.TSK:
+      pathspec.pathtype = pathspec.PathType.TSK
+    elif path_type == self.PathType.OS:
+      pathspec.pathtype = pathspec.PathType.OS
+    elif path_type == self.PathType.REGISTRY:
+      pathspec.pathtype = pathspec.PathType.REGISTRY
+    elif path_type == self.PathType.TEMP:
+      pathspec.pathtype = pathspec.PathType.TMPFILE
+    else:
+      raise ValueError("Invalid path_type: %r" % self.path_type)
+
+    return pathspec
+
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
+    if data_store.RelationalDBFlowsEnabled():
+      return self._HandleRelational(args, token=token)
+    else:
+      return self._HandleLegacy(args, token=token)
+
+  def _HandleRelational(self, args, token=None):
+    if args.max_depth == 1:
+      flow_args = filesystem.ListDirectoryArgs(
+          pathspec=self._FindPathspec(args))
+      flow_cls = filesystem.ListDirectory
+    else:
+      flow_args = filesystem.RecursiveListDirectoryArgs(
+          pathspec=self._FindPathspec(args), max_depth=args.max_depth)
+      flow_cls = filesystem.RecursiveListDirectory
+
+    flow_id = flow.StartFlow(
+        client_id=unicode(args.client_id),
+        flow_cls=flow_cls,
+        flow_args=flow_args,
+        creator=token.username if token else None)
+
+    return ApiCreateVfsRefreshOperationResult(operation_id=flow_id)
+
+  def _HandleLegacy(self, args, token=None):
     aff4_path = args.client_id.ToClientURN().Add(args.file_path)
     fd = aff4.FACTORY.Open(aff4_path, token=token)
 
@@ -1058,7 +1121,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
           notify_to_user=args.notify_user,
           token=token)
 
-    return ApiCreateVfsRefreshOperationResult(operation_id=str(flow_urn))
+    return ApiCreateVfsRefreshOperationResult(operation_id=flow_urn.Basename())
 
 
 class ApiGetVfsRefreshOperationStateArgs(rdf_structs.RDFProtoStruct):
@@ -1087,28 +1150,43 @@ class ApiGetVfsRefreshOperationStateHandler(
 
   def Handle(self, args, token=None):
     if data_store.RelationalDBFlowsEnabled():
-      flow_id = args.operation_id.split("/")[-1]
-      try:
-        rdf_flow = data_store.REL_DB.ReadFlowObject(
-            unicode(args.client_id), flow_id)
-      except db.UnknownFlowError:
-        self._RaiseOperationNotFoundError(args)
-
-      if rdf_flow.flow_class_name not in [
-          "RecursiveListDirectory", "ListDirectory"
-      ]:
-        self._RaiseOperationNotFoundError(args)
-
-      complete = rdf_flow.flow_state != "RUNNING"
+      return self._HandleRelational(args)
     else:
-      flow_obj = aff4.FACTORY.Open(args.operation_id, token=token)
+      return self._HandleLegacy(args, token=token)
 
-      if not isinstance(
-          flow_obj,
-          (aff4_flows.RecursiveListDirectory, aff4_flows.ListDirectory)):
-        self._RaiseOperationNotFoundError(args)
+  def _HandleRelational(self, args):
+    try:
+      rdf_flow = data_store.REL_DB.ReadFlowObject(
+          unicode(args.client_id), unicode(args.operation_id))
+    except db.UnknownFlowError:
+      self._RaiseOperationNotFoundError(args)
 
-      complete = not flow_obj.GetRunner().IsRunning()
+    if rdf_flow.flow_class_name not in [
+        "RecursiveListDirectory", "ListDirectory"
+    ]:
+      self._RaiseOperationNotFoundError(args)
+
+    complete = rdf_flow.flow_state != "RUNNING"
+    result = ApiGetVfsRefreshOperationStateResult()
+    if complete:
+      result.state = ApiGetVfsRefreshOperationStateResult.State.FINISHED
+    else:
+      result.state = ApiGetVfsRefreshOperationStateResult.State.RUNNING
+
+    return result
+
+  def _HandleLegacy(self, args, token=None):
+    client_urn = args.client_id.ToClientURN()
+    flow_urn = client_urn.Add("flows").Add(args.operation_id)
+
+    flow_obj = aff4.FACTORY.Open(flow_urn, token=token)
+
+    if not isinstance(
+        flow_obj,
+        (aff4_flows.RecursiveListDirectory, aff4_flows.ListDirectory)):
+      self._RaiseOperationNotFoundError(args)
+
+    complete = not flow_obj.GetRunner().IsRunning()
 
     result = ApiGetVfsRefreshOperationStateResult()
     if complete:
@@ -1212,17 +1290,17 @@ def _GetTimelineItems(client_id, file_path):
 
   items = []
 
-  for file_path, stat, _ in _GetTimelineStatEntries(
+  for file_path, stat_entry, _ in _GetTimelineStatEntries(
       client_id, file_path, with_history=True):
 
     # It may be that for a given timestamp only hash entry is available, we're
     # skipping those.
-    if stat is None:
+    if stat_entry is None:
       continue
 
     # Add a new event for each MAC time if it exists.
     for c in "mac":
-      timestamp = getattr(stat, "st_%stime" % c)
+      timestamp = getattr(stat_entry, "st_%stime" % c)
       if timestamp is None:
         continue
 
@@ -1391,12 +1469,36 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
+    if data_store.RelationalDBFlowsEnabled():
+      return self._HandleRelational(args)
+    else:
+      return self._HandleLegacy(args, token=token)
+
+  def _HandleLegacy(self, args, token=None):
     aff4_path = args.client_id.ToClientURN().Add(args.file_path)
     fd = aff4.FACTORY.Open(
         aff4_path, aff4_type=aff4_grr.VFSFile, mode="rw", token=token)
     flow_urn = fd.Update()
 
-    return ApiUpdateVfsFileContentResult(operation_id=str(flow_urn))
+    return ApiUpdateVfsFileContentResult(operation_id=flow_urn.Basename())
+
+  def _HandleRelational(self, args):
+    path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
+
+    path_info = data_store.REL_DB.ReadPathInfo(
+        unicode(args.client_id), path_type, components)
+
+    if (not path_info or not path_info.stat_entry or
+        not path_info.stat_entry.pathspec):
+      raise FileNotFoundError("Unable to download file %s." % args.file_path)
+
+    flow_args = transfer.MultiGetFileArgs(
+        pathspecs=[path_info.stat_entry.pathspec])
+    flow_id = flow.StartFlow(
+        client_id=unicode(args.client_id),
+        flow_cls=transfer.MultiGetFile,
+        flow_args=flow_args)
+    return ApiUpdateVfsFileContentResult(operation_id=flow_id)
 
 
 class ApiGetVfsFileContentUpdateStateArgs(rdf_structs.RDFProtoStruct):
@@ -1419,10 +1521,32 @@ class ApiGetVfsFileContentUpdateStateHandler(
   args_type = ApiGetVfsFileContentUpdateStateArgs
   result_type = ApiGetVfsFileContentUpdateStateResult
 
-  def Handle(self, args, token=None):
+  def _HandleRelational(self, args):
     try:
+      rdf_flow = data_store.REL_DB.ReadFlowObject(
+          unicode(args.client_id), unicode(args.operation_id))
+    except db.UnknownFlowError:
+      raise VfsFileContentUpdateNotFoundError(
+          "Operation with id %s not found" % args.operation_id)
+
+    if rdf_flow.flow_class_name != "MultiGetFile":
+      raise VfsFileContentUpdateNotFoundError(
+          "Operation with id %s not found" % args.operation_id)
+
+    result = ApiGetVfsFileContentUpdateStateResult()
+    if rdf_flow.flow_state == "RUNNING":
+      result.state = ApiGetVfsFileContentUpdateStateResult.State.RUNNING
+    else:
+      result.state = ApiGetVfsFileContentUpdateStateResult.State.FINISHED
+
+    return result
+
+  def _HandleLegacy(self, args, token=None):
+    try:
+      client_urn = args.client_id.ToClientURN()
+      flow_urn = client_urn.Add("flows").Add(args.operation_id)
       flow_obj = aff4.FACTORY.Open(
-          args.operation_id, aff4_type=aff4_flows.MultiGetFile, token=token)
+          flow_urn, aff4_type=aff4_flows.MultiGetFile, token=token)
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
       raise VfsFileContentUpdateNotFoundError(
@@ -1435,6 +1559,12 @@ class ApiGetVfsFileContentUpdateStateHandler(
       result.state = ApiGetVfsFileContentUpdateStateResult.State.RUNNING
 
     return result
+
+  def Handle(self, args, token=None):
+    if data_store.RelationalDBFlowsEnabled():
+      return self._HandleRelational(args)
+    else:
+      return self._HandleLegacy(args, token=token)
 
 
 class ApiGetVfsFilesArchiveArgs(rdf_structs.RDFProtoStruct):

@@ -10,6 +10,7 @@ import time
 
 
 from future.utils import iteritems
+from future.utils import string_types
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -133,7 +134,7 @@ class FakeDataStore(data_store.DataStore):
                        end=None,
                        sync=None):
     _ = sync  # Unimplemented.
-    if isinstance(attributes, basestring):
+    if isinstance(attributes, string_types):
       raise ValueError(
           "String passed to DeleteAttributes (non string iterable expected).")
 
@@ -307,7 +308,7 @@ class FakeDataStore(data_store.DataStore):
 
     # TODO(hanuszczak): Make this function accept only one attribute prefix and
     # only a unicode object.
-    if isinstance(attribute_prefix, basestring):
+    if isinstance(attribute_prefix, string_types):
       attribute_prefix = [attribute_prefix]
 
     try:

@@ -60,7 +60,7 @@ class EventsTest(flow_test_lib.FlowTestsBaseclass):
     worker.Simulate()
 
     log_entries = []
-    for log in audit.AllAuditLogs(token=self.token):
+    for log in audit._AllLegacyAuditLogs(token=self.token):
       log_entries.extend(log)
 
     self.assertEqual(len(log_entries), 3)

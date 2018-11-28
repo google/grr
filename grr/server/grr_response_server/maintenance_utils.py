@@ -9,6 +9,8 @@ import logging
 import sys
 
 
+
+from future.utils import string_types
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import events as rdf_events
@@ -197,7 +199,7 @@ def UpdateUser(username,
 
   # Note this accepts blank passwords as valid.
   if password:
-    if not isinstance(password, basestring):
+    if not isinstance(password, string_types):
       password = getpass.getpass(
           prompt="Please enter password for user '%s': " % username)
     fd.SetPassword(password)

@@ -3,74 +3,78 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_server.databases import mysql_utils
+from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+def _AuditEntryFromRow(details, timestamp):
+  entry = rdf_objects.APIAuditEntry.FromSerializedString(details)
+  entry.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
+  return entry
 
 
 class MySQLDBEventMixin(object):
   """MySQLDB mixin for event handling."""
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadAllAuditEvents(self, cursor=None):
-    """Reads all audit events stored in the database."""
-    cursor.execute("""
-        SELECT username, urn, client_id, timestamp, details
-        FROM audit_event
-        ORDER BY timestamp
-    """)
+  def ReadAPIAuditEntries(self,
+                          username=None,
+                          router_method_name=None,
+                          min_timestamp=None,
+                          max_timestamp=None,
+                          cursor=None):
+    """Returns audit entries stored in the database."""
 
-    result = []
-    for username, urn, client_id, timestamp, details in cursor.fetchall():
-      event = rdf_events.AuditEvent.FromSerializedString(details)
-      event.user = username
-      if urn:
-        event.urn = rdfvalue.RDFURN(urn)
-      if client_id is not None:
-        event.client = rdf_client.ClientURN(
-            mysql_utils.IntToClientID(client_id))
-      event.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
-      result.append(event)
+    query = """SELECT details, timestamp
+        FROM admin_ui_access_audit_entry
+        WHERE_PLACEHOLDER
+        ORDER BY timestamp ASC
+    """
 
-    return result
+    conditions = []
+    values = []
+    where = ""
+
+    if username is not None:
+      conditions.append("username = %s")
+      values.append(username)
+
+    if router_method_name is not None:
+      conditions.append("router_method_name = %s")
+      values.append(router_method_name)
+
+    if min_timestamp is not None:
+      conditions.append("timestamp >= %s")
+      values.append(mysql_utils.RDFDatetimeToMysqlString(min_timestamp))
+
+    if max_timestamp is not None:
+      conditions.append("timestamp <= %s")
+      values.append(mysql_utils.RDFDatetimeToMysqlString(max_timestamp))
+
+    if conditions:
+      where = "WHERE " + " AND ".join(conditions)
+
+    query = query.replace("WHERE_PLACEHOLDER", where)
+    cursor.execute(query, values)
+
+    return [
+        _AuditEntryFromRow(details, timestamp)
+        for details, timestamp in cursor.fetchall()
+    ]
 
   @mysql_utils.WithTransaction()
-  def WriteAuditEvent(self, event, cursor=None):
-    """Writes an audit event to the database."""
-    event = event.Copy()
-
-    if event.HasField("user"):
-      username = event.user
-      event.user = None
-    else:
-      username = None
-
-    if event.HasField("urn"):
-      urn = str(event.urn)
-      event.urn = None
-    else:
-      urn = None
-
-    if event.HasField("client"):
-      client_id = mysql_utils.ClientIDToInt(event.client.Basename())
-      event.client = None
-    else:
-      client_id = None
-
-    if event.HasField("timestamp"):
-      timestamp = mysql_utils.RDFDatetimeToMysqlString(event.timestamp)
-      event.timestamp = None
-    else:
-      timestamp = mysql_utils.RDFDatetimeToMysqlString(
-          rdfvalue.RDFDatetime.Now())
-
-    details = event.SerializeToString()
+  def WriteAPIAuditEntry(self, entry, cursor=None):
+    """Writes an audit entry to the database."""
 
     query = """
-    INSERT INTO audit_event (username, urn, client_id, timestamp, details)
-    VALUES (%s, %s, %s, %s, %s)
+    INSERT INTO admin_ui_access_audit_entry
+        (username, router_method_name, timestamp, details)
+    VALUES
+        (%(username)s, %(router_method_name)s, CURRENT_TIMESTAMP(6), %(details)s)
     """
-    values = (username, urn, client_id, timestamp, details)
-
-    cursor.execute(query, values)
+    cursor.execute(
+        query, {
+            "username": entry.username,
+            "router_method_name": entry.router_method_name,
+            "details": entry.SerializeToString()
+        })

@@ -27,6 +27,7 @@ from grr_response_server.databases import mysql_ddl
 from grr_response_server.databases import mysql_events
 from grr_response_server.databases import mysql_flows
 from grr_response_server.databases import mysql_foreman_rules
+from grr_response_server.databases import mysql_hunts
 from grr_response_server.databases import mysql_paths
 from grr_response_server.databases import mysql_pool
 from grr_response_server.databases import mysql_stats
@@ -61,6 +62,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
               mysql_events.MySQLDBEventMixin,
               mysql_flows.MySQLDBFlowMixin,
               mysql_foreman_rules.MySQLDBForemanRulesMixin,
+              mysql_hunts.MySQLDBHuntMixin,
               mysql_paths.MySQLDBPathMixin,
               mysql_stats.MySQLDBStatsMixin,
               mysql_users.MySQLDBUsersMixin,

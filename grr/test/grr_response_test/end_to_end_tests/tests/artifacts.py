@@ -76,7 +76,7 @@ class TestParserDependency(test_base.EndToEndTest):
     for r in results:
       self.assertTrue(r.payload.temp)
 
-    self.assertNonEmpty([r for r in results if r.payload.appdata])
+    self.assertNotEmpty([r for r in results if r.payload.appdata])
 
 
 class TestWindowsRegistryCollector(test_base.EndToEndTest):

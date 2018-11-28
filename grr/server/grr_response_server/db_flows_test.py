@@ -171,6 +171,34 @@ class DatabaseTestFlowMixin(object):
     task_ids = [m.task_id for m in leased]
     self.assertEqual(task_ids, sorted(task_ids))
 
+  def testClientMessagesTTL(self):
+    client_id = self.InitializeClient()
+    messages = [
+        rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
+        for _ in range(10)
+    ]
+    self.db.WriteClientMessages(messages)
+
+    now = rdfvalue.RDFDatetime.Now()
+    lease_time = rdfvalue.Duration("60s")
+
+    for _ in range(db.Database.CLIENT_MESSAGES_TTL):
+      now += rdfvalue.Duration("120s")
+      with test_lib.FakeTime(now):
+        leased = self.db.LeaseClientMessages(
+            client_id, lease_time=lease_time, limit=10)
+        self.assertLen(leased, 10)
+
+    now += rdfvalue.Duration("120s")
+    with test_lib.FakeTime(now):
+      leased = self.db.LeaseClientMessages(
+          client_id, lease_time=lease_time, limit=10)
+      self.assertLen(leased, 0)
+
+    # ReadClientMessages includes also messages whose TTL has expired. Make sure
+    # that the messages have been deleted from the db.
+    self.assertEqual(self.db.ReadClientMessages(client_id), [])
+
   def testFlowWritingUnknownClient(self):
     flow_id = u"1234ABCD"
     client_id = u"C.1234567890123456"

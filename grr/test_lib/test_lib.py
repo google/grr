@@ -100,7 +100,7 @@ class GRRBaseTest(absltest.TestCase):
     filestore.FileStoreInit().Run()
     hunts_results.ResultQueueInitHook().Run()
     email_alerts.EmailAlerterInit().RunOnce()
-    audit.AuditEventListener.created_logs.clear()
+    audit.AuditEventListener._created_logs.clear()
 
     # Stub out the email function
     self.emails_sent = []

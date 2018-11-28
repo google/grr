@@ -805,6 +805,7 @@ class RelationalFlowFileFinderTest(db_test_lib.RelationalFlowsEnabledMixin,
   flow_base_cls = flow_base.FlowBase
 
 
+@db_test_lib.DualFlowTest
 class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the ClientFileFinder flow."""
 
@@ -823,9 +824,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         process_non_regular_files=True,
         token=self.token)
 
-    collection = flow.GRRFlow.ResultCollectionForFID(session_id)
-    results = list(collection)
-    return results
+    return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
   def testClientFileFinder(self):
     paths = [os.path.join(self.base_path, "{**,.}/*.plist")]

@@ -3,6 +3,8 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from future.utils import string_types
+
 from grr_response_core import config
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -42,7 +44,7 @@ class ClientApprovalAuthorization(rdf_structs.RDFProtoStruct):
 
   @label.setter
   def label(self, value):
-    if not isinstance(value, basestring) or not value:
+    if not isinstance(value, string_types) or not value:
       raise ErrorInvalidClientApprovalAuthorization(
           "label must be a non-empty string")
     self.Set("label", value)

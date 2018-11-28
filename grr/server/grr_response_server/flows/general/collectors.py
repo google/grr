@@ -8,6 +8,7 @@ import logging
 
 from builtins import map  # pylint: disable=redefined-builtin
 from future.utils import iteritems
+from future.utils import string_types
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
@@ -479,7 +480,7 @@ class ArtifactCollectorFlowMixin(object):
     """
     new_args = {}
     for key, value in iteritems(input_dict):
-      if isinstance(value, basestring):
+      if isinstance(value, string_types):
         new_args[key] = self._GetSingleExpansion(value)
       elif isinstance(value, list):
         new_args[key] = self.InterpolateList(value)
@@ -498,7 +499,7 @@ class ArtifactCollectorFlowMixin(object):
     """
     new_args = []
     for value in input_list:
-      if isinstance(value, basestring):
+      if isinstance(value, string_types):
         results = list(
             artifact_utils.InterpolateKbAttributes(
                 value,
@@ -619,7 +620,7 @@ class ArtifactCollectorFlowMixin(object):
 
     Raises:
       RuntimeError: if pathspec value is not a PathSpec instance and not
-                    a basestring.
+                    a string_types.
     """
     self.download_list = []
     source = responses.request_data.GetItem("source")
@@ -643,7 +644,7 @@ class ArtifactCollectorFlowMixin(object):
         except AttributeError:
           pass
 
-      if isinstance(pathspec, basestring):
+      if isinstance(pathspec, string_types):
         pathspec = rdf_paths.PathSpec(path=pathspec)
         if self.args.use_tsk:
           pathspec.pathtype = rdf_paths.PathSpec.PathType.TSK
@@ -736,7 +737,8 @@ class ArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
       return rdfvalue.RDFValue.classes.get(self.original_result_type)
 
 
-class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic, flow.GRRFlow):
+@flow_base.DualDBFlow
+class ArtifactFilesDownloaderFlowMixin(transfer.MultiGetFileLogic):
   """Flow that downloads files referenced by collected artifacts."""
 
   category = "/Collectors/"
@@ -766,7 +768,7 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic, flow.GRRFlow):
     return [item.pathspec for item in parsed_items]
 
   def Start(self):
-    super(ArtifactFilesDownloaderFlow, self).Start()
+    super(ArtifactFilesDownloaderFlowMixin, self).Start()
 
     self.state.file_size = self.args.max_file_size
     self.state.results_to_download = []

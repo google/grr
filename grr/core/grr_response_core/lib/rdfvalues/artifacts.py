@@ -9,6 +9,7 @@ import json
 
 from future.utils import iteritems
 from future.utils import iterkeys
+from future.utils import string_types
 import yaml
 
 from grr_response_core.lib import rdfvalue
@@ -202,7 +203,7 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
     # TODO(hanuszczak): It looks like no collector is using `path` attribute.
     # Is this really necessary?
     path = self.attributes.GetItem("path")
-    if path and not isinstance(path, basestring):
+    if path and not isinstance(path, string_types):
       raise ArtifactSourceSyntaxError(self, "`path` is not a string")
 
   def _ValidateType(self):

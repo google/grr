@@ -11,6 +11,7 @@ from builtins import map  # pylint: disable=redefined-builtin
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
+from future.utils import string_types
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -90,7 +91,7 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
     Raises:
       ValueError: A string (single keyword) was passed instead of an iterable.
     """
-    if isinstance(keywords, basestring):
+    if isinstance(keywords, string_types):
       raise ValueError(
           "Keywords should be an iterable, not a string (got %s)." % keywords)
 
@@ -368,7 +369,7 @@ class ClientIndex(object):
     Raises:
       ValueError: A string (single keyword) was passed instead of an iterable.
     """
-    if isinstance(keywords, basestring):
+    if isinstance(keywords, string_types):
       raise ValueError(
           "Keywords should be an iterable, not a string (got %s)." % keywords)
 

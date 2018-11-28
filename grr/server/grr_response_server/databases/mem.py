@@ -17,6 +17,7 @@ from grr_response_server.databases import mem_cronjobs
 from grr_response_server.databases import mem_events
 from grr_response_server.databases import mem_flows
 from grr_response_server.databases import mem_foreman_rules
+from grr_response_server.databases import mem_hunts
 from grr_response_server.databases import mem_paths
 from grr_response_server.databases import mem_stats
 from grr_response_server.databases import mem_users
@@ -31,6 +32,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
                  mem_events.InMemoryDBEventMixin,
                  mem_flows.InMemoryDBFlowMixin,
                  mem_foreman_rules.InMemoryDBForemanRulesMixin,
+                 mem_hunts.InMemoryDBHuntMixin,
                  mem_paths.InMemoryDBPathMixin,
                  mem_stats.InMemoryDBStatsMixin,
                  mem_users.InMemoryDBUsersMixin,
@@ -52,7 +54,6 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.crash_history = {}
     self.cronjob_leases = {}
     self.cronjobs = {}
-    self.events = []
     self.foreman_rules = []
     self.keywords = {}
     self.labels = {}
@@ -69,7 +70,6 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.blob_records = {}
     self.message_handler_requests = {}
     self.message_handler_leases = {}
-    self.events = []
     self.cronjobs = {}
     self.cronjob_leases = {}
     self.cronjob_runs = {}
@@ -95,6 +95,8 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.flow_handler_thread = None
     self.flow_handler_stop = True
     self.stats_store_entries = {}
+    self.api_audit_entries = []
+    self.hunts = {}
 
   @utils.Synchronized
   def ClearTestDB(self):

@@ -159,22 +159,15 @@ class MySQLDBFlowMixin(object):
     if not messages:
       return
 
-    args = []
-    conditions = ["(client_id=%s and message_id=%s)"] * len(messages)
-    query = "DELETE FROM client_messages WHERE " + " OR ".join(conditions)
     to_delete = []
     for m in messages:
-      client_id = mysql_utils.ClientIDToInt(db_utils.ClientIdFromGrrMessage(m))
-      to_delete.append((client_id, m.task_id))
+      to_delete.append((db_utils.ClientIdFromGrrMessage(m), m.task_id))
 
     if len(set(to_delete)) != len(to_delete):
       raise ValueError(
           "Received multiple copies of the same message to delete.")
 
-    for client_id, task_id in to_delete:
-      args.append(client_id)
-      args.append(task_id)
-    cursor.execute(query, args)
+    self._DeleteClientMessages(to_delete, cursor=cursor)
 
   @mysql_utils.WithTransaction()
   def LeaseClientMessages(self,
@@ -192,7 +185,7 @@ class MySQLDBFlowMixin(object):
     client_id_int = mysql_utils.ClientIDToInt(client_id)
 
     query = ("UPDATE client_messages "
-             "SET leased_until=%s, leased_by=%s "
+             "SET leased_until=%s, leased_by=%s, leased_count=leased_count+1 "
              "WHERE client_id=%s AND "
              "(leased_until IS NULL OR leased_until < %s) "
              "LIMIT %s")
@@ -202,17 +195,26 @@ class MySQLDBFlowMixin(object):
     if num_leased == 0:
       return []
 
-    query = ("SELECT message FROM client_messages "
+    query = ("SELECT message, leased_count FROM client_messages "
              "WHERE client_id=%s AND leased_until=%s AND leased_by=%s")
 
     cursor.execute(query, [client_id_int, expiry_str, proc_id_str])
 
     ret = []
-    for msg, in cursor.fetchall():
+    expired = []
+    for msg, leased_count in cursor.fetchall():
       message = rdf_flows.GrrMessage.FromSerializedString(msg)
       message.leased_by = proc_id_str
       message.leased_until = expiry
-      ret.append(message)
+      # > comparison since this check happens after the lease.
+      if leased_count > db.Database.CLIENT_MESSAGES_TTL:
+        expired.append((client_id, message.task_id))
+      else:
+        ret.append(message)
+
+    if expired:
+      self._DeleteClientMessages(expired, cursor=cursor)
+
     return sorted(ret, key=lambda msg: msg.task_id)
 
   @mysql_utils.WithTransaction()

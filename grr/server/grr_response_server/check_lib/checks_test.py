@@ -57,6 +57,8 @@ def GetWMIData():
     for sw in wmi:
       WMI_SW.extend(parser.Parse(sw))
 
+  return WMI_SW
+
 
 def GetSSHDConfig():
   if SSHD_CFG:

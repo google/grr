@@ -322,6 +322,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testListChildPathInfosRoot(self):
     pass
 
+  def testListChildPathInfosRootDeeper(self):
+    pass
+
   def testListChildPathInfosDetails(self):
     pass
 
@@ -555,6 +558,100 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testDeleteStatsEntries(self):
+    pass
+
+  # TODO(user): implement hunts support for MySQL
+  def testWritingAndReadingHuntObjectWorks(self):
+    pass
+
+  def testHuntObjectCanBeOverwritten(self):
+    pass
+
+  def testReadingNonExistentHuntObjectRaises(self):
+    pass
+
+  def testReadAllHuntObjectsReturnsEmptyListWhenNoHunts(self):
+    pass
+
+  def testReadAllHuntObjectsReturnsAllWrittenObjects(self):
+    pass
+
+  def testReadHuntLogEntriesReturnsEntryFromSingleHuntFlow(self):
+    pass
+
+  def testReadHuntLogEntriesReturnsEntryFromMultipleHuntFlows(self):
+    pass
+
+  def testReadHuntLogEntriesCorrectlyAppliesOffsetAndCountFilters(self):
+    pass
+
+  def testReadHuntLogEntriesCorrectlyAppliesWithSubstringFilter(self):
+    pass
+
+  def testReadHuntLogEntriesCorrectlyAppliesCombinationOfFilters(self):
+    pass
+
+  def testCountHuntLogEntriesReturnsCorrectHuntLogEntriesCount(self):
+    pass
+
+  def testReadHuntResultsReadsSingleResultOfSingleType(self):
+    pass
+
+  def testReadHuntResultsReadsMultipleResultOfSingleType(self):
+    pass
+
+  def testReadHuntResultsReadsMultipleResultOfMultipleTypes(self):
+    pass
+
+  def testReadHuntResultsCorrectlyAppliedOffsetAndCountFilters(self):
+    pass
+
+  def testReadHuntResultsCorrectlyAppliesWithTagFilter(self):
+    pass
+
+  def testReadHuntResultsCorrectlyAppliesWithTypeFilter(self):
+    pass
+
+  def testReadHuntResultsCorrectlyAppliesWithSubstringFilter(self):
+    pass
+
+  def testReadHuntResultsCorrectlyAppliesVariousCombinationsOfFilters(self):
+    pass
+
+  def testReadHuntResultsReturnsPayloadWithMissingTypeAsSpecialValue(self):
+    pass
+
+  def testCountHuntResultsReturnsCorrectResultsCount(self):
+    pass
+
+  def testCountHuntResultsCorrectlyAppliesWithTagFilter(self):
+    pass
+
+  def testCountHuntResultsCorrectlyAppliesWithTypeFilter(self):
+    pass
+
+  def testCountHuntResultsCorrectlyAppliesWithTagAndWithTypeFilters(self):
+    pass
+
+  def testReadHuntFlowsReturnsEmptyListWhenNoFlows(self):
+    pass
+
+  def testReadHuntFlowsReturnsAllHuntFlowsWhenNoFilterCondition(self):
+    pass
+
+  def testReadHuntFlowsAppliesFilterConditionCorrectly(self):
+    pass
+
+  def testReadHuntFlowsCorrectlyAppliesOffsetAndCountFilters(self):
+    pass
+
+  def testCountHuntFlowsReturnsEmptyListWhenNoFlows(self):
+    pass
+
+  def testCountHuntFlowsReturnsAllHuntFlowsWhenNoFilterCondition(self):
+    pass
+
+  def testCountHuntFlowsAppliesFilterConditionCorrectly(self):
     pass
 
 

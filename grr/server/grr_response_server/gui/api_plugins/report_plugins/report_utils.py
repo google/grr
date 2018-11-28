@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-from grr_response_server import aff4
 from grr_response_server.flows.general import audit
 
 
@@ -19,10 +18,10 @@ def GetAuditLogEntries(offset, now, token):
   Yields:
     AuditEvents created during the time range
   """
-  start_time = now - offset - aff4.AUDIT_ROLLOVER_TIME
+  start_time = now - offset - audit.AUDIT_ROLLOVER_TIME
 
   logs_found = False
-  for fd in audit.AuditLogsForTimespan(start_time, now, token):
+  for fd in audit.LegacyAuditLogsForTimespan(start_time, now, token):
     logs_found = True
     for event in fd.GenerateItems():
       if now - offset < event.timestamp < now:

@@ -318,3 +318,42 @@ message SerializedValueOfUnrecognizedType {
   optional string type_name = 1;
   optional bytes value = 2;
 }
+
+// Next message id: 6
+message APIAuditEntry {
+  optional string http_request_path = 1 [(sem_type) = {
+    description: "Full HTTP request path, including the query part.",
+  }];
+  optional string router_method_name = 2 [(sem_type) = {
+    description: "Router Method that handled the request.",
+  }];
+  optional string username = 3 [(sem_type) = {
+    description: "User that issued the request",
+  }];
+  optional uint64 timestamp = 4 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "HTTP request's datetime",
+  }];
+  optional Code response_code = 5 [(sem_type) = {
+    description: "Response's error code.",
+  }];
+
+  enum Code {
+    UNDEFINED = 0;
+
+    // HTTP Mapping: 200 OK
+    OK = 1;
+
+    // HTTP Mapping: 500 Internal Server Error
+    ERROR = 2;
+
+    // HTTP Mapping: 403 Forbidden
+    FORBIDDEN = 3;
+
+    // HTTP Mapping: 404 Not Found
+    NOT_FOUND = 4;
+
+    // HTTP Mapping: 501 Not Implemented
+    NOT_IMPLEMENTED = 5;
+  }
+}

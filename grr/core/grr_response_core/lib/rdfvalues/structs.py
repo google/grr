@@ -14,6 +14,7 @@ from builtins import range  # pylint: disable=redefined-builtin
 from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
+from future.utils import string_types
 from future.utils import with_metaclass
 from past.builtins import long
 from typing import cast, Type
@@ -771,7 +772,7 @@ class ProtoEnum(ProtoSignedInteger):
 
     # If the value is a string we need to try to convert it to an integer.
     checked_value = value
-    if isinstance(value, basestring):
+    if isinstance(value, string_types):
       # NOTE: that when initializing from string, enum values are
       # case-insensitive.
       checked_value = self.enum.get(value.upper())
@@ -861,7 +862,7 @@ class ProtoEmbedded(ProtoType):
     super(ProtoEmbedded, self).__init__(**kwargs)
 
     # Nested can refer to a target RDFProtoStruct by name.
-    if isinstance(nested, basestring):
+    if isinstance(nested, string_types):
       self.proto_type_name = nested
 
       # Try to resolve the type it names
@@ -938,7 +939,7 @@ class ProtoEmbedded(ProtoType):
     return self.type()
 
   def Validate(self, value, **_):
-    if isinstance(value, basestring):
+    if isinstance(value, string_types):
       raise type_info.TypeValueError(
           "Field %s must be of type %s" % (self.name, self.type.__name__))
 
@@ -1407,7 +1408,7 @@ class ProtoRDFValue(ProtoType):
     if default is not None:
       self.default = default
 
-    if isinstance(rdf_type, basestring):
+    if isinstance(rdf_type, string_types):
       self.original_proto_type_name = self.proto_type_name = rdf_type
 
       # Try to resolve the type it names
@@ -1765,7 +1766,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
             wire_format, container=self)
 
       # Skip printing of unknown fields.
-      if isinstance(k, basestring):
+      if isinstance(k, string_types):
         prefix = utils.SmartStr(k) + " :"
         for line in type_descriptor.Format(python_format):
           yield " %s %s" % (prefix, line)

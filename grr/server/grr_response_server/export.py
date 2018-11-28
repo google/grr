@@ -18,6 +18,7 @@ import time
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
+from future.utils import string_types
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
@@ -1555,7 +1556,7 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
 
     if "mro" in obj:
       obj_mro = obj["mro"]
-      if isinstance(obj_mro, basestring):
+      if isinstance(obj_mro, string_types):
         obj_mro = obj_mro.split(":")
 
       for mro_type in obj_mro:
@@ -1706,15 +1707,15 @@ class RekallResponseToExportedRekallProcessConverter(RekallResponseConverter):
         creation_time=eprocess["Cybox"]["Creation_Time"]["epoch"] * 1000000)
 
     commandline = eprocess["Cybox"]["Image_Info"]["Command_Line"]
-    if isinstance(commandline, basestring):
+    if isinstance(commandline, string_types):
       result.commandline = commandline
 
     fullpath = eprocess["Cybox"]["Image_Info"]["Path"]
-    if isinstance(fullpath, basestring):
+    if isinstance(fullpath, string_types):
       result.fullpath = fullpath
 
     trusted_fullpath = eprocess["Cybox"]["Image_Info"]["TrustedPath"]
-    if isinstance(trusted_fullpath, basestring):
+    if isinstance(trusted_fullpath, string_types):
       result.trusted_fullpath = trusted_fullpath
 
     return result
@@ -1801,15 +1802,15 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverter(
           is_in_mem_list=row["in_mem"])
 
       in_load_fullpath = row["in_load_path"]
-      if isinstance(in_load_fullpath, basestring):
+      if isinstance(in_load_fullpath, string_types):
         result.in_load_fullpath = in_load_fullpath
 
       in_init_fullpath = row["in_init_path"]
-      if isinstance(in_init_fullpath, basestring):
+      if isinstance(in_init_fullpath, string_types):
         result.in_init_fullpath = in_init_fullpath
 
       in_mem_fullpath = row["in_mem_path"]
-      if isinstance(in_mem_fullpath, basestring):
+      if isinstance(in_mem_fullpath, string_types):
         result.in_mem_fullpath = in_mem_fullpath
     except KeyError:
       return

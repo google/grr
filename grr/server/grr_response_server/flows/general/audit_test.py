@@ -22,7 +22,7 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.ListDirectoryClientMock()
     client_id = self.SetupClient(0)
 
-    rollover = aff4.AUDIT_ROLLOVER_TIME.seconds
+    rollover = audit.AUDIT_ROLLOVER_TIME.seconds
     # Set time to epoch + 20 intervals
     with test_lib.FakeTime(20 * rollover):
       flow_test_lib.TestFlowHelper(
@@ -48,7 +48,7 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
 
       logs = list(parentdir.ListChildren())
       self.assertEqual(len(logs), 1)
-      log = aff4.CurrentAuditLog()
+      log = audit._CurrentAuditLog()
       stored_events = audit.AuditEventCollection(log)
 
       self.assertEqual(len(stored_events), 2)

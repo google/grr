@@ -16,6 +16,7 @@ import _thread
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
+from future.utils import string_types
 import MySQLdb
 from MySQLdb import cursors
 from past.builtins import long
@@ -248,7 +249,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     if not attributes:
       return
 
-    if isinstance(attributes, basestring):
+    if isinstance(attributes, string_types):
       raise ValueError(
           "String passed to DeleteAttributes (non string iterable expected).")
 
@@ -305,7 +306,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   def ResolvePrefix(self, subject, attribute_prefix, timestamp=None,
                     limit=None):
     """ResolvePrefix."""
-    if isinstance(attribute_prefix, basestring):
+    if isinstance(attribute_prefix, string_types):
       attribute_prefix = [attribute_prefix]
 
     results = []

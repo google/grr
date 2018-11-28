@@ -339,7 +339,8 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
     self.Log("Found and processed %d files.", self.state.files_found)
 
 
-class ClientFileFinder(flow.GRRFlow):
+@flow_base.DualDBFlow
+class ClientFileFinderMixin(object):
   """A client side file finder flow."""
 
   friendly_name = "Client Side File Finder"
@@ -349,7 +350,7 @@ class ClientFileFinder(flow.GRRFlow):
 
   def Start(self):
     """Issue the find request."""
-    super(ClientFileFinder, self).Start()
+    super(ClientFileFinderMixin, self).Start()
 
     if self.args.pathtype != "OS":
       raise ValueError("Only supported pathtype is OS.")
@@ -369,6 +370,7 @@ class ClientFileFinder(flow.GRRFlow):
         yield path
 
   def StoreResults(self, responses):
+    """Stores the results returned by the client to the db."""
     if not responses.success:
       raise flow.FlowError(responses.status)
 
@@ -393,6 +395,7 @@ class ClientFileFinder(flow.GRRFlow):
       })
 
   def _WriteFileContent(self, response, mutation_pool=None):
+    """Writes file content to the db."""
     urn = response.stat_entry.pathspec.AFF4Path(self.client_urn)
 
     filedesc = aff4.FACTORY.Create(
@@ -431,6 +434,6 @@ class ClientFileFinder(flow.GRRFlow):
                                 mutation_pool=mutation_pool)
 
   def End(self, responses):
-    super(ClientFileFinder, self).End(responses)
+    super(ClientFileFinderMixin, self).End(responses)
 
     self.Log("Found and processed %d files.", self.state.files_found)

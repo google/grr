@@ -85,10 +85,11 @@ class MySQLDBUsersMixin(object):
     query = "INSERT INTO grr_users ({cols}) VALUES ({vals})".format(
         cols=", ".join(columns), vals=", ".join(["%s"] * len(columns)))
 
-    if len(values) > 1:
-      updates = ", ".join(
-          ["{c} = VALUES ({c})".format(c=col) for col in columns[1:]])
-      query += "ON DUPLICATE KEY UPDATE " + updates
+    # Always execute ON DUPLICATE KEY UPDATE username=%s. Although a no-op, the
+    # statement is required to allow error-free writing of an existing user
+    # with no other fields. See DatabaseTestUsersMixin.testInsertUserTwice.
+    updates = ", ".join(["{c} = VALUES ({c})".format(c=col) for col in columns])
+    query += "ON DUPLICATE KEY UPDATE " + updates
 
     cursor.execute(query, values)
 
