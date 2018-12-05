@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API handlers for dealing with output_plugins."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
@@ -25,7 +26,6 @@ class ApiOutputPlugin(rdf_structs.RDFProtoStruct):
   protobuf = output_plugin_pb2.ApiOutputPlugin
   rdf_deps = [
       rdf_output_plugin.OutputPluginDescriptor,
-      output_plugin.OutputPluginVerificationResult,
   ]
 
   def GetStateClass(self):

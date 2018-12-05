@@ -21,12 +21,5 @@ message ApiOutputPlugin {
       description: "State of the plugin.",
       dynamic_type: "GetStateClass"
     }];
-  optional OutputPluginVerificationResult last_verification_result = 4 [(sem_type) = {
-      description: "Results of the last verification check done on the output "
-      "of this plugin. Verification checks check that expected output exists "
-      "and that it's complete. Not all output plugins support verification. "
-      "For example CSV and Email plugins output can't be verified. On the "
-      "other hand, BigQuery output can be verified, as BigQuery service can "
-      "be queried for the results that were supposed to be uploaded."
-    }];
+  reserved 4;
 }

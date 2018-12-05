@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Utils for flow related tasks."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -14,7 +15,7 @@ from grr_response_server.aff4_objects import aff4_grr
 DEFAULT_TIMEOUT = 650
 
 
-def GetUserInfo(client, user):
+def GetUserInfo(knowledge_base, user):
   # TODO(hanuszczak): This docstring cannot be a raw literal because there are
   # issues with raw unicode literals on Python 2. Once support for Python 2 is
   # dropped, it can be made raw again.
@@ -22,21 +23,21 @@ def GetUserInfo(client, user):
   """Get a User protobuf for a specific user.
 
   Args:
-    client: A VFSGRRClient object.
+    knowledge_base: An rdf_client.KnowledgeBase object.
     user: Username as string. May contain domain like DOMAIN\\user.
 
   Returns:
     A User rdfvalue or None
   """
   # pylint: enable=g-docstring-has-escape
-  kb = client.Get(client.Schema.KNOWLEDGE_BASE)
   if "\\" in user:
     domain, user = user.split("\\", 1)
     users = [
-        u for u in kb.users if u.username == user and u.userdomain == domain
+        u for u in knowledge_base.users
+        if u.username == user and u.userdomain == domain
     ]
   else:
-    users = [u for u in kb.users if u.username == user]
+    users = [u for u in knowledge_base.users if u.username == user]
 
   if not users:
     return
@@ -96,13 +97,13 @@ def WaitForFlow(flow_urn,
     flow_urn: The urn of the flow to wait for.
     token: The datastore access token.
     timeout: How long to wait before giving up, usually because the client has
-    gone away.
+      gone away.
     max_sleep_time: The initial and longest time to wait in between polls.
     min_sleep_time: The final and shortest time to wait in between polls.
     dampening_multiplier: The current sleep time is multiplied by this number on
-    each iteration. Controls how fast the polling reaches its minimum
-    sleep time. You probably want this to be less than 1, unless you want
-    to wait an increasing amount of time in between flows.
+      each iteration. Controls how fast the polling reaches its minimum sleep
+      time. You probably want this to be less than 1, unless you want to wait an
+      increasing amount of time in between flows.
 
   Raises:
     IOError: If we time out while waiting for the client.
@@ -153,15 +154,15 @@ def StartFlowAndWait(client_id,
 
 # TODO(user): Deprecate this function once there is an alternative for
 # CacheGrep.
-def InterpolatePath(path, client, users=None, path_args=None, depth=0):
+def InterpolatePath(path, knowledge_base, users=None, path_args=None, depth=0):
   """Take a string as a path on a client and interpolate with client data.
 
   Args:
     path: A single string/unicode to be interpolated.
-    client: A VFSGRRClient object.
+    knowledge_base: An rdf_client.KnowledgeBase object.
     users: A list of string usernames, or None.
     path_args: A dict of additional args to use in interpolation. These take
-        precedence over any system provided variables.
+      precedence over any system provided variables.
     depth: A counter for recursion depth.
 
   Returns:
@@ -183,7 +184,7 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
     results = []
     for user in users:
       # Extract and interpolate user specific formatters.
-      user = GetUserInfo(client, user)
+      user = GetUserInfo(knowledge_base, user)
       if user:
         formatters = dict((x.name, y) for x, y in user.ListSetFields())
         formatters.update(sys_formatters)
@@ -201,7 +202,7 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
     if "{" in path and depth < 10:
       path = InterpolatePath(
           path,
-          client=client,
+          knowledge_base=knowledge_base,
           users=users,
           path_args=path_args,
           depth=depth + 1)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test routines for user notifications-related testing."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_server import aff4
 from grr_response_server import data_store

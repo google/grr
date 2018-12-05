@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This modules contains regression tests for VFS API handlers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags

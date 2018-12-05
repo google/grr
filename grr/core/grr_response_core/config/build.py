@@ -1,45 +1,14 @@
 #!/usr/bin/env python
 """Configuration parameters for client builder and server packaging."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
 import time
 
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
-
-config_lib.DEFINE_option(
-    type_info.RDFValueType(
-        rdfclass=rdfvalue.RDFURN,
-        name="Config.aff4_root",
-        default="aff4:/config/",
-        description=("The path where the configs are stored in the aff4 "
-                     "namespace.")))
-
-config_lib.DEFINE_option(
-    type_info.RDFValueType(
-        rdfclass=rdfvalue.RDFURN,
-        name="Config.python_hack_root",
-        default="%(Config.aff4_root)/python_hacks",
-        description=("The path where python hacks are stored in the aff4 "
-                     "namespace.")))
-
-# Executables must be signed and uploaded to their dedicated AFF4 namespace.
-config_lib.DEFINE_option(
-    type_info.RDFValueType(
-        rdfclass=rdfvalue.RDFURN,
-        name="Executables.aff4_path",
-        description="The aff4 path to signed executables.",
-        default="%(Config.aff4_root)/executables/%(Client.platform)"))
-
-config_lib.DEFINE_string(
-    name="Executables.installer",
-    default=("%(Executables.aff4_path)/installers/"
-             "%(ClientRepacker.output_basename)"
-             "%(ClientBuilder.output_extension)"),
-    help="The location of the generated installer in the config directory.")
 
 config_lib.DEFINE_string(
     name="ClientBuilder.output_extension",

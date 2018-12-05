@@ -10,6 +10,7 @@ The audit system consists of a group of event listeners which receive these
 events and act upon them.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
@@ -18,7 +19,6 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import sequential_collection
-
 
 AUDIT_EVENT = "Audit"
 
@@ -63,7 +63,9 @@ class AuditEventListener(events.EventListener):
     return log_urn
 
   def ProcessMessages(self, msgs=None, token=None):
-    # Always write to AFF4
+    if not data_store.AFF4Enabled():
+      return
+
     log_urn = _CurrentAuditLog()
     self._EnsureLogIsIndexedAff4(log_urn, token=token)
     with data_store.DB.GetMutationPool() as pool:

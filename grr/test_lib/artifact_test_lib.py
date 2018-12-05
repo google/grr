@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Decorators and helper functions for artifacts-related tests."""
 from __future__ import absolute_import
+from __future__ import division
 
 import io
 import os

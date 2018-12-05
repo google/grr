@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The MySQL database methods for GRR users and approval handling."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import MySQLdb
@@ -121,13 +122,30 @@ class MySQLDBUsersMixin(object):
     return self._RowToGRRUser(row)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadAllGRRUsers(self, cursor=None):
-    cursor.execute("SELECT username, password, ui_mode, canary_mode, user_type "
-                   "FROM grr_users")
-    res = []
-    for row in cursor.fetchall():
-      res.append(self._RowToGRRUser(row))
-    return res
+  def ReadGRRUsers(self, offset=0, count=None, cursor=None):
+    """Reads GRR users with optional pagination, sorted by username."""
+    if count is None:
+      count = 18446744073709551615  # 2^64-1, as suggested by MySQL docs
+
+    cursor.execute(
+        "SELECT username, password, ui_mode, canary_mode, user_type "
+        "FROM grr_users ORDER BY username ASC "
+        "LIMIT %s OFFSET %s", [count, offset])
+    return [self._RowToGRRUser(row) for row in cursor.fetchall()]
+
+  @mysql_utils.WithTransaction(readonly=True)
+  def CountGRRUsers(self, cursor=None):
+    """Returns the total count of GRR users."""
+    cursor.execute("SELECT COUNT(*) FROM grr_users")
+    return cursor.fetchone()[0]
+
+  @mysql_utils.WithTransaction()
+  def DeleteGRRUser(self, username, cursor=None):
+    """Deletes the user with the given username."""
+    cursor.execute("DELETE FROM grr_users WHERE username = %s", (username,))
+
+    if cursor.rowcount == 0:
+      raise db.UnknownGRRUserError("User '%s' not found." % username)
 
   @mysql_utils.WithTransaction()
   def WriteApprovalRequest(self, approval_request, cursor=None):

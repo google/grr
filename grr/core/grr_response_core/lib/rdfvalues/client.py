@@ -617,7 +617,7 @@ class VersionString(rdfvalue.RDFString):
 
   @property
   def versions(self):
-    version = str(self)
+    version = unicode(self)
     result = []
     for x in version.split("."):
       try:

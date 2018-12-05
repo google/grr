@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A module to allow option processing from files or registry."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import argparse

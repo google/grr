@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Helper functions and classes for use by tests."""
 from __future__ import absolute_import
+from __future__ import division
 
 import yaml
 

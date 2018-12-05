@@ -3,6 +3,7 @@
 """Unit test for the linux file parser."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -29,7 +30,7 @@ class LinuxSoftwareParserTest(test_lib.GRRBaseTest):
     path = os.path.join(self.base_path, "dpkg_status")
     with open(path, "rb") as data:
       out = list(parser.Parse(None, data, None))
-    self.assertEqual(len(out), 2)
+    self.assertLen(out, 2)
     self.assertEqual(("t1", "v1"), (out[0].name, out[0].version))
     self.assertEqual(("t2", "v2"), (out[1].name, out[1].version))
 

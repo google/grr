@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """MySQL implementation of DB methods for handling server metrics."""
 from __future__ import absolute_import
+from __future__ import division
 
 from __future__ import unicode_literals
 
@@ -34,6 +35,7 @@ class MySQLDBStatsMixin(object):
     """See db.Database."""
     raise NotImplementedError()
 
-  def DeleteStatsStoreEntriesOlderThan(self, cutoff):
+  def DeleteStatsStoreEntriesOlderThan(self, cutoff,
+                                       limit):
     """See db.Database."""
     raise NotImplementedError()

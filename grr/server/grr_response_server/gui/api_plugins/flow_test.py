@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This module contains tests for flows-related API handlers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -73,10 +74,10 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
             list(aff4.FACTORY.ListChildren(flow_urn)),
             aff4_type=flow.GRRFlow,
             token=self.token))
-    self.assertEqual(len(children), 1)
+    self.assertLen(children, 1)
 
-    flow_id = flow_plugin.ApiFlowId(flow_urn.Basename() + "/" + children[0]
-                                    .urn.Basename())
+    flow_id = flow_plugin.ApiFlowId(flow_urn.Basename() + "/" +
+                                    children[0].urn.Basename())
     self.assertEqual(
         flow_id.ResolveClientFlowURN(
             client_plugin.ApiClientId(self.client_urn), token=self.token),
@@ -99,7 +100,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
 
     client_flows_urns = list(
         aff4.FACTORY.ListChildren(self.client_urn.Add("flows")))
-    self.assertEqual(len(client_flows_urns), 1)
+    self.assertLen(client_flows_urns, 1)
 
     flow_id = flow_plugin.ApiFlowId(client_flows_urns[0].Basename())
     self.assertEqual(
@@ -112,14 +113,14 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
 
     client_flows_urns = list(
         aff4.FACTORY.ListChildren(self.client_urn.Add("flows")))
-    self.assertEqual(len(client_flows_urns), 1)
+    self.assertLen(client_flows_urns, 1)
 
     flow_fd = aff4.FACTORY.Open(client_flows_urns[0], token=self.token)
     nested_flows_urns = list(flow_fd.ListChildren())
     nested_flows = list(
         aff4.FACTORY.MultiOpen(
             nested_flows_urns, aff4_type=flow.GRRFlow, token=self.token))
-    self.assertEqual(len(nested_flows), 1)
+    self.assertLen(nested_flows, 1)
 
     flow_id = flow_plugin.ApiFlowId(client_flows_urns[0].Basename() + "/" +
                                     nested_flows[0].urn.Basename())
@@ -157,8 +158,8 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     flow_api_obj = flow_plugin.ApiFlow().InitFromAff4Object(
         flow_obj, flow_id=flow_urn.Basename())
 
-    self.assertEquals(flow_api_obj.client_id,
-                      client_plugin.ApiClientId(client_id))
+    self.assertEqual(flow_api_obj.client_id,
+                     client_plugin.ApiClientId(client_id))
 
 
 class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """REL_DB blobstore implementation."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_server import blob_store

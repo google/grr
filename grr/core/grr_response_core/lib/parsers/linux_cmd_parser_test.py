@@ -2,6 +2,7 @@
 """Unit test for the linux cmd parser."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -25,7 +26,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     out = list(
         parser.Parse("/usr/bin/yum", ["list installed -q"], content, "", 0, 5,
                      None))
-    self.assertEqual(len(out), 2)
+    self.assertLen(out, 2)
     self.assertTrue(isinstance(out[0], rdf_client.SoftwarePackage))
     self.assertEqual(out[0].name, "ConsoleKit")
     self.assertEqual(out[0].architecture, "x86_64")
@@ -49,7 +50,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     self.assertEqual(repolist[0].baseurl, "http://rhel/repo")
     self.assertEqual(repolist[0].timeout,
                      "1200 second(s) (last: Mon Apr  1 20:30:02 2016)")
-    self.assertEqual(len(repolist), 2)
+    self.assertLen(repolist, 2)
 
   def testRpmCmdParser(self):
     """Ensure we can extract packages from rpm output."""
@@ -72,8 +73,8 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
         if isinstance(o, rdf_client.SoftwarePackage)
     }
     anomaly = [o for o in out if isinstance(o, rdf_anomaly.Anomaly)]
-    self.assertEqual(7, len(software))
-    self.assertEqual(1, len(anomaly))
+    self.assertLen(software, 7)
+    self.assertLen(anomaly, 1)
     expected = {
         "glib2": "2.12.3-4.el5_3.1",
         "elfutils-libelf": "0.137-3.el5",
@@ -83,7 +84,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
         "libstdc++-devel": "4.1.2-55.el5",
         "gcc-c++": "4.1.2-55.el5"
     }
-    self.assertItemsEqual(expected, software)
+    self.assertCountEqual(expected, software)
     self.assertEqual("Broken rpm database.", anomaly[0].symptom)
 
   def testDpkgCmdParser(self):
@@ -93,7 +94,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
                    "rb").read()
     out = list(
         parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
-    self.assertEqual(len(out), 181)
+    self.assertLen(out, 181)
     self.assertTrue(isinstance(out[1], rdf_client.SoftwarePackage))
     self.assertTrue(out[0].name, "acpi-support-base")
 
@@ -105,7 +106,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
         "rb").read()
     out = list(
         parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
-    self.assertEqual(len(out), 30)
+    self.assertLen(out, 30)
     self.assertTrue(isinstance(out[1], rdf_client.SoftwarePackage))
     self.assertTrue(out[0].name, "adduser")
 
@@ -115,7 +116,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     content = open(os.path.join(self.base_path, "dmidecode.out"), "rb").read()
     parse_result = list(
         parser.Parse("/usr/sbin/dmidecode", ["-q"], content, "", 0, 5, None))
-    self.assertEqual(len(parse_result), 1)
+    self.assertLen(parse_result, 1)
     hardware = parse_result[0]
 
     self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
@@ -150,7 +151,7 @@ foobar    69081  69080  1 Oct02 ?        02:08:49 cinnamon --replace
     parser = linux_cmd_parser.PsCmdParser()
     processes = list(parser.Parse("/bin/ps", "-ef", stdout, "", 0, 0, None))
 
-    self.assertEqual(len(processes), 5)
+    self.assertLen(processes, 5)
 
     self.assertEqual(processes[0].username, "root")
     self.assertEqual(processes[0].pid, 1)
@@ -201,7 +202,7 @@ foo       4      2  0 Sep05 ?        00:00:00 /foo/bar/baz --quux=1337
     parser = linux_cmd_parser.PsCmdParser()
     processes = list(parser.Parse("/bin/ps", "-ef", stdout, "", 0, 0, None))
 
-    self.assertEqual(len(processes), 4)
+    self.assertLen(processes, 4)
 
     self.assertEqual(processes[0].username, "foo")
     self.assertEqual(processes[0].pid, 1)

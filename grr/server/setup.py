@@ -5,6 +5,7 @@ This is just a meta-package which pulls in the minimal requirements to create a
 full grr server.
 """
 from __future__ import absolute_import
+from __future__ import division
 
 import ConfigParser
 import itertools

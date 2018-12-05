@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr_response_client.client_actions.tempfiles."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -154,7 +155,7 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
 
       result = self.RunAction(tempfiles.DeleteGRRTempFiles,
                               rdf_paths.PathSpec())
-      self.assertEqual(len(result), 1)
+      self.assertLen(result, 1)
       log = result[0].data
       for f in temp_files:
         self.assertIn(f, log)
@@ -177,17 +178,15 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
     }):
 
       for f in temp_files:
-        result = self.RunAction(
-            tempfiles.DeleteGRRTempFiles, rdf_paths.PathSpec(path=f))
-        self.assertEqual(len(result), 1)
+        result = self.RunAction(tempfiles.DeleteGRRTempFiles,
+                                rdf_paths.PathSpec(path=f))
+        self.assertLen(result, 1)
         self.assertIn(f, result[0].data)
 
       for f in other_files:
-        self.assertRaises(
-            tempfiles.ErrorNotTempFile,
-            self.RunAction,
-            tempfiles.DeleteGRRTempFiles,
-            rdf_paths.PathSpec(path=f))
+        self.assertRaises(tempfiles.ErrorNotTempFile, self.RunAction,
+                          tempfiles.DeleteGRRTempFiles,
+                          rdf_paths.PathSpec(path=f))
 
   def testDeleteGRRTempFilesInDirectory(self):
     result = self.RunAction(tempfiles.DeleteGRRTempFiles, self.pathspec)[0]
@@ -204,8 +203,8 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
     self.assertTrue(os.path.exists(self.not_tempfile))
     self.assertFalse(os.path.exists(self.temp_fd.name))
     self.assertTrue(os.path.exists(self.temp_fd2.name))
-    self.assertTrue(self.temp_fd.name in result.data)
-    self.assertFalse(self.temp_fd2.name in result.data)
+    self.assertIn(self.temp_fd.name, result.data)
+    self.assertNotIn(self.temp_fd2.name, result.data)
 
   def testDeleteGRRTempFilesPathDoesNotExist(self):
     self.pathspec = rdf_paths.PathSpec(

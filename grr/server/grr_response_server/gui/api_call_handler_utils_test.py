@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Contains tests for api_call_handler_utils."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
@@ -201,10 +202,9 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
       fd.Write("hello2".encode("utf-8"))
 
     # Delete a single chunk
-    aff4.FACTORY.Delete(
-        (u"aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt/0000000000" %
-         self.client_id.Basename()),
-        token=self.token)
+    aff4.FACTORY.Delete((u"aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt/0000000000" %
+                         self.client_id.Basename()),
+                        token=self.token)
 
     fd_path = self._GenerateArchive(
         self.stat_entries,
@@ -247,7 +247,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     # The archive is expected to contain 1 file contents blob, 1 client info and
     # a manifest.
-    self.assertEqual(len(names), 3)
+    self.assertLen(names, 3)
 
     manifest = yaml.safe_load(zip_fd.read("test_prefix/MANIFEST"))
     self.assertEqual(
@@ -285,13 +285,13 @@ class FilterCollectionTest(test_lib.GRRBaseTest):
 
   def testFiltersByOffsetAndCount(self):
     data = api_call_handler_utils.FilterCollection(self.fd, 2, 5, None)
-    self.assertEqual(len(data), 5)
+    self.assertLen(data, 5)
     self.assertEqual(data[0].path, "/var/os/tmp-2")
     self.assertEqual(data[-1].path, "/var/os/tmp-6")
 
   def testIngoresTooBigCount(self):
     data = api_call_handler_utils.FilterCollection(self.fd, 0, 50, None)
-    self.assertEqual(len(data), 10)
+    self.assertLen(data, 10)
     self.assertEqual(data[0].path, "/var/os/tmp-0")
     self.assertEqual(data[-1].path, "/var/os/tmp-9")
 
@@ -305,7 +305,44 @@ class FilterCollectionTest(test_lib.GRRBaseTest):
 
   def testFiltersByFilterString(self):
     data = api_call_handler_utils.FilterCollection(self.fd, 0, 0, "tmp-8")
-    self.assertEqual(len(data), 1)
+    self.assertLen(data, 1)
+    self.assertEqual(data[0].path, "/var/os/tmp-8")
+
+
+class FilterListTest(test_lib.GRRBaseTest):
+  """Test for FilterList."""
+
+  def setUp(self):
+    super(FilterListTest, self).setUp()
+
+    self.l = []
+    for i in range(10):
+      self.l.append(
+          rdf_paths.PathSpec(path="/var/os/tmp-%d" % i, pathtype="OS"))
+
+  def testFiltersByOffsetAndCount(self):
+    data = api_call_handler_utils.FilterList(self.l, 2, 5, None)
+    self.assertLen(data, 5)
+    self.assertEqual(data[0].path, "/var/os/tmp-2")
+    self.assertEqual(data[-1].path, "/var/os/tmp-6")
+
+  def testIngoresTooBigCount(self):
+    data = api_call_handler_utils.FilterList(self.l, 0, 50, None)
+    self.assertLen(data, 10)
+    self.assertEqual(data[0].path, "/var/os/tmp-0")
+    self.assertEqual(data[-1].path, "/var/os/tmp-9")
+
+  def testRaisesOnNegativeOffset(self):
+    with self.assertRaises(ValueError):
+      api_call_handler_utils.FilterList(self.l, -10, 0, None)
+
+  def testRaisesOnNegativeCount(self):
+    with self.assertRaises(ValueError):
+      api_call_handler_utils.FilterList(self.l, 0, -10, None)
+
+  def testFiltersByFilterString(self):
+    data = api_call_handler_utils.FilterList(self.l, 0, 0, "tmp-8")
+    self.assertLen(data, 1)
     self.assertEqual(data[0].path, "/var/os/tmp-8")
 
 

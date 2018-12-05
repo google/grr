@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -77,7 +78,7 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
 
     # Default values aren't shown in the url.
     self.WaitUntilNot(lambda: "start_time" in self.GetCurrentUrlPath())
-    self.assertFalse("duration" in self.GetCurrentUrlPath())
+    self.assertNotIn("duration", self.GetCurrentUrlPath())
 
     # Enter a timerange.
     self.Type("css=grr-form-datetime input", "2012-12-21 12:34")
@@ -87,7 +88,7 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     # Reports that require timeranges include nondefault values in the url when
     # `Show report' has been clicked.
     self.WaitUntil(lambda: "start_time" in self.GetCurrentUrlPath())
-    self.assertTrue("duration" in self.GetCurrentUrlPath())
+    self.assertIn("duration", self.GetCurrentUrlPath())
 
     # Select a different report.
     self.Click("css=#LastActiveReportPlugin_anchor i.jstree-icon")
@@ -104,8 +105,8 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     # has been clicked.
     self.WaitUntil(lambda: "bar" in self.GetCurrentUrlPath())
     # Reports that dont require timeranges don't mention them in the url.
-    self.assertFalse("start_time" in self.GetCurrentUrlPath())
-    self.assertFalse("duration" in self.GetCurrentUrlPath())
+    self.assertNotIn("start_time", self.GetCurrentUrlPath())
+    self.assertNotIn("duration", self.GetCurrentUrlPath())
 
     # Select a different report.
     self.Click("css=#GRRVersion7ReportPlugin_anchor i.jstree-icon")
@@ -113,8 +114,8 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
 
     # The label is cleared when report type is changed.
     self.WaitUntilNot(lambda: "bar" in self.GetCurrentUrlPath())
-    self.assertFalse("start_time" in self.GetCurrentUrlPath())
-    self.assertFalse("duration" in self.GetCurrentUrlPath())
+    self.assertNotIn("start_time", self.GetCurrentUrlPath())
+    self.assertNotIn("duration", self.GetCurrentUrlPath())
 
 
 if __name__ == "__main__":

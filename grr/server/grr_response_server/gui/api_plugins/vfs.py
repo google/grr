@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
@@ -566,7 +567,8 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     child_path_infos = data_store.REL_DB.ListChildPathInfos(
         client_id=client_id.Basename(),
         path_type=path_type,
-        components=components)
+        components=components,
+        timestamp=args.timestamp)
 
     items = []
 
@@ -1055,15 +1057,15 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
 
     # We don't have any pathspec in the database so we just send the path we
     # have with the correct path type and hope for the best.
-    pathspec = rdf_paths.PathSpec(path="/".join(components))
+    pathspec = rdf_paths.PathSpec(path="/" + "/".join(components))
 
-    if path_type == self.PathType.TSK:
+    if path_type == rdf_objects.PathInfo.PathType.TSK:
       pathspec.pathtype = pathspec.PathType.TSK
-    elif path_type == self.PathType.OS:
+    elif path_type == rdf_objects.PathInfo.PathType.OS:
       pathspec.pathtype = pathspec.PathType.OS
-    elif path_type == self.PathType.REGISTRY:
+    elif path_type == rdf_objects.PathInfo.PathType.REGISTRY:
       pathspec.pathtype = pathspec.PathType.REGISTRY
-    elif path_type == self.PathType.TEMP:
+    elif path_type == rdf_objects.PathInfo.PathType.TEMP:
       pathspec.pathtype = pathspec.PathType.TMPFILE
     else:
       raise ValueError("Invalid path_type: %r" % self.path_type)

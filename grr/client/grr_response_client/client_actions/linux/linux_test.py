@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Linux only tests."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import __builtin__
@@ -69,7 +70,7 @@ class LinuxOnlyTest(client_test_lib.EmptyActionTest):
         type="ext4",
         device="/dev/mapper/dhcp--100--104--9--24--vg-root")
 
-    self.assertEqual(len(results), 2)
+    self.assertLen(results, 2)
     for result in results:
       self.assertEqual(result, expected)
 

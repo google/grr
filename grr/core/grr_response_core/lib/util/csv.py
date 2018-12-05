@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 """A module with compatibility wrappers for CSV processing."""
 from __future__ import absolute_import
+from __future__ import division
 
 from __future__ import unicode_literals
 
 import csv
 import io
-import sys
 
 from future.builtins import str as text
 from typing import Iterator, Dict, List, Text
 
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
@@ -35,12 +36,7 @@ class Reader(object):
     self._delimiter = delimiter
 
   def __iter__(self):
-    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
-    # two elements which is not true.
-    # pytype: disable=attribute-error
-    py2 = sys.version_info.major == 2
-
-    if py2:
+    if compatibility.PY2:
       filedesc = io.BytesIO(self._content.encode("utf-8"))
     else:
       filedesc = io.StringIO(self._content)
@@ -52,8 +48,9 @@ class Reader(object):
       row = []
 
       for value in values:
-        if py2:
-          row.append(value.decode("utf-8"))
+        if compatibility.PY2:
+          # TODO(hanuszczak): https://github.com/google/pytype/issues/127
+          row.append(value.decode("utf-8"))  # pytype: disable=attribute-error
         else:
           row.append(value)
 
@@ -76,14 +73,10 @@ class Writer(object):
   def __init__(self, delimiter = ","):
     precondition.AssertType(delimiter, text)
 
-    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
-    # two elements which is not true.
-    # pytype: disable=attribute-error
-    if sys.version_info.major == 2:
+    if compatibility.PY2:
       self._output = io.BytesIO()
     else:
       self._output = io.StringIO()
-    # pytype: enable=attribute-error
 
     # We call `str` on the delimiter in order to ensure it is `bytes` on Python
     # 2 and `unicode` on Python 3.
@@ -98,24 +91,17 @@ class Writer(object):
     """
     precondition.AssertIterableType(values, text)
 
-    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
-    # two elements which is not true.
-    # pytype: disable=attribute-error
-    if sys.version_info.major == 2:
+    if compatibility.PY2:
       self._csv.writerow([value.encode("utf-8") for value in values])
     else:
       self._csv.writerow(values)
-    # pytype: enable=attribute-error
 
   def Content(self):
-    # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of
-    # two elements which is not true.
-    # pytype: disable=attribute-error,bad-return-type
-    if sys.version_info.major == 2:
-      return self._output.getvalue().decode("utf-8")
+    if compatibility.PY2:
+      # TODO(hanuszczak): https://github.com/google/pytype/issues/127
+      return self._output.getvalue().decode("utf-8")  # pytype: disable=attribute-error
     else:
-      return self._output.getvalue()
-    # pytype: enable=attribute-error,bad-return-type
+      return self._output.getvalue()  # pytype: disable=bad-return-type
 
 
 class DictWriter(object):

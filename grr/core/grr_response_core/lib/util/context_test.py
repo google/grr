@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import functools
@@ -49,14 +50,14 @@ class MultiContextTest(absltest.TestCase):
     baz = temp.AutoTempFilePath(suffix="baz")
 
     with context.MultiContext([foo, bar, baz]) as filepaths:
-      self.assertEqual(len(filepaths), 3)
+      self.assertLen(filepaths, 3)
       self.assertTrue(filepaths[0].endswith("foo"))
       self.assertTrue(filepaths[1].endswith("bar"))
       self.assertTrue(filepaths[2].endswith("baz"))
 
       wbopen = functools.partial(io.open, mode="wb")
       with context.MultiContext(map(wbopen, filepaths)) as filedescs:
-        self.assertEqual(len(filedescs), 3)
+        self.assertLen(filedescs, 3)
         filedescs[0].write(b"FOO")
         filedescs[1].write(b"BAR")
         filedescs[2].write(b"BAZ")
@@ -66,7 +67,7 @@ class MultiContextTest(absltest.TestCase):
 
       rbopen = functools.partial(io.open, mode="rb")
       with context.MultiContext(map(rbopen, filepaths)) as filedescs:
-        self.assertEqual(len(filedescs), 3)
+        self.assertLen(filedescs, 3)
         self.assertEqual(filedescs[0].read(), b"FOO")
         self.assertEqual(filedescs[1].read(), b"BAR")
         self.assertEqual(filedescs[2].read(), b"BAZ")

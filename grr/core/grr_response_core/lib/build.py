@@ -6,6 +6,7 @@ handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io

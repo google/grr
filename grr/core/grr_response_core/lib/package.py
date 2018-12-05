@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A module with functions for working with GRR packages."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import importlib

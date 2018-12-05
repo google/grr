@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """These are process related flows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder

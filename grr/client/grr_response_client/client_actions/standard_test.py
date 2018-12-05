@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test client standard actions."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import gzip
@@ -159,7 +160,7 @@ print("Done.")
     result = self.RunAction(standard.ExecuteBinaryCommand, request)[0]
 
     self.assertTrue(result.time_used > 0)
-    self.assertTrue(__file__ in result.stdout)
+    self.assertIn(__file__, result.stdout)
 
   def testReturnVals(self):
     """Test return values."""
@@ -223,7 +224,7 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
         offset=0, length=23, src_path=self.pathspec, gzip_output=False)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
     output = open(result.dest_path.path, "rb").read()
-    self.assertEqual(len(output), 23)
+    self.assertLen(output, 23)
 
   def testCopyPathToFileOffsetandLimit(self):
 
@@ -236,7 +237,7 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
         offset=38, length=25, src_path=self.pathspec, gzip_output=False)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
     output = open(result.dest_path.path, "rb").read()
-    self.assertEqual(len(output), 25)
+    self.assertLen(output, 25)
     hash_out = hashlib.sha1(output).hexdigest()
     self.assertEqual(hash_in, hash_out)
 
@@ -274,7 +275,7 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
       request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
       results = self.RunAction(standard.GetFileStat, request)
 
-      self.assertEqual(len(results), 1)
+      self.assertLen(results, 1)
       self.assertEqual(results[0].st_size, 6)
 
   def testStatExtAttrsEnabled(self):
@@ -288,8 +289,8 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
           pathspec=pathspec, collect_ext_attrs=True)
       results = self.RunAction(standard.GetFileStat, request)
 
-      self.assertEqual(len(results), 1)
-      self.assertEqual(len(results[0].ext_attrs), 1)
+      self.assertLen(results, 1)
+      self.assertLen(results[0].ext_attrs, 1)
       self.assertEqual(results[0].ext_attrs[0].name, "user.foo")
       self.assertEqual(results[0].ext_attrs[0].value, "bar")
 
@@ -304,8 +305,8 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
           pathspec=pathspec, collect_ext_attrs=False)
       results = self.RunAction(standard.GetFileStat, request)
 
-      self.assertEqual(len(results), 1)
-      self.assertEqual(len(results[0].ext_attrs), 0)
+      self.assertLen(results, 1)
+      self.assertEmpty(results[0].ext_attrs)
 
 
 class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
@@ -332,7 +333,7 @@ class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
     responses = self.transfer_buf.HandleMessage(message)
 
     client_alert = responses[0].payload
-    self.assertTrue("Network limit exceeded" in str(client_alert))
+    self.assertIn("Network limit exceeded", str(client_alert))
 
     status = responses[1].payload
     self.assertTrue(

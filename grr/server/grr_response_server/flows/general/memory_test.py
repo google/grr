@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for memory related flows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import copy
@@ -234,7 +235,7 @@ class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
     if self.process_list:
       json_data = json.loads(response.json_messages)
       template = json_data[7]
-      if template[1]["filename"] != ur"\Windows\System32\ntdll.dll":
+      if template[1]["filename"] != u"\\Windows\\System32\\ntdll.dll":
         raise RuntimeError("Test data invalid.")
 
       json_data = []
@@ -327,7 +328,7 @@ class ListVADBinariesTest(MemoryTest):
     # Sorting output collection to make the test deterministic
     binaries = sorted(fd, key=lambda x: x.pathspec.path)
 
-    self.assertEqual(len(binaries), 2)
+    self.assertLen(binaries, 2)
 
     self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
     self.assertEqual(binaries[1].pathspec.CollapsePath(), "/C:/WINDOWS/foo.exe")
@@ -355,7 +356,7 @@ class ListVADBinariesTest(MemoryTest):
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(fd)
 
-    self.assertEqual(len(binaries), 1)
+    self.assertLen(binaries, 1)
     self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
     fd = aff4.FACTORY.Open(
         binaries[0].AFF4Path(self.client_id), token=self.token)
@@ -380,7 +381,7 @@ class ListVADBinariesTest(MemoryTest):
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(fd)
 
-    self.assertEqual(len(binaries), 1)
+    self.assertLen(binaries, 1)
     self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
     fd = aff4.FACTORY.Open(
         binaries[0].AFF4Path(self.client_id), token=self.token)
@@ -404,7 +405,7 @@ class ListVADBinariesTest(MemoryTest):
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(fd)
 
-    self.assertEqual(len(binaries), 1)
+    self.assertLen(binaries, 1)
     self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
     fd = aff4.FACTORY.Open(
         binaries[0].AFF4Path(self.client_id), token=self.token)
@@ -464,7 +465,7 @@ class TestAnalyzeClientMemory(rekall_test_lib.RekallTestBase):
     json_blobs = "".join(json_blobs)
 
     for knownresult in ["DumpIt.exe", "DumpIt.sys"]:
-      self.assertTrue(knownresult in json_blobs)
+      self.assertIn(knownresult, json_blobs)
 
   @RequireTestImage
   def testFileOutput(self):
@@ -501,7 +502,7 @@ class TestAnalyzeClientMemory(rekall_test_lib.RekallTestBase):
     json_blobs = "".join(json_blobs)
 
     for knownresult in ["System", "DumpIt.exe"]:
-      self.assertTrue(knownresult in json_blobs)
+      self.assertIn(knownresult, json_blobs)
 
   @RequireTestImage
   def testDLLList(self):
@@ -523,7 +524,7 @@ class TestAnalyzeClientMemory(rekall_test_lib.RekallTestBase):
     json_blobs = "".join(json_blobs)
 
     for knownresult in ["DumpIt", "wow64win", "wow64", "wow64cpu", "ntdll"]:
-      self.assertTrue(knownresult in json_blobs)
+      self.assertIn(knownresult, json_blobs)
 
 
 def main(argv):

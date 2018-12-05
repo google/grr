@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A flow to run checks for a host."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -12,6 +13,7 @@ from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import artifact
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server.check_lib import checks
 from grr_response_server.flows.general import collectors
 
@@ -26,7 +28,8 @@ class CheckFlowArgs(rdf_structs.RDFProtoStruct):
     return rdf_paths.PathSpec.PathType.OS
 
 
-class CheckRunner(flow.GRRFlow):
+@flow_base.DualDBFlow
+class CheckRunnerMixin(object):
   """This flow runs checks on a host.
 
   CheckRunner:
@@ -53,9 +56,9 @@ class CheckRunner(flow.GRRFlow):
     self.state.checks_with_findings = []
     self.state.results_store = None
     self.state.host_data = {}
-    self.CallStateInline(next_state="MapArtifactData")
+    self.MapArtifactData()
 
-  def MapArtifactData(self, responses):
+  def MapArtifactData(self):
     """Get processed data, mapped to artifacts.
 
     Identifies the artifacts that should be collected based on the os and labels
@@ -66,9 +69,6 @@ class CheckRunner(flow.GRRFlow):
     are used to only trigger the parsers required for the checks in cases where
     multiple parsers can be applied, and to parse the results once, rather than
     re-parse them within each check that uses the results.
-
-    Args:
-      responses: Input from previous states as an rdfvalue.Dict
     """
     self.state.artifacts_wanted = checks.CheckRegistry.SelectArtifacts(
         os_name=self.state.knowledge_base.os,

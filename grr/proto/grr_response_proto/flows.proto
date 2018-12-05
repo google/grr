@@ -563,10 +563,8 @@ message UpdateConfigurationArgs {
 
 // Next field ID: 3
 message ExecutePythonHackArgs {
-  optional string hack_name = 1 [(sem_type) = {
-      description: "The path to the hack to execute relative to "
-      "Config.python_hack_root."
-    }];
+  optional string hack_name = 1
+      [(sem_type) = { description: "Relative path to the hack to execute." }];
 
   optional Dict py_args = 2 [(sem_type) = {
       description: "Python Hack Arguments."

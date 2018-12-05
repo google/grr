@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Tests for triggers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
@@ -30,8 +31,8 @@ class ConditionTest(test_lib.GRRBaseTest):
     c1 = triggers.Condition(*termos)
     c2 = triggers.Condition(*t800)
     results = set([c1, c2, c1, c1, c1, c2])
-    self.assertEqual(2, len(results))
-    self.assertItemsEqual(set([c1, c2]), results)
+    self.assertLen(results, 2)
+    self.assertCountEqual(set([c1, c2]), results)
 
   def testConditionMatch(self):
     # More general terms include more specific results.
@@ -76,8 +77,8 @@ class TriggersTest(test_lib.GRRBaseTest):
                          artifact="GoodAI", os_name="TermOS", label="t1000"))
     # Searches return results if query data matches.
     self.assertEqual([good_ai], [c.attr for c in t.Search(artifact="GoodAI")])
-    self.assertItemsEqual(
-        [t800, t1000], [c.attr for c in t.Search(artifact="BadAI")])
+    self.assertCountEqual([t800, t1000],
+                          [c.attr for c in t.Search(artifact="BadAI")])
 
   def testTriggerRegistry(self):
     t = triggers.Triggers()
@@ -86,16 +87,16 @@ class TriggersTest(test_lib.GRRBaseTest):
     callback_3 = lambda: 3
     t.Add("GoodAI", target_1, callback_1)
     t.Add("BadAI", target_2, callback_2)
-    self.assertItemsEqual([], t.Calls([bad_ai]))
-    self.assertItemsEqual([callback_1], t.Calls([good_ai]))
-    self.assertItemsEqual([callback_2], t.Calls([t800]))
-    self.assertItemsEqual([callback_2], t.Calls([t1000]))
+    self.assertCountEqual([], t.Calls([bad_ai]))
+    self.assertCountEqual([callback_1], t.Calls([good_ai]))
+    self.assertCountEqual([callback_2], t.Calls([t800]))
+    self.assertCountEqual([callback_2], t.Calls([t1000]))
     meta_t = triggers.Triggers()
     meta_t.Update(t, callback_3)
-    self.assertItemsEqual([], meta_t.Calls([bad_ai]))
-    self.assertItemsEqual([callback_3], meta_t.Calls([good_ai]))
-    self.assertItemsEqual([callback_3], meta_t.Calls([t800]))
-    self.assertItemsEqual([callback_3], meta_t.Calls([t1000]))
+    self.assertCountEqual([], meta_t.Calls([bad_ai]))
+    self.assertCountEqual([callback_3], meta_t.Calls([good_ai]))
+    self.assertCountEqual([callback_3], meta_t.Calls([t800]))
+    self.assertCountEqual([callback_3], meta_t.Calls([t1000]))
 
 
 def main(argv):

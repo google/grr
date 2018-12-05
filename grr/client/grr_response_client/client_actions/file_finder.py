@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The file finder client action."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import psutil

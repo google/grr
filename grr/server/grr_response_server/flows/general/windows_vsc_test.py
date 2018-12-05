@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for Windows Volume Shadow Copy flow."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import stat
@@ -104,7 +105,7 @@ class TestListVolumeShadowCopies(flow_test_lib.FlowTestsBaseclass):
 
     children = list(fd.ListChildren())
 
-    self.assertEqual(len(children), 10)
+    self.assertLen(children, 10)
     self.assertEqual([x.Basename() for x in sorted(children)],
                      ["file %s" % i for i in range(10)])
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for GRR discovery flows."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_test.end_to_end_tests import test_base
 
@@ -41,7 +42,7 @@ class TestClientInterrogate(test_base.EndToEndTest):
     f = self.RunFlowAndWait("Interrogate")
 
     results = list(f.ListResults())
-    self.assertEquals(len(results), 1)
+    self.assertLen(results, 1)
 
     csummary = results[0].payload
     for u in csummary.users:

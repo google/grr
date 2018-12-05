@@ -4,6 +4,7 @@
 # Copyright 2010 Google Inc. All Rights Reserved.
 """Test client vfs."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
@@ -45,9 +46,9 @@ class FilehashTest(client_test_lib.EmptyActionTest):
     }
     ti_map = dict((v, k) for k, v in iteritems(t_map))
     for t in types:
-      self.assertTrue(t_map[t] in fingers)
+      self.assertIn(t_map[t], fingers)
     for f in fingers:
-      self.assertTrue(ti_map[f] in types)
+      self.assertIn(ti_map[f], types)
 
     self.assertEqual(result[0].pathspec.path, path)
 

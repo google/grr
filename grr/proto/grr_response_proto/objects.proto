@@ -357,3 +357,14 @@ message APIAuditEntry {
     NOT_IMPLEMENTED = 5;
   }
 }
+
+message SignedBinaryID {
+  enum BinaryType {
+    UNKNOWN = 0;
+    PYTHON_HACK = 1;
+    EXECUTABLE = 2;
+  }
+  optional BinaryType binary_type = 1;
+
+  optional string path = 2;
+}

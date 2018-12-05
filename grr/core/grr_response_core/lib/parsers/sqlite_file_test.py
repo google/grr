@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.sqlite_file."""
 
-
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -22,7 +22,7 @@ class SQLiteFileTest(test_lib.GRRBaseTest):
     """Test empty files don't raise errors."""
     database_file = sqlite_file.SQLiteFile(io.BytesIO())
     entries = [x for x in database_file.Query(self.query)]
-    self.assertEqual(len(entries), 0)
+    self.assertEmpty(entries)
 
   # The places.sqlite contains 92 rows in table moz_places
   def testTmpFiles(self):
@@ -32,7 +32,7 @@ class SQLiteFileTest(test_lib.GRRBaseTest):
       file_stream = io.BytesIO(fd.read())
     database_file = sqlite_file.SQLiteFile(file_stream)
     entries = [x for x in database_file.Query(self.query)]
-    self.assertEqual(len(entries), 92)
+    self.assertLen(entries, 92)
 
     # Test the tempfile is deleted
     self.assertEqual(database_file._delete_file, True)

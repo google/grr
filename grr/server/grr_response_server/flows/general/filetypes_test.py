@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr_response_server.flows.general.filetypes."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -36,7 +37,7 @@ class TestPlistFlows(flow_test_lib.FlowTestsBaseclass):
 
   def _CheckOutput(self, session_id):
     results = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0]["nested1"]["nested11"]["key112"], "value112")
 
   def testPlistValueFilter(self):

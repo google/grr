@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Test flow copy UI."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -12,7 +13,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import access_control
 from grr_response_server import aff4
-from grr_response_server import flow
+from grr_response_server import data_store
 from grr_response_server.flows.general import file_finder as flows_file_finder
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.gui import api_call_router_with_approval_checks
@@ -21,6 +22,7 @@ from grr_response_server.output_plugins import email_plugin
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
@@ -47,12 +49,11 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
   def testOriginalFlowArgsAreShownInCopyForm(self):
     args = flows_processes.ListProcessesArgs(
         filename_regex="test[a-z]*", fetch_binaries=True)
-    flow.StartAFF4Flow(
-        flow_name=flows_processes.ListProcesses.__name__,
-        args=args,
+    flow_test_lib.StartFlow(
+        flows_processes.ListProcesses,
+        flow_args=args,
         client_id=self.client_id,
-        output_plugins=[self.email_descriptor],
-        token=self.token)
+        output_plugins=[self.email_descriptor])
 
     # Navigate to client and select newly created flow.
     self.Open("/#/clients/C.0000000000000001/flows")
@@ -81,11 +82,8 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
   def testCopyingFlowUpdatesFlowListAndSelectsNewFlow(self):
     args = flows_processes.ListProcessesArgs(
         filename_regex="test[a-z]*", fetch_binaries=True)
-    flow.StartAFF4Flow(
-        flow_name=flows_processes.ListProcesses.__name__,
-        args=args,
-        client_id=self.client_id,
-        token=self.token)
+    flow_test_lib.StartFlow(
+        flows_processes.ListProcesses, flow_args=args, client_id=self.client_id)
 
     # Navigate to client and select newly created flow.
     self.Open("/#/clients/C.0000000000000001/flows")
@@ -111,11 +109,8 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
   def testAddingOutputPluginToCopiedFlowWorks(self):
     args = flows_processes.ListProcessesArgs(
         filename_regex="test[a-z]*", fetch_binaries=True)
-    flow.StartAFF4Flow(
-        flow_name=flows_processes.ListProcesses.__name__,
-        args=args,
-        client_id=self.client_id,
-        token=self.token)
+    flow_test_lib.StartFlow(
+        flows_processes.ListProcesses, flow_args=args, client_id=self.client_id)
 
     # Navigate to client and select newly created flow.
     self.Open("/#/clients/C.0000000000000001/flows")
@@ -131,12 +126,11 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
   def testUserChangesToCopiedFlowAreRespected(self):
     args = flows_processes.ListProcessesArgs(
         filename_regex="test[a-z]*", fetch_binaries=True)
-    flow.StartAFF4Flow(
-        flow_name=flows_processes.ListProcesses.__name__,
-        args=args,
+    flow_test_lib.StartFlow(
+        flows_processes.ListProcesses,
+        flow_args=args,
         client_id=self.client_id,
-        output_plugins=[self.email_descriptor],
-        token=self.token)
+        output_plugins=[self.email_descriptor])
 
     # Navigate to client and select newly created flow.
     self.Open("/#/clients/C.0000000000000001/flows")
@@ -170,20 +164,33 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
         "tr:contains('ListProcesses'):nth(0).row-selected")
 
     # Now open the last flow and check that it has the changes we made.
-    fd = aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
-    flows = sorted(fd.ListChildren(), key=lambda x: x.age)
-    fobj = aff4.FACTORY.Open(flows[-1], token=self.token)
+    if data_store.RelationalDBFlowsEnabled():
+      flows = data_store.REL_DB.ReadAllFlowObjects(self.client_id.Basename())
+      flows.sort(key=lambda f: f.create_time)
+      fobj = flows[-1]
+
+      self.assertListEqual(
+          list(fobj.output_plugins), [
+              rdf_output_plugin.OutputPluginDescriptor(
+                  plugin_name=gui_test_lib.DummyOutputPlugin.__name__,
+                  plugin_args=flows_processes.ListProcessesArgs(
+                      filename_regex="foobar!")), self.email_descriptor
+          ])
+    else:
+      fd = aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
+      flows = sorted(fd.ListChildren(), key=lambda x: x.age)
+      fobj = aff4.FACTORY.Open(flows[-1], token=self.token)
+      self.assertListEqual(
+          list(fobj.runner_args.output_plugins), [
+              rdf_output_plugin.OutputPluginDescriptor(
+                  plugin_name=gui_test_lib.DummyOutputPlugin.__name__,
+                  plugin_args=flows_processes.ListProcessesArgs(
+                      filename_regex="foobar!")), self.email_descriptor
+          ])
 
     self.assertEqual(
         fobj.args,
         flows_processes.ListProcessesArgs(filename_regex="somethingElse*",))
-    self.assertListEqual(
-        list(fobj.runner_args.output_plugins), [
-            rdf_output_plugin.OutputPluginDescriptor(
-                plugin_name=gui_test_lib.DummyOutputPlugin.__name__,
-                plugin_args=flows_processes.ListProcessesArgs(
-                    filename_regex="foobar!")), self.email_descriptor
-        ])
 
   def testCopyingHuntFlowWorks(self):
     self.StartHunt(description="demo hunt")
@@ -215,11 +222,8 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     args = rdf_file_finder.FileFinderArgs(
         action=action, conditions=[condition], paths=["a/b/*"])
 
-    flow.StartAFF4Flow(
-        flow_name=flows_file_finder.FileFinder.__name__,
-        args=args,
-        client_id=self.client_id,
-        token=self.token)
+    flow_test_lib.StartFlow(
+        flows_file_finder.FileFinder, flow_args=args, client_id=self.client_id)
 
     # Navigate to client and select newly created flow.
     self.Open("/#/clients/C.0000000000000001/flows")
@@ -239,11 +243,8 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
 
   def testCopyACLErrorIsCorrectlyDisplayed(self):
     args = rdf_file_finder.FileFinderArgs(paths=["a/b/*"])
-    flow.StartAFF4Flow(
-        flow_name=flows_file_finder.FileFinder.__name__,
-        args=args,
-        client_id=self.client_id,
-        token=self.token)
+    flow_test_lib.StartFlow(
+        flows_file_finder.FileFinder, flow_args=args, client_id=self.client_id)
 
     # Navigate to client and select newly created flow.
     self.Open("/#/clients/C.0000000000000001/flows")

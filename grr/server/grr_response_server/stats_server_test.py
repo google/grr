@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test for the stats server implementation."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import json
@@ -32,7 +33,7 @@ class StatsServerTest(test_lib.GRRBaseTest):
           "metric_type": "EVENT",
           "value_type": "DISTRIBUTION"
       })
-      self.assertItemsEqual(
+      self.assertCountEqual(
           iterkeys(varz_json["api_method_latency"]["value"]),
           ["sum", "bins_heights", "counter"])
 
@@ -41,19 +42,20 @@ class StatsServerTest(test_lib.GRRBaseTest):
         "api_method_latency", 15, fields=["Foo", "http", "SUCCESS"])
 
     varz_json = json.loads(stats_server.BuildVarzJsonString())
-    self.assertEqual(varz_json["api_method_latency"]["info"], {
-        "metric_type":
-            "EVENT",
-        "value_type":
-            "DISTRIBUTION",
-        "fields_defs": [["method_name", "STR"], ["protocol", "STR"],
-                        ["status", "STR"]]
-    })
+    self.assertEqual(
+        varz_json["api_method_latency"]["info"], {
+            "metric_type":
+                "EVENT",
+            "value_type":
+                "DISTRIBUTION",
+            "fields_defs": [["method_name", "STR"], ["protocol", "STR"],
+                            ["status", "STR"]]
+        })
 
     api_method_latency_value = varz_json["api_method_latency"]["value"]
     self.assertEqual(
         list(iterkeys(api_method_latency_value)), ["Foo:http:SUCCESS"])
-    self.assertItemsEqual(
+    self.assertCountEqual(
         iterkeys(api_method_latency_value["Foo:http:SUCCESS"]),
         ["sum", "bins_heights", "counter"])
 

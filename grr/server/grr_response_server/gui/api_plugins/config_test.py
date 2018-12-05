@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This modules contains tests for config API handler."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -12,6 +13,7 @@ from grr_response_core.lib import flags
 
 from grr_response_core.lib import utils
 from grr_response_server import maintenance_utils
+from grr_response_server import signed_binary_utils
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import config as config_plugin
 from grr.test_lib import test_lib
@@ -21,9 +23,9 @@ def GetConfigMockClass(sections=None):
   """Mocks a configuration file for use by the API handler.
 
   Args:
-    sections: A dict containing one key per config section
-    with a value of a dict containing one key per config parameter name
-    and a value of config parameter value. (default {})
+    sections: A dict containing one key per config section with a value of a
+      dict containing one key per config parameter name and a value of config
+      parameter value. (default {})
 
   Returns:
     A class to be used as a config mock.
@@ -99,15 +101,14 @@ class ApiGetConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def _assertHandlesConfig(self, sections, expected_result):
     actual_result = self._HandleConfig(sections)
-    self.assertEquals(actual_result, expected_result)
+    self.assertEqual(actual_result, expected_result)
 
   def testHandlesEmptyConfig(self):
     self._assertHandlesConfig(None, config_plugin.ApiGetConfigResult())
 
   def testHandlesEmptySection(self):
-    self._assertHandlesConfig({
-        "section": {}
-    }, config_plugin.ApiGetConfigResult())
+    self._assertHandlesConfig({"section": {}},
+                              config_plugin.ApiGetConfigResult())
 
   def testHandlesConfigOption(self):
     input_dict = {
@@ -119,8 +120,8 @@ class ApiGetConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
         }
     }
     result = self._HandleConfig(input_dict)
-    self.assertEqual(len(result.sections), 1)
-    self.assertEqual(len(result.sections[0].options), 1)
+    self.assertLen(result.sections, 1)
+    self.assertLen(result.sections[0].options, 1)
     self.assertEqual(result.sections[0].options[0].name, "section.parameter")
     self.assertEqual(result.sections[0].options[0].value, "value")
 
@@ -178,14 +179,14 @@ class ApiGrrBinaryTestMixin(object):
   def SetUpBinaries(self):
     with test_lib.FakeTime(42):
       code = "I am a binary file"
-      upload_path = config.CONFIG.Get("Config.aff4_root").Add(
-          "executables/windows/test.exe")
+      upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
+          "windows/test.exe")
       maintenance_utils.UploadSignedConfigBlob(
           code.encode("utf-8"), aff4_path=upload_path, token=self.token)
 
     with test_lib.FakeTime(43):
       code = "I'm a python hack"
-      upload_path = config.CONFIG.Get("Config.python_hack_root").Add("test")
+      upload_path = signed_binary_utils.GetAFF4PythonHackRoot().Add("test")
       maintenance_utils.UploadSignedConfigBlob(
           code.encode("utf-8"), aff4_path=upload_path, token=self.token)
 

@@ -2,6 +2,7 @@
 """Network-related client rdfvalues."""
 
 from __future__ import absolute_import
+from __future__ import division
 
 import socket
 

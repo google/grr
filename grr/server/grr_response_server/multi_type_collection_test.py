@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for MultiTypeCollection."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -85,7 +86,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
         original_values.add(
             rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))))
 
-    self.assertItemsEqual([v.payload for v in original_values],
+    self.assertCountEqual([v.payload for v in original_values],
                           [v.payload for v in self.collection])
 
   def testLengthOfCollectionIsCorrectWhenMultipleTypesAreUsed(self):
@@ -98,7 +99,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
             rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))),
             mutation_pool=self.pool)
 
-    self.assertEqual(200, len(self.collection))
+    self.assertLen(self.collection, 200)
 
   def testValuesOfMultipleTypesCanBeIteratedPerType(self):
     with self.pool:
@@ -152,7 +153,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
     self.collection.Delete()
 
     for urn in data_store.DB.subjects:
-      self.assertFalse(utils.SmartStr(self.collection.collection_id) in urn)
+      self.assertNotIn(utils.SmartStr(self.collection.collection_id), urn)
 
 
 def main(argv):

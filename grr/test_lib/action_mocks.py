@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """A library of client action mocks for use in tests."""
 from __future__ import absolute_import
+from __future__ import division
 
+import io
 import itertools
 import socket
 
@@ -248,6 +250,27 @@ class GrepClientMock(ActionMock):
         file_fingerprint.FingerprintFile, searching.Find, searching.Grep,
         standard.HashBuffer, standard.GetFileStat, standard.TransferBuffer,
         *args, **kwargs)
+
+
+class UpdateAgentClientMock(ActionMock):
+  """Client with a mocked-out UpdateAgent client-action."""
+
+  def __init__(self):
+    super(UpdateAgentClientMock, self).__init__()
+
+    self._requests = []
+
+  def UpdateAgent(self, execute_binary_request):
+    """Replacement for the real UpdateAgent client-action."""
+    self._requests.append(execute_binary_request)
+    return []
+
+  def GetDownloadedFileContents(self):
+    """Returns the raw contents of the file sent by the server."""
+    bytes_buffer = io.BytesIO()
+    for request in self._requests:
+      bytes_buffer.write(request.executable.data)
+    return bytes_buffer.getvalue()
 
 
 class InterrogatedClient(ActionMock):

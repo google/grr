@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the collector flows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -13,11 +14,11 @@ from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import aff4
-from grr_response_server import flow
 from grr_response_server.check_lib import checks
 from grr_response_server.check_lib import checks_test_lib
 from grr_response_server.flows.general import checks as flow_checks
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
@@ -26,6 +27,7 @@ from grr.test_lib import vfs_test_lib
 # pylint: mode=test
 
 
+@db_test_lib.DualDBTest
 class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
                      checks_test_lib.HostCheckTest):
 
@@ -62,20 +64,14 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
     client.Flush()
 
   def RunFlow(self):
-    with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      with vfs_test_lib.FakeTestDataVFSOverrider():
-        session_id = flow_test_lib.TestFlowHelper(
-            flow_checks.CheckRunner.__name__,
-            client_mock=self.client_mock,
-            client_id=self.client_id,
-            token=self.token)
-    session = aff4.FACTORY.Open(session_id, token=self.token)
-    results = {
-        r.check_id: r
-        for _, r in send_reply.args
-        if isinstance(r, checks.CheckResult)
-    }
-    return session, results
+    with vfs_test_lib.FakeTestDataVFSOverrider():
+      session_id = flow_test_lib.TestFlowHelper(
+          flow_checks.CheckRunner.__name__,
+          client_mock=self.client_mock,
+          client_id=self.client_id,
+          token=self.token)
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    return session_id, {r.check_id: r for r in results}
 
   def LoadChecks(self):
     """Load the checks, returning the names of the checks that were loaded."""
@@ -88,13 +84,18 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
 
   def testSelectArtifactsForChecks(self):
     self.SetLinuxKB()
-    session, _ = self.RunFlow()
-    self.assertTrue("DebianPackagesStatus" in session.state.artifacts_wanted)
-    self.assertTrue("SshdConfigFile" in session.state.artifacts_wanted)
+    session_id, _ = self.RunFlow()
+
+    state = flow_test_lib.GetFlowState(
+        self.client_id, session_id, token=self.token)
+    self.assertIn("DebianPackagesStatus", state.artifacts_wanted)
+    self.assertIn("SshdConfigFile", state.artifacts_wanted)
 
     self.SetWindowsKB()
-    session, _ = self.RunFlow()
-    self.assertTrue("WMIInstalledSoftware" in session.state.artifacts_wanted)
+    session_id, _ = self.RunFlow()
+    state = flow_test_lib.GetFlowState(
+        self.client_id, session_id, token=self.token)
+    self.assertIn("WMIInstalledSoftware", state.artifacts_wanted)
 
   def testCheckFlowSelectsChecks(self):
     """Confirm the flow runs checks for a target machine."""

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests the queue manager."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import time
@@ -68,11 +69,11 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # when FetchCompletedResponses is called.
     completed_response = list(
         manager.FetchCompletedResponses(session_id, limit=5))
-    self.assertEqual(len(completed_response), 5)
+    self.assertLen(completed_response, 5)
     for i, (request, responses) in enumerate(completed_response):
       self.assertEqual(request.id, i)
       # Responses contain just the status message.
-      self.assertEqual(len(responses), 1)
+      self.assertLen(responses, 1)
 
   def testDeleteRequest(self):
     """Check that we can efficiently destroy a single flow request."""
@@ -92,14 +93,14 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
 
     # Check the request and responses are there.
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
-    self.assertEqual(len(all_requests), 1)
+    self.assertLen(all_requests, 1)
     self.assertEqual(all_requests[0][0], request)
 
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.DeleteRequest(request)
 
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
-    self.assertEqual(len(all_requests), 0)
+    self.assertEmpty(all_requests)
 
   def testDestroyFlowStates(self):
     """Check that we can efficiently destroy the flow's request queues."""
@@ -119,12 +120,12 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
 
     # Check the request and responses are there.
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
-    self.assertEqual(len(all_requests), 1)
+    self.assertLen(all_requests, 1)
     self.assertEqual(all_requests[0][0], request)
 
     # Read the response directly.
     responses = data_store.DB.ReadResponsesForRequestId(session_id, 1)
-    self.assertEqual(len(responses), 1)
+    self.assertLen(responses, 1)
     response = responses[0]
     self.assertEqual(response.request_id, 1)
     self.assertEqual(response.response_id, 1)
@@ -134,11 +135,11 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
       manager.DestroyFlowStates(session_id)
 
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
-    self.assertEqual(len(all_requests), 0)
+    self.assertEmpty(all_requests)
 
     # Check that the response is gone.
     responses = data_store.DB.ReadResponsesForRequestId(session_id, 1)
-    self.assertEqual(len(responses), 0)
+    self.assertEmpty(responses)
 
     # Ensure the rows are gone from the data store. Some data stores
     # don't store the queues in that way but there is no harm in
@@ -168,7 +169,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(task.task_ttl, 5)
 
     stored_tasks = data_store.DB.QueueQueryTasks(test_queue, limit=100000)
-    self.assertEqual(len(stored_tasks), 1)
+    self.assertLen(stored_tasks, 1)
     stored_task = stored_tasks[0]
     self.assertGreater(stored_task.leased_until, 0)
     stored_task.leased_until = None
@@ -178,7 +179,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # Get a lease on the task
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks), 1)
+    self.assertLen(tasks, 1)
     self.assertEqual(tasks[0].task_ttl, 4)
 
     self.assertEqual(tasks[0].session_id, "aff4:/Test")
@@ -187,13 +188,13 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self._current_mock_time += 10
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks), 0)
+    self.assertEmpty(tasks)
 
     # However after 100 seconds this should work again
     self._current_mock_time += 110
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks), 1)
+    self.assertLen(tasks, 1)
     self.assertEqual(tasks[0].task_ttl, 3)
 
     # Check now that after a few retransmits we drop the message
@@ -201,13 +202,13 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
       self._current_mock_time += 110
       tasks = manager.QueryAndOwn(test_queue, lease_seconds=100)
 
-      self.assertEqual(len(tasks), 1)
+      self.assertLen(tasks, 1)
       self.assertEqual(tasks[0].task_ttl, i)
 
     # The task is now gone
     self._current_mock_time += 110
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100)
-    self.assertEqual(len(tasks), 0)
+    self.assertEmpty(tasks)
 
   def testTaskRetransmissionsAreCorrectlyAccounted(self):
     test_queue = rdfvalue.RDFURN("fooSchedule")
@@ -224,7 +225,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # Get a lease on the task
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks), 1)
+    self.assertLen(tasks, 1)
     self.assertEqual(tasks[0].task_ttl, 4)
 
     self.assertEqual(
@@ -235,7 +236,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self._current_mock_time += 110
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks), 1)
+    self.assertLen(tasks, 1)
     self.assertEqual(tasks[0].task_ttl, 3)
 
     self.assertEqual(
@@ -257,7 +258,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # Get a lease on the task
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks), 1)
+    self.assertLen(tasks, 1)
 
     self.assertEqual(tasks[0].session_id, "aff4:/Test")
 
@@ -268,14 +269,14 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # Task is now deleted.
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks), 0)
+    self.assertEmpty(tasks)
 
     # If we try to get another lease on it we should fail - even after
     # expiry time.
     self._current_mock_time += 1000
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks), 0)
+    self.assertEmpty(tasks)
 
   def testReSchedule(self):
     """Test the ability to re-schedule a task."""
@@ -293,7 +294,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # Get a lease on the task
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks), 1)
+    self.assertLen(tasks, 1)
 
     # Record the task id
     original_id = tasks[0].task_id
@@ -301,7 +302,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # If we try to get another lease on it we should fail
     tasks_2 = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks_2), 0)
+    self.assertEmpty(tasks_2)
 
     # Now we reschedule it
     with data_store.DB.GetMutationPool() as pool:
@@ -313,7 +314,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # If we try to get another lease on it we should not fail
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(len(tasks), 1)
+    self.assertLen(tasks, 1)
 
     # But the id should not change
     self.assertEqual(tasks[0].task_id, original_id)
@@ -368,28 +369,28 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
         timestamp=(self._current_mock_time + 30) * 1e6)
     manager.Flush()
 
-    self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 0)
+    self.assertEmpty(manager.GetNotificationsForAllShards(queues.HUNTS))
 
     self._current_mock_time += 10
-    self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 1)
+    self.assertLen(manager.GetNotificationsForAllShards(queues.HUNTS), 1)
     manager.DeleteNotification(
         rdfvalue.SessionID(
             base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
 
     self._current_mock_time += 10
-    self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 1)
+    self.assertLen(manager.GetNotificationsForAllShards(queues.HUNTS), 1)
     manager.DeleteNotification(
         rdfvalue.SessionID(
             base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
 
     self._current_mock_time += 10
-    self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 1)
+    self.assertLen(manager.GetNotificationsForAllShards(queues.HUNTS), 1)
     manager.DeleteNotification(
         rdfvalue.SessionID(
             base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
 
     self._current_mock_time += 10
-    self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 0)
+    self.assertEmpty(manager.GetNotificationsForAllShards(queues.HUNTS))
 
   def testGetClientIdFromQueue(self):
 
@@ -476,7 +477,7 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
       shard_sessions = manager.GetNotifications(queues.HUNTS)
       if shard_sessions:
         shards_with_data += 1
-        self.assertEqual(len(shard_sessions), 1)
+        self.assertLen(shard_sessions, 1)
     self.assertEqual(shards_with_data, 2)
 
     # This should still work, as we delete notifications from all shards.
@@ -511,7 +512,7 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
     self.assertEqual(live_shard_count, 2)
 
     notifications = manager.GetNotificationsForAllShards(queues.HUNTS)
-    self.assertEqual(len(notifications), 2)
+    self.assertLen(notifications, 2)
 
   def testNotificationRequeueing(self):
     with test_lib.ConfigOverrider({"Worker.queue_shards": 1}):
@@ -525,7 +526,7 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
       with test_lib.FakeTime(1100):
         with queue_manager.QueueManager(token=self.token) as manager:
           notifications = manager.GetNotifications(queues.HUNTS)
-          self.assertEqual(len(notifications), 1)
+          self.assertLen(notifications, 1)
           # This notification was first queued and last queued at time 1000.
           notification = notifications[0]
           self.assertEqual(notification.timestamp.AsSecondsSinceEpoch(), 1000)
@@ -538,7 +539,7 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
       with test_lib.FakeTime(1200):
         with queue_manager.QueueManager(token=self.token) as manager:
           notifications = manager.GetNotifications(queues.HUNTS)
-          self.assertEqual(len(notifications), 1)
+          self.assertLen(notifications, 1)
           notification = notifications[0]
           # Now the last queue time is 1100, the first queue time is still 1000.
           self.assertEqual(notification.timestamp.AsSecondsSinceEpoch(), 1100)
@@ -552,14 +553,14 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
       with test_lib.FakeTime(expired):
         with queue_manager.QueueManager(token=self.token) as manager:
           notifications = manager.GetNotifications(queues.HUNTS)
-          self.assertEqual(len(notifications), 1)
+          self.assertLen(notifications, 1)
           # Again requeue the notification, this time it should be dropped.
           manager.DeleteNotification(session_id)
           manager.QueueNotification(notifications[0])
 
         with queue_manager.QueueManager(token=self.token) as manager:
           notifications = manager.GetNotifications(queues.HUNTS)
-          self.assertEqual(len(notifications), 0)
+          self.assertEmpty(notifications)
 
 
 def main(argv):

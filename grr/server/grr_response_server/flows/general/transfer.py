@@ -341,12 +341,17 @@ class MultiGetFileLogic(object):
     if self.client_version >= 3221:
       stub = server_stubs.GetFileStat
       request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
+      request_name = "GetFileStat"
     else:
       stub = server_stubs.StatFile
       request = rdf_client_action.ListDirRequest(pathspec=pathspec)
+      request_name = "StatFile"
 
     self.CallClient(
-        stub, request, next_state="StoreStat", request_data=dict(index=index))
+        stub,
+        request,
+        next_state="StoreStat",
+        request_data=dict(index=index, request_name=request_name))
 
     request = rdf_client_action.FingerprintRequest(
         pathspec=pathspec, max_filesize=self.state.file_size)
@@ -423,7 +428,7 @@ class MultiGetFileLogic(object):
     if not responses.success:
       self.Log("Failed to stat file: %s", responses.status)
       # Report failure.
-      self._FileFetchFailed(index, responses.request.request.name)
+      self._FileFetchFailed(index, responses.request_data["request_name"])
       return
 
     tracker = self.state.pending_hashes[index]
@@ -431,24 +436,12 @@ class MultiGetFileLogic(object):
 
   def ReceiveFileHash(self, responses):
     """Add hash digest to tracker and check with filestore."""
-    # Support old clients which may not have the new client action in place yet.
-    # TODO(user): Deprecate once all clients have the HashFile action.
-    if not responses.success and responses.request.request.name == "HashFile":
-      logging.debug(
-          "HashFile action not available, falling back to FingerprintFile.")
-      self.CallClient(
-          server_stubs.FingerprintFile,
-          responses.request.request.payload,
-          next_state="ReceiveFileHash",
-          request_data=responses.request_data)
-      return
-
     index = responses.request_data["index"]
     if not responses.success:
       self.Log("Failed to hash file: %s", responses.status)
       self.state.pending_hashes.pop(index, None)
       # Report the error.
-      self._FileFetchFailed(index, responses.request.request.name)
+      self._FileFetchFailed(index, "HashFile")
       return
 
     self.state.files_hashed += 1
@@ -825,20 +818,18 @@ class MultiGetFileLogic(object):
         stat_entry = file_tracker["stat_entry"]
         urn = stat_entry.pathspec.AFF4Path(self.client_urn)
 
-        # TODO(user): when all the code can read files from REL_DB,
-        # protect this with:
-        # if not data_store.RelationalDBReadEnabled(category="filestore"):
-        with aff4.FACTORY.Create(
-            urn, aff4_grr.VFSBlobImage, mode="w", token=self.token) as fd:
+        if data_store.AFF4Enabled():
+          with aff4.FACTORY.Create(
+              urn, aff4_grr.VFSBlobImage, mode="w", token=self.token) as fd:
 
-          fd.SetChunksize(self.CHUNK_SIZE)
-          fd.Set(fd.Schema.STAT(stat_entry))
-          fd.Set(fd.Schema.PATHSPEC(stat_entry.pathspec))
-          fd.Set(fd.Schema.CONTENT_LAST(rdfvalue.RDFDatetime().Now()))
+            fd.SetChunksize(self.CHUNK_SIZE)
+            fd.Set(fd.Schema.STAT(stat_entry))
+            fd.Set(fd.Schema.PATHSPEC(stat_entry.pathspec))
+            fd.Set(fd.Schema.CONTENT_LAST(rdfvalue.RDFDatetime().Now()))
 
-          for index in sorted(blob_dict):
-            digest, length = blob_dict[index]
-            fd.AddBlob(rdf_objects.BlobID.FromBytes(digest), length)
+            for index in sorted(blob_dict):
+              digest, length = blob_dict[index]
+              fd.AddBlob(rdf_objects.BlobID.FromBytes(digest), length)
 
         if data_store.RelationalDBWriteEnabled():
           path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
@@ -958,6 +949,8 @@ class LegacyFileStoreCreateFile(events.EventListener):
 
   def ProcessMessages(self, msgs=None, token=None):
     """Process the new file and add to the file store."""
+    if not data_store.AFF4Enabled():
+      return
 
     filestore_fd = aff4.FACTORY.Create(
         legacy_filestore.FileStore.PATH,
@@ -1084,11 +1077,11 @@ class TransferStore(flow.WellKnownFlow):
       if not data:
         continue
 
-      if (read_buffer.compression == rdf_protodict.DataBlob.CompressionType
-          .ZCOMPRESSION):
+      if (read_buffer.compression ==
+          rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION):
         data = zlib.decompress(data)
-      elif (read_buffer.compression == rdf_protodict.DataBlob.CompressionType
-            .UNCOMPRESSED):
+      elif (read_buffer.compression ==
+            rdf_protodict.DataBlob.CompressionType.UNCOMPRESSED):
         pass
       else:
         raise ValueError("Unsupported compression")

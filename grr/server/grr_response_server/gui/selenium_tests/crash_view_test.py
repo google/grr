@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the flow_management interface."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -72,7 +73,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     # Check that "Flow Information" tab displays crash data.
     self.WaitUntil(self.AllTextsPresent, [
         "CLIENT_CRASHED",
-        "aff4:/%s/flows/" % self.client_id, "Reason: Client crashed."
+        self.client_id,
+        "Client crashed.",
     ])
 
   def SetUpCrashedFlowInHunt(self):

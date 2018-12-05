@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import functools
@@ -94,7 +95,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
 
     # Check that CronJob definition is saved properly
     jobs = cron_manager.ListJobs(token=self.token)
-    self.assertEqual(len(jobs), 1)
+    self.assertLen(jobs, 1)
     self.assertEqual(jobs[0], job_id)
 
     cron_job = cron_manager.ReadJob(job_id, token=self.token)
@@ -121,7 +122,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     cron_manager._GetThreadPool().Join()
 
     runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-    self.assertEqual(len(runs), 1)
+    self.assertLen(runs, 1)
     run = runs[0]
     self.assertTrue(run.run_id)
     self.assertTrue(run.started_at)
@@ -162,7 +163,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
           cron_manager.RunOnce(token=self.token)
 
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 1)
+          self.assertLen(cron_job_runs, 1)
 
           job = cron_manager.ReadJob(job_id)
           self.assertTrue(cron_manager.JobIsRunning(job))
@@ -172,7 +173,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
           cron_manager.RunOnce(token=self.token)
 
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 1)
+          self.assertLen(cron_job_runs, 1)
 
       finally:
         event.set()
@@ -193,7 +194,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
           cron_manager.RunOnce(token=self.token)
 
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 1)
+          self.assertLen(cron_job_runs, 1)
 
           job = cron_manager.ReadJob(job_id)
           self.assertTrue(cron_manager.JobIsRunning(job))
@@ -203,26 +204,26 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
           # job.
           cron_manager.RunOnce(token=self.token)
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 1)
+          self.assertLen(cron_job_runs, 1)
 
           cron_manager.RequestForcedRun(job_id)
           cron_manager.RunOnce(token=self.token)
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 2)
+          self.assertLen(cron_job_runs, 2)
 
           # The only way to prevent a forced run is to disable the job.
           cron_manager.DisableJob(job_id)
           cron_manager.RequestForcedRun(job_id)
           cron_manager.RunOnce(token=self.token)
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 2)
+          self.assertLen(cron_job_runs, 2)
 
           # And enable again.
           cron_manager.EnableJob(job_id)
           cron_manager.RequestForcedRun(job_id)
           cron_manager.RunOnce(token=self.token)
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 3)
+          self.assertLen(cron_job_runs, 3)
 
       finally:
         event.set()
@@ -240,7 +241,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
       cron_manager.RunOnce(token=self.token)
 
       cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-      self.assertEqual(len(cron_job_runs), 1)
+      self.assertLen(cron_job_runs, 1)
 
     # Let 59 minutes pass. Frequency is 1 hour, so new flow is not
     # supposed to start.
@@ -250,7 +251,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
       cron_manager.RunOnce(token=self.token)
 
       cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-      self.assertEqual(len(cron_job_runs), 1)
+      self.assertLen(cron_job_runs, 1)
 
   def testCronJobRunPreventsOverrunsWhenAllowOverrunsIsFalse(self):
     event = threading.Event()
@@ -268,7 +269,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
           cron_manager.RunOnce(token=self.token)
 
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 1)
+          self.assertLen(cron_job_runs, 1)
 
         # Let two hours pass. Frequency is 1h (i.e. cron job iterations are
         # supposed to be started every hour), so the new flow should be started
@@ -280,7 +281,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
           cron_manager.RunOnce(token=self.token)
 
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 1)
+          self.assertLen(cron_job_runs, 1)
 
     finally:
       event.set()
@@ -302,7 +303,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
           cron_manager.RunOnce(token=self.token)
 
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 1)
+          self.assertLen(cron_job_runs, 1)
 
         # Let two hours pass. Frequency is 1h (i.e. cron job iterations are
         # supposed to be started every hour), so the new flow should be started
@@ -314,7 +315,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
           cron_manager.RunOnce(token=self.token)
 
           cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
-          self.assertEqual(len(cron_job_runs), 2)
+          self.assertLen(cron_job_runs, 2)
 
     finally:
       event.set()
@@ -327,11 +328,11 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
 
     cron_job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-    self.assertEqual(len(cron_manager.ListJobs()), 1)
+    self.assertLen(cron_manager.ListJobs(), 1)
 
     cron_manager.DeleteJob(cron_job_id)
 
-    self.assertEqual(len(cron_manager.ListJobs()), 0)
+    self.assertEmpty(cron_manager.ListJobs())
 
   def testRunningJobs(self):
     event = threading.Event()
@@ -354,7 +355,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
       cron_job = cron_manager.ReadJob(job_id, token=self.token)
       self.assertTrue(cron_manager.JobIsRunning(cron_job))
       runs = cron_manager.ReadJobRuns(job_id)
-      self.assertEqual(len(runs), 1)
+      self.assertLen(runs, 1)
       run = runs[0]
 
       self.assertEqual(cron_job.current_run_id, run.run_id)
@@ -366,7 +367,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
       cron_job = cron_manager.ReadJob(job_id, token=self.token)
       self.assertFalse(cron_manager.JobIsRunning(cron_job))
       runs = cron_manager.ReadJobRuns(job_id)
-      self.assertEqual(len(runs), 1)
+      self.assertLen(runs, 1)
       run = runs[0]
 
       self.assertFalse(cron_job.current_run_id)
@@ -404,7 +405,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
         cron_job = cron_manager.ReadJob(job_id, token=self.token)
         self.assertTrue(cron_manager.JobIsRunning(cron_job))
         runs = cron_manager.ReadJobRuns(job_id)
-        self.assertEqual(len(runs), 1)
+        self.assertLen(runs, 1)
         run = runs[0]
         self.assertEqual(cron_job.current_run_id, run.run_id)
         self.assertEqual(run.status, "RUNNING")
@@ -421,7 +422,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
 
         cron_job = cron_manager.ReadJob(job_id, token=self.token)
         runs = cron_manager.ReadJobRuns(job_id)
-        self.assertEqual(len(runs), 1)
+        self.assertLen(runs, 1)
         run = runs[0]
 
         self.assertEqual(cron_job.last_run_status, "LIFETIME_EXCEEDED")
@@ -458,7 +459,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
       cron_job = cron_manager.ReadJob(job_id, token=self.token)
       self.assertFalse(cron_manager.JobIsRunning(cron_job))
       runs = cron_manager.ReadJobRuns(job_id)
-      self.assertEqual(len(runs), 1)
+      self.assertLen(runs, 1)
       run = runs[0]
       self.assertEqual(cron_job.last_run_status, "ERROR")
       self.assertEqual(run.status, "ERROR")
@@ -504,9 +505,8 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertFalse(job.enabled)
 
   def testSystemCronJobsMayBeDisabledViaConfig(self):
-    with test_lib.ConfigOverrider({
-        "Cron.disabled_cron_jobs": ["DummySystemCronJobRel"]
-    }):
+    with test_lib.ConfigOverrider(
+        {"Cron.disabled_cron_jobs": ["DummySystemCronJobRel"]}):
       cronjobs.ScheduleSystemCronJobs()
 
       cron_manager = cronjobs.CronManager()
@@ -567,7 +567,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
         cron_manager.RunOnce()
         cron_manager._GetThreadPool().Join()
       runs = cron_manager.ReadJobRuns("test_cron")
-      self.assertEqual(len(runs), i + 1)
+      self.assertLen(runs, i + 1)
       for run in runs:
         self.assertEqual(run.status, "FINISHED")
 

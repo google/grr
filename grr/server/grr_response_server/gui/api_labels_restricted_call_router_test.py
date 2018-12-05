@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for an ApiLabelsRestrictedCallRouter."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -104,8 +105,6 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
       "ListAndResetUserNotifications",
       "GetGrrUser",
       "UpdateGrrUser",
-      "ListPendingGlobalNotifications",
-      "DeletePendingGlobalNotification",
 
       # Config methods.
       "GetConfig",
@@ -252,8 +251,6 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     self.CheckMethod(c.ListAndResetUserNotifications)
     self.CheckMethod(c.GetGrrUser)
     self.CheckMethod(c.UpdateGrrUser)
-    self.CheckMethod(c.ListPendingGlobalNotifications)
-    self.CheckMethod(c.DeletePendingGlobalNotification)
 
     # Config methods.
     self.CheckMethod(c.GetConfig)

@@ -183,6 +183,8 @@ message ApiGetInterrogateOperationStateArgs {
   optional string operation_id = 1 [(sem_type) = {
       description: "The id of the interrogate operation."
     }];
+  optional string client_id = 2
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
 }
 
 message ApiGetInterrogateOperationStateResult {

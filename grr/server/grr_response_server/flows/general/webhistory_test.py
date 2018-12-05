@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the webhistory flows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -17,7 +18,6 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import db
 from grr_response_server import file_store
-from grr_response_server import flow
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import webhistory
 from grr.test_lib import action_mocks
@@ -53,24 +53,16 @@ class TestWebHistory(WebHistoryFlowTestMixin):
   def setUp(self):
     super(TestWebHistory, self).setUp()
     # Set up client info
-    self.client_id = self.SetupClient(0)
-    self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    self.client.Set(self.client.Schema.SYSTEM("Linux"))
-
-    kb = self.client.Get(self.client.Schema.KNOWLEDGE_BASE)
-    kb.MergeOrAddUser(
+    users = [
         rdf_client.User(
             username="test",
             full_name="test user",
             homedir="/home/test/",
-            last_logon=250))
-    self.client.Set(kb)
-    self.client.Close()
+            last_logon=250)
+    ]
+    self.client_id = self.SetupClient(0, system="Linux", users=users)
 
     self.client_mock = action_mocks.FileFinderClientMock()
-
-  def tearDown(self):
-    super(TestWebHistory, self).tearDown()
 
   def testChromeHistoryFetch(self):
     """Test that downloading the Chrome history works."""
@@ -88,18 +80,24 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.config/google-chrome/Default/History"
 
-    # Check if the History file is created.
     output_path = self.client_id.Add("fs/tsk").Add(
         self.base_path.replace("\\", "/")).Add("test_img.dd").Add(
             fs_path.replace("\\", "/"))
 
-    fd = aff4.FACTORY.Open(output_path, token=self.token)
-    self.assertTrue(fd.size > 20000)
+    # Check if the History file is created.
+    if data_store.RelationalDBReadEnabled("filestore"):
+      cp = db.ClientPath.TSK(self.client_id.Basename(),
+                             tuple(output_path.Split()[3:]))
+      fd = file_store.OpenFile(cp)
+      self.assertGreater(len(fd.read()), 20000)
+    else:
+      fd = aff4.FACTORY.Open(output_path, token=self.token)
+      self.assertGreater(fd.size, 20000)
 
     # Check for analysis file.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertGreater(len(fd), 50)
-    self.assertIn("funnycats.exe", "\n".join(map(unicode, fd.GenerateItems())))
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    self.assertGreater(len(results), 50)
+    self.assertIn("funnycats.exe", "\n".join(map(unicode, results)))
 
   def testFirefoxHistoryFetch(self):
     """Test that downloading the Firefox history works."""
@@ -116,24 +114,26 @@ class TestWebHistory(WebHistoryFlowTestMixin):
 
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"
-    # Check if the History file is created.
+
     output_path = self.client_id.Add("fs/tsk").Add("/".join(
         [self.base_path.replace("\\", "/"), "test_img.dd"])).Add(
             fs_path.replace("\\", "/"))
-    fd = aff4.FACTORY.Open(output_path, token=self.token)
-    self.assertTrue(fd.size > 20000)
-    self.assertEqual(fd.read(15), "SQLite format 3")
 
-    if data_store.RelationalDBReadEnabled(category="filestore"):
+    # Check if the History file is created.
+    if data_store.RelationalDBReadEnabled("filestore"):
       cp = db.ClientPath.TSK(self.client_id.Basename(),
                              tuple(output_path.Split()[3:]))
       rel_fd = file_store.OpenFile(cp)
       self.assertEqual(rel_fd.read(15), "SQLite format 3")
+    else:
+      fd = aff4.FACTORY.Open(output_path, token=self.token)
+      self.assertGreater(fd.size, 20000)
+      self.assertEqual(fd.read(15), "SQLite format 3")
 
     # Check for analysis file.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertGreater(len(fd), 3)
-    data = "\n".join(map(unicode, fd.GenerateItems()))
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    self.assertGreater(len(results), 3)
+    data = "\n".join(map(unicode, results))
     self.assertTrue(data.find("Welcome to Firefox") != -1)
     self.assertTrue(data.find("sport.orf.at") != -1)
 
@@ -152,16 +152,12 @@ class TestWebHistory(WebHistoryFlowTestMixin):
           token=self.token)
 
     # Check if the collection file was created.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
-
+    hits = flow_test_lib.GetFlowResults(self.client_id, session_id)
     # There should be one hit.
-    self.assertEqual(len(fd), 1)
+    self.assertLen(hits, 1)
 
     # Get the first hit.
-    hits = list(fd)
-
     self.assertIsInstance(hits[0], rdf_client_fs.StatEntry)
-
     self.assertEqual(hits[0].pathspec.last.path,
                      "/home/test/.config/google-chrome/Default/Cache/data_1")
 
@@ -172,18 +168,15 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
 
   def setUp(self):
     super(TestWebHistoryWithArtifacts, self).setUp()
-    self.client_id = self.SetupClient(0, system="Linux", os_version="12.04")
-    fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    self.kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
-    self.kb.users.Append(
+    users = [
         rdf_client.User(
             username="test",
             full_name="test user",
             homedir="/home/test/",
-            last_logon=250))
-    fd.AddAttribute(fd.Schema.KNOWLEDGE_BASE, self.kb)
-    fd.Flush()
-
+            last_logon=250)
+    ]
+    self.client_id = self.SetupClient(
+        0, system="Linux", os_version="12.04", users=users)
     self.client_mock = action_mocks.FileFinderClientMock()
 
   def RunCollectorAndGetCollection(self, artifact_list, client_mock=None, **kw):
@@ -199,7 +192,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
         token=self.token,
         **kw)
 
-    return flow.GRRFlow.ResultCollectionForFID(session_id)
+    return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
   @parser_test_lib.WithParser("Chrome", chrome_history.ChromeHistoryParser)
   def testChrome(self):
@@ -209,14 +202,13 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
       fd = self.RunCollectorAndGetCollection(
           [webhistory.ChromeHistory.__name__],
           client_mock=self.client_mock,
-          use_tsk=True,
-          knowledge_base=self.kb)
+          use_tsk=True)
 
-    self.assertEqual(len(fd), 71)
-    self.assertTrue(
-        "/home/john/Downloads/funcats_scr.exe" in [d.download_path for d in fd])
-    self.assertTrue("http://www.java.com/" in [d.url for d in fd])
-    self.assertTrue(fd[0].source_urn.Path().endswith(
+    self.assertLen(fd, 71)
+    self.assertIn("/home/john/Downloads/funcats_scr.exe",
+                  [d.download_path for d in fd])
+    self.assertIn("http://www.java.com/", [d.url for d in fd])
+    self.assertTrue(fd[0].source_path.endswith(
         "/home/test/.config/google-chrome/Default/History"))
 
   @parser_test_lib.WithParser("Firefox", firefox3_history.FirefoxHistoryParser)
@@ -228,10 +220,10 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
           client_mock=self.client_mock,
           use_tsk=True)
 
-    self.assertEqual(len(fd), 5)
+    self.assertLen(fd, 5)
     self.assertEqual(fd[0].access_time.AsSecondsSinceEpoch(), 1340623334)
-    self.assertTrue("http://sport.orf.at/" in [d.url for d in fd])
-    self.assertTrue(fd[0].source_urn.Path().endswith(
+    self.assertIn("http://sport.orf.at/", [d.url for d in fd])
+    self.assertTrue(fd[0].source_path.endswith(
         "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"))
 
 

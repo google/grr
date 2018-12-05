@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This modules contains regression tests for clients API handlers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -225,6 +226,7 @@ class ApiListClientCrashesHandlerRegressionTest(
     else:
       client_ids = self.SetupClients(1)
       client_id = client_ids[0].Basename()
+
     client_mock = flow_test_lib.CrashClientMock(
         rdf_client.ClientURN(client_id), self.token)
 
@@ -234,12 +236,15 @@ class ApiListClientCrashesHandlerRegressionTest(
 
     with test_lib.FakeTime(45):
       self.AssignTasksToClients(client_ids)
-      hunt_test_lib.TestHuntHelperWithMultipleMocks({
-          client_id: client_mock
-      }, False, self.token)
+      hunt_test_lib.TestHuntHelperWithMultipleMocks({client_id: client_mock},
+                                                    False, self.token)
 
-    crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
-        rdf_client.ClientURN(client_id))
+    if data_store.RelationalDBReadEnabled():
+      crashes = data_store.REL_DB.ReadClientCrashInfoHistory(unicode(client_id))
+    else:
+      crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
+          rdf_client.ClientURN(client_id))
+
     crash = list(crashes)[0]
     session_id = crash.session_id.Basename()
     replace = {hunt_obj.urn.Basename(): "H:123456", session_id: "H:11223344"}

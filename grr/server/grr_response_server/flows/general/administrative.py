@@ -35,8 +35,8 @@ from grr_response_server import flow_base
 from grr_response_server import grr_collections
 from grr_response_server import message_handlers
 from grr_response_server import server_stubs
+from grr_response_server import signed_binary_utils
 from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import collects
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.general import discovery
 from grr_response_server.hunts import implementation
@@ -54,11 +54,19 @@ def WriteAllCrashDetails(client_id,
                          hunt_session_id=None,
                          token=None):
   """Updates the last crash attribute of the client."""
-
   # AFF4.
-  with aff4.FACTORY.Create(
-      client_id, aff4_grr.VFSGRRClient, token=token) as client_obj:
-    client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
+  if data_store.AFF4Enabled():
+    with aff4.FACTORY.Create(
+        client_id, aff4_grr.VFSGRRClient, token=token) as client_obj:
+      client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
+
+    # Duplicate the crash information in a number of places so we can find it
+    # easily.
+    client_urn = rdf_client.ClientURN(client_id)
+    client_crashes = aff4_grr.VFSGRRClient.CrashCollectionURNForCID(client_urn)
+    with data_store.DB.GetMutationPool() as pool:
+      grr_collections.CrashCollection.StaticAdd(
+          client_crashes, crash_details, mutation_pool=pool)
 
   # Relational db.
   if data_store.RelationalDBWriteEnabled():
@@ -67,32 +75,29 @@ def WriteAllCrashDetails(client_id,
     except db.UnknownClientError:
       pass
 
-  # Duplicate the crash information in a number of places so we can find it
-  # easily.
-  client_urn = rdf_client.ClientURN(client_id)
-  client_crashes = aff4_grr.VFSGRRClient.CrashCollectionURNForCID(client_urn)
-  with data_store.DB.GetMutationPool() as pool:
-    grr_collections.CrashCollection.StaticAdd(
-        client_crashes, crash_details, mutation_pool=pool)
+  if not flow_session_id:
+    return
 
-  if flow_session_id:
-    if data_store.RelationalDBFlowsEnabled():
-      flow_id = flow_session_id.Basename()
-      data_store.REL_DB.UpdateFlow(
-          client_id, flow_id, client_crash_info=crash_details)
+  if data_store.RelationalDBFlowsEnabled():
+    flow_id = flow_session_id.Basename()
+    data_store.REL_DB.UpdateFlow(
+        client_id, flow_id, client_crash_info=crash_details)
 
-      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-      if flow_obj.parent_hunt_id:
-        db_compat.ProcessHuntClientCrash(
-            flow_obj, client_crash_info=crash_details)
-    else:
-      with aff4.FACTORY.Open(
-          flow_session_id,
-          flow.GRRFlow,
-          mode="rw",
-          age=aff4.NEWEST_TIME,
-          token=token) as aff4_flow:
-        aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    if flow_obj.parent_hunt_id:
+      db_compat.ProcessHuntClientCrash(
+          flow_obj, client_crash_info=crash_details)
+
+  # TODO(amoser): Registering crashes in hunts is currently not implemented for
+  # the relational db.
+  if not data_store.RelationalDBFlowsEnabled():
+    with aff4.FACTORY.Open(
+        flow_session_id,
+        flow.GRRFlow,
+        mode="rw",
+        age=aff4.NEWEST_TIME,
+        token=token) as aff4_flow:
+      aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
 
     hunt_session_id = ExtractHuntId(flow_session_id)
     if hunt_session_id and hunt_session_id != flow_session_id:
@@ -141,17 +146,22 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
       # Export.
       stats_collector_instance.Get().IncrementCounter("grr_client_crashes")
 
-      # Write crash data to AFF4.
-      if data_store.RelationalDBReadEnabled():
+      # Write crash data.
+      if data_store.RelationalDBWriteEnabled():
         client = data_store.REL_DB.ReadClientSnapshot(client_id)
-        client_info = client.startup_info.client_info
-        hostname = client.knowledge_base.fqdn
-      else:
+        if client:
+          crash_details.client_info = client.startup_info.client_info
+          hostname = client.knowledge_base.fqdn
+        else:
+          hostname = ""
+
+      if data_store.AFF4Enabled():
         client = aff4.FACTORY.Open(client_urn, token=token)
         client_info = client.Get(client.Schema.CLIENT_INFO)
         hostname = client.Get(client.Schema.FQDN)
+        if client_info:
+          crash_details.client_info = client_info
 
-      crash_details.client_info = client_info
       crash_details.crash_type = "Client Crash"
 
       WriteAllCrashDetails(
@@ -163,9 +173,14 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
       try:
         hunt_session_id = ExtractHuntId(session_id)
         if hunt_session_id and hunt_session_id != session_id:
-          hunt_obj = aff4.FACTORY.Open(
-              hunt_session_id, aff4_type=implementation.GRRHunt, token=token)
-          email = hunt_obj.runner_args.crash_alert_email
+
+          # TODO(amoser): Enable this for the relational db once we have hunt
+          # metadata.
+          if data_store.AFF4Enabled():
+            hunt_obj = aff4.FACTORY.Open(
+                hunt_session_id, aff4_type=implementation.GRRHunt, token=token)
+            email = hunt_obj.runner_args.crash_alert_email
+
           if email:
             to_send.append(email)
       except aff4.InstantiationError:
@@ -213,9 +228,15 @@ class GetClientStatsProcessResponseMixin(object):
 
   def ProcessResponse(self, client_id, response):
     """Actually processes the contents of the response."""
-    urn = rdf_client.ClientURN(client_id).Add("stats")
 
     downsampled = rdf_client_stats.ClientStats.Downsampled(response)
+
+    # TODO(amoser): We need client stats storage for the relational db.
+    if not data_store.AFF4Enabled():
+      return downsampled
+
+    urn = rdf_client.ClientURN(client_id).Add("stats")
+
     with aff4.FACTORY.Create(
         urn, aff4_stats.ClientStats, token=self.token, mode="w") as stats_fd:
       # Only keep the average of all values that fall within one minute.
@@ -403,15 +424,17 @@ class ExecutePythonHackMixin(object):
 
   def Start(self):
     """The start method."""
-    python_hack_root_urn = config.CONFIG.Get("Config.python_hack_root")
-    fd = aff4.FACTORY.Open(
-        python_hack_root_urn.Add(self.args.hack_name), token=self.token)
+    python_hack_urn = signed_binary_utils.GetAFF4PythonHackRoot().Add(
+        self.args.hack_name)
 
-    if not isinstance(fd, collects.GRRSignedBlob):
+    try:
+      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+          python_hack_urn, token=self.token)
+    except signed_binary_utils.SignedBinaryNotFoundError:
       raise flow.FlowError("Python hack %s not found." % self.args.hack_name)
 
     # TODO(amoser): This will break if someone wants to execute lots of Python.
-    for python_blob in fd:
+    for python_blob in blob_iterator:
       self.CallClient(
           server_stubs.ExecutePython,
           python_code=python_blob,
@@ -571,8 +594,12 @@ class OnlineNotificationMixin(object):
   def SendMail(self, responses):
     """Sends a mail when the client has responded."""
     if responses.success:
-      client = aff4.FACTORY.Open(self.client_id, token=self.token)
-      hostname = client.Get(client.Schema.FQDN)
+      if data_store.RelationalDBReadEnabled():
+        client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+        hostname = client.knowledge_base.fqdn
+      else:
+        client = aff4.FACTORY.Open(self.client_id, token=self.token)
+        hostname = client.Get(client.Schema.FQDN)
 
       subject = self.__class__.subject_template.render(hostname=hostname)
       body = self.__class__.template.render(
@@ -616,40 +643,45 @@ class UpdateClientMixin(object):
 
   category = "/Administrative/"
 
-  AUTHORIZED_LABELS = ["admin"]
-
   args_type = UpdateClientArgs
 
   def Start(self):
     """Start."""
-    blob_path = self.args.blob_path
-    if not blob_path:
+    binary_path = self.args.blob_path
+    if not binary_path:
       raise flow.FlowError("Please specify an installer binary.")
 
-    aff4_blobs = aff4.FACTORY.Open(blob_path, token=self.token)
-    if not isinstance(aff4_blobs, collects.GRRSignedBlob):
-      raise flow.FlowError("%s is not a valid GRRSignedBlob." % blob_path)
+    binary_urn = rdfvalue.RDFURN(binary_path)
+    try:
+      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+          binary_urn, token=self.token)
+    except signed_binary_utils.SignedBinaryNotFoundError:
+      raise flow.FlowError("%s is not a valid signed binary." % binary_path)
 
     offset = 0
-    write_path = "%d_%s" % (time.time(), aff4_blobs.urn.Basename())
-    for i, blob in enumerate(aff4_blobs):
-      if i < aff4_blobs.chunks - 1:
-        more_data = True
-        next_state = "CheckUpdateAgent"
-      else:
-        more_data = False
-        next_state = "Interrogate"
+    write_path = "%d_%s" % (time.time(), binary_urn.Basename())
 
+    try:
+      current_blob = next(blob_iterator)
+    except StopIteration:
+      current_blob = None
+
+    while current_blob is not None:
+      try:
+        next_blob = next(blob_iterator)
+      except StopIteration:
+        next_blob = None
+      more_data = next_blob is not None
       self.CallClient(
           server_stubs.UpdateAgent,
-          executable=blob,
+          executable=current_blob,
           more_data=more_data,
           offset=offset,
           write_path=write_path,
-          next_state=next_state,
+          next_state=("CheckUpdateAgent" if more_data else "Interrogate"),
           use_client_env=False)
-
-      offset += len(blob.data)
+      offset += len(current_blob.data)
+      current_blob = next_blob
 
   def CheckUpdateAgent(self, responses):
     if not responses.success:
@@ -663,10 +695,9 @@ class UpdateClientMixin(object):
     self.Log("Installer completed.")
     self.CallFlow(discovery.Interrogate.__name__, next_state="Done")
 
-  def Done(self):
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    info = client.Get(client.Schema.CLIENT_INFO)
-    self.Log("Client update completed, new version: %s" % info.client_version)
+  def Done(self, responses):
+    if not responses.success:
+      raise flow.FlowError(responses.status)
 
 
 class NannyMessageHandlerMixin(object):
@@ -699,9 +730,11 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
     if data_store.RelationalDBReadEnabled():
       client = data_store.REL_DB.ReadClientSnapshot(client_id)
       client_info = client.startup_info.client_info
+      hostname = client.knowledge_base.fqdn
     else:
       client = aff4.FACTORY.Open(client_id, token=self.token)
       client_info = client.Get(client.Schema.CLIENT_INFO)
+      hostname = client.Get(client.Schema.FQDN)
 
     crash_details = rdf_client.ClientCrash(
         client_id=client_id,
@@ -714,10 +747,7 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
 
     # Also send email.
     if config.CONFIG["Monitoring.alert_email"]:
-      client = aff4.FACTORY.Open(client_id, token=self.token)
-      hostname = client.Get(client.Schema.FQDN)
       url = "/clients/%s" % client_id
-
       body = self.__class__.mail_template.render(
           client_id=client_id,
           admin_ui=config.CONFIG["AdminUI.url"],
@@ -912,28 +942,40 @@ class LaunchBinaryMixin(object):
 
   category = "/Administrative/"
 
-  AUTHORIZED_LABELS = ["admin"]
   args_type = LaunchBinaryArgs
 
   def Start(self):
     """The start method."""
-    fd = aff4.FACTORY.Open(self.args.binary, token=self.token)
-    if not isinstance(fd, collects.GRRSignedBlob):
+    binary_urn = rdfvalue.RDFURN(self.args.binary)
+    try:
+      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+          binary_urn, token=self.token)
+    except signed_binary_utils.SignedBinaryNotFoundError:
       raise flow.FlowError("Executable binary %s not found." % self.args.binary)
+
+    try:
+      current_blob = next(blob_iterator)
+    except StopIteration:
+      current_blob = None
 
     offset = 0
     write_path = "%d" % time.time()
-    for i, blob in enumerate(fd):
+    while current_blob is not None:
+      try:
+        next_blob = next(blob_iterator)
+      except StopIteration:
+        next_blob = None
       self.CallClient(
           server_stubs.ExecuteBinaryCommand,
-          executable=blob,
-          more_data=i < fd.chunks - 1,
+          executable=current_blob,
+          more_data=next_blob is not None,
           args=shlex.split(self.args.command_line),
           offset=offset,
           write_path=write_path,
           next_state="End")
 
-      offset += len(blob.data)
+      offset += len(current_blob.data)
+      current_blob = next_blob
 
   def _TruncateResult(self, data):
     if len(data) > 2000:

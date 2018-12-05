@@ -5,6 +5,7 @@ See grr/server/db.py for interface.
 
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import contextlib
@@ -30,6 +31,7 @@ from grr_response_server.databases import mysql_foreman_rules
 from grr_response_server.databases import mysql_hunts
 from grr_response_server.databases import mysql_paths
 from grr_response_server.databases import mysql_pool
+from grr_response_server.databases import mysql_signed_binaries
 from grr_response_server.databases import mysql_stats
 from grr_response_server.databases import mysql_users
 
@@ -64,6 +66,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
               mysql_foreman_rules.MySQLDBForemanRulesMixin,
               mysql_hunts.MySQLDBHuntMixin,
               mysql_paths.MySQLDBPathMixin,
+              mysql_signed_binaries.MySQLDBSignedBinariesMixin,
               mysql_stats.MySQLDBStatsMixin,
               mysql_users.MySQLDBUsersMixin,
               db_module.Database):

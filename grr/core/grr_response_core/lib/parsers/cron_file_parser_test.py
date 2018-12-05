@@ -2,6 +2,7 @@
 """Tests for grr.parsers.cron_file_parser."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -30,7 +31,7 @@ class TestCronTabParsing(test_lib.GRRBaseTest):
         st_mode=16877)
     results.extend(list(parser.Parse(stat, plist_file, None)))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
 
     for result in results:
       self.assertEqual(result.jobs[0].minute, "1")

@@ -8,6 +8,7 @@ This package needs to stay simple so that it can be installed on windows and
 ancient versions of linux to build clients.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import ConfigParser

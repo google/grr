@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Invoke the fingerprint client action on a file."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
@@ -12,6 +13,7 @@ from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -32,7 +34,7 @@ class FingerprintFileResult(rdf_structs.RDFProtoStruct):
   ]
 
 
-class FingerprintFileMixin(object):
+class FingerprintFileLogic(object):
   """Retrieve all fingerprints of a file."""
 
   fingerprint_file_mixin_client_action = server_stubs.FingerprintFile
@@ -100,7 +102,8 @@ class FingerprintFileMixin(object):
     """This method will be called with the new urn and the received hash."""
 
 
-class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
+@flow_base.DualDBFlow
+class FingerprintFileMixin(FingerprintFileLogic):
   """Retrieve all fingerprints of a file."""
 
   category = "/Filesystem/"
@@ -109,6 +112,8 @@ class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
 
   def Start(self):
     """Issue the fingerprinting request."""
+    super(FingerprintFileMixin, self).Start()
+
     self.FingerprintFile(self.args.pathspec)
 
   def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
@@ -117,6 +122,6 @@ class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
 
   def End(self, responses):
     """Finalize the flow."""
-    super(FingerprintFile, self).End(responses)
+    super(FingerprintFileMixin, self).End(responses)
 
     self.Log("Finished fingerprinting %s", self.args.pathspec.path)

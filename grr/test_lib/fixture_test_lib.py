@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Client fixture-related test classes."""
 from __future__ import absolute_import
+from __future__ import division
 
 
 from future.utils import iteritems
@@ -67,8 +68,9 @@ class LegacyClientFixture(object):
       for path, (aff4_type, attributes) in vfs_fixture:
         path %= self.args
 
-        aff4_object = aff4.FACTORY.Create(
-            self.client_id.Add(path), aff4_type, mode="rw", token=self.token)
+        if data_store.AFF4Enabled():
+          aff4_object = aff4.FACTORY.Create(
+              self.client_id.Add(path), aff4_type, mode="rw", token=self.token)
 
         path_info = None
 
@@ -91,6 +93,7 @@ class LegacyClientFixture(object):
               path_info.directory = True
             else:
               raise ValueError("Incorrect AFF4 type: %s" % aff4_type)
+
         for attribute_name, value in iteritems(attributes):
           attribute = aff4.Attribute.PREDICATES[attribute_name]
           if isinstance(value, (str, unicode)):
@@ -119,26 +122,29 @@ class LegacyClientFixture(object):
           else:
             rdfvalue_object = attribute(value)
 
-          # If we don't already have a pathspec, try and get one from the stat.
-          if aff4_object.Get(aff4_object.Schema.PATHSPEC) is None:
-            # If the attribute was a stat, it has a pathspec nested in it.
-            # We should add that pathspec as an attribute.
-            if attribute.attribute_type == rdf_client_fs.StatEntry:
-              stat_object = attribute.attribute_type.FromTextFormat(
-                  utils.SmartStr(value))
-              if stat_object.pathspec:
-                pathspec_attribute = aff4.Attribute(
-                    "aff4:pathspec", rdf_paths.PathSpec,
-                    "The pathspec used to retrieve "
-                    "this object from the client.", "pathspec")
-                aff4_object.AddAttribute(pathspec_attribute,
-                                         stat_object.pathspec)
+          if data_store.AFF4Enabled():
+            # If we don't already have a pathspec, try and get one from the
+            # stat.
+            if aff4_object.Get(aff4_object.Schema.PATHSPEC) is None:
+              # If the attribute was a stat, it has a pathspec nested in it.
+              # We should add that pathspec as an attribute.
+              if attribute.attribute_type == rdf_client_fs.StatEntry:
+                stat_object = attribute.attribute_type.FromTextFormat(
+                    utils.SmartStr(value))
+                if stat_object.pathspec:
+                  pathspec_attribute = aff4.Attribute(
+                      "aff4:pathspec", rdf_paths.PathSpec,
+                      "The pathspec used to retrieve "
+                      "this object from the client.", "pathspec")
+                  aff4_object.AddAttribute(pathspec_attribute,
+                                           stat_object.pathspec)
 
           if attribute in ["aff4:content", "aff4:content"]:
-            # For AFF4MemoryStreams we need to call Write() instead of
-            # directly setting the contents..
-            content = rdfvalue_object.AsBytes()
-            aff4_object.Write(content)
+            if data_store.AFF4Enabled():
+              # For AFF4MemoryStreams we need to call Write() instead of
+              # directly setting the contents..
+              content = rdfvalue_object.AsBytes()
+              aff4_object.Write(content)
 
             if path_info is not None:
               blob_id = rdf_objects.BlobID.FromBlobData(content)
@@ -146,7 +152,7 @@ class LegacyClientFixture(object):
               hash_id = file_store.AddFileWithUnknownHash([blob_id])
               path_info.hash_entry.num_bytes = len(content)
               path_info.hash_entry.sha256 = hash_id.AsBytes()
-          else:
+          elif data_store.AFF4Enabled():
             aff4_object.AddAttribute(attribute, rdfvalue_object)
 
           if (isinstance(rdfvalue_object, rdf_client_fs.StatEntry) and
@@ -156,18 +162,19 @@ class LegacyClientFixture(object):
               path_info = rdf_objects.PathInfo.FromStatEntry(rdfvalue_object)
               data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
-        # Populate the KB from the client attributes.
-        if aff4_type == aff4_grr.VFSGRRClient:
-          kb = rdf_client.KnowledgeBase()
-          artifact.SetCoreGRRKnowledgeBaseValues(kb, aff4_object)
-          aff4_object.Set(aff4_object.Schema.KNOWLEDGE_BASE, kb)
+        if data_store.AFF4Enabled():
+          # Populate the KB from the client attributes.
+          if aff4_type == aff4_grr.VFSGRRClient:
+            kb = rdf_client.KnowledgeBase()
+            artifact.SetCoreGRRKnowledgeBaseValues(kb, aff4_object)
+            aff4_object.Set(aff4_object.Schema.KNOWLEDGE_BASE, kb)
 
-        # Make sure we do not actually close the object here - we only want to
-        # sync back its attributes, not run any finalization code.
-        aff4_object.Flush()
-        if aff4_type == aff4_grr.VFSGRRClient:
-          index = client_index.CreateClientIndex(token=self.token)
-          index.AddClient(aff4_object)
+          # Make sure we do not actually close the object here - we only want to
+          # sync back its attributes, not run any finalization code.
+          aff4_object.Flush()
+          if aff4_type == aff4_grr.VFSGRRClient:
+            index = client_index.CreateClientIndex(token=self.token)
+            index.AddClient(aff4_object)
 
         if path_info is not None:
           data_store.REL_DB.WritePathInfos(

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for mysql_pool.py."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from absl.testing import absltest
@@ -44,7 +45,7 @@ class TestPool(absltest.TestCase):
       proxies.append(c)
     for p in proxies:
       p.close()
-    self.assertEqual(5, len(mocks), 'Should have created only 5 mocks.')
+    self.assertLen(mocks, 5, 'Should have created only 5 mocks.')
 
   def testConnectFailure(self):
 
@@ -82,11 +83,10 @@ class TestPool(absltest.TestCase):
     pool = mysql_pool.Pool(gen_bad, max_size=5)
 
     for op in [
-        lambda c: c.callproc('my_proc'),
-        lambda c: c.execute('SELECT foo FROM bar'),
-        lambda c: c.executemany('INSERT INTO foo(bar) VALUES %s', ['A', 'B']),
-        lambda c: c.fetchone(), lambda c: c.fetchmany(size=5),
-        lambda c: c.fetchall()
+        lambda c: c.callproc('my_proc'), lambda c: c.
+        execute('SELECT foo FROM bar'), lambda c: c.executemany(
+            'INSERT INTO foo(bar) VALUES %s', ['A', 'B']), lambda c: c.fetchone(
+            ), lambda c: c.fetchmany(size=5), lambda c: c.fetchall()
     ]:
       # If we can fail 10 times, then failed connections aren't consuming
       # pool capacity.
@@ -123,8 +123,8 @@ class TestPool(absltest.TestCase):
         ('executemany',
          lambda c: c.executemany('INSERT INTO foo(bar) VALUES %s', ['A', 'B'])),
         ('fetchone', lambda c: c.fetchone()),
-        ('fetchmany', lambda c: c.fetchmany(size=5)), ('fetchall',
-                                                       lambda c: c.fetchall())
+        ('fetchmany', lambda c: c.fetchmany(size=5)),
+        ('fetchall', lambda c: c.fetchall())
     ]:
       # If we can fail 10 times, then idling a connection doesn't consume pool
       # capacity.
@@ -135,7 +135,7 @@ class TestPool(absltest.TestCase):
         cur.close()
         con.close()
         # whitebox: make sure the connection did end up on the idle list
-        self.assertEqual(1, len(pool.idle_conns))
+        self.assertLen(pool.idle_conns, 1)
 
 
 if __name__ == '__main__':

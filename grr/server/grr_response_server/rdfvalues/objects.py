@@ -5,6 +5,7 @@ This package contains the rdfvalue wrappers around the top level datastore
 objects defined by objects.proto.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import functools
@@ -686,18 +687,21 @@ class APIAuditEntry(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.APIAuditEntry
   rdf_deps = [rdfvalue.RDFDatetime]
 
+  # Use dictionaries instead of if-statements to look up mappings to increase
+  # branch coverage during testing. This way, all constants are accessed,
+  # without requiring a test for every single one.
+  _HTTP_STATUS_TO_CODE = {
+      200: objects_pb2.APIAuditEntry.OK,
+      403: objects_pb2.APIAuditEntry.FORBIDDEN,
+      404: objects_pb2.APIAuditEntry.NOT_FOUND,
+      500: objects_pb2.APIAuditEntry.ERROR,
+      501: objects_pb2.APIAuditEntry.NOT_IMPLEMENTED,
+  }
+
   @classmethod
   def FromHttpRequestResponse(cls, request, response):
-    if response.status_code == 200:
-      response_code = "OK"
-    elif response.status_code == 403:
-      response_code = "FORBIDDEN"
-    elif response.status_code == 404:
-      response_code = "NOT_FOUND"
-    elif response.status_code == 501:
-      response_code = "UNIMPLEMENTED"
-    else:
-      response_code = "ERROR"
+    response_code = APIAuditEntry._HTTP_STATUS_TO_CODE.get(
+        response.status_code, objects_pb2.APIAuditEntry.ERROR)
 
     return cls(
         http_request_path=request.full_path,  # include query string
@@ -705,3 +709,7 @@ class APIAuditEntry(rdf_structs.RDFProtoStruct):
         username=request.user,
         response_code=response_code,
     )
+
+
+class SignedBinaryID(rdf_structs.RDFProtoStruct):
+  protobuf = objects_pb2.SignedBinaryID

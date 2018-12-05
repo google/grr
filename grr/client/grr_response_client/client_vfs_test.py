@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test client vfs."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -295,9 +296,9 @@ class VFSTest(test_lib.GRRBaseTest):
     # The tsk_fs_attr_type enum:
     tsk_fs_attr_type = rdf_paths.PathSpec.tsk_fs_attr_type
 
-    ref = [(65, tsk_fs_attr_type.TSK_FS_ATTR_TYPE_DEFAULT,
-            0), (65, tsk_fs_attr_type.TSK_FS_ATTR_TYPE_NTFS_DATA,
-                 4), (66, tsk_fs_attr_type.TSK_FS_ATTR_TYPE_DEFAULT, 0),
+    ref = [(65, tsk_fs_attr_type.TSK_FS_ATTR_TYPE_DEFAULT, 0),
+           (65, tsk_fs_attr_type.TSK_FS_ATTR_TYPE_NTFS_DATA, 4),
+           (66, tsk_fs_attr_type.TSK_FS_ATTR_TYPE_DEFAULT, 0),
            (67, tsk_fs_attr_type.TSK_FS_ATTR_TYPE_DEFAULT, 0)]
 
     # Make sure that the ADS is recovered.
@@ -441,7 +442,7 @@ class VFSTest(test_lib.GRRBaseTest):
       self.assertEqual(s.pathspec.nested_path.path, "/home/image2.img")
       names.append(s.pathspec.nested_path.nested_path.path)
 
-    self.assertTrue("home/a.txt" in names)
+    self.assertIn("home/a.txt", names)
 
   def testRegistryListing(self):
     """Test our ability to list registry keys."""
@@ -573,7 +574,7 @@ class VFSMultiOpenTest(absltest.TestCase):
 
       pathspecs = [foo_pathspec, bar_pathspec, baz_pathspec]
       with vfs.VFSMultiOpen(pathspecs) as filedescs:
-        self.assertEqual(len(filedescs), 3)
+        self.assertLen(filedescs, 3)
         self.assertEqual(filedescs[0].Read(), b"FOO")
         self.assertEqual(filedescs[1].Read(), b"BAR")
         self.assertEqual(filedescs[2].Read(), b"BAZ")
@@ -588,7 +589,7 @@ class VFSMultiOpenTest(absltest.TestCase):
       func = mock.MagicMock()
 
       with vfs.VFSMultiOpen([pathspec], progress_callback=func) as filedescs:
-        self.assertEqual(len(filedescs), 1)
+        self.assertLen(filedescs, 1)
         self.assertEqual(filedescs[0].Read(), b"QUUX")
 
       self.assertTrue(func.called)

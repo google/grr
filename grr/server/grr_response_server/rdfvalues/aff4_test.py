@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test AFF4 RDFValues."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import re
@@ -80,19 +81,19 @@ class AFF4ObjectLabelsListTest(rdf_test_base.RDFValueTestMixin,
     labels_list = rdf_aff4.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="foo", owner="test"))
-    self.assertEqual(len(labels_list.labels), 1)
+    self.assertLen(labels_list.labels, 1)
 
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="foo", owner="GRR"))
-    self.assertEqual(len(labels_list.labels), 2)
+    self.assertLen(labels_list.labels, 2)
 
   def testAddLabelDoesNotAddLabelWithSameNameAndOwner(self):
     labels_list = rdf_aff4.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="foo", owner="test"))
-    self.assertEqual(len(labels_list.labels), 1)
+    self.assertLen(labels_list.labels, 1)
 
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="foo", owner="test"))
-    self.assertEqual(len(labels_list.labels), 1)
+    self.assertLen(labels_list.labels, 1)
 
   def testStringifiedValueIsLabelsNamesWithoutOwners(self):
     labels_list = rdf_aff4.AFF4ObjectLabelsList()
@@ -173,8 +174,8 @@ class AFF4ObjectLabelsListTest(rdf_test_base.RDFValueTestMixin,
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="foo2", owner="test2"))
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="foo3", owner="test2"))
 
-    self.assertItemsEqual(labels_list.GetLabelNames(), ["foo", "foo2", "foo3"])
-    self.assertItemsEqual(
+    self.assertCountEqual(labels_list.GetLabelNames(), ["foo", "foo2", "foo3"])
+    self.assertCountEqual(
         labels_list.GetLabelNames(owner="test2"), ["foo2", "foo3"])
     self.assertEqual(labels_list.GetLabelNames(owner="test4"), [])
 

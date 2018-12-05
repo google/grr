@@ -2,10 +2,10 @@
 # -*- mode: python; encoding: utf-8 -*-
 """This modules contains tests for VFS API handlers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
-import unittest
 import zipfile
 
 
@@ -27,6 +27,7 @@ from grr_response_server import data_store
 from grr_response_server import db
 from grr_response_server import decoders
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import filesystem
@@ -45,9 +46,7 @@ from grr.test_lib import vfs_test_lib
 
 
 class VfsTestMixin(object):
-  """A helper mixin providing methods to prepare files and flows for testing.
-
-  """
+  """A helper mixin providing methods to prepare files and flows for testing."""
 
   time_0 = rdfvalue.RDFDatetime(42)
   time_1 = time_0 + rdfvalue.Duration("1d")
@@ -177,7 +176,7 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     for type_name, attrs in iteritems(attributes_by_type):
       type_obj = next(t for t in details.types if t.name == type_name)
       all_attrs = set([a.name for a in type_obj.attributes])
-      self.assertTrue(set(attrs).issubset(all_attrs))
+      self.assertContainsSubset(attrs, all_attrs)
 
   def testIsDirectoryFlag(self):
     # Set up a directory.
@@ -231,7 +230,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         client_id=self.client_id, file_path=self.file_path)
     result = self.handler.Handle(args, token=self.token)
 
-    self.assertEqual(len(result.items), 4)
+    self.assertLen(result.items, 4)
     for item in result.items:
       # Check that all files are really in the right directory.
       self.assertIn(self.file_path, item.path)
@@ -246,17 +245,11 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         directories_only=True)
     result = self.handler.Handle(args, token=self.token)
 
-    self.assertEqual(len(result.items), 1)
+    self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].is_directory, True)
     self.assertIn(self.file_path, result.items[0].path)
 
   def testHandlerRespectsTimestamp(self):
-    # TODO(hanuszczak): Enable this test in relational database mode once
-    # timestamp-specific file listing is supported by the data store.
-    if data_store.RelationalDBReadEnabled("vfs"):
-      raise unittest.SkipTest("relational backend does not support timestamp-"
-                              "specific file listing")
-
     # file_path is "fs/os/etc", a directory.
     self.CreateFileVersions(self.client_id, self.file_path + "/file")
 
@@ -265,7 +258,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         file_path=self.file_path,
         timestamp=self.time_2)
     result = self.handler.Handle(args, token=self.token)
-    self.assertEqual(len(result.items), 1)
+    self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].last_collected_size, 13)
 
     args = vfs_plugin.ApiListFilesArgs(
@@ -273,7 +266,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         file_path=self.file_path,
         timestamp=self.time_1)
     result = self.handler.Handle(args, token=self.token)
-    self.assertEqual(len(result.items), 1)
+    self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].last_collected_size, 11)
 
     args = vfs_plugin.ApiListFilesArgs(
@@ -281,7 +274,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         file_path=self.file_path,
         timestamp=self.time_0)
     result = self.handler.Handle(args, token=self.token)
-    self.assertEqual(len(result.items), 0)
+    self.assertEmpty(result.items)
 
 
 @db_test_lib.DualDBTest
@@ -475,7 +468,7 @@ class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
 
-@db_test_lib.DualFlowTest
+@db_test_lib.DualDBTest
 class ApiCreateVfsRefreshOperationHandlerTest(
     notification_test_lib.NotificationTestMixin,
     api_test_lib.ApiCallHandlerTest):
@@ -603,11 +596,14 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
-    flow_urn = self.client_id.Add("flows").Add(flow_id)
-    with aff4.FACTORY.Open(
-        flow_urn, aff4_type=flow.GRRFlow, mode="rw",
-        token=self.token) as flow_obj:
-      flow_obj.GetRunner().Error("Fake error")
+    if data_store.RelationalDBFlowsEnabled():
+      flow_base.TerminateFlow(self.client_id.Basename(), flow_id, "Fake error")
+    else:
+      flow_urn = self.client_id.Add("flows").Add(flow_id)
+      with aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, mode="rw",
+          token=self.token) as flow_obj:
+        flow_obj.GetRunner().Error("Fake error")
 
     # Recheck status and see if it changed.
     result = self.handler.Handle(args, token=self.token)
@@ -707,11 +703,14 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
-    flow_urn = self.client_id.Add("flows").Add(flow_id)
-    with aff4.FACTORY.Open(
-        flow_urn, aff4_type=flow.GRRFlow, mode="rw",
-        token=self.token) as flow_obj:
-      flow_obj.GetRunner().Error("Fake error")
+    if data_store.RelationalDBFlowsEnabled():
+      flow_base.TerminateFlow(self.client_id.Basename(), flow_id, "Fake error")
+    else:
+      flow_urn = self.client_id.Add("flows").Add(flow_id)
+      with aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, mode="rw",
+          token=self.token) as flow_obj:
+        flow_obj.GetRunner().Error("Fake error")
 
     # Recheck status and see if it changed.
     result = self.handler.Handle(args, token=self.token)
@@ -742,9 +741,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
 
 
 class VfsTimelineTestMixin(object):
-  """A helper mixin providing methods to prepare timelines for testing.
-
-  """
+  """A helper mixin providing methods to prepare timelines for testing."""
 
   def SetupTestTimeline(self):
     client_id = self.SetupClient(0)
@@ -1017,7 +1014,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
       out_fd.write(chunk)
     zip_fd = zipfile.ZipFile(out_fd, "r")
 
-    self.assertItemsEqual(zip_fd.namelist(), [archive_path1, archive_path2])
+    self.assertCountEqual(zip_fd.namelist(), [archive_path1, archive_path2])
     self.assertEqual(zip_fd.read(archive_path1), "Goodbye World")
     self.assertEqual(zip_fd.read(archive_path2), "Goodbye World")
 
@@ -1030,7 +1027,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
       out_fd.write(chunk)
     zip_fd = zipfile.ZipFile(out_fd, "r")
 
-    self.assertItemsEqual(zip_fd.namelist(), [archive_path1, archive_path2])
+    self.assertCountEqual(zip_fd.namelist(), [archive_path1, archive_path2])
     self.assertEqual(zip_fd.read(archive_path1), "Hello World")
     self.assertEqual(zip_fd.read(archive_path2), "Hello World")
 
@@ -1116,15 +1113,15 @@ class ApiGetFileDecodersHandler(DecodersTestMixin,
 
     args.file_path = "fs/os/foo/bar"
     result = self.handler.Handle(args, token=self.token)
-    self.assertItemsEqual(result.decoder_names, ["BarQuux"])
+    self.assertCountEqual(result.decoder_names, ["BarQuux"])
 
     args.file_path = "fs/os/foo/baz"
     result = self.handler.Handle(args)
-    self.assertItemsEqual(result.decoder_names, ["BazQuux"])
+    self.assertCountEqual(result.decoder_names, ["BazQuux"])
 
     args.file_path = "fs/os/foo/quux"
     result = self.handler.Handle(args)
-    self.assertItemsEqual(result.decoder_names, ["BarQuux", "BazQuux"])
+    self.assertCountEqual(result.decoder_names, ["BarQuux", "BazQuux"])
 
 
 @db_test_lib.DualDBTest

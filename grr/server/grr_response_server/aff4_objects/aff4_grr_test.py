@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the grr aff4 objects."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -155,7 +156,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
     # Check that there is exactly one flow on the client.
     flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
     flows = list(flows_fd.ListChildren())
-    self.assertEqual(len(flows), 1)
+    self.assertLen(flows, 1)
 
     # The flow is the MultiGetFile flow holding the lock on the file.
     flow_obj = aff4.FACTORY.Open(flows[0], token=self.token)
@@ -170,7 +171,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
     # There should still be only one flow on the client.
     flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
     flows = list(flows_fd.ListChildren())
-    self.assertEqual(len(flows), 1)
+    self.assertLen(flows, 1)
 
   def testVFSFileStartsNewMultiGetFileWhenLockingFlowHasFinished(self):
     """A new MultiFileGet can be started when the locking flow has finished."""
@@ -192,7 +193,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
     # Check that there is exactly one flow on the client.
     flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
     flows = list(flows_fd.ListChildren())
-    self.assertEqual(len(flows), 1)
+    self.assertLen(flows, 1)
 
     # Finish the flow holding the lock.
     client_mock = action_mocks.ActionMock()
@@ -206,7 +207,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
     # There should be two flows now.
     flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
     flows = list(flows_fd.ListChildren())
-    self.assertEqual(len(flows), 2)
+    self.assertLen(flows, 2)
 
     # Make sure that each Update() started a new flow and that the second flow
     # is holding the lock.
@@ -283,8 +284,8 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         self.assertEqual(summary.system_info.fqdn, fqdn)
         self.assertEqual(summary.system_info.machine, arch)
         self.assertEqual(summary.system_info.install_date, install_time)
-        self.assertItemsEqual(summary.users, [userobj])
-        self.assertItemsEqual(summary.interfaces, [interface])
+        self.assertCountEqual(summary.users, [userobj])
+        self.assertCountEqual(summary.interfaces, [interface])
         self.assertFalse(summary.client_info)
 
         self.assertEqual(summary.timestamp.AsSecondsSinceEpoch(), 101)
@@ -359,7 +360,7 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     chunks_fds = list(aff4.AFF4Stream.MultiStream([fd]))
 
-    self.assertEqual(len(chunks_fds), 1)
+    self.assertLen(chunks_fds, 1)
     self.assertEqual(chunks_fds[0][1], b"123456789")
     self.assertIs(chunks_fds[0][0], fd)
 
@@ -378,7 +379,7 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
     chunks_fds = list(aff4.AFF4Stream.MultiStream([fd1, fd2]))
 
-    self.assertEqual(len(chunks_fds), 2)
+    self.assertLen(chunks_fds, 2)
 
     self.assertEqual(chunks_fds[0][1], b"123456789")
     self.assertIs(chunks_fds[0][0], fd1)
@@ -401,7 +402,7 @@ class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
     fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
     chunks_fds = list(aff4.AFF4Stream.MultiStream([fd1, fd2]))
 
-    self.assertEqual(len(chunks_fds), 4)
+    self.assertLen(chunks_fds, 4)
 
     self.assertEqual(chunks_fds[0][1], b"*" * 10)
     self.assertIs(chunks_fds[0][0], fd1)

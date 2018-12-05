@@ -3,6 +3,7 @@
 
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
@@ -30,10 +31,9 @@ class OSXLaunchdJobDictTest(test_lib.GRRBaseTest):
         self.assertTrue(job["Label"].startswith("0x"), job["Label"])
       else:
         unfiltered += 1
-        self.assertFalse(job["Label"].startswith("0x"), job["Label"])
-        self.assertFalse("anonymous" in job["Label"], job["Label"])
-        self.assertFalse("mach_init.crash_inspector" in job["Label"],
-                         job["Label"])
+        self.assertFalse(job["Label"].startswith("0x"))
+        self.assertNotIn("anonymous", job["Label"])
+        self.assertNotIn("mach_init.crash_inspector", job["Label"])
 
     num_filtered = osx_launchd_testdata.FILTERED_COUNT
     self.assertEqual(filtered, num_filtered)

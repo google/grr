@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test utilities for RELDB-related testing."""
 from __future__ import absolute_import
+from __future__ import division
 
 import functools
 import sys
@@ -17,6 +18,14 @@ class RelationalDBEnabledMixin(object):
 
   def setUp(self):  # pylint: disable=invalid-name
     """The setUp method."""
+
+    self._aff4_disabler = mock.patch.object(
+        data_store, "AFF4Enabled", return_value=False)
+    # TODO(amoser): This does not work yet. We need to clean up lots of flows
+    # that still use AFF4 but also we need to make hunts work on the relational
+    # db only.
+    # self._aff4_disabler.start()
+
     self._rel_db_read_enabled_patch = mock.patch.object(
         data_store, "RelationalDBReadEnabled", return_value=True)
     self._rel_db_read_enabled_patch.start()
@@ -31,9 +40,8 @@ class RelationalDBEnabledMixin(object):
 
     # TODO(amoser): Remove once storing the foreman rules in the
     # relational db works.
-    self._foreman_config_overrider = test_lib.ConfigOverrider({
-        "Database.useForReads.foreman": True
-    })
+    self._foreman_config_overrider = test_lib.ConfigOverrider(
+        {"Database.useForReads.foreman": True})
     self._foreman_config_overrider.Start()
 
     self._vfs_config_overrider = test_lib.ConfigOverrider({
@@ -46,52 +54,69 @@ class RelationalDBEnabledMixin(object):
     })
     self._artifacts_config_overrider.Start()
 
+    self._signed_binaries_overrider = test_lib.ConfigOverrider({
+        "Database.useForReads.signed_binaries": True,
+    })
+    self._signed_binaries_overrider.Start()
+
+    self._rel_db_flows_enabled_patch = mock.patch.object(
+        data_store, "RelationalDBFlowsEnabled", return_value=True)
+    self._rel_db_flows_enabled_patch.start()
+
     super(RelationalDBEnabledMixin, self).setUp()
 
   def tearDown(self):  # pylint: disable=invalid-name
+    """Cleans up the patchers."""
     super(RelationalDBEnabledMixin, self).tearDown()
 
+    # TODO(amoser): Enable this, see comment above.
+    # self._aff4_disabler.stop()
+    self._rel_db_flows_enabled_patch.stop()
     self._rel_db_read_enabled_patch.stop()
     self._rel_db_write_enabled_patch.stop()
     self._foreman_patch.stop()
     self._foreman_config_overrider.Stop()
     self._vfs_config_overrider.Stop()
     self._artifacts_config_overrider.Stop()
+    self._signed_binaries_overrider.Stop()
 
 
-class RelationalFlowsEnabledMixin(RelationalDBEnabledMixin):
-  """Mixin to enable flows stored in the relational db."""
+class StableRelationalDBEnabledMixin(object):
+  """Mixin that emulates current stable RELDB/AFF4 configuration."""
 
-  def setUp(self):
-    super(RelationalFlowsEnabledMixin, self).setUp()
-    self._rel_db_flows_enabled_patch = mock.patch.object(
-        data_store, "RelationalDBFlowsEnabled", return_value=True)
-    self._rel_db_flows_enabled_patch.start()
+  def setUp(self):  # pylint: disable=invalid-name
+    """The setUp method."""
+    self._config_overrider = test_lib.ConfigOverrider({
+        "Database.useForReads": True,
+        "Database.useForReads.foreman": True,
+        "Database.useForReads.message_handlers": True,
+        "Database.useForReads.stats": True,
+        "Database.useForReads.signed_binaries": True,
+        "Database.useForReads.cronjobs": True,
+    })
+    self._config_overrider.Start()
 
-  def tearDown(self):
-    super(RelationalFlowsEnabledMixin, self).tearDown()
-    self._rel_db_flows_enabled_patch.stop()
+    super(StableRelationalDBEnabledMixin, self).setUp()
+
+  def tearDown(self):  # pylint: disable=invalid-name
+    """Cleans up the patchers."""
+    super(StableRelationalDBEnabledMixin, self).tearDown()
+
+    self._config_overrider.Stop()
 
 
 def DualDBTest(cls):
   """Decorator that creates an additional RELDB-enabled test class."""
 
+  module = sys.modules[cls.__module__]
+
   db_test_cls_name = cls.__name__ + "_RelationalDBEnabled"
   db_test_cls = type(db_test_cls_name, (RelationalDBEnabledMixin, cls), {})
-  module = sys.modules[cls.__module__]
   setattr(module, db_test_cls_name, db_test_cls)
 
-  return cls
-
-
-def DualFlowTest(cls):
-  """Decorator that creates an additional relational flow-enabled test class."""
-
-  db_test_cls_name = cls.__name__ + "_RelationalFlowsEnabled"
-  db_test_cls = type(
-      db_test_cls_name,
-      (RelationalFlowsEnabledMixin, RelationalDBEnabledMixin, cls), {})
-  module = sys.modules[cls.__module__]
+  db_test_cls_name = cls.__name__ + "_StableRelationalDBEnabled"
+  db_test_cls = type(db_test_cls_name, (StableRelationalDBEnabledMixin, cls),
+                     {})
   setattr(module, db_test_cls_name, db_test_cls)
 
   return cls

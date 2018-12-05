@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for Yara flows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import functools
@@ -130,7 +131,7 @@ class FakeMemoryProcess(object):
       yield start, len(data)
 
 
-@db_test_lib.DualFlowTest
+@db_test_lib.DualDBTest
 class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
   """Tests the Yara flows."""
 
@@ -195,14 +196,14 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         include_misses_in_results=True,
         include_errors_in_results=True)
 
-    self.assertEqual(len(matches), 2)
-    self.assertEqual(len(errors), 2)
-    self.assertEqual(len(misses), 2)
+    self.assertLen(matches, 2)
+    self.assertLen(errors, 2)
+    self.assertLen(misses, 2)
 
     for scan_match in matches:
       for match in scan_match.match:
         self.assertEqual(match.rule_name, "test_rule")
-        self.assertEqual(len(match.string_matches), 1)
+        self.assertLen(match.string_matches, 1)
         for string_match in match.string_matches:
           self.assertEqual(string_match.data, b"1234")
           self.assertEqual(string_match.string_id, "$s1")
@@ -211,46 +212,46 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
   def testYaraProcessScanWithoutMissesAndErrors(self):
     matches, errors, misses = self._RunYaraProcessScan(self.procs)
 
-    self.assertEqual(len(matches), 2)
-    self.assertEqual(len(errors), 0)
-    self.assertEqual(len(misses), 0)
+    self.assertLen(matches, 2)
+    self.assertEmpty(errors)
+    self.assertEmpty(misses)
 
   def testYaraProcessScanWithMissesWithoutErrors(self):
     matches, errors, misses = self._RunYaraProcessScan(
         self.procs, include_misses_in_results=True)
 
-    self.assertEqual(len(matches), 2)
-    self.assertEqual(len(errors), 0)
-    self.assertEqual(len(misses), 2)
+    self.assertLen(matches, 2)
+    self.assertEmpty(errors)
+    self.assertLen(misses, 2)
 
   def testYaraProcessScanWithoutMissesWithErrors(self):
     matches, errors, misses = self._RunYaraProcessScan(
         self.procs, include_errors_in_results=True)
 
-    self.assertEqual(len(matches), 2)
-    self.assertEqual(len(errors), 2)
-    self.assertEqual(len(misses), 0)
+    self.assertLen(matches, 2)
+    self.assertLen(errors, 2)
+    self.assertEmpty(misses)
 
   def testYaraProcessScanLimitMatches(self):
     proc = client_test_lib.MockWindowsProcess(pid=107, name="proc107.exe")
     matches, _, _ = self._RunYaraProcessScan([proc])
-    self.assertEqual(len(matches[0].match), 2)
+    self.assertLen(matches[0].match, 2)
     matches, _, _ = self._RunYaraProcessScan([proc], max_results_per_process=1)
-    self.assertEqual(len(matches[0].match), 1)
+    self.assertLen(matches[0].match, 1)
 
   def testScanTimingInformation(self):
     with test_lib.FakeTime(10000, increment=1):
       _, _, misses = self._RunYaraProcessScan(
           self.procs, pids=[105], include_misses_in_results=True)
 
-    self.assertEqual(len(misses), 1)
+    self.assertLen(misses, 1)
     miss = misses[0]
     self.assertEqual(miss.scan_time_us, 4 * 1e6)
 
     with test_lib.FakeTime(10000, increment=1):
       matches, _, _ = self._RunYaraProcessScan(self.procs, pids=[102])
 
-    self.assertEqual(len(matches), 1)
+    self.assertLen(matches, 1)
     match = matches[0]
     self.assertEqual(match.scan_time_us, 3 * 1e6)
 
@@ -261,9 +262,9 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         include_errors_in_results=True,
         include_misses_in_results=True)
 
-    self.assertEqual(len(matches), 1)
-    self.assertEqual(len(errors), 1)
-    self.assertEqual(len(misses), 1)
+    self.assertLen(matches, 1)
+    self.assertLen(errors, 1)
+    self.assertLen(misses, 1)
 
   def testProcessRegex(self):
     matches, errors, misses = self._RunYaraProcessScan(
@@ -272,16 +273,16 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         include_errors_in_results=True,
         include_misses_in_results=True)
 
-    self.assertEqual(len(matches), 0)
-    self.assertEqual(len(errors), 1)
-    self.assertEqual(len(misses), 1)
+    self.assertEmpty(matches)
+    self.assertLen(errors, 1)
+    self.assertLen(misses, 1)
 
   def testPerProcessTimeoutArg(self):
     FakeRules.invocations = []
     with utils.Stubber(rdf_yara.YaraSignature, "GetRules", FakeRules):
       self._RunYaraProcessScan(self.procs, per_process_timeout=50)
 
-    self.assertEqual(len(FakeRules.invocations), 7)
+    self.assertLen(FakeRules.invocations, 7)
     for invocation in FakeRules.invocations:
       _, limit = invocation
       self.assertGreater(limit, 45)
@@ -296,9 +297,9 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           include_errors_in_results=True,
           include_misses_in_results=True)
 
-    self.assertEqual(len(matches), 0)
-    self.assertEqual(len(errors), 6)
-    self.assertEqual(len(misses), 0)
+    self.assertEmpty(matches)
+    self.assertLen(errors, 6)
+    self.assertEmpty(misses)
     for e in errors:
       if e.process.pid in [101, 106]:
         self.assertEqual("Access Denied.", e.error)
@@ -315,18 +316,18 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
     # The third invocation raises too many hits, make sure we get the
     # first two matches anyways.
-    self.assertEqual(len(matches), 2)
-    self.assertItemsEqual([m.match[0].rule_name for m in matches],
+    self.assertLen(matches, 2)
+    self.assertCountEqual([m.match[0].rule_name for m in matches],
                           ["test_rule_1", "test_rule_2"])
-    self.assertEqual(len(errors), 2)
-    self.assertEqual(len(misses), 2)
+    self.assertLen(errors, 2)
+    self.assertLen(misses, 2)
 
   def testYaraProcessScanChunkingWorks(self):
     FakeRules.invocations = []
     with utils.Stubber(rdf_yara.YaraSignature, "GetRules", FakeRules):
       self._RunYaraProcessScan(self.procs, chunk_size=100, overlap_size=10)
 
-    self.assertEqual(len(FakeRules.invocations), 21)
+    self.assertLen(FakeRules.invocations, 21)
     for data, _ in FakeRules.invocations:
       self.assertLessEqual(len(data), 100)
 
@@ -342,9 +343,9 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           include_errors_in_results=True,
           include_misses_in_results=True)
 
-      self.assertEqual(len(matches), 1)
-      self.assertEqual(len(misses), 0)
-      self.assertEqual(len(errors), 0)
+      self.assertLen(matches, 1)
+      self.assertEmpty(misses)
+      self.assertEmpty(errors)
 
   def testDoubleMatchesAreAvoided(self):
     # Process 102 has a hit going from 98-102. If we set the chunk
@@ -353,8 +354,8 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
     matches, _, _ = self._RunYaraProcessScan(
         self.procs, chunk_size=105, overlap_size=10, pids=[102])
 
-    self.assertEqual(len(matches), 1)
-    self.assertEqual(len(matches[0].match), 1)
+    self.assertLen(matches, 1)
+    self.assertLen(matches[0].match, 1)
 
   def _RunProcessDump(self, pids=None, size_limit=None, chunk_size=None):
 
@@ -380,7 +381,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
   def testYaraProcessDump(self):
     results = self._RunProcessDump()
 
-    self.assertEqual(len(results), 3)
+    self.assertLen(results, 3)
     for result in results:
       if isinstance(result, rdf_client_fs.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
@@ -393,7 +394,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
                       [GeneratePattern(b"A", 100),
                        GeneratePattern(b"B", 700)])
       elif isinstance(result, rdf_yara.YaraProcessDumpResponse):
-        self.assertEqual(len(result.dumped_processes), 1)
+        self.assertLen(result.dumped_processes, 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
       else:
         self.fail("Unexpected result type %s" % type(result))
@@ -404,9 +405,9 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
       # Check that the chunked reads actually happened. Should be 74 reads:
       # 100 / 11 + 700 / 11 = 9.1 + 63.6 -> 10 + 64 reads
-      self.assertEqual(len(read_func.args), 74)
+      self.assertLen(read_func.args, 74)
 
-    self.assertEqual(len(results), 3)
+    self.assertLen(results, 3)
     for result in results:
       if isinstance(result, rdf_client_fs.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
@@ -419,7 +420,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
                       [GeneratePattern(b"A", 100),
                        GeneratePattern(b"B", 700)])
       elif isinstance(result, rdf_yara.YaraProcessDumpResponse):
-        self.assertEqual(len(result.dumped_processes), 1)
+        self.assertLen(result.dumped_processes, 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
       else:
         self.fail("Unexpected result type %s" % type(result))
@@ -429,7 +430,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
     # Now we should only get one block (+ the YaraProcessDumpResponse), the
     # second is over the limit.
-    self.assertEqual(len(results), 2)
+    self.assertLen(results, 2)
 
     for result in results:
       if isinstance(result, rdf_client_fs.StatEntry):
@@ -441,7 +442,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
         self.assertEqual(data, GeneratePattern(b"A", 100))
       elif isinstance(result, rdf_yara.YaraProcessDumpResponse):
-        self.assertEqual(len(result.dumped_processes), 1)
+        self.assertLen(result.dumped_processes, 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
         self.assertIn("limit exceeded", result.dumped_processes[0].error)
       else:
@@ -466,7 +467,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
     self.assertGreater(len(results), 1)
     self.assertIsInstance(results[0], rdf_yara.YaraProcessDumpResponse)
-    self.assertEqual(len(results[0].dumped_processes), 1)
+    self.assertLen(results[0].dumped_processes, 1)
     self.assertEqual(results[0].dumped_processes[0].dump_time_us, 0.1 * 1e6)
 
   def testScanAndDump(self):
@@ -498,13 +499,13 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
     # 2. Scan result miss.
     # 3. ProcDump response.
     # 4. Stat entry for the dumped file.
-    self.assertEqual(len(results), 4)
+    self.assertLen(results, 4)
     self.assertIsInstance(results[0], rdf_yara.YaraProcessScanMatch)
     self.assertIsInstance(results[1], rdf_yara.YaraProcessScanMiss)
     self.assertIsInstance(results[2], rdf_yara.YaraProcessDumpResponse)
     self.assertIsInstance(results[3], rdf_client_fs.StatEntry)
 
-    self.assertEqual(len(results[2].dumped_processes), 1)
+    self.assertLen(results[2].dumped_processes, 1)
     self.assertEqual(results[0].process.pid,
                      results[2].dumped_processes[0].process.pid)
     self.assertIn(

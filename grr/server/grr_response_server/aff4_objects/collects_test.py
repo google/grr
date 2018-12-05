@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the various collection objects."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core import config
@@ -32,7 +33,7 @@ class TestCollections(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(fd.size, 11)
 
     # We have 6 collections.
-    self.assertEqual(len(fd.collection), 6)
+    self.assertLen(fd.collection, 6)
 
     # Chunking works ok.
     self.assertEqual(fd.collection[0].data, "he")

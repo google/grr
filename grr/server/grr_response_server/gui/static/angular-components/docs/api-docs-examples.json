@@ -6436,6 +6436,10 @@
                   "flow_name": {
                     "type": "unicode",
                     "value": "Interrogate"
+                  },
+                  "notify_to_user": {
+                    "type": "RDFBool",
+                    "value": true
                   }
                 }
               },
@@ -6742,7 +6746,8 @@
           "name": "Interrogate",
           "runner_args": {
             "client_id": "aff4:/C.1000000000000000",
-            "flow_name": "Interrogate"
+            "flow_name": "Interrogate",
+            "notify_to_user": true
           },
           "started_at": 42000000,
           "state": "RUNNING",
@@ -18455,91 +18460,6 @@
       },
       "test_class": "ApiListOutputPluginDescriptorsHandlerTest_http_v1",
       "url": "/api/output-plugins/all"
-    }
-  ],
-  "ApiListPendingGlobalNotificationsHandler": [
-    {
-      "api_method": "ListPendingGlobalNotifications",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "type": "GlobalNotification",
-            "value": {
-              "duration": {
-                "type": "Duration",
-                "value": 1209600
-              },
-              "header": {
-                "type": "unicode",
-                "value": "Nothing to worry about!"
-              },
-              "link": {
-                "type": "unicode",
-                "value": "http://www.google.com"
-              },
-              "show_from": {
-                "type": "RDFDatetime",
-                "value": 0
-              },
-              "type": {
-                "type": "EnumNamedValue",
-                "value": "INFO"
-              }
-            }
-          },
-          {
-            "type": "GlobalNotification",
-            "value": {
-              "content": {
-                "type": "unicode",
-                "value": "Houston, Houston, we have a prob..."
-              },
-              "duration": {
-                "type": "Duration",
-                "value": 1209600
-              },
-              "header": {
-                "type": "unicode",
-                "value": "Oh no, we're doomed!"
-              },
-              "link": {
-                "type": "unicode",
-                "value": "http://www.google.com"
-              },
-              "show_from": {
-                "type": "RDFDatetime",
-                "value": 0
-              },
-              "type": {
-                "type": "EnumNamedValue",
-                "value": "ERROR"
-              }
-            }
-          }
-        ]
-      },
-      "test_class": "ApiListPendingGlobalNotificationsHandlerRegressionTest_http_v1",
-      "type_stripped_response": {
-        "items": [
-          {
-            "duration": 1209600,
-            "header": "Nothing to worry about!",
-            "link": "http://www.google.com",
-            "show_from": 0,
-            "type": "INFO"
-          },
-          {
-            "content": "Houston, Houston, we have a prob...",
-            "duration": 1209600,
-            "header": "Oh no, we're doomed!",
-            "link": "http://www.google.com",
-            "show_from": 0,
-            "type": "ERROR"
-          }
-        ]
-      },
-      "url": "/api/users/me/notifications/pending/global"
     }
   ],
   "ApiListPendingUserNotificationsHandler": [

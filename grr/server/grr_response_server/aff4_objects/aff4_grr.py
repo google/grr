@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """GRR specific AFF4 objects."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -869,6 +870,10 @@ class VFSBlobImage(VFSFile):
               self.Get(self.Schema.STAT).age)
 
     return None
+
+  def Path(self):
+    """Compatibility layer with rel db file objects."""
+    return unicode(self.urn)
 
   class SchemaCls(VFSFile.SchemaCls):
     """The schema for Blob Images."""

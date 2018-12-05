@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Root (i.e. administrative) actions support in GRR API client library."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
@@ -54,6 +55,9 @@ class GrrUserBase(object):
 
     data = self._context.SendRequest("ModifyGrrUser", args)
     return GrrUser(data=data, context=self._context)
+
+  def __repr__(self):
+    return "<%s %s>" % (self.__class__.__name__, self.username)
 
 
 class GrrUserRef(GrrUserBase):
@@ -144,7 +148,6 @@ class RootGrrApi(object):
       raise ValueError("Username can't be empty.")
 
     args = user_management_pb2.ApiCreateGrrUserArgs(username=username)
-    args.username = username
 
     if user_type is not None:
       args.user_type = user_type

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The in memory database methods for flow handling."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -73,11 +74,13 @@ class InMemoryDBFlowMixin(object):
     self.handler_thread.start()
 
   @utils.Synchronized
-  def UnregisterMessageHandler(self):
+  def UnregisterMessageHandler(self, timeout=None):
     """Unregisters any registered message handler."""
     if self.handler_thread:
       self.handler_stop = True
-      self.handler_thread.join()
+      self.handler_thread.join(timeout)
+      if self.handler_thread.isAlive():
+        raise RuntimeError("Message handler thread did not join in time.")
       self.handler_thread = None
 
   def _MessageHandlerLoop(self, handler, lease_time, limit):
@@ -571,13 +574,15 @@ class InMemoryDBFlowMixin(object):
     self.flow_handler_thread.daemon = True
     self.flow_handler_thread.start()
 
-  def UnregisterFlowProcessingHandler(self):
+  def UnregisterFlowProcessingHandler(self, timeout=None):
     """Unregisters any registered flow processing handler."""
     self.flow_handler_target = None
 
     if self.flow_handler_thread:
       self.flow_handler_stop = True
-      self.flow_handler_thread.join()
+      self.flow_handler_thread.join(timeout)
+      if self.flow_handler_thread.isAlive():
+        raise RuntimeError("Flow processing handler did not join in time.")
       self.flow_handler_thread = None
 
   def _HandleFlowProcessingRequestLoop(self, handler):

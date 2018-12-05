@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the filesystem related flows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
@@ -101,7 +102,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(output_path.Add("Test Directory"), token=self.token)
     children = list(fd.OpenChildren())
-    self.assertEqual(len(children), 1)
+    self.assertLen(children, 1)
     child = children[0]
 
     # Check that the object is stored with the correct casing.
@@ -156,22 +157,18 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.OpenChildren())
-    self.assertEqual(len(children), 1)
+    self.assertLen(children, 1)
     child = children[0]
     self.assertEqual(
         os.path.basename(utils.SmartUnicode(child.urn)), u"入乡随俗.txt")
 
   def testGlob(self):
     """Test that glob works properly."""
-    client_id = self.SetupClient(0)
-
-    # Add some usernames we can interpolate later.
-    client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
-    kb = client.Get(client.Schema.KNOWLEDGE_BASE)
-    kb.MergeOrAddUser(rdf_client.User(username="test"))
-    kb.MergeOrAddUser(rdf_client.User(username="syslog"))
-    client.Set(kb)
-    client.Close()
+    users = [
+        rdf_client.User(username="test"),
+        rdf_client.User(username="syslog")
+    ]
+    client_id = self.SetupClient(0, users=users)
 
     client_mock = action_mocks.GlobClientMock()
 
@@ -210,7 +207,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     self.assertTrue([x for x in expected if x.startswith("syslog")],
                     "Need a file starting with 'syslog'"
                     " in test_data for this test!")
-    self.assertItemsEqual(expected, children)
+    self.assertCountEqual(expected, children)
 
     children = []
     fd = aff4.FACTORY.Open(
@@ -218,7 +215,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     for child in fd.ListChildren():
       children.append(child.Basename())
 
-    self.assertItemsEqual(children, ["wtmp"])
+    self.assertCountEqual(children, ["wtmp"])
 
   def _MockSendReply(self, reply=None):
     self.flow_replies.append(reply.pathspec.path)
@@ -314,7 +311,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           "1/2/fOo2", "1/2/foo2", "1/2 space/foo something"
       ]
     self._RunGlob(paths)
-    self.assertItemsEqual(self.flow_replies,
+    self.assertCountEqual(self.flow_replies,
                           [utils.JoinPath(self.temp_dir, x) for x in results])
 
     # Get the files 2 levels down only.
@@ -328,14 +325,14 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           "1/2 space/foo something"
       ]
     self._RunGlob(paths)
-    self.assertItemsEqual(self.flow_replies,
+    self.assertCountEqual(self.flow_replies,
                           [utils.JoinPath(self.temp_dir, x) for x in results])
 
     # Get all of the bars.
     paths = [os.path.join(self.temp_dir, "**10bar*")]
     results = ["bar", "1/bar1", "/1/2/bar2", "/1/2/3/bar3", "/1/2/3/4/bar4"]
     self._RunGlob(paths)
-    self.assertItemsEqual(self.flow_replies,
+    self.assertCountEqual(self.flow_replies,
                           [utils.JoinPath(self.temp_dir, x) for x in results])
 
   def testGlobWithTwoStars(self):
@@ -346,7 +343,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     if platform.system() == "Linux":
       results = ["1/2/3/foo3", "1/2/3/fOo3"]
     self._RunGlob(paths)
-    self.assertItemsEqual(self.flow_replies,
+    self.assertCountEqual(self.flow_replies,
                           [utils.JoinPath(self.temp_dir, x) for x in results])
 
   def testGlobWithMultiplePaths(self):
@@ -363,7 +360,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     if platform.system() == "Linux":
       expected_results = ["1/foo1", "1/fOo1", "/1/2/fOo2", "/1/2/foo2"]
     self._RunGlob(paths)
-    self.assertItemsEqual(
+    self.assertCountEqual(
         self.flow_replies,
         [utils.JoinPath(self.temp_dir, x) for x in expected_results])
 
@@ -409,7 +406,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.ListChildren())
 
-    self.assertEqual(len(children), 1)
+    self.assertLen(children, 1)
     self.assertEqual(children[0].Basename(), "foo")
 
   def testGlobWithWildcardsInsideTSKFileCaseInsensitive(self):
@@ -438,7 +435,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.ListChildren())
 
-    self.assertEqual(len(children), 1)
+    self.assertLen(children, 1)
     self.assertEqual(children[0].Basename(), "foo")
 
   def testGlobWildcardsAndTSK(self):
@@ -461,7 +458,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.ListChildren())
 
-    self.assertEqual(len(children), 1)
+    self.assertLen(children, 1)
     self.assertEqual(children[0].Basename(), "foo")
 
     aff4.FACTORY.Delete(
@@ -481,26 +478,16 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     children = list(fd.ListChildren())
 
-    self.assertEqual(len(children), 0)
+    self.assertEmpty(children)
 
   def testGlobDirectory(self):
     """Test that glob expands directories."""
-    self.client_id = self.SetupClient(0)
-
-    # Add some usernames we can interpolate later.
-    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-
-    kb = client.Get(client.Schema.KNOWLEDGE_BASE)
-    kb.MergeOrAddUser(
-        rdf_client.User(username="test", appdata="test_data/index.dat"))
-    kb.MergeOrAddUser(
-        rdf_client.User(username="test2", appdata="test_data/History"))
-    # This is a record which means something to the interpolation system. We
-    # should not process this especially.
-    kb.MergeOrAddUser(rdf_client.User(username="test3", appdata="%%PATH%%"))
-
-    client.Set(kb)
-    client.Close()
+    users = [
+        rdf_client.User(username="test", appdata="test_data/index.dat"),
+        rdf_client.User(username="test2", appdata="test_data/History"),
+        rdf_client.User(username="test3", appdata="%%PATH%%"),
+    ]
+    self.client_id = self.SetupClient(0, users=users)
 
     client_mock = action_mocks.GlobClientMock()
 
@@ -514,10 +501,6 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         paths=[path],
         token=self.token)
-
-    path = self.client_id.Add("fs/os").Add(self.base_path).Add("index.dat")
-
-    aff4.FACTORY.Open(path, aff4_type=aff4_grr.VFSFile, token=self.token)
 
     path = self.client_id.Add("fs/os").Add(self.base_path).Add("index.dat")
 
@@ -630,7 +613,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         os.path.join(self.base_path, path))
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     filenames = [urn.Basename() for urn in fd.ListChildren()]
-    self.assertTrue(filename in filenames)
+    self.assertIn(filename, filenames)
 
   def testGlobCaseCorrection(self):
     # This should get corrected to "a/b/c/helloc.txt"
@@ -679,7 +662,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
       # There should be 6 children:
       expected_children = u"a.txt b.txt c.txt d.txt sub1 中国新闻网新闻中.txt"
 
-      self.assertEqual(len(children), 6)
+      self.assertLen(children, 6)
 
       self.assertEqual(expected_children.split(),
                        sorted([child.urn.Basename() for child in children]))
@@ -719,7 +702,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
       # There should be 6 children:
       expected_children = u"a.txt b.txt c.txt d.txt sub1 中国新闻网新闻中.txt"
 
-      self.assertEqual(len(children), 6)
+      self.assertLen(children, 6)
 
       self.assertEqual(expected_children.split(),
                        sorted([child.urn.Basename() for child in children]))
@@ -734,7 +717,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
       # There should be 4 children: a.txt, b.txt, c.txt, d.txt
       expected_children = "a.txt b.txt c.txt d.txt"
 
-      self.assertEqual(len(children), 4)
+      self.assertLen(children, 4)
 
       self.assertEqual(expected_children.split(),
                        sorted([child.urn.Basename() for child in children]))
@@ -802,7 +785,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     contents = fd.Read(length)
 
     # There should be no gaps.
-    self.assertEqual(len(contents), length)
+    self.assertLen(contents, length)
 
     self.assertEqual(hashlib.sha256(contents).digest(), expected_hash)
 
@@ -893,9 +876,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         if isinstance(reply, rdf_client_fs.Volume):
           results.append(reply)
 
-      self.assertItemsEqual([x.unixvolume.mount_point for x in results],
+      self.assertCountEqual([x.unixvolume.mount_point for x in results],
                             ["/", "/usr"])
-      self.assertEqual(len(results), 2)
+      self.assertLen(results, 2)
 
   @parser_test_lib.WithParser("WmiDisk", wmi_parser.WMILogicalDisksParser)
   @parser_test_lib.WithParser("WinReg", winreg_parser.WinSystemRootParser)
@@ -920,9 +903,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
         # We asked for D and we guessed systemroot (C) for "/var/tmp", but only
         # C and Z are present, so we should just get C.
-        self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
+        self.assertCountEqual([x.windowsvolume.drive_letter for x in results],
                               ["C:"])
-        self.assertEqual(len(results), 1)
+        self.assertLen(results, 1)
 
       with test_lib.Instrument(self.flow_base_cls, "SendReply") as send_reply:
         flow_test_lib.TestFlowHelper(
@@ -937,9 +920,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           if issubclass(flow_obj.__class__, filesystem.DiskVolumeInfoMixin):
             results.append(reply)
 
-        self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
+        self.assertCountEqual([x.windowsvolume.drive_letter for x in results],
                               ["Z:"])
-        self.assertEqual(len(results), 1)
+        self.assertLen(results, 1)
 
   def testGlobBackslashHandlingNoRegex(self):
     self._Touch("foo.txt")
@@ -955,7 +938,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     ]
     expected_paths = [utils.JoinPath(self.temp_dir, "foo.txt")]
     self._RunGlob(paths)
-    self.assertItemsEqual(expected_paths, self.flow_replies)
+    self.assertCountEqual(expected_paths, self.flow_replies)
 
   def testGlobBackslashHandlingWithRegex(self):
     os.mkdir(utils.JoinPath(self.temp_dir, "1"))
@@ -972,7 +955,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     ]
     expected_paths = [utils.JoinPath(self.temp_dir, "1/foo.txt")]
     self._RunGlob(paths)
-    self.assertItemsEqual(expected_paths, self.flow_replies)
+    self.assertCountEqual(expected_paths, self.flow_replies)
 
   def testGlobBackslashHandlingWithRecursion(self):
     os.makedirs(utils.JoinPath(self.temp_dir, "1/2"))
@@ -994,7 +977,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         utils.JoinPath(self.temp_dir, "1/2/foo.txt"),
     ]
     self._RunGlob(paths)
-    self.assertItemsEqual(expected_paths, self.flow_replies)
+    self.assertCountEqual(expected_paths, self.flow_replies)
 
   def _Touch(self, relative_path):
     open(utils.JoinPath(self.temp_dir, relative_path), "wb").close()
@@ -1021,19 +1004,27 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
       results = list(
           aff4.FACTORY.Open(output_path, token=self.token).OpenChildren())
-      self.assertEqual(len(results), 2)
+      self.assertLen(results, 2)
       for result in results:
         st = result.Get(result.Schema.STAT)
         self.assertIsNone(st.st_mtime)
 
 
-class RelFlowsTestFilesystem(db_test_lib.RelationalFlowsEnabledMixin,
+class RelFlowsTestFilesystem(db_test_lib.RelationalDBEnabledMixin,
                              TestFilesystem):
 
   flow_base_cls = flow_base.FlowBase
 
   # No async flow starts in the new framework anymore.
   def testIllegalGlobAsync(self):
+    pass
+
+  # No relational flows dealing with sparse images.
+  def testReadNewAFF4SparseImage(self):
+    pass
+
+  # No relational flows dealing with sparse images.
+  def testNewSparseImageFileNotBigEnough(self):
     pass
 
 

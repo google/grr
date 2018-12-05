@@ -2,6 +2,7 @@
 """Test client RDFValues."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import socket
@@ -147,7 +148,7 @@ class ClientURNTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
       results.append(rdf_client.ClientURN(urnstr))
       results.append(rdf_client.ClientURN("aff4:/%s" % urnstr))
 
-    self.assertEqual(len(results), len(test_set) * 2)
+    self.assertLen(results, len(test_set) * 2)
 
     # Check all are identical
     self.assertTrue(all([x == results[0] for x in results]))

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This modules contains tests for clients API handlers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -83,7 +84,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # AFF4 labels.
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
-    self.assertEqual(len(labels), 1)
+    self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"foo")
     self.assertEqual(labels[0].owner, self.token.username)
 
@@ -94,7 +95,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Relational DB labels.
     cid = self.client_ids[0].Basename()
     labels = data_store.REL_DB.ReadClientLabels(cid)
-    self.assertEqual(len(labels), 1)
+    self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"foo")
     self.assertEqual(labels[0].owner, self.token.username)
 
@@ -117,7 +118,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     # AFF4 labels.
     for client_id in self.client_ids[:2]:
       labels = aff4.FACTORY.Open(client_id, token=self.token).GetLabels()
-      self.assertEqual(len(labels), 2)
+      self.assertLen(labels, 2)
       self.assertEqual(labels[0].name, u"foo")
       self.assertEqual(labels[0].owner, self.token.username)
       self.assertEqual(labels[1].name, u"bar")
@@ -129,10 +130,10 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Relational labels.
     for client_id in self.client_ids[:2]:
       labels = data_store.REL_DB.ReadClientLabels(client_id.Basename())
-      self.assertEqual(len(labels), 2)
+      self.assertLen(labels, 2)
       self.assertEqual(labels[0].owner, self.token.username)
       self.assertEqual(labels[1].owner, self.token.username)
-      self.assertItemsEqual([labels[0].name, labels[1].name], [u"bar", u"foo"])
+      self.assertCountEqual([labels[0].name, labels[1].name], [u"bar", u"foo"])
 
     self.assertFalse(
         data_store.REL_DB.ReadClientLabels(self.client_ids[2].Basename()))
@@ -188,13 +189,13 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # AFF4 labels.
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
-    self.assertEqual(len(labels), 1)
+    self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"bar")
     self.assertEqual(labels[0].owner, self.token.username)
 
     # Relational labels.
     labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0].Basename())
-    self.assertEqual(len(labels), 1)
+    self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"bar")
     self.assertEqual(labels[0].owner, self.token.username)
 
@@ -216,11 +217,11 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # AFF4 labels.
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
-    self.assertEqual(len(labels), 1)
+    self.assertLen(labels, 1)
 
     # Relational labels.
     labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0].Basename())
-    self.assertEqual(len(labels), 1)
+    self.assertLen(labels, 1)
     # The label is still in the index.
     self.assertEqual(
         idx.LookupClients(["label:foo"]), [self.client_ids[0].Basename()])
@@ -246,13 +247,13 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # AFF4 labels.
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
-    self.assertEqual(len(labels), 1)
+    self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"foo")
     self.assertEqual(labels[0].owner, u"GRR")
 
     # Relational labels.
     labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0].Basename())
-    self.assertEqual(len(labels), 1)
+    self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"foo")
     self.assertEqual(labels[0].owner, u"GRR")
     # The label is still in the index.
@@ -266,7 +267,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestMixin(object):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(), token=self.token)
 
-    self.assertEqual(len(result.items), 2)
+    self.assertLen(result.items, 2)
     sorted_items = sorted(result.items, key=lambda r: r.client_id)
 
     self.assertEqual(sorted_items[0].client_id, self.client_ids[0])
@@ -281,25 +282,25 @@ class ApiLabelsRestrictedSearchClientsHandlerTestMixin(object):
   def testSearchWithWhitelistedLabelReturnsSubSet(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query="label:foo"), token=self.token)
-    self.assertEqual(len(result.items), 1)
+    self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, self.client_ids[0])
 
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query="label:bar"), token=self.token)
-    self.assertEqual(len(result.items), 1)
+    self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, self.client_ids[3])
 
   def testSearchWithWhitelistedClientIdsReturnsSubSet(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query=self.client_ids[0]),
         token=self.token)
-    self.assertEqual(len(result.items), 1)
+    self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, self.client_ids[0])
 
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query=self.client_ids[3]),
         token=self.token)
-    self.assertEqual(len(result.items), 1)
+    self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, self.client_ids[3])
 
   def testSearchWithBlacklistedClientIdsReturnsNothing(self):
@@ -417,14 +418,14 @@ class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testInterrogateFlowIsStarted(self):
     flows_fd = aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
     flows_urns = list(flows_fd.ListChildren())
-    self.assertEqual(len(flows_urns), 0)
+    self.assertEmpty(flows_urns)
 
     args = client_plugin.ApiInterrogateClientArgs(client_id=self.client_id)
     result = self.handler.Handle(args, token=self.token)
 
     flows_fd = aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
     flows_urns = list(flows_fd.ListChildren())
-    self.assertEqual(len(flows_urns), 1)
+    self.assertLen(flows_urns, 1)
     self.assertEqual(str(flows_urns[0]), result.operation_id)
 
 
@@ -440,7 +441,7 @@ class ApiGetClientVersionTimesTestMixin(object):
     args = client_plugin.ApiGetClientVersionTimesArgs(client_id=self.client_id)
     result = self.handler.Handle(args, token=self.token)
 
-    self.assertEqual(len(result.times), 3)
+    self.assertLen(result.times, 3)
     self.assertEqual(result.times[0].AsSecondsSinceEpoch(), 100)
     self.assertEqual(result.times[1].AsSecondsSinceEpoch(), 45)
     self.assertEqual(result.times[2].AsSecondsSinceEpoch(), 42)
@@ -453,9 +454,8 @@ class ApiGetClientVersionTimesTestRelational(ApiGetClientVersionTimesTestMixin,
   def setUp(self):
     super(ApiGetClientVersionTimesTestRelational, self).setUp()
 
-    self.enable_relational_db = test_lib.ConfigOverrider({
-        "Database.useForReads": True
-    })
+    self.enable_relational_db = test_lib.ConfigOverrider(
+        {"Database.useForReads": True})
     self.enable_relational_db.Start()
 
   def tearDown(self):

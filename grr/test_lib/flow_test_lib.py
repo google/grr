@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Helper classes for flows-related testing."""
 from __future__ import absolute_import
+from __future__ import division
 
 import logging
 import pdb
@@ -21,6 +22,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_proto import tests_pb2
+from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import events
@@ -37,16 +39,6 @@ from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
-
-
-@flow_base.DualDBFlow
-class AdminOnlyFlowMixin(object):
-  AUTHORIZED_LABELS = ["admin"]
-
-  # Flow has to have a category otherwise FullAccessControlManager won't
-  # let non-supervisor users to run it at all (it will be considered
-  # externally inaccessible).
-  category = "/Test/"
 
 
 @flow_base.DualDBFlow
@@ -481,12 +473,15 @@ def TestFlowHelper(flow_urn_or_cls_name,
   """
 
   if data_store.RelationalDBFlowsEnabled():
+    if isinstance(client_id, rdfvalue.RDFURN):
+      client_id = client_id.Basename()
+
     flow_cls = registry.FlowRegistry.FlowClassByName(flow_urn_or_cls_name)
     return StartAndRunFlow(
         flow_cls,
         creator=token.username,
         client_mock=client_mock,
-        client_id=client_id.Basename(),
+        client_id=client_id,
         check_flow_errors=check_flow_errors,
         flow_args=kwargs.pop("args", None),
         **kwargs)
@@ -531,6 +526,33 @@ def TestFlowHelper(flow_urn_or_cls_name,
     CheckFlowErrors(total_flows, token=token)
 
   return session_id
+
+
+def StartFlow(flow_cls, client_id=None, flow_args=None, creator=None, **kwargs):
+  """Starts (but not runs) a flow (AFF4/REL_DB compatible)."""
+  if isinstance(client_id, rdfvalue.RDFURN):
+    client_id = client_id.Basename()
+
+  if data_store.RelationalDBFlowsEnabled():
+    try:
+      del kwargs["notify_to_user"]
+    except KeyError:
+      pass
+
+    return flow.StartFlow(
+        flow_cls=flow_cls,
+        client_id=client_id,
+        flow_args=flow_args,
+        creator=creator,
+        **kwargs)
+  else:
+    flow_urn = flow.StartAFF4Flow(
+        flow_name=flow_cls.__name__,
+        client_id=client_id,
+        token=access_control.ACLToken(username=creator or "test"),
+        args=flow_args,
+        **kwargs)
+    return flow_urn.Basename()
 
 
 def StartAndRunFlow(flow_cls,
@@ -585,7 +607,7 @@ class TestWorker(worker_lib.GRRWorker):
     return self
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
-    data_store.REL_DB.UnregisterFlowProcessingHandler()
+    data_store.REL_DB.UnregisterFlowProcessingHandler(timeout=60)
     self.Shutdown()
 
 
@@ -629,7 +651,7 @@ def RunFlow(client_id,
     return flow_id
   finally:
     if worker is None:
-      data_store.REL_DB.UnregisterFlowProcessingHandler()
+      data_store.REL_DB.UnregisterFlowProcessingHandler(timeout=60)
       test_worker.Shutdown()
 
 
@@ -666,3 +688,32 @@ def GetFlowResultsByTag(client_id, flow_id):
   results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
                                               sys.maxsize)
   return {r.tag or "": r.payload for r in results}
+
+
+def FinishAllFlowsOnClient(client_id, **kwargs):
+  """Finishes all running flows on a client (AFF4/REL_DB compatible)."""
+  if isinstance(client_id, rdfvalue.RDFURN):
+    client_id = client_id.Basename()
+
+  if data_store.RelationalDBFlowsEnabled():
+    flows = [f.flow_id for f in data_store.REL_DB.ReadAllFlowObjects(client_id)]
+    for flow_id in flows:
+      RunFlow(client_id, flow_id, **kwargs)
+  else:
+    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(client_id).Add("flows"))
+    flows = list(fd.OpenChildren())
+    for flow_fd in flows:
+      TestFlowHelper(
+          flow_fd.urn,
+          client_id=client_id,
+          token=access_control.ACLToken(username=flow_fd.creator),
+          **kwargs)
+
+
+def GetFlowState(client_id, flow_id, token=None):
+  if data_store.RelationalDBFlowsEnabled():
+    rdf_flow = data_store.REL_DB.ReadFlowObject(client_id.Basename(), flow_id)
+    return rdf_flow.persistent_data
+  else:
+    flow_obj = aff4.FACTORY.Open(flow_id, mode="r", token=token)
+    return flow_obj.state

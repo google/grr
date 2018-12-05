@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Router giving access only to clients with certain labels."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import utils
@@ -312,16 +313,6 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     # Everybody can update their own user object.
 
     return self.delegate.UpdateGrrUser(args, token=token)
-
-  def ListPendingGlobalNotifications(self, args, token=None):
-    # Everybody can get their global pending notifications.
-
-    return self.delegate.ListPendingGlobalNotifications(args, token=token)
-
-  def DeletePendingGlobalNotification(self, args, token=None):
-    # Everybody can delete their global pending notifications.
-
-    return self.delegate.DeletePendingGlobalNotification(args, token=token)
 
   # Config methods.
   # ==============

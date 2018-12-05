@@ -17,8 +17,6 @@ itself. This allows callers to create a data store specific filter
 implementation, with no prior knowledge of the concrete implementation.
 
 In order to accommodate for the data store's basic filtering capabilities it is
-from __future__ import absolute_import
-
 important to allow the data store to store attribute values using the most
 appropriate types.
 
@@ -35,6 +33,7 @@ More complex types should be encoded into bytes and stored in the data store as
 bytes. The data store can then treat the type as an opaque type (and will not be
 able to filter it directly).
 """
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -111,13 +110,14 @@ def RelationalDBFlowsEnabled():
 
   Even with RelationalDBReadEnabled() returning True, this can be False.
 
-  @DualDBTest and RelationalDBEnabledMixin never activate relational flows.
-  Only @DualFlowTest and RelationalFlowsEnabledMixin enable relational flows.
-
   Returns: True if relational flows are enabled.
 
   """
   return config.CONFIG["Database.useRelationalFlows"]
+
+
+def AFF4Enabled():
+  return config.CONFIG["Database.aff4_enabled"]
 
 
 # There are stub methods that don't return/yield as indicated by the docstring.
@@ -1635,6 +1635,9 @@ class DBSubjectLock(object):
       self.Release()
     except Exception:  # This can raise on cleanup pylint: disable=broad-except
       pass
+
+  def ExpirationAsRDFDatetime(self):
+    return rdfvalue.RDFDatetime.FromSecondsSinceEpoch(self.expires / 1e6)
 
 
 class DataStoreInit(registry.InitHook):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The in memory database methods for GRR users and approval handling."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -24,40 +25,45 @@ class InMemoryDBUsersMixin(object):
                    canary_mode=None,
                    user_type=None):
     """Writes user object for a user with a given name."""
-    u = self.users.setdefault(username, {"username": username})
+    u = self.users.setdefault(username, rdf_objects.GRRUser(username=username))
     if password is not None:
-      u["password"] = password
+      u.password = password
     if ui_mode is not None:
-      u["ui_mode"] = ui_mode
+      u.ui_mode = ui_mode
     if canary_mode is not None:
-      u["canary_mode"] = canary_mode
+      u.canary_mode = canary_mode
     if user_type is not None:
-      u["user_type"] = user_type
+      u.user_type = user_type
 
   @utils.Synchronized
   def ReadGRRUser(self, username):
     """Reads a user object corresponding to a given name."""
     try:
-      u = self.users[username]
-      return rdf_objects.GRRUser(
-          username=u["username"],
-          password=u.get("password"),
-          ui_mode=u.get("ui_mode"),
-          canary_mode=u.get("canary_mode"),
-          user_type=u.get("user_type"))
+      return self.users[username].Copy()
     except KeyError:
       raise db.UnknownGRRUserError("Can't find user with name: %s" % username)
 
   @utils.Synchronized
-  def ReadAllGRRUsers(self):
-    """Reads all GRR users."""
-    for u in itervalues(self.users):
-      yield rdf_objects.GRRUser(
-          username=u["username"],
-          password=u.get("password"),
-          ui_mode=u.get("ui_mode"),
-          canary_mode=u.get("canary_mode"),
-          user_type=u.get("user_type"))
+  def ReadGRRUsers(self, offset=0, count=None):
+    """Reads GRR users with optional pagination, sorted by username."""
+    if count is None:
+      count = len(self.users)
+
+    users = sorted(self.users.values(), key=lambda user: user.username)
+    return [user.Copy() for user in users[offset:offset + count]]
+
+  @utils.Synchronized
+  def CountGRRUsers(self):
+    """Returns the total count of GRR users."""
+    return len(self.users)
+
+  @utils.Synchronized
+  def DeleteGRRUser(self, username):
+    """Deletes the user with the given username."""
+    try:
+      del self.users[username]
+    except KeyError:
+      raise db.UnknownGRRUserError("Can't find user with name: %s" % username)
 
   @utils.Synchronized
   def WriteApprovalRequest(self, approval_request):

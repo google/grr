@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the client."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -121,7 +122,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
     # raised:
     # Check the response - one data and one status
     message_list = self.context.Drain().job
-    self.assertEqual(len(message_list), 1)
+    self.assertLen(message_list, 1)
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
     status = rdf_flows.GrrStatus(message_list[0].payload)
@@ -141,8 +142,8 @@ class BasicContextTests(test_lib.GRRBaseTest):
           generate_task_id=True)
       self.context.HandleMessage(message)
     message_list = self.context.Drain(max_size=1000000).job
-    self.assertEqual(len(message_list), 10)
-    self.assertItemsEqual([m.require_fastpoll for m in message_list],
+    self.assertLen(message_list, 10)
+    self.assertCountEqual([m.require_fastpoll for m in message_list],
                           [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
 
 

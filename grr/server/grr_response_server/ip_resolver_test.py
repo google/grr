@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import socket
@@ -37,7 +38,7 @@ class IPResolverTest(test_lib.GRRBaseTest):
 
     # There is one external address but it was resolved twice. There is a cache
     # so getnameinfo should have been called only once.
-    self.assertEqual(len(args), 1)
+    self.assertLen(args, 1)
 
 
 def main(argv):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Unittest for GRR<->Fleetspeak server side glue code."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
@@ -23,7 +24,6 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
-from grr_response_server import flow
 from grr_response_server import queue_manager
 from grr_response_server.bin import fleetspeak_frontend as fs_frontend_tool
 from grr_response_server.flows.general import processes as flow_processes
@@ -104,6 +104,8 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     super(FleetspeakGRRFEServerTest, self).tearDown()
     self._conn_overrider.Stop()
 
+  # TODO(user): rewrite this test to be REL_DB-friendly.
+  @db_test_lib.LegacyDataStoreOnly
   def testReceiveMessagesFleetspeak(self):
     fsd = fs_frontend_tool.GRRFSServer()
     grr_client_nr = 0xab
@@ -145,7 +147,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     # Make sure the task is still on the client queue
     manager = queue_manager.QueueManager(token=self.token)
     tasks_on_client_queue = manager.Query(grr_client_id_urn, 100)
-    self.assertEqual(len(tasks_on_client_queue), 1)
+    self.assertLen(tasks_on_client_queue, 1)
 
     want_messages = [message.Copy() for message in messages]
     for want_message in want_messages:
@@ -156,7 +158,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
     stored_messages = data_store.DB.ReadResponsesForRequestId(session_id, 1)
 
-    self.assertEqual(len(stored_messages), len(want_messages))
+    self.assertLen(stored_messages, len(want_messages))
 
     stored_messages.sort(key=lambda m: m.response_id)
     # Check that messages were stored correctly
@@ -165,6 +167,8 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
       stored_message.timestamp = None
       self.assertRDFValuesEqual(stored_message, want_message)
 
+  # TODO(user): rewrite this test to be REL_DB-friendly.
+  @db_test_lib.LegacyDataStoreOnly
   def testReceiveMessageListFleetspeak(self):
     fsd = fs_frontend_tool.GRRFSServer()
     grr_client_nr = 0xab
@@ -204,7 +208,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     # Make sure the task is still on the client queue
     manager = queue_manager.QueueManager(token=self.token)
     tasks_on_client_queue = manager.Query(grr_client_id_urn, 100)
-    self.assertEqual(len(tasks_on_client_queue), 1)
+    self.assertLen(tasks_on_client_queue, 1)
 
     want_messages = [message.Copy() for message in messages]
     for want_message in want_messages:
@@ -215,7 +219,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
     stored_messages = data_store.DB.ReadResponsesForRequestId(session_id, 1)
 
-    self.assertEqual(len(stored_messages), len(want_messages))
+    self.assertLen(stored_messages, len(want_messages))
 
     stored_messages.sort(key=lambda m: m.response_id)
     # Check that messages were stored correctly
@@ -264,19 +268,17 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
           fake_conn.outgoing,
           "InsertMessage",
           wraps=fake_conn.outgoing.InsertMessage):
-        flow_urn = flow.StartAFF4Flow(
-            client_id=self.client_id,
-            flow_name=flow_processes.ListProcesses.__name__,
-            token=self.token)
         session_id = flow_test_lib.TestFlowHelper(
-            flow_urn, client_mock, client_id=self.client_id, token=self.token)
+            flow_processes.ListProcesses.__name__,
+            client_mock,
+            client_id=self.client_id,
+            token=self.token)
 
         fleetspeak_connector.CONN.outgoing.InsertMessage.assert_called()
 
       # Check the output collection
-      processes = flow.GRRFlow.ResultCollectionForFID(session_id)
-
-      self.assertEqual(len(processes), 1)
+      processes = flow_test_lib.GetFlowResults(self.client_id, session_id)
+      self.assertLen(processes, 1)
       process, = processes
 
       self.assertEqual(process.ctime, 1333718907167083)

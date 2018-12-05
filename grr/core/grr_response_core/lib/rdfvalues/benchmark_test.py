@@ -48,7 +48,8 @@ class StructGrrMessage(rdf_structs.RDFProtoStruct):
           name="source",
           field_number=6,
           description=("Client name where the message came from (This is "
-                       "copied from the MessageList)")),)
+                       "copied from the MessageList)")),
+  )
 
 
 class FastGrrMessageList(rdf_structs.RDFProtoStruct):
@@ -207,7 +208,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
 
     serialized = s.SerializeToString()
     unserialized = FastGrrMessageList.FromSerializedString(serialized)
-    self.assertEqual(len(unserialized.job), len(s.job))
+    self.assertLen(unserialized.job, len(s.job))
 
     self.assertEqual(unserialized.job[134].session_id, "test")
     self.assertEqual(unserialized.job[100].request_id, 100)
@@ -275,14 +276,14 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
           name=u"foo", request_id=1, response_id=1, session_id=u"session")
 
       test = s1.SerializeToString()
-      self.assertEqual(len(serialized), len(test))
+      self.assertLen(serialized, len(test))
 
     def RDFStructEncode():
       s2 = StructGrrMessage(
           name=u"foo", request_id=1, response_id=1, session_id=u"session")
 
       test = s2.SerializeToString()
-      self.assertEqual(len(serialized), len(test))
+      self.assertLen(serialized, len(test))
 
     self.TimeIt(RDFStructEncode)
     self.TimeIt(ProtoEncode)

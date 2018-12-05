@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test flow notifications."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -10,7 +11,7 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import flow
+from grr_response_server import data_store
 from grr_response_server.flows.general import transfer as flows_transfer
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import gui_test_lib
@@ -36,14 +37,14 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=flows_transfer.GetFile.__name__,
+    session_id = flow_test_lib.TestFlowHelper(
+        flows_transfer.GetFile.__name__,
+        client_mock=self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
-
-    flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
+    if not data_store.RelationalDBFlowsEnabled():
+      session_id = session_id.Basename()
 
     # Clicking on this should show the notifications table.
     self.Click("css=button[id=notification_button]")
@@ -55,23 +56,25 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
 
     # Check that clicking on a notification changes the location and shows
     # the flow page.
-    self.WaitUntilEqual(
-        "/#/clients/%s/flows/%s" % (self.client_id, flow_urn.Basename()),
-        self.GetCurrentUrlPath)
-    self.WaitUntil(self.IsTextPresent, utils.SmartStr(flow_urn))
+    self.WaitUntilEqual("/#/clients/%s/flows/%s" % (self.client_id, session_id),
+                        self.GetCurrentUrlPath)
+    self.WaitUntil(self.IsTextPresent, session_id)
 
+  # TODO(user): remove decorator below as soon as flow archive generation
+  # is implemented via REL_DB.
+  @db_test_lib.LegacyDataStoreOnly
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=flows_transfer.GetFile.__name__,
+    session_id = flow_test_lib.TestFlowHelper(
+        flows_transfer.GetFile.__name__,
+        client_mock=self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
-
-    flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
+    if not data_store.RelationalDBFlowsEnabled():
+      session_id = session_id.Basename()
 
     def RaisingStub(*unused_args, **unused_kwargs):
       yield b"foo"
@@ -87,26 +90,28 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
       self.Click("link=Results")
       self.Click("css=button.DownloadButton")
 
-      self.WaitUntil(
-          self.IsUserNotificationPresent,
-          "Archive generation failed for flow %s" % flow_urn.Basename())
+      self.WaitUntil(self.IsUserNotificationPresent,
+                     "Archive generation failed for flow %s" % session_id)
       # There will be no failure message, as we can't get a status from an
       # iframe that triggers the download.
       self.WaitUntilNot(self.IsTextPresent,
                         "Can't generate archive: Unknown error")
 
+  # TODO(user): remove decorator below as soon as flow archive generation
+  # is implemented via REL_DB.
+  @db_test_lib.LegacyDataStoreOnly
   def testShowsNotificationWhenArchiveGenerationIsDone(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=flows_transfer.GetFile.__name__,
+    session_id = flow_test_lib.TestFlowHelper(
+        flows_transfer.GetFile.__name__,
+        client_mock=self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
-
-    flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
+    if not data_store.RelationalDBFlowsEnabled():
+      session_id = session_id.Basename()
 
     self.Open("/#/clients/%s" % self.client_id)
 
@@ -116,7 +121,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button.DownloadButton")
     self.WaitUntil(self.IsTextPresent, "Generation has started")
     self.WaitUntil(self.IsUserNotificationPresent,
-                   "Downloaded archive of flow %s" % flow_urn.Basename())
+                   "Downloaded archive of flow %s" % session_id)
 
 
 if __name__ == "__main__":

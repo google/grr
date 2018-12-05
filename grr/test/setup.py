@@ -8,6 +8,7 @@ If you want to do any development, you probably want this.
 
 """
 from __future__ import absolute_import
+from __future__ import division
 
 import ConfigParser
 import os

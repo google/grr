@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Parser for Google chrome/chromium History files."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -33,7 +34,7 @@ class ChromeHistoryParser(parser.FileParser):
             domain=urlparse.urlparse(url).netloc,
             access_time=timestamp,
             program_name="Chrome",
-            source_urn=file_object.urn,
+            source_path=file_object.Path(),
             download_path=data1)
       elif entry_type == "CHROME_VISIT":
         yield rdf_webhistory.BrowserHistoryItem(
@@ -41,7 +42,7 @@ class ChromeHistoryParser(parser.FileParser):
             domain=urlparse.urlparse(url).netloc,
             access_time=timestamp,
             program_name="Chrome",
-            source_urn=file_object.urn,
+            source_path=file_object.Path(),
             title=data1)
 
 

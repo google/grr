@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.lib.keyword_index."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -26,26 +27,26 @@ class AFF4KeywordIndexTest(aff4_test_lib.AFF4ObjectTest):
     for i in range(50):
       index.AddKeywordsForName("C.%X" % i, ["popular_keyword1"])
     results = index.Lookup(["popular_keyword1"])
-    self.assertEqual(len(results), 50)
+    self.assertLen(results, 50)
 
     # "popular_keyword2" is relevant for 75 subjects.
     for i in range(25, 100):
       index.AddKeywordsForName("C.%X" % i, ["popular_keyword2"])
     results = index.Lookup(["popular_keyword2"])
-    self.assertEqual(len(results), 75)
+    self.assertLen(results, 75)
 
     # "popular_keyword1" is still relevant for 50 subjects.
     results = index.Lookup(["popular_keyword1"])
-    self.assertEqual(len(results), 50)
+    self.assertLen(results, 50)
 
     # There are 25 subjects relevant to both popular keywords.
     results = index.Lookup(["popular_keyword1", "popular_keyword2"])
-    self.assertEqual(len(results), 25)
+    self.assertLen(results, 25)
 
     # A keyword with no subjects does lead to no results returned.
     results = index.Lookup(
         ["popular_keyword1", "popular_keyword2", "unknown_keyword"])
-    self.assertEqual(len(results), 0)
+    self.assertEmpty(results)
 
   def testKeywordIndexTimestamps(self):
     index = aff4.FACTORY.Create(
@@ -57,19 +58,18 @@ class AFF4KeywordIndexTest(aff4_test_lib.AFF4ObjectTest):
       with test_lib.FakeTime(1000 + i):
         index.AddKeywordsForName("C.%X" % i, ["popular_keyword1"])
     results = index.Lookup(["popular_keyword1"])
-    self.assertEqual(len(results), 50)
+    self.assertLen(results, 50)
 
     results = index.Lookup(["popular_keyword1"], start_time=1025 * 1000000)
-    self.assertEqual(len(results), 25)
+    self.assertLen(results, 25)
 
     results = index.Lookup(["popular_keyword1"], end_time=1024 * 1000000)
-    self.assertEqual(len(results), 25)
+    self.assertLen(results, 25)
 
-    results = index.Lookup(
-        ["popular_keyword1"],
-        start_time=1025 * 1000000,
-        end_time=1025 * 1000000)
-    self.assertEqual(len(results), 1)
+    results = index.Lookup(["popular_keyword1"],
+                           start_time=1025 * 1000000,
+                           end_time=1025 * 1000000)
+    self.assertLen(results, 1)
 
   def testKeywordIndexLastSeen(self):
     index = aff4.FACTORY.Create(

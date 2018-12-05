@@ -6,6 +6,7 @@ Exporters defined here convert various complex RDFValues to simple RDFValues
 easily be written to a relational database or just to a set of files.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib

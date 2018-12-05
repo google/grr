@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the hunt database api."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
@@ -84,8 +85,8 @@ class DatabaseTestHuntMixin(object):
     self.db.WriteHuntObject(hunt_obj_2)
 
     read_hunt_objs = self.db.ReadAllHuntObjects()
-    self.assertEqual(len(read_hunt_objs), 2)
-    self.assertItemsEqual(["foo", "bar"],
+    self.assertLen(read_hunt_objs, 2)
+    self.assertCountEqual(["foo", "bar"],
                           [h.description for h in read_hunt_objs])
 
   def testReadHuntLogEntriesReturnsEntryFromSingleHuntFlow(self):
@@ -99,7 +100,7 @@ class DatabaseTestHuntMixin(object):
                                 [rdf_flow_objects.FlowLogEntry(message="blah")])
 
     hunt_log_entries = self.db.ReadHuntLogEntries(hunt_obj.hunt_id, 0, 10)
-    self.assertEqual(len(hunt_log_entries), 1)
+    self.assertLen(hunt_log_entries, 1)
     self.assertIsInstance(hunt_log_entries[0], rdf_flow_objects.FlowLogEntry)
     self.assertEqual(hunt_log_entries[0].hunt_id, hunt_obj.hunt_id)
     self.assertEqual(hunt_log_entries[0].client_id, client_id)
@@ -124,7 +125,7 @@ class DatabaseTestHuntMixin(object):
     hunt_obj = self._WriteHuntLogEntries()
 
     hunt_log_entries = self.db.ReadHuntLogEntries(hunt_obj.hunt_id, 0, 100)
-    self.assertEqual(len(hunt_log_entries), 10)
+    self.assertLen(hunt_log_entries, 10)
     # Make sure messages are returned in timestamps-ascending order.
     for i, e in enumerate(hunt_log_entries):
       self.assertEqual(e.message, "blah%d" % i)
@@ -134,7 +135,7 @@ class DatabaseTestHuntMixin(object):
 
     for i in range(10):
       hunt_log_entries = self.db.ReadHuntLogEntries(hunt_obj.hunt_id, i, 1)
-      self.assertEqual(len(hunt_log_entries), 1)
+      self.assertLen(hunt_log_entries, 1)
       self.assertEqual(hunt_log_entries[0].message, "blah%d" % i)
 
   def testReadHuntLogEntriesCorrectlyAppliesWithSubstringFilter(self):
@@ -146,14 +147,14 @@ class DatabaseTestHuntMixin(object):
 
     hunt_log_entries = self.db.ReadHuntLogEntries(
         hunt_obj.hunt_id, 0, 100, with_substring="blah")
-    self.assertEqual(len(hunt_log_entries), 10)
+    self.assertLen(hunt_log_entries, 10)
     # Make sure messages are returned in timestamps-ascending order.
     for i, e in enumerate(hunt_log_entries):
       self.assertEqual(e.message, "blah%d" % i)
 
     hunt_log_entries = self.db.ReadHuntLogEntries(
         hunt_obj.hunt_id, 0, 100, with_substring="blah1")
-    self.assertEqual(len(hunt_log_entries), 1)
+    self.assertLen(hunt_log_entries, 1)
     self.assertEqual(hunt_log_entries[0].message, "blah1")
 
   def testReadHuntLogEntriesCorrectlyAppliesCombinationOfFilters(self):
@@ -161,7 +162,7 @@ class DatabaseTestHuntMixin(object):
 
     hunt_log_entries = self.db.ReadHuntLogEntries(
         hunt_obj.hunt_id, 0, 1, with_substring="blah")
-    self.assertEqual(len(hunt_log_entries), 1)
+    self.assertLen(hunt_log_entries, 1)
     self.assertEqual(hunt_log_entries[0].message, "blah0")
 
   def testCountHuntLogEntriesReturnsCorrectHuntLogEntriesCount(self):
@@ -224,7 +225,7 @@ class DatabaseTestHuntMixin(object):
     self._WriteHuntResults({(client_id, flow_id): sample_results})
 
     results = self.db.ReadHuntResults(hunt_obj.hunt_id, 0, 10)
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].hunt_id, hunt_obj.hunt_id)
     self.assertEqual(results[0].payload, sample_results[0].payload)
 
@@ -238,7 +239,7 @@ class DatabaseTestHuntMixin(object):
     self._WriteHuntResults({(client_id, flow_id): sample_results})
 
     results = self.db.ReadHuntResults(hunt_obj.hunt_id, 0, 1000)
-    self.assertEqual(len(results), 10)
+    self.assertLen(results, 10)
     for i in range(10):
       self.assertEqual(results[i].hunt_id, hunt_obj.hunt_id)
       self.assertEqual(results[i].payload, sample_results[i].payload)
@@ -260,7 +261,7 @@ class DatabaseTestHuntMixin(object):
 
     sample_results = sample_results_1 + sample_results_2
     results = self.db.ReadHuntResults(hunt_obj.hunt_id, 0, 1000)
-    self.assertEqual(len(results), len(sample_results))
+    self.assertLen(results, len(sample_results))
     self.assertEqual([i.payload for i in results],
                      [i.payload for i in sample_results])
 
@@ -306,8 +307,8 @@ class DatabaseTestHuntMixin(object):
 
     results = self.db.ReadHuntResults(
         hunt_obj.hunt_id, 0, 100, with_tag="tag_1")
-    self.assertEquals([i.payload for i in results],
-                      [i.payload for i in sample_results if i.tag == "tag_1"])
+    self.assertEqual([i.payload for i in results],
+                     [i.payload for i in sample_results if i.tag == "tag_1"])
 
   def testReadHuntResultsCorrectlyAppliesWithTypeFilter(self):
     hunt_obj = rdf_hunt_objects.Hunt(
@@ -335,7 +336,7 @@ class DatabaseTestHuntMixin(object):
         0,
         100,
         with_type=compatibility.GetName(rdf_client.ClientSummary))
-    self.assertItemsEqual(
+    self.assertCountEqual(
         [i.payload for i in results],
         [
             i.payload
@@ -366,7 +367,7 @@ class DatabaseTestHuntMixin(object):
 
     results = self.db.ReadHuntResults(
         hunt_obj.hunt_id, 0, 100, with_substring="manufacturer_1")
-    self.assertEquals([i.payload for i in results], [sample_results[1].payload])
+    self.assertEqual([i.payload for i in results], [sample_results[1].payload])
 
   def testReadHuntResultsCorrectlyAppliesVariousCombinationsOfFilters(self):
     hunt_obj = rdf_hunt_objects.Hunt(
@@ -413,7 +414,7 @@ class DatabaseTestHuntMixin(object):
               with_type=type_value,
               with_substring=substring_value)
 
-          self.assertItemsEqual(
+          self.assertCountEqual(
               [i.payload for i in expected], [i.payload for i in results],
               "Result items do not match for "
               "(tag=%s, type=%s, substring=%s): %s vs %s" %
@@ -436,7 +437,7 @@ class DatabaseTestHuntMixin(object):
     finally:
       rdfvalue.RDFValue.classes[type_name] = cls
 
-    self.assertEqual(len(sample_results), len(results))
+    self.assertLen(sample_results, len(results))
     for r in results:
       self.assertTrue(
           isinstance(r.payload, rdf_objects.SerializedValueOfUnrecognizedType))
@@ -534,7 +535,7 @@ class DatabaseTestHuntMixin(object):
     _, flow_id_2 = self._SetupHuntClientAndFlow(hunt_id=hunt_obj.hunt_id)
 
     flows = self.db.ReadHuntFlows(hunt_obj.hunt_id, 0, 10)
-    self.assertItemsEqual([f.flow_id for f in flows], [flow_id_1, flow_id_2])
+    self.assertCountEqual([f.flow_id for f in flows], [flow_id_1, flow_id_2])
 
   def _BuildFilterConditionExpectations(self, hunt_obj):
     _, running_flow_id = self._SetupHuntClientAndFlow(
@@ -578,7 +579,7 @@ class DatabaseTestHuntMixin(object):
       results = self.db.ReadHuntFlows(
           hunt_obj.hunt_id, 0, 10, filter_condition=filter_condition)
       results_ids = [r.flow_id for r in results]
-      self.assertItemsEqual(
+      self.assertCountEqual(
           results_ids, expected, "Result items do not match for "
           "(filter_condition=%d): %s vs %s" % (filter_condition, expected,
                                                results_ids))
@@ -599,7 +600,7 @@ class DatabaseTestHuntMixin(object):
               hunt_obj.hunt_id, index, count, filter_condition=filter_condition)
           results_ids = [r.flow_id for r in results]
           expected_ids = full_results_ids[index:index + count]
-          self.assertItemsEqual(
+          self.assertCountEqual(
               results_ids, expected_ids, "Result items do not match for "
               "(filter_condition=%d, index=%d, count=%d): %s vs %s" %
               (filter_condition, index, count, expected_ids, results_ids))

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Base test classes for API handlers tests."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 # pylint:mode=test
@@ -220,7 +221,7 @@ class HttpApiV2RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
 
 
 class HttpApiV2RelationalFlowsRegressionTestMixin(
-    db_test_lib.RelationalFlowsEnabledMixin, HttpApiRegressionTestMixinBase):
+    db_test_lib.RelationalDBEnabledMixin, HttpApiRegressionTestMixinBase):
   """Test class for HTTP v2 protocol with relational flows enabled."""
 
   read_from_relational_db = True

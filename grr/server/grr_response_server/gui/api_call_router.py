@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Router classes route API requests to particular handlers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import inspect
@@ -466,7 +467,7 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Vfs")
   @ArgsType(api_vfs.ApiGetFileDecodersArgs)
   @ResultType(api_vfs.ApiGetFileDecodersResult)
-  @Http("GET", "/api/clients/<client_id>/vfs-decoders/<path:filepath>")
+  @Http("GET", "/api/clients/<client_id>/vfs-decoders/<path:file_path>")
   def GetFileDecoders(self, args, token=None):
     """Get the decoder names that are applicable to the specified file."""
     raise NotImplementedError()
@@ -474,10 +475,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Vfs")
   @ArgsType(api_vfs.ApiGetDecodedFileArgs)
   @ResultBinaryStream()
-  @Http(
-      "GET",
-      "/api/clients/<client_id>/vfs-decoded-blob/<decoder_name>/<path:filepath>"
-  )
+  @Http("GET", "/api/clients/<client_id>/vfs-decoded-blob/"
+        "<decoder_name>/<path:file_path>")
   def GetDecodedFileBlob(self, args, token=None):
     """Get a decoded view of the specified file."""
     raise NotImplementedError()
@@ -1153,24 +1152,6 @@ class ApiCallRouterStub(ApiCallRouter):
   @NoAuditLogRequired()
   def UpdateGrrUser(self, args, token=None):
     """Update current user settings."""
-
-    raise NotImplementedError()
-
-  @Category("User")
-  @ResultType(api_user.ApiListPendingGlobalNotificationsResult)
-  @Http("GET", "/api/users/me/notifications/pending/global")
-  @NoAuditLogRequired()
-  def ListPendingGlobalNotifications(self, args, token=None):
-    """List pending global notifications."""
-
-    raise NotImplementedError()
-
-  @Category("User")
-  @ArgsType(api_user.ApiDeletePendingGlobalNotificationArgs)
-  @Http("DELETE", "/api/users/me/notifications/pending/global/<type>")
-  @NoAuditLogRequired()
-  def DeletePendingGlobalNotification(self, args, token=None):
-    """Delete pending global notification (affects current user only)."""
 
     raise NotImplementedError()
 

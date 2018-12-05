@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the hunt."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -77,7 +78,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     rules = foreman.Get(foreman.Schema.RULES)
     # Make sure there are no rules yet in the foreman.
-    self.assertEqual(len(rules), 0)
+    self.assertEmpty(rules)
 
     client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
         foreman_rules.ForemanClientRule(
@@ -88,8 +89,8 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
             rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
             integer=foreman_rules.ForemanIntegerClientRule(
                 field="CLIENT_CLOCK",
-                operator=foreman_rules.ForemanIntegerClientRule.Operator.
-                GREATER_THAN,
+                operator=foreman_rules.ForemanIntegerClientRule.Operator
+                .GREATER_THAN,
                 value=1336650631137737))
     ])
 
@@ -107,12 +108,12 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     rules = foreman.Get(foreman.Schema.RULES)
 
     # Make sure they were written correctly.
-    self.assertEqual(len(rules), 1)
+    self.assertLen(rules, 1)
     rule = rules[0]
 
     self.assertEqual(rule.client_rule_set, client_rule_set)
 
-    self.assertEqual(len(rule.actions), 1)
+    self.assertLen(rule.actions, 1)
     self.assertEqual(rule.actions[0].hunt_name, "SampleHunt")
 
     # Running a second time should not change the rules any more.
@@ -123,7 +124,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     rules = foreman.Get(foreman.Schema.RULES)
 
     # Still just one rule.
-    self.assertEqual(len(rules), 1)
+    self.assertLen(rules, 1)
 
   def AddForemanRules(self, to_add):
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
@@ -140,7 +141,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     rules = foreman.Get(foreman.Schema.RULES)
 
     # Make sure there are no rules yet.
-    self.assertEqual(len(rules), 0)
+    self.assertEmpty(rules)
     now = rdfvalue.RDFDatetime.Now()
     expires = rdfvalue.Duration("1h").Expiry()
     # Add some rules.
@@ -161,8 +162,8 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
             rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
             integer=foreman_rules.ForemanIntegerClientRule(
                 field="CLIENT_CLOCK",
-                operator=foreman_rules.ForemanIntegerClientRule.Operator.
-                GREATER_THAN,
+                operator=foreman_rules.ForemanIntegerClientRule.Operator
+                .GREATER_THAN,
                 value=1336650631137737))
     ])
 
@@ -187,7 +188,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
       rules = foreman.Get(foreman.Schema.RULES)
-      self.assertEqual(len(rules), 5)
+      self.assertLen(rules, 5)
 
       # It should be running.
       self.assertTrue(runner.IsHuntStarted())
@@ -198,7 +199,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     rules = foreman.Get(foreman.Schema.RULES)
     # The rule for this hunt should be deleted but the rest should be there.
-    self.assertEqual(len(rules), 4)
+    self.assertLen(rules, 4)
 
     # And the hunt should report no outstanding requests any more.
     with hunt:
@@ -258,7 +259,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       client_id = client_urn.Basename()
       foreman.AssignTasksToClient(client_id)
 
-      self.assertEqual(len(self.called), 1)
+      self.assertLen(self.called, 1)
       self.assertEqual(self.called[0][1], [client_id])
 
   def testStartClients(self):
@@ -270,8 +271,8 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       hunt.GetRunner().Start()
 
     flows = list(
-        aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
-        .ListChildren())
+        aff4.FACTORY.Open(client_id.Add("flows"),
+                          token=self.token).ListChildren())
 
     self.assertEqual(flows, [])
 
@@ -280,11 +281,11 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     hunt_test_lib.TestHuntHelper(None, [client_id], False, self.token)
 
     flows = list(
-        aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
-        .ListChildren())
+        aff4.FACTORY.Open(client_id.Add("flows"),
+                          token=self.token).ListChildren())
 
     # One flow should have been started.
-    self.assertEqual(len(flows), 1)
+    self.assertLen(flows, 1)
     self.assertIn(hunt.session_id.Basename(), str(flows[0]))
 
   def testProcessing(self):
@@ -506,7 +507,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     for client_id in client_ids:
       foreman.AssignTasksToClient(client_id.Basename())
 
-    self.assertEqual(len(DummyHunt.client_ids), 0)
+    self.assertEmpty(DummyHunt.client_ids)
 
     # Run the hunt.
     worker_mock = worker_test_lib.MockWorker(
@@ -515,12 +516,12 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     # One client is scheduled in the first minute.
     with test_lib.FakeTime(start_time + 2):
       worker_mock.Simulate()
-    self.assertEqual(len(DummyHunt.client_ids), 1)
+    self.assertLen(DummyHunt.client_ids, 1)
 
     # No further clients will be scheduled until the end of the first minute.
     with test_lib.FakeTime(start_time + 59):
       worker_mock.Simulate()
-    self.assertEqual(len(DummyHunt.client_ids), 1)
+    self.assertLen(DummyHunt.client_ids, 1)
 
     return worker_mock, hunt.urn
 
@@ -537,7 +538,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       for i in range(len(client_ids)):
         with test_lib.FakeTime(start_time + 1 + 60 * i):
           worker_mock.Simulate()
-          self.assertEqual(len(DummyHunt.client_ids), i + 1)
+          self.assertLen(DummyHunt.client_ids, i + 1)
           hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
           self.assertEqual(hunt_obj.context.clients_queued_count, 10 - i - 1)
 
@@ -556,14 +557,14 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
           hunt_urn, age=aff4.ALL_TIMES, mode="rw",
           token=self.token) as hunt_obj:
         hunt_obj.Stop()
-        self.assertEqual(len(hunt_obj.GetClients()), 1)
+        self.assertLen(hunt_obj.GetClients(), 1)
         self.assertEqual(hunt_obj.context.clients_queued_count, 9)
 
       # No more clients should be processed.
       for i in range(len(client_ids)):
         with test_lib.FakeTime(start_time + 1 + 60 * i):
           worker_mock.Simulate()
-      self.assertEqual(len(DummyHunt.client_ids), 1)
+      self.assertLen(DummyHunt.client_ids, 1)
 
 
 def main(argv):

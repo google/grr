@@ -1698,36 +1698,6 @@ message Notification {
 }
 
 
-// Global notifications are used in the GUI to alert all the users about certain
-// thing happening: new feature added in the latest release, temporary outage,
-// etc.
-message GlobalNotification {
-  enum Type {
-    INFO = 0;
-    WARNING = 1;
-    ERROR = 2;
-  }
-  optional Type type = 1;
-
-  optional string header = 2;
-  optional string content = 3;
-  optional string link = 4;
-
-  optional uint64 show_from = 5 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Notification will be shown after this time."
-    }];
-  optional uint64 duration = 6 [(sem_type) = {
-      type: "Duration",
-      description: "Duration of this notification."
-    }];
-}
-
-message GlobalNotificationSet {
-  repeated GlobalNotification notifications = 1;
-}
-
-
 // This is a way to serialize an arbitrary RDFValue.
 message EmbeddedRDFValue {
   optional uint64 embedded_age = 1 [(sem_type) = {

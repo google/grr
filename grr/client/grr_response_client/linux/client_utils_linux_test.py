@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for client_utils_linux.py."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -58,8 +59,9 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
         ("/etc/passwd", "/dev/mapper/root", "/etc/passwd",
          rdf_paths.PathSpec.PathType.OS),
         ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls",
-         rdf_paths.PathSpec.PathType.OS), ("/proc/net/sys", "none", "/net/sys",
-                                           rdf_paths.PathSpec.PathType.UNSET),
+         rdf_paths.PathSpec.PathType.OS),
+        ("/proc/net/sys", "none", "/net/sys",
+         rdf_paths.PathSpec.PathType.UNSET),
         ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
          rdf_paths.PathSpec.PathType.UNSET)
     ]:
@@ -117,7 +119,7 @@ class GetExtAttrsText(absltest.TestCase):
     with temp.AutoTempFilePath() as temp_filepath:
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 
-      self.assertEqual(len(attrs), 0)
+      self.assertEmpty(attrs)
 
   def testMany(self):
     with temp.AutoTempFilePath() as temp_filepath:
@@ -126,7 +128,7 @@ class GetExtAttrsText(absltest.TestCase):
 
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 
-      self.assertEqual(len(attrs), 2)
+      self.assertLen(attrs, 2)
       self.assertEqual(attrs[0].name, "user.foo")
       self.assertEqual(attrs[0].value, "bar")
       self.assertEqual(attrs[1].name, "user.quux")
@@ -135,7 +137,7 @@ class GetExtAttrsText(absltest.TestCase):
   def testIncorrectFilePath(self):
     attrs = list(client_utils_linux.GetExtAttrs("/foo/bar/baz/quux"))
 
-    self.assertEqual(len(attrs), 0)
+    self.assertEmpty(attrs)
 
   @mock.patch("xattr.listxattr", return_value=["user.foo", "user.bar"])
   def testAttrChangeAfterListing(self, listxattr):
@@ -145,7 +147,7 @@ class GetExtAttrsText(absltest.TestCase):
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 
       self.assertTrue(listxattr.called)
-      self.assertEqual(len(attrs), 1)
+      self.assertLen(attrs, 1)
       self.assertEqual(attrs[0].name, "user.bar")
       self.assertEqual(attrs[0].value, "baz")
 

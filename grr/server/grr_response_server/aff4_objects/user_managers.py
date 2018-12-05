@@ -10,6 +10,7 @@ AccessControlManager Classes:
   FullAccessControlManager: Provides for multiparty authorization.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import fnmatch
@@ -83,8 +84,9 @@ def ValidateToken(token, targets):
 
   Args:
     token: User's credentials as access_control.ACLToken.
-    targets: List of targets that were meant to be accessed by the token.
-             This is used for logging purposes only.
+    targets: List of targets that were meant to be accessed by the token. This
+      is used for logging purposes only.
+
   Returns:
     True if token is valid.
 
@@ -122,8 +124,8 @@ def ValidateAccessAndSubjects(requested_access, subjects):
 
   Args:
     requested_access: String consisting or 'r', 'w' and 'q' characters.
-    subjects: A list of subjects that are about to be accessed with a
-              given requested_access. Used for logging purposes only.
+    subjects: A list of subjects that are about to be accessed with a given
+      requested_access. Used for logging purposes only.
 
   Returns:
     True if requested_access is valid.
@@ -139,8 +141,8 @@ def ValidateAccessAndSubjects(requested_access, subjects):
 
   for s in requested_access:
     if s not in "rwq":
-      raise ValueError("Invalid access requested for %s: %s" %
-                       (subjects, requested_access))
+      raise ValueError(
+          "Invalid access requested for %s: %s" % (subjects, requested_access))
 
   if "q" in requested_access and "r" not in requested_access:
     raise access_control.UnauthorizedAccess(
@@ -180,6 +182,7 @@ def CheckFlowCanBeStartedOnClient(flow_name):
 
   Args:
     flow_name: Name of the flow to check access for.
+
   Returns:
     True if flow is externally accessible.
   Raises:
@@ -192,17 +195,6 @@ def CheckFlowCanBeStartedOnClient(flow_name):
   else:
     raise access_control.UnauthorizedAccess(
         "Flow %s can't be started on a client by non-suid users." % flow_name)
-
-
-def CheckFlowAuthorizedLabels(token, flow_name):
-  """Checks if user has a label in flow's authorized_labels list."""
-  flow_cls = flow.GRRFlow.GetPlugin(flow_name)
-
-  if flow_cls.AUTHORIZED_LABELS:
-    return CheckUserForLabels(
-        token.username, flow_cls.AUTHORIZED_LABELS, token=token)
-  else:
-    return True
 
 
 class CheckAccessHelper(object):
@@ -242,9 +234,9 @@ class CheckAccessHelper(object):
       require: Function that will be called to perform additional checks.
                None by default. It will be called like this:
                require(subject_urn, *args, **kwargs).
-               If this function returns True, the check is considered
-               passed. If it raises, the check is considered failed, no
-               other checks are made and exception is propagated.
+               If this function returns True, the check is considered passed.
+               If it raises, the check is considered failed, no other checks
+               are made and exception is propagated.
       *args: Positional arguments that will be passed to "require" function.
       **kwargs: Keyword arguments that will be passed to "require" function.
     """
@@ -284,14 +276,13 @@ class CheckAccessHelper(object):
         # If require() fails, it raises access_control.UnauthorizedAccess.
         require(subject, token, *require_args, **require_kwargs)
 
-      logging.debug(u"Datastore access granted to %s on %s by pattern: %s "
-                    u"with reason: %s (require=%s, require_args=%s, "
-                    u"require_kwargs=%s, helper_name=%s)",
-                    utils.SmartUnicode(token.username),
-                    utils.SmartUnicode(subject_str),
-                    utils.SmartUnicode(regex_text),
-                    utils.SmartUnicode(token.reason), require, require_args,
-                    require_kwargs, self.helper_name)
+      logging.debug(
+          u"Datastore access granted to %s on %s by pattern: %s "
+          u"with reason: %s (require=%s, require_args=%s, "
+          u"require_kwargs=%s, helper_name=%s)",
+          utils.SmartUnicode(token.username), utils.SmartUnicode(subject_str),
+          utils.SmartUnicode(regex_text), utils.SmartUnicode(token.reason),
+          require, require_args, require_kwargs, self.helper_name)
       return True
 
     logging.warn("Datastore access denied to %s (no matched rules)",
@@ -587,9 +578,9 @@ class FullAccessControlManager(access_control.AccessControlManager):
       raise ValueError("Client urn can't be empty.")
     client_urn = rdf_client.ClientURN(client_urn)
 
-    return ValidateToken(token, [
-        client_urn
-    ]) and (token.supervisor or self._CheckApprovals(token, client_urn))
+    return ValidateToken(
+        token, [client_urn]) and (token.supervisor or
+                                  self._CheckApprovals(token, client_urn))
 
   @LoggedACL("hunt_access")
   @stats_utils.Timed("acl_check_time", fields=["hunt_access"])
@@ -598,9 +589,9 @@ class FullAccessControlManager(access_control.AccessControlManager):
       raise ValueError("Hunt urn can't be empty.")
     hunt_urn = rdfvalue.RDFURN(hunt_urn)
 
-    return ValidateToken(token, [
-        hunt_urn
-    ]) and (token.supervisor or self._CheckApprovals(token, hunt_urn))
+    return ValidateToken(token,
+                         [hunt_urn]) and (token.supervisor or
+                                          self._CheckApprovals(token, hunt_urn))
 
   @LoggedACL("cron_job_access")
   @stats_utils.Timed("acl_check_time", fields=["cron_job_access"])
@@ -609,9 +600,9 @@ class FullAccessControlManager(access_control.AccessControlManager):
       raise ValueError("Cron job urn can't be empty.")
     cron_job_urn = rdfvalue.RDFURN(cron_job_urn)
 
-    return ValidateToken(token, [
-        cron_job_urn
-    ]) and (token.supervisor or self._CheckApprovals(token, cron_job_urn))
+    return ValidateToken(
+        token, [cron_job_urn]) and (token.supervisor or
+                                    self._CheckApprovals(token, cron_job_urn))
 
   @LoggedACL("can_start_flow")
   @stats_utils.Timed("acl_check_time", fields=["can_start_flow"])
@@ -621,8 +612,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
 
     return ValidateToken(
         token, [flow_name]) and (token.supervisor or
-                                 (CheckFlowCanBeStartedOnClient(flow_name) and
-                                  CheckFlowAuthorizedLabels(token, flow_name)))
+                                 CheckFlowCanBeStartedOnClient(flow_name))
 
   @LoggedACL("data_store_access")
   @stats_utils.Timed("acl_check_time", fields=["data_store_access"])

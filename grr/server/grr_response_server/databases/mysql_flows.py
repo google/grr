@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The MySQL database methods for flow handling."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -80,11 +81,13 @@ class MySQLDBFlowMixin(object):
       self.handler_thread.daemon = True
       self.handler_thread.start()
 
-  def UnregisterMessageHandler(self):
+  def UnregisterMessageHandler(self, timeout=None):
     """Unregisters any registered message handler."""
     if self.handler_thread:
       self.handler_stop = True
-      self.handler_thread.join()
+      self.handler_thread.join(timeout)
+      if self.handler_thread.isAlive():
+        raise RuntimeError("Message handler thread did not join in time.")
       self.handler_thread = None
 
   def _MessageHandlerLoop(self, handler, lease_time, limit):
@@ -1101,11 +1104,13 @@ class MySQLDBFlowMixin(object):
       self.flow_processing_request_handler_thread.daemon = True
       self.flow_processing_request_handler_thread.start()
 
-  def UnregisterFlowProcessingHandler(self):
+  def UnregisterFlowProcessingHandler(self, timeout=None):
     """Unregisters any registered flow processing handler."""
     if self.flow_processing_request_handler_thread:
       self.flow_processing_request_handler_stop = True
-      self.flow_processing_request_handler_thread.join()
+      self.flow_processing_request_handler_thread.join(timeout)
+      if self.flow_processing_request_handler_thread.isAlive():
+        raise RuntimeError("Flow processing handler did not join in time.")
       self.flow_processing_request_handler_thread = None
 
   @mysql_utils.WithTransaction()

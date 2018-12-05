@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """System cron flows tests."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -71,12 +72,12 @@ class SystemCronTestMixin(object):
     last_fs_contact.FromMicroseconds(last_ping_rdf.AsMicrosecondsSinceEpoch())
     fs_clients = [
         admin_pb2.Client(
-            client_id=fleetspeak_utils.GRRIDToFleetspeakID(fs_urns[0]
-                                                           .Basename()),
+            client_id=fleetspeak_utils.GRRIDToFleetspeakID(
+                fs_urns[0].Basename()),
             last_contact_time=last_fs_contact),
         admin_pb2.Client(
-            client_id=fleetspeak_utils.GRRIDToFleetspeakID(fs_urns[1]
-                                                           .Basename()),
+            client_id=fleetspeak_utils.GRRIDToFleetspeakID(
+                fs_urns[1].Basename()),
             last_contact_time=last_fs_contact),
     ]
     self._fs_conn.outgoing.ListClients.return_value = (
@@ -85,7 +86,7 @@ class SystemCronTestMixin(object):
   def _CheckVersionGraph(self, graph, expected_title, expected_count):
     self.assertEqual(graph.title, expected_title)
     if expected_count == 0:
-      self.assertEqual(len(graph), 0)
+      self.assertEmpty(graph)
       return
     sample = graph[0]
     self.assertEqual(sample.label,
@@ -232,19 +233,18 @@ class SystemCronTestMixin(object):
 
     stat_obj = aff4.FACTORY.Open(urn, age=aff4.ALL_TIMES, token=self.token)
     stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
-    self.assertEqual(len(stat_entries), 3)
-    self.assertTrue(max_age in [e.RSS_size for e in stat_entries])
+    self.assertLen(stat_entries, 3)
+    self.assertIn(max_age, [e.RSS_size for e in stat_entries])
 
     with test_lib.FakeTime(2.5 * max_age):
       self._RunPurgeClientStats()
 
     stat_obj = aff4.FACTORY.Open(urn, age=aff4.ALL_TIMES, token=self.token)
     stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
-    self.assertEqual(len(stat_entries), 1)
-    self.assertTrue(max_age not in [e.RSS_size for e in stat_entries])
+    self.assertLen(stat_entries, 1)
+    self.assertNotIn(max_age, [e.RSS_size for e in stat_entries])
 
 
-@db_test_lib.DualDBTest
 class SystemCronFlowTest(SystemCronTestMixin, flow_test_lib.FlowTestsBaseclass):
   """Test system cron flows."""
 
@@ -307,45 +307,53 @@ class SystemCronJobTest(SystemCronTestMixin, test_lib.GRRBaseTest):
     fake_stats_collector = default_stats_collector.DefaultStatsCollector([
         stats_utils.CreateCounterMetadata("fake_counter"),
     ])
-    timestamp1 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)
+    timestamp0 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)
+    timestamp1 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)
     timestamp2 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600)
     timestamp3 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4800)
     config_overrides = {
         "Database.useForReads.stats": True,
         "StatsStore.stats_ttl_hours": 1
     }
-    with test_lib.ConfigOverrider(config_overrides):
-      with stats_test_utils.FakeStatsContext(fake_stats_collector):
-        with test_lib.FakeTime(rdfvalue.RDFDatetime(timestamp1)):
-          stats_collector_instance.Get().IncrementCounter("fake_counter")
-          stats_store._WriteStats(process_id="fake_process_id")
-          expected_results = {
-              "fake_process_id": {
-                  "fake_counter": [(1, timestamp1)]
-              }
-          }
-          self.assertDictEqual(
-              stats_store.ReadStats("f", "fake_counter"), expected_results)
-        with test_lib.FakeTime(timestamp2):
-          stats_store._WriteStats(process_id="fake_process_id")
-          expected_results = {
-              "fake_process_id": {
-                  "fake_counter": [(1, timestamp1), (1, timestamp2)]
-              }
-          }
-          self.assertDictEqual(
-              stats_store.ReadStats("f", "fake_counter"), expected_results)
-        with test_lib.FakeTime(timestamp3):
-          system.PurgeServerStatsCronJob(rdf_cronjobs.CronJobRun(),
-                                         rdf_cronjobs.CronJob()).Run()
-          # timestamp1 is older than 1h, so it should get deleted.
-          expected_results = {
-              "fake_process_id": {
-                  "fake_counter": [(1, timestamp2)]
-              }
-          }
-          self.assertDictEqual(
-              stats_store.ReadStats("f", "fake_counter"), expected_results)
+    with test_lib.ConfigOverrider(config_overrides), \
+         stats_test_utils.FakeStatsContext(fake_stats_collector), \
+         mock.patch.object(system, "_STATS_DELETION_BATCH_SIZE", 1):
+      with test_lib.FakeTime(rdfvalue.RDFDatetime(timestamp0)):
+        stats_store._WriteStats(process_id="fake_process_id")
+      with test_lib.FakeTime(rdfvalue.RDFDatetime(timestamp1)):
+        stats_collector_instance.Get().IncrementCounter("fake_counter")
+        stats_store._WriteStats(process_id="fake_process_id")
+        expected_results = {
+            "fake_process_id": {
+                "fake_counter": [(0, timestamp0), (1, timestamp1)]
+            }
+        }
+        self.assertDictEqual(
+            stats_store.ReadStats("f", "fake_counter"), expected_results)
+      with test_lib.FakeTime(timestamp2):
+        stats_store._WriteStats(process_id="fake_process_id")
+        expected_results = {
+            "fake_process_id": {
+                "fake_counter": [(0, timestamp0), (1, timestamp1),
+                                 (1, timestamp2)]
+            }
+        }
+        self.assertDictEqual(
+            stats_store.ReadStats("f", "fake_counter"), expected_results)
+      with test_lib.FakeTime(timestamp3):
+        cron = system.PurgeServerStatsCronJob(rdf_cronjobs.CronJobRun(),
+                                              rdf_cronjobs.CronJob())
+        cron.Run()
+        # timestamp0 and timestamp1 are older than 1h, so they should get
+        # deleted.
+        expected_results = {
+            "fake_process_id": {
+                "fake_counter": [(1, timestamp2)]
+            }
+        }
+        self.assertDictEqual(
+            stats_store.ReadStats("f", "fake_counter"), expected_results)
+        self.assertIn("Deleted 2 stats entries.", cron.run_state.log_message)
 
   def _RunPurgeClientStats(self):
     run = rdf_cronjobs.CronJobRun()

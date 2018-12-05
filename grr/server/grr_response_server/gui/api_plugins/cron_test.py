@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This module contains tests for cron-related API handlers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
@@ -144,14 +145,14 @@ class ApiDeleteCronJobHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testDeletesCronFromCollection(self):
     jobs = list(cronjobs.GetCronManager().ListJobs(token=self.token))
-    self.assertEqual(len(jobs), 1)
+    self.assertLen(jobs, 1)
     self.assertEqual(jobs[0], self.cron_job_id)
 
     args = cron_plugin.ApiDeleteCronJobArgs(cron_job_id=self.cron_job_id)
     self.handler.Handle(args, token=self.token)
 
     jobs = list(cronjobs.GetCronManager().ListJobs(token=self.token))
-    self.assertEqual(len(jobs), 0)
+    self.assertEmpty(jobs)
 
 
 class ApiGetCronJobHandlerTest(db_test_lib.RelationalDBEnabledMixin,
@@ -197,7 +198,7 @@ class ApiGetCronJobHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(result.last_run_status, job.last_run_status)
     self.assertEqual(result.lifetime, job.lifetime)
     state_entries = list(result.state.items)
-    self.assertEqual(len(state_entries), 1)
+    self.assertLen(state_entries, 1)
     state_entry = state_entries[0]
     self.assertEqual(state_entry.key, "item")
     self.assertEqual(state_entry.value, "key")

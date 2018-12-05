@@ -17,6 +17,7 @@ python grr/client/grr_response_client/client_build.py \
 
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_client import installer

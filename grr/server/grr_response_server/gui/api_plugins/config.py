@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """API handlers for accessing config."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
 
 
 from future.utils import iteritems
-from future.utils import itervalues
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
@@ -17,12 +17,8 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import config_pb2
-from grr_response_server import aff4
-
-from grr_response_server.aff4_objects import collects as aff4_collects
-
+from grr_response_server import signed_binary_utils
 from grr_response_server.gui import api_call_handler_base
-
 from grr_response_server.gui import api_call_handler_utils
 
 # TODO(user): sensitivity of config options and sections should
@@ -167,21 +163,47 @@ class ApiListGrrBinariesResult(rdf_structs.RDFProtoStruct):
 
 def _GetSignedBlobsRoots():
   return {
-      ApiGrrBinary.Type.PYTHON_HACK: aff4.FACTORY.GetPythonHackRoot(),
-      ApiGrrBinary.Type.EXECUTABLE: aff4.FACTORY.GetExecutablesRoot()
+      ApiGrrBinary.Type.PYTHON_HACK:
+          signed_binary_utils.GetAFF4PythonHackRoot(),
+      ApiGrrBinary.Type.EXECUTABLE:
+          signed_binary_utils.GetAFF4ExecutablesRoot()
   }
 
 
-def _ValidateSignedBlobSignature(fd):
-  public_key = config.CONFIG["Client.executable_signing_public_key"]
+def _GetSignedBinaryMetadata(binary_type, relative_path):
+  """Fetches metadata for the given binary from the datastore.
 
-  for blob in fd:
+  Args:
+    binary_type: ApiGrrBinary.Type of the binary.
+    relative_path: Relative path of the binary, relative to the canonical URN
+      roots for signed binaries (see _GetSignedBlobsRoots()).
+
+  Returns:
+    An ApiGrrBinary RDFProtoStruct containing metadata for the binary.
+  """
+  root_urn = _GetSignedBlobsRoots()[binary_type]
+  binary_urn = root_urn.Add(relative_path)
+  blob_iterator, timestamp = signed_binary_utils.FetchBlobsForSignedBinary(
+      binary_urn)
+  binary_size = 0
+  has_valid_signature = True
+  for blob in blob_iterator:
+    binary_size += len(blob.data)
+    if not has_valid_signature:
+      # No need to check the signature if a previous blob had an invalid
+      # signature.
+      continue
     try:
-      blob.Verify(public_key)
+      blob.Verify(config.CONFIG["Client.executable_signing_public_key"])
     except rdf_crypto.Error:
-      return False
+      has_valid_signature = False
 
-  return True
+  return ApiGrrBinary(
+      path=relative_path,
+      type=binary_type,
+      size=binary_size,
+      timestamp=timestamp,
+      has_valid_signature=has_valid_signature)
 
 
 class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
@@ -191,33 +213,15 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
 
   def _ListSignedBlobs(self, token=None):
     roots = _GetSignedBlobsRoots()
-
-    binary_urns = []
-    for _, children in aff4.FACTORY.RecursiveMultiListChildren(
-        itervalues(roots)):
-      binary_urns.extend(children)
-
-    binary_fds = list(
-        aff4.FACTORY.MultiOpen(
-            binary_urns,
-            aff4_type=aff4_collects.GRRSignedBlob,
-            mode="r",
-            token=token))
-
-    items = []
-    for fd in sorted(binary_fds, key=lambda f: f.urn):
+    binary_urns = signed_binary_utils.FetchURNsForAllSignedBinaries(token=token)
+    api_binaries = []
+    for binary_urn in sorted(binary_urns):
       for binary_type, root in iteritems(roots):
-        rel_name = fd.urn.RelativeName(root)
-        if rel_name:
-          api_binary = ApiGrrBinary(
-              path=rel_name,
-              type=binary_type,
-              size=fd.size,
-              timestamp=fd.Get(fd.Schema.TYPE).age,
-              has_valid_signature=_ValidateSignedBlobSignature(fd))
-          items.append(api_binary)
-
-    return items
+        relative_path = binary_urn.RelativeName(root)
+        if relative_path:
+          api_binary = _GetSignedBinaryMetadata(binary_type, relative_path)
+          api_binaries.append(api_binary)
+    return api_binaries
 
   def Handle(self, unused_args, token=None):
     return ApiListGrrBinariesResult(items=self._ListSignedBlobs(token=token))
@@ -228,23 +232,14 @@ class ApiGetGrrBinaryArgs(rdf_structs.RDFProtoStruct):
 
 
 class ApiGetGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
-  """Streams a given GRR binary."""
+  """Fetches metadata for a given GRR binary."""
 
   args_type = ApiGetGrrBinaryArgs
   result_type = ApiGrrBinary
 
   def Handle(self, args, token=None):
-    root_urn = _GetSignedBlobsRoots()[args.type]
-    urn = root_urn.Add(args.path)
-
-    fd = aff4.FACTORY.Open(
-        urn, aff4_type=aff4_collects.GRRSignedBlob, token=token)
-    return ApiGrrBinary(
-        path=args.path,
-        type=args.type,
-        size=fd.size,
-        timestamp=fd.Get(fd.Schema.TYPE).age,
-        has_valid_signature=_ValidateSignedBlobSignature(fd))
+    return _GetSignedBinaryMetadata(
+        binary_type=args.type, relative_path=args.path)
 
 
 class ApiGetGrrBinaryBlobArgs(rdf_structs.RDFProtoStruct):
@@ -258,23 +253,16 @@ class ApiGetGrrBinaryBlobHandler(api_call_handler_base.ApiCallHandler):
 
   CHUNK_SIZE = 1024 * 1024 * 4
 
-  def _GenerateStreamContent(self, aff4_stream, cipher=None):
-    while True:
-      chunk = aff4_stream.Read(self.CHUNK_SIZE)
-      if not chunk:
-        break
-      if not cipher:
-        yield chunk
-      else:
-        yield cipher.Decrypt(chunk)
-
   def Handle(self, args, token=None):
     root_urn = _GetSignedBlobsRoots()[args.type]
     binary_urn = root_urn.Add(args.path)
-
-    file_obj = aff4.FACTORY.Open(
-        binary_urn, aff4_type=aff4.AFF4Stream, token=token)
+    binary_size = signed_binary_utils.FetchSizeOfSignedBinary(
+        binary_urn, token=token)
+    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+        binary_urn, token=token)
+    chunk_iterator = signed_binary_utils.StreamSignedBinaryContents(
+        blob_iterator, chunk_size=self.CHUNK_SIZE)
     return api_call_handler_base.ApiBinaryStream(
-        filename=file_obj.urn.Basename(),
-        content_generator=self._GenerateStreamContent(file_obj),
-        content_length=file_obj.size)
+        filename=binary_urn.Basename(),
+        content_generator=chunk_iterator,
+        content_length=binary_size)

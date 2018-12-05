@@ -4,6 +4,7 @@
 Each report plugin is a subclass of ReportPluginBase.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins

@@ -441,13 +441,16 @@ message BrowserHistoryItem {
       description: "Name of the program that generated the entry, e.g. Chrome.",
     }];
 
-  optional string source_urn = 7 [(sem_type) = {
-      type: "RDFURN",
-      description: "Location of object that this entry was found in.",
-    }];
+  //DEPRECATED
+  // optional string source_urn = 7;
+  reserved 7;
 
   optional string download_path = 8 [(sem_type) = {
       description: "Path of downloaded file.",
+    }];
+
+  optional string source_path = 9 [(sem_type) = {
+      description: "Path of the file that this entry was found in.",
     }];
 }
 

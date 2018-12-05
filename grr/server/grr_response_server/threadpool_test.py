@@ -133,7 +133,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
   def testFailToCreateThread(self):
     """Test that we handle thread creation problems ok."""
     # The pool starts off with the minimum number of threads.
-    self.assertEqual(len(self.test_pool), self.NUMBER_OF_THREADS)
+    self.assertLen(self.test_pool, self.NUMBER_OF_THREADS)
 
     done_event = threading.Event()
 
@@ -147,8 +147,8 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     with utils.Stubber(threadpool._WorkerThread, "start", RaisingStart):
       # Fill all the existing threads and wait for them to become busy.
       self.test_pool.AddTask(Block, (done_event,))
-      self.WaitUntil(
-          lambda: self.test_pool.busy_threads == self.NUMBER_OF_THREADS)
+      self.WaitUntil(lambda: self.test_pool.busy_threads == self.
+                     NUMBER_OF_THREADS)
 
       # Now fill the queue completely..
       for _ in range(self.MAXIMUM_THREADS):
@@ -170,7 +170,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
 
   def testBlockingTasks(self):
     # The pool starts off with the minimum number of threads.
-    self.assertEqual(len(self.test_pool), self.NUMBER_OF_THREADS)
+    self.assertLen(self.test_pool, self.NUMBER_OF_THREADS)
 
     done_event = threading.Event()
     self.lock = threading.Lock()
@@ -193,8 +193,8 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
         self.test_pool.AddTask(Block, (done_event,), "Blocking")
 
       # Wait until the threadpool picks up the task.
-      self.WaitUntil(
-          lambda: self.test_pool.busy_threads == self.NUMBER_OF_THREADS)
+      self.WaitUntil(lambda: self.test_pool.busy_threads == self.
+                     NUMBER_OF_THREADS)
 
       # Now there are minimum number of threads active and the rest are sitting
       # on the queue.
@@ -209,8 +209,8 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
 
       # There should be 20 workers created and they should consume all the
       # blocking tasks.
-      self.WaitUntil(
-          lambda: self.test_pool.busy_threads == self.MAXIMUM_THREADS)
+      self.WaitUntil(lambda: self.test_pool.busy_threads == self.MAXIMUM_THREADS
+                    )
 
       # No Insert tasks are running yet.
       self.assertEqual(res, [])
@@ -254,7 +254,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       for i in range(2 * self.MAXIMUM_THREADS):
         self.test_pool.AddTask(Block, (done_event, i), "Blocking", inline=False)
 
-      self.assertEqual(len(self.test_pool), self.MAXIMUM_THREADS)
+      self.assertLen(self.test_pool, self.MAXIMUM_THREADS)
 
       # Release the threads. All threads are now idle.
       done_event.set()
@@ -267,7 +267,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       self.WaitUntil(lambda: len(self.test_pool) == self.NUMBER_OF_THREADS)
 
       # Ensure we have the minimum number of threads left now.
-      self.assertEqual(len(self.test_pool), self.NUMBER_OF_THREADS)
+      self.assertLen(self.test_pool, self.NUMBER_OF_THREADS)
 
   def testExportedFunctions(self):
     """Tests if the outstanding tasks variable is exported correctly."""
@@ -342,13 +342,13 @@ class BatchConverterTest(test_lib.GRRBaseTest):
 
     converter.Convert(test_data)
 
-    self.assertEqual(len(set(converter.threads)), 5)
+    self.assertLen(set(converter.threads), 5)
 
-    self.assertEqual(len(converter.batches), 5)
+    self.assertLen(converter.batches, 5)
     for batch in converter.batches:
-      self.assertEqual(len(batch), 2)
+      self.assertLen(batch, 2)
 
-    self.assertEqual(len(converter.results), 10)
+    self.assertLen(converter.results, 10)
     for i, r in enumerate(sorted(converter.results)):
       self.assertEqual(r, str(i) + "*")
 
@@ -362,13 +362,13 @@ class BatchConverterTest(test_lib.GRRBaseTest):
 
     converter.Convert(test_data)
 
-    self.assertEqual(len(set(converter.threads)), 1)
+    self.assertLen(set(converter.threads), 1)
 
-    self.assertEqual(len(converter.batches), 5)
+    self.assertLen(converter.batches, 5)
     for batch in converter.batches:
-      self.assertEqual(len(batch), 2)
+      self.assertLen(batch, 2)
 
-    self.assertEqual(len(converter.results), 10)
+    self.assertLen(converter.results, 10)
     for i, r in enumerate(sorted(converter.results)):
       self.assertEqual(r, str(i) + "*")
 

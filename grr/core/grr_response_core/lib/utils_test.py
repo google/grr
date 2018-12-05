@@ -2,6 +2,7 @@
 # -*- encoding: utf-8 -*-
 """Tests for utility classes."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
@@ -171,7 +172,7 @@ class UtilsTest(test_lib.GRRBaseTest):
     l = utils.LinkedList()
 
     # Test empty list properties.
-    self.assertEqual(len(l), 0)
+    self.assertEmpty(l)
     self.assertEqual(list(l), [])
     self.assertRaises(IndexError, l.Pop)
     self.assertRaises(IndexError, l.PopLeft)
@@ -180,20 +181,20 @@ class UtilsTest(test_lib.GRRBaseTest):
     # Just one element.
     l.Append(1)
     self.CheckList(l)
-    self.assertEqual(len(l), 1)
+    self.assertLen(l, 1)
     self.assertEqual(list(l), [1])
 
     # Pop it, check that list is empty again.
     self.assertEqual(l.Pop(), 1)
     self.CheckList(l)
-    self.assertEqual(len(l), 0)
+    self.assertEmpty(l)
     self.assertEqual(list(l), [])
     self.assertRaises(IndexError, l.Pop)
     self.assertRaises(IndexError, l.PopLeft)
 
     # Simple popleft test.
     l.Append(1)
-    self.assertEqual(len(l), 1)
+    self.assertLen(l, 1)
     self.assertEqual(list(l), [1])
     self.assertEqual(l.PopLeft(), 1)
 
@@ -207,21 +208,21 @@ class UtilsTest(test_lib.GRRBaseTest):
     l.Append(7)
     self.CheckList(l)
 
-    self.assertEqual(len(l), 7)
+    self.assertLen(l, 7)
     self.assertEqual(list(l), [1, 2, 3, 4, 5, 6, 7])
 
     # Unlink a node in the middle.
     l.Unlink(node3)
     self.CheckList(l)
 
-    self.assertEqual(len(l), 6)
+    self.assertLen(l, 6)
     self.assertEqual(list(l), [1, 2, 4, 5, 6, 7])
 
     # Unlink head.
     l.Unlink(l.head)
     self.CheckList(l)
 
-    self.assertEqual(len(l), 5)
+    self.assertLen(l, 5)
     self.assertEqual(list(l), [2, 4, 5, 6, 7])
 
     # Unlink tail.
@@ -229,33 +230,33 @@ class UtilsTest(test_lib.GRRBaseTest):
     self.CheckList(l)
 
     # Some more unlinks.
-    self.assertEqual(len(l), 4)
+    self.assertLen(l, 4)
     self.assertEqual(list(l), [2, 4, 5, 6])
     self.CheckList(l)
 
     self.assertEqual(l.PopLeft(), 2)
-    self.assertEqual(len(l), 3)
+    self.assertLen(l, 3)
     self.assertEqual(list(l), [4, 5, 6])
     self.CheckList(l)
 
     self.assertEqual(l.Pop(), 6)
-    self.assertEqual(len(l), 2)
+    self.assertLen(l, 2)
     self.assertEqual(list(l), [4, 5])
     self.CheckList(l)
 
     l.Append(6)
     self.assertEqual(l.Pop(), 6)
-    self.assertEqual(len(l), 2)
+    self.assertLen(l, 2)
     self.assertEqual(list(l), [4, 5])
     self.CheckList(l)
 
     self.assertEqual(l.Pop(), 5)
-    self.assertEqual(len(l), 1)
+    self.assertLen(l, 1)
     self.assertEqual(list(l), [4])
     self.CheckList(l)
 
     self.assertEqual(l.PopLeft(), 4)
-    self.assertEqual(len(l), 0)
+    self.assertEmpty(l)
     self.CheckList(l)
 
     self.assertRaises(IndexError, l.Pop)
@@ -265,7 +266,7 @@ class UtilsTest(test_lib.GRRBaseTest):
     l = utils.LinkedList()
     n = l.Append(1)
     l.Unlink(n)
-    self.assertEqual(len(l), 0)
+    self.assertEmpty(l)
     self.CheckList(l)
 
     self.assertRaises(IndexError, l.Pop)

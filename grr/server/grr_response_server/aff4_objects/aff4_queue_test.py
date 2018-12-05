@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for Queue."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -37,7 +38,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
         queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords()
 
-    self.assertEqual(100, len(results))
+    self.assertLen(results, 100)
     self.assertEqual(0, results[0].value)
     self.assertEqual(99, results[99].value)
 
@@ -54,12 +55,12 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
         queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords()
 
-    self.assertEqual(100, len(results))
+    self.assertLen(results, 100)
 
     with aff4.FACTORY.OpenWithLock(
         queue_urn, lease_time=200, token=self.token) as queue:
       no_results = queue.ClaimRecords()
-    self.assertEqual(0, len(no_results))
+    self.assertEmpty(no_results)
 
   def testClaimReturnsPreviouslyClaimedRecordsAfterTimeout(self):
     queue_urn = (
@@ -75,14 +76,14 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
         queue_urn, lease_time=200, token=self.token) as queue:
       results_1 = queue.ClaimRecords()
 
-    self.assertEqual(100, len(results_1))
+    self.assertLen(results_1, 100)
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
                            rdfvalue.Duration("45m")):
       with aff4.FACTORY.OpenWithLock(
           queue_urn, lease_time=200, token=self.token) as queue:
         results_2 = queue.ClaimRecords()
-        self.assertEqual(100, len(results_2))
+        self.assertLen(results_2, 100)
 
   def testDeleteRemovesRecords(self):
     queue_urn = "aff4:/queue_test/testDeleteRemovesRecords"
@@ -109,7 +110,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
       with aff4.FACTORY.OpenWithLock(
           queue_urn, lease_time=200, token=self.token) as queue:
         results = queue.ClaimRecords()
-        self.assertEqual(0, len(results))
+        self.assertEmpty(results)
 
   def testClaimReturnsPreviouslyReleasedRecords(self):
     queue_urn = "aff4:/queue_test/testClaimReturnsPreviouslyReleasedRecords"
@@ -131,7 +132,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
         queue_urn, lease_time=200, token=self.token) as queue:
       odd_results = queue.ClaimRecords()
 
-    self.assertEqual(50, len(odd_results))
+    self.assertLen(odd_results, 50)
     self.assertEqual(1, odd_results[0].value)
     self.assertEqual(99, odd_results[49].value)
 
@@ -151,7 +152,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
       results = queue.ClaimRecords(record_filter=EvenFilter)
 
     # Should have all the odd records.
-    self.assertEqual(50, len(results))
+    self.assertLen(results, 50)
     self.assertEqual(1, results[0].value)
     self.assertEqual(99, results[49].value)
 
@@ -169,7 +170,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
         queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords(start_time=middle)
 
-    self.assertEqual(50, len(results))
+    self.assertLen(results, 50)
     self.assertEqual(50, results[0].value)
 
   def testClaimCleansSpuriousLocks(self):
@@ -184,7 +185,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.OpenWithLock(
         queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords()
-    self.assertEqual(100, len(results))
+    self.assertLen(results, 100)
 
     for record in results:
       subject, _, _ = data_store.DataStore.CollectionMakeURN(
@@ -196,8 +197,8 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(
         100,
         sum(1 for _ in data_store.DB.ScanAttribute(
-            unicode(queue.urn.Add("Records")), data_store.DataStore
-            .QUEUE_LOCK_ATTRIBUTE)))
+            unicode(queue.urn.Add("Records")),
+            data_store.DataStore.QUEUE_LOCK_ATTRIBUTE)))
 
     with aff4.FACTORY.OpenWithLock(
         queue_urn, lease_time=200, token=self.token) as queue:
@@ -207,8 +208,8 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(
         0,
         sum(1 for _ in data_store.DB.ScanAttribute(
-            unicode(queue.urn.Add("Records")), data_store.DataStore
-            .QUEUE_LOCK_ATTRIBUTE)))
+            unicode(queue.urn.Add("Records")),
+            data_store.DataStore.QUEUE_LOCK_ATTRIBUTE)))
 
 
 def main(argv):

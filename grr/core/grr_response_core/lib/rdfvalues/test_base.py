@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """The base classes for RDFValue tests."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import time
@@ -36,12 +37,8 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
                       rdfvalue.RDFString("hello"))
 
     # Should raise - incompatible RDFProto type.
-    self.assertRaises(
-        ValueError,
-        setattr,
-        container,
-        "device",
-        rdf_client_fs.StatEntry(st_size=5))
+    self.assertRaises(ValueError, setattr, container, "device",
+                      rdf_client_fs.StatEntry(st_size=5))
 
     # Assign directly.
     container.device = pathspec
@@ -163,7 +160,7 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
     sample.addresses.Append(human_readable="127.0.0.1")
 
     self.assertEqual(sample.addresses[0].human_readable, "127.0.0.1")
-    self.assertEqual(len(sample.addresses), 1)
+    self.assertLen(sample.addresses, 1)
 
   def testEnums(self):
     """Check that enums are wrapped in a descriptor class."""

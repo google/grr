@@ -44,7 +44,7 @@ from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore
-from grr_response_server.aff4_objects import users
+from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.flows.general import audit
 from grr_response_server.hunts import results as hunts_results
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -73,7 +73,7 @@ class GRRBaseTest(absltest.TestCase):
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
     self.base_path = config.CONFIG["Test.data_dir"]
     test_user = u"test"
-    users.GRRUser.SYSTEM_USERS.add(test_user)
+    aff4_users.GRRUser.SYSTEM_USERS.add(test_user)
     self.token = access_control.ACLToken(
         username=test_user, reason="Running tests")
 
@@ -198,6 +198,7 @@ class GRRBaseTest(absltest.TestCase):
                        os_version="buster/sid",
                        ping=None,
                        system="Linux",
+                       users=None,
                        memory_size=None,
                        add_cert=True,
                        fleetspeak_enabled=False):
@@ -246,7 +247,7 @@ class GRRBaseTest(absltest.TestCase):
 
       kb = rdf_client.KnowledgeBase()
       kb.fqdn = fqdn or "Host-%x.example.com" % client_nr
-      kb.users = [
+      kb.users = users or [
           rdf_client.User(username="user1"),
           rdf_client.User(username="user2"),
       ]
@@ -276,6 +277,7 @@ class GRRBaseTest(absltest.TestCase):
                   os_version="buster/sid",
                   ping=None,
                   system="Linux",
+                  users=None,
                   memory_size=None,
                   add_cert=True,
                   fleetspeak_enabled=False):
@@ -292,6 +294,7 @@ class GRRBaseTest(absltest.TestCase):
       os_version: string
       ping: RDFDatetime
       system: string
+      users: list of rdf_client.User objects.
       memory_size: bytes
       add_cert: boolean
       fleetspeak_enabled: boolean
@@ -299,38 +302,44 @@ class GRRBaseTest(absltest.TestCase):
     Returns:
       rdf_client.ClientURN
     """
-    # Make it possible to use SetupClient for both REL_DB and legacy tests.
-    self.SetupTestClientObject(
-        client_nr,
-        add_cert=add_cert,
-        arch=arch,
-        fqdn=fqdn,
-        install_time=install_time,
-        last_boot_time=last_boot_time,
-        kernel=kernel,
-        memory_size=memory_size,
-        os_version=os_version,
-        ping=ping or rdfvalue.RDFDatetime.Now(),
-        system=system,
-        fleetspeak_enabled=fleetspeak_enabled)
-
-    with client_index.CreateClientIndex(token=self.token) as index:
-      client_id_urn = self._SetupClientImpl(
+    res = None
+    if data_store.RelationalDBWriteEnabled():
+      client = self.SetupTestClientObject(
           client_nr,
-          index=index,
+          add_cert=add_cert,
           arch=arch,
           fqdn=fqdn,
           install_time=install_time,
           last_boot_time=last_boot_time,
           kernel=kernel,
-          os_version=os_version,
-          ping=ping,
-          system=system,
           memory_size=memory_size,
-          add_cert=add_cert,
+          os_version=os_version,
+          ping=ping or rdfvalue.RDFDatetime.Now(),
+          system=system,
+          users=users,
           fleetspeak_enabled=fleetspeak_enabled)
+      # TODO(amoser): Make this function return unicode client ids only.
+      res = rdf_client.ClientURN(client.client_id)
 
-    return client_id_urn
+    if data_store.AFF4Enabled():
+      with client_index.CreateClientIndex(token=self.token) as index:
+        res = self._SetupClientImpl(
+            client_nr,
+            index=index,
+            arch=arch,
+            fqdn=fqdn,
+            install_time=install_time,
+            last_boot_time=last_boot_time,
+            kernel=kernel,
+            os_version=os_version,
+            ping=ping,
+            system=system,
+            users=users,
+            memory_size=memory_size,
+            add_cert=add_cert,
+            fleetspeak_enabled=fleetspeak_enabled)
+
+    return res
 
   def SetupClients(self, nr_clients, *args, **kwargs):
     """Prepares nr_clients test client mocks to be used."""
@@ -378,6 +387,7 @@ class GRRBaseTest(absltest.TestCase):
                              os_version="buster/sid",
                              ping=None,
                              system="Linux",
+                             users=None,
                              labels=None,
                              fleetspeak_enabled=False):
     res = {}
@@ -394,6 +404,7 @@ class GRRBaseTest(absltest.TestCase):
           os_version=os_version,
           ping=ping,
           system=system,
+          users=users,
           labels=labels,
           fleetspeak_enabled=fleetspeak_enabled)
       res[client.client_id] = client
@@ -411,6 +422,7 @@ class GRRBaseTest(absltest.TestCase):
                             os_version="buster/sid",
                             ping=None,
                             system="Linux",
+                            users=None,
                             labels=None,
                             fleetspeak_enabled=False):
     """Prepares a test client object."""
@@ -423,10 +435,11 @@ class GRRBaseTest(absltest.TestCase):
 
     client.knowledge_base.fqdn = fqdn or "Host-%x.example.com" % client_nr
     client.knowledge_base.os = system
-    client.knowledge_base.users = [
+    client.knowledge_base.users = users or [
         rdf_client.User(username=u"user1"),
         rdf_client.User(username=u"user2"),
     ]
+
     client.os_version = os_version
     client.arch = arch
     client.kernel = kernel

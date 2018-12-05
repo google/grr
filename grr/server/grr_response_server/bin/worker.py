@@ -5,6 +5,7 @@ We basically pull a new task from the task master, and run the plugin
 it specifies.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 

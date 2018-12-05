@@ -2,11 +2,13 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the inspect interface."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import queue_manager
 from grr_response_server.flows.general import discovery as flow_discovery
@@ -94,8 +96,9 @@ class TestDebugClientRequestsView(TestInspectViewBase):
     self.WaitUntil(self.IsTextPresent, "GetPlatformInfo")
     self.WaitUntil(self.IsTextPresent, "GetConfig")
     self.WaitUntil(self.IsTextPresent, "EnumerateInterfaces")
-    self.WaitUntil(self.IsTextPresent, "GENERIC_ERROR")
-    self.WaitUntil(self.IsTextPresent, "STATUS")
+    if not data_store.RelationalDBFlowsEnabled():
+      self.WaitUntil(self.IsTextPresent, "GENERIC_ERROR")
+      self.WaitUntil(self.IsTextPresent, "STATUS")
 
 
 if __name__ == "__main__":

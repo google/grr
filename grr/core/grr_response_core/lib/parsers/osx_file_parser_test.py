@@ -2,6 +2,7 @@
 """Tests for grr.parsers.osx_file_parser."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -39,8 +40,8 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
 
     parser = osx_file_parser.OSXUsersParser()
     out = list(parser.ParseMultiple(statentries, None))
-    self.assertItemsEqual([x.username for x in out], ["user1", "user2"])
-    self.assertItemsEqual([x.homedir for x in out],
+    self.assertCountEqual([x.username for x in out], ["user1", "user2"])
+    self.assertCountEqual([x.homedir for x in out],
                           ["/Users/user1", "/Users/user2"])
 
   def testOSXSPHardwareDataTypeParser(self):
@@ -69,7 +70,7 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
 
     for result in results:
       self.assertEqual(result.Label, "com.google.code.grr")
-      self.assertItemsEqual(result.ProgramArguments, [
+      self.assertCountEqual(result.ProgramArguments, [
           "/usr/lib/grr/grr_3.0.0.5_amd64/grr",
           "--config=/usr/lib/grr/grr_3.0.0.5_amd64/grr.yaml"
       ])
@@ -85,7 +86,7 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
           st_mode=16887)
       results = list(parser.Parse(stat, plist_file, None))
 
-    self.assertEqual(len(results), 4)
+    self.assertLen(results, 4)
     self.assertTrue(isinstance(results[0], rdf_client.SoftwarePackage))
 
     # ESET AV

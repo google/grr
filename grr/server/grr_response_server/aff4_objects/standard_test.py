@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr_response_server.aff4_objects.standard."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -116,7 +117,7 @@ class AFF4SparseImageTest(aff4_test_lib.AFF4ObjectTest):
     fd.Seek(start_chunk * fd.chunksize)
     fd.Read(fd.chunksize)
 
-    self.assertEqual(len(fd.chunk_cache._hash), num_chunks)
+    self.assertLen(fd.chunk_cache._hash, num_chunks)
 
     fd.Flush()
     # They shouldn't be in cache anymore, so the chunk_cache should be empty.

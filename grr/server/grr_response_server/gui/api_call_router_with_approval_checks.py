@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Implementation of a router class that has approvals-based ACL checks."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import utils
@@ -112,15 +113,13 @@ class RelDBChecker(object):
 
   def CheckIfCanStartClientFlow(self, username, flow_name):
     """Checks whether a given user can start a given flow."""
+    del username  # Unused.
 
     flow_cls = flow.GRRFlow.GetPlugin(flow_name)
 
     if not flow_cls.category:
       raise access_control.UnauthorizedAccess(
-          "Flow %s can't be started on a client by non-suid users." % flow_name)
-
-    if flow_cls.AUTHORIZED_LABELS:
-      self.CheckIfUserIsAdmin(username)
+          "Flow %s can't be started via the API." % flow_name)
 
   def CheckIfUserIsAdmin(self, username):
     """Checks whether the user is an admin."""
@@ -719,16 +718,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can update their own user settings.
 
     return self.delegate.UpdateGrrUser(args, token=token)
-
-  def ListPendingGlobalNotifications(self, args, token=None):
-    # Everybody can get their global pending notifications.
-
-    return self.delegate.ListPendingGlobalNotifications(args, token=token)
-
-  def DeletePendingGlobalNotification(self, args, token=None):
-    # Everybody can delete their global pending notifications.
-
-    return self.delegate.DeletePendingGlobalNotification(args, token=token)
 
   # Config methods.
   # ==============

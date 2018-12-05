@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Search for certain files, filter them by given criteria and do something."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import stat
@@ -26,7 +27,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 @flow_base.DualDBFlow
 class FileFinderMixin(transfer.MultiGetFileLogic,
-                      fingerprint.FingerprintFileMixin, filesystem.GlobLogic):
+                      fingerprint.FingerprintFileLogic, filesystem.GlobLogic):
   """This flow looks for files matching given criteria and acts on them.
 
   FileFinder searches for files that match glob expressions.  The "action"
@@ -39,7 +40,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
   args_type = rdf_file_finder.FileFinderArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  # Will be used by FingerprintFileMixin.
+  # Will be used by FingerprintFileLogic.
   fingerprint_file_mixin_client_action = server_stubs.HashFile
 
   _condition_handlers = None
@@ -314,7 +315,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
               request_data=dict(original_result=response))
 
   def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
-    """Handle hash results from the FingerprintFileMixin."""
+    """Handle hash results from the FingerprintFileLogic."""
     if "original_result" in request_data:
       result = request_data["original_result"]
       result.hash_entry = hash_obj

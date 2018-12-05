@@ -2,6 +2,7 @@
 """Configuration parameters for the data stores."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import config_lib
@@ -61,6 +62,12 @@ config_lib.DEFINE_bool(
 
 config_lib.DEFINE_bool("Database.useForReads.stats", False,
                        "Read server metrics from the relational database.")
+
+config_lib.DEFINE_bool("Database.useForReads.signed_binaries", False,
+                       "Read signed binary data from the relational database.")
+
+config_lib.DEFINE_bool("Database.aff4_enabled", True,
+                       "Enables reading/writing to the legacy data store.")
 
 DATASTORE_PATHING = [
     r"%{(?P<path>files/hash/generic/sha256/...).*}",

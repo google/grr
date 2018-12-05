@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Implementation of a router class that should be used by robot users."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue

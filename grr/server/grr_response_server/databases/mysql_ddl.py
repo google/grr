@@ -2,6 +2,7 @@
 """A collection of DDL for use by the mysql database implementation."""
 
 from __future__ import absolute_import
+from __future__ import division
 
 SCHEMA_SETUP = [
     """

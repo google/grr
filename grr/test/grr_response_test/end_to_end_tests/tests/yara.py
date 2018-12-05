@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for Yara based flows."""
 from __future__ import absolute_import
+from __future__ import division
 
 import re
 
@@ -74,7 +75,7 @@ rule test_rule {
     for flow_result in all_results:
       process_scan_match = flow_result.payload
 
-      self.assertEqual(len(process_scan_match.match), 2)
+      self.assertLen(process_scan_match.match, 2)
 
       self.assertTrue(
           re.match(args.process_regex, process_scan_match.process.name),
@@ -130,7 +131,7 @@ class TestYaraProcessDump(test_base.AbstractFileTransferTest):
 
     # There should be as many StatEntry responses as the total number of
     # dump-file PathSpecs in the YaraProcessDumpResponse.
-    self.assertEqual(len(results), dump_file_count + 1)
+    self.assertLen(results, dump_file_count + 1)
 
     paths_collected = set()
     for dump_file in results[1:]:
@@ -142,6 +143,6 @@ class TestYaraProcessDump(test_base.AbstractFileTransferTest):
 
       if size >= 10:
         data = self.ReadFromFile("temp%s" % dump_file.pathspec.path, 10)
-        self.assertEqual(len(data), 10)
+        self.assertLen(data, 10)
 
     self.assertEqual(paths_in_dump_response, paths_collected)

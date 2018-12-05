@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A module with utilities for maintaining compatibility with Python 2 and 3."""
 from __future__ import absolute_import
+from __future__ import division
 
 from __future__ import unicode_literals
 
@@ -13,6 +14,14 @@ from typing import Text
 from typing import Tuple
 
 from grr_response_core.lib.util import precondition
+
+
+# TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
+# elements which is not true.
+# pytype: disable=attribute-error
+PY2 = sys.version_info.major == 2
+
+# pytype: enable=attribute-error
 
 
 def GetName(obj):
@@ -36,7 +45,7 @@ def GetName(obj):
   """
   precondition.AssertType(obj, (type, types.FunctionType))
 
-  if _IsPython2():
+  if PY2:
     return obj.__name__.decode("ascii")
   else:
     return obj.__name__
@@ -54,7 +63,7 @@ def SetName(obj, name):
   precondition.AssertType(obj, (type, types.FunctionType))
   precondition.AssertType(name, str)
 
-  if _IsPython2():
+  if PY2:
     obj.__name__ = name.encode("ascii")
   else:
     obj.__name__ = name
@@ -78,7 +87,7 @@ def ListAttrs(cls):
   """
   precondition.AssertType(cls, type)
 
-  if _IsPython2():
+  if PY2:
     # TODO(user): once https://github.com/google/pytype/issues/127 is fixed,
     # pytype should be able to tell that this line is unreachable in py3.
     return [item.decode("ascii") for item in dir(cls)]  # pytype: disable=attribute-error
@@ -109,15 +118,7 @@ def MakeType(name, base_classes, namespace):
   """
   precondition.AssertType(name, str)
 
-  if _IsPython2():
+  if PY2:
     name = name.encode("ascii")
 
   return type(name, base_classes, namespace)
-
-
-def _IsPython2():
-  # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
-  # elements which is not true.
-  # pytype: disable=attribute-error
-  return sys.version_info.major == 2
-  # pytype: enable=attribute-error

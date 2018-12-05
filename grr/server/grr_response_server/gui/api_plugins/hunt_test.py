@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This modules contains tests for hunts API handlers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -101,9 +102,9 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_plugin.ApiListHuntsArgs(), token=self.token)
     descriptions = set(r.description for r in result.items)
 
-    self.assertEqual(len(descriptions), 10)
+    self.assertLen(descriptions, 10)
     for i in range(10):
-      self.assertTrue("hunt_%d" % i in descriptions)
+      self.assertIn("hunt_%d" % i, descriptions)
 
   def testHuntListIsSortedInReversedCreationTimestampOrder(self):
     for i in range(1, 11):
@@ -114,7 +115,7 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_plugin.ApiListHuntsArgs(), token=self.token)
     create_times = [r.created.AsMicrosecondsSinceEpoch() for r in result.items]
 
-    self.assertEqual(len(create_times), 10)
+    self.assertLen(create_times, 10)
     for index, expected_time in enumerate(reversed(range(1, 11))):
       self.assertEqual(create_times[index], expected_time * 1000000000)
 
@@ -127,7 +128,7 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_plugin.ApiListHuntsArgs(offset=2, count=2), token=self.token)
     create_times = [r.created.AsMicrosecondsSinceEpoch() for r in result.items]
 
-    self.assertEqual(len(create_times), 2)
+    self.assertLen(create_times, 2)
     self.assertEqual(create_times[0], 8 * 1000000000)
     self.assertEqual(create_times[1], 7 * 1000000000)
 
@@ -142,7 +143,7 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     create_times = [r.created for r in result.items]
 
-    self.assertEqual(len(create_times), 2)
+    self.assertLen(create_times, 2)
     self.assertEqual(create_times[0], 10 * 60 * 1000000)
     self.assertEqual(create_times[1], 9 * 60 * 1000000)
 
@@ -167,14 +168,14 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(created_by="user-foo", active_within="1d"),
         token=self.token)
-    self.assertEqual(len(result.items), 5)
+    self.assertLen(result.items, 5)
     for item in result.items:
       self.assertEqual(item.creator, "user-foo")
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(created_by="user-bar", active_within="1d"),
         token=self.token)
-    self.assertEqual(len(result.items), 3)
+    self.assertLen(result.items, 3)
     for item in result.items:
       self.assertEqual(item.creator, "user-bar")
 
@@ -196,17 +197,17 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_plugin.ApiListHuntsArgs(
             description_contains="foo", active_within="1d"),
         token=self.token)
-    self.assertEqual(len(result.items), 5)
+    self.assertLen(result.items, 5)
     for item in result.items:
-      self.assertTrue("foo" in item.description)
+      self.assertIn("foo", item.description)
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(
             description_contains="bar", active_within="1d"),
         token=self.token)
-    self.assertEqual(len(result.items), 3)
+    self.assertLen(result.items, 3)
     for item in result.items:
-      self.assertTrue("bar" in item.description)
+      self.assertIn("bar", item.description)
 
   def testOffsetIsRelativeToFilteredResultsWhenFilterIsPresent(self):
     for i in range(5):
@@ -219,23 +220,23 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_plugin.ApiListHuntsArgs(
             description_contains="bar", active_within="1d", offset=1),
         token=self.token)
-    self.assertEqual(len(result.items), 2)
+    self.assertLen(result.items, 2)
     for item in result.items:
-      self.assertTrue("bar" in item.description)
+      self.assertIn("bar", item.description)
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(
             description_contains="bar", active_within="1d", offset=2),
         token=self.token)
-    self.assertEqual(len(result.items), 1)
+    self.assertLen(result.items, 1)
     for item in result.items:
-      self.assertTrue("bar" in item.description)
+      self.assertIn("bar", item.description)
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(
             description_contains="bar", active_within="1d", offset=3),
         token=self.token)
-    self.assertEqual(len(result.items), 0)
+    self.assertEmpty(result.items)
 
 
 class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
@@ -530,7 +531,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
         token=self.token)
 
     self.assertEqual(result.total_count, 5)
-    self.assertEqual(len(result.items), 5)
+    self.assertLen(result.items, 5)
     for item in result.items:
       self.assertEqual("foo", item.plugin_descriptor.plugin_args.filename_regex)
 
@@ -543,7 +544,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
         token=self.token)
 
     self.assertEqual(result.total_count, 5)
-    self.assertEqual(len(result.items), 5)
+    self.assertLen(result.items, 5)
     for item in result.items:
       self.assertEqual("bar", item.plugin_descriptor.plugin_args.filename_regex)
 
@@ -558,7 +559,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
         token=self.token)
 
     self.assertEqual(result.total_count, 5)
-    self.assertEqual(len(result.items), 2)
+    self.assertLen(result.items, 2)
 
   def testSlicesLogsWhenMultiplePlugins(self):
     hunt_urn = self.RunHuntWithOutputPlugins(self.output_plugins)
@@ -571,7 +572,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
         token=self.token)
 
     self.assertEqual(result.total_count, 5)
-    self.assertEqual(len(result.items), 2)
+    self.assertLen(result.items, 2)
 
 
 class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,

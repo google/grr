@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A module with definition of factory."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from future.utils import iterkeys

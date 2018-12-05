@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """These flows are system-specific GRR cron flows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import bisect
@@ -32,6 +33,9 @@ from grr_response_server.flows.general import discovery as flows_discovery
 from grr_response_server.hunts import implementation as hunts_implementation
 from grr_response_server.hunts import standard as hunts_standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+
+# Maximum number of old stats entries to delete in a single db call.
+_STATS_DELETION_BATCH_SIZE = 10000
 
 
 class _ActiveCounter(object):
@@ -656,7 +660,7 @@ class PurgeServerStatsCronJob(cronjobs.SystemCronJobBase):
   """Cronjob that deletes old stats entries from the relational DB."""
 
   frequency = rdfvalue.Duration("3h")
-  lifetime = rdfvalue.Duration("1h")
+  lifetime = rdfvalue.Duration("2h")
 
   def Run(self):
     # Old stats in the legacy datastore get deleted after every write.
@@ -665,4 +669,18 @@ class PurgeServerStatsCronJob(cronjobs.SystemCronJobBase):
     stats_ttl = (
         rdfvalue.Duration("1h") * config.CONFIG["StatsStore.stats_ttl_hours"])
     cutoff = rdfvalue.RDFDatetime.Now() - stats_ttl
-    data_store.REL_DB.DeleteStatsStoreEntriesOlderThan(cutoff)
+    deletion_complete = False
+    total_entries_deleted = 0
+    while not deletion_complete:
+      num_entries_deleted = data_store.REL_DB.DeleteStatsStoreEntriesOlderThan(
+          cutoff, _STATS_DELETION_BATCH_SIZE)
+      total_entries_deleted += num_entries_deleted
+      if num_entries_deleted >= _STATS_DELETION_BATCH_SIZE:
+        self.HeartBeat()
+        continue
+
+      total_entries_deleted += (
+          data_store.REL_DB.DeleteStatsStoreEntriesOlderThan(
+              cutoff, _STATS_DELETION_BATCH_SIZE))
+      deletion_complete = True
+    self.Log("Deleted %d stats entries.", total_entries_deleted)

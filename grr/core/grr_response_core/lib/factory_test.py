@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from absl.testing import absltest
@@ -82,7 +83,7 @@ class FactoryTest(absltest.TestCase):
   def testCreateAllEmpty(self):
     obj_factory = factory.Factory(object)
 
-    self.assertItemsEqual(list(obj_factory.CreateAll()), [])
+    self.assertCountEqual(list(obj_factory.CreateAll()), [])
 
   def testCreateAllSome(self):
     int_factory = factory.Factory(int)
@@ -90,7 +91,7 @@ class FactoryTest(absltest.TestCase):
     int_factory.Register("bar", lambda: 101)
     int_factory.Register("baz", lambda: 108)
 
-    self.assertItemsEqual(list(int_factory.CreateAll()), [1337, 101, 108])
+    self.assertCountEqual(list(int_factory.CreateAll()), [1337, 101, 108])
 
 
 if __name__ == "__main__":

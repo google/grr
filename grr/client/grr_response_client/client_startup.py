@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Client startup routines."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_client import client_logging

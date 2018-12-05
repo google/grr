@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Utility classes for front-end testing."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_core.lib import utils
 from grr.test_lib import flow_test_lib

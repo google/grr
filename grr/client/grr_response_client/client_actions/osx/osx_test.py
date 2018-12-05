@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """OSX tests."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import ctypes
@@ -44,7 +45,7 @@ class OSXFilesystemTests(OSXClientTests):
     results = self.osx.client_utils_osx.ParseFileSystemsStruct(
         self.osx.client_utils_osx.StatFS64Struct, 7,
         open(path, "rb").read())
-    self.assertEqual(len(results), 7)
+    self.assertLen(results, 7)
     self.assertEqual(results[0].f_fstypename, "hfs")
     self.assertEqual(results[0].f_mntonname, "/")
     self.assertEqual(results[0].f_mntfromname, "/dev/disk0s2")
@@ -114,9 +115,9 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
         self.assertEqual(proto.label, td["Label"])
         self.assertEqual(proto.lastexitstatus, td["LastExitStatus"].value)
         self.assertEqual(proto.sessiontype, td["LimitLoadToSessionType"])
-        self.assertEqual(len(proto.machservice), len(td["MachServices"]))
+        self.assertLen(proto.machservice, len(td["MachServices"]))
         self.assertEqual(proto.ondemand, td["OnDemand"].value)
-        self.assertEqual(len(proto.args), len(td["ProgramArguments"]))
+        self.assertLen(proto.args, len(td["ProgramArguments"]))
         self.assertEqual(proto.timeout, td["TimeOut"].value)
 
   @mock.patch(

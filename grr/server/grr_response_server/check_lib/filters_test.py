@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr_response_server.checks.filters."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import collections
@@ -56,7 +57,7 @@ class AttrFilterTests(test_lib.GRRBaseTest):
     objs = [hit1, hit2, meta]
 
     results = filt.Parse(objs, "k1 k2 one.k3")
-    self.assertEqual(5, len(results))
+    self.assertLen(results, 5)
     r1, r2, r3, r4, r5 = results
     self.assertEqual("k1", r1.key)
     self.assertEqual("hit1", r1.value)
@@ -82,7 +83,7 @@ class ItemFilterTests(test_lib.GRRBaseTest):
     objs = [one, foo, fs]
 
     results = filt.Parse(objs, u"test1 is '1'")
-    self.assertEqual(1, len(results))
+    self.assertLen(results, 1)
     self.assertEqual("test1", results[0].key)
     self.assertEqual("1", results[0].value)
 
@@ -90,19 +91,19 @@ class ItemFilterTests(test_lib.GRRBaseTest):
     self.assertFalse(results)
 
     results = filt.Parse(objs, u"test2 contains 3")
-    self.assertEqual(1, len(results))
+    self.assertLen(results, 1)
     self.assertEqual("test2", results[0].key)
     self.assertEqual([2, 3], results[0].value)
 
     results = filt.Parse(objs, u"test1 is '1' or test1 contains 'foo'")
-    self.assertEqual(2, len(results))
+    self.assertLen(results, 2)
     self.assertEqual("test1", results[0].key)
     self.assertEqual("1", results[0].value)
     self.assertEqual("test1", results[1].key)
     self.assertEqual("foo", results[1].value)
 
     results = filt.Parse(objs, u"mount_point is '/root'")
-    self.assertEqual(1, len(results))
+    self.assertLen(results, 1)
     self.assertEqual("mount_point", results[0].key)
     self.assertEqual("/root", results[0].value)
 
@@ -126,15 +127,15 @@ class ForEachTests(test_lib.GRRBaseTest):
     objs = [meta]
 
     results = filt.Parse(objs, "target")
-    self.assertEqual(2, len(results))
-    self.assertItemsEqual([hit1, hit2], [r.item for r in results])
+    self.assertLen(results, 2)
+    self.assertCountEqual([hit1, hit2], [r.item for r in results])
 
     results = filt.Parse(objs, "foo")
-    self.assertEqual(2, len(results))
-    self.assertItemsEqual(["foo", "bar"], [r.item for r in results])
+    self.assertLen(results, 2)
+    self.assertCountEqual(["foo", "bar"], [r.item for r in results])
 
     results = filt.Parse(objs, "null")
-    self.assertEqual(0, len(results))
+    self.assertEmpty(results)
 
 
 class ObjectFilterTests(test_lib.GRRBaseTest):
@@ -153,11 +154,11 @@ class ObjectFilterTests(test_lib.GRRBaseTest):
     miss = rdf_protodict.AttributedDict(test="miss")
     objs = [hit1, hit2, miss]
     results = filt.Parse(objs, u"test is 'hit1'")
-    self.assertItemsEqual([hit1], results)
+    self.assertCountEqual([hit1], results)
     results = filt.Parse(objs, u"test is 'hit2'")
-    self.assertItemsEqual([hit2], results)
+    self.assertCountEqual([hit2], results)
     results = filt.Parse(objs, u"test inset 'hit1,hit2'")
-    self.assertItemsEqual([hit1, hit2], results)
+    self.assertCountEqual([hit1, hit2], results)
 
 
 class RDFFilterTests(test_lib.GRRBaseTest):
@@ -177,9 +178,9 @@ class RDFFilterTests(test_lib.GRRBaseTest):
     results = filt.Parse(objs, "KnowledgeBase")
     self.assertFalse(results)
     results = filt.Parse(objs, "AttributedDict,KnowledgeBase")
-    self.assertItemsEqual([cfg], results)
+    self.assertCountEqual([cfg], results)
     results = filt.Parse(objs, "Anomaly,AttributedDict,KnowledgeBase")
-    self.assertItemsEqual(objs, results)
+    self.assertCountEqual(objs, results)
 
 
 class StatFilterTests(test_lib.GRRBaseTest):
@@ -263,7 +264,7 @@ class StatFilterTests(test_lib.GRRBaseTest):
       filt._Flush()
       results = filt.Parse(
           list(itervalues(all_types)), u"file_type:%s" % file_type)
-      self.assertEqual(1, len(results), "Expected exactly 1 %s" % file_type)
+      self.assertLen(results, 1, "Expected exactly 1 %s" % file_type)
       self.assertEqual(expected, results[0],
                        "Expected stat %s, got %s" % (expected, results[0]))
 
@@ -275,11 +276,11 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj3 = self._GenStat(path="/etc/alternatives/ssh-askpass.1.gz")
     objs = [obj1, obj2, obj3]
     results = filt.Parse(objs, u"file_re:pass")
-    self.assertItemsEqual(objs, results)
+    self.assertCountEqual(objs, results)
     results = filt.Parse(objs, u"file_re:pass$")
-    self.assertItemsEqual([obj2], results)
+    self.assertCountEqual([obj2], results)
     results = filt.Parse(objs, u"file_re:^pass")
-    self.assertItemsEqual([obj1], results)
+    self.assertCountEqual([obj1], results)
 
   def testPathREParse(self):
     """Path regexes operate successfully."""
@@ -289,11 +290,11 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj3 = self._GenStat(path="/etc/alternatives/ssh-askpass.1.gz")
     objs = [obj1, obj2, obj3]
     results = filt.Parse(objs, u"path_re:/etc/*")
-    self.assertItemsEqual(objs, results)
+    self.assertCountEqual(objs, results)
     results = filt.Parse(objs, u"path_re:alternatives")
-    self.assertItemsEqual([obj2, obj3], results)
+    self.assertCountEqual([obj2, obj3], results)
     results = filt.Parse(objs, u"path_re:alternatives file_re:pass$")
-    self.assertItemsEqual([obj2], results)
+    self.assertCountEqual([obj2], results)
 
   def testGIDParse(self):
     """GID comparisons operate successfully."""
@@ -303,17 +304,17 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj3 = self._GenStat(st_gid=5000)
     objs = [obj1, obj2, obj3]
     results = filt.Parse(objs, u"gid:=0")
-    self.assertItemsEqual([obj1], results)
+    self.assertCountEqual([obj1], results)
     results = filt.Parse(objs, u"gid:>=0")
-    self.assertItemsEqual(objs, results)
+    self.assertCountEqual(objs, results)
     results = filt.Parse(objs, u"gid:>0")
-    self.assertItemsEqual([obj2, obj3], results)
+    self.assertCountEqual([obj2, obj3], results)
     results = filt.Parse(objs, u"gid:>0,<=5000")
-    self.assertItemsEqual([obj2, obj3], results)
+    self.assertCountEqual([obj2, obj3], results)
     results = filt.Parse(objs, u"gid:>0,<5000")
-    self.assertItemsEqual([obj2], results)
+    self.assertCountEqual([obj2], results)
     results = filt.Parse(objs, u"gid:!5000")
-    self.assertItemsEqual([obj1, obj2], results)
+    self.assertCountEqual([obj1, obj2], results)
 
   def testUIDParse(self):
     """UID comparisons operate successfully."""
@@ -324,17 +325,17 @@ class StatFilterTests(test_lib.GRRBaseTest):
     results = filt.Parse(objs, u"uid:=0")
     self.assertFalse(results)
     results = filt.Parse(objs, u"uid:=1001")
-    self.assertItemsEqual([obj1], results)
+    self.assertCountEqual([obj1], results)
     results = filt.Parse(objs, u"uid:>=0")
-    self.assertItemsEqual(objs, results)
+    self.assertCountEqual(objs, results)
     results = filt.Parse(objs, u"uid:>0")
-    self.assertItemsEqual(objs, results)
+    self.assertCountEqual(objs, results)
     results = filt.Parse(objs, u"uid:>0,<=5000")
-    self.assertItemsEqual(objs, results)
+    self.assertCountEqual(objs, results)
     results = filt.Parse(objs, u"uid:>0,<5000")
-    self.assertItemsEqual([obj1], results)
+    self.assertCountEqual([obj1], results)
     results = filt.Parse(objs, u"uid:!5000")
-    self.assertItemsEqual([obj1], results)
+    self.assertCountEqual([obj1], results)
 
   def testPermissionsParse(self):
     """Permissions comparisons operate successfully."""
@@ -345,11 +346,11 @@ class StatFilterTests(test_lib.GRRBaseTest):
     results = filt.Parse(objs, u"mode:0644")
     self.assertFalse(results)
     results = filt.Parse(objs, u"mode:0740")
-    self.assertItemsEqual([obj1], results)
+    self.assertCountEqual([obj1], results)
     results = filt.Parse(objs, u"mode:0640 mask:0640")
-    self.assertItemsEqual(objs, results)
+    self.assertCountEqual(objs, results)
     results = filt.Parse(objs, u"mode:0014 mask:0014")
-    self.assertItemsEqual([obj2], results)
+    self.assertCountEqual([obj2], results)
 
   def testParseFileObjs(self):
     """Multiple file types are parsed successfully."""
@@ -365,14 +366,14 @@ class StatFilterTests(test_lib.GRRBaseTest):
     invalid = rdf_protodict.AttributedDict(**cfg)
     objs = [ok, link, user, writable, invalid]
     results = filt.Parse(objs, u"uid:>=0 gid:>=0")
-    self.assertItemsEqual([ok, link, user, writable], results)
+    self.assertCountEqual([ok, link, user, writable], results)
     results = filt.Parse(objs, u"uid:=0 mode:0440 mask:0440")
-    self.assertItemsEqual([ok, link, writable], results)
+    self.assertCountEqual([ok, link, writable], results)
     results = filt.Parse(objs, u"uid:=0 mode:0440 mask:0444")
-    self.assertItemsEqual([ok, link], results)
+    self.assertCountEqual([ok, link], results)
     results = list(
         filt.Parse(objs, u"uid:=0 mode:0440 mask:0444 file_type:regular"))
-    self.assertItemsEqual([ok], results)
+    self.assertCountEqual([ok], results)
 
 
 class FilterRegistryTests(test_lib.GRRBaseTest):
@@ -422,7 +423,7 @@ class HandlerTests(test_lib.GRRBaseTest):
     return probe.filters
 
   def testValidateFilters(self):
-    self.assertEquals(2, len(self.GetFilters(self.ok)))
+    self.assertLen(self.GetFilters(self.ok), 2)
     self.assertRaises(filters.DefinitionError, self.GetFilters, self.bad)
 
   def testBaseHandler(self):
@@ -434,27 +435,27 @@ class HandlerTests(test_lib.GRRBaseTest):
   def testNoOpHandler(self):
     h = filters.GetHandler("PASSTHROUGH")
     handler = h("Data", filters=self.GetFilters(self.ok))
-    self.assertItemsEqual(self.all, handler.Parse(self.all))
+    self.assertCountEqual(self.all, handler.Parse(self.all))
 
   def testParallelHandler(self):
     h = filters.GetHandler("PARALLEL")
     # Without filters.
     handler = h("Data", filters=[])
-    self.assertItemsEqual(self.all, handler.Parse(self.all))
+    self.assertCountEqual(self.all, handler.Parse(self.all))
     # With filters.
     handler = h("Data", filters=self.GetFilters(self.ok))
     expected = [Sample(0, 0), Sample(0, 1), Sample(1, 0)]
-    self.assertItemsEqual(expected, handler.Parse(self.all))
+    self.assertCountEqual(expected, handler.Parse(self.all))
 
   def testSerialHandler(self):
     h = filters.GetHandler("SERIAL")
     # Without filters.
     handler = h("Data", filters=[])
-    self.assertItemsEqual(self.all, handler.Parse(self.all))
+    self.assertCountEqual(self.all, handler.Parse(self.all))
     # With filters.
     handler = h("Data", filters=self.GetFilters(self.ok))
     expected = [Sample(0, 0)]
-    self.assertItemsEqual(expected, handler.Parse(self.all))
+    self.assertCountEqual(expected, handler.Parse(self.all))
 
 
 def main(argv):

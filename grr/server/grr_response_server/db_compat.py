@@ -2,6 +2,7 @@
 """Temporary glue code for REL_DB flows+AFF4 hunts integration."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
@@ -117,4 +118,6 @@ def ProcessHuntClientCrash(flow_obj, client_crash_info):
 
   with aff4.FACTORY.OpenWithLock(
       hunt_urn, lease_time=_HUNT_LEASE_TIME, blocking=True) as fd:
+    # Legacy AFF4 code expects token to be set.
+    fd.token = access_control.ACLToken(username=fd.creator)
     fd.RegisterCrash(client_crash_info)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Gather information from the registry on windows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import artifact_utils
@@ -11,6 +12,7 @@ from grr_response_core.path_detection import windows as path_detection_windows
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import artifact
+from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server.flows.general import collectors
@@ -99,9 +101,8 @@ class RegistryFinderMixin(object):
       self.SendReply(response)
 
 
-# TODO(user): replace this flow with chained artifacts once the capability
-# exists.
-class CollectRunKeyBinaries(flow.GRRFlow):
+@flow_base.DualDBFlow
+class CollectRunKeyBinariesMixin(object):
   """Collect the binaries used by Run and RunOnce keys on the system.
 
   We use the RunKeys artifact to get RunKey command strings for all users and
@@ -122,8 +123,12 @@ class CollectRunKeyBinaries(flow.GRRFlow):
   def ParseRunKeys(self, responses):
     """Get filenames from the RunKeys and download the files."""
     filenames = []
-    client = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
-    kb = artifact.GetArtifactKnowledgeBase(client)
+    if data_store.RelationalDBReadEnabled():
+      client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+      kb = client.knowledge_base
+    else:
+      client = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
+      kb = artifact.GetArtifactKnowledgeBase(client)
 
     for response in responses:
       runkey = response.registry_data.string

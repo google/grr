@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A module that configures the behaviour of pytest runner."""
 from __future__ import absolute_import
+from __future__ import division
 
 import sys
 import threading

@@ -56,6 +56,7 @@ queues. Child flow runners all share their parent's queue manager.
 
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -210,23 +211,22 @@ class FlowRunner(object):
         continue
 
       plugin_class = plugin_descriptor.GetPluginClass()
-      plugin = plugin_class(
-          self.flow_obj.output_urn,
-          args=plugin_descriptor.plugin_args,
-          token=self.token)
       try:
-        plugin.InitializeState()
+        plugin, plugin_state = plugin_class.CreatePluginAndDefaultState(
+            source_urn=self.flow_obj.output_urn,
+            args=plugin_descriptor.plugin_args,
+            token=self.token)
         # TODO(amoser): Those do not need to be inside the state, they
         # could be part of the plugin descriptor.
-        plugin.state["logs"] = []
-        plugin.state["errors"] = []
+        plugin_state["logs"] = []
+        plugin_state["errors"] = []
 
         output_plugins_states.append(
             rdf_flow_runner.OutputPluginState(
-                plugin_state=plugin.state, plugin_descriptor=plugin_descriptor))
+                plugin_state=plugin_state, plugin_descriptor=plugin_descriptor))
       except Exception as e:  # pylint: disable=broad-except
-        logging.warning("Plugin %s failed to initialize (%s), ignoring it.",
-                        plugin, e)
+        logging.exception("Plugin %s failed to initialize (%s), ignoring it.",
+                          plugin, e)
 
     parent_creator = None
     if self.parent_runner:
@@ -894,13 +894,19 @@ class FlowRunner(object):
     """Processes replies with output plugins."""
     for output_plugin_state in self.context.output_plugins_states:
       plugin_descriptor = output_plugin_state.plugin_descriptor
-      output_plugin = output_plugin_state.GetPlugin()
+      output_plugin_cls = plugin_descriptor.GetPluginClass()
+      output_plugin = output_plugin_cls(
+          source_urn=self.flow_obj.urn,
+          args=plugin_descriptor.plugin_args,
+          token=self.token)
 
       # Extend our lease if needed.
       self.flow_obj.HeartBeat()
       try:
-        output_plugin.ProcessResponses(replies)
-        output_plugin.Flush()
+        output_plugin.ProcessResponses(output_plugin_state.plugin_state,
+                                       replies)
+        output_plugin.Flush(output_plugin_state.plugin_state)
+        output_plugin.UpdateState(output_plugin_state.plugin_state)
 
         log_item = output_plugin_lib.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_descriptor,

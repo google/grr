@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Utility functions and classes for GRR API client library."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import time

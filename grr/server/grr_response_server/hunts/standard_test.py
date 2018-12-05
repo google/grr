@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the standard hunts."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import glob
@@ -11,7 +12,6 @@ import time
 
 
 from builtins import range  # pylint: disable=redefined-builtin
-from future.utils import itervalues
 import mock
 
 from grr_response_core.lib import flags
@@ -26,7 +26,6 @@ from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import notification as notification_lib
 from grr_response_server import queue_manager
@@ -61,7 +60,7 @@ class InfiniteFlowMixin(object):
     self.CallState(next_state="Start")
 
 
-@db_test_lib.DualFlowTest
+@db_test_lib.DualDBTest
 class StandardHuntTest(notification_test_lib.NotificationTestMixin,
                        flow_test_lib.FlowTestsBaseclass,
                        hunt_test_lib.StandardHuntTestMixin):
@@ -126,7 +125,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     for client_id in self.client_ids:
       flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
       flows_urns = list(flows_fd.ListChildren())
-      self.assertEqual(len(flows_urns), 1)
+      self.assertLen(flows_urns, 1)
       self.assertEqual(flows_urns[0].Basename(), hunt_urn.Basename() + ":hunt")
 
       # Check that the object is a symlink.
@@ -185,7 +184,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     if data_store.RelationalDBFlowsEnabled():
       for client_id in self.client_ids:
         flows = data_store.REL_DB.ReadAllFlowObjects(client_id.Basename())
-        self.assertEqual(len(flows), 1)
+        self.assertLen(flows, 1)
 
         flow_obj = flows[0]
         self.assertEqual(flow_obj.flow_state, flow_obj.FlowState.ERROR)
@@ -199,7 +198,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         flows_root = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
         flows_list = list(flows_root.ListChildren())
         # Only one flow (issued by the hunt) is expected.
-        self.assertEqual(len(flows_list), 1)
+        self.assertLen(flows_list, 1)
 
         # Check that flow's queues are deleted.
         with queue_manager.QueueManager(token=self.token) as manager:
@@ -338,8 +337,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
         hunt_urn)
 
-    self.assertEqual(len(errors_collection), 0)
-    self.assertEqual(len(status_collection), 1)
+    self.assertEmpty(errors_collection)
+    self.assertLen(status_collection, 1)
 
     self.assertEqual(status_collection[0].status, "SUCCESS")
     self.assertEqual(status_collection[0].batch_index, 0)
@@ -367,8 +366,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
         hunt_urn)
 
-    self.assertEqual(len(errors_collection), 0)
-    self.assertEqual(len(status_collection), 2)
+    self.assertEmpty(errors_collection)
+    self.assertLen(status_collection, 2)
 
     items = sorted(status_collection, key=lambda x: x.age)
     self.assertEqual(items[0].status, "SUCCESS")
@@ -402,8 +401,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
         hunt_urn)
 
-    self.assertEqual(len(errors_collection), 1)
-    self.assertEqual(len(status_collection), 2)
+    self.assertLen(errors_collection, 1)
+    self.assertLen(status_collection, 2)
 
     self.assertEqual(errors_collection[0].status, "ERROR")
     self.assertEqual(errors_collection[0].batch_index, 0)
@@ -443,8 +442,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
         hunt_urn)
 
-    self.assertEqual(len(errors_collection), 1)
-    self.assertEqual(len(status_collection), 1)
+    self.assertLen(errors_collection, 1)
+    self.assertLen(status_collection, 1)
 
     self.assertEqual(errors_collection[0].status, "ERROR")
     self.assertEqual(errors_collection[0].batch_index, 0)
@@ -514,11 +513,10 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       # We shouldn't get here.
       self.fail()
     except process_results.ResultsProcessingError as e:
-      self.assertEqual(len(e.exceptions_by_hunt), 1)
-      self.assertTrue(hunt_urn in e.exceptions_by_hunt)
-      self.assertEqual(len(e.exceptions_by_hunt[hunt_urn]), 1)
-      self.assertTrue(
-          failing_plugin_descriptor in e.exceptions_by_hunt[hunt_urn])
+      self.assertLen(e.exceptions_by_hunt, 1)
+      self.assertIn(hunt_urn, e.exceptions_by_hunt)
+      self.assertLen(e.exceptions_by_hunt[hunt_urn], 1)
+      self.assertIn(failing_plugin_descriptor, e.exceptions_by_hunt[hunt_urn])
       self.assertEqual(
           len(e.exceptions_by_hunt[hunt_urn][failing_plugin_descriptor]), 1)
       self.assertEqual(
@@ -725,8 +723,9 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     # Generate new results while the plugin is working.
     self.num_processed = 0
 
-    def ProcessResponsesStub(_, responses):
+    def ProcessResponsesStub(_, state, responses):
       # Add 5 more results the first time we are called.
+      del state
       if not self.num_processed:
         self.AssignTasksToClients(self.client_ids[5:])
         self.RunHunt(failrate=-1)
@@ -800,8 +799,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
               flow_name=transfer.GetFile.__name__),
           flow_args=transfer.GetFileArgs(
               pathspec=rdf_paths.PathSpec(
-                  path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType
-                  .OS)),
+                  path="/tmp/evil.txt",
+                  pathtype=rdf_paths.PathSpec.PathType.OS)),
           client_rule_set=self._CreateForemanClientRuleSet(),
           client_limit=5,
           client_rate=0,
@@ -865,8 +864,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
   def _CheckHuntStoppedNotification(self, str_match):
     pending = self.GetUserNotifications(self.token.username)
-    self.assertEqual(len(pending), 1)
-    self.assertTrue(str_match in pending[0].message)
+    self.assertLen(pending, 1)
+    self.assertIn(str_match, pending[0].message)
 
   def testHuntIsStoppedIfAveragePerClientResultsCountTooHigh(self):
     with utils.Stubber(implementation.GRRHunt,
@@ -1017,8 +1016,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
               flow_name=transfer.GetFile.__name__),
           flow_args=transfer.GetFileArgs(
               pathspec=rdf_paths.PathSpec(
-                  path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType
-                  .OS)),
+                  path="/tmp/evil.txt",
+                  pathtype=rdf_paths.PathSpec.PathType.OS)),
           client_rule_set=self._CreateForemanClientRuleSet(),
           client_limit=5,
           expiry_time=rdfvalue.Duration("1000s"),
@@ -1164,7 +1163,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     # standard deviation and histograms are calculated correctly. Therefore
     # if mean/stdev values are correct histograms should be ok as well.
 
-    self.assertEqual(len(usage_stats.worst_performers), 10)
+    self.assertLen(usage_stats.worst_performers, 10)
 
     prev = usage_stats.worst_performers[0]
     for p in usage_stats.worst_performers[1:]:
@@ -1194,15 +1193,15 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     count = 0
     for log in hunt_logs:
       if log.client_id:
-        self.assertTrue(log.client_id in self.client_ids)
-        self.assertTrue(log.log_message in [
+        self.assertIn(log.client_id, self.client_ids)
+        self.assertIn(log.log_message, [
             "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres", "Cuatro"
         ])
-        self.assertTrue(log.flow_name in [
-            flow_test_lib.DummyLogFlow.__name__, flow_test_lib.DummyLogFlowChild
-            .__name__
+        self.assertIn(log.flow_name, [
+            flow_test_lib.DummyLogFlow.__name__,
+            flow_test_lib.DummyLogFlowChild.__name__
         ])
-        self.assertTrue(str(hunt_urn) in str(log.urn))
+        self.assertIn(str(hunt_urn), str(log.urn))
       else:
         self.assertEqual(log.log_message, "Log from the hunt itself")
         self.assertEqual(log.flow_name, standard.GenericHunt.__name__)
@@ -1245,7 +1244,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertTrue(errors)
     # but they are not UnauthorizedAccess.
     for e in errors:
-      self.assertTrue("UnauthorizedAccess" not in e.backtrace)
+      self.assertNotIn("UnauthorizedAccess", e.backtrace)
 
 
 @flow_base.DualDBFlow
@@ -1289,186 +1288,7 @@ class StandardHuntNotificationsTest(notification_test_lib.NotificationTestMixin,
     hunt_test_lib.TestHuntHelper(None, client_ids, token=self.token)
 
     notifications = self.GetUserNotifications(user_token.username)
-    self.assertEqual(len(notifications), 0)
-
-
-class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
-                                          hunt_test_lib.StandardHuntTestMixin):
-  """Tests VerifyHuntOutputPluginsCronFlow."""
-
-  def setUp(self):
-    super(VerifyHuntOutputPluginsCronFlowTest, self).setUp()
-    self.client_ids = self.SetupClients(1)
-    hunt_test_lib.VerifiableDummyHuntOutputPluginVerfier.num_calls = 0
-
-  def GetVerificationsStats(self):
-    fields = stats_collector_instance.Get().GetMetricFields(
-        "hunt_output_plugin_verifications")
-
-    result = {}
-    for field_value in fields:
-      result[field_value[0]] = stats_collector_instance.Get().GetMetricValue(
-          "hunt_output_plugin_verifications", fields=field_value)
-
-    return sum(itervalues(result)), result
-
-  def testDoesNothingWithNonGenericHunts(self):
-    implementation.StartHunt(
-        hunt_name=standard.SampleHunt.__name__, token=self.token)
-
-    prev_count, _ = self.GetVerificationsStats()
-    flow.StartAFF4Flow(
-        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
-        token=self.token)
-    count, _ = self.GetVerificationsStats()
-
-    self.assertEqual(count - prev_count, 0)
-
-  def testDoesNothinngWithGenericHuntWithNoPlugins(self):
-    self.StartHunt()
-    self.AssignTasksToClients()
-    self.RunHunt()
-
-    prev_count, _ = self.GetVerificationsStats()
-    flow.StartAFF4Flow(
-        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
-        token=self.token)
-    count, _ = self.GetVerificationsStats()
-
-    self.assertEqual(count - prev_count, 0)
-
-  def testReturnsNAStatusForGenericHuntWithUnverifiableOutputPlugins(self):
-    self.StartHunt(output_plugins=[
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=hunt_test_lib.DummyHuntOutputPlugin.__name__)
-    ])
-    self.AssignTasksToClients()
-    self.RunHunt()
-
-    _, prev_results = self.GetVerificationsStats()
-    flow.StartAFF4Flow(
-        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
-        token=self.token)
-    _, results = self.GetVerificationsStats()
-
-    self.assertEqual(results["N_A"] - prev_results.get("N_A", 0), 1)
-
-  def testWritesStatusToHuntResultsMetadata(self):
-    hunt_urn = self.StartHunt(output_plugins=[
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=hunt_test_lib.DummyHuntOutputPlugin.__name__)
-    ])
-    self.AssignTasksToClients()
-    self.RunHunt()
-
-    flow.StartAFF4Flow(
-        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
-        token=self.token)
-
-    results_metadata = aff4.FACTORY.Open(
-        hunt_urn.Add("ResultsMetadata"), token=self.token)
-    verification_results_list = results_metadata.Get(
-        results_metadata.Schema.OUTPUT_PLUGINS_VERIFICATION_RESULTS)
-    self.assertEqual(len(verification_results_list.results), 1)
-    self.assertEqual(verification_results_list.results[0].status, "N_A")
-
-  def testRunsCorrespondingVerifierIfThereIsOne(self):
-    self.StartHunt(output_plugins=[
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=hunt_test_lib.VerifiableDummyHuntOutputPlugin.__name__)
-    ])
-    self.AssignTasksToClients()
-    self.RunHunt()
-
-    _, prev_results = self.GetVerificationsStats()
-    flow.StartAFF4Flow(
-        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
-        token=self.token)
-    _, results = self.GetVerificationsStats()
-
-    self.assertEqual(results["SUCCESS"] - prev_results.get("SUCCESS", 0), 1)
-
-  def testRaisesIfVerifierRaises(self):
-    self.StartHunt(output_plugins=[
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier
-            .__name__)
-    ])
-    self.AssignTasksToClients()
-    self.RunHunt()
-    prev_count, _ = self.GetVerificationsStats()
-    self.assertRaises(
-        standard.HuntVerificationError,
-        flow.StartAFF4Flow,
-        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
-        token=self.token)
-    count, _ = self.GetVerificationsStats()
-    self.assertEqual(count - prev_count, 0)
-
-  def testUpdatesStatsCounterOnException(self):
-    self.StartHunt(output_plugins=[
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier
-            .__name__)
-    ])
-    self.AssignTasksToClients()
-    self.RunHunt()
-
-    prev_count = stats_collector_instance.Get().GetMetricValue(
-        "hunt_output_plugin_verification_errors")
-    try:
-      flow.StartAFF4Flow(
-          flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
-          token=self.token)
-    except standard.HuntVerificationError:
-      pass
-    count = stats_collector_instance.Get().GetMetricValue(
-        "hunt_output_plugin_verification_errors")
-    self.assertEqual(count - prev_count, 1)
-
-  def testChecksAllHuntsEvenIfOneRaises(self):
-    self.StartHunt(output_plugins=[
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=hunt_test_lib.DummyHuntOutputPluginWithRaisingVerifier
-            .__name__)
-    ])
-    self.StartHunt(output_plugins=[
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=hunt_test_lib.VerifiableDummyHuntOutputPlugin.__name__)
-    ])
-    self.AssignTasksToClients()
-    self.RunHunt()
-
-    _, prev_results = self.GetVerificationsStats()
-    self.assertRaises(
-        standard.HuntVerificationError,
-        flow.StartAFF4Flow,
-        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
-        token=self.token)
-    _, results = self.GetVerificationsStats()
-    self.assertEqual(results["SUCCESS"] - prev_results.get("SUCCESS", 0), 1)
-
-  def testDoesNotCheckHuntsOutsideOfCheckRange(self):
-    now = rdfvalue.RDFDatetime.Now()
-    with test_lib.FakeTime(now - rdfvalue.Duration("61m"), increment=1e-6):
-      self.StartHunt(output_plugins=[
-          rdf_output_plugin.OutputPluginDescriptor(
-              plugin_name=hunt_test_lib.VerifiableDummyHuntOutputPlugin
-              .__name__)
-      ])
-      self.AssignTasksToClients()
-      self.RunHunt()
-
-    prev_count, _ = self.GetVerificationsStats()
-    # Check frequency is 2*cron job frequency so setting frequency to 30m gives
-    # a check frequency of 60m, slightly less than the 61m we set above.
-    with utils.Stubber(standard.VerifyHuntOutputPluginsCronFlow, "frequency",
-                       rdfvalue.Duration("30m")):
-      flow.StartAFF4Flow(
-          flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
-          token=self.token)
-      count, _ = self.GetVerificationsStats()
-      self.assertEqual(count - prev_count, 0)
+    self.assertEmpty(notifications)
 
 
 def main(argv):

@@ -18,6 +18,9 @@ from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import flow_utils
@@ -87,8 +90,14 @@ class ChromeHistoryMixin(object):
     # exist, e.g. Chromium on most machines, so we don't check for success.
     if responses:
       for response in responses:
-        fd = aff4.FACTORY.Open(
-            response.stat_entry.AFF4Path(self.client_urn), token=self.token)
+        if data_store.RelationalDBReadEnabled("filestore"):
+          client_path = db.ClientPath.FromPathSpec(self.client_id,
+                                                   response.stat_entry.pathspec)
+          fd = file_store.OpenFile(client_path)
+        else:
+          fd = aff4.FACTORY.Open(
+              response.stat_entry.AFF4Path(self.client_urn), token=self.token)
+
         hist = chrome_history.ChromeParser(fd)
         count = 0
         for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse():
@@ -113,9 +122,16 @@ class ChromeHistoryMixin(object):
     Raises:
       OSError: On invalid system in the Schema
     """
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    system = client.Get(client.Schema.SYSTEM)
-    user_info = flow_utils.GetUserInfo(client, username)
+    if data_store.RelationalDBReadEnabled():
+      client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+      system = client.knowledge_base.os
+      user_info = flow_utils.GetUserInfo(client.knowledge_base, username)
+    else:
+      client = aff4.FACTORY.Open(self.client_id, token=self.token)
+      system = client.Get(client.Schema.SYSTEM)
+      kb = client.Get(client.Schema.KNOWLEDGE_BASE)
+      user_info = flow_utils.GetUserInfo(kb, username)
+
     if not user_info:
       self.Error("Could not find homedir for user {0}".format(username))
       return
@@ -124,9 +140,7 @@ class ChromeHistoryMixin(object):
     if system == "Windows":
       path = ("{app_data}\\{sw}\\User Data\\Default\\")
       for sw_path in ["Google\\Chrome", "Chromium"]:
-        paths.append(
-            path.format(
-                app_data=user_info.special_folders.local_app_data, sw=sw_path))
+        paths.append(path.format(app_data=user_info.localappdata, sw=sw_path))
     elif system == "Linux":
       path = "{homedir}/.config/{sw}/Default/"
       for sw_path in ["google-chrome", "chromium"]:
@@ -197,8 +211,13 @@ class FirefoxHistoryMixin(object):
     """Take each file we retrieved and get the history from it."""
     if responses:
       for response in responses:
-        fd = aff4.FACTORY.Open(
-            response.stat_entry.AFF4Path(self.client_urn), token=self.token)
+        if data_store.RelationalDBReadEnabled("filestore"):
+          client_path = db.ClientPath.FromPathSpec(self.client_id,
+                                                   response.stat_entry.pathspec)
+          fd = file_store.OpenFile(client_path)
+        else:
+          fd = aff4.FACTORY.Open(
+              response.stat_entry.AFF4Path(self.client_urn), token=self.token)
         hist = firefox3_history.Firefox3History(fd)
         count = 0
         for epoch64, dtype, url, dat1, in hist.Parse():
@@ -222,9 +241,16 @@ class FirefoxHistoryMixin(object):
     Raises:
       OSError: On invalid system in the Schema
     """
-    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-    system = fd.Get(fd.Schema.SYSTEM)
-    user_info = flow_utils.GetUserInfo(fd, username)
+    if data_store.RelationalDBReadEnabled():
+      client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+      system = client.knowledge_base.os
+      user_info = flow_utils.GetUserInfo(client.knowledge_base, username)
+    else:
+      fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+      system = fd.Get(fd.Schema.SYSTEM)
+      kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
+      user_info = flow_utils.GetUserInfo(kb, username)
+
     if not user_info:
       self.Error("Could not find homedir for user {0}".format(username))
       return
@@ -232,7 +258,7 @@ class FirefoxHistoryMixin(object):
     paths = []
     if system == "Windows":
       path = "{app_data}\\Mozilla\\Firefox\\Profiles/"
-      paths.append(path.format(app_data=user_info.special_folders.app_data))
+      paths.append(path.format(app_data=user_info.appdata))
     elif system == "Linux":
       path = "{homedir}/.mozilla/firefox/"
       paths.append(path.format(homedir=user_info.homedir))
@@ -294,8 +320,15 @@ class CacheGrepMixin(object):
     """Redirect to start on the workers and not in the UI."""
 
     # Figure out which paths we are going to check.
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    system = client.Get(client.Schema.SYSTEM)
+    if data_store.RelationalDBReadEnabled():
+      client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+      kb = client.knowledge_base
+      system = kb.os
+    else:
+      client = aff4.FACTORY.Open(self.client_id, token=self.token)
+      system = client.Get(client.Schema.SYSTEM)
+      kb = client.Get(client.Schema.KNOWLEDGE_BASE)
+
     paths = BROWSER_PATHS.get(system)
     self.state.all_paths = []
     if self.args.check_chrome:
@@ -309,12 +342,10 @@ class CacheGrepMixin(object):
 
     self.state.users = []
     for user in self.args.grep_users:
-      user_info = flow_utils.GetUserInfo(client, user)
+      user_info = flow_utils.GetUserInfo(kb, user)
       if not user_info:
         raise flow.FlowError("No such user %s" % user)
       self.state.users.append(user_info)
-
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
 
     usernames = [
         "%s\\%s" % (u.userdomain, u.username) for u in self.state.users
@@ -331,7 +362,7 @@ class CacheGrepMixin(object):
             .FIRST_HIT))
 
     for path in self.state.all_paths:
-      full_paths = flow_utils.InterpolatePath(path, client, users=usernames)
+      full_paths = flow_utils.InterpolatePath(path, kb, users=usernames)
       for full_path in full_paths:
         self.CallFlow(
             file_finder.FileFinder.__name__,

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Flows for handling the collection for artifacts."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -37,10 +38,22 @@ from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import sequential_collection
 from grr_response_server import server_stubs
+from grr_response_server.flows.general import artifact_fallbacks
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import memory
 from grr_response_server.flows.general import transfer
+
+
+def _ReadClientKnowledgeBase(client_id, allow_uninitialized=False, token=None):
+  if data_store.RelationalDBReadEnabled():
+    client = data_store.REL_DB.ReadClientSnapshot(client_id)
+    return artifact.GetKnowledgeBase(
+        client, allow_uninitialized=allow_uninitialized)
+  else:
+    client = aff4.FACTORY.Open(client_id, token=token)
+    return artifact.GetArtifactKnowledgeBase(
+        client, allow_uninitialized=allow_uninitialized)
 
 
 @flow_base.DualDBFlow
@@ -78,8 +91,6 @@ class ArtifactCollectorFlowMixin(object):
 
   def Start(self):
     """For each artifact, create subflows for each collector."""
-    self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
-
     self.state.artifacts_failed = []
     self.state.artifacts_skipped_due_to_condition = []
     self.state.called_fallbacks = set()
@@ -97,8 +108,8 @@ class ArtifactCollectorFlowMixin(object):
           .Dependency.USE_CACHED) and (not self.state.knowledge_base):
       # If not provided, get a knowledge base from the client.
       try:
-        self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
-            self.client)
+        self.state.knowledge_base = _ReadClientKnowledgeBase(
+            self.client_id, token=self.token)
       except artifact_utils.KnowledgeBaseUninitializedError:
         # If no-one has ever initialized the knowledge base, we should do so
         # now.
@@ -117,10 +128,8 @@ class ArtifactCollectorFlowMixin(object):
           "Attempt to initialize Knowledge Base failed.")
 
     if not self.state.knowledge_base:
-      self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
-      # If we are processing the knowledge base, it still won't exist yet.
-      self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
-          self.client, allow_uninitialized=True)
+      self.state.knowledge_base = _ReadClientKnowledgeBase(
+          self.client_id, allow_uninitialized=True, token=self.token)
 
     for artifact_name in self.args.artifact_list:
       artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
@@ -446,7 +455,6 @@ class ArtifactCollectorFlowMixin(object):
             plugin=source.attributes["plugin"],
             args=source.attributes.get("args", {}))
     ]
-
     self.CallFlow(
         memory.AnalyzeClientMemory.__name__,
         request=request,
@@ -530,31 +538,29 @@ class ArtifactCollectorFlowMixin(object):
         **self.InterpolateDict(source.attributes.get("action_args", {})))
 
   def CallFallback(self, artifact_name, request_data):
-    classes = iteritems(artifact.ArtifactFallbackCollector.classes)
-    for clsname, fallback_class in classes:
 
-      if not aff4.issubclass(fallback_class,
-                             artifact.ArtifactFallbackCollector):
-        continue
+    if artifact_name not in artifact_fallbacks.FALLBACK_REGISTRY:
+      return False
 
-      if artifact_name in fallback_class.artifacts:
-        if artifact_name in self.state.called_fallbacks:
-          self.Log("Already called fallback class %s for artifact: %s", clsname,
-                   artifact_name)
-        else:
-          self.Log("Calling fallback class %s for artifact: %s", clsname,
-                   artifact_name)
+    fallback_flow = artifact_fallbacks.FALLBACK_REGISTRY[artifact_name]
 
-          self.CallFlow(
-              clsname,
-              request_data=request_data.ToDict(),
-              artifact_name=artifact_name,
-              next_state="ProcessCollected")
+    if artifact_name in self.state.called_fallbacks:
+      self.Log("Already called fallback class %s for artifact: %s",
+               fallback_flow, artifact_name)
+      return False
 
-          # Make sure we only try this once
-          self.state.called_fallbacks.add(artifact_name)
-          return True
-    return False
+    self.Log("Calling fallback class %s for artifact: %s", fallback_flow,
+             artifact_name)
+
+    self.CallFlow(
+        fallback_flow,
+        request_data=request_data.ToDict(),
+        artifact_name=artifact_name,
+        next_state="ProcessCollected")
+
+    # Make sure we only try this once
+    self.state.called_fallbacks.add(artifact_name)
+    return True
 
   def ProcessCollected(self, responses):
     """Each individual collector will call back into here.
@@ -570,17 +576,17 @@ class ArtifactCollectorFlowMixin(object):
     artifact_name = unicode(responses.request_data["artifact_name"])
     source = responses.request_data.GetItem("source", None)
 
-    if responses.success:
-      self.Log(
-          "Artifact data collection %s completed successfully in flow %s "
-          "with %d responses", artifact_name, flow_name, len(responses))
-    else:
+    if not responses.success:
       self.Log("Artifact %s data collection failed. Status: %s.", artifact_name,
                responses.status)
       if not self.CallFallback(artifact_name, responses.request_data):
         self.state.failed_count += 1
         self.state.artifacts_failed.append(artifact_name)
       return
+
+    self.Log(
+        "Artifact data collection %s completed successfully in flow %s "
+        "with %d responses", artifact_name, flow_name, len(responses))
 
     # Now process the responses.
     self._ParseResponses(list(responses), artifact_name, source)
@@ -754,8 +760,7 @@ class ArtifactFilesDownloaderFlowMixin(transfer.MultiGetFileLogic):
         ]):
       return [response.pathspec]
 
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    knowledge_base = artifact.GetArtifactKnowledgeBase(client)
+    knowledge_base = _ReadClientKnowledgeBase(self.client_id, token=self.token)
 
     if self.args.use_tsk:
       path_type = rdf_paths.PathSpec.PathType.TSK
@@ -857,9 +862,8 @@ class ClientArtifactCollectorMixin(object):
           not self.state.knowledge_base):
         # If not provided, get a knowledge base from the client.
         try:
-          with aff4.FACTORY.Open(self.client_id, token=self.token) as client:
-            self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
-                client)
+          self.state.knowledge_base = _ReadClientKnowledgeBase(
+              self.client_id, token=self.token)
         except artifact_utils.KnowledgeBaseUninitializedError:
           # If no-one has ever initialized the knowledge base, we should do so
           # now.
@@ -880,10 +884,8 @@ class ClientArtifactCollectorMixin(object):
     # TODO(hanuszczak): Flow arguments also appear to have some knowledgebase.
     # Do we use it in any way?
     if not self.state.knowledge_base:
-      with aff4.FACTORY.Open(self.client_id, token=self.token) as client:
-        # If we are processing the knowledge base, it still won't exist yet.
-        self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
-            client, allow_uninitialized=True)
+      self.state.knowledge_base = _ReadClientKnowledgeBase(
+          self.client_id, allow_uninitialized=True, token=self.token)
 
     request = GetArtifactCollectorArgs(self.args, self.state.knowledge_base)
     self.CollectArtifacts(request)

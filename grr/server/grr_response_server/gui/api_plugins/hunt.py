@@ -26,6 +26,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import hunt_pb2
 
 from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import foreman_rules
 from grr_response_server import instant_output_plugin
@@ -170,7 +171,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       self.expires = context.expires
       self.creator = context.creator
       self.description = hunt.runner_args.description
-      self.is_robot = context.creator == "GRRWorker"
+      self.is_robot = context.creator in ["GRRWorker", "Cron"]
       self.results_count = context.results_count
       self.clients_with_results_count = context.clients_with_results_count
       self.clients_queued_count = context.clients_queued_count
@@ -623,8 +624,8 @@ class ApiListHuntOutputPluginLogsHandlerBase(
       total_count = len(logs_collection)
       logs = list(
           itertools.islice(
-              logs_collection.GenerateItems(offset=args.offset),
-              args.count or None))
+              logs_collection.GenerateItems(offset=args.offset), args.count or
+              None))
     else:
       all_logs_for_plugin = [
           x for x in logs_collection if x.plugin_descriptor == plugin_descriptor
@@ -769,10 +770,11 @@ class ApiGetHuntClientCompletionStatsResult(rdf_structs.RDFProtoStruct):
     """Check that this approval applies to the given token.
 
     Args:
-      start_stats: A list of lists, each containing two values (a timestamp
-        and the number of clients started at this time).
+      start_stats: A list of lists, each containing two values (a timestamp and
+        the number of clients started at this time).
       complete_stats: A list of lists, each containing two values (a timestamp
         and the number of clients completed at this time).
+
     Returns:
       A reference to the current instance to allow method chaining.
     """
@@ -1119,7 +1121,10 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
     else:
       hunt_clients = sorted(hunt_clients)[args.offset:]
 
-    flow_id = "%s:hunt" % hunt_urn.Basename()
+    if data_store.RelationalDBFlowsEnabled():
+      flow_id = None
+    else:
+      flow_id = "%s:hunt" % hunt_urn.Basename()
     results = [
         ApiHuntClient(client_id=c.Basename(), flow_id=flow_id)
         for c in hunt_clients
@@ -1412,5 +1417,5 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
     plugin = plugin_cls(source_urn=hunt_urn, token=token)
     return api_call_handler_base.ApiBinaryStream(
         plugin.output_file_name,
-        content_generator=instant_output_plugin.
-        ApplyPluginToMultiTypeCollection(plugin, output_collection))
+        content_generator=instant_output_plugin
+        .ApplyPluginToMultiTypeCollection(plugin, output_collection))

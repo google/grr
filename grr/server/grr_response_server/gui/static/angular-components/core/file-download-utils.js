@@ -44,15 +44,21 @@ exports.pathSpecToAff4Path = function(pathspec, clientId) {
   var components = splitPathspec(pathspec);
 
   var firstComponent = components[0];
-  var dev = firstComponent['path']['value'];
-
-  if (angular.isDefined(firstComponent['offset'])) {
-    dev += ':' + Math.round(firstComponent['offset']['value'] / 512);
-  }
 
   var result, start;
   if (components.length > 1 && firstComponent['pathtype']['value'] == 'OS' &&
       components[1]['pathtype']['value'] == 'TSK') {
+
+    var dev = firstComponent['path']['value'];
+
+    if (angular.isDefined(firstComponent['offset'])) {
+      dev += ':' + Math.round(firstComponent['offset']['value'] / 512);
+    }
+
+    if (dev.startsWith('/')) {
+      dev = dev.substring(1);
+    }
+
     result = ['aff4:', clientId, AFF4_PREFIXES['TSK'], dev];
     start = 1;
   } else {

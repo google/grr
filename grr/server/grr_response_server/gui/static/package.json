@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "angular-mocks": "1.7.3",
+    "files-exist": "^1.1.0",
     "google-closure-compiler": "20171023.0.1",
     "google-closure-library": "20170910.0.0",
     "gulp": "^4.0.0",

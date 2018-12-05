@@ -8,6 +8,7 @@ WIP, will eventually replace datastore.py.
 
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import abc
@@ -161,6 +162,23 @@ class UnknownCronJobRunError(NotFoundError):
   pass
 
 
+class UnknownSignedBinaryError(NotFoundError):
+  """Exception raised when a signed binary isn't found in the DB."""
+
+  def __init__(self, binary_id, cause=None):
+    """Initializes UnknownSignedBinaryError.
+
+    Args:
+      binary_id: rdf_objects.SignedBinaryID for the signed binary.
+      cause: A lower-level Exception raised by the database driver, which might
+        have more details about the error.
+    """
+    super(UnknownSignedBinaryError, self).__init__(
+        "Signed binary of type %s and path %s was not found" %
+        (binary_id.binary_type, binary_id.path),
+        cause=cause)
+
+
 class UnknownFlowError(NotFoundError):
 
   def __init__(self, client_id, flow_id, cause=None):
@@ -301,6 +319,9 @@ class ClientPath(object):
 
   def __hash__(self):
     return hash(self._repr)
+
+  def Path(self):
+    return "/".join(self.components)
 
 
 class ClientPathHistory(object):
@@ -778,11 +799,32 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadAllGRRUsers(self):
-    """Reads all GRR users.
+  def ReadGRRUsers(self, offset=0, count=None):
+    """Reads GRR users with optional pagination, sorted by username.
 
-    Returns:
-      A generator yielding objects.GRRUser objects.
+    Args:
+      offset: An integer specifying an offset to be used when reading results.
+      count: Maximum number of users to return. If not provided, all users will
+        be returned (respecting offset).
+    Returns: A List of `objects.GRRUser` objects.
+
+    Raises:
+      ValueError: if offset or count are negative.
+    """
+
+  @abc.abstractmethod
+  def CountGRRUsers(self):
+    """Returns the total count of GRR users."""
+
+  @abc.abstractmethod
+  def DeleteGRRUser(self, username):
+    """Deletes the user with the given username.
+
+    Args:
+      username: Name of a user to insert/update.
+
+    Raises:
+      UnknownGRRUserError: if there is no user corresponding to the given name.
     """
 
   @abc.abstractmethod
@@ -917,7 +959,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       A dictionary mapping path components to `rdf_objects.PathInfo` instances.
     """
 
-  def ListChildPathInfos(self, client_id, path_type, components):
+  def ListChildPathInfos(self, client_id, path_type, components,
+                         timestamp=None):
     """Lists path info records that correspond to children of given path.
 
     Args:
@@ -925,18 +968,21 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       path_type: A type of a path to retrieve path information for.
       components: A tuple of path components of a path to retrieve child path
         information for.
+      timestamp: If set, lists only descendants that existed only at that
+        timestamp.
 
     Returns:
       A list of `rdf_objects.PathInfo` instances sorted by path components.
     """
     return self.ListDescendentPathInfos(
-        client_id, path_type, components, max_depth=1)
+        client_id, path_type, components, max_depth=1, timestamp=timestamp)
 
   @abc.abstractmethod
   def ListDescendentPathInfos(self,
                               client_id,
                               path_type,
                               components,
+                              timestamp=None,
                               max_depth=None):
     """Lists path info records that correspond to descendants of given path.
 
@@ -945,6 +991,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       path_type: A type of a path to retrieve path information for.
       components: A tuple of path components of a path to retrieve descendent
         path information for.
+      timestamp: If set, lists only descendants that existed at that timestamp.
       max_depth: If set, the maximum number of generations to descend, otherwise
         unlimited.
 
@@ -1213,8 +1260,12 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def UnregisterMessageHandler(self):
-    """Unregisters any registered message handler."""
+  def UnregisterMessageHandler(self, timeout=None):
+    """Unregisters any registered message handler.
+
+    Args:
+      timeout: A timeout in seconds for joining the handler thread.
+    """
 
   @abc.abstractmethod
   def WriteCronJob(self, cronjob):
@@ -1734,8 +1785,12 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def UnregisterFlowProcessingHandler(self):
-    """Unregisters any registered flow processing handler."""
+  def UnregisterFlowProcessingHandler(self, timeout=None):
+    """Unregisters any registered flow processing handler.
+
+    Args:
+      timeout: A timeout in seconds for joining the handler thread.
+    """
 
   @abc.abstractmethod
   def WriteFlowResults(self, client_id, flow_id, results):
@@ -1744,7 +1799,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       client_id: The client id on which the flow is running.
       flow_id: The id of the flow to write results for.
-      results: An iterable with FlowLogResult rdfvalues.
+      results: An iterable with FlowResult rdfvalues.
     """
 
   @abc.abstractmethod
@@ -1873,12 +1928,18 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def DeleteStatsStoreEntriesOlderThan(self, cutoff):
-    """Deletes all StatsStoreEntries in the DB older than a given timestamp.
+  def DeleteStatsStoreEntriesOlderThan(self, cutoff, limit):
+    """Deletes StatsStoreEntries in the DB older than a given timestamp.
 
     Args:
       cutoff: An RDFDateTime representing the maximum age of entries that would
         remain after deleting all older entries.
+      limit: The maximum number of entries to delete. Must be > 0.
+
+    Returns:
+      The number of stats-store entries that were deleted. If the number is
+      equal to the limit provided, it means that there are more entries
+      to delete (or that there were exactly 'limit' stale entries in the DB).
     """
 
   @abc.abstractmethod
@@ -2031,6 +2092,43 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Returns:
       A number of flows matching the specified condition.
+    """
+
+  @abc.abstractmethod
+  def WriteSignedBinaryReferences(self, binary_id, references):
+    """Writes blob references for a signed binary to the DB.
+
+    Args:
+      binary_id: rdf_objects.SignedBinaryID for the binary.
+      references: rdf_objects.BlobReferences for the given binary.
+    """
+
+  @abc.abstractmethod
+  def ReadSignedBinaryReferences(self, binary_id):
+    """Reads blob references for the signed binary with the given id.
+
+    Args:
+      binary_id: rdf_objects.SignedBinaryID for the binary.
+
+    Returns:
+      A tuple of the signed binary's rdf_objects.BlobReferences and an
+      RDFDatetime representing the time when the references were written to the
+      DB.
+    """
+
+  @abc.abstractmethod
+  def ReadIDsForAllSignedBinaries(self):
+    """Returns ids for all signed binaries in the DB."""
+
+  @abc.abstractmethod
+  def DeleteSignedBinaryReferences(self, binary_id):
+    """Deletes blob references for the given signed binary from the DB.
+
+    Does nothing if no entry with the given id exists in the DB.
+
+    Args:
+      binary_id: rdf_objects.SignedBinaryID for the signed binary reference to
+        delete.
     """
 
 
@@ -2234,6 +2332,11 @@ class DatabaseValidationWrapper(Database):
                    user_type=None):
     _ValidateUsername(username)
 
+    if password is not None and not isinstance(password, rdf_crypto.Password):
+      password_str = password
+      password = rdf_crypto.Password()
+      password.SetPassword(password_str)
+
     return self.delegate.WriteGRRUser(
         username,
         password=password,
@@ -2246,8 +2349,22 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.ReadGRRUser(username)
 
-  def ReadAllGRRUsers(self):
-    return self.delegate.ReadAllGRRUsers()
+  def ReadGRRUsers(self, offset=0, count=None):
+    if offset < 0:
+      raise ValueError("offset has to be non-negative.")
+
+    if count is not None and count < 0:
+      raise ValueError("count has to be non-negative or None.")
+
+    return self.delegate.ReadGRRUsers(offset=offset, count=count)
+
+  def CountGRRUsers(self):
+    return self.delegate.CountGRRUsers()
+
+  def DeleteGRRUser(self, username):
+    _ValidateUsername(username)
+
+    return self.delegate.DeleteGRRUser(username)
 
   def WriteApprovalRequest(self, approval_request):
     precondition.AssertType(approval_request, rdf_objects.ApprovalRequest)
@@ -2307,24 +2424,34 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.ReadPathInfos(client_id, path_type, components_list)
 
-  def ListChildPathInfos(self, client_id, path_type, components):
+  def ListChildPathInfos(self, client_id, path_type, components,
+                         timestamp=None):
     _ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     _ValidatePathComponents(components)
+    precondition.AssertOptionalType(timestamp, rdfvalue.RDFDatetime)
 
-    return self.delegate.ListChildPathInfos(client_id, path_type, components)
+    return self.delegate.ListChildPathInfos(
+        client_id, path_type, components, timestamp=timestamp)
 
   def ListDescendentPathInfos(self,
                               client_id,
                               path_type,
                               components,
+                              timestamp=None,
                               max_depth=None):
     _ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     _ValidatePathComponents(components)
+    precondition.AssertOptionalType(timestamp, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(max_depth, int)
 
     return self.delegate.ListDescendentPathInfos(
-        client_id, path_type, components, max_depth=max_depth)
+        client_id,
+        path_type,
+        components,
+        timestamp=timestamp,
+        max_depth=max_depth)
 
   def FindPathInfoByPathID(self, client_id, path_type, path_id, timestamp=None):
     _ValidateClientId(client_id)
@@ -2470,8 +2597,8 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.RegisterMessageHandler(
         handler, lease_time, limit=limit)
 
-  def UnregisterMessageHandler(self):
-    return self.delegate.UnregisterMessageHandler()
+  def UnregisterMessageHandler(self, timeout=None):
+    return self.delegate.UnregisterMessageHandler(timeout=timeout)
 
   def WriteCronJob(self, cronjob):
     precondition.AssertType(cronjob, rdf_cronjobs.CronJob)
@@ -2728,8 +2855,8 @@ class DatabaseValidationWrapper(Database):
       raise ValueError("handler must be provided")
     return self.delegate.RegisterFlowProcessingHandler(handler)
 
-  def UnregisterFlowProcessingHandler(self):
-    return self.delegate.UnregisterFlowProcessingHandler()
+  def UnregisterFlowProcessingHandler(self, timeout=None):
+    return self.delegate.UnregisterFlowProcessingHandler(timeout=timeout)
 
   def WriteFlowResults(self, client_id, flow_id, results):
     _ValidateClientId(client_id)
@@ -2831,10 +2958,12 @@ class DatabaseValidationWrapper(Database):
         time_range=time_range,
         max_results=max_results)
 
-  def DeleteStatsStoreEntriesOlderThan(self, cutoff):
+  def DeleteStatsStoreEntriesOlderThan(self, cutoff, limit):
     _ValidateTimestamp(cutoff)
+    if limit <= 0:
+      raise ValueError("Limit must be > 0.")
 
-    self.delegate.DeleteStatsStoreEntriesOlderThan(cutoff)
+    return self.delegate.DeleteStatsStoreEntriesOlderThan(cutoff, limit)
 
   def WriteHuntObject(self, hunt_obj):
     precondition.AssertType(hunt_obj, rdf_hunt_objects.Hunt)
@@ -2900,6 +3029,25 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.CountHuntFlows(
         hunt_id, filter_condition=filter_condition)
 
+  def WriteSignedBinaryReferences(self, binary_id, references):
+    precondition.AssertType(binary_id, rdf_objects.SignedBinaryID)
+    precondition.AssertType(references, rdf_objects.BlobReferences)
+    if not references.items:
+      raise ValueError("No actual blob references provided.")
+
+    self.delegate.WriteSignedBinaryReferences(binary_id, references)
+
+  def ReadSignedBinaryReferences(self, binary_id):
+    precondition.AssertType(binary_id, rdf_objects.SignedBinaryID)
+    return self.delegate.ReadSignedBinaryReferences(binary_id)
+
+  def ReadIDsForAllSignedBinaries(self):
+    return self.delegate.ReadIDsForAllSignedBinaries()
+
+  def DeleteSignedBinaryReferences(self, binary_id):
+    precondition.AssertType(binary_id, rdf_objects.SignedBinaryID)
+    return self.delegate.DeleteSignedBinaryReferences(binary_id)
+
 
 def _ValidateEnumType(value, expected_enum_type):
   if value not in expected_enum_type.reverse_enum:
@@ -2953,8 +3101,8 @@ def _ValidateApprovalId(approval_id):
 
 
 def _ValidateApprovalType(approval_type):
-  if (approval_type == rdf_objects.ApprovalRequest.ApprovalType
-      .APPROVAL_TYPE_NONE):
+  if (approval_type ==
+      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_NONE):
     raise ValueError("Unexpected approval type: %s" % approval_type)
 
 

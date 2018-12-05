@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for REL_DB-based file store."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
@@ -30,7 +31,7 @@ class BlobStreamTest(test_lib.GRRBaseTest):
     ]
     data_store.BLOBS.WriteBlobs(dict(zip(self.blob_ids, self.blob_data)))
 
-    self.blob_stream = file_store.BlobStream(self.blob_refs, None)
+    self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
 
   def testReadsFirstByte(self):
     self.assertEqual(self.blob_stream.read(1), b"a")
@@ -52,11 +53,10 @@ class BlobStreamTest(test_lib.GRRBaseTest):
     self.assertEqual(self.blob_stream.read(), b"".join(self.blob_data))
 
   def testRaisesWhenTryingToReadTooMuchDataAtOnce(self):
-    with test_lib.ConfigOverrider({
-        "Server.max_unbound_read_size": self.blob_size
-    }):
+    with test_lib.ConfigOverrider(
+        {"Server.max_unbound_read_size": self.blob_size}):
       # Recreate to make sure the new config option value is applied.
-      self.blob_stream = file_store.BlobStream(self.blob_refs, None)
+      self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
 
       self.blob_stream.read(self.blob_size)
       with self.assertRaises(file_store.OversizedRead):
@@ -66,11 +66,10 @@ class BlobStreamTest(test_lib.GRRBaseTest):
     self.blob_stream.read()
     self.blob_stream.seek(0)
 
-    with test_lib.ConfigOverrider({
-        "Server.max_unbound_read_size": self.blob_size * 10 - 1
-    }):
+    with test_lib.ConfigOverrider(
+        {"Server.max_unbound_read_size": self.blob_size * 10 - 1}):
       # Recreate to make sure the new config option value is applied.
-      self.blob_stream = file_store.BlobStream(self.blob_refs, None)
+      self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
 
       with self.assertRaises(file_store.OversizedRead):
         self.blob_stream.read()
@@ -233,7 +232,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     self._WriteFile(client_path, (0, 1))
 
     chunks = list(file_store.StreamFilesChunks([client_path]))
-    self.assertEqual(len(chunks), 1)
+    self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].client_path, client_path)
     self.assertEqual(chunks[0].data, self.blob_data[0])
     self.assertEqual(chunks[0].chunk_index, 0)
@@ -246,7 +245,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     self._WriteFile(client_path, (0, 2))
 
     chunks = list(file_store.StreamFilesChunks([client_path]))
-    self.assertEqual(len(chunks), 2)
+    self.assertLen(chunks, 2)
 
     self.assertEqual(chunks[0].client_path, client_path)
     self.assertEqual(chunks[0].data, self.blob_data[0])
@@ -270,7 +269,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     self._WriteFile(client_path_2, (2, 4))
 
     chunks = list(file_store.StreamFilesChunks([client_path_1, client_path_2]))
-    self.assertEqual(len(chunks), 4)
+    self.assertLen(chunks, 4)
 
     self.assertEqual(chunks[0].client_path, client_path_1)
     self.assertEqual(chunks[0].data, self.blob_data[0])
@@ -308,7 +307,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     self._WriteFile(client_path_2, (2, 4))
 
     chunks = list(file_store.StreamFilesChunks([client_path_1, client_path_2]))
-    self.assertEqual(len(chunks), 2)
+    self.assertLen(chunks, 2)
 
     self.assertEqual(chunks[0].client_path, client_path_2)
     self.assertEqual(chunks[0].data, self.blob_data[2])
@@ -332,14 +331,14 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     self._WriteFile(client_path_2, (0, 1))
 
     chunks = list(file_store.StreamFilesChunks([client_path_1, client_path_2]))
-    self.assertEqual(len(chunks), 2)
+    self.assertLen(chunks, 2)
     self.assertEqual(chunks[0].client_path, client_path_1)
     self.assertEqual(chunks[1].client_path, client_path_2)
 
     # Check that reversing the list of requested client paths reverses the
     # result.
     chunks = list(file_store.StreamFilesChunks([client_path_2, client_path_1]))
-    self.assertEqual(len(chunks), 2)
+    self.assertLen(chunks, 2)
     self.assertEqual(chunks[0].client_path, client_path_2)
     self.assertEqual(chunks[1].client_path, client_path_1)
 
@@ -350,7 +349,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     self._WriteFile(client_path, (1, 2))
 
     chunks = list(file_store.StreamFilesChunks([client_path]))
-    self.assertEqual(len(chunks), 1)
+    self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].client_path, client_path)
     self.assertEqual(chunks[0].data, self.blob_data[1])
 
@@ -364,13 +363,13 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
 
     chunks = list(
         file_store.StreamFilesChunks([client_path], max_timestamp=timestamp_2))
-    self.assertEqual(len(chunks), 1)
+    self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].client_path, client_path)
     self.assertEqual(chunks[0].data, self.blob_data[1])
 
     chunks = list(
         file_store.StreamFilesChunks([client_path], max_timestamp=timestamp_1))
-    self.assertEqual(len(chunks), 1)
+    self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].client_path, client_path)
     self.assertEqual(chunks[0].data, self.blob_data[0])
 
@@ -380,7 +379,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
 
     chunks = list(
         file_store.StreamFilesChunks([client_path], max_size=self.blob_size))
-    self.assertEqual(len(chunks), 1)
+    self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].data, self.blob_data[0])
 
   def testRespectsMaxSizeGreaterThanOneChunkWhenStreamingSingleFile(self):
@@ -390,7 +389,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     chunks = list(
         file_store.StreamFilesChunks([client_path],
                                      max_size=self.blob_size + 1))
-    self.assertEqual(len(chunks), 2)
+    self.assertLen(chunks, 2)
     self.assertEqual(chunks[0].data, self.blob_data[0])
     self.assertEqual(chunks[1].data, self.blob_data[1])
 

@@ -3,6 +3,7 @@
 """Tests for grr.parsers.windows_registry_parser."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
@@ -93,7 +94,7 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(result.driver_package_id,
                          "acpi.inf_amd64_neutral_99aaaaabcccccccc")
         names.append(result.display_name)
-    self.assertItemsEqual(names,
+    self.assertCountEqual(names,
                           [u"中国日报", "[u'AcpiPmi']", "Microsoft ACPI Driver"])
 
   def testWinUserSpecialDirs(self):

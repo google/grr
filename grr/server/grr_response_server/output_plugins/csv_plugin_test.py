@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for CSV output plugin."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import csv
@@ -48,9 +49,8 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
               st_mtime=1336129892,
               st_ctime=1336129892))
 
-    zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client_fs.StatEntry: responses
-    })
+    zip_fd, prefix = self.ProcessValuesToZip(
+        {rdf_client_fs.StatEntry: responses})
     self.assertEqual(
         set(zip_fd.namelist()),
         set([
@@ -59,18 +59,17 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         ]))
 
     parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
-    self.assertEqual(parsed_manifest, {
-        "export_stats": {
-            "StatEntry": {
-                "ExportedFile": 10
-            }
-        }
-    })
+    self.assertEqual(parsed_manifest,
+                     {"export_stats": {
+                         "StatEntry": {
+                             "ExportedFile": 10
+                         }
+                     }})
 
     parsed_output = list(
         csv.DictReader(
             zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)))
-    self.assertEqual(len(parsed_output), 10)
+    self.assertLen(parsed_output, 10)
     for i in range(10):
       # Make sure metadata is filled in.
       self.assertEqual(parsed_output[i]["metadata.client_urn"], self.client_id)
@@ -130,7 +129,7 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     parsed_output = list(
         csv.DictReader(
             zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)))
-    self.assertEqual(len(parsed_output), 1)
+    self.assertLen(parsed_output, 1)
 
     # Make sure metadata is filled in.
     self.assertEqual(parsed_output[0]["metadata.client_urn"], self.client_id)
@@ -144,7 +143,7 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     parsed_output = list(
         csv.DictReader(
             zip_fd.open("%s/ExportedProcess/from_Process.csv" % prefix)))
-    self.assertEqual(len(parsed_output), 1)
+    self.assertLen(parsed_output, 1)
 
     self.assertEqual(parsed_output[0]["metadata.client_urn"], self.client_id)
     self.assertEqual(parsed_output[0]["metadata.hostname"], "Host-0")
@@ -171,7 +170,7 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         csv.DictReader(
             zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)))
 
-    self.assertEqual(len(parsed_output), 1)
+    self.assertLen(parsed_output, 1)
     self.assertEqual(parsed_output[0]["urn"],
                      self.client_id.Add("/fs/os/中国新闻网新闻中"))
 
@@ -185,13 +184,12 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
               pathspec=rdf_paths.PathSpec(
                   path="/foo/bar/%d" % i, pathtype="OS")))
 
-    zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client_fs.StatEntry: responses
-    })
+    zip_fd, prefix = self.ProcessValuesToZip(
+        {rdf_client_fs.StatEntry: responses})
     parsed_output = list(
         csv.DictReader(
             zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)))
-    self.assertEqual(len(parsed_output), num_rows)
+    self.assertLen(parsed_output, num_rows)
     for i in range(num_rows):
       self.assertEqual(parsed_output[i]["urn"],
                        self.client_id.Add("/fs/os/foo/bar/%d" % i))

@@ -1,5 +1,6 @@
 'use strict';
 
+const filesExist = require('files-exist');
 const gulp = require('gulp');
 const gulpAngularTemplateCache = require('gulp-angular-templatecache');
 const gulpClosureCompiler = require('gulp-closure-compiler');
@@ -14,11 +15,23 @@ const karma = require('karma');
 
 const {series, parallel} = gulp;
 
+/**
+ * Validate paths with optional globs, by enforcing at least 1 matched file
+ * per path.
+ * @param {!Array<string>} globs Array of paths containing optional globs
+ * @return {*} the same Array
+ * @throws {!Error} if any glob matches zero files
+ */
+function validateGlobs(globs) {
+  return filesExist(globs, {checkGlobs: true});
+}
+
 const config = {
   nodeModulesDir: './node_modules',
   distDir: 'dist',
   tempDir: 'tmp'
 };
+const NODE_MODULES = config.nodeModulesDir;
 
 let isWatching = false;
 
@@ -35,7 +48,7 @@ function errorHandler(err) {
 }
 
 const closureCompilerPath =
-    config.nodeModulesDir + '/google-closure-compiler/compiler.jar';
+    NODE_MODULES + '/google-closure-compiler/compiler.jar';
 
 const closureCompilerFlags = {
   compilation_level: 'WHITESPACE_ONLY',
@@ -74,39 +87,37 @@ const closureCompilerFlags = {
  */
 function compileThirdPartyJs() {
   return gulp
-      .src(
-          [
-            'jquery/dist/jquery.js',
-            'jquery-migrate/dist/jquery-migrate.js',
+      .src(validateGlobs([
+        NODE_MODULES + '/jquery/dist/jquery.js',
+        NODE_MODULES + '/jquery-migrate/dist/jquery-migrate.js',
 
-            'google-closure-library/closure/goog/base.js',
+        NODE_MODULES + '/google-closure-library/closure/goog/base.js',
 
-            'bootstrap/dist/js/bootstrap.js',
+        NODE_MODULES + '/bootstrap/dist/js/bootstrap.js',
 
-            'angular/angular.js',
-            'angular-animate/angular-animate.js',
-            'angular-cookies/angular-cookies.js',
-            'angular-resource/angular-resource.js',
-            'angular-sanitize/angular-sanitize.js',
+        NODE_MODULES + '/angular/angular.js',
+        NODE_MODULES + '/angular-animate/angular-animate.js',
+        NODE_MODULES + '/angular-cookies/angular-cookies.js',
+        NODE_MODULES + '/angular-resource/angular-resource.js',
+        NODE_MODULES + '/angular-sanitize/angular-sanitize.js',
 
-            'angular-ui-bootstrap/dist/ui-bootstrap-tpls.js',
-            'angular-ui-router/release/angular-ui-router.js',
+        NODE_MODULES + '/angular-ui-bootstrap/dist/ui-bootstrap-tpls.js',
+        NODE_MODULES + '/angular-ui-router/release/angular-ui-router.js',
 
-            'firebase/firebase-app.js',
-            'firebase/firebase-auth.js',
-            'Flot/jquery.flot.js',
-            'Flot/jquery.flot.navigate.js',
-            'Flot/jquery.flot.pie.js',
-            'Flot/jquery.flot.resize.js',
-            'Flot/jquery.flot.stack.js',
-            'Flot/jquery.flot.time.js',
+        NODE_MODULES + '/firebase/firebase-app.js',
+        NODE_MODULES + '/firebase/firebase-auth.js',
+        NODE_MODULES + '/Flot/jquery.flot.js',
+        NODE_MODULES + '/Flot/jquery.flot.navigate.js',
+        NODE_MODULES + '/Flot/jquery.flot.pie.js',
+        NODE_MODULES + '/Flot/jquery.flot.resize.js',
+        NODE_MODULES + '/Flot/jquery.flot.stack.js',
+        NODE_MODULES + '/Flot/jquery.flot.time.js',
 
-            'jstree/dist/jstree.js',
-            'moment/moment.js',
-            'marked/lib/marked.js',
-            'split.js/split.js',
-          ],
-          {cwd: config.nodeModulesDir})
+        NODE_MODULES + '/jstree/dist/jstree.js',
+        NODE_MODULES + '/moment/moment.js',
+        NODE_MODULES + '/marked/lib/marked.js',
+        NODE_MODULES + '/split.js/split.js',
+      ]))
       .pipe(gulpNewer(config.distDir + '/third-party.bundle.js'))
       .pipe(gulpConcat('third-party.bundle.js'))
       .pipe(gulp.dest(config.distDir));
@@ -118,8 +129,8 @@ function compileThirdPartyJs() {
  */
 function copyFontAwesomeFonts() {
   return gulp
-      .src(
-          [config.nodeModulesDir + '/font-awesome/fonts/fontawesome-webfont.*'])
+      .src(validateGlobs(
+          [NODE_MODULES + '/font-awesome/fonts/fontawesome-webfont.*']))
       .pipe(gulp.dest(
           'fonts'));  // TODO(user): should be copied to 'dist' folder.
 }
@@ -130,13 +141,11 @@ function copyFontAwesomeFonts() {
  */
 function copyThirdPartyResources() {
   return gulp
-      .src(
-          [
-            '/jstree/dist/themes/default/*.gif',
-            '/jstree/dist/themes/default/*.png',
-            '/bootstrap/fonts/glyphicons-halflings-regular.*'
-          ],
-          {base: config.nodeModulesDir})
+      .src(validateGlobs([
+        NODE_MODULES + '/jstree/dist/themes/default/*.gif',
+        NODE_MODULES + '/jstree/dist/themes/default/*.png',
+        NODE_MODULES + '/bootstrap/fonts/glyphicons-halflings-regular.*',
+      ]))
       .pipe(gulp.dest(config.distDir));
 }
 
@@ -145,10 +154,9 @@ function copyThirdPartyResources() {
  * @return {*} gulp stream
  */
 function compileThirdPartyBootstrapCss() {
-  return gulp
-      .src('less/bootstrap_grr.less')
+  return gulp.src(validateGlobs(['less/bootstrap_grr.less']))
       .pipe(gulpNewer(config.tempDir + '/grr-bootstrap.css'))
-      .pipe(gulpLess({paths: [config.nodeModulesDir + '/bootstrap/less']}))
+      .pipe(gulpLess({paths: [NODE_MODULES + '/bootstrap/less']}))
       .pipe(gulpConcat('grr-bootstrap.css'))
       .pipe(gulp.dest(config.tempDir));
 }
@@ -159,15 +167,14 @@ function compileThirdPartyBootstrapCss() {
  */
 function compileThirdPartyCss() {
   return gulp
-      .src([
-        config.nodeModulesDir + '/jstree/dist/themes/default/style.css',
-        config.nodeModulesDir + '/bootstrap/dist/css/bootstrap.css',
-        config.nodeModulesDir +
-            '/angular-ui-bootstrap/dist/ui-bootstrap-csp.css',
-        config.nodeModulesDir + '/font-awesome/css/font-awesome.css',
+      .src(validateGlobs([
+        NODE_MODULES + '/jstree/dist/themes/default/style.css',
+        NODE_MODULES + '/bootstrap/dist/css/bootstrap.css',
+        NODE_MODULES + '/angular-ui-bootstrap/dist/ui-bootstrap-csp.css',
+        NODE_MODULES + '/font-awesome/css/font-awesome.css',
 
         config.tempDir + '/grr-bootstrap.css',
-      ])
+      ]))
       .pipe(gulpNewer(config.distDir + '/third-party.bundle.css'))
       .pipe(gulpConcat('third-party.bundle.css'))
       .pipe(gulp.dest(config.distDir));
@@ -179,8 +186,7 @@ function compileThirdPartyCss() {
  * @return {*} gulp stream
  */
 function compileGrrAngularTemplateCache() {
-  return gulp
-      .src('angular-components/**/*.html')
+  return gulp.src(validateGlobs(['angular-components/**/*.html']))
       .pipe(gulpNewer(config.tempDir + '/templates.js'))
       .pipe(gulpAngularTemplateCache({
         module: 'grrUi.templates',
@@ -200,13 +206,13 @@ function compileGrrAngularTemplateCache() {
  */
 function compileGrrClosureUiJs() {
   return gulp
-      .src([
+      .src(validateGlobs([
         'angular-components/**/*.js',
         '!angular-components/**/*_test.js',
         '!angular-components/empty-templates.js',
         '!angular-components/externs.js',
         config.tempDir + '/templates.js',
-      ])
+      ]))
       .pipe(gulpNewer(config.distDir + '/grr-ui.bundle.js'))
       .pipe(gulpPlumber({errorHandler}))
       .pipe(gulpClosureCompiler({
@@ -232,8 +238,7 @@ function compileGrrClosureUiJs() {
  * @return {*} gulp stream
  */
 function compileGrrUiTests() {
-  return gulp
-      .src(['angular-components/**/*_test.js'])
+  return gulp.src(validateGlobs(['angular-components/**/*_test.js']))
       .pipe(gulpNewer(config.distDir + '/grr-ui-test.bundle.js'))
       .pipe(gulpPlumber({errorHandler}))
       .pipe(gulpClosureCompiler({
@@ -260,20 +265,11 @@ function compileGrrUiTests() {
  */
 function compileGrrClosureUiDeps() {
   return gulp
-      .src(['angular-components/**/*.js', '!angular-components/**/*_test.js'])
+      .src(validateGlobs(
+          ['angular-components/**/*.js', '!angular-components/**/*_test.js']))
       .pipe(gulpNewer(config.distDir + '/grr-ui.deps.js'))
       .pipe(gulpClosureDeps(
           {fileName: 'grr-ui.deps.js', prefix: '../static', baseDir: './'}))
-      .pipe(gulp.dest(config.distDir));
-}
-
-/**
- * Compiles legacy UI JavaScript.
- * @return {*} gulp stream
- */
-function compileGrrLegacyUiJs() {
-  return gulp.src(['javascript/**/*.js', '!javascript/**/*_test.js'])
-      .pipe(gulpConcat('grr-ui-legacy.bundle.js'))
       .pipe(gulp.dest(config.distDir));
 }
 
@@ -282,8 +278,7 @@ function compileGrrLegacyUiJs() {
  * @return {*} gulp stream
  */
 function compileGrrUiCss() {
-  return gulp
-      .src(['css/base.scss'])
+  return gulp.src(validateGlobs(['css/base.scss']))
       .pipe(gulpNewer(config.distDir + '/grr-ui.bundle.css'))
       .pipe(gulpPlumber({errorHandler}))
       .pipe(gulpSass({
@@ -310,7 +305,6 @@ function startKarmaServer(done) {
 const compileGrrUiJs = parallel(
     series(compileGrrAngularTemplateCache, compileGrrClosureUiJs),
     compileGrrClosureUiDeps,
-    compileGrrLegacyUiJs,
 );
 
 const compile = parallel(

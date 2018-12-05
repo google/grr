@@ -30,7 +30,6 @@
 @import '../angular-components/client/virtual-file-system/file-timeline';
 @import '../angular-components/config/binaries-list';
 @import '../angular-components/core/download-collection-files';
-@import '../angular-components/core/global-notifications';
 @import '../angular-components/core/version-dropdown';
 @import '../angular-components/core/wizard-form';
 @import '../angular-components/cron/cron-job-runs-list';
@@ -538,6 +537,7 @@ tr.tree_hidden {
 
   td {
     border: 1px solid $color-proto-border;
+    word-break: break-word;
   }
 
   &.no-cell-border td {

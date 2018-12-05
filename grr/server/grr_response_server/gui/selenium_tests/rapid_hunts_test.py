@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the rapid hunts feature."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
@@ -86,9 +87,8 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
 
   def setUp(self):
     super(HuntsWithRapidHuntingEnabledTest, self).setUp()
-    self._config_overrider = test_lib.ConfigOverrider({
-        "AdminUI.rapid_hunts_enabled": True
-    })
+    self._config_overrider = test_lib.ConfigOverrider(
+        {"AdminUI.rapid_hunts_enabled": True})
     self._config_overrider.Start()
 
   def tearDown(self):
@@ -178,7 +178,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-wizard-form:contains('is eligible for rapid hunting')")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-wizard-form:contains('Client rate set to 0')")
-    self.assertEquals(self.GetText("css=td:contains('Client rate') + td"), "0")
+    self.assertEqual(self.GetText("css=td:contains('Client rate') + td"), "0")
 
   def testRapidHuntEligibilityNoteShownForNonEligibleHunt(self):
     self.Open("/#/hunts")
@@ -224,7 +224,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-wizard-form:contains('is eligible for rapid hunting')")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-wizard-form:contains('Client rate set to 0')")
-    self.assertEquals(self.GetText("css=td:contains('Client rate') + td"), "0")
+    self.assertEqual(self.GetText("css=td:contains('Client rate') + td"), "0")
 
     # Now go all the way back and change the flow, thus making the hunt not
     # eligible for rapid hunting.
@@ -278,7 +278,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-wizard-form:contains('is eligible for rapid hunting')")
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-wizard-form:contains('Client rate set to 0')")
-    self.assertEquals(self.GetText("css=td:contains('Client rate') + td"), "42")
+    self.assertEqual(self.GetText("css=td:contains('Client rate') + td"), "42")
 
   def testHuntViewShowsEligibilityNoteForRapidLikeHuntWithClientRate0(self):
     # CreateHunt sets client rate to 0. Thus we have a rapid-hunting-like hunt:

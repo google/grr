@@ -4,31 +4,54 @@
 These flows subclass lib.artifact.ArtifactFallbackCollector.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 # pylint: disable=unused-import
 from grr_response_core.lib import parser
 # pylint: enable=unused-import
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_server import artifact
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import flows_pb2
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import server_stubs
 
+FALLBACK_REGISTRY = {
+    "WindowsEnvironmentVariableSystemRoot":
+        "SystemRootSystemDriveFallbackFlow",
+    "WindowsEnvironmentVariableSystemDrive":
+        "SystemRootSystemDriveFallbackFlow",
+    "WindowsEnvironmentVariableAllUsersProfile":
+        "WindowsAllUsersProfileFallbackFlow"
+}
 
-class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
+
+class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.ArtifactFallbackCollectorArgs
+  rdf_deps = [
+      rdf_artifacts.ArtifactName,
+  ]
+
+
+@flow_base.DualDBFlow
+class SystemRootSystemDriveFallbackFlowMixin(object):
   """Flow that attempts to guess systemroot and systemdrive.
 
   This is the fallback flow for the WindowsEnvironmentVariableSystemRoot and
   WindowsEnvironmentVariableSystemDrive artifacts. These values underpin many
   other artifact values so we want to make an educated guess if we cannot
   collect by normal means.
+
+  This flow supports:
+    WindowsEnvironmentVariableSystemRoot
+    WindowsEnvironmentVariableSystemDrive
   """
-  artifacts = [
-      "WindowsEnvironmentVariableSystemRoot",
-      "WindowsEnvironmentVariableSystemDrive"
-  ]
+
+  args_type = ArtifactFallbackCollectorArgs
 
   def Start(self):
     self.state.success = False
@@ -64,18 +87,22 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
     if not self.state.success:
       raise flow.FlowError("Couldn't guess the system root and drive location")
 
-    super(SystemRootSystemDriveFallbackFlow, self).End(responses)
+    super(SystemRootSystemDriveFallbackFlowMixin, self).End(responses)
 
 
-class WindowsAllUsersProfileFallbackFlow(artifact.ArtifactFallbackCollector):
+@flow_base.DualDBFlow
+class WindowsAllUsersProfileFallbackFlowMixin(object):
   r"""Flow that provides a default value for the AllUsersProfile registry key.
 
   Newer versions of Windows will typically not have the
   HKLM\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile
   key.
+
+  This flow supports:
+    ArtifactFallbackCollectorArgs
   """
 
-  artifacts = ["WindowsEnvironmentVariableAllUsersProfile"]
+  args_type = ArtifactFallbackCollectorArgs
 
   def Start(self):
     data = rdf_protodict.DataBlob().SetValue("All Users")

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for GRR administrative flows."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_test.end_to_end_tests import test_base
 
@@ -50,4 +51,4 @@ class TestLaunchBinaries(test_base.EndToEndTest):
     f = self.RunFlowAndWait("LaunchBinary", args=args)
 
     logs = "\n".join(l.log_message for l in f.ListLogs())
-    self.assertTrue("Hello world" in logs)
+    self.assertIn("Hello world", logs)

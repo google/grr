@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import collections
@@ -36,8 +37,8 @@ class ClientStatsCollectorTest(absltest.TestCase):
     io_samples = collector.IOSamplesBetween(
         start_time=future, end_time=future + rdfvalue.Duration("25s"))
 
-    self.assertEqual(len(cpu_samples), 3)
-    self.assertEqual(len(io_samples), 3)
+    self.assertLen(cpu_samples, 3)
+    self.assertLen(io_samples, 3)
 
   @mock.patch.object(admin, "GetClientStatsAuto")
   def testFakeSamples(self, mock_get_client_stats_auto):
@@ -55,8 +56,8 @@ class ClientStatsCollectorTest(absltest.TestCase):
       io_samples = collector.IOSamplesBetween(
           start_time=millennium, end_time=millennium + rdfvalue.Duration("25s"))
 
-    self.assertEqual(len(cpu_samples), 3)
-    self.assertEqual(len(io_samples), 3)
+    self.assertLen(cpu_samples, 3)
+    self.assertLen(io_samples, 3)
     for i in range(3):
       expected_timestamp = millennium + rdfvalue.Duration("10s") * i
 
@@ -85,7 +86,7 @@ class ClientStatsCollectorTest(absltest.TestCase):
         start_time=past + rdfvalue.Duration("10m") + rdfvalue.Duration("1s"),
         end_time=past + rdfvalue.Duration("20m"))
 
-    self.assertEqual(len(cpu_samples), 60)
+    self.assertLen(cpu_samples, 60)
     for sample in cpu_samples:
       self.assertLess(past + rdfvalue.Duration("10m"), sample)
       self.assertGreaterEqual(past + rdfvalue.Duration("20m"), sample.timestamp)
@@ -94,7 +95,7 @@ class ClientStatsCollectorTest(absltest.TestCase):
         start_time=past + rdfvalue.Duration("1m") + rdfvalue.Duration("1s"),
         end_time=past + rdfvalue.Duration("2m"))
 
-    self.assertEqual(len(io_samples), 6)
+    self.assertLen(io_samples, 6)
     for sample in io_samples:
       self.assertLess(past + rdfvalue.Duration("1m"), sample.timestamp)
       self.assertGreaterEqual(past + rdfvalue.Duration("2m"), sample.timestamp)
@@ -111,12 +112,12 @@ class ClientStatsCollectorTest(absltest.TestCase):
 
     cpu_samples = collector.CpuSamplesBetween(
         start_time=epoch, end_time=epoch + rdfvalue.Duration("1h"))
-    self.assertEqual(len(cpu_samples), 0)
+    self.assertEmpty(cpu_samples)
 
     io_samples = collector.IOSamplesBetween(
         start_time=epoch + rdfvalue.Duration("30m"),
         end_time=epoch + rdfvalue.Duration("1h") + rdfvalue.Duration("50m"))
-    self.assertEqual(len(io_samples), 0)
+    self.assertEmpty(io_samples)
 
   @mock.patch.object(config, "CONFIG")
   @mock.patch.object(admin.GetClientStatsAuto, "Send")
@@ -139,8 +140,8 @@ class ClientStatsCollectorTest(absltest.TestCase):
         self.assertTrue(response.HasField("cpu_samples"))
         self.assertTrue(response.HasField("io_samples"))
 
-        self.assertEqual(len(response.cpu_samples), 1)
-        self.assertEqual(len(response.io_samples), 1)
+        self.assertLen(response.cpu_samples, 1)
+        self.assertLen(response.io_samples, 1)
 
         self.assertEqual(response.cpu_samples[0].timestamp, today)
         self.assertEqual(response.cpu_samples[0].user_cpu_time,

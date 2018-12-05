@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Unit test for config files."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -44,28 +45,28 @@ class SshdConfigTest(test_lib.GRRBaseTest):
     """Read in the test configuration file."""
     parser = config_file.SshdConfigParser()
     results = list(parser.Parse(None, io.BytesIO(CFG), None))
-    self.assertEqual(1, len(results))
+    self.assertLen(results, 1)
     return results[0]
 
   def testParseConfig(self):
     """Ensure we can extract sshd settings."""
     result = self.GetConfig()
     self.assertTrue(isinstance(result, rdf_config_file.SshdConfig))
-    self.assertItemsEqual([2], result.config.protocol)
+    self.assertCountEqual([2], result.config.protocol)
     expect = ["aes128-ctr", "aes256-ctr", "aes128-cbc", "aes256-cbc"]
-    self.assertItemsEqual(expect, result.config.ciphers)
+    self.assertCountEqual(expect, result.config.ciphers)
 
   def testFindNumericValues(self):
     """Keywords with numeric settings are converted to integers."""
     result = self.GetConfig()
     self.assertEqual(768, result.config.serverkeybits)
-    self.assertItemsEqual([22, 2222, 10222], result.config.port)
+    self.assertCountEqual([22, 2222, 10222], result.config.port)
 
   def testParseMatchGroups(self):
     """Match groups are added to separate sections."""
     result = self.GetConfig()
     # Multiple Match groups found.
-    self.assertEqual(2, len(result.matches))
+    self.assertLen(result.matches, 2)
     # Config options set per Match group.
     block_1, block_2 = result.matches
     self.assertEqual("user root", block_1.criterion)
@@ -94,7 +95,7 @@ class FieldParserTests(test_lib.GRRBaseTest):
         sep=["[ \t\f\v]+", ":", ";"], comments=["#", ";;"])
     results = cfg.ParseEntries(test_data)
     for i, expect in enumerate(expected):
-      self.assertItemsEqual(expect, results[i])
+      self.assertCountEqual(expect, results[i])
 
   def testNoFinalTerminator(self):
     test_data = "you forgot a newline"
@@ -102,18 +103,18 @@ class FieldParserTests(test_lib.GRRBaseTest):
     cfg = config_file.FieldParser()
     results = cfg.ParseEntries(test_data)
     for i, expect in enumerate(expected):
-      self.assertItemsEqual(expect, results[i])
+      self.assertCountEqual(expect, results[i])
 
   def testWhitespaceDoesntNukeNewline(self):
     test_data = "trailing spaces     \nno trailing spaces\n"
     expected = [["trailing", "spaces"], ["no", "trailing", "spaces"]]
     results = config_file.FieldParser().ParseEntries(test_data)
     for i, expect in enumerate(expected):
-      self.assertItemsEqual(expect, results[i])
+      self.assertCountEqual(expect, results[i])
     expected = [["trailing", "spaces", "no", "trailing", "spaces"]]
     results = config_file.FieldParser(sep=r"\s+").ParseEntries(test_data)
     for i, expect in enumerate(expected):
-      self.assertItemsEqual(expect, results[i])
+      self.assertCountEqual(expect, results[i])
 
 
 class KeyValueParserTests(test_lib.GRRBaseTest):
@@ -155,17 +156,17 @@ class NfsExportParserTests(test_lib.GRRBaseTest):
     parser = config_file.NfsExportsParser()
     results = list(parser.Parse(None, exports, None))
     self.assertEqual("/path/to/foo", results[0].share)
-    self.assertItemsEqual(["rw", "sync"], results[0].defaults)
+    self.assertCountEqual(["rw", "sync"], results[0].defaults)
     self.assertEqual("host1", results[0].clients[0].host)
-    self.assertItemsEqual(["ro"], results[0].clients[0].options)
+    self.assertCountEqual(["ro"], results[0].clients[0].options)
     self.assertEqual("host2", results[0].clients[1].host)
-    self.assertItemsEqual([], results[0].clients[1].options)
+    self.assertCountEqual([], results[0].clients[1].options)
     self.assertEqual("/path/to/bar", results[1].share)
-    self.assertItemsEqual(["rw"], results[1].defaults)
+    self.assertCountEqual(["rw"], results[1].defaults)
     self.assertEqual("*.example.org", results[1].clients[0].host)
-    self.assertItemsEqual(["all_squash", "ro"], results[1].clients[0].options)
+    self.assertCountEqual(["all_squash", "ro"], results[1].clients[0].options)
     self.assertEqual("192.168.1.0/24", results[1].clients[1].host)
-    self.assertItemsEqual([], results[1].clients[1].options)
+    self.assertCountEqual([], results[1].clients[1].options)
 
 
 class MtabParserTests(test_lib.GRRBaseTest):
@@ -253,7 +254,7 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
     log_conf = io.BytesIO(test_data)
     parser = config_file.RsyslogParser()
     results = list(parser.ParseMultiple([None], [log_conf], None))
-    self.assertEqual(1, len(results))
+    self.assertLen(results, 1)
     tcp, udp, pipe, null, script, fs, wall, async_fs = [
         target for target in results[0].targets
     ]
@@ -335,7 +336,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     ][0]
 
     self.assertEqual("/etc/apt/sources.list", result.filename)
-    self.assertEqual(5, len(result.uris))
+    self.assertLen(result.uris, 5)
 
     self.assertEqual("http", result.uris[0].transport)
     self.assertEqual("security.debian.org", result.uris[0].host)
@@ -382,7 +383,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     ][0]
 
     self.assertEqual("/etc/apt/sources.list.d/test.list", result.filename)
-    self.assertEqual(0, len(result.uris))
+    self.assertEmpty(result.uris)
 
   def testRFC822StyleSourceDataParser(self):
     """Test source list formated as per rfc822 style."""
@@ -433,7 +434,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     ][0]
 
     self.assertEqual("/etc/apt/sources.list.d/rfc822.list", result.filename)
-    self.assertEqual(11, len(result.uris))
+    self.assertLen(result.uris, 11)
 
     self.assertEqual("ftp", result.uris[0].transport)
     self.assertEqual("security.debian.org", result.uris[0].host)
@@ -515,7 +516,7 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     ][0]
 
     self.assertEqual("/etc/yum.repos.d/test1.repo", result.filename)
-    self.assertEqual(4, len(result.uris))
+    self.assertLen(result.uris, 4)
 
     self.assertEqual("file", result.uris[0].transport)
     self.assertEqual("", result.uris[0].host)
@@ -554,7 +555,7 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     ][0]
 
     self.assertEqual("/etc/yum.repos.d/emptytest.repo", result.filename)
-    self.assertEqual(0, len(result.uris))
+    self.assertEmpty(result.uris)
 
 
 class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
@@ -584,7 +585,7 @@ class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
     self.assertEqual(sorted(["root", "user", "pparth"]), sorted(users))
 
     anomalies = [a for a in results if isinstance(a, rdf_anomaly.Anomaly)]
-    self.assertEqual(1, len(anomalies))
+    self.assertLen(anomalies, 1)
     anom = anomalies[0]
     self.assertEqual("Dodgy entries in /etc/at.allow.", anom.symptom)
     self.assertEqual(sorted(["user2 user3", "hi hello"]), sorted(anom.finding))
@@ -628,7 +629,7 @@ class NtpParserTests(test_lib.GRRBaseTest):
     # We expect some results.
     self.assertTrue(results)
     # There should be only one result.
-    self.assertEqual(1, len(results))
+    self.assertLen(results, 1)
     # Now that we are sure, just use that single result for easy of reading.
     results = results[0]
 
@@ -649,7 +650,7 @@ class NtpParserTests(test_lib.GRRBaseTest):
         "1.2.3.4", "4.5.6.7", "8.9.10.11", "time.google.com",
         "2001:1234:1234:2::f"
     ]
-    self.assertItemsEqual(servers, [r.address for r in results.server])
+    self.assertCountEqual(servers, [r.address for r in results.server])
     # In our test data, they all have "iburst" as an arg. Check that is found.
     for r in results.server:
       self.assertEqual("iburst", r.options)
@@ -659,7 +660,7 @@ class NtpParserTests(test_lib.GRRBaseTest):
     self.assertEqual("/var/log/ntpstats", results.config["statsdir"])
     self.assertEqual("peerstats file peerstats type day link enable",
                      results.config["filegen"])
-    self.assertEqual(1, len(results.restrict))
+    self.assertLen(results.restrict, 1)
     self.assertEqual("default", results.restrict[0].address)
     self.assertEqual("nomodify noquery nopeer", results.restrict[0].options)
     # A option that can have a list of integers.

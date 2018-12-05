@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the flow archive."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -11,6 +12,7 @@ import mock
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_server import data_store
 from grr_response_server import flow
 
 from grr_response_server.flows.general import transfer as flows_transfer
@@ -88,6 +90,9 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent,
                    "Files referenced in this collection can be downloaded")
 
+  # TODO(user): remove decorator below as soon as flow archive generation
+  # is implemented via REL_DB.
+  @db_test_lib.LegacyDataStoreOnly
   def testGenerateArchiveButtonGetsDisabledAfterClick(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
@@ -108,6 +113,9 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=button.DownloadButton[disabled]")
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
+  # TODO(user): remove decorator below as soon as flow archive generation
+  # is implemented via REL_DB.
+  @db_test_lib.LegacyDataStoreOnly
   def testShowsErrorMessageIfArchiveStreamingFailsBeforeFirstChunkIsSent(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
@@ -171,15 +179,16 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=flows_transfer.GetFile.__name__,
-        client_id=self.client_id,
+    session_id = flow_test_lib.TestFlowHelper(
+        flows_transfer.GetFile.__name__,
         pathspec=pathspec,
+        client_mock=self.action_mock,
+        client_id=self.client_id,
         token=self.token)
-    flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
+    if not data_store.RelationalDBFlowsEnabled():
+      session_id = session_id.Basename()
 
-    self.Open("/#/clients/%s/flows/%s" % (self.client_id, flow_urn.Basename()))
+    self.Open("/#/clients/%s/flows/%s" % (self.client_id, session_id))
     self.Click("link=Results")
     self.Select("id=plugin-select", plugin_display_name)
     self.Click("css=grr-download-collection-as button[name='download-as']")
@@ -191,7 +200,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         mock_method.assert_called_with(
             api_flow.ApiGetExportedFlowResultsArgs(
                 client_id=self.client_id,
-                flow_id=flow_urn.Basename(),
+                flow_id=session_id,
                 plugin_name=plugin),
             token=mock.ANY)
 
@@ -202,14 +211,15 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(MockMethodIsCalled)
 
   def testDoesNotShowDownloadAsPanelIfCollectionIsEmpty(self):
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
+    session_id = flow_test_lib.TestFlowHelper(
+        gui_test_lib.RecursiveTestFlow.__name__,
+        client_mock=self.action_mock,
         client_id=self.client_id,
         token=self.token)
-    flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
+    if not data_store.RelationalDBFlowsEnabled():
+      session_id = session_id.Basename()
 
-    self.Open("/#/clients/%s/flows/%s" % (self.client_id, flow_urn.Basename()))
+    self.Open("/#/clients/%s/flows/%s" % (self.client_id, session_id))
     self.Click("link=Results")
 
     self.WaitUntil(self.IsTextPresent, "Value")

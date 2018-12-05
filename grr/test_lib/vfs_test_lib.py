@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """VFS-related test classes."""
 from __future__ import absolute_import
+from __future__ import division
 
 import io
 import os

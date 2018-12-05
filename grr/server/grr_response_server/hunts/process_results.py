@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-"""Cron job to process hunt results.
-
-"""
+"""Cron job to process hunt results."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -68,7 +67,7 @@ class ProcessHuntResultCollectionsCronJob(object):
         return True
     return False
 
-  def LoadPlugins(self, metadata_obj):
+  def LoadPlugins(self, hunt_urn, metadata_obj):
     """Loads plugins from given hunt metadata object."""
 
     output_plugins = metadata_obj.Get(metadata_obj.Schema.OUTPUT_PLUGINS)
@@ -80,19 +79,22 @@ class ProcessHuntResultCollectionsCronJob(object):
     unused_plugins = []
 
     for plugin_def, state in itervalues(output_plugins):
-      if not hasattr(plugin_def, "GetPluginForState"):
-        logging.error("Invalid plugin_def: %s", plugin_def)
-        continue
-      used_plugins.append((plugin_def, plugin_def.GetPluginForState(state)))
+      plugin_cls = plugin_def.GetPluginClass()
+      plugin_obj = plugin_cls(
+          source_urn=rdfvalue.RDFURN(hunt_urn).Add("Results"),
+          args=plugin_def.plugin_args,
+          token=metadata_obj.token)
+      used_plugins.append((plugin_def, plugin_obj, state))
     return output_plugins, used_plugins
 
   def RunPlugins(self, hunt_urn, plugins, results, exceptions_by_plugin):
     """Runs given plugins on a given hunt."""
 
-    for plugin_def, plugin in plugins:
+    for plugin_def, plugin, plugin_state in plugins:
       try:
-        plugin.ProcessResponses(results)
-        plugin.Flush()
+        plugin.ProcessResponses(plugin_state, results)
+        plugin.Flush(plugin_state)
+        plugin.UpdateState(plugin_state)
 
         plugin_status = output_plugin.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_def,
@@ -145,7 +147,7 @@ class ProcessHuntResultCollectionsCronJob(object):
     try:
       with aff4.FACTORY.OpenWithLock(
           metadata_urn, lease_time=600, token=self.token) as metadata_obj:
-        all_plugins, used_plugins = self.LoadPlugins(metadata_obj)
+        all_plugins, used_plugins = self.LoadPlugins(hunt_urn, metadata_obj)
         num_processed = int(
             metadata_obj.Get(metadata_obj.Schema.NUM_PROCESSED_RESULTS))
         for batch in collection.Batch(results, batch_size):

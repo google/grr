@@ -13,6 +13,7 @@ We also set shell=True because that seems to avoid having an extra cmd.exe
 window pop up.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import errno

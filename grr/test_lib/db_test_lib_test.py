@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -16,8 +17,11 @@ class DualDBTestDecoratorTest(test_lib.GRRBaseTest):
   def _IsDBTest(self):
     return self.__class__.__name__.endswith("_RelationalDBEnabled")
 
+  def _IsStableDBTest(self):
+    return self.__class__.__name__.endswith("_StableRelationalDBEnabled")
+
   def _Description(self):
-    if self._IsDBTest():
+    if self._IsDBTest() or self._IsStableDBTest():
       return "RelationalDB enabled"
     else:
       return "RelationalDB disabled"
@@ -25,34 +29,10 @@ class DualDBTestDecoratorTest(test_lib.GRRBaseTest):
   def testRelationalDBReadEnabled(self):
     result = data_store.RelationalDBReadEnabled()
     self.assertEqual(
-        result, self._IsDBTest(), "RelationalDBReadEnabled() is %s for %s" %
-        (result, self._Description()))
-
-  def testRelationalDBFlowsAlwaysDisabled(self):
-    result = data_store.RelationalDBFlowsEnabled()
-    self.assertFalse(
-        result, "RelationalDBFlowsEnabled() is %s for %s" %
-        (result, self._Description()))
-
-
-@db_test_lib.DualFlowTest
-class DualFlowTestDecoratorTest(test_lib.GRRBaseTest):
-  """Test DualDBTest decorator."""
-
-  def _IsDBTest(self):
-    return self.__class__.__name__.endswith("_RelationalFlowsEnabled")
-
-  def _Description(self):
-    if self._IsDBTest():
-      return "RelationalFlows enabled"
-    else:
-      return "RelationalFlows disabled"
-
-  def testRelationalDBReadEnabled(self):
-    result = data_store.RelationalDBReadEnabled()
-    self.assertEqual(
-        result, self._IsDBTest(), "RelationalDBReadEnabled() is %s for %s" %
-        (result, self._Description()))
+        result,
+        self._IsDBTest() or self._IsStableDBTest(),
+        "RelationalDBReadEnabled() is %s for %s" % (result,
+                                                    self._Description()))
 
   def testRelationalDBFlowsEnabled(self):
     result = data_store.RelationalDBFlowsEnabled()

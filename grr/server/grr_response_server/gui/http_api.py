@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """HTTP API logic that ties API call handlers with HTTP routes."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
@@ -427,6 +428,13 @@ class HttpRequestHandler(object):
     # clash with datastore ACL checks.
     # TODO(user): increase token expiry time.
     token = self.BuildToken(request, 60).SetUID()
+
+    # AFF4 edge case: if a user is issuing a request, before they are created
+    # using CreateGRRUser (e.g. in E2E tests or with single sign-on),
+    # AFF4's ReadGRRUsers will NEVER contain the user, because the creation
+    # done in the following lines does not add the user to the /users/
+    # collection. Furthermore, subsequent CreateGrrUserHandler calls fail,
+    # because the user technically already exists.
 
     # We send a blind-write request to ensure that the user object is created
     # for a user specified by the username.

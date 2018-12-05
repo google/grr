@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Output plugins used for testing."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -20,7 +21,7 @@ class DummyHuntTestOutputPlugin(output_plugin.OutputPlugin):
   description = "Dummy do do."
   args_type = processes.ListProcessesArgs
 
-  def ProcessResponses(self, responses):
+  def ProcessResponses(self, state, responses):
     pass
 
 

@@ -7,6 +7,7 @@ baseclass will have the member classes as a dict containing class name by key
 and class as value.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 # The following are abstract base classes

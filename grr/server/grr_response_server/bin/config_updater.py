@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 """Util for modifying the GRR server configuration."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import os
 import sys
 
 
 import builtins
-from future.utils import iterkeys
 import yaml
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -22,16 +21,14 @@ from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import flags
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import repacking
-from grr_response_server import aff4
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import maintenance_utils
 from grr_response_server import rekall_profile_server
 from grr_response_server import server_startup
-from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.bin import config_updater_util
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 parser = flags.PARSER
 parser.description = ("Set configuration parameters for the GRR Server."
@@ -83,17 +80,10 @@ parser_update_user.add_argument(
     help="Reset the password for this user (will prompt for password).")
 
 parser_update_user.add_argument(
-    "--add_labels",
-    default=[],
-    action="append",
-    help="Add labels to the user object. These are used to control access.")
-
-parser_update_user.add_argument(
-    "--delete_labels",
-    default=[],
-    action="append",
-    help="Delete labels from the user object. These are used to control "
-    "access.")
+    "--admin",
+    default=True,
+    action="store_true",
+    help="Make the user an admin, if they aren't already.")
 
 parser_add_user = subparsers.add_parser("add_user", help="Add a new user.")
 
@@ -101,16 +91,10 @@ parser_add_user.add_argument("username", help="Username to create.")
 parser_add_user.add_argument("--password", default=None, help="Set password.")
 
 parser_add_user.add_argument(
-    "--labels",
-    default=[],
-    action="append",
-    help="Create user with labels. These are used to control access.")
-
-parser_add_user.add_argument(
-    "--noadmin",
-    default=False,
+    "--admin",
+    default=True,
     action="store_true",
-    help="Don't create the user as an administrator.")
+    help="Add the user with admin privileges.")
 
 parser_initialize.add_argument(
     "--external_hostname", default=None, help="External hostname to use.")
@@ -203,12 +187,6 @@ parser_repack_clients.add_argument(
 
 def _ExtendWithUploadArgs(upload_parser):
   upload_parser.add_argument("--file", help="The file to upload", required=True)
-  upload_parser.add_argument(
-      "--dest_path",
-      required=False,
-      default=None,
-      help="The destination path to upload the file to, specified in aff4: "
-      "form, e.g. aff4:/config/test.raw")
 
 
 def _ExtendWithUploadSignedArgs(upload_signed_parser):
@@ -216,23 +194,20 @@ def _ExtendWithUploadSignedArgs(upload_signed_parser):
       "--platform",
       required=True,
       choices=maintenance_utils.SUPPORTED_PLATFORMS,
-      default="windows",
       help="The platform the file will be used on. This determines which "
       "signing keys to use, and the path on the server the file will be "
       "uploaded to.")
   upload_signed_parser.add_argument(
-      "--arch",
-      required=True,
-      choices=maintenance_utils.SUPPORTED_ARCHITECTURES,
-      default="amd64",
-      help="The architecture the file will be used on. This determines the "
-      "path on the server the file will be uploaded to.")
+      "--upload_subdirectory",
+      required=False,
+      default="",
+      help="Directory path under which to place an uploaded python-hack "
+      "or executable, e.g for a Windows executable named 'hello.exe', "
+      "if --upload_subdirectory is set to 'test', the path of the "
+      "uploaded binary will be 'windows/test/hello.exe', relative to "
+      "the root path for executables.")
 
 # Upload parsers.
-parser_upload_raw = subparsers.add_parser(
-    "upload_raw", help="Upload a raw file to an aff4 path.")
-
-_ExtendWithUploadArgs(parser_upload_raw)
 
 parser_upload_artifact = subparsers.add_parser(
     "upload_artifact", help="Upload a raw json artifact file.")
@@ -271,38 +246,6 @@ subparsers.add_parser(
     "download_missing_rekall_profiles",
     help="Downloads all Rekall profiles from the repository that are not "
     "currently present in the database.")
-
-set_global_notification = subparsers.add_parser(
-    "set_global_notification",
-    help="Sets a global notification for all GRR users to see.")
-
-set_global_notification.add_argument(
-    "--type",
-    choices=list(iterkeys(aff4_users.GlobalNotification.Type.enum_dict)),
-    default="INFO",
-    help="Global notification type.")
-
-set_global_notification.add_argument(
-    "--header", default="", required=True, help="Global notification header.")
-
-set_global_notification.add_argument(
-    "--content", default="", help="Global notification content.")
-
-set_global_notification.add_argument(
-    "--link", default="", help="Global notification link.")
-
-set_global_notification.add_argument(
-    "--show_from",
-    default="",
-    help="When to start showing the notification (in a "
-    "human-readable format, i.e. 2011-11-01 10:23:00). Timestamp is "
-    "assumed to be in UTC timezone.")
-
-set_global_notification.add_argument(
-    "--duration",
-    default=None,
-    help="How much time the notification is valid (duration in "
-    "human-readable form, i.e. 1h, 1d, etc).")
 
 parser_rotate_key = subparsers.add_parser(
     "rotate_server_key", help="Sets a new server key.")
@@ -360,66 +303,41 @@ def main(argv):
     repacking.TemplateRepacker().RepackAllTemplates(upload=upload, token=token)
 
   elif flags.FLAGS.subparser_name == "show_user":
-    maintenance_utils.ShowUser(flags.FLAGS.username, token=token)
+    if flags.FLAGS.username:
+      print(config_updater_util.GetUserSummary(flags.FLAGS.username))
+    else:
+      print(config_updater_util.GetAllUserSummaries())
 
   elif flags.FLAGS.subparser_name == "update_user":
-    try:
-      maintenance_utils.UpdateUser(
-          flags.FLAGS.username,
-          flags.FLAGS.password,
-          flags.FLAGS.add_labels,
-          flags.FLAGS.delete_labels,
-          token=token)
-    except maintenance_utils.UserError as e:
-      print(e)
+    config_updater_util.UpdateUser(
+        flags.FLAGS.username,
+        password=flags.FLAGS.password,
+        is_admin=flags.FLAGS.admin)
 
   elif flags.FLAGS.subparser_name == "delete_user":
-    maintenance_utils.DeleteUser(flags.FLAGS.username, token=token)
+    config_updater_util.DeleteUser(flags.FLAGS.username)
 
   elif flags.FLAGS.subparser_name == "add_user":
-    labels = []
-    if not flags.FLAGS.noadmin:
-      labels.append("admin")
-
-    if flags.FLAGS.labels:
-      labels.extend(flags.FLAGS.labels)
-
-    try:
-      maintenance_utils.AddUser(
-          flags.FLAGS.username, flags.FLAGS.password, labels, token=token)
-    except maintenance_utils.UserError as e:
-      print(e)
+    config_updater_util.CreateUser(
+        flags.FLAGS.username,
+        password=flags.FLAGS.password,
+        is_admin=flags.FLAGS.admin)
 
   elif flags.FLAGS.subparser_name == "upload_python":
-    python_hack_root_urn = grr_config.CONFIG.Get("Config.python_hack_root")
-    content = open(flags.FLAGS.file, "rb").read(1024 * 1024 * 30)
-    aff4_path = flags.FLAGS.dest_path
-    platform = flags.FLAGS.platform
-    if not aff4_path:
-      aff4_path = python_hack_root_urn.Add(platform.lower()).Add(
-          os.path.basename(flags.FLAGS.file))
-    if not str(aff4_path).startswith(str(python_hack_root_urn)):
-      raise ValueError("AFF4 path must start with %s." % python_hack_root_urn)
-    context = ["Platform:%s" % platform.title(), "Client Context"]
-    maintenance_utils.UploadSignedConfigBlob(
-        content, aff4_path=aff4_path, client_context=context, token=token)
+    config_updater_util.UploadSignedBinary(
+        flags.FLAGS.file,
+        rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK,
+        flags.FLAGS.platform,
+        upload_subdirectory=flags.FLAGS.upload_subdirectory,
+        token=token)
 
   elif flags.FLAGS.subparser_name == "upload_exe":
-    content = open(flags.FLAGS.file, "rb").read(1024 * 1024 * 30)
-    context = ["Platform:%s" % flags.FLAGS.platform.title(), "Client Context"]
-
-    if flags.FLAGS.dest_path:
-      dest_path = rdfvalue.RDFURN(flags.FLAGS.dest_path)
-    else:
-      dest_path = grr_config.CONFIG.Get(
-          "Executables.aff4_path", context=context).Add(
-              os.path.basename(flags.FLAGS.file))
-
-    # Now upload to the destination.
-    maintenance_utils.UploadSignedConfigBlob(
-        content, aff4_path=dest_path, client_context=context, token=token)
-
-    print("Uploaded to %s" % dest_path)
+    config_updater_util.UploadSignedBinary(
+        flags.FLAGS.file,
+        rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
+        flags.FLAGS.platform,
+        upload_subdirectory=flags.FLAGS.upload_subdirectory,
+        token=token)
 
   elif flags.FLAGS.subparser_name == "set_var":
     config = grr_config.CONFIG
@@ -428,13 +346,6 @@ def main(argv):
       flags.FLAGS.val = flags.FLAGS.val[1:-1].split(",")
     config.Set(flags.FLAGS.var, flags.FLAGS.val)
     config.Write()
-
-  elif flags.FLAGS.subparser_name == "upload_raw":
-    if not flags.FLAGS.dest_path:
-      flags.FLAGS.dest_path = aff4.ROOT_URN.Add("config").Add("raw")
-    uploaded = config_updater_util.UploadRaw(
-        flags.FLAGS.file, flags.FLAGS.dest_path, token=token)
-    print("Uploaded to %s" % uploaded)
 
   elif flags.FLAGS.subparser_name == "upload_artifact":
     yaml.load(open(flags.FLAGS.file, "rb"))  # Check it will parse.
@@ -457,28 +368,6 @@ def main(argv):
     s = rekall_profile_server.GRRRekallProfileServer()
     s.GetMissingProfiles()
 
-  elif flags.FLAGS.subparser_name == "set_global_notification":
-    notification = aff4_users.GlobalNotification(
-        type=flags.FLAGS.type,
-        header=flags.FLAGS.header,
-        content=flags.FLAGS.content,
-        link=flags.FLAGS.link)
-    if flags.FLAGS.show_from:
-      notification.show_from = rdfvalue.RDFDatetime().ParseFromHumanReadable(
-          flags.FLAGS.show_from)
-    if flags.FLAGS.duration:
-      notification.duration = rdfvalue.Duration().ParseFromHumanReadable(
-          flags.FLAGS.duration)
-
-    print("Setting global notification.")
-    print(notification)
-
-    with aff4.FACTORY.Create(
-        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-        aff4_type=aff4_users.GlobalNotificationStorage,
-        mode="rw",
-        token=token) as storage:
-      storage.AddNotification(notification)
   elif flags.FLAGS.subparser_name == "rotate_server_key":
     print("""
 You are about to rotate the server key. Note that:

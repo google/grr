@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -101,7 +102,7 @@ class DatabaseTestClientsMixin(object):
         fleetspeak_enabled=False)
 
     res = d.MultiReadClientMetadata([client_id_1, client_id_2])
-    self.assertEqual(len(res), 2)
+    self.assertLen(res, 2)
 
     m1 = res[client_id_1]
     self.assertIsInstance(m1, rdf_objects.ClientMetadata)
@@ -124,7 +125,7 @@ class DatabaseTestClientsMixin(object):
         last_ping=rdfvalue.RDFDatetime(100000031),
         fleetspeak_enabled=False)
     res = self.db.MultiReadClientMetadata([client_id])
-    self.assertEqual(len(res), 1)
+    self.assertLen(res, 1)
     m1 = res[client_id]
     self.assertEqual(m1.first_seen, rdfvalue.RDFDatetime(100000001))
     self.assertEqual(m1.clock, rdfvalue.RDFDatetime(100000011))
@@ -146,7 +147,7 @@ class DatabaseTestClientsMixin(object):
         last_foreman=rdfvalue.RDFDatetime(220000000000))
 
     res = d.MultiReadClientMetadata([client_id])
-    self.assertEqual(len(res), 1)
+    self.assertLen(res, 1)
     m1 = res[client_id]
     self.assertIsInstance(m1, rdf_objects.ClientMetadata)
     self.assertTrue(m1.fleetspeak_enabled)
@@ -166,7 +167,7 @@ class DatabaseTestClientsMixin(object):
 
   def testReadAllClientIDsEmpty(self):
     result = list(self.db.ReadAllClientIDs())
-    self.assertItemsEqual(result, [])
+    self.assertCountEqual(result, [])
 
   def testReadAllClientIDsSome(self):
     client_a_id = self.InitializeClient()
@@ -174,7 +175,7 @@ class DatabaseTestClientsMixin(object):
     client_c_id = self.InitializeClient()
 
     result = list(self.db.ReadAllClientIDs())
-    self.assertItemsEqual(result, [client_a_id, client_b_id, client_c_id])
+    self.assertCountEqual(result, [client_a_id, client_b_id, client_c_id])
 
   def _SetUpReadClientSnapshotHistoryTest(self):
     d = self.db
@@ -204,7 +205,7 @@ class DatabaseTestClientsMixin(object):
     self._SetUpReadClientSnapshotHistoryTest()
 
     hist = d.ReadClientSnapshotHistory(self.client_id)
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertIsInstance(hist[0], rdf_objects.ClientSnapshot)
     self.assertIsInstance(hist[1], rdf_objects.ClientSnapshot)
     self.assertGreater(hist[0].timestamp, hist[1].timestamp)
@@ -218,7 +219,7 @@ class DatabaseTestClientsMixin(object):
     self._SetUpReadClientSnapshotHistoryTest()
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(None, None))
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertEqual(hist[0].kernel, "12.4")
     self.assertEqual(hist[1].kernel, "12.3")
 
@@ -228,15 +229,15 @@ class DatabaseTestClientsMixin(object):
     ts = self._SetUpReadClientSnapshotHistoryTest()
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(ts[0], ts[2]))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].kernel, "12.3")
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(ts[2], ts[4]))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].kernel, "12.4")
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(ts[0], ts[4]))
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertEqual(hist[0].kernel, "12.4")
     self.assertEqual(hist[1].kernel, "12.3")
 
@@ -246,16 +247,16 @@ class DatabaseTestClientsMixin(object):
     ts = self._SetUpReadClientSnapshotHistoryTest()
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(ts[0], None))
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertEqual(hist[0].kernel, "12.4")
     self.assertEqual(hist[1].kernel, "12.3")
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(ts[2], None))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].kernel, "12.4")
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(ts[4], None))
-    self.assertEqual(len(hist), 0)
+    self.assertEmpty(hist)
 
   def testReadClientSnapshotHistoryWithTimerangeWithToOnly(self):
     d = self.db
@@ -263,14 +264,14 @@ class DatabaseTestClientsMixin(object):
     ts = self._SetUpReadClientSnapshotHistoryTest()
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(None, ts[0]))
-    self.assertEqual(len(hist), 0)
+    self.assertEmpty(hist)
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(None, ts[2]))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].kernel, "12.3")
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(None, ts[4]))
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertEqual(hist[0].kernel, "12.4")
     self.assertEqual(hist[1].kernel, "12.3")
 
@@ -283,15 +284,15 @@ class DatabaseTestClientsMixin(object):
     ts = self._SetUpReadClientSnapshotHistoryTest()
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(ts[1], ts[1]))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].kernel, "12.3")
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(ts[1], ts[2]))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].kernel, "12.3")
 
     hist = d.ReadClientSnapshotHistory(self.client_id, timerange=(ts[1], ts[3]))
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertEqual(hist[0].kernel, "12.4")
     self.assertEqual(hist[1].kernel, "12.3")
 
@@ -317,7 +318,7 @@ class DatabaseTestClientsMixin(object):
 
     # Check whether the client history has been recorded correctly.
     history = self.db.ReadClientSnapshotHistory(client_id)
-    self.assertEqual(len(history), 3)
+    self.assertLen(history, 3)
 
     self.assertEqual(history[0].kernel, "7.8.9")
     self.assertEqual(history[0].startup_info.client_info.client_version, 707)
@@ -336,7 +337,7 @@ class DatabaseTestClientsMixin(object):
 
     # Check whether the snapshot history has been recorded correctly.
     history = self.db.ReadClientStartupInfoHistory(client_id)
-    self.assertEqual(len(history), 3)
+    self.assertLen(history, 3)
 
     self.assertEqual(history[0].client_info.client_version, 707)
     self.assertEqual(history[0].timestamp,
@@ -504,13 +505,13 @@ class DatabaseTestClientsMixin(object):
     d.WriteClientSnapshot(client)
 
     hist = d.ReadClientSnapshotHistory(client_id)
-    self.assertEqual(len(hist), 3)
+    self.assertLen(hist, 3)
     startup_infos = [cl.startup_info for cl in hist]
     self.assertEqual([si.boot_time for si in startup_infos], [125, 124, 123])
 
     # StartupInfos written using WriteClient show up in the StartupInfoHistory.
     history = d.ReadClientStartupInfoHistory(client_id)
-    self.assertEqual(len(history), 3)
+    self.assertLen(history, 3)
     self.assertEqual(startup_infos, history)
 
   def testClientSummary(self):
@@ -541,11 +542,11 @@ class DatabaseTestClientsMixin(object):
             kernel="12.4"))
 
     hist = d.ReadClientSnapshotHistory(client_id_1)
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
 
     # client_3 should be excluded - no snapshot yet
     res = d.MultiReadClientSnapshot([client_id_1, client_id_2, client_id_3])
-    self.assertEqual(len(res), 3)
+    self.assertLen(res, 3)
     self.assertIsInstance(res[client_id_1], rdf_objects.ClientSnapshot)
     self.assertIsInstance(res[client_id_2], rdf_objects.ClientSnapshot)
     self.assertIsInstance(res[client_id_1].timestamp, rdfvalue.RDFDatetime)
@@ -583,7 +584,7 @@ class DatabaseTestClientsMixin(object):
 
     res = d.ListClientsForKeywords(["fred", "machine", "missing"])
     self.assertEqual(res["fred"], [client_id_2])
-    self.assertItemsEqual(res["machine"], [client_id_1, client_id_2])
+    self.assertCountEqual(res["machine"], [client_id_1, client_id_2])
     self.assertEqual(res["missing"], [])
 
     for kw, client_id in [("⊙_ʘ", client_id_1), ("ಠ_ಠ", client_id_2)]:
@@ -744,7 +745,7 @@ class DatabaseTestClientsMixin(object):
     d.WriteClientStartupInfo(client_id, rdf_client.StartupInfo(boot_time=3))
 
     hist = d.ReadClientStartupInfoHistory(client_id)
-    self.assertEqual(len(hist), 3)
+    self.assertLen(hist, 3)
     self.assertEqual([si.boot_time for si in hist], [3, 2, 1])
     self.assertIsInstance(hist[0].timestamp, rdfvalue.RDFDatetime)
     self.assertGreater(hist[0].timestamp, hist[1].timestamp)
@@ -785,7 +786,7 @@ class DatabaseTestClientsMixin(object):
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(None, None))
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertEqual(hist[0].boot_time, 2)
     self.assertEqual(hist[1].boot_time, 1)
 
@@ -796,17 +797,17 @@ class DatabaseTestClientsMixin(object):
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(ts[0], ts[2]))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].boot_time, 1)
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(ts[2], ts[4]))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].boot_time, 2)
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(ts[0], ts[4]))
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertEqual(hist[0].boot_time, 2)
     self.assertEqual(hist[1].boot_time, 1)
 
@@ -817,18 +818,18 @@ class DatabaseTestClientsMixin(object):
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(ts[0], None))
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertEqual(hist[0].boot_time, 2)
     self.assertEqual(hist[1].boot_time, 1)
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(ts[2], None))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].boot_time, 2)
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(ts[4], None))
-    self.assertEqual(len(hist), 0)
+    self.assertEmpty(hist)
 
   def testReadClientStartupInfoHistoryWithTimerangeWithToOnly(self):
     d = self.db
@@ -837,16 +838,16 @@ class DatabaseTestClientsMixin(object):
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(None, ts[0]))
-    self.assertEqual(len(hist), 0)
+    self.assertEmpty(hist)
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(None, ts[2]))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].boot_time, 1)
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(None, ts[4]))
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertEqual(hist[0].boot_time, 2)
     self.assertEqual(hist[1].boot_time, 1)
 
@@ -860,17 +861,17 @@ class DatabaseTestClientsMixin(object):
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(ts[1], ts[1]))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].boot_time, 1)
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(ts[1], ts[2]))
-    self.assertEqual(len(hist), 1)
+    self.assertLen(hist, 1)
     self.assertEqual(hist[0].boot_time, 1)
 
     hist = d.ReadClientStartupInfoHistory(
         self.client_id, timerange=(ts[1], ts[3]))
-    self.assertEqual(len(hist), 2)
+    self.assertLen(hist, 2)
     self.assertEqual(hist[0].boot_time, 2)
     self.assertEqual(hist[1].boot_time, 1)
 
@@ -892,7 +893,7 @@ class DatabaseTestClientsMixin(object):
     self.assertIsInstance(last_is.timestamp, rdfvalue.RDFDatetime)
 
     hist = d.ReadClientCrashInfoHistory(client_id)
-    self.assertEqual(len(hist), 3)
+    self.assertLen(hist, 3)
     self.assertEqual([ci.crash_message for ci in hist],
                      ["Crash #3", "Crash #2", "Crash #1"])
     self.assertIsInstance(hist[0].timestamp, rdfvalue.RDFDatetime)
@@ -956,7 +957,7 @@ class DatabaseTestClientsMixin(object):
 
   def _VerifySnapshots(self, snapshots):
     snapshots = sorted(snapshots, key=lambda s: s.client_id)
-    self.assertEqual(len(snapshots), 10)
+    self.assertLen(snapshots, 10)
     for i, s in enumerate(snapshots):
       self.assertEqual(s.client_id, "C.000000005000000%d" % i)
       self.assertEqual(s.knowledge_base.fqdn, "test%d.examples.com" % i)
@@ -1022,7 +1023,7 @@ class DatabaseTestClientsMixin(object):
     ]
     full_infos = d.MultiReadClientFullInfo(
         list(iterkeys(client_ids_to_ping)), min_last_ping=cutoff_time)
-    self.assertItemsEqual(expected_client_ids, full_infos)
+    self.assertCountEqual(expected_client_ids, full_infos)
 
   def testMultiReadClientsFullInfoSkipsMissingClients(self):
     d = self.db

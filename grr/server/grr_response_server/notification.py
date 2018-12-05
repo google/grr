@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Module containing code for user notifications reading/writing."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -216,4 +217,5 @@ def Notify(username, notification_type, message, object_reference):
   if data_store.RelationalDBReadEnabled():
     _Notify(username, notification_type, message, object_reference)
 
-  _NotifyLegacy(username, notification_type, message, object_reference)
+  if data_store.AFF4Enabled():
+    _NotifyLegacy(username, notification_type, message, object_reference)

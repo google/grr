@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Output_plugin related rdf values."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -31,11 +32,6 @@ class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
     plugin_cls = self.GetPluginClass()
     if plugin_cls:
       return plugin_cls.args_type
-
-  def GetPluginForState(self, plugin_state):
-    cls = registry.OutputPluginRegistry.PluginClassByName(self.plugin_name)
-
-    return cls(None, state=plugin_state)
 
   def __str__(self):
     result = self.plugin_name

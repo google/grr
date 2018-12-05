@@ -2,6 +2,7 @@
 """Unit test for the linux sysctl parser."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -30,15 +31,15 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
     self.assertEqual("sshd", result.name)
     self.assertEqual("OpenBSD Secure Shell server", result.description)
     self.assertEqual("INIT", result.start_mode)
-    self.assertItemsEqual([2, 3, 4, 5], result.start_on)
-    self.assertItemsEqual([1], result.stop_on)
-    self.assertItemsEqual([
+    self.assertCountEqual([2, 3, 4, 5], result.start_on)
+    self.assertCountEqual([1], result.stop_on)
+    self.assertCountEqual([
         "umountfs", "umountnfs", "sendsigs", "rsyslog", "sysklogd", "syslog-ng",
         "dsyslog", "inetutils-syslogd"
     ], result.start_after)
-    self.assertItemsEqual(
-        ["rsyslog", "sysklogd", "syslog-ng", "dsyslog",
-         "inetutils-syslogd"], result.stop_after)
+    self.assertCountEqual(
+        ["rsyslog", "sysklogd", "syslog-ng", "dsyslog", "inetutils-syslogd"],
+        result.stop_after)
 
   def testSkipBadLSBInit(self):
     """Bad Init entries fail gracefully."""
@@ -67,8 +68,8 @@ class LinuxXinetdParserTest(test_lib.GRRBaseTest):
 
     parser = linux_service_parser.LinuxXinetdParser()
     results = list(parser.ParseMultiple(stats, files, None))
-    self.assertEqual(2, len(results))
-    self.assertItemsEqual(["forwarder", "telnet"], [r.name for r in results])
+    self.assertLen(results, 2)
+    self.assertCountEqual(["forwarder", "telnet"], [r.name for r in results])
     for rslt in results:
       self.assertFalse(rslt.start_on)
       self.assertFalse(rslt.stop_on)
@@ -79,7 +80,7 @@ class LinuxXinetdParserTest(test_lib.GRRBaseTest):
         self.assertFalse(rslt.starts)
       else:
         self.assertEqual("XINETD", str(rslt.start_mode))
-        self.assertItemsEqual(["xinetd"], list(rslt.start_after))
+        self.assertCountEqual(["xinetd"], list(rslt.start_after))
         self.assertTrue(rslt.starts)
 
 
@@ -117,17 +118,17 @@ class LinuxSysVInitParserTest(test_lib.GRRBaseTest):
         for s in self.results
         if isinstance(s, rdf_client.LinuxServiceInformation)
     }
-    self.assertEqual(5, len(services))
-    self.assertItemsEqual(["single", "ssh", "ntp", "ufw", "firewall"], services)
-    self.assertItemsEqual([2], services["ssh"].start_on)
-    self.assertItemsEqual([1, 6], services["ssh"].stop_on)
+    self.assertLen(services, 5)
+    self.assertCountEqual(["single", "ssh", "ntp", "ufw", "firewall"], services)
+    self.assertCountEqual([2], services["ssh"].start_on)
+    self.assertCountEqual([1, 6], services["ssh"].stop_on)
     self.assertTrue(services["ssh"].starts)
-    self.assertItemsEqual([1], services["firewall"].start_on)
+    self.assertCountEqual([1], services["firewall"].start_on)
     self.assertTrue(services["firewall"].starts)
 
   def testDetectAnomalies(self):
     anomalies = [a for a in self.results if isinstance(a, rdf_anomaly.Anomaly)]
-    self.assertEqual(1, len(anomalies))
+    self.assertLen(anomalies, 1)
     rslt = anomalies[0]
     self.assertEqual("Startup script is not a symlink.", rslt.explanation)
     self.assertEqual(["/etc/rc2.d/S20ssh"], rslt.finding)

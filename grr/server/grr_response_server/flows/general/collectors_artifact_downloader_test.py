@@ -5,6 +5,7 @@ These test cover the artifact downloader functionality which downloads files
 referenced by artifacts.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
@@ -19,7 +20,7 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualFlowTest
+@db_test_lib.DualDBTest
 class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
@@ -112,9 +113,9 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     results = self.RunFlow(client_id)
 
-    self.assertEquals(len(results), 1)
-    self.assertEquals(results[0].found_pathspec,
-                      self.collector_replies[0].pathspec)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].found_pathspec,
+                     self.collector_replies[0].pathspec)
 
   def testSendsReplyEvenIfNoPathsAreGuessed(self):
     client_id = self.SetupClient(0)
@@ -125,8 +126,8 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     results = self.RunFlow(client_id)
 
-    self.assertEquals(len(results), 1)
-    self.assertEquals(results[0].original_result, self.collector_replies[0])
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].original_result, self.collector_replies[0])
     self.assertFalse(results[0].HasField("found_pathspec"))
     self.assertFalse(results[0].HasField("downloaded_file"))
 
@@ -142,8 +143,8 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     results = self.RunFlow(client_id)
 
-    self.assertEquals(len(results), 1)
-    self.assertEquals(
+    self.assertLen(results, 1)
+    self.assertEqual(
         results[0].found_pathspec,
         rdf_paths.PathSpec(path="C:\\Windows\\bar.exe", pathtype="OS"))
     self.assertFalse(results[0].HasField("downloaded_file"))
@@ -158,8 +159,8 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     results = self.RunFlow(client_id)
 
-    self.assertEquals(len(results), 1)
-    self.assertEquals(results[0].downloaded_file, self.received_files[0])
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].downloaded_file, self.received_files[0])
 
 
 def main(argv):

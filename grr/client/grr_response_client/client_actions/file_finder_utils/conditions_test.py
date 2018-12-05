@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -401,7 +402,7 @@ class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
     condition = conditions.LiteralMatchCondition(params)
 
     results = list(condition.Search(self.temp_filepath))
-    self.assertEqual(len(results), 2)
+    self.assertLen(results, 2)
     self.assertEqual(results[0].data, "foo")
     self.assertEqual(results[0].offset, 0)
     self.assertEqual(results[0].length, 3)
@@ -419,7 +420,7 @@ class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
     condition = conditions.LiteralMatchCondition(params)
 
     results = list(condition.Search(self.temp_filepath))
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].data, "foo")
     self.assertEqual(results[0].offset, 4)
     self.assertEqual(results[0].length, 3)
@@ -436,7 +437,7 @@ class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
     condition = conditions.LiteralMatchCondition(params)
 
     results = list(condition.Search(self.temp_filepath))
-    self.assertEqual(len(results), 3)
+    self.assertLen(results, 3)
     self.assertEqual(results[0].data, "foo f")
     self.assertEqual(results[0].offset, 0)
     self.assertEqual(results[0].length, 5)
@@ -458,7 +459,7 @@ class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
     condition = conditions.LiteralMatchCondition(params)
 
     results = list(condition.Search(self.temp_filepath))
-    self.assertEqual(len(results), 2)
+    self.assertLen(results, 2)
     self.assertEqual(results[0].data, "ooo")
     self.assertEqual(results[0].offset, 2)
     self.assertEqual(results[0].length, 3)
@@ -491,7 +492,7 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
     condition = conditions.RegexMatchCondition(params)
 
     results = list(condition.Search(self.temp_filepath))
-    self.assertEqual(len(results), 3)
+    self.assertLen(results, 3)
     self.assertEqual(results[0].data, "7")
     self.assertEqual(results[0].offset, 4)
     self.assertEqual(results[0].length, 1)
@@ -512,7 +513,7 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
     condition = conditions.RegexMatchCondition(params)
 
     results = list(condition.Search(self.temp_filepath))
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].data, "foo")
     self.assertEqual(results[0].offset, 16)
     self.assertEqual(results[0].length, 3)
@@ -529,7 +530,7 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
     condition = conditions.RegexMatchCondition(params)
 
     results = list(condition.Search(self.temp_filepath))
-    self.assertEqual(len(results), 2)
+    self.assertLen(results, 2)
     self.assertEqual(results[0].data, "foobarbazb")
     self.assertEqual(results[0].offset, 0)
     self.assertEqual(results[0].length, 10)
@@ -548,7 +549,7 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
     condition = conditions.RegexMatchCondition(params)
 
     results = list(condition.Search(self.temp_filepath))
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].data, "oooo")
     self.assertEqual(results[0].offset, 3)
     self.assertEqual(results[0].length, 4)

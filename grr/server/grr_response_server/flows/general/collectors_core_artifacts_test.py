@@ -5,6 +5,7 @@ These tests ensure some key artifacts are working, particularly those used for
 windows interrogate, which is the most complex platform for interrogate.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -22,20 +23,17 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import artifact_registry
 from grr_response_server import client_fixture
-from grr_response_server import flow
-# TODO(user): remove the unused import.
-# pylint: disable=unused-import
-from grr_response_server.flows.general import artifact_fallbacks
-# pylint: enable=unused-import
 from grr_response_server.flows.general import collectors
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
   """Test the collection of real artifacts."""
 
@@ -66,9 +64,9 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         token=self.token,
         client_id=client_id)
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertEqual(len(fd), 1)
-    self.assertEqual(str(fd[0]), "C:")
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
+    self.assertLen(results, 1)
+    self.assertEqual(str(results[0]), "C:")
 
     session_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
@@ -77,10 +75,10 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         token=self.token,
         client_id=client_id)
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertEqual(len(fd), 1)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
+    self.assertLen(results, 1)
     # Filesystem gives WINDOWS, registry gives Windows
-    self.assertTrue(str(fd[0]) in [r"C:\Windows", r"C:\WINDOWS"])
+    self.assertIn(str(results[0]), [r"C:\Windows", r"C:\WINDOWS"])
 
   @parser_test_lib.WithParser("WinSystemDrive",
                               windows_registry_parser.WinSystemDriveParser)
@@ -99,12 +97,13 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
 
     # No registry, broken filesystem, this should just raise.
     with self.assertRaises(RuntimeError):
-      flow_test_lib.TestFlowHelper(
-          collectors.ArtifactCollectorFlow.__name__,
-          BrokenClientMock(),
-          artifact_list=["WindowsEnvironmentVariableSystemDrive"],
-          token=self.token,
-          client_id=client_id)
+      with test_lib.SuppressLogs():
+        flow_test_lib.TestFlowHelper(
+            collectors.ArtifactCollectorFlow.__name__,
+            BrokenClientMock(),
+            artifact_list=["WindowsEnvironmentVariableSystemDrive"],
+            token=self.token,
+            client_id=client_id)
 
     # No registry, so this should use the fallback flow
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
@@ -144,10 +143,10 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         dependencies=(
             rdf_artifacts.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS))
 
-    results = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertEqual(len(results), 1)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
+    self.assertLen(results, 1)
     hardware = results[0]
-    self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
+    self.assertIsInstance(hardware, rdf_client.HardwareInfo)
     self.assertEqual(str(hardware.serial_number), "2RXYYZ1")
     self.assertEqual(str(hardware.system_manufacturer), "Dell Inc.")
 
@@ -171,11 +170,11 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         dependencies=(
             rdf_artifacts.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS))
 
-    results = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertEqual(len(results), 2)
+    results = flow_test_lib.GetFlowResults(client_id, session_id)
+    self.assertLen(results, 2)
     for result in results:
-      self.assertTrue(isinstance(result, rdf_client_fs.Volume))
-      self.assertTrue(result.windowsvolume.drive_letter in ["Z:", "C:"])
+      self.assertIsInstance(result, rdf_client_fs.Volume)
+      self.assertIn(result.windowsvolume.drive_letter, ["Z:", "C:"])
       if result.windowsvolume.drive_letter == "C:":
         self.assertAlmostEqual(result.FreeSpacePercent(), 76.142, delta=0.001)
         self.assertEqual(result.Name(), "C:")
@@ -209,7 +208,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
     # Make sure the artifact's base_object made it into the WmiQuery call.
     artifact_obj = artifact_registry.REGISTRY.GetArtifact(
         "WMIActiveScriptEventConsumer")
-    self.assertItemsEqual(WMIActionMock.base_objects,
+    self.assertCountEqual(WMIActionMock.base_objects,
                           [artifact_obj.sources[0].attributes["base_object"]])
 
 

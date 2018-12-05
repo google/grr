@@ -2,19 +2,22 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the fileview interface."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_server import aff4
-from grr_response_server import flow
+from grr_response_server import data_store
+from grr_response_server import flow_base
 from grr_response_server import notification
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins.client import ApiSearchClientsHandler
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import db_test_lib
+from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
@@ -25,53 +28,55 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
   @classmethod
   def GenerateNotifications(cls, client_id, token):
     """Generates fake notifications of different notification types."""
-    session_id = flow.StartAFF4Flow(
-        client_id=client_id,
-        flow_name=discovery.Interrogate.__name__,
+    session_id = flow_test_lib.StartFlow(
+        discovery.Interrogate, client_id=client_id, creator=token.username)
+
+    notification.Notify(
+        token.username,
+        rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+        "Fake discovery message",
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.CLIENT,
+            client=rdf_objects.ClientReference(client_id=client_id.Basename())))
+
+    # ViewObject: VirtualFileSystem
+    notification.Notify(
+        token.username,
+        rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
+        "File fetch completed",
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+            vfs_file=rdf_objects.VfsFileReference(
+                client_id=client_id.Basename(),
+                path_type=rdf_objects.PathInfo.PathType.OS,
+                path_components=["proc", "10", "exe"])))
+
+    gui_test_lib.CreateFileVersion(
+        client_id,
+        "fs/os/proc/10/exe",
+        b"",
+        timestamp=gui_test_lib.TIME_0,
         token=token)
 
-    with aff4.FACTORY.Open(session_id, mode="rw", token=token) as flow_obj:
-      notification.Notify(
-          token.username,
-          rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
-          "Fake discovery message",
-          rdf_objects.ObjectReference(
-              reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-              client=rdf_objects.ClientReference(
-                  client_id=client_id.Basename())))
+    # ViewObject: Flow
+    notification.Notify(
+        token.username,
+        rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+        "Fake view flow message",
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.FLOW,
+            flow=rdf_objects.FlowReference(
+                client_id=client_id.Basename(), flow_id=session_id)))
 
-      # ViewObject: VirtualFileSystem
-      notification.Notify(
-          token.username,
-          rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
-          "File fetch completed",
-          rdf_objects.ObjectReference(
-              reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
-              vfs_file=rdf_objects.VfsFileReference(
-                  client_id=client_id.Basename(),
-                  path_type=rdf_objects.PathInfo.PathType.OS,
-                  path_components=["proc", "10", "exe"])))
-
-      gui_test_lib.CreateFileVersion(
-          client_id,
-          "fs/os/proc/10/exe",
-          b"",
-          timestamp=gui_test_lib.TIME_0,
-          token=token)
-
-      # ViewObject: Flow
-      notification.Notify(
-          token.username,
-          rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
-          "Fake view flow message",
-          rdf_objects.ObjectReference(
-              reference_type=rdf_objects.ObjectReference.Type.FLOW,
-              flow=rdf_objects.FlowReference(
-                  client_id=client_id.Basename(),
-                  flow_id=flow_obj.urn.Basename())))
-
-      # FlowError
-      flow_obj.GetRunner().Error("Fake flow error")
+    # FlowError
+    if data_store.RelationalDBFlowsEnabled():
+      flow_base.TerminateFlow(client_id.Basename(), session_id,
+                              "Fake flow error")
+    else:
+      with aff4.FACTORY.Open(
+          client_id.Add("flows").Add(session_id), mode="rw",
+          token=token) as flow_obj:
+        flow_obj.GetRunner().Error("Fake flow error")
 
     return session_id
 

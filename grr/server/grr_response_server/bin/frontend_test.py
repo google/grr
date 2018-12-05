@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Unittest for grr http server."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
@@ -28,7 +29,6 @@ from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server import db
 from grr_response_server import file_store
-from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore
 from grr_response_server.bin import frontend
@@ -96,7 +96,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
   def testServerPem(self):
     req = requests.get(self.base_url + "server.pem")
     self.assertEqual(req.status_code, 200)
-    self.assertTrue("BEGIN CERTIFICATE" in req.content)
+    self.assertIn("BEGIN CERTIFICATE", req.content)
 
   def _RunClientFileFinder(self,
                            paths,
@@ -124,14 +124,13 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     action = rdf_file_finder.FileFinderAction.Download()
 
     session_id = self._RunClientFileFinder(paths, action)
-    collection = flow.GRRFlow.ResultCollectionForFID(session_id)
-    results = list(collection)
-    self.assertEqual(len(results), 5)
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    self.assertLen(results, 5)
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in results
     ]
-    self.assertItemsEqual(relpaths, [
+    self.assertCountEqual(relpaths, [
         "History.plist", "History.xml.plist", "test.plist",
         "parser_test/com.google.code.grr.plist",
         "parser_test/InstallHistory.plist"
@@ -173,14 +172,13 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         oversized_file_policy="DOWNLOAD_TRUNCATED", max_size=300)
 
     session_id = self._RunClientFileFinder(paths, action)
-    collection = flow.GRRFlow.ResultCollectionForFID(session_id)
-    results = list(collection)
-    self.assertEqual(len(results), 5)
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    self.assertLen(results, 5)
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in results
     ]
-    self.assertItemsEqual(relpaths, [
+    self.assertCountEqual(relpaths, [
         "History.plist", "History.xml.plist", "test.plist",
         "parser_test/com.google.code.grr.plist",
         "parser_test/InstallHistory.plist"
@@ -200,8 +198,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         oversized_file_policy="SKIP", max_size=300)
 
     session_id = self._RunClientFileFinder(paths, action)
-    collection = flow.GRRFlow.ResultCollectionForFID(session_id)
-    results = list(collection)
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
 
     skipped = []
     uploaded = []
@@ -211,14 +208,14 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       else:
         skipped.append(result)
 
-    self.assertEqual(len(uploaded), 2)
-    self.assertEqual(len(skipped), 3)
+    self.assertLen(uploaded, 2)
+    self.assertLen(skipped, 3)
 
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in uploaded
     ]
-    self.assertItemsEqual(relpaths, ["History.plist", "test.plist"])
+    self.assertCountEqual(relpaths, ["History.plist", "test.plist"])
 
     for r in uploaded:
       aff4_obj = aff4.FACTORY.Open(
@@ -236,18 +233,17 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         c: self._RunClientFileFinder(paths, action, client_id=c)
         for c in client_ids
     }
-    collections = {
-        c: flow.GRRFlow.ResultCollectionForFID(session_id)
+    results_per_client = {
+        c: flow_test_lib.GetFlowResults(c, session_id)
         for c, session_id in iteritems(session_ids)
     }
-    for client_id, collection in iteritems(collections):
-      results = list(collection)
-      self.assertEqual(len(results), 5)
+    for client_id, results in iteritems(results_per_client):
+      self.assertLen(results, 5)
       relpaths = [
           os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
           for p in results
       ]
-      self.assertItemsEqual(relpaths, [
+      self.assertCountEqual(relpaths, [
           "History.plist", "History.xml.plist", "test.plist",
           "parser_test/com.google.code.grr.plist",
           "parser_test/InstallHistory.plist"

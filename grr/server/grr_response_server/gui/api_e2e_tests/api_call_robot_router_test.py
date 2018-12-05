@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API E2E tests for ApiCallRobotRouter."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -50,9 +51,8 @@ users:
     with open(router_config_file, "wb") as fd:
       fd.write(router_config)
 
-    self.config_overrider = test_lib.ConfigOverrider({
-        "API.RouterACLConfigFile": router_config_file
-    })
+    self.config_overrider = test_lib.ConfigOverrider(
+        {"API.RouterACLConfigFile": router_config_file})
     self.config_overrider.Start()
 
     # Force creation of new APIAuthorizationManager, so that configuration
@@ -107,9 +107,9 @@ users:
 
     # Check that we got 3 results (we downloaded 3 files).
     results = list(flow_obj.ListResults())
-    self.assertEqual(len(results), 3)
+    self.assertLen(results, 3)
     # We expect results to be FileFinderResult.
-    self.assertItemsEqual(
+    self.assertCountEqual(
         [os.path.basename(r.payload.stat_entry.pathspec.path) for r in results],
         ["test.plist", "numbers.txt", "numbers.txt.ver2"])
 
@@ -123,7 +123,7 @@ users:
     # There should be 3 items in the archive: the hash of the "test.plist"
     # file, the symlink to this hash and the MANIFEST file.
     namelist = zip_fd.namelist()
-    self.assertEqual(len(namelist), 3)
+    self.assertLen(namelist, 3)
 
     # First component of every path in the archive is the containing folder,
     # we should strip it.

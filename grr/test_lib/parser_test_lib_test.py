@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from absl.testing import absltest
@@ -43,7 +44,7 @@ class WithAnnotationTestMixin(object):
 
   # TODO(hanuszczak): This could actually be moved to some base test class.
   def assertTypesEqual(self, instances, types):
-    self.assertItemsEqual(map(type, instances), types)
+    self.assertCountEqual(map(type, instances), types)
 
 
 class WithParserTest(WithAnnotationTestMixin, absltest.TestCase):

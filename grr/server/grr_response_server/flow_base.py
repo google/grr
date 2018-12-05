@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The base class for flow objects."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -630,11 +631,17 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     """Processes replies with output plugins."""
     for output_plugin_state in self.rdf_flow.output_plugins_states:
       plugin_descriptor = output_plugin_state.plugin_descriptor
-      output_plugin = output_plugin_state.GetPlugin()
+      output_plugin_cls = plugin_descriptor.GetPluginClass()
+      output_plugin = output_plugin_cls(
+          source_urn=self.rdf_flow.long_flow_id,
+          args=plugin_descriptor.plugin_args,
+          token=access_control.ACLToken(username=self.rdf_flow.creator))
 
       try:
-        output_plugin.ProcessResponses([r.payload for r in replies])
-        output_plugin.Flush()
+        output_plugin.ProcessResponses(output_plugin_state.plugin_state,
+                                       [r.payload for r in replies])
+        output_plugin.Flush(output_plugin_state.plugin_state)
+        output_plugin.UpdateState(output_plugin_state.plugin_state)
 
         log_item = output_plugin_lib.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_descriptor,

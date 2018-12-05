@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests Hunt ACLs."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -9,7 +10,6 @@ from grr_response_core.lib import flags
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import access_control
-from grr_response_server import flow
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.hunts import implementation
@@ -18,6 +18,7 @@ from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import db_test_lib
+from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
@@ -72,7 +73,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     # "Request Approval" dialog should go away
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.WaitForNotification("aff4:/users/%s" % self.token.username)
+    self.WaitForNotification(self.token.username)
     self.Open("/")
 
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
@@ -93,7 +94,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=button:contains('Approve')")
     self.WaitUntil(self.IsTextPresent, "Approval granted.")
 
-    self.WaitForNotification("aff4:/users/%s" % self.token.username)
+    self.WaitForNotification(self.token.username)
     self.Open("/")
 
     # We should be notified that we have an approval
@@ -126,7 +127,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         requestor=self.token.username,
         admin=False)
 
-    self.WaitForNotification("aff4:/users/%s" % self.token.username)
+    self.WaitForNotification(self.token.username)
     self.Open("/")
 
     # We should be notified that we have an approval
@@ -321,7 +322,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         approver=self.token.username,
         requestor=self.token.username)
 
-    self.WaitForNotification("aff4:/users/%s" % self.token.username)
+    self.WaitForNotification(self.token.username)
     self.Open("/")
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
     self.Click("notification_button")
@@ -344,16 +345,11 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     flow_args = rdf_file_finder.FileFinderArgs(
         paths=["a/*", "b/*"],
         action=rdf_file_finder.FileFinderAction(action_type="STAT"))
-    flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
-        flow_name=file_finder.FileFinder.__name__)
-    flow_urn = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        args=flow_args,
-        runner_args=flow_runner_args,
-        token=self.token)
+    session_id = flow_test_lib.StartFlow(
+        file_finder.FileFinder, client_id=self.client_id, flow_args=flow_args)
 
     ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
-        flow_urn.Basename(), self.client_id.Basename())
+        session_id, self.client_id.Basename())
     # Modify flow_args so that there are differences.
     flow_args.paths = ["b/*", "c/*"]
     flow_args.action.action_type = "DOWNLOAD"
@@ -364,8 +360,9 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     ]
     return self.CreateHunt(
         flow_args=flow_args,
-        flow_runner_args=flow_runner_args,
-        original_object=ref), flow_urn
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+            flow_name=file_finder.FileFinder.__name__),
+        original_object=ref), session_id
 
   def testFlowDiffIsShownIfHuntCreatedFromFlow(self):
     h, _ = self._CreateHuntFromFlow()
@@ -391,12 +388,12 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         ":contains('42')")
 
   def testOriginalFlowLinkIsShownIfHuntCreatedFromFlow(self):
-    h, flow_urn = self._CreateHuntFromFlow()
+    h, flow_id = self._CreateHuntFromFlow()
     self.RequestAndGrantClientApproval(self.client_id)
     self._RequestAndOpenApprovalFromSelf(h.urn)
 
     self.WaitUntil(self.IsTextPresent, "This hunt was created from a flow")
-    self.Click("css=a:contains('%s')" % flow_urn.Basename())
+    self.Click("css=a:contains('%s')" % flow_id)
 
     self.WaitUntil(self.IsElementPresent, "css=grr-client-flows-view")
 

@@ -2,6 +2,7 @@
 """Tests for grr.parsers.wmi_parser."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import platform
@@ -39,20 +40,20 @@ class WMIParserTest(flow_test_lib.FlowTestsBaseclass):
           rdf_dict[key] = "Failed to encode: %s" % value
 
     result_list = list(parser.Parse(rdf_dict))
-    self.assertEqual(len(result_list), 2)
+    self.assertLen(result_list, 2)
     for result in result_list:
       if isinstance(result, rdf_client_network.Interface):
-        self.assertEqual(len(result.addresses), 4)
-        self.assertItemsEqual(
+        self.assertLen(result.addresses, 4)
+        self.assertCountEqual(
             [x.human_readable_address for x in result.addresses], [
                 "192.168.1.20", "ffff::ffff:aaaa:1111:aaaa",
                 "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",
                 "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb"
             ])
 
-        self.assertItemsEqual(
-            [x.human_readable_address
-             for x in result.dhcp_server_list], ["192.168.1.1"])
+        self.assertCountEqual(
+            [x.human_readable_address for x in result.dhcp_server_list],
+            ["192.168.1.1"])
 
         self.assertEqual(result.dhcp_lease_expires.AsMicrosecondsSinceEpoch(),
                          1409008979123456)
@@ -60,11 +61,11 @@ class WMIParserTest(flow_test_lib.FlowTestsBaseclass):
                          1408994579123456)
 
       elif isinstance(result, rdf_client_network.DNSClientConfiguration):
-        self.assertItemsEqual(result.dns_server, [
-            "192.168.1.1", "192.168.255.81", "192.168.128.88"
-        ])
+        self.assertCountEqual(
+            result.dns_server,
+            ["192.168.1.1", "192.168.255.81", "192.168.128.88"])
 
-        self.assertItemsEqual(result.dns_suffix, [
+        self.assertCountEqual(result.dns_suffix, [
             "blah.example.com", "ad.example.com", "internal.example.com",
             "example.com"
         ])
@@ -92,7 +93,7 @@ TargetEvent.TargetInstance.KernelModeTime & " [hundreds of nanoseconds]"
 objFile.Close"""
 
     result_list = list(parser.Parse(rdf_dict))
-    self.assertEqual(len(result_list), 1)
+    self.assertLen(result_list, 1)
     result = result_list[0]
     self.assertEqual(result.CreatorSID,
                      "S-1-5-21-137958040-743448014-139601478-500")
@@ -107,7 +108,7 @@ objFile.Close"""
     for test in tests:
       rdf_dict["CreatorSID"] = test
       result_list = list(parser.Parse(rdf_dict))
-      self.assertEqual(len(result_list), 1)
+      self.assertLen(result_list, 1)
 
   def testWMIEventConsumerParserDoesntFailOnUnknownField(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
@@ -115,7 +116,7 @@ objFile.Close"""
     rdf_dict["NonexistentField"] = "Abcdef"
     rdf_dict["Name"] = "Test event consumer"
     results = list(parser.Parse(rdf_dict))
-    self.assertEqual(2, len(results))
+    self.assertLen(results, 2)
     # Anomalies yield first
     self.assertEqual(results[0].__class__, rdf_anomaly.Anomaly)
     self.assertEqual(results[1].__class__, rdf_wmi.WMIActiveScriptEventConsumer)
@@ -124,7 +125,7 @@ objFile.Close"""
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
     rdf_dict = rdf_protodict.Dict()
     result_list = list(parser.Parse(rdf_dict))
-    self.assertEqual(1, len(result_list))
+    self.assertLen(result_list, 1)
     self.assertEqual(True, not result_list[0])
 
   def testWMIEventConsumerParserRaisesWhenNonEmptyDictReturnedEmpty(self):
@@ -170,7 +171,7 @@ objFile.Close"""
     rdf_dict["YSize"] = None
 
     result_list = list(parser.Parse(rdf_dict))
-    self.assertEqual(len(result_list), 1)
+    self.assertLen(result_list, 1)
     result = result_list[0]
     self.assertEqual(result.CreatorSID,
                      "S-1-5-21-3111613573-2524581244-2586426735-500")

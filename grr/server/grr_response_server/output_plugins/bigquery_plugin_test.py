@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for BigQuery output plugin."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import gzip
@@ -38,10 +39,9 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
                        plugin_args=None,
                        responses=None,
                        process_responses_separately=False):
-    plugin = bigquery_plugin.BigQueryOutputPlugin(
+    plugin_cls = bigquery_plugin.BigQueryOutputPlugin
+    plugin, plugin_state = plugin_cls.CreatePluginAndDefaultState(
         source_urn=self.results_urn, args=plugin_args, token=self.token)
-
-    plugin.InitializeState()
 
     messages = []
     for response in responses:
@@ -52,11 +52,12 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
         if process_responses_separately:
           for message in messages:
-            plugin.ProcessResponses([message])
+            plugin.ProcessResponses(plugin_state, [message])
         else:
-          plugin.ProcessResponses(messages)
+          plugin.ProcessResponses(plugin_state, messages)
 
-        plugin.Flush()
+        plugin.Flush(plugin_state)
+        plugin.UpdateState(plugin_state)
 
     return [x[0] for x in mock_bigquery.return_value.InsertData.call_args_list]
 
@@ -102,7 +103,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
         responses=responses)
 
-    self.assertEqual(len(output), 1)
+    self.assertLen(output, 1)
     _, stream, schema, job_id = output[0]
 
     self.assertEqual(job_id,
@@ -164,10 +165,10 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         process_responses_separately=True)
 
     # Should have two separate output streams for the two types
-    self.assertEqual(len(output), 2)
+    self.assertLen(output, 2)
 
     for name, stream, _, job_id in output:
-      self.assertTrue(job_id in [
+      self.assertIn(job_id, [
           "C-1000000000000000_Results_ExportedFile_1445995873",
           "C-1000000000000000_Results_ExportedProcess_1445995873"
       ])
@@ -205,7 +206,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
             plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
             responses=responses)
 
-    self.assertEqual(len(output), 2)
+    self.assertLen(output, 2)
     # Check that the output is still consistent
     actual_fds = []
 

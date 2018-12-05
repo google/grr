@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A library for check-specific tests."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import collections
@@ -294,11 +295,11 @@ class HostCheckTest(test_lib.GRRBaseTest):
 
   def assertRanChecks(self, check_ids, results):
     """Tests that the specified checks were run."""
-    self.assertTrue(set(check_ids).issubset(set(iterkeys(results))))
+    self.assertContainsSubset(check_ids, iterkeys(results))
 
   def assertChecksNotRun(self, check_ids, results):
     """Tests that the specified checks were not run."""
-    self.assertFalse(set(check_ids).intersection(set(iterkeys(results))))
+    self.assertNoCommonElements(check_ids, iterkeys(results))
 
   def assertResultEqual(self, rslt1, rslt2):
     """Tests whether two check results are identical."""
@@ -317,13 +318,13 @@ class HostCheckTest(test_lib.GRRBaseTest):
       anoms = rslt2_anoms.setdefault(a.symptom, [])
       anoms.extend(a.finding)
 
-    self.assertItemsEqual(rslt1_anoms, rslt2_anoms)
+    self.assertCountEqual(rslt1_anoms, rslt2_anoms)
 
     # Now check that the anomalies are the same, modulo newlines.
     for symptom, findings in iteritems(rslt1_anoms):
       rslt1_found = [f.strip() for f in findings]
       rslt2_found = [f.strip() for f in rslt2_anoms[symptom]]
-      self.assertItemsEqual(rslt1_found, rslt2_found)
+      self.assertCountEqual(rslt1_found, rslt2_found)
 
   def assertIsCheckIdResult(self, rslt, expected):
     """Tests if a check has the expected check_id."""
@@ -369,8 +370,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
     rslts = {rslt.symptom: rslt for rslt in anomalies}
     rslt = rslts.get(sym)
     # Anomalies evaluate false if there are no finding strings.
-    self.assertTrue(
-        rslt is not None, "Didn't get expected symptom string '%s' in '%s'" %
+    self.assertIsNotNone(
+        rslt, "Didn't get expected symptom string '%s' in '%s'" %
         (sym, ",".join(rslts)))
 
   def _GetFindings(self, anomalies, sym):
@@ -426,7 +427,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
       True if tests have succeeded and no further processing is required.
     """
     chk = results.get(check_id)
-    self.assertTrue(chk is not None, "check %s did not run" % check_id)
+    self.assertIsNotNone(chk, "check %s did not run" % check_id)
     # Checks return true if there were anomalies.
     self.assertTrue(chk, "check %s did not generate anomalies" % check_id)
     # If sym or results are passed as args, look for anomalies with these

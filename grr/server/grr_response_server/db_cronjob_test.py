@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Mixin tests for storing cronjob objects in the relational db."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -26,11 +27,11 @@ class DatabaseTestCronJobMixin(object):
     self.assertEqual(res, job)
 
     res = self.db.ReadCronJobs(cronjob_ids=[job.cron_job_id])
-    self.assertEqual(len(res), 1)
+    self.assertLen(res, 1)
     self.assertEqual(res[0], job)
 
     res = self.db.ReadCronJobs()
-    self.assertEqual(len(res), 1)
+    self.assertLen(res, 1)
     self.assertEqual(res[0], job)
 
   def testDuplicateWriting(self):
@@ -143,7 +144,7 @@ class DatabaseTestCronJobMixin(object):
     lease_time = rdfvalue.Duration("5m")
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(lease_time=lease_time)
-      self.assertEqual(len(leased), 1)
+      self.assertLen(leased, 1)
       leased_job = leased[0]
       self.assertTrue(leased_job.leased_by)
       self.assertEqual(leased_job.leased_until, current_time + lease_time)
@@ -154,7 +155,7 @@ class DatabaseTestCronJobMixin(object):
 
     with test_lib.FakeTime(current_time + rdfvalue.Duration("6m")):
       leased = self.db.LeaseCronJobs(lease_time=lease_time)
-      self.assertEqual(len(leased), 1)
+      self.assertLen(leased, 1)
       leased_job = leased[0]
       self.assertTrue(leased_job.leased_by)
       self.assertEqual(leased_job.leased_until,
@@ -171,7 +172,7 @@ class DatabaseTestCronJobMixin(object):
       leased = self.db.LeaseCronJobs(
           cronjob_ids=[job.cron_job_id for job in jobs[:2]],
           lease_time=lease_time)
-      self.assertEqual(len(leased), 2)
+      self.assertLen(leased, 2)
       self.assertEqual(
           sorted([j.cron_job_id for j in leased]),
           sorted([j.cron_job_id for j in jobs[:2]]))
@@ -207,19 +208,19 @@ class DatabaseTestCronJobMixin(object):
     current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(lease_time=rdfvalue.Duration("5m"))
-      self.assertEqual(len(leased), 3)
+      self.assertLen(leased, 3)
 
     current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10001)
     with test_lib.FakeTime(current_time):
       unleased_jobs = self.db.LeaseCronJobs(lease_time=rdfvalue.Duration("5m"))
-      self.assertEqual(len(unleased_jobs), 0)
+      self.assertEmpty(unleased_jobs)
 
       self.db.ReturnLeasedCronJobs(leased)
 
     current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10002)
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(lease_time=rdfvalue.Duration("5m"))
-      self.assertEqual(len(leased), 3)
+      self.assertLen(leased, 3)
 
   def testCronJobRuns(self):
     with self.assertRaises(db.UnknownCronJobError):
@@ -238,7 +239,7 @@ class DatabaseTestCronJobMixin(object):
     for j in range(1, 3):
       job_id = "job%d" % j
       jobs = self.db.ReadCronJobRuns(job_id)
-      self.assertEqual(len(jobs), 2)
+      self.assertLen(jobs, 2)
       for job in jobs:
         self.assertEqual(job.cron_job_id, job_id)
         self.assertEqual(job.timestamp, now)
@@ -297,18 +298,18 @@ class DatabaseTestCronJobMixin(object):
       run = rdf_cronjobs.CronJobRun(cron_job_id=job_id, run_id="00000002")
       self.db.WriteCronJobRun(run)
 
-    self.assertEqual(len(self.db.ReadCronJobRuns(job_id)), 3)
+    self.assertLen(self.db.ReadCronJobRuns(job_id), 3)
 
     cutoff = fake_time + rdfvalue.Duration("1h")
     self.db.DeleteOldCronJobRuns(cutoff)
     jobs = self.db.ReadCronJobRuns(job_id)
-    self.assertEqual(len(jobs), 2)
+    self.assertLen(jobs, 2)
     for job in jobs:
       self.assertGreater(job.timestamp, cutoff)
 
     cutoff = fake_time + rdfvalue.Duration("1d") + rdfvalue.Duration("1h")
     self.db.DeleteOldCronJobRuns(cutoff)
     jobs = self.db.ReadCronJobRuns(job_id)
-    self.assertEqual(len(jobs), 1)
+    self.assertLen(jobs, 1)
     for job in jobs:
       self.assertGreater(job.timestamp, cutoff)

@@ -25,6 +25,7 @@ from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import client_pb2
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
@@ -42,6 +43,7 @@ from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.general import audit
+from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui.api_plugins import stats as api_stats
@@ -579,16 +581,28 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiInterrogateClientResult
 
   def Handle(self, args, token=None):
-    flow_urn = flow.StartAFF4Flow(
-        client_id=args.client_id.ToClientURN(),
-        flow_name=aff4_flows.Interrogate.__name__,
-        token=token)
+    if data_store.RelationalDBFlowsEnabled():
+      flow_id = flow.StartFlow(
+          flow_cls=discovery.Interrogate, client_id=unicode(args.client_id))
 
-    return ApiInterrogateClientResult(operation_id=str(flow_urn))
+      # TODO(user): don't encode client_id inside the operation_id, but
+      # rather have it as a separate field.
+      return ApiInterrogateClientResult(
+          operation_id="%s/%s" % (args.client_id, flow_id))
+    else:
+      flow_urn = flow.StartAFF4Flow(
+          client_id=args.client_id.ToClientURN(),
+          flow_name=aff4_flows.Interrogate.__name__,
+          token=token)
+
+      return ApiInterrogateClientResult(operation_id=str(flow_urn))
 
 
 class ApiGetInterrogateOperationStateArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetInterrogateOperationStateArgs
+  rdf_deps = [
+      ApiClientId,
+  ]
 
 
 class ApiGetInterrogateOperationStateResult(rdf_structs.RDFProtoStruct):
@@ -603,14 +617,30 @@ class ApiGetInterrogateOperationStateHandler(
   result_type = ApiGetInterrogateOperationStateResult
 
   def Handle(self, args, token=None):
-    try:
-      flow_obj = aff4.FACTORY.Open(
-          args.operation_id, aff4_type=aff4_flows.Interrogate, token=token)
+    if data_store.RelationalDBFlowsEnabled():
+      client_id = unicode(args.client_id)
+      flow_id = unicode(args.operation_id)
+      # TODO(user): test both exception scenarios below.
+      try:
+        flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      except db.UnknownFlowError:
+        raise InterrogateOperationNotFoundError(
+            "Operation with id %s not found" % args.operation_id)
 
-      complete = not flow_obj.GetRunner().IsRunning()
-    except aff4.InstantiationError:
-      raise InterrogateOperationNotFoundError(
-          "Operation with id %s not found" % args.operation_id)
+      if flow_obj.flow_name != compatibility.GetName(discovery.Interrogate):
+        raise InterrogateOperationNotFoundError(
+            "Operation with id %s not found" % args.operation_id)
+
+      complete = flow_obj.flow_state != flow_obj.FlowState.RUNNING
+    else:
+      try:
+        flow_obj = aff4.FACTORY.Open(
+            args.operation_id, aff4_type=aff4_flows.Interrogate, token=token)
+
+        complete = not flow_obj.GetRunner().IsRunning()
+      except aff4.InstantiationError:
+        raise InterrogateOperationNotFoundError(
+            "Operation with id %s not found" % args.operation_id)
 
     result = ApiGetInterrogateOperationStateResult()
     if complete:
@@ -704,12 +734,19 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListClientCrashesResult
 
   def Handle(self, args, token=None):
-    aff4_crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
-        args.client_id.ToClientURN())
+    if data_store.RelationalDBReadEnabled():
+      crashes = data_store.REL_DB.ReadClientCrashInfoHistory(
+          unicode(args.client_id))
+      total_count = len(crashes)
+      result = api_call_handler_utils.FilterList(
+          crashes, args.offset, count=args.count, filter_value=args.filter)
+    else:
+      crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
+          args.client_id.ToClientURN())
 
-    total_count = len(aff4_crashes)
-    result = api_call_handler_utils.FilterCollection(aff4_crashes, args.offset,
-                                                     args.count, args.filter)
+      total_count = len(crashes)
+      result = api_call_handler_utils.FilterCollection(
+          crashes, args.offset, count=args.count, filter_value=args.filter)
 
     return ApiListClientCrashesResult(items=result, total_count=total_count)
 
@@ -762,9 +799,7 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                 client=client_obj.urn,
                 description=audit_description))
     finally:
-      events.Events.PublishMultipleEvents({
-          audit.AUDIT_EVENT: audit_events
-      },
+      events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
                                           token=token)
 
 
@@ -829,9 +864,7 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                 client=client_obj.urn,
                 description=audit_description))
     finally:
-      events.Events.PublishMultipleEvents({
-          audit.AUDIT_EVENT: audit_events
-      },
+      events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
                                           token=token)
 
 

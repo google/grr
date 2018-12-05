@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for flows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import mock
@@ -57,7 +58,7 @@ class CallStateFlow(flow_base.FlowBase):
     CallStateFlow.success = True
 
 
-class BasicFlowTest(db_test_lib.RelationalFlowsEnabledMixin,
+class BasicFlowTest(db_test_lib.RelationalDBEnabledMixin,
                     flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
@@ -264,7 +265,7 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
 
     child_flows = data_store.REL_DB.ReadChildFlowObjects(
         self.client_id, flow_id)
-    self.assertEqual(len(child_flows), 1)
+    self.assertLen(child_flows, 1)
     child_flow = child_flows[0]
 
     self.assertEqual(child_flow.creator, username)

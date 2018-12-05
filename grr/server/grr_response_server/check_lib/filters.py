@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Implement rdf post-processors for running data through a chain of parsers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os

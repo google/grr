@@ -73,12 +73,13 @@ def WriteStatEntries(stat_entries, client_id, mutation_pool, token=None):
     mutation_pool: A mutation pool used for writing into the AFF4 data store.
     token: A token used for writing into the AFF4 data store.
   """
-  for stat_entry in stat_entries:
-    CreateAFF4Object(
-        stat_entry,
-        client_id_urn=rdf_client.ClientURN(client_id),
-        mutation_pool=mutation_pool,
-        token=token)
+  if data_store.AFF4Enabled():
+    for stat_entry in stat_entries:
+      CreateAFF4Object(
+          stat_entry,
+          client_id_urn=rdf_client.ClientURN(client_id),
+          mutation_pool=mutation_pool,
+          token=token)
 
   if data_store.RelationalDBWriteEnabled():
     path_infos = list(map(rdf_objects.PathInfo.FromStatEntry, stat_entries))
@@ -513,8 +514,7 @@ class MakeNewAFF4SparseImageArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class MakeNewAFF4SparseImageMixin(object):
+class MakeNewAFF4SparseImage(flow.GRRFlow):
   """Gets a new file from the client, possibly as an AFF4SparseImage.
 
   If the filesize is >= the size threshold, then we get the file as an empty
@@ -632,7 +632,12 @@ class GlobLogic(object):
       # Nothing to do.
       return
 
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    if data_store.RelationalDBReadEnabled():
+      client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+      kb = client.knowledge_base
+    else:
+      client = aff4.FACTORY.Open(self.client_id, token=self.token)
+      kb = client.Get(client.Schema.KNOWLEDGE_BASE)
 
     self.state.pathtype = pathtype
     self.state.root_path = root_path
@@ -644,7 +649,7 @@ class GlobLogic(object):
     # copies of the pattern, one for each variation. e.g.:
     # /home/%%Usernames%%/* -> [ /home/user1/*, /home/user2/* ]
     for path in paths:
-      patterns.extend(path.Interpolate(client=client))
+      patterns.extend(path.Interpolate(knowledge_base=kb))
 
     # Sort the patterns so that if there are files whose paths conflict with
     # directory paths, the files get handled after the conflicting directories

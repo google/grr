@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
@@ -164,16 +165,29 @@ class DatabaseTestStatsMixin(object):
     self._AssertSameRDFProtoElements([_single_dim_entry2, _single_dim_entry3],
                                      read_entries)
 
-  def testDeleteStatsEntries(self):
+  def testDeleteStatsEntries_HighLimit(self):
     self._SetUpStatsTest()
     cutoff = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3)
-    self.db.DeleteStatsStoreEntriesOlderThan(cutoff)
+    num_deleted = self.db.DeleteStatsStoreEntriesOlderThan(cutoff, limit=100)
     single_dim_entries = self.db.ReadStatsStoreEntries(_TEST_PROCESS_ID,
                                                        _SINGLE_DIM_COUNTER)
     multi_dim_entries = self.db.ReadStatsStoreEntries(_TEST_PROCESS_ID,
                                                       _MULTI_DIM_COUNTER)
     self._AssertSameRDFProtoElements([_single_dim_entry3], single_dim_entries)
     self.assertEmpty(multi_dim_entries)
+    self.assertEqual(num_deleted, 3)
+
+  def testDeleteStatsEntries_LowLimit(self):
+    self._SetUpStatsTest()
+    cutoff = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3)
+    num_deleted = self.db.DeleteStatsStoreEntriesOlderThan(cutoff, limit=2)
+    single_dim_entries = self.db.ReadStatsStoreEntries(_TEST_PROCESS_ID,
+                                                       _SINGLE_DIM_COUNTER)
+    multi_dim_entries = self.db.ReadStatsStoreEntries(_TEST_PROCESS_ID,
+                                                      _MULTI_DIM_COUNTER)
+    # Two entries should be deleted, leaving 2.
+    self.assertLen(single_dim_entries + multi_dim_entries, 2)
+    self.assertEqual(num_deleted, 2)
 
   def _AssertSameRDFProtoElements(self, expected_seq, actual_seq):
     """Wrapper around abseil's assertCountEqual() for RDFProtoStructs.

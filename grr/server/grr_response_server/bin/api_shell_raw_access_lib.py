@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """Raw access server-side only API shell."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
-
-import traceback
 
 
 from grr_api_client import connector
@@ -75,16 +74,12 @@ class RawConnector(connector.Connector):
       handler = method(rdf_args, token=self._token)
       return handler.Handle(rdf_args, token=self._token)
     except access_control.UnauthorizedAccess as e:
-      traceback.print_exc()
       raise errors.AccessForbiddenError(e.message)
     except api_call_handler_base.ResourceNotFoundError as e:
-      traceback.print_exc()
       raise errors.ResourceNotFoundError(e.message)
     except NotImplementedError as e:
-      traceback.print_exc()
       raise errors.ApiNotImplementedError(e.message)
     except Exception as e:  # pylint: disable=broad-except
-      traceback.print_exc()
       raise errors.UnknownError(e.message)
 
   @property

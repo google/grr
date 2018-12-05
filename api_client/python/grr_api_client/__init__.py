@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Python GRR API client library. Should be used for querying GRR API."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os

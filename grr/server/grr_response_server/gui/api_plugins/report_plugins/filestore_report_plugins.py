@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """UI server report handling classes."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
@@ -45,7 +46,10 @@ class FileSizeDistributionReportPlugin(report_plugin_base.ReportPluginBase):
         x = float(x)
 
       if unit != units[-1]:
-        x /= 1024
+        if isinstance(x, float):
+          x /= 1024.0
+        else:
+          x //= 1024
 
     if not isinstance(x, float):
       return "%d %s" % (x, unit)

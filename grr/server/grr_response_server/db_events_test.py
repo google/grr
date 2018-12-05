@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
@@ -41,7 +42,7 @@ class DatabaseEventsTestMixin(object):
     entries = self.db.ReadAPIAuditEntries()
     _SetTimestampNone(entries)
 
-    self.assertItemsEqual(entries, [entry])
+    self.assertCountEqual(entries, [entry])
 
   def testReadEntries(self):
     entry1 = self._MakeEntry()
@@ -53,7 +54,7 @@ class DatabaseEventsTestMixin(object):
     entries = self.db.ReadAPIAuditEntries()
     _SetTimestampNone(entries)
 
-    self.assertItemsEqual(entries, [entry1, entry2])
+    self.assertCountEqual(entries, [entry1, entry2])
 
   def testReadEntriesOrder(self):
     status_codes = list(range(200, 210))
@@ -76,7 +77,7 @@ class DatabaseEventsTestMixin(object):
     entries = self.db.ReadAPIAuditEntries(username="foo")
     _SetTimestampNone(entries)
 
-    self.assertItemsEqual(entries, [entry])
+    self.assertCountEqual(entries, [entry])
 
   def testReadEntriesFilterRouterMethodName(self):
     entry = self._MakeEntry(router_method_name="foo")
@@ -87,7 +88,7 @@ class DatabaseEventsTestMixin(object):
     entries = self.db.ReadAPIAuditEntries(router_method_name="foo")
     _SetTimestampNone(entries)
 
-    self.assertItemsEqual(entries, [entry])
+    self.assertCountEqual(entries, [entry])
 
   def testReadEntriesFilterTimestamp(self):
     self.db.WriteAPIAuditEntry(self._MakeEntry(response_code="OK"))
@@ -97,7 +98,7 @@ class DatabaseEventsTestMixin(object):
     tomorrow = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
 
     entries = self.db.ReadAPIAuditEntries(min_timestamp=tomorrow)
-    self.assertLen(entries, 0)
+    self.assertEmpty(entries)
 
     entries = self.db.ReadAPIAuditEntries(max_timestamp=tomorrow)
     self.assertLen(entries, 3)

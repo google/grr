@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for export converters."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import json
@@ -126,7 +127,7 @@ class ExportTest(ExportTestBase):
   def testConverterIsCorrectlyFound(self):
     dummy_value = DummyRDFValue("result")
     result = list(export.ConvertValues(self.metadata, [dummy_value]))
-    self.assertEqual(len(result), 1)
+    self.assertLen(result, 1)
     self.assertTrue(isinstance(result[0], rdfvalue.RDFString))
     self.assertEqual(result[0], "result")
 
@@ -142,7 +143,7 @@ class ExportTest(ExportTestBase):
     # so we expect DataAgnosticExportConverter to be used.
     converted_values = list(
         export.ConvertValues(self.metadata, [original_value]))
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
     converted_value = converted_values[0]
 
     self.assertEqual(converted_value.__class__.__name__,
@@ -151,7 +152,7 @@ class ExportTest(ExportTestBase):
   def testConvertsSingleValueWithMultipleAssociatedConverters(self):
     dummy_value = DummyRDFValue3("some")
     result = list(export.ConvertValues(self.metadata, [dummy_value]))
-    self.assertEqual(len(result), 2)
+    self.assertLen(result, 2)
     self.assertTrue((isinstance(result[0], DummyRDFValue) and
                      isinstance(result[1], DummyRDFValue2)) or
                     (isinstance(result[0], DummyRDFValue2) and
@@ -175,7 +176,7 @@ class ExportTest(ExportTestBase):
     results = export.ConvertValues(self.metadata, [fd], token=self.token)
     results = sorted(str(v) for v in results)
 
-    self.assertEqual(len(results), 2)
+    self.assertLen(results, 2)
     self.assertEqual(results[0], "some")
     self.assertEqual(results[1], "some2")
 
@@ -198,7 +199,7 @@ class ExportTest(ExportTestBase):
     results = export.ConvertValues(self.metadata, [fd], token=self.token)
     results = sorted(results, key=str)
 
-    self.assertEqual(len(results), 4)
+    self.assertLen(results, 4)
     self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue)],
                      ["some1A", "some2A"])
     self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue2)],
@@ -221,7 +222,7 @@ class ExportTest(ExportTestBase):
     converter = export.StatEntryToExportedFileConverter()
     results = list(converter.Convert(self.metadata, stat, token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].basename, "path")
     self.assertEqual(results[0].urn, self.client_id.Add("fs/os/some/path"))
     self.assertEqual(results[0].st_mode, 33184)
@@ -260,7 +261,7 @@ class ExportTest(ExportTestBase):
     converter = export.StatEntryToExportedFileConverter()
     results = list(converter.Convert(self.metadata, stat, token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].basename, "Ext2IFS_1_10b.exe")
     self.assertEqual(results[0].urn, urn)
 
@@ -358,7 +359,7 @@ class ExportTest(ExportTestBase):
     converter = export.StatEntryToExportedRegistryKeyConverter()
     results = list(converter.Convert(self.metadata, stat, token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(
         results[0].urn,
         self.client_id.Add("registry/HKEY_USERS/S-1-5-20/Software/"
@@ -398,7 +399,7 @@ class ExportTest(ExportTestBase):
     converter = export.StatEntryToExportedRegistryKeyConverter()
     results = list(converter.Convert(self.metadata, stat, token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(
         results[0].urn,
         rdfvalue.RDFURN(
@@ -420,7 +421,7 @@ class ExportTest(ExportTestBase):
     converter = export.ProcessToExportedProcessConverter()
     results = list(converter.Convert(self.metadata, process, token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].pid, 2)
     self.assertEqual(results[0].ppid, 1)
     self.assertEqual(results[0].cmdline, "cmd.exe")
@@ -439,7 +440,7 @@ class ExportTest(ExportTestBase):
     converter = export.ProcessToExportedOpenFileConverter()
     results = list(converter.Convert(self.metadata, process, token=self.token))
 
-    self.assertEqual(len(results), 2)
+    self.assertLen(results, 2)
     self.assertEqual(results[0].pid, 2)
     self.assertEqual(results[0].path, "/some/a")
     self.assertEqual(results[1].pid, 2)
@@ -474,7 +475,7 @@ class ExportTest(ExportTestBase):
     converter = export.ProcessToExportedNetworkConnectionConverter()
     results = list(converter.Convert(self.metadata, process, token=self.token))
 
-    self.assertEqual(len(results), 2)
+    self.assertLen(results, 2)
     self.assertEqual(results[0].state,
                      rdf_client_network.NetworkConnection.State.LISTEN)
     self.assertEqual(results[0].type,
@@ -525,7 +526,7 @@ class ExportTest(ExportTestBase):
     exported_files = [
         r for r in results if r.__class__.__name__ == "ExportedFile"
     ]
-    self.assertEqual(len(exported_files), 1)
+    self.assertLen(exported_files, 1)
     exported_file = exported_files[0]
 
     self.assertTrue(exported_file)
@@ -556,7 +557,7 @@ class ExportTest(ExportTestBase):
     converter = export.ClientSummaryToExportedNetworkInterfaceConverter()
     results = list(
         converter.Convert(self.metadata, client_summary, token=self.token))
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].mac_address, "123456".encode("hex"))
     self.assertEqual(results[0].ifname, "eth0")
     self.assertEqual(results[0].ip4_addresses, "127.0.0.1 10.0.0.1")
@@ -585,7 +586,7 @@ class ExportTest(ExportTestBase):
     converter = export.InterfaceToExportedNetworkInterfaceConverter()
     results = list(
         converter.Convert(self.metadata, interface, token=self.token))
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].mac_address, "123456".encode("hex"))
     self.assertEqual(results[0].ifname, "eth0")
     self.assertEqual(results[0].ip4_addresses, "127.0.0.1 10.0.0.1")
@@ -611,7 +612,7 @@ class ExportTest(ExportTestBase):
 
     results = list(
         export.ConvertValues(metadata, checkresults, token=self.token))
-    self.assertEqual(len(results), 3)
+    self.assertLen(results, 3)
     self.assertEqual(results[0].check_id, checkresults[0].check_id)
     self.assertFalse(results[0].HasField("anomaly"))
     self.assertEqual(results[1].check_id, checkresults[1].check_id)
@@ -635,7 +636,7 @@ class ExportTest(ExportTestBase):
     results = list(
         converter.Convert(metadata, client_summary, token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].metadata.hostname, "ahostname")
 
   def testBufferReferenceToExportedMatchConverter(self):
@@ -650,7 +651,7 @@ class ExportTest(ExportTestBase):
     results = list(
         converter.Convert(self.metadata, buffer_reference, token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].offset, 42)
     self.assertEqual(results[0].length, 43)
     self.assertEqual(results[0].data, b"somedata")
@@ -683,7 +684,7 @@ class ExportTest(ExportTestBase):
     exported_files = [
         result for result in results if isinstance(result, export.ExportedFile)
     ]
-    self.assertEqual(len(exported_files), 1)
+    self.assertLen(exported_files, 1)
 
     self.assertEqual(exported_files[0].basename, "path")
     self.assertEqual(exported_files[0].urn,
@@ -705,7 +706,7 @@ class ExportTest(ExportTestBase):
         result for result in results if isinstance(result, export.ExportedMatch)
     ]
     exported_matches = sorted(exported_matches, key=lambda x: x.offset)
-    self.assertEqual(len(exported_matches), 2)
+    self.assertLen(exported_matches, 2)
 
     self.assertEqual(exported_matches[0].offset, 42)
     self.assertEqual(exported_matches[0].length, 43)
@@ -732,7 +733,7 @@ class ExportTest(ExportTestBase):
     results = list(
         converter.Convert(self.metadata, file_finder_result, token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertIsInstance(results[0], export.ExportedRegistryKey)
     result = results[0]
 
@@ -791,8 +792,8 @@ class ExportTest(ExportTestBase):
     exported_files = [
         result for result in results if isinstance(result, export.ExportedFile)
     ]
-    self.assertEqual(len(exported_files), 2)
-    self.assertItemsEqual([x.basename for x in exported_files],
+    self.assertLen(exported_files, 2)
+    self.assertCountEqual([x.basename for x in exported_files],
                           ["path", "path2"])
 
     for export_result in exported_files:
@@ -835,7 +836,7 @@ class ExportTest(ExportTestBase):
     exported_bytes = [
         r for r in results if r.__class__.__name__ == "ExportedBytes"
     ]
-    self.assertEqual(len(exported_bytes), 1)
+    self.assertLen(exported_bytes, 1)
 
     self.assertEqual(exported_bytes[0].data, data)
     self.assertEqual(exported_bytes[0].length, 6)
@@ -848,7 +849,7 @@ class ExportTest(ExportTestBase):
     for converter in converters:
       converted_data = list(converter().Convert(
           self.metadata, data, token=self.token))
-      self.assertEqual(len(converted_data), 1)
+      self.assertLen(converted_data, 1)
       for converted in converted_data:
         self.assertIsInstance(converted, export.ExportedString)
         self.assertEqual(converted.data, unicode(data))
@@ -868,7 +869,7 @@ class ExportTest(ExportTestBase):
     with test_lib.FakeTime(2):
       results = list(converter.Convert(metadata, msg, token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].original_timestamp,
                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEqual(results[0].timestamp,
@@ -901,7 +902,7 @@ class ExportTest(ExportTestBase):
           converter.BatchConvert([(metadata1, msg1), (metadata2, msg2)],
                                  token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].original_timestamp,
                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEqual(results[0].timestamp,
@@ -934,9 +935,9 @@ class ExportTest(ExportTestBase):
           converter.BatchConvert([(metadata1, msg1), (metadata2, msg2)],
                                  token=self.token))
 
-    self.assertEqual(len(results), 3)
+    self.assertLen(results, 3)
     # RDFValue3 gets converted to RDFValue2 and RDFValue, RDFValue5 stays at 5.
-    self.assertItemsEqual(["DummyRDFValue2", "DummyRDFValue", "DummyRDFValue5"],
+    self.assertCountEqual(["DummyRDFValue2", "DummyRDFValue", "DummyRDFValue5"],
                           [x.__class__.__name__ for x in results])
 
   def testDNSClientConfigurationToExportedDNSClientConfiguration(self):
@@ -948,7 +949,7 @@ class ExportTest(ExportTestBase):
     converter = export.DNSClientConfigurationToExportedDNSClientConfiguration()
     results = list(converter.Convert(self.metadata, config, token=self.token))
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].dns_servers, " ".join(dns_servers))
     self.assertEqual(results[0].dns_suffixes, " ".join(dns_suffixes))
 
@@ -972,7 +973,7 @@ class DictToExportedDictItemsConverterTest(ExportTestBase):
     converted = list(
         self.converter.Convert(self.metadata, source, token=self.token))
 
-    self.assertEqual(len(converted), 2)
+    self.assertLen(converted, 2)
 
     # Output should be stable sorted by dict's keys.
     self.assertEqual(converted[0].key, "bar")
@@ -997,7 +998,7 @@ class DictToExportedDictItemsConverterTest(ExportTestBase):
       converted = list(
           self.converter.Convert(self.metadata, source, token=self.token))
 
-      self.assertEqual(len(converted), 4)
+      self.assertLen(converted, 4)
       self.assertEqual(converted[0].key, "bar[0]")
       self.assertEqual(converted[0].value, "42")
       self.assertEqual(converted[1].key, "bar[1]")
@@ -1019,7 +1020,7 @@ class DictToExportedDictItemsConverterTest(ExportTestBase):
     converted = list(
         self.converter.Convert(self.metadata, source, token=self.token))
 
-    self.assertEqual(len(converted), 3)
+    self.assertLen(converted, 3)
 
     # Output should be stable sorted by dict's keys.
     self.assertEqual(converted[0].key, "bar.a")
@@ -1049,7 +1050,7 @@ class DictToExportedDictItemsConverterTest(ExportTestBase):
     converted = list(
         self.converter.Convert(self.metadata, source, token=self.token))
 
-    self.assertEqual(len(converted), 7)
+    self.assertLen(converted, 7)
 
     # Output should be stable sorted by dict's keys.
     self.assertEqual(converted[0].key, "bar.a.c[0]")
@@ -1095,7 +1096,7 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
 
     # Test that something gets exported and that this something wasn't
     # produced by ArtifactFilesDownloaderResultConverter.
-    self.assertEqual(len(converted), 1)
+    self.assertLen(converted, 1)
     self.assertFalse(
         isinstance(converted[0], export.ExportedArtifactFilesDownloaderResult))
 
@@ -1111,7 +1112,7 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
 
     # Test that something gets exported and that this something wasn't
     # produced by ArtifactFilesDownloaderResultConverter.
-    self.assertEqual(len(converted), 1)
+    self.assertLen(converted, 1)
     self.assertFalse(
         isinstance(converted[0], export.ExportedArtifactFilesDownloaderResult))
 
@@ -1126,15 +1127,15 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
         v for v in converted
         if not isinstance(v, export.ExportedArtifactFilesDownloaderResult)
     ]
-    self.assertEquals(len(default_exports), 1)
-    self.assertEquals(len(default_exports), 1)
+    self.assertLen(default_exports, 1)
+    self.assertLen(default_exports, 1)
 
     downloader_exports = [
         v for v in converted
         if isinstance(v, export.ExportedArtifactFilesDownloaderResult)
     ]
-    self.assertEquals(len(downloader_exports), 1)
-    self.assertEquals(downloader_exports[0].original_file.basename, "bar.exe")
+    self.assertLen(downloader_exports, 1)
+    self.assertEqual(downloader_exports[0].original_file.basename, "bar.exe")
 
   def testYieldsOneResultForRegistryStatEntryIfNoPathspecsWereFound(self):
     result = collectors.ArtifactFilesDownloaderResult(
@@ -1147,11 +1148,10 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
         v for v in converted
         if isinstance(v, export.ExportedArtifactFilesDownloaderResult)
     ]
-    self.assertEquals(len(downloader_exports), 1)
-    self.assertEquals(downloader_exports[0].original_registry_key.type,
-                      "REG_SZ")
-    self.assertEquals(downloader_exports[0].original_registry_key.data,
-                      "C:\\Windows\\Sidebar.exe")
+    self.assertLen(downloader_exports, 1)
+    self.assertEqual(downloader_exports[0].original_registry_key.type, "REG_SZ")
+    self.assertEqual(downloader_exports[0].original_registry_key.data,
+                     "C:\\Windows\\Sidebar.exe")
 
   def testIncludesRegistryStatEntryFoundPathspecIntoYieldedResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
@@ -1165,8 +1165,8 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
         v for v in converted
         if isinstance(v, export.ExportedArtifactFilesDownloaderResult)
     ]
-    self.assertEquals(len(downloader_exports), 1)
-    self.assertEquals(downloader_exports[0].found_path, "foo")
+    self.assertLen(downloader_exports, 1)
+    self.assertEqual(downloader_exports[0].found_path, "foo")
 
   def testIncludesFileStatEntryFoundPathspecIntoYieldedResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
@@ -1179,8 +1179,8 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
         v for v in converted
         if isinstance(v, export.ExportedArtifactFilesDownloaderResult)
     ]
-    self.assertEquals(len(downloader_exports), 1)
-    self.assertEquals(downloader_exports[0].found_path, "/tmp/bar.exe")
+    self.assertLen(downloader_exports, 1)
+    self.assertEqual(downloader_exports[0].found_path, "/tmp/bar.exe")
 
   def testIncludesDownloadedFileIntoResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
@@ -1196,8 +1196,8 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
         v for v in converted
         if isinstance(v, export.ExportedArtifactFilesDownloaderResult)
     ]
-    self.assertEquals(len(downloader_exports), 1)
-    self.assertEquals(downloader_exports[0].downloaded_file.basename, "foo")
+    self.assertLen(downloader_exports, 1)
+    self.assertEqual(downloader_exports[0].downloaded_file.basename, "foo")
 
 
 class YaraProcessScanResponseConverterTest(ExportTestBase):
@@ -1219,7 +1219,7 @@ class YaraProcessScanResponseConverterTest(ExportTestBase):
     converter = export.YaraProcessScanResponseConverter()
     converted = list(converter.Convert(self.metadata, sample, token=self.token))
 
-    self.assertEqual(len(converted), 1)
+    self.assertLen(converted, 1)
 
     self.assertEqual(converted[0].process.pid, 2)
     self.assertEqual(converted[0].process.ppid, 1)
@@ -1239,7 +1239,7 @@ class YaraProcessScanResponseConverterTest(ExportTestBase):
     converter = export.YaraProcessScanResponseConverter()
     converted = list(converter.Convert(self.metadata, sample, token=self.token))
 
-    self.assertEqual(len(converted), 1)
+    self.assertLen(converted, 1)
 
     self.assertEqual(converted[0].rule_name, "foo")
     self.assertEqual(converted[0].scan_time_us, 42)
@@ -1253,7 +1253,7 @@ class YaraProcessScanResponseConverterTest(ExportTestBase):
     converter = export.YaraProcessScanResponseConverter()
     converted = list(converter.Convert(self.metadata, sample, token=self.token))
 
-    self.assertEqual(len(converted), 2)
+    self.assertLen(converted, 2)
 
     self.assertEqual(converted[0].rule_name, "foo")
     self.assertEqual(converted[1].rule_name, "bar")
@@ -1266,7 +1266,7 @@ class DataAgnosticExportConverterTest(ExportTestBase):
     converted_values = list(export.DataAgnosticExportConverter().Convert(
         export.ExportedMetadata(source_urn=rdfvalue.RDFURN("aff4:/foo")),
         original_value))
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
     return converted_values[0]
 
   def testAddsMetadataAndIgnoresRepeatedAndMessagesFields(self):
@@ -1274,13 +1274,13 @@ class DataAgnosticExportConverterTest(ExportTestBase):
     converted_value = self.ConvertOriginalValue(original_value)
 
     # No 'metadata' field in the original value.
-    self.assertItemsEqual([t.name for t in original_value.type_infos], [
+    self.assertCountEqual([t.name for t in original_value.type_infos], [
         "string_value", "int_value", "bool_value", "repeated_string_value",
         "message_value", "enum_value", "another_enum_value", "urn_value",
         "datetime_value"
     ])
     # But there's one in the converted value.
-    self.assertItemsEqual([t.name for t in converted_value.type_infos], [
+    self.assertCountEqual([t.name for t in converted_value.type_infos], [
         "metadata", "string_value", "int_value", "bool_value", "enum_value",
         "another_enum_value", "urn_value", "datetime_value"
     ])
@@ -1294,7 +1294,7 @@ class DataAgnosticExportConverterTest(ExportTestBase):
         metadata=42, value="value")
     converted_value = self.ConvertOriginalValue(original_value)
 
-    self.assertItemsEqual([t.name for t in converted_value.type_infos],
+    self.assertCountEqual([t.name for t in converted_value.type_infos],
                           ["metadata", "value"])
     self.assertEqual(converted_value.metadata.source_urn,
                      rdfvalue.RDFURN("aff4:/foo"))
@@ -1385,7 +1385,7 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
     self.renderer.table_row(42, "0x0", "data")
     self.renderer.flush()
 
-    self.assertEqual(len(self.messages), 1)
+    self.assertLen(self.messages, 1)
 
     converted_values = list(
         self.converter.Convert(
@@ -1393,7 +1393,7 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
             self.messages[0],
             token=self.token))
 
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
     self.assertEqual(converted_values[0].__class__.__name__,
                      "RekallExport_foo_bar_sample")
     self.assertEqual(converted_values[0].Offset, "42")
@@ -1413,7 +1413,7 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
             export.ExportedMetadata(source_urn="aff4:/foo/bar"),
             self.messages[0],
             token=self.token))
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
     self.assertFalse(converted_values[0].HasField("section_name"))
 
   def testCurrentSectionNameIsExportedWhenPresent(self):
@@ -1430,7 +1430,7 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
             export.ExportedMetadata(source_urn="aff4:/foo/bar"),
             self.messages[0],
             token=self.token))
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
     self.assertEqual(converted_values[0].section_name, "some section")
 
   def testTwoTablesAreExportedUsingValuesOfTheSameClass(self):
@@ -1450,7 +1450,7 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
             export.ExportedMetadata(source_urn="aff4:/foo/bar"),
             self.messages[0],
             token=self.token))
-    self.assertEqual(len(converted_values), 2)
+    self.assertLen(converted_values, 2)
     self.assertEqual(converted_values[0].__class__.__name__,
                      "RekallExport_foo_bar_sample")
 
@@ -1588,7 +1588,7 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
             export.ExportedMetadata(source_urn="aff4:/foo/bar"),
             rekall_response,
             token=self.token))
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
     self.assertEqual(converted_values[0].Address, "0x2a")
     self.assertEqual(converted_values[0].Pointer, "0x0000000000002b")
     self.assertEqual(converted_values[0].PaddedAddress, "0x0000000000002c")
@@ -1609,7 +1609,7 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
     self.renderer.table_header([("a", "a", "")])
     self.renderer.table_row(42)
     self.renderer.flush()
-    self.assertEqual(len(self.messages), 1)
+    self.assertLen(self.messages, 1)
 
     converted_values = list(
         self.converter.Convert(
@@ -1617,7 +1617,7 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
             self.messages[0],
             token=self.token))
 
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
     self.assertEqual(converted_values[0].__class__.__name__,
                      "RekallExport_foo_bar1_sample")
     self.assertEqual(converted_values[0].a, "42")
@@ -1628,7 +1628,7 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
     self.renderer.table_header([("b", "b", "")])
     self.renderer.table_row(43)
     self.renderer.flush()
-    self.assertEqual(len(self.messages), 1)
+    self.assertLen(self.messages, 1)
 
     converted_values = list(
         self.converter.Convert(
@@ -1638,7 +1638,7 @@ class DynamicRekallResponseConverterTest(ExportTestBase):
             self.messages[0],
             token=self.token))
 
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
     self.assertEqual(converted_values[0].__class__.__name__,
                      "RekallExport_foo_bar2_sample")
     self.assertEqual(converted_values[0].b, "43")
@@ -1712,7 +1712,7 @@ class RekallResponseToExportedYaraSignatureMatchConverterTest(ExportTestBase):
     converted_values = list(
         self.converter.Convert(metadata, rekall_response, token=self.token))
 
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
 
     model_process = export.ExportedRekallProcess(
         commandline="python  yaratest.py",
@@ -1739,7 +1739,7 @@ class RekallResponseToExportedYaraSignatureMatchConverterTest(ExportTestBase):
         self.converter.Convert(
             self.metadata, rekall_response, token=self.token))
 
-    self.assertEqual(len(converted_values), 0)
+    self.assertEmpty(converted_values)
 
 
 class RekallResponseToExportedRekallProcessConverterTest(ExportTestBase):
@@ -1781,7 +1781,7 @@ class RekallResponseToExportedRekallProcessConverterTest(ExportTestBase):
     converted_values = list(
         self.converter.Convert(metadata, rekall_response, token=self.token))
 
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
 
     model = export.ExportedRekallProcess(
         metadata=metadata,
@@ -1806,7 +1806,7 @@ class RekallResponseToExportedRekallProcessConverterTest(ExportTestBase):
         self.converter.Convert(
             self.metadata, rekall_response, token=self.token))
 
-    self.assertEqual(len(converted_values), 0)
+    self.assertEmpty(converted_values)
 
 
 class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
@@ -1864,7 +1864,7 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
     converted_values = list(
         self.converter.Convert(metadata, rekall_response, token=self.token))
 
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
 
     model = export.ExportedRekallWindowsLoadedModule(
         metadata=metadata,
@@ -1895,7 +1895,7 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
         self.converter.Convert(
             self.metadata, rekall_response, token=self.token))
 
-    self.assertEqual(len(converted_values), 0)
+    self.assertEmpty(converted_values)
 
 
 class ExportedLinuxSyscallTableEntryConverterTest(ExportTestBase):
@@ -1941,7 +1941,7 @@ class ExportedLinuxSyscallTableEntryConverterTest(ExportTestBase):
     converted_values = list(
         self.converter.Convert(metadata, rekall_response, token=self.token))
 
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
 
     model = export.ExportedLinuxSyscallTableEntry(
         metadata=metadata,
@@ -1986,7 +1986,7 @@ class ExportedLinuxSyscallTableEntryConverterTest(ExportTestBase):
     metadata = self.metadata
     converted_values = list(
         self.converter.Convert(metadata, rekall_response, token=self.token))
-    self.assertEqual(len(converted_values), 2)
+    self.assertLen(converted_values, 2)
 
     model = export.ExportedLinuxSyscallTableEntry(
         metadata=metadata,
@@ -2012,7 +2012,7 @@ class ExportedLinuxSyscallTableEntryConverterTest(ExportTestBase):
     converted_values = list(
         self.converter.Convert(
             self.metadata, rekall_response, token=self.token))
-    self.assertEqual(len(converted_values), 0)
+    self.assertEmpty(converted_values)
 
 
 class RekallResponseToExportedRekallLinuxTaskOpConverterTest(ExportTestBase):
@@ -2054,7 +2054,7 @@ class RekallResponseToExportedRekallLinuxTaskOpConverterTest(ExportTestBase):
     converted_values = list(
         self.converter.Convert(metadata, rekall_response, token=self.token))
 
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
 
     task = export.ExportedRekallLinuxTask(metadata=metadata, pid=1, name="init")
 
@@ -2074,7 +2074,7 @@ class RekallResponseToExportedRekallLinuxTaskOpConverterTest(ExportTestBase):
     converted_values = list(
         self.converter.Convert(
             self.metadata, rekall_response, token=self.token))
-    self.assertEqual(len(converted_values), 0)
+    self.assertEmpty(converted_values)
 
 
 class RekallResponseToExportedRekallLinuxProcOpConverterTest(ExportTestBase):
@@ -2124,7 +2124,7 @@ class RekallResponseToExportedRekallLinuxProcOpConverterTest(ExportTestBase):
     converted_values = list(
         self.converter.Convert(metadata, rekall_response, token=self.token))
 
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
 
     model = export.ExportedRekallLinuxProcOp(
         metadata=metadata,
@@ -2142,7 +2142,7 @@ class RekallResponseToExportedRekallLinuxProcOpConverterTest(ExportTestBase):
     converted_values = list(
         self.converter.Convert(
             self.metadata, rekall_response, token=self.token))
-    self.assertEqual(len(converted_values), 0)
+    self.assertEmpty(converted_values)
 
 
 class RekallResponseToExportedRekallKernelObjectConverterTest(ExportTestBase):
@@ -2173,7 +2173,7 @@ class RekallResponseToExportedRekallKernelObjectConverterTest(ExportTestBase):
     converted_values = list(
         self.converter.Convert(metadata, rekall_response, token=self.token))
 
-    self.assertEqual(len(converted_values), 1)
+    self.assertLen(converted_values, 1)
 
     model = export.ExportedRekallKernelObject(
         metadata=metadata, type="Directory", name="ObjectTypes")
@@ -2187,7 +2187,7 @@ class RekallResponseToExportedRekallKernelObjectConverterTest(ExportTestBase):
     converted_values = list(
         self.converter.Convert(
             self.metadata, rekall_response, token=self.token))
-    self.assertEqual(len(converted_values), 0)
+    self.assertEmpty(converted_values)
 
 
 class GetMetadataLegacyTest(test_lib.GRRBaseTest):

@@ -37,7 +37,6 @@ from grr_response_server import foreman_rules
 from grr_response_server import grr_collections
 from grr_response_server import multi_type_collection
 from grr_response_server import notification as notification_lib
-from grr_response_server import output_plugin as output_plugin_lib
 from grr_response_server import queue_manager
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.hunts import results as hunts_results
@@ -129,12 +128,6 @@ class HuntResultsMetadata(aff4.AFF4Object):
         "aff4:output_plugins_state_dict",
         rdf_protodict.AttributedDict,
         "Serialized output plugin state.",
-        versioned=False)
-
-    OUTPUT_PLUGINS_VERIFICATION_RESULTS = aff4.Attribute(
-        "aff4:output_plugins_verification_results",
-        output_plugin_lib.OutputPluginVerificationResultsList,
-        "Verification results list.",
         versioned=False)
 
 
@@ -578,13 +571,18 @@ class HuntRunner(object):
     for output_plugin_state in self.context.output_plugins_states:
       plugin_descriptor = output_plugin_state.plugin_descriptor
       plugin_state = output_plugin_state.plugin_state
-      output_plugin = plugin_descriptor.GetPluginForState(plugin_state)
+      output_plugin_cls = plugin_descriptor.GetPluginClass()
+      output_plugin = output_plugin_cls(
+          source_urn=self.results_collection_urn,
+          args=plugin_descriptor.plugin_args,
+          token=self.token)
 
       # Extend our lease if needed.
       self.hunt_obj.HeartBeat()
       try:
-        output_plugin.ProcessResponses(replies)
-        output_plugin.Flush()
+        output_plugin.ProcessResponses(plugin_state, replies)
+        output_plugin.Flush(plugin_state)
+        output_plugin.UpdateState(plugin_state)
 
         log_item = output_plugin.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_descriptor,
@@ -1535,13 +1533,13 @@ class GRRHunt(flow.FlowBase):
 
     for index, plugin_descriptor in enumerate(plugins_descriptors):
       plugin_class = plugin_descriptor.GetPluginClass()
-      plugin_obj = plugin_class(
-          self.results_collection_urn,
+      _, plugin_state = plugin_class.CreatePluginAndDefaultState(
+          source_urn=self.results_collection_urn,
           args=plugin_descriptor.plugin_args,
           token=self.token)
 
       state["%s_%d" % (plugin_descriptor.plugin_name, index)] = [
-          plugin_descriptor, plugin_obj.state
+          plugin_descriptor, plugin_state
       ]
 
     return state

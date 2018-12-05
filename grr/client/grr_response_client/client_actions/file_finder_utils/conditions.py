@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Implementation of condition mechanism for client-side file-finder."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import abc

@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """Test library for blob store-related code."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_core import config
 from grr_response_core.lib.util import compatibility
 from grr_response_server import blob_store
+from grr_response_server import data_store
 from grr_response_server.blob_stores import db_blob_store
 from grr_response_server.blob_stores import memory_stream_bs
 
@@ -19,23 +21,26 @@ class TestBlobStore(blob_store.BlobStore):
 
   def WriteBlobs(self, blob_id_data_map):
     self.new.WriteBlobs(blob_id_data_map)
-    self.legacy.WriteBlobs(blob_id_data_map)
+    if data_store.AFF4Enabled():
+      self.legacy.WriteBlobs(blob_id_data_map)
 
   def ReadBlobs(self, blob_ids):
     new_result = self.new.ReadBlobs(blob_ids)
-    legacy_result = self.legacy.ReadBlobs(blob_ids)
-    if new_result != legacy_result:
-      raise RuntimeError("ReadBlobs regression detected: %r != %r" %
-                         (legacy_result, new_result))
+    if data_store.AFF4Enabled():
+      legacy_result = self.legacy.ReadBlobs(blob_ids)
+      if new_result != legacy_result:
+        raise RuntimeError("ReadBlobs regression detected: %r != %r" %
+                           (legacy_result, new_result))
 
     return new_result
 
   def CheckBlobsExist(self, blob_ids):
     new_result = self.new.CheckBlobsExist(blob_ids)
-    legacy_result = self.legacy.CheckBlobsExist(blob_ids)
-    if new_result != legacy_result:
-      raise RuntimeError("ReadBlobs regression detected: %r != %r" %
-                         (legacy_result, new_result))
+    if data_store.AFF4Enabled():
+      legacy_result = self.legacy.CheckBlobsExist(blob_ids)
+      if new_result != legacy_result:
+        raise RuntimeError("ReadBlobs regression detected: %r != %r" %
+                           (legacy_result, new_result))
 
     return new_result
 

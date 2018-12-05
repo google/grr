@@ -1858,7 +1858,8 @@
           "name": "Interrogate",
           "runnerArgs": {
             "clientId": "aff4:/C.1000000000000000",
-            "flowName": "Interrogate"
+            "flowName": "Interrogate",
+            "notifyToUser": true
           },
           "startedAt": "42000000",
           "state": "RUNNING",
@@ -6979,33 +6980,6 @@
       },
       "test_class": "ApiListOutputPluginDescriptorsHandlerTest_http_v2",
       "url": "/api/v2/output-plugins/all"
-    }
-  ],
-  "ApiListPendingGlobalNotificationsHandler": [
-    {
-      "api_method": "ListPendingGlobalNotifications",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "duration": "1209600",
-            "header": "Nothing to worry about!",
-            "link": "http://www.google.com",
-            "showFrom": "0",
-            "type": "INFO"
-          },
-          {
-            "content": "Houston, Houston, we have a prob...",
-            "duration": "1209600",
-            "header": "Oh no, we're doomed!",
-            "link": "http://www.google.com",
-            "showFrom": "0",
-            "type": "ERROR"
-          }
-        ]
-      },
-      "test_class": "ApiListPendingGlobalNotificationsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/users/me/notifications/pending/global"
     }
   ],
   "ApiListPendingUserNotificationsHandler": [

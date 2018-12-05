@@ -5,6 +5,7 @@
 """These are tests for the PathSpec implementation."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -92,7 +93,7 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.assertEqual([x.path for x in pathspec], ["test", "foo"])
 
     # Length.
-    self.assertEqual(len(pathspec), 2)
+    self.assertLen(pathspec, 2)
 
     pathspec = rdf_paths.PathSpec(path="/foo", pathtype=1)
     pathspec.Append(path="/", pathtype=0)
@@ -151,14 +152,14 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     glob_expression = rdf_paths.GlobExpression()
 
     interpolated = glob_expression.InterpolateGrouping("/home/*.{sh,deb}")
-    self.assertItemsEqual(interpolated, [u"/home/*.deb", u"/home/*.sh"])
+    self.assertCountEqual(interpolated, [u"/home/*.deb", u"/home/*.sh"])
     interpolated = glob_expression.InterpolateGrouping("/home/*.{sh, deb}")
-    self.assertItemsEqual(interpolated, [u"/home/*. deb", u"/home/*.sh"])
+    self.assertCountEqual(interpolated, [u"/home/*. deb", u"/home/*.sh"])
     interpolated = glob_expression.InterpolateGrouping(
         "HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}")
-    self.assertItemsEqual(interpolated, [
-        u"HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}"
-    ])
+    self.assertCountEqual(
+        interpolated,
+        [u"HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}"])
 
   def testValidation(self):
     glob_expression = rdf_paths.GlobExpression(

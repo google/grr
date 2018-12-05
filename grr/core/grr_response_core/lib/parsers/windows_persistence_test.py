@@ -2,6 +2,7 @@
 """Tests for grr.parsers.windows_persistence."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
@@ -57,7 +58,7 @@ class WindowsPersistenceMechanismsParserTest(flow_test_lib.FlowTestsBaseclass):
       results = list(
           parser.Parse(item, knowledge_base, rdf_paths.PathSpec.PathType.OS))
       self.assertEqual(results[0].pathspec.path, expected[index])
-      self.assertEqual(len(results), 1)
+      self.assertLen(results, 1)
 
 
 def main(argv):

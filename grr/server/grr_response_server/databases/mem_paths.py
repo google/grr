@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The in memory database methods for path handling."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -136,7 +137,11 @@ class _PathRecord(object):
       A `rdf_objects.PathInfo` instance.
     """
     path_info_timestamp = self._LastEntryTimestamp(self._path_infos, timestamp)
-    result = self._path_infos[path_info_timestamp].Copy()
+    try:
+      result = self._path_infos[path_info_timestamp].Copy()
+    except KeyError:
+      result = rdf_objects.PathInfo(
+          path_type=self._path_type, components=self._components)
 
     stat_entry_timestamp = self._LastEntryTimestamp(self._stat_entries,
                                                     timestamp)
@@ -208,6 +213,7 @@ class InMemoryDBPathMixin(object):
                               client_id,
                               path_type,
                               components,
+                              timestamp=None,
                               max_depth=None):
     """Lists path info records that correspond to children of given path."""
     result = []
@@ -224,10 +230,51 @@ class InMemoryDBPathMixin(object):
           len(other_components) - len(components) > max_depth):
         continue
 
-      result.append(path_record.GetPathInfo())
+      result.append(path_record.GetPathInfo(timestamp=timestamp))
 
-    result.sort(key=lambda _: tuple(_.components))
-    return result
+    if timestamp is None:
+      return sorted(result, key=lambda _: tuple(_.components))
+
+    # We need to filter implicit path infos if specific timestamp is given.
+
+    # TODO(hanuszczak): If we were to switch to use path trie instead of storing
+    # records by path id, everything would be much easier.
+
+    class TrieNode(object):
+      """A trie of path components with path infos as values."""
+
+      def __init__(self):
+        self.path_info = None
+        self.children = {}
+        self.explicit = False
+
+      def Add(self, path_info, idx=0):
+        """Adds given path info to the trie (or one of its subtrees)."""
+        components = path_info.components
+        if idx == len(components):
+          self.path_info = path_info
+          self.explicit |= (
+              path_info.HasField("stat_entry") or
+              path_info.HasField("hash_entry"))
+        else:
+          child = self.children.setdefault(components[idx], TrieNode())
+          child.Add(path_info, idx=idx + 1)
+          self.explicit |= child.explicit
+
+      def Collect(self, path_infos):
+        if self.path_info is not None and self.explicit:
+          path_infos.append(self.path_info)
+
+        for component in sorted(iterkeys(self.children)):
+          self.children[component].Collect(path_infos)
+
+    trie = TrieNode()
+    for path_info in result:
+      trie.Add(path_info)
+
+    explicit_path_infos = []
+    trie.Collect(explicit_path_infos)
+    return explicit_path_infos
 
   def _GetPathRecord(self, client_id, path_info, set_default=True):
     components = tuple(path_info.components)

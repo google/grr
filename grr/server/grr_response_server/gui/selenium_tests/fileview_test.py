@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the fileview interface."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -13,6 +14,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 
 from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import gui_test_lib
@@ -289,6 +291,12 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     # an HTTP 500.
     with self.DisableHttpErrorChecks():
       self.Click("css=button:contains(\"Collect from the client\")")
+      if not data_store.RelationalDBReadEnabled("vfs"):
+        # Wait until the error is processed before we leave the
+        # DisableHttpErrorChecks context.
+        self.WaitUntil(
+            self.IsTextPresent,
+            "is of type VFSMemoryFile, but required_type is VFSFile")
 
   def testExportToolHintIsDisplayed(self):
     self.Open("/#/clients/%s/vfs/" % self.client_id)

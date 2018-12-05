@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Definitions for stats metrics used by GRR server components."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin

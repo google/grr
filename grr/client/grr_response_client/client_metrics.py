@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Central registry for all the client's monitored metrics."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.stats import stats_utils

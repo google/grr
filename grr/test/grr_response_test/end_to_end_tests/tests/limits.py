@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for client resource limits."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_test.end_to_end_tests import test_base
 
@@ -29,5 +30,5 @@ class TestNetworkFlowLimit(test_base.EndToEndTest):
       self.assertAlmostEqual(
           e.flow.data.context.network_bytes_sent, 500 * 1024, delta=30000)
       self.assertTrue(e.flow.data.context.backtrace)
-      self.assertTrue(
-          "Network bytes limit exceeded." in e.flow.data.context.backtrace)
+      self.assertIn("Network bytes limit exceeded.",
+                    e.flow.data.context.backtrace)

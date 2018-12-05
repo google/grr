@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test Chipsec client actions."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import collections
@@ -129,7 +130,7 @@ class TestChipsecDumpFlashImage(GRRChipsecTest):
     self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
     self.assertGreaterEqual(len(self.results), 1)
     self.assertNotEquals(len(self.results[0].logs), 0)
-    self.assertEquals(self.results[0].path.path, "")
+    self.assertEqual(self.results[0].path.path, "")
 
   def testDumpFlashImageOsHelperErrorChipset(self):
     """If an exception is raised by the helper layer, handle it."""
@@ -191,7 +192,7 @@ class TestDumpACPITable(GRRChipsecTest):
     """Tests basic valid ACPI table dump."""
     args = rdf_chipsec_types.DumpACPITableRequest(table_signature="DSDT")
     result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
-    self.assertEqual(len(result.acpi_tables), 1)
+    self.assertLen(result.acpi_tables, 1)
     self.assertEqual(result.acpi_tables[0].table_address, 0xAABBCCDDEEFF0011)
     self.assertEqual(result.acpi_tables[0].table_blob,
                      b"\xFF" * 0xFF + b"\xEE" * 0xFF)
@@ -200,7 +201,7 @@ class TestDumpACPITable(GRRChipsecTest):
     """Tests valid ACPI table dump that would yield several tables."""
     args = rdf_chipsec_types.DumpACPITableRequest(table_signature="SSDT")
     result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
-    self.assertEqual(len(result.acpi_tables), 3)
+    self.assertLen(result.acpi_tables, 3)
     self.assertEqual(result.acpi_tables[0].table_address, 0x1234567890ABCDEF)
     self.assertEqual(result.acpi_tables[0].table_blob,
                      b"\xEF" * 0xFF + b"\xFE" * 0xFF)

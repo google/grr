@@ -94,7 +94,7 @@ class GetMBRFlowTest(flow_test_lib.FlowTestsBaseclass):
     self._RunAndCheck(chunk_size, download_length)
 
 
-class GetMBRRelationalFlowTest(db_test_lib.RelationalFlowsEnabledMixin,
+class GetMBRRelationalFlowTest(db_test_lib.RelationalDBEnabledMixin,
                                GetMBRFlowTest):
   pass
 
@@ -198,7 +198,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     results = flow_test_lib.GetFlowResults(self.client_id.Basename(),
                                            session_id)
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     res_pathspec = results[0].pathspec
 
     # Fix path for Windows testing.
@@ -229,7 +229,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       self.CompareFDs(fd1, fd2)
 
 
-class GetFileRelationalFlowTest(db_test_lib.RelationalFlowsEnabledMixin,
+class GetFileRelationalFlowTest(db_test_lib.RelationalDBEnabledMixin,
                                 GetFileFlowTest):
   pass
 
@@ -340,7 +340,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
       # We should only have called StoreStat once because the two paths
       # requested were identical.
-      self.assertEqual(len(storestat_instrument.args), 1)
+      self.assertLen(storestat_instrument.args, 1)
 
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
@@ -366,11 +366,6 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       fd2.seek(0, 2)
       self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
       self.CompareFDs(fd1, fd2)
-
-  def _GetFlowState(self, client_id, flow_id):
-    del client_id
-    flow_obj = aff4.FACTORY.Open(flow_id, mode="r", token=self.token)
-    return flow_obj.state
 
   def testMultiGetFileMultiFiles(self):
     """Test MultiGetFile downloading many files at once."""
@@ -413,9 +408,10 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         self.assertIsNotNone(history[-1].hash_entry.md5)
     else:
       # Check up on the internal flow state.
-      flow_state = self._GetFlowState(self.client_id, session_id)
+      flow_state = flow_test_lib.GetFlowState(
+          self.client_id, session_id, token=self.token)
       # All the pathspecs should be in this list.
-      self.assertEqual(len(flow_state.indexed_pathspecs), 30)
+      self.assertLen(flow_state.indexed_pathspecs, 30)
 
       # At any one time, there should not be more than 10 files or hashes
       # pending.
@@ -595,7 +591,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(fd_rel_db.size, expected_size)
 
       data = fd_rel_db.read(2 * expected_size)
-      self.assertEqual(len(data), expected_size)
+      self.assertLen(data, expected_size)
 
       d = hashlib.sha256()
       d.update(expected_data)
@@ -615,9 +611,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       # Make sure a VFSBlobImage got written.
       self.assertTrue(isinstance(blobimage, aff4_grr.VFSBlobImage))
 
-      self.assertEqual(len(blobimage), expected_size)
+      self.assertLen(blobimage, expected_size)
       data = blobimage.read(100 * expected_size)
-      self.assertEqual(len(data), expected_size)
+      self.assertLen(data, expected_size)
 
       self.assertEqual(data, expected_data)
       hash_obj = data_store_utils.GetFileHashEntry(blobimage)
@@ -627,12 +623,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(hash_obj.sha1, d.hexdigest())
 
 
-class MultiGetFileRelationalFlowTest(db_test_lib.RelationalFlowsEnabledMixin,
+class MultiGetFileRelationalFlowTest(db_test_lib.RelationalDBEnabledMixin,
                                      MultiGetFileFlowTest):
-
-  def _GetFlowState(self, client_id, flow_id):
-    rdf_flow = data_store.REL_DB.ReadFlowObject(client_id.Basename(), flow_id)
-    return rdf_flow.persistent_data
+  pass
 
 
 def main(argv):

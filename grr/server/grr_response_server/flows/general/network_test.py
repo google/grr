@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the connections listing module."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
@@ -51,7 +52,7 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     # Check the results are correct.
     conns = flow_test_lib.GetFlowResults(client_id, session_id)
-    self.assertEqual(len(conns), 2)
+    self.assertLen(conns, 2)
     self.assertEqual(conns[0].local_address.ip, "0.0.0.0")
     self.assertEqual(conns[0].local_address.port, 22)
     self.assertEqual(conns[1].local_address.ip, "192.168.1.1")
@@ -69,7 +70,7 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     # Check the results are correct.
     conns = flow_test_lib.GetFlowResults(client_id, session_id)
-    self.assertEqual(len(conns), 1)
+    self.assertLen(conns, 1)
     self.assertEqual(conns[0].local_address.ip, "192.168.1.1")
     self.assertEqual(conns[0].pid, 1)
     self.assertEqual(conns[0].remote_address.port, 6667)

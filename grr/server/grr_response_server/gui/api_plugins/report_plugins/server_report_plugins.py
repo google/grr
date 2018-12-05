@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """UI server report handling classes."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import operator

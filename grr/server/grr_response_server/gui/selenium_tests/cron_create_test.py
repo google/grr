@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the cron creation UI."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Semantic Protobufs are serialization agnostic, rich data types."""
 from __future__ import absolute_import
+from __future__ import division
 
 from __future__ import unicode_literals
 
@@ -1253,6 +1254,25 @@ class RepeatedFieldHelper(object):
 class ProtoList(ProtoType):
   """A repeated type."""
 
+  #         ,     \    /      ,
+  #        / \    )\__/(     / \
+  #       /   \  (_\  /_)   /   \
+  #  ____/_____\__\@  @/___/_____\____
+  # |             |\../|              |
+  # |              \VV/               |
+  # |    WARNING: Here be dragons!    |
+  # | When accessing a ProtoList that |
+  # | is a field of another RDFValue, |
+  # | its unset value is  replaced    |
+  # | with its default value: [].     |
+  # | Since [] is not None, accessing |
+  # | a ProtoList changes its parents |
+  # | equality.                       |
+  # |_________________________________|
+  #  |    /\ /      \\       \ /\    |
+  #  |  /   V        ))       V   \  |
+  #  |/     `       //        '     \|
+  #  `              V                '
   set_default_on_access = True
 
   def __init__(self, delegate, labels=None, **kwargs):

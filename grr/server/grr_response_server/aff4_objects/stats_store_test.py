@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for AFF4 stats_store classes."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from future.utils import iterkeys
@@ -80,7 +81,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats_history = self.stats_store.ReadStats(
         process_id=self.process_id, metric_name="counter")
     self.assertEqual(stats_history["counter"], [(1, 42), (2, 43)])
-    self.assertTrue("int_gauge" not in stats_history)
+    self.assertNotIn("int_gauge", stats_history)
 
   def testDeleteStatsInTimeRangeWorksCorrectly(self):
     stats_collector_instance.Get().SetGaugeValue("int_gauge", 4242)

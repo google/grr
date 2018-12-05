@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the flow_management interface."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -255,7 +256,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # 2 components.
     self.WaitUntil(self.IsTextPresent, "Flow ID")
     flow_id = self.GetText("css=dt:contains('Flow ID') ~ dd:nth(0)")
-    self.assertTrue("/" in flow_id)
+    self.assertIn("/", flow_id)
 
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
     api_regression_test_lib.StartFlow(
@@ -644,7 +645,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=grr-results-collection grr-download-collection-files")
 
 
-class TestRelFlowManagement(db_test_lib.RelationalFlowsEnabledMixin,
+class TestRelFlowManagement(db_test_lib.RelationalDBEnabledMixin,
                             TestFlowManagement):
   pass
 

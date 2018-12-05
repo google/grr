@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Utililies for modifying the GRR server configuration."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -25,16 +26,19 @@ import pkg_resources
 from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
+from grr_api_client import api
+from grr_api_client import errors as api_errors
 from grr_response_core import config as grr_config
-
 from grr_response_core.lib import flags
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import repacking
 from grr_response_server import access_control
-from grr_response_server import aff4
 from grr_response_server import maintenance_utils
 from grr_response_server import server_startup
+from grr_response_server import signed_binary_utils
+from grr_response_server.bin import api_shell_raw_access_lib
 from grr_response_server.bin import config_updater_keys_util
+from grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 try:
   # Importing readline enables the raw_input calls to have history etc.
@@ -49,6 +53,12 @@ except ImportError:
 _MYSQL_MAX_RETRIES = 2
 _MYSQL_RETRY_WAIT_SECS = 2
 
+# Python hacks or executables larger than this limit will not be uploaded.
+_MAX_SIGNED_BINARY_BYTES = 30 << 20  # 30 MiB
+
+# Batch size to use when fetching multiple items from the GRR API.
+_GRR_API_PAGE_SIZE = 1000
+
 
 class ConfigInitError(Exception):
   """Exception raised to abort config initialization."""
@@ -57,6 +67,22 @@ class ConfigInitError(Exception):
     super(ConfigInitError, self).__init__(
         "Aborting config initialization. Please run 'grr_config_updater "
         "initialize' to retry initialization.")
+
+
+class BinaryTooLargeError(Exception):
+  """Exception raised when trying to upload overly large binaries."""
+
+
+class UserAlreadyExistsError(Exception):
+  """Exception raised when trying to create an already-existing user."""
+
+
+class UserNotFoundError(Exception):
+  """Exception raised when trying to fetch a non-existent user."""
+
+  def __init__(self, username):
+    super(UserNotFoundError,
+          self).__init__("User '%s' does not exist." % username)
 
 
 def ImportConfig(filename, config):
@@ -396,29 +422,18 @@ def FinalizeConfigInit(config, token):
 
   print("\nStep 3: Adding GRR Admin User")
   try:
-    maintenance_utils.AddUser(
-        "admin",
-        labels=["admin"],
-        token=token,
-        password=flags.FLAGS.admin_password)
-  except maintenance_utils.UserError:
+    CreateUser("admin", password=flags.FLAGS.admin_password, is_admin=True)
+  except UserAlreadyExistsError:
     if flags.FLAGS.noprompt:
-      maintenance_utils.UpdateUser(
-          "admin",
-          password=flags.FLAGS.admin_password,
-          add_labels=["admin"],
-          token=token)
+      UpdateUser("admin", password=flags.FLAGS.admin_password, is_admin=True)
     else:
       # pytype: disable=wrong-arg-count
       if ((builtins.input("User 'admin' already exists, do you want to "
                           "reset the password? [yN]: ").upper() or "N") == "Y"):
-        maintenance_utils.UpdateUser(
-            "admin", password=True, add_labels=["admin"], token=token)
+        UpdateUser("admin", password=flags.FLAGS.admin_password, is_admin=True)
       # pytype: enable=wrong-arg-count
 
   print("\nStep 4: Repackaging clients with new configuration.")
-  redownload_templates = False
-  repack_templates = False
   if flags.FLAGS.noprompt:
     redownload_templates = flags.FLAGS.redownload_templates
     repack_templates = not flags.FLAGS.norepack_templates
@@ -547,17 +562,132 @@ def InitializeNoPrompt(config=None, token=None):
   FinalizeConfigInit(config, token)
 
 
-def UploadRaw(file_path, aff4_path, token=None):
-  """Upload a file to the datastore."""
-  full_path = rdfvalue.RDFURN(aff4_path).Add(os.path.basename(file_path))
-  fd = aff4.FACTORY.Create(full_path, "AFF4Image", mode="w", token=token)
-  fd.Write(open(file_path, "rb").read(1024 * 1024 * 30))
-  fd.Close()
-  return str(fd.urn)
-
-
 def GetToken():
   # Extend for user authorization
   # SetUID is required to create and write to various aff4 paths when updating
   # config.
   return access_control.ACLToken(username="GRRConsole").SetUID()
+
+
+def UploadSignedBinary(source_path,
+                       binary_type,
+                       platform,
+                       upload_subdirectory="",
+                       token=None):
+  """Signs a binary and uploads it to the datastore.
+
+  Args:
+    source_path: Path to the binary to upload.
+    binary_type: Type of the binary, e.g python-hack or executable.
+    platform: Client platform where the binary is intended to be run.
+    upload_subdirectory: Path of a subdirectory to upload the binary to,
+      relative to the canonical path for binaries of the given type and
+      platform.
+    token: ACL token to use for uploading.
+
+  Raises:
+    BinaryTooLargeError: If the binary to upload is too large.
+  """
+  if binary_type == rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK:
+    root_urn = signed_binary_utils.GetAFF4PythonHackRoot()
+  elif binary_type == rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE:
+    root_urn = signed_binary_utils.GetAFF4ExecutablesRoot()
+  else:
+    raise ValueError("Unknown binary type %s." % binary_type)
+  file_size = os.path.getsize(source_path)
+  if file_size > _MAX_SIGNED_BINARY_BYTES:
+    raise BinaryTooLargeError(
+        "File [%s] is of size %d (bytes), which exceeds the allowed maximum "
+        "of %d bytes." % (source_path, file_size, _MAX_SIGNED_BINARY_BYTES))
+  binary_urn = root_urn.Add(platform.lower()).Add(upload_subdirectory).Add(
+      os.path.basename(source_path))
+  context = ["Platform:%s" % platform.title(), "Client Context"]
+  with open(source_path, "rb") as f:
+    file_content = f.read()
+  maintenance_utils.UploadSignedConfigBlob(
+      file_content, aff4_path=binary_urn, client_context=context, token=token)
+  print("Uploaded to %s" % binary_urn)
+
+
+def CreateUser(username, password=None, is_admin=False):
+  """Creates a new GRR user."""
+  grr_api = _CreateInProcessRootGRRAPI()
+  try:
+    user_exists = grr_api.GrrUser(username).Get() is not None
+  except api_errors.ResourceNotFoundError:
+    user_exists = False
+  if user_exists:
+    raise UserAlreadyExistsError("User '%s' already exists." % username)
+  user_type, password = _GetUserTypeAndPassword(
+      username, password=password, is_admin=is_admin)
+  grr_api.CreateGrrUser(
+      username=username, user_type=user_type, password=password)
+
+
+def UpdateUser(username, password=None, is_admin=False):
+  """Updates the password or privilege-level for a user."""
+  user_type, password = _GetUserTypeAndPassword(
+      username, password=password, is_admin=is_admin)
+  grr_api = _CreateInProcessRootGRRAPI()
+  grr_user = grr_api.GrrUser(username).Get()
+  grr_user.Modify(user_type=user_type, password=password)
+
+
+def GetUserSummary(username):
+  """Returns a string with summary info for a user."""
+  grr_api = _CreateInProcessRootGRRAPI()
+  try:
+    return _Summarize(grr_api.GrrUser(username).Get().data)
+  except api_errors.ResourceNotFoundError:
+    raise UserNotFoundError(username)
+
+
+def GetAllUserSummaries():
+  """Returns a string containing summary info for all GRR users."""
+  grr_api = _CreateInProcessRootGRRAPI()
+  user_wrappers = sorted(grr_api.ListGrrUsers(), key=lambda x: x.username)
+  summaries = [_Summarize(w.data) for w in user_wrappers]
+  return "\n\n".join(summaries)
+
+
+def _Summarize(user_info):
+  """Returns a string with summary info for a user."""
+  return "Username: %s\nIs Admin: %s" % (
+      user_info.username,
+      user_info.user_type == api_user.ApiGrrUser.UserType.USER_TYPE_ADMIN)
+
+
+def DeleteUser(username):
+  """Deletes a GRR user from the datastore."""
+  grr_api = _CreateInProcessRootGRRAPI()
+  try:
+    grr_api.GrrUser(username).Get().Delete()
+  except api_errors.ResourceNotFoundError:
+    raise UserNotFoundError(username)
+
+
+def _CreateInProcessRootGRRAPI():
+  return api.GrrApi(
+      connector=api_shell_raw_access_lib.RawConnector(
+          token=GetToken(), page_size=_GRR_API_PAGE_SIZE)).root
+
+
+def _GetUserTypeAndPassword(username, password=None, is_admin=False):
+  """Returns the user-type and password for a user.
+
+  Args:
+    username: Username for the user.
+    password: Password for the user. If None, or not provided, we will prompt
+      for one via the terminal.
+    is_admin: Indicates whether the user should have admin privileges.
+  """
+  if is_admin:
+    user_type = api_user.ApiGrrUser.UserType.USER_TYPE_ADMIN
+  else:
+    user_type = api_user.ApiGrrUser.UserType.USER_TYPE_STANDARD
+  if password is None:
+    # pytype: disable=wrong-arg-types
+    password = getpass.getpass(
+        prompt="Please enter password for user '%s':" % username)
+    # pytype: enable=wrong-arg-types
+  return user_type, password

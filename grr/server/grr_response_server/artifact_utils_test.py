@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the artifact libraries."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -70,7 +71,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
         name_list=["TestAggregationArtifact", "TestFileArtifact"])
 
     # TestFileArtifact doesn't match the OS criteria
-    self.assertItemsEqual([x.name for x in results],
+    self.assertCountEqual([x.name for x in results],
                           ["TestAggregationArtifact"])
     for result in results:
       self.assertTrue("Windows" in result.supported_os or
@@ -85,7 +86,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     # Check supported_os = [] matches any OS
     results = registry.GetArtifacts(
         os_name="Windows", name_list=["RekallPsList"])
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results.pop().name, "RekallPsList")
 
     results = registry.GetArtifacts(os_name="Windows", exclude_dependents=True)
@@ -103,7 +104,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results = registry.GetArtifacts(
         os_name="Windows", provides=["nothingprovidesthis"])
-    self.assertEqual(len(results), 0)
+    self.assertEmpty(results)
 
   @artifact_test_lib.PatchDefaultArtifactRegistry
   def testGetArtifactNames(self, registry):
@@ -115,7 +116,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     results_names = registry.GetArtifactNames(
         os_name="Windows", provides=["users.homedir", "domain"])
 
-    self.assertItemsEqual(set([a.name for a in result_objs]), results_names)
+    self.assertCountEqual(set([a.name for a in result_objs]), results_names)
     self.assertTrue(len(results_names))
 
     results_names = registry.GetArtifactNames(
@@ -132,13 +133,13 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     # This list contains all artifacts that can provide the dependency, e.g.
     # DepsHomedir and DepsHomedir2 both provide
     # users.homedir.
-    self.assertItemsEqual(names, [
+    self.assertCountEqual(names, [
         u"DepsHomedir", u"DepsHomedir2", u"DepsDesktop", u"DepsParent",
         u"DepsWindir", u"DepsWindirRegex", u"DepsControlSet",
         u"TestAggregationArtifactDeps"
     ])
 
-    self.assertItemsEqual(expansions, [
+    self.assertCountEqual(expansions, [
         "current_control_set", "users.homedir", "users.desktop",
         "environ_windir", "users.username"
     ])
@@ -146,7 +147,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     # None of these match the OS, so we should get an empty list.
     names, expansions = registry.SearchDependencies(
         "Darwin", [u"TestCmdArtifact", u"TestFileArtifact"])
-    self.assertItemsEqual(names, [])
+    self.assertCountEqual(names, [])
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testArtifactConversion(self, registry):
@@ -166,10 +167,10 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     art_obj = registry.GetArtifact("TestAggregationArtifactDeps")
     deps = ar.GetArtifactDependencies(art_obj)
-    self.assertItemsEqual(list(deps), ["TestAggregationArtifact"])
+    self.assertCountEqual(list(deps), ["TestAggregationArtifact"])
 
     deps = ar.GetArtifactDependencies(art_obj, recursive=True)
-    self.assertItemsEqual(
+    self.assertCountEqual(
         list(deps),
         ["TestOSAgnostic", "TestCmdArtifact", "TestAggregationArtifact"])
 
@@ -206,8 +207,8 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
     paths = artifact_utils.InterpolateKbAttributes("test%%users.username%%test",
                                                    kb)
     paths = list(paths)
-    self.assertEqual(len(paths), 2)
-    self.assertItemsEqual(paths, ["testjoetest", "testjimtest"])
+    self.assertLen(paths, 2)
+    self.assertCountEqual(paths, ["testjoetest", "testjimtest"])
 
     paths = artifact_utils.InterpolateKbAttributes(
         "%%environ_allusersprofile%%\\a", kb)
@@ -239,7 +240,7 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
             uid=1,
             temp="C:\\Users\\jason\\AppData\\Local\\Temp"))
     paths = artifact_utils.InterpolateKbAttributes(r"%%users.temp%%\abcd", kb)
-    self.assertItemsEqual(paths,
+    self.assertCountEqual(paths,
                           ["C:\\Users\\jason\\AppData\\Local\\Temp\\abcd"])
 
 
@@ -265,58 +266,58 @@ class UserMergeTest(test_lib.GRRBaseTest):
   def testUserMergeWindows(self):
     """Check Windows users are accurately merged."""
     kb = rdf_client.KnowledgeBase()
-    self.assertEqual(len(kb.users), 0)
+    self.assertEmpty(kb.users)
     kb.MergeOrAddUser(rdf_client.User(sid="1234"))
-    self.assertEqual(len(kb.users), 1)
+    self.assertLen(kb.users, 1)
     kb.MergeOrAddUser(rdf_client.User(sid="5678", username="test1"))
-    self.assertEqual(len(kb.users), 2)
+    self.assertLen(kb.users, 2)
 
     _, conflicts = kb.MergeOrAddUser(
         rdf_client.User(sid="5678", username="test2"))
-    self.assertEqual(len(kb.users), 2)
+    self.assertLen(kb.users, 2)
     self.assertEqual(conflicts[0], ("username", "test1", "test2"))
     self.assertEqual(kb.GetUser(sid="5678").username, "test2")
 
     # This should merge on user name as we have no other data.
     kb.MergeOrAddUser(rdf_client.User(username="test2", homedir="a"))
-    self.assertEqual(len(kb.users), 2)
+    self.assertLen(kb.users, 2)
 
     # This should create a new user since the sid is different.
     new_attrs, conflicts = kb.MergeOrAddUser(
         rdf_client.User(username="test2", sid="12345", temp="/blah"))
-    self.assertEqual(len(kb.users), 3)
-    self.assertItemsEqual(new_attrs,
+    self.assertLen(kb.users, 3)
+    self.assertCountEqual(new_attrs,
                           ["users.username", "users.temp", "users.sid"])
     self.assertEqual(conflicts, [])
 
   def testUserMergeLinux(self):
     """Check Linux users are accurately merged."""
     kb = rdf_client.KnowledgeBase()
-    self.assertEqual(len(kb.users), 0)
+    self.assertEmpty(kb.users)
     kb.MergeOrAddUser(rdf_client.User(username="blake", last_logon=1111))
-    self.assertEqual(len(kb.users), 1)
+    self.assertLen(kb.users, 1)
     # This should merge since the username is the same.
     kb.MergeOrAddUser(rdf_client.User(uid="12", username="blake"))
-    self.assertEqual(len(kb.users), 1)
+    self.assertLen(kb.users, 1)
 
     # This should create a new record because the uid is different
     kb.MergeOrAddUser(
         rdf_client.User(
             username="blake", uid="13", desktop="/home/blake/Desktop"))
-    self.assertEqual(len(kb.users), 2)
+    self.assertLen(kb.users, 2)
 
     kb.MergeOrAddUser(
         rdf_client.User(
             username="newblake", uid="14", desktop="/home/blake/Desktop"))
 
-    self.assertEqual(len(kb.users), 3)
+    self.assertLen(kb.users, 3)
 
     # Check merging where we don't specify uid works
     new_attrs, conflicts = kb.MergeOrAddUser(
         rdf_client.User(username="newblake", desktop="/home/blakey/Desktop"))
-    self.assertEqual(len(kb.users), 3)
-    self.assertItemsEqual(new_attrs, ["users.username", "users.desktop"])
-    self.assertItemsEqual(
+    self.assertLen(kb.users, 3)
+    self.assertCountEqual(new_attrs, ["users.username", "users.desktop"])
+    self.assertCountEqual(
         conflicts,
         [("desktop", u"/home/blake/Desktop", u"/home/blakey/Desktop")])
 
@@ -344,18 +345,20 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
                 r"Manager\Environment\Path"
             ]
         }
-    }, {
-        "type": rdf_artifacts.ArtifactSource.SourceType.WMI,
-        "attributes": {
-            "query": "SELECT * FROM Win32_UserProfile "
-                     "WHERE SID='%%users.sid%%'"
-        }
-    }, {
-        "type": rdf_artifacts.ArtifactSource.SourceType.GREP,
-        "attributes": {
-            "content_regex_list": ["^%%users.username%%:"]
-        }
-    }]
+    },
+               {
+                   "type": rdf_artifacts.ArtifactSource.SourceType.WMI,
+                   "attributes": {
+                       "query": "SELECT * FROM Win32_UserProfile "
+                                "WHERE SID='%%users.sid%%'"
+                   }
+               },
+               {
+                   "type": rdf_artifacts.ArtifactSource.SourceType.GREP,
+                   "attributes": {
+                       "content_regex_list": ["^%%users.username%%:"]
+                   }
+               }]
 
     artifact = rdf_artifacts.Artifact(
         name="artifact",
@@ -365,7 +368,7 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         urls=["http://blah"],
         sources=sources)
 
-    self.assertItemsEqual(
+    self.assertCountEqual(
         [x["type"] for x in artifact.ToPrimitiveDict()["sources"]],
         ["REGISTRY_KEY", "WMI", "GREP"])
 
@@ -381,7 +384,7 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     with utils.Stubber(parser.Parser, "GetClassesByArtifact",
                        MockGetClassesByArtifact):
-      self.assertItemsEqual(
+      self.assertCountEqual(
           ar.GetArtifactPathDependencies(artifact), [
               "appdata", "sid", "desktop", "current_control_set", "users.sid",
               "users.username"
@@ -396,12 +399,13 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
                 r"Manager\Environment\Path"
             ]
         }
-    }, {
-        "type": rdf_artifacts.ArtifactSource.SourceType.FILE,
-        "attributes": {
-            "paths": [r"%%environ_systemdrive%%\Temp"]
-        }
-    }]
+    },
+               {
+                   "type": rdf_artifacts.ArtifactSource.SourceType.FILE,
+                   "attributes": {
+                       "paths": [r"%%environ_systemdrive%%\Temp"]
+                   }
+               }]
 
     artifact = rdf_artifacts.Artifact(
         name="good",

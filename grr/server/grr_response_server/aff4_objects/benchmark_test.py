@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This tests the performance of the AFF4 subsystem."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin

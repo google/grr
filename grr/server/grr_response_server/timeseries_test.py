@@ -21,19 +21,19 @@ class TimeseriesTest(test_lib.GRRBaseTest):
 
   def testAppendFilterRange(self):
     s = self.makeSeries()
-    self.assertEqual(100, len(s.data))
+    self.assertLen(s.data, 100)
     self.assertEqual([1, 60000], s.data[0])
     self.assertEqual([100, 1050000], s.data[-1])
 
     s.FilterRange(100000, 200000)
-    self.assertEqual(10, len(s.data))
+    self.assertLen(s.data, 10)
     self.assertEqual([5, 100000], s.data[0])
     self.assertEqual([14, 190000], s.data[-1])
 
   def testNormalize(self):
     s = self.makeSeries()
     s.Normalize(10 * 10000, 100000, 600000)
-    self.assertEqual(5, len(s.data))
+    self.assertLen(s.data, 5)
     self.assertEqual([9.5, 100000], s.data[0])
     self.assertEqual([49.5, 500000], s.data[-1])
 
@@ -41,7 +41,7 @@ class TimeseriesTest(test_lib.GRRBaseTest):
     for i in range(0, 1000):
       s.Append(0.5, i * 10)
     s.Normalize(200, 5000, 10000)
-    self.assertEqual(25, len(s.data))
+    self.assertLen(s.data, 25)
     self.assertListEqual(s.data[0], [0.5, 5000])
     self.assertListEqual(s.data[24], [0.5, 9800])
 
@@ -49,15 +49,15 @@ class TimeseriesTest(test_lib.GRRBaseTest):
     for i in range(0, 1000):
       s.Append(i, i * 10)
     s.Normalize(200, 5000, 10000, mode=timeseries.NORMALIZE_MODE_COUNTER)
-    self.assertEqual(25, len(s.data))
+    self.assertLen(s.data, 25)
     self.assertListEqual(s.data[0], [519, 5000])
     self.assertListEqual(s.data[24], [999, 9800])
 
   def testToDeltas(self):
     s = self.makeSeries()
-    self.assertEqual(100, len(s.data))
+    self.assertLen(s.data, 100)
     s.ToDeltas()
-    self.assertEqual(99, len(s.data))
+    self.assertLen(s.data, 99)
     self.assertEqual([1, 60000], s.data[0])
     self.assertEqual([1, 1040000], s.data[-1])
 
@@ -66,10 +66,10 @@ class TimeseriesTest(test_lib.GRRBaseTest):
       s.Append(i, i * 1e6)
     s.Normalize(
         20 * 1e6, 500 * 1e6, 1000 * 1e6, mode=timeseries.NORMALIZE_MODE_COUNTER)
-    self.assertEqual(25, len(s.data))
+    self.assertLen(s.data, 25)
     self.assertListEqual(s.data[0], [519, int(500 * 1e6)])
     s.ToDeltas()
-    self.assertEqual(24, len(s.data))
+    self.assertLen(s.data, 24)
     self.assertListEqual(s.data[0], [20, int(500 * 1e6)])
     self.assertListEqual(s.data[23], [20, int(960 * 1e6)])
 
@@ -80,7 +80,7 @@ class TimeseriesTest(test_lib.GRRBaseTest):
     for i in range(81, 101):
       s.Append(i, (i + 5) * 10000)
     s.Normalize(10 * 10000, 10 * 10000, 120 * 10000)
-    self.assertEqual(11, len(s.data))
+    self.assertLen(s.data, 11)
     self.assertEqual([None, 100000], s.data[0])
     self.assertEqual([22.5, 200000], s.data[1])
     self.assertEqual([None, 600000], s.data[5])
@@ -92,10 +92,10 @@ class TimeseriesTest(test_lib.GRRBaseTest):
       s.Append(i, i * 1000)
     for i in range(0, 5):
       s.Append(i, (i + 6) * 1000)
-    self.assertEqual(10, len(s.data))
+    self.assertLen(s.data, 10)
     self.assertEqual([4, 10000], s.data[-1])
     s.MakeIncreasing()
-    self.assertEqual(10, len(s.data))
+    self.assertLen(s.data, 10)
     self.assertEqual([8, 10000], s.data[-1])
 
   def testAddRescale(self):
@@ -119,7 +119,7 @@ class TimeseriesTest(test_lib.GRRBaseTest):
     self.assertEqual(None, s.Mean())
 
     s = self.makeSeries()
-    self.assertEqual(100, len(s.data))
+    self.assertLen(s.data, 100)
     self.assertEqual(50, s.Mean())
 
 

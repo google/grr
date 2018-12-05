@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Tests for checks_test_lib."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -156,18 +157,18 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     art_name = "ListProcessesGrr"
     context = "RAW"
     result = self.GenProcessData([])
-    self.assertTrue("KnowledgeBase" in result)
-    self.assertTrue(art_name in result)
+    self.assertIn("KnowledgeBase", result)
+    self.assertIn(art_name, result)
     self.assertDictEqual(self.SetArtifactData(), result[art_name])
     # Now with data.
-    result = self.GenProcessData([("proc1", 1, ["/bin/foo"]), ("proc2", 2,
-                                                               ["/bin/bar"])])
-    self.assertEquals("proc1", result[art_name][context][0].name)
-    self.assertEquals(1, result[art_name][context][0].pid)
-    self.assertEquals(["/bin/foo"], result[art_name][context][0].cmdline)
-    self.assertEquals("proc2", result[art_name][context][1].name)
-    self.assertEquals(2, result[art_name][context][1].pid)
-    self.assertEquals(["/bin/bar"], result[art_name][context][1].cmdline)
+    result = self.GenProcessData([("proc1", 1, ["/bin/foo"]),
+                                  ("proc2", 2, ["/bin/bar"])])
+    self.assertEqual("proc1", result[art_name][context][0].name)
+    self.assertEqual(1, result[art_name][context][0].pid)
+    self.assertEqual(["/bin/foo"], result[art_name][context][0].cmdline)
+    self.assertEqual("proc2", result[art_name][context][1].name)
+    self.assertEqual(2, result[art_name][context][1].pid)
+    self.assertEqual(["/bin/bar"], result[art_name][context][1].cmdline)
 
   def testGenFileData(self):
     """Test for the GenFileData() method."""
@@ -182,19 +183,19 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
 
     # Trivial empty case.
     result = self.GenFileData("EMPTY", [], VoidParser())
-    self.assertTrue("KnowledgeBase" in result)
-    self.assertTrue("EMPTY" in result)
+    self.assertIn("KnowledgeBase", result)
+    self.assertIn("EMPTY", result)
     self.assertDictEqual(self.SetArtifactData(), result["EMPTY"])
     # Now with data.
     result = self.GenFileData("FILES", {
         "/tmp/foo": """blah""",
         "/tmp/bar": """meh"""
     }, VoidParser())
-    self.assertTrue("FILES" in result)
+    self.assertIn("FILES", result)
     # No parser information should be generated.
-    self.assertEquals([], result["FILES"]["PARSER"])
+    self.assertEqual([], result["FILES"]["PARSER"])
     # Two stat entries under raw (stat entries should exist)
-    self.assertEquals(2, len(result["FILES"]["RAW"]))
+    self.assertLen(result["FILES"]["RAW"], 2)
     # Walk the result till we find the item we want.
     # This is to avoid a flakey test.
     statentry = None
@@ -202,22 +203,22 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
       if r.pathspec.path == "/tmp/bar":
         statentry = r
     self.assertIsInstance(statentry, rdf_client_fs.StatEntry)
-    self.assertEquals(33188, statentry.st_mode)
+    self.assertEqual(33188, statentry.st_mode)
 
   def testGenSysVInitData(self):
     """Test for the GenSysVInitData() method."""
     # Trivial empty case.
     result = self.GenSysVInitData([])
-    self.assertTrue("KnowledgeBase" in result)
-    self.assertTrue("LinuxServices" in result)
+    self.assertIn("KnowledgeBase", result)
+    self.assertIn("LinuxServices", result)
     self.assertDictEqual(self.SetArtifactData(), result["LinuxServices"])
     # Now with data.
     result = self.GenSysVInitData(["/etc/rc2.d/S99testing"])
-    self.assertTrue("LinuxServices" in result)
-    self.assertEquals(1, len(result["LinuxServices"]["PARSER"]))
+    self.assertIn("LinuxServices", result)
+    self.assertLen(result["LinuxServices"]["PARSER"], 1)
     result = result["LinuxServices"]["PARSER"][0]
-    self.assertEquals("testing", result.name)
-    self.assertEquals([2], result.start_on)
+    self.assertEqual("testing", result.name)
+    self.assertEqual([2], result.start_on)
     self.assertTrue(result.starts)
 
 

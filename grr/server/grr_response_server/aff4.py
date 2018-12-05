@@ -296,7 +296,7 @@ class Factory(object):
     # aff4:/files, as well as to create top level paths like aff4:/foreman
     self.root_token = access_control.ACLToken(
         username="GRRSystem", reason="Maintenance").SetUID()
-    self._InitWellKnownPaths()
+    self._static_content_path = rdfvalue.RDFURN("aff4:/web/static")
 
   @classmethod
   def ParseAgeSpecification(cls, age):
@@ -490,6 +490,9 @@ class Factory(object):
       AttributeError: If the mode is invalid.
     """
 
+    if not data_store.AFF4Enabled():
+      raise NotImplementedError("AFF4 data store has been disabled.")
+
     transaction = self._AcquireLock(
         urn,
         blocking=blocking,
@@ -549,6 +552,9 @@ class Factory(object):
     Returns:
       Context manager to be used in 'with ...' statement.
     """
+
+    if not data_store.AFF4Enabled():
+      raise NotImplementedError("AFF4 data store has been disabled.")
 
     transaction = self._AcquireLock(
         urn,
@@ -702,6 +708,10 @@ class Factory(object):
       IOError: If the object is not of the required type.
       AttributeError: If the requested mode is incorrect.
     """
+
+    if not data_store.AFF4Enabled():
+      raise NotImplementedError("AFF4 data store has been disabled.")
+
     _ValidateAFF4Type(aff4_type)
 
     if mode not in ["w", "r", "rw"]:
@@ -1027,6 +1037,9 @@ class Factory(object):
     Raises:
       AttributeError: If the mode is invalid.
     """
+    if not data_store.AFF4Enabled():
+      raise NotImplementedError("AFF4 data store has been disabled.")
+
     if mode not in ["w", "r", "rw"]:
       raise AttributeError("Invalid mode %s" % mode)
 
@@ -1234,18 +1247,6 @@ class Factory(object):
 
   def Flush(self):
     self.intermediate_cache.Flush()
-
-  # Well known AFF4 paths.
-  def _InitWellKnownPaths(self):
-    self._python_hack_root = rdfvalue.RDFURN("aff4:/config/python_hacks")
-    self._executables_root = rdfvalue.RDFURN("aff4:/config/executables")
-    self._static_content_path = rdfvalue.RDFURN("aff4:/web/static")
-
-  def GetPythonHackRoot(self):
-    return self._python_hack_root
-
-  def GetExecutablesRoot(self):
-    return self._executables_root
 
   def GetStaticContentPath(self):
     return self._static_content_path
@@ -1828,6 +1829,13 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
 
     return 0
 
+  def _RaiseLockError(self, operation):
+    now = rdfvalue.RDFDatetime.Now()
+    expires = self.transaction.ExpirationAsRDFDatetime()
+    raise LockError(
+        "%s: Can not update lease that has already expired (%s > %s)" %
+        (operation, now, expires))
+
   def UpdateLease(self, duration):
     """Updates the lease and flushes the object.
 
@@ -1850,14 +1858,14 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
           "Object must be locked to update the lease: %s." % self.urn)
 
     if self.CheckLease() == 0:
-      raise LockError("Can not update lease that has already expired.")
+      self._RaiseLockError("UpdateLease")
 
     self.transaction.UpdateLease(duration)
 
   def Flush(self):
     """Syncs this object with the data store, maintaining object validity."""
     if self.locked and self.CheckLease() == 0:
-      raise LockError("Can not update lease that has already expired.")
+      self._RaiseLockError("Flush")
 
     self._WriteAttributes()
     self._SyncAttributes()

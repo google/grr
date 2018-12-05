@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A simple wrapper to send email alerts."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from email import encoders

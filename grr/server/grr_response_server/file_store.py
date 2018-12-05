@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """REL_DB-based file store implementation."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import abc
@@ -75,7 +76,8 @@ EXTERNAL_FILE_STORE = CompositeExternalFileStore()
 class BlobStream(object):
   """File-like object for reading from blobs."""
 
-  def __init__(self, blob_refs, hash_id):
+  def __init__(self, client_path, blob_refs, hash_id):
+    self._client_path = client_path
     self._blob_refs = blob_refs
     self._hash_id = hash_id
 
@@ -165,6 +167,9 @@ class BlobStream(object):
   def hash_id(self):
     """Hash ID identifying hashed data."""
     return self._hash_id
+
+  def Path(self):
+    return self._client_path.Path()
 
 
 _BLOBS_READ_BATCH_SIZE = 200
@@ -286,7 +291,7 @@ def OpenFile(client_path, max_timestamp=None):
         "File hash was expected to have corresponding "
         "blob references, but they were not found: %r" % hash_id)
 
-  return BlobStream(blob_references, hash_id)
+  return BlobStream(client_path, blob_references, hash_id)
 
 
 STREAM_CHUNKS_READ_AHEAD = 500

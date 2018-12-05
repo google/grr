@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for API client and flows-related API calls."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import threading
@@ -35,7 +36,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
 
     clients = sorted(
         self.api.SearchClients(query="."), key=lambda c: c.client_id)
-    self.assertEqual(len(clients), 2)
+    self.assertLen(clients, 2)
 
     for i in range(2):
       self.assertEqual(clients[i].client_id, client_urns[i].Basename())
@@ -50,7 +51,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
 
     flows = list(self.api.Client(client_id=client_urn.Basename()).ListFlows())
 
-    self.assertEqual(len(flows), 1)
+    self.assertLen(flows, 1)
     self.assertEqual(flows[0].client_id, client_urn.Basename())
     self.assertEqual(flows[0].flow_id, flow_urn.Basename())
     self.assertEqual(flows[0].data.urn, flow_urn)
@@ -65,7 +66,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
     client = self.api.Client(client_id=client_urn.Basename()).Get()
     flows = list(client.ListFlows())
 
-    self.assertEqual(len(flows), 1)
+    self.assertLen(flows, 1)
     self.assertEqual(flows[0].client_id, client_urn.Basename())
     self.assertEqual(flows[0].flow_id, flow_urn.Basename())
     self.assertEqual(flows[0].data.urn, flow_urn)
@@ -76,14 +77,14 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
         filename_regex="blah", fetch_binaries=True)
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
-    self.assertEqual(len(list(children)), 0)
+    self.assertEmpty(list(children))
 
     client_ref = self.api.Client(client_id=client_urn.Basename())
     result_flow = client_ref.CreateFlow(
         name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
-    self.assertEqual(len(list(children)), 1)
+    self.assertLen(list(children), 1)
     result_flow_obj = aff4.FACTORY.Open(result_flow.data.urn, token=self.token)
     self.assertEqual(result_flow_obj.args, args)
 
@@ -93,14 +94,14 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
         filename_regex="blah", fetch_binaries=True)
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
-    self.assertEqual(len(list(children)), 0)
+    self.assertEmpty(list(children))
 
     client = self.api.Client(client_id=client_urn.Basename()).Get()
     result_flow = client.CreateFlow(
         name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
-    self.assertEqual(len(list(children)), 1)
+    self.assertLen(list(children), 1)
     result_flow_obj = aff4.FACTORY.Open(result_flow.data.urn, token=self.token)
     self.assertEqual(result_flow_obj.args, args)
 
@@ -127,7 +128,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
         flow_urn.Basename())
     results = list(result_flow.ListResults())
 
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(process.AsPrimitiveProto(), results[0].payload)
 
   def testWaitUntilDoneReturnsWhenFlowCompletes(self):

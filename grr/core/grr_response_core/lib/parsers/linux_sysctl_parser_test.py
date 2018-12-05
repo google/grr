@@ -2,6 +2,7 @@
 """Unit test for the linux sysctl parser."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -36,7 +37,7 @@ class ProcSysParserTest(test_lib.GRRBaseTest):
     vals = ["0", "3 4 1 3"]
     stats, files = self._GenTestData(paths, vals)
     results = parser.ParseMultiple(stats, files, None)
-    self.assertEqual(1, len(results))
+    self.assertLen(results, 1)
     self.assertTrue(isinstance(results[0], rdf_protodict.AttributedDict))
     self.assertEqual("0", results[0].net_ipv4_ip_forward)
     self.assertEqual(["3", "4", "1", "3"], results[0].kernel_printk)
@@ -53,7 +54,7 @@ class SysctlCmdParserTest(test_lib.GRRBaseTest):
     """
     parser = linux_sysctl_parser.SysctlCmdParser()
     results = parser.Parse("/sbin/sysctl", ["-a"], content, "", 0, 5, None)
-    self.assertEqual(1, len(results))
+    self.assertLen(results, 1)
     self.assertTrue(isinstance(results[0], rdf_protodict.AttributedDict))
     self.assertEqual("0", results[0].net_ipv4_ip_forward)
     self.assertEqual(["3", "4", "1", "3"], results[0].kernel_printk)

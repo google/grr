@@ -2,6 +2,7 @@
 """RDFValues used to communicate with the Rekall memory analysis framework."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import gzip

@@ -11,6 +11,7 @@ data store replication. Only if you work on a replicated database you
 will run into race conditions and have to disable the backup instances.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging

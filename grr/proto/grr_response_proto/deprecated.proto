@@ -1,3 +1,4 @@
+// ProtoBestPractices: ignore
 /**
  * NOTE: DO NOT USE PROTOBUFS FROM THIS FILE.
  *
@@ -7,6 +8,7 @@
  */
 syntax = "proto2";
 
+import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
 
 
@@ -55,4 +57,69 @@ message ApiGetCronJobFlowArgs {
       type: "ApiFlowId",
       description: "Flow id."
     }];
+}
+
+message GlobalNotification {
+  enum Type {
+    INFO = 0;
+    WARNING = 1;
+    ERROR = 2;
+  }
+  optional Type type = 1;
+
+  optional string header = 2;
+  optional string content = 3;
+  optional string link = 4;
+
+  optional uint64 show_from = 5 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Notification will be shown after this time."
+  }];
+  optional uint64 duration = 6 [(sem_type) = {
+    type: "Duration",
+    description: "Duration of this notification."
+  }];
+}
+
+message GlobalNotificationSet {
+  repeated GlobalNotification notifications = 1;
+}
+
+message ApiListPendingGlobalNotificationsResult {
+  repeated GlobalNotification items = 1 [
+    (sem_type) = { description: "The list of pending global notifications." }
+  ];
+}
+
+message ApiDeletePendingGlobalNotificationArgs {
+  optional GlobalNotification.Type type = 1 [(sem_type) = {
+    description: "The type of the global notification to delete."
+  }];
+}
+
+message OutputPluginVerificationResult {
+  optional string plugin_id = 1 [(sem_type) = {
+      description: "String identifying the output plugin being checked."
+    }];
+  optional OutputPluginDescriptor plugin_descriptor = 2 [(sem_type) = {
+      description: "Descriptor of the plugin that's being checked."
+    }];
+
+  enum Status {
+    N_A = 0;
+    SUCCESS = 1;
+    WARNING = 2;
+    FAILURE = 3;
+  };
+  optional Status status = 3;
+  optional string status_message = 4;
+
+  optional uint64 timestamp = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp of the check."
+    }];
+}
+
+message OutputPluginVerificationResultsList {
+  repeated OutputPluginVerificationResult results = 1;
 }

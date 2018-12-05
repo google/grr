@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test client actions."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import collections
@@ -61,8 +62,8 @@ class ActionTest(client_test_lib.EmptyActionTest):
   def testListDirectory(self):
     """Tests listing directories."""
     p = rdf_paths.PathSpec(path=self.base_path, pathtype=0)
-    results = self.RunAction(
-        standard.ListDirectory, rdf_client_action.ListDirRequest(pathspec=p))
+    results = self.RunAction(standard.ListDirectory,
+                             rdf_client_action.ListDirRequest(pathspec=p))
     # Find the number.txt file
     result = None
     for result in results:
@@ -84,7 +85,7 @@ class ActionTest(client_test_lib.EmptyActionTest):
     with utils.Stubber(psutil, "process_iter", ProcessIter):
       results = self.RunAction(standard.ListProcesses, None)
 
-      self.assertEqual(len(results), 1)
+      self.assertLen(results, 1)
       result = results[0]
 
       self.assertEqual(result.pid, 10)
@@ -95,7 +96,7 @@ class ActionTest(client_test_lib.EmptyActionTest):
       self.assertEqual(result.ctime, 1217061982375000)
       self.assertEqual(result.username, "test")
       self.assertEqual(result.status, "running")
-      self.assertEqual(result.cwd, ur"X:\RECEPÇÕES")
+      self.assertEqual(result.cwd, "X:\\RECEPÇÕES")
       self.assertEqual(result.num_threads, 1)
       self.assertEqual(result.user_cpu_time, 1.0)
       self.assertEqual(result.system_cpu_time, 1.0)
@@ -143,10 +144,10 @@ class ActionTest(client_test_lib.EmptyActionTest):
       action = action_cls(grr_worker=MockWorker())
       action.Execute(message)
 
-      self.assertTrue("Action exceeded cpu limit." in results[0].error_message)
-      self.assertTrue("CPUExceededError" in results[0].error_message)
+      self.assertIn("Action exceeded cpu limit.", results[0].error_message)
+      self.assertIn("CPUExceededError", results[0].error_message)
 
-      self.assertEqual(len(received_messages), 1)
+      self.assertLen(received_messages, 1)
       self.assertEqual(received_messages[0], "Cpu limit exceeded.")
 
   def testStatFS(self):
@@ -178,7 +179,7 @@ class ActionTest(client_test_lib.EmptyActionTest):
       results = self.RunAction(
           standard.StatFS,
           rdf_client_action.StatFSRequest(path_list=["/usr/bin", "/"]))
-      self.assertEqual(len(results), 2)
+      self.assertLen(results, 2)
 
       # Both results should have mount_point as "/"
       self.assertEqual(results[0].unixvolume.mount_point,
@@ -196,7 +197,7 @@ class ActionTest(client_test_lib.EmptyActionTest):
       results = self.RunAction(
           standard.StatFS,
           rdf_client_action.StatFSRequest(path_list=["/does/not/exist", "/"]))
-      self.assertEqual(len(results), 1)
+      self.assertLen(results, 1)
       self.assertEqual(result.Name(), "/")
 
   def testProgressThrottling(self):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test classes for ACL-related testing."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_server import access_control
 
@@ -17,10 +18,20 @@ def CreateUser(username):
   """Creates a user."""
   if data_store.RelationalDBReadEnabled():
     data_store.REL_DB.WriteGRRUser(username)
+  else:
+    user = aff4.FACTORY.Create("aff4:/users/%s" % username, users.GRRUser)
+    user.Flush()
+    return user
 
-  user = aff4.FACTORY.Create("aff4:/users/%s" % username, users.GRRUser)
-  user.Flush()
-  return user
+
+def CreateAdminUser(username):
+  if data_store.RelationalDBReadEnabled():
+    data_store.REL_DB.WriteGRRUser(
+        username, user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+
+  else:
+    with CreateUser(username) as user:
+      user.SetLabel("admin", owner="GRR")
 
 
 class AclTestMixin(object):
@@ -31,12 +42,7 @@ class AclTestMixin(object):
 
   def CreateAdminUser(self, username):
     """Creates a user and makes it an admin."""
-    if data_store.RelationalDBReadEnabled():
-      data_store.REL_DB.WriteGRRUser(
-          username, user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
-
-    with self.CreateUser(username) as user:
-      user.SetLabel("admin", owner="GRR")
+    return CreateAdminUser(username)
 
   def RequestClientApproval(self,
                             client_id,
@@ -84,6 +90,7 @@ class AclTestMixin(object):
       approval_id: id of the approval to grant.
       approver: username string of the user granting approval.
       admin: If True, make approver an admin user.
+
     Raises:
       ValueError: if approval_id is empty.
     """

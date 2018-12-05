@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for low-level flows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_client.client_actions import standard
@@ -49,7 +50,7 @@ class FailDumpMock(DumpFlashImageMock):
     raise IOError("Unexpected error")
 
 
-@db_test_lib.DualFlowTest
+@db_test_lib.DualDBTest
 class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
   """Test the Flash dump flow."""
 
@@ -162,7 +163,7 @@ class DumpACPITableMock(action_mocks.ActionMock):
     return [response]
 
 
-@db_test_lib.DualFlowTest
+@db_test_lib.DualDBTest
 class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
 
   def testDumpValidACPITableOk(self):

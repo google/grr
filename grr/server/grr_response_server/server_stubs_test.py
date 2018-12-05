@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for server stubs for client actions."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 

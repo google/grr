@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Parser for Mozilla Firefox3 3 History files."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -31,7 +31,7 @@ class FirefoxHistoryParser(parser.FileParser):
           domain=urlparse.urlparse(url).netloc,
           access_time=timestamp,
           program_name="Firefox",
-          source_urn=file_object.urn,
+          source_path=file_object.Path(),
           title=title)
 
 

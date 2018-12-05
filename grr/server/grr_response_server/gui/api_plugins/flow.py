@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API handlers for dealing with flows."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
@@ -372,6 +373,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       self.runner_args = rdf_flow_runner.FlowRunnerArgs(
           client_id=flow_obj.client_id,
           flow_name=flow_obj.flow_class_name,
+          output_plugins=flow_obj.output_plugins,
           notify_to_user=flow_base.FlowBase(flow_obj).ShouldSendNotifications())
 
       if flow_obj.HasField("cpu_limit"):

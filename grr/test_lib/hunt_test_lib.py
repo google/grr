@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Classes for hunt-related testing."""
 from __future__ import absolute_import
+from __future__ import division
 
 import hashlib
 import time
@@ -237,8 +238,8 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       flow_args = (
           flow_args or transfer.GetFileArgs(
               pathspec=rdf_paths.PathSpec(
-                  path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType
-                  .OS)))
+                  path="/tmp/evil.txt",
+                  pathtype=rdf_paths.PathSpec.PathType.OS)))
 
     flow_runner_args = (
         flow_runner_args or
@@ -322,97 +323,51 @@ class DummyHuntOutputPlugin(output_plugin.OutputPlugin):
   num_calls = 0
   num_responses = 0
 
-  def ProcessResponses(self, responses):
+  def ProcessResponses(self, state, responses):
     DummyHuntOutputPlugin.num_calls += 1
     DummyHuntOutputPlugin.num_responses += len(list(responses))
 
 
 class FailingDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 
-  def ProcessResponses(self, responses):
+  def ProcessResponses(self, state, responses):
     raise RuntimeError("Oh no!")
 
 
 class FailingInFlushDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 
-  def ProcessResponses(self, responses):
+  def ProcessResponses(self, state, responses):
     pass
 
-  def Flush(self):
+  def Flush(self, state):
     raise RuntimeError("Flush, oh no!")
 
 
 class StatefulDummyHuntOutputPlugin(output_plugin.OutputPlugin):
+  """Stateful dummy hunt output plugin."""
   data = []
 
-  def InitializeState(self):
-    super(StatefulDummyHuntOutputPlugin, self).InitializeState()
-    self.state.index = 0
+  def __init__(self, *args, **kwargs):
+    super(StatefulDummyHuntOutputPlugin, self).__init__(*args, **kwargs)
+    self.delta = 0
 
-  def ProcessResponses(self, responses):
-    StatefulDummyHuntOutputPlugin.data.append(self.state.index)
-    self.state.index += 1
+  def InitializeState(self, state):
+    super(StatefulDummyHuntOutputPlugin, self).InitializeState(state)
+    state.index = 0
+
+  def ProcessResponses(self, state, responses):
+    StatefulDummyHuntOutputPlugin.data.append(state.index + self.delta)
+    self.delta += 1
+
+  def UpdateState(self, state):
+    state.index += self.delta
 
 
 class LongRunningDummyHuntOutputPlugin(output_plugin.OutputPlugin):
   num_calls = 0
 
-  def ProcessResponses(self, responses):
+  def ProcessResponses(self, state, responses):
     LongRunningDummyHuntOutputPlugin.num_calls += 1
     # TODO(hanuszczak): This is terrible. Figure out why it has been put here
     # delete it as soon as possible.
     time.time = lambda: 100
-
-
-class VerifiableDummyHuntOutputPlugin(output_plugin.OutputPlugin):
-
-  def ProcessResponses(self, responses):
-    pass
-
-
-class VerifiableDummyHuntOutputPluginVerfier(
-    output_plugin.OutputPluginVerifier):
-  """One of the dummy hunt output plugins."""
-  plugin_name = VerifiableDummyHuntOutputPlugin.__name__
-
-  num_calls = 0
-
-  def VerifyHuntOutput(self, plugin, hunt):
-    # Check that we get the plugin object we expected to get.
-    # Actual verifiers implementations don't have to do this check.
-    if not isinstance(plugin, VerifiableDummyHuntOutputPlugin):
-      raise ValueError(
-          "Passed plugin must be an "
-          "VerifiableDummyHuntOutputPlugin, got: " % plugin.__class__.__name__)
-
-    VerifiableDummyHuntOutputPluginVerfier.num_calls += 1
-    return output_plugin.OutputPluginVerificationResult(
-        status="SUCCESS", status_message="yo")
-
-  def VerifyFlowOutput(self, plugin, hunt):
-    pass
-
-
-class DummyHuntOutputPluginWithRaisingVerifier(output_plugin.OutputPlugin):
-
-  def ProcessResponses(self, responses):
-    pass
-
-
-class DummyHuntOutputPluginWithRaisingVerifierVerifier(
-    output_plugin.OutputPluginVerifier):
-  """One of the dummy hunt output plugins."""
-  plugin_name = DummyHuntOutputPluginWithRaisingVerifier.__name__
-
-  def VerifyHuntOutput(self, plugin, hunt):
-    # Check that we get the plugin object we expected to get.
-    # Actual verifiers implementations don't have to do this check.
-    if not isinstance(plugin, DummyHuntOutputPluginWithRaisingVerifier):
-      raise ValueError(
-          "Passed plugin must be an "
-          "VerifiableDummyHuntOutputPlugin, got: " % plugin.__class__.__name__)
-
-    raise RuntimeError("foobar")
-
-  def VerifyFlowOutput(self, plugin, hunt):
-    pass

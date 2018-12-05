@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for YAML instant output plugin."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -49,9 +50,8 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
               st_mtime=1336129892,
               st_ctime=1336129892))
 
-    zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client_fs.StatEntry: responses
-    })
+    zip_fd, prefix = self.ProcessValuesToZip(
+        {rdf_client_fs.StatEntry: responses})
     self.assertEqual(
         set(zip_fd.namelist()), {
             "%s/MANIFEST" % prefix,
@@ -68,7 +68,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
     parsed_output = yaml.load(
         zip_fd.read("%s/ExportedFile/from_StatEntry.yaml" % prefix))
-    self.assertEqual(len(parsed_output), 10)
+    self.assertLen(parsed_output, 10)
     for i in range(10):
       # Only the client_urn is filled in by the plugin. Doing lookups for
       # all the clients metadata is possible but expensive. It doesn't seem to
@@ -109,20 +109,21 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         })
 
     parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
-    self.assertEqual(parsed_manifest, {
-        "export_stats": {
-            "StatEntry": {
-                "ExportedFile": 1
-            },
-            "Process": {
-                "ExportedProcess": 1
+    self.assertEqual(
+        parsed_manifest, {
+            "export_stats": {
+                "StatEntry": {
+                    "ExportedFile": 1
+                },
+                "Process": {
+                    "ExportedProcess": 1
+                }
             }
-        }
-    })
+        })
 
     parsed_output = yaml.load(
         zip_fd.read("%s/ExportedFile/from_StatEntry.yaml" % prefix))
-    self.assertEqual(len(parsed_output), 1)
+    self.assertLen(parsed_output, 1)
 
     # Only the client_urn is filled in by the plugin. Doing lookups for
     # all the clients metadata is possible but expensive. It doesn't seem to
@@ -136,7 +137,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
     parsed_output = yaml.load(
         zip_fd.read("%s/ExportedProcess/from_Process.yaml" % prefix))
-    self.assertEqual(len(parsed_output), 1)
+    self.assertLen(parsed_output, 1)
     self.assertEqual(parsed_output[0]["pid"], "42")
 
   def testYamlPluginWritesUnicodeValuesCorrectly(self):
@@ -155,7 +156,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     parsed_output = yaml.load(
         zip_fd.open("%s/ExportedFile/from_StatEntry.yaml" % prefix))
 
-    self.assertEqual(len(parsed_output), 1)
+    self.assertLen(parsed_output, 1)
     self.assertEqual(parsed_output[0]["urn"],
                      self.client_id.Add("/fs/os/中国新闻网新闻中"))
 
@@ -169,12 +170,11 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
               pathspec=rdf_paths.PathSpec(
                   path="/foo/bar/%d" % i, pathtype="OS")))
 
-    zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client_fs.StatEntry: responses
-    })
+    zip_fd, prefix = self.ProcessValuesToZip(
+        {rdf_client_fs.StatEntry: responses})
     parsed_output = yaml.load(
         zip_fd.open("%s/ExportedFile/from_StatEntry.yaml" % prefix))
-    self.assertEqual(len(parsed_output), num_rows)
+    self.assertLen(parsed_output, num_rows)
     for i in range(num_rows):
       self.assertEqual(parsed_output[i]["urn"],
                        self.client_id.Add("/fs/os/foo/bar/%d" % i))

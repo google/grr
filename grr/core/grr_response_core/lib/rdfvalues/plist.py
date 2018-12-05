@@ -2,6 +2,7 @@
 """Plist related rdfvalues."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import lexer
@@ -26,7 +27,7 @@ class FilterString(rdfvalue.RDFString):
     super(FilterString, self).ParseFromString(value)
     try:
       self.query_parser_cls(self._value).Parse()
-    except lexer.ParseError, e:
+    except lexer.ParseError as e:
       raise type_info.TypeValueError("Malformed filter: %s" % (e))
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """An in memory database implementation used for testing."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import sys
@@ -19,6 +20,7 @@ from grr_response_server.databases import mem_flows
 from grr_response_server.databases import mem_foreman_rules
 from grr_response_server.databases import mem_hunts
 from grr_response_server.databases import mem_paths
+from grr_response_server.databases import mem_signed_binaries
 from grr_response_server.databases import mem_stats
 from grr_response_server.databases import mem_users
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -34,6 +36,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
                  mem_foreman_rules.InMemoryDBForemanRulesMixin,
                  mem_hunts.InMemoryDBHuntMixin,
                  mem_paths.InMemoryDBPathMixin,
+                 mem_signed_binaries.InMemoryDBSignedBinariesMixin,
                  mem_stats.InMemoryDBStatsMixin,
                  mem_users.InMemoryDBUsersMixin,
                  db.Database):
@@ -97,6 +100,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.stats_store_entries = {}
     self.api_audit_entries = []
     self.hunts = {}
+    self.signed_binary_references = {}
 
   @utils.Synchronized
   def ClearTestDB(self):

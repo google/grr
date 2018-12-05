@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Program that generates golden regression data."""
 from __future__ import absolute_import
+from __future__ import division
 
 
 from grr_response_core.lib import flags

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for export utils functions."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -61,7 +62,7 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
       export_utils.CopyAFF4ToLocal(
           self.out.Add("testfile1"), tmpdir, overwrite=True, token=self.token)
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
-      self.assertTrue("testfile1" in os.listdir(expected_outdir))
+      self.assertIn("testfile1", os.listdir(expected_outdir))
 
   def _VerifyDownload(self):
     with utils.TempDirectory() as tmpdir:
@@ -75,14 +76,14 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
 
       # Check we found both files.
-      self.assertTrue("testfile1" in os.listdir(expected_outdir))
-      self.assertTrue("testfile2" in os.listdir(expected_outdir))
-      self.assertTrue("testfile5" in os.listdir(expected_outdir))
-      self.assertTrue("testfile6" in os.listdir(expected_outdir))
+      self.assertIn("testfile1", os.listdir(expected_outdir))
+      self.assertIn("testfile2", os.listdir(expected_outdir))
+      self.assertIn("testfile5", os.listdir(expected_outdir))
+      self.assertIn("testfile6", os.listdir(expected_outdir))
 
       # Check we dumped a YAML file to the root of the client.
       expected_rootdir = os.path.join(tmpdir, self.client_id.Basename())
-      self.assertTrue("client_info.yaml" in os.listdir(expected_rootdir))
+      self.assertIn("client_info.yaml", os.listdir(expected_rootdir))
 
   def testDownloadHuntResultCollection(self):
     """Check we can download files references in HuntResultCollection."""
@@ -186,7 +187,7 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
 
       # Check that "files" folder is filled with symlinks to downloaded files.
       symlinks = os.listdir(os.path.join(tmpdir, "files"))
-      self.assertEqual(len(symlinks), 3)
+      self.assertLen(symlinks, 3)
       self.assertListEqual(
           sorted(symlinks), [
               "C.1000000000000000_fs_os_testfile1",
@@ -227,8 +228,8 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
 
       # Check we found both files.
-      self.assertTrue("testfile5" in os.listdir(expected_outdir))
-      self.assertTrue("testdir1" in os.listdir(expected_outdir))
+      self.assertIn("testfile5", os.listdir(expected_outdir))
+      self.assertIn("testdir1", os.listdir(expected_outdir))
 
   def testRecursiveDownload(self):
     """Check we can export a file without errors."""
@@ -236,9 +237,9 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
       export_utils.RecursiveDownload(
           aff4.FACTORY.Open(self.out, token=self.token), tmpdir, overwrite=True)
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
-      self.assertTrue("testfile1" in os.listdir(expected_outdir))
+      self.assertIn("testfile1", os.listdir(expected_outdir))
       full_outdir = os.path.join(expected_outdir, "testdir1", "testdir2")
-      self.assertTrue("testfile4" in os.listdir(full_outdir))
+      self.assertIn("testfile4", os.listdir(full_outdir))
 
 
 def main(argv):

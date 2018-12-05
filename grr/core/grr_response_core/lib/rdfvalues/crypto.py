@@ -823,9 +823,18 @@ class Password(rdf_structs.RDFProtoStruct):
   def SetPassword(self, password):
     self.salt = b"%016x" % random.UInt64()
     self.iteration_count = 100000
+
+    # prevent non-descriptive 'key_material must be bytes' error later
+    if isinstance(password, string_types):
+      password = password.encode("utf-8")
+
     self.hashed_pwd = self._CalculateHash(password, self.salt,
                                           self.iteration_count)
 
   def CheckPassword(self, password):
+    # prevent non-descriptive 'key_material must be bytes' error later
+    if isinstance(password, string_types):
+      password = password.encode("utf-8")
+
     h = self._CalculateHash(password, self.salt, self.iteration_count)
     return constant_time.bytes_eq(h, self.hashed_pwd)

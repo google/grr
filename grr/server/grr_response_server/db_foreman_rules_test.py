@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Mixin tests for storing Foreman rules in the relational db."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
@@ -27,8 +28,8 @@ class DatabaseTestForemanRulesMixin(object):
             rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
             integer=foreman_rules.ForemanIntegerClientRule(
                 field="INSTALL_TIME",
-                operator=foreman_rules.ForemanIntegerClientRule.Operator.
-                LESS_THAN,
+                operator=foreman_rules.ForemanIntegerClientRule.Operator
+                .LESS_THAN,
                 value=now))
     ])
     return rule
@@ -38,7 +39,7 @@ class DatabaseTestForemanRulesMixin(object):
     self.db.WriteForemanRule(rule)
 
     read = self.db.ReadAllForemanRules()
-    self.assertEqual(len(read), 1)
+    self.assertLen(read, 1)
     self.assertEqual(read[0], rule)
 
   def testForemanRuleRemove(self):
@@ -50,17 +51,17 @@ class DatabaseTestForemanRulesMixin(object):
     self.db.WriteForemanRule(rule3)
 
     read = self.db.ReadAllForemanRules()
-    self.assertEqual(len(read), 3)
+    self.assertLen(read, 3)
 
     self.db.RemoveForemanRule("H:654321")
     read = self.db.ReadAllForemanRules()
-    self.assertEqual(len(read), 2)
+    self.assertLen(read, 2)
     self.assertEqual(
         sorted(read, key=lambda rule: rule.hunt_id), [rule1, rule3])
 
     self.db.RemoveForemanRule("H:123456")
     read = self.db.ReadAllForemanRules()
-    self.assertEqual(len(read), 1)
+    self.assertLen(read, 1)
     self.assertEqual(read[0], rule3)
 
   def testForemanRuleExpire(self):
@@ -70,16 +71,16 @@ class DatabaseTestForemanRulesMixin(object):
       rule = self._GetTestRule("H:00000%d" % i, expires=expires)
       self.db.WriteForemanRule(rule)
 
-    self.assertEqual(len(self.db.ReadAllForemanRules()), 6)
+    self.assertLen(self.db.ReadAllForemanRules(), 6)
 
     with test_lib.FakeTime(110):
       self.db.RemoveExpiredForemanRules()
-      self.assertEqual(len(self.db.ReadAllForemanRules()), 5)
+      self.assertLen(self.db.ReadAllForemanRules(), 5)
 
     with test_lib.FakeTime(350):
       self.db.RemoveExpiredForemanRules()
-      self.assertEqual(len(self.db.ReadAllForemanRules()), 3)
+      self.assertLen(self.db.ReadAllForemanRules(), 3)
 
     with test_lib.FakeTime(590):
       self.db.RemoveExpiredForemanRules()
-      self.assertEqual(len(self.db.ReadAllForemanRules()), 1)
+      self.assertLen(self.db.ReadAllForemanRules(), 1)

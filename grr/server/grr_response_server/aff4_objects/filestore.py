@@ -5,6 +5,7 @@ Filestore allows for multiple different filestore modules to register URNs
 under aff4:/files to handle new file hash and new file creations.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
@@ -634,6 +635,9 @@ class FileStoreInit(registry.InitHook):
 
   def Run(self):
     """Create FileStore and HashFileStore namespaces."""
+    if not data_store.AFF4Enabled():
+      return
+
     try:
       filestore = aff4.FACTORY.Create(
           FileStore.PATH, FileStore, mode="rw", token=aff4.FACTORY.root_token)

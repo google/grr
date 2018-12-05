@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Implement low level disk access using the sleuthkit."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import stat

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging
@@ -164,8 +165,8 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
   def testSuccessfulCallsAreCorrectlyAccounted(self):
     with self.assertStatsCounterDelta(
-        1, "db_request_latency", fields=["ReadAllGRRUsers"]):
-      self.db.ReadAllGRRUsers()
+        1, "db_request_latency", fields=["ReadGRRUsers"]):
+      self.db.ReadGRRUsers()
 
   # Tests that we don't expect to pass yet.
 
@@ -319,6 +320,18 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testListDescendentPathInfosLimitedDirectory(self):
     pass
 
+  def testListDescendentPathInfosTimestampNow(self):
+    pass
+
+  def testListDescendentPathInfosTimestampMultiple(self):
+    pass
+
+  def testListDescendentPathInfosTimestampStatValue(self):
+    pass
+
+  def testListDescendentPathInfosTimestampHashValue(self):
+    pass
+
   def testListChildPathInfosRoot(self):
     pass
 
@@ -329,6 +342,12 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testListChildPathInfosDeepSorted(self):
+    pass
+
+  def testListChildPathInfosTimestamp(self):
+    pass
+
+  def testListChildPathInfosTimestampStatAndHashValue(self):
     pass
 
   # TODO(hanuszczak): Remove these once support for storing file hashes in
@@ -557,7 +576,10 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testReadStatsEntriesLimitTimeRange(self):
     pass
 
-  def testDeleteStatsEntries(self):
+  def testDeleteStatsEntries_HighLimit(self):
+    pass
+
+  def testDeleteStatsEntries_LowLimit(self):
     pass
 
   # TODO(user): implement hunts support for MySQL
@@ -652,6 +674,21 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testCountHuntFlowsAppliesFilterConditionCorrectly(self):
+    pass
+
+  def testReadSignedBinaryReferences(self):
+    pass
+
+  def testUpdateSignedBinaryReferences(self):
+    pass
+
+  def testUnknownSignedBinary(self):
+    pass
+
+  def testReadIDsForAllSignedBinaries(self):
+    pass
+
+  def testDeleteSignedBinaryReferences(self):
     pass
 
 

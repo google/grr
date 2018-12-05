@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This file contains utility functions used in ApiCallHandler classes."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -49,15 +50,16 @@ class CollectionArchiveGenerator(object):
 
     Args:
       archive_format: May be ArchiveCollectionGenerator.ZIP or
-          ArchiveCollectionGenerator.TAR_GZ. Defaults to ZIP.
-      prefix: Name of the folder inside the archive that will contain all
-          the generated data.
+        ArchiveCollectionGenerator.TAR_GZ. Defaults to ZIP.
+      prefix: Name of the folder inside the archive that will contain all the
+        generated data.
       description: String describing archive's contents. It will be included
-          into the auto-generated MANIFEST file. Defaults to
-          'Files archive collection'.
+        into the auto-generated MANIFEST file. Defaults to 'Files archive
+        collection'.
       predicate: If not None, only the files matching the predicate will be
-          archived, all others will be skipped.
+        archived, all others will be skipped.
       client_id: The client_id to use when exporting a flow results collection.
+
     Raises:
       ValueError: if prefix is None.
     """
@@ -131,8 +133,7 @@ class CollectionArchiveGenerator(object):
         serialize_leaf_fields=True)
     summary = yaml.safe_dump(summary_dict).decode("utf-8")
 
-    client_info_path = os.path.join(self.prefix,
-                                    client_fd.urn.Basename(),
+    client_info_path = os.path.join(self.prefix, client_fd.urn.Basename(),
                                     "client_info.yaml")
     st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(summary), 0, 0, 0))
     yield self.archive_generator.WriteFileHeader(client_info_path, st=st)
@@ -265,6 +266,34 @@ class ApiDataObject(rdf_structs.RDFProtoStruct):
       self.items.append(item)
 
     return self
+
+
+def FilterList(l, offset, count=0, filter_value=None):
+  """Filters a list, getting count elements, starting at offset."""
+
+  if offset < 0:
+    raise ValueError("Offset needs to be greater than or equal to zero")
+
+  if count < 0:
+    raise ValueError("Count needs to be greater than or equal to zero")
+
+  count = count or sys.maxsize
+  if not filter_value:
+    return l[offset:offset + count]
+
+  index = 0
+  items = []
+  for item in l:
+    serialized_item = item.SerializeToString()
+    if re.search(re.escape(filter_value), serialized_item, re.I):
+      if index >= offset:
+        items.append(item)
+      index += 1
+
+      if len(items) >= count:
+        break
+
+  return items
 
 
 def FilterCollection(aff4_collection, offset, count=0, filter_value=None):

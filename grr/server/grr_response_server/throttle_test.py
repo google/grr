@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.lib.throttle."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
@@ -15,7 +16,7 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualFlowTest
+@db_test_lib.DualDBTest
 class ThrottleTest(test_lib.GRRBaseTest):
   BASE_TIME = 1439501002
 

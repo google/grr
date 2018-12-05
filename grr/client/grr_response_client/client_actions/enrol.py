@@ -2,6 +2,7 @@
 # Copyright 2010 Google Inc. All Rights Reserved.
 """Actions required for CA enrolment."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 

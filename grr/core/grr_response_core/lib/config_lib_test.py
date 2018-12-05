@@ -2,6 +2,7 @@
 """Tests for config_lib classes."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -552,7 +553,7 @@ Section1.test: 2
       _ = conf["Section1.foo1"]
 
     # Make sure the stringified exception explains the full interpolation chain.
-    self.assertTrue("%(Section1.foo6)/bar" in str(context.exception))
+    self.assertIn("%(Section1.foo6)/bar", str(context.exception))
 
   @flags.FlagOverrider(disallow_missing_config_definitions=True)
   def testConfigOptionsDefined(self):
@@ -934,7 +935,7 @@ Test1 Context:
     conf.Write()
 
     data = open(config_file).read()
-    self.assertFalse("!!python/unicode" in data)
+    self.assertNotIn("!!python/unicode", data)
 
   def testNoUnicodeReading(self):
     """Check that we can parse yaml files with unicode tags."""

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the worker."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import threading
@@ -130,10 +131,9 @@ class WorkerStuckableTestFlow(flow.GRRFlow):
   # Semaphore used by the flow to wait until the external test code does its
   # thing.
   WAIT_FOR_TEST_SEMAPHORE = threading.Semaphore(0)
-  # Semaphore used by the flow to wait until it has to heartbeat.
-  WAIT_FOR_TEST_PERMISSION_TO_HEARTBEAT_SEMAPHORE = threading.Semaphore(0)
-  # Semaphore used by the test to wait until the flow heartbeats.
-  WAIT_FOR_FLOW_HEARTBEAT_SEMAPHORE = threading.Semaphore(0)
+
+  # Semaphore used by the test to control the flow termination.
+  WAIT_FOR_FLOW_TERMINATION_SEMAPHORE = threading.Semaphore(0)
 
   HEARTBEAT = False
 
@@ -145,67 +145,47 @@ class WorkerStuckableTestFlow(flow.GRRFlow):
 
   @classmethod
   def WaitUntilWorkerStartsProcessing(cls):
-    cls.WAIT_FOR_FLOW_SEMAPHORE.acquire()
-
-  @classmethod
-  def LetFlowHeartBeat(cls):
-    if not cls.HEARTBEAT:
-      raise RuntimeError("LetFlowHeartBeat called, but heartbeat "
-                         "not enabled.")
-
-    cls.WAIT_FOR_TEST_PERMISSION_TO_HEARTBEAT_SEMAPHORE.release()
-
-  @classmethod
-  def WaitForFlowHeartBeat(cls, last_heartbeat=False):
-    """Called by the test to wait until the flow heartbeats.
-
-    Args:
-      last_heartbeat: If True, the flow won't heartbeat anymore. Consequently,
-        the test won't be supposed to call LetFlowHeartBeat and
-        WaitForFlowHeartBeat methods.
-
-    Raises:
-      RuntimeError: if heartbeat is not enabled. Heartbeat can be enabled via
-                    Reset() method.
-    """
-    if not cls.HEARTBEAT:
-      raise RuntimeError("WaitForFlowHeartBeat called, but heartbeat "
-                         "not enabled.")
-
-    if last_heartbeat:
-      cls.HEARTBEAT = False
-    cls.WAIT_FOR_FLOW_HEARTBEAT_SEMAPHORE.acquire()
-
-  @classmethod
-  def LetWorkerFinishProcessing(cls):
-    cls.WAIT_FOR_TEST_SEMAPHORE.release()
-
-  def Start(self):
-    cls = WorkerStuckableTestFlow
-
     # After starting this flow, the test should call
     # WaitUntilWorkerStartsProcessing() which will block until
     # WAIT_FOR_FLOW_SEMAPHORE is released. This way the test
     # knows exactly when the flow has actually started being
     # executed.
-    cls.WAIT_FOR_FLOW_SEMAPHORE.release()
+    cls.WAIT_FOR_FLOW_SEMAPHORE.acquire()
 
-    while cls.HEARTBEAT:
+  @classmethod
+  def LetFlowHeartBeat(cls):
+    """Unblocks the test flow to do one heartbeat."""
+    cls.WAIT_FOR_TEST_SEMAPHORE.release()
+    cls.WAIT_FOR_FLOW_SEMAPHORE.acquire()
+
+  @classmethod
+  def StopFlow(cls):
+    cls.HEARTBEAT = False
+    cls.WAIT_FOR_TEST_SEMAPHORE.release()
+
+  @classmethod
+  def LetWorkerFinishProcessing(cls):
+    cls.WAIT_FOR_FLOW_TERMINATION_SEMAPHORE.release()
+
+  def Start(self):
+    cls = WorkerStuckableTestFlow
+
+    while True:
       # The test is expected to call LetFlowHeartBeat(). We block here
       # until it's called. This way the test can control
       # the way the flow heartbeats. For example, it can mock time.time()
       # differently for every call.
-      cls.WAIT_FOR_TEST_PERMISSION_TO_HEARTBEAT_SEMAPHORE.acquire()
-      self.HeartBeat()
-      # The test is expected to call WaitForFlowHeartBeat() and block
-      # until we release WAIT_FOR_FLOW_HEARTBEAT_SEMAPHORE. This way
-      # the test knows exactly when the heartbeat was done.
-      cls.WAIT_FOR_FLOW_HEARTBEAT_SEMAPHORE.release()
+      cls.WAIT_FOR_FLOW_SEMAPHORE.release()
+      cls.WAIT_FOR_TEST_SEMAPHORE.acquire()
+      if not cls.HEARTBEAT:
+        break
 
-    # We block here until WAIT_FOR_TEST_SEMAPHORE is released. It's released
-    # when the test calls LetWorkerFinishProcessing(). This way the test
-    # can control precisely when flow finishes.
-    cls.WAIT_FOR_TEST_SEMAPHORE.acquire()
+      self.HeartBeat()
+
+    # We block here until we are allowed to terminate by the test calling
+    # LetWorkerFinishProcessing(). This way the test can control precisely when
+    # flow finishes.
+    cls.WAIT_FOR_FLOW_TERMINATION_SEMAPHORE.acquire()
 
 
 class ShardedQueueManager(queue_manager.QueueManager):
@@ -265,7 +245,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     # should have 10 requests from WorkerSendingTestFlow and 1 from
     # SendingTestFlow2
-    self.assertEqual(len(tasks_on_client_queue), 11)
+    self.assertLen(tasks_on_client_queue, 11)
 
     # Send each of the flows a repeated message
     self.SendResponse(session_id_1, "Hello1")
@@ -282,7 +262,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     # Ensure both requests ran exactly once
     RESULTS.sort()
-    self.assertEqual(2, len(RESULTS))
+    self.assertLen(RESULTS, 2)
     self.assertEqual("Hello1", RESULTS[0])
     self.assertEqual("Hello2", RESULTS[1])
 
@@ -290,13 +270,13 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     # two were completed).
     tasks_on_client_queue = manager.Query(self.client_id.Queue(), 100)
 
-    self.assertEqual(len(tasks_on_client_queue), 9)
+    self.assertLen(tasks_on_client_queue, 9)
 
     # Ensure that processed requests are removed from state subject
     outstanding_requests = list(
         data_store.DB.ReadRequestsAndResponses(session_id_1))
 
-    self.assertEqual(len(outstanding_requests), 9)
+    self.assertLen(outstanding_requests, 9)
     for request, _ in outstanding_requests:
       self.assertNotEqual(request.request.request_id, 0)
 
@@ -327,8 +307,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       worker_obj = self._TestWorker()
 
       # Process all messages.
-      worker_obj.RunOnce()
-      worker_obj.thread_pool.Join()
+      with test_lib.SuppressLogs():
+        worker_obj.RunOnce()
+        worker_obj.thread_pool.Join()
 
     delay = flow_runner.FlowRunner.notification_retry_interval
     with test_lib.FakeTime(10000 + 100 + delay):
@@ -353,7 +334,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         notifications = manager.GetNotifications(queues.FLOWS)
         # Check the notification is there.
         notifications = [n for n in notifications if n.session_id == session_id]
-        self.assertEqual(len(notifications), 1)
+        self.assertLen(notifications, 1)
 
     delay = flow_runner.FlowRunner.notification_retry_interval
 
@@ -367,7 +348,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         notifications = manager.GetNotifications(queues.FLOWS)
         # Check the notification is for the correct session_id.
         notifications = [n for n in notifications if n.session_id == session_id]
-        self.assertEqual(len(notifications), 1)
+        self.assertLen(notifications, 1)
 
     with test_lib.FakeTime(10000 + 100 + delay * ttl):
       # Process all messages.
@@ -375,7 +356,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       worker_obj.thread_pool.Join()
 
       notifications = manager.GetNotifications(queues.FLOWS)
-      self.assertEqual(len(notifications), 0)
+      self.assertEmpty(notifications)
 
   def testNoKillNotificationsScheduledForHunts(self):
     worker_obj = self._TestWorker()
@@ -438,6 +419,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     finally:
       # Release the semaphore so that worker thread unblocks and finishes
       # processing the flow.
+      WorkerStuckableTestFlow.StopFlow()
       WorkerStuckableTestFlow.LetWorkerFinishProcessing()
       worker_obj.thread_pool.Join()
 
@@ -445,40 +427,43 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     worker_obj = self._TestWorker()
     initial_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)
 
-    try:
-      with test_lib.FakeTime(initial_time.AsSecondsSinceEpoch()):
-        session_id = flow.StartAFF4Flow(
-            flow_name=WorkerStuckableTestFlow.__name__,
-            client_id=self.client_id,
-            token=self.token,
-            sync=False)
-        # Process all messages
-        while worker_obj.RunOnce():
-          pass
-        # Wait until worker thread starts processing the flow.
-        WorkerStuckableTestFlow.WaitUntilWorkerStartsProcessing()
+    with test_lib.SuppressLogs():
 
-      # Set the time to max worker flow duration + 1 minute. The flow is
-      # currently blocked because of the way semaphores are set up.
-      # Worker should consider the flow to be stuck and terminate it.
-      stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
-      future_time = (
-          initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout)
+      try:
+        with test_lib.FakeTime(initial_time.AsSecondsSinceEpoch()):
+          session_id = flow.StartAFF4Flow(
+              flow_name=WorkerStuckableTestFlow.__name__,
+              client_id=self.client_id,
+              token=self.token,
+              sync=False)
+          # Process all messages
+          while worker_obj.RunOnce():
+            pass
+          # Wait until worker thread starts processing the flow.
+          WorkerStuckableTestFlow.WaitUntilWorkerStartsProcessing()
 
-      with test_lib.FakeTime(future_time.AsSecondsSinceEpoch()):
-        worker_obj.RunOnce()
+        # Set the time to max worker flow duration + 1 minute. The flow is
+        # currently blocked because of the way semaphores are set up.
+        # Worker should consider the flow to be stuck and terminate it.
+        stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
+        future_time = (
+            initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout)
 
-    finally:
-      # Release the semaphore so that worker thread unblocks and finishes
-      # processing the flow.
-      WorkerStuckableTestFlow.LetWorkerFinishProcessing()
-      worker_obj.thread_pool.Join()
+        with test_lib.FakeTime(future_time.AsSecondsSinceEpoch()):
+          worker_obj.RunOnce()
 
-    killed_flow = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertEqual(killed_flow.context.state,
-                     rdf_flow_runner.FlowContext.State.ERROR)
-    self.assertEqual(killed_flow.context.status,
-                     "Terminated by user test. Reason: Stuck in the worker")
+      finally:
+        # Release the semaphore so that worker thread unblocks and finishes
+        # processing the flow.
+        WorkerStuckableTestFlow.StopFlow()
+        WorkerStuckableTestFlow.LetWorkerFinishProcessing()
+        worker_obj.thread_pool.Join()
+
+      killed_flow = aff4.FACTORY.Open(session_id, token=self.token)
+      self.assertEqual(killed_flow.context.state,
+                       rdf_flow_runner.FlowContext.State.ERROR)
+      self.assertEqual(killed_flow.context.status,
+                       "Terminated by user test. Reason: Stuck in the worker")
 
   def testStuckNotificationGetsDeletedAfterTheFlowIsTerminated(self):
     worker_obj = self._TestWorker()
@@ -520,6 +505,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     finally:
       # Release the semaphore so that worker thread unblocks and finishes
       # processing the flow.
+      WorkerStuckableTestFlow.StopFlow()
       WorkerStuckableTestFlow.LetWorkerFinishProcessing()
       worker_obj.thread_pool.Join()
 
@@ -553,8 +539,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         with test_lib.FakeTime(current_time.AsSecondsSinceEpoch()):
           checked_flow = aff4.FACTORY.Open(session_id, token=self.token)
           WorkerStuckableTestFlow.LetFlowHeartBeat()
-          WorkerStuckableTestFlow.WaitForFlowHeartBeat(
-              last_heartbeat=current_time > future_time)
+
+      WorkerStuckableTestFlow.StopFlow()
+
       # Now current_time is > future_time, where future_time is the time
       # when stuck flow should have been killed. Calling RunOnce() here,
       # because if the flow is going to be killed, it will be killed
@@ -670,7 +657,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertIsNone(notifications)
 
     if data_store.RelationalDBReadEnabled(category="message_handlers"):
-      data_store.REL_DB.UnregisterMessageHandler()
+      data_store.REL_DB.UnregisterMessageHandler(timeout=60)
 
   def testWellKnownFlowResponsesAreProcessedOnlyOnce(self):
     worker_obj = self._TestWorker()
@@ -715,7 +702,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     # get other notifications such as for audit event listeners, so we need to
     # filter out ours.
     notifications = [x for x in notifications if x.session_id == session_id]
-    self.assertEqual(len(notifications), 1)
+    self.assertLen(notifications, 1)
 
     # Process all messages
     worker_obj.RunOnce()
@@ -725,7 +712,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     notifications = [x for x in notifications if x.session_id == session_id]
 
     # Check the notification is now gone.
-    self.assertEqual(len(notifications), 0)
+    self.assertEmpty(notifications)
 
   def testWorkerDeletesNotificationsForBrokenObjects(self):
     # Test notifications for objects that don't exist.
@@ -777,7 +764,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     notifications = manager.GetNotifications(queues.FLOWS)
     # Check the notification is there.
     notifications = [n for n in notifications if n.session_id == session_id]
-    self.assertEqual(len(notifications), 1)
+    self.assertLen(notifications, 1)
 
     # Process all messages
     worker_obj.RunOnce()
@@ -788,7 +775,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       requeued_notifications = manager.GetNotifications(queues.FLOWS)
       # Check that there is a new notification.
       notifications = [n for n in notifications if n.session_id == session_id]
-      self.assertEqual(len(requeued_notifications), 1)
+      self.assertLen(requeued_notifications, 1)
 
       self.assertEqual(requeued_notifications[0].first_queued,
                        notifications[0].first_queued)
@@ -876,7 +863,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     request_data = data_store.DB.ReadResponsesForRequestId(session_id, 2)
     request_data.sort(key=lambda msg: msg.response_id)
-    self.assertEqual(len(request_data), 2)
+    self.assertLen(request_data, 2)
 
     # Make sure the status and the original request are still there.
     self.assertEqual(request_data[0].args_rdf_name, "DataBlob")
@@ -889,7 +876,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     # The notification for request 2 should have survived.
     with queue_manager.QueueManager(token=self.token) as manager:
       notifications = manager.GetNotifications(queues.FLOWS)
-      self.assertEqual(len(notifications), 1)
+      self.assertLen(notifications, 1)
       notification = notifications[0]
       self.assertEqual(notification.session_id, session_id)
       self.assertEqual(notification.timestamp, flow_manager.frozen_timestamp)
@@ -917,8 +904,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     request_id = 1
     messages = data_store.DB.ReadResponsesForRequestId(session_id, request_id)
-    self.assertEqual(len(messages), 2)
-    self.assertItemsEqual([m.args_rdf_name for m in messages],
+    self.assertLen(messages, 2)
+    self.assertCountEqual([m.args_rdf_name for m in messages],
                           ["DataBlob", "GrrStatus"])
 
     for m in messages:
@@ -967,7 +954,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
           n for n in all_notifications if n.session_id == session_id
       ]
       # There must not be more than one notification.
-      self.assertEqual(len(my_notifications), 1)
+      self.assertLen(my_notifications, 1)
       notification = my_notifications[0]
       self.assertEqual(notification.first_queued, notification.timestamp)
       self.assertEqual(notification.last_status, 10)
@@ -993,8 +980,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       client_msgs_processed = 0
       for client_mock in client_mocks:
         client_msgs_processed += client_mock.Next()
-      worker_msgs_processed = worker_obj.RunOnce()
-      worker_obj.thread_pool.Join()
+      with test_lib.SuppressLogs():
+        worker_msgs_processed = worker_obj.RunOnce()
+        worker_obj.thread_pool.Join()
       if not client_msgs_processed and not worker_msgs_processed:
         break
 
@@ -1110,7 +1098,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
                      [3000000, 2000000, 1000000, 2000000, 1000000])
 
     errors = list(hunt.GetClientsErrors())
-    self.assertEqual(len(errors), 2)
+    self.assertLen(errors, 2)
     # Client side out of cpu.
     self.assertIn("CPU limit exceeded", errors[0].log_message)
     # Server side out of cpu.
@@ -1149,7 +1137,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
           instr.assert_called_once_with(client_id)
         finally:
-          data_store.REL_DB.UnregisterMessageHandler()
+          data_store.REL_DB.UnregisterMessageHandler(timeout=60)
 
 
 def main(argv):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr_response_client.client_actions.cloud."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -86,7 +87,7 @@ class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
           results = self.RunAction(cloud.GetCloudVMMetadata, arg=arg)
 
     responses = list(results[0].responses)
-    self.assertEqual(len(responses), 1)
+    self.assertLen(responses, 1)
     self.assertEqual(results[0].instance_type, "GOOGLE")
     for response in responses:
       if response.label == "Google-project-id":
@@ -120,7 +121,7 @@ class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
         results = self.RunAction(cloud.GetCloudVMMetadata, arg=arg)
 
     responses = list(results[0].responses)
-    self.assertEqual(len(responses), 1)
+    self.assertLen(responses, 1)
     self.assertEqual(results[0].instance_type, "AMAZON")
     for response in responses:
       if response.label == "amazon-ami":
@@ -157,7 +158,7 @@ class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
         results = self.RunAction(cloud.GetCloudVMMetadata, arg=arg)
 
       responses = list(results[0].responses)
-      self.assertEqual(len(responses), 2)
+      self.assertLen(responses, 2)
       self.assertEqual(results[0].instance_type, "GOOGLE")
       for response in responses:
         if response.label == "zone":

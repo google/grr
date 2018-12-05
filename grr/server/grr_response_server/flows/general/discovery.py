@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """These are flows designed to discover information about the host."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -69,13 +70,14 @@ class InterrogateMixin(object):
     self.state.fqdn = None
     self.state.os = None
 
-    # Make sure we always have a VFSDirectory with a pathspec at fs/os
-    pathspec = rdf_paths.PathSpec(
-        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
-    urn = pathspec.AFF4Path(self.client_urn)
-    with aff4.FACTORY.Create(
-        urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
-      fd.Set(fd.Schema.PATHSPEC, pathspec)
+    if data_store.AFF4Enabled():
+      # Make sure we always have a VFSDirectory with a pathspec at fs/os
+      pathspec = rdf_paths.PathSpec(
+          path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
+      urn = pathspec.AFF4Path(self.client_urn)
+      with aff4.FACTORY.Create(
+          urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
+        fd.Set(fd.Schema.PATHSPEC, pathspec)
 
     self.CallClient(server_stubs.GetPlatformInfo, next_state="Platform")
     self.CallClient(server_stubs.GetMemorySize, next_state="StoreMemorySize")
@@ -104,21 +106,24 @@ class InterrogateMixin(object):
 
     convert = rdf_cloud.ConvertCloudMetadataResponsesToCloudInstance
 
-    # AFF4 client.
-    with self._CreateClient() as client:
-      client.Set(client.Schema.CLOUD_INSTANCE(convert(metadata_responses)))
+    if data_store.AFF4Enabled():
+      # AFF4 client.
+      with self._CreateClient() as client:
+        client.Set(client.Schema.CLOUD_INSTANCE(convert(metadata_responses)))
 
     # rdf_objects.ClientSnapshot.
     client = self.state.client
     client.cloud_instance = convert(metadata_responses)
 
   def StoreMemorySize(self, responses):
+    """Stores the memory size."""
     if not responses.success:
       return
 
-    # AFF4 client.
-    with self._CreateClient() as client:
-      client.Set(client.Schema.MEMORY_SIZE(responses.First()))
+    if data_store.AFF4Enabled():
+      # AFF4 client.
+      with self._CreateClient() as client:
+        client.Set(client.Schema.MEMORY_SIZE(responses.First()))
 
     # rdf_objects.ClientSnapshot.
     self.state.client.memory_size = responses.First()
@@ -127,32 +132,44 @@ class InterrogateMixin(object):
     """Stores information about the platform."""
     if responses.success:
       response = responses.First()
-      # AFF4 client.
 
-      with self._OpenClient(mode="rw") as client:
-        # For backwards compatibility.
+      if data_store.AFF4Enabled():
+        # AFF4 client.
+        with self._OpenClient(mode="rw") as client:
+          # For backwards compatibility.
 
-        # These need to be in separate attributes because they get searched on
-        # in the GUI.
-        client.Set(client.Schema.HOSTNAME(response.fqdn))
-        client.Set(client.Schema.SYSTEM(response.system))
-        client.Set(client.Schema.OS_RELEASE(response.release))
-        client.Set(client.Schema.OS_VERSION(response.version))
-        client.Set(client.Schema.KERNEL(response.kernel))
-        client.Set(client.Schema.FQDN(response.fqdn))
+          # These need to be in separate attributes because they get searched on
+          # in the GUI.
+          client.Set(client.Schema.HOSTNAME(response.fqdn))
+          client.Set(client.Schema.SYSTEM(response.system))
+          client.Set(client.Schema.OS_RELEASE(response.release))
+          client.Set(client.Schema.OS_VERSION(response.version))
+          client.Set(client.Schema.KERNEL(response.kernel))
+          client.Set(client.Schema.FQDN(response.fqdn))
 
-        # response.machine is the machine value of platform.uname()
-        # On Windows this is the value of:
-        # HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session
-        # Manager\Environment\PROCESSOR_ARCHITECTURE
-        # "AMD64", "IA64" or "x86"
-        client.Set(client.Schema.ARCH(response.machine))
-        client.Set(
-            client.Schema.UNAME("%s-%s-%s" % (response.system, response.release,
-                                              response.version)))
+          # response.machine is the machine value of platform.uname()
+          # On Windows this is the value of:
+          # HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session
+          # Manager\Environment\PROCESSOR_ARCHITECTURE
+          # "AMD64", "IA64" or "x86"
+          client.Set(client.Schema.ARCH(response.machine))
+          client.Set(
+              client.Schema.UNAME(
+                  "%s-%s-%s" % (response.system, response.release,
+                                response.version)))
 
-        # Update the client index
-        client_index.CreateClientIndex(token=self.token).AddClient(client)
+          # Update the client index
+          client_index.CreateClientIndex(token=self.token).AddClient(client)
+
+        if response.system == "Windows":
+          with aff4.FACTORY.Create(
+              self.client_urn.Add("registry"),
+              standard.VFSDirectory,
+              token=self.token) as fd:
+            fd.Set(
+                fd.Schema.PATHSPEC,
+                fd.Schema.PATHSPEC(
+                    path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
 
       # rdf_objects.ClientSnapshot.
       client = self.state.client
@@ -171,16 +188,6 @@ class InterrogateMixin(object):
           client_index.ClientIndex().AddClient(client)
         except db.UnknownClientError:
           pass
-
-      if response.system == "Windows":
-        with aff4.FACTORY.Create(
-            self.client_urn.Add("registry"),
-            standard.VFSDirectory,
-            token=self.token) as fd:
-          fd.Set(
-              fd.Schema.PATHSPEC,
-              fd.Schema.PATHSPEC(
-                  path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
 
       # No support for OS X cloud machines as yet.
       if response.system in ["Linux", "Windows"]:
@@ -231,9 +238,10 @@ class InterrogateMixin(object):
       self.Log("Unknown response type for InstallDate: %s" % type(response))
       return
 
-    # AFF4 client.
-    with self._CreateClient() as client:
-      client.Set(client.Schema.INSTALL_DATE(install_date))
+    if data_store.AFF4Enabled():
+      # AFF4 client.
+      with self._CreateClient() as client:
+        client.Set(client.Schema.INSTALL_DATE(install_date))
 
     # rdf_objects.ClientSnapshot.
     self.state.client.install_time = install_date
@@ -257,25 +265,27 @@ class InterrogateMixin(object):
           "Error while collecting the knowledge base: %s" % responses.status)
 
     kb = responses.First()
-    # AFF4 client.
-    client = self._OpenClient(mode="rw")
-    client.Set(client.Schema.KNOWLEDGE_BASE, kb)
+    if data_store.AFF4Enabled():
+      # AFF4 client.
+      client = self._OpenClient(mode="rw")
+      client.Set(client.Schema.KNOWLEDGE_BASE, kb)
 
-    # Copy usernames.
-    usernames = [user.username for user in kb.users if user.username]
-    client.AddAttribute(client.Schema.USERNAMES(" ".join(usernames)))
+      # Copy usernames.
+      usernames = [user.username for user in kb.users if user.username]
+      client.AddAttribute(client.Schema.USERNAMES(" ".join(usernames)))
 
-    self.CopyOSReleaseFromKnowledgeBase(kb, client)
-    client.Flush()
+      self.CopyOSReleaseFromKnowledgeBase(kb, client)
+      client.Flush()
 
     # rdf_objects.ClientSnapshot.
 
     # Information already present in the knowledge base takes precedence.
     if not kb.os:
-      kb.os = self.state.system
+      kb.os = self.state.os
 
     if not kb.fqdn:
       kb.fqdn = self.state.fqdn
+
     self.state.client.knowledge_base = kb
 
     self.CallFlow(
@@ -283,8 +293,9 @@ class InterrogateMixin(object):
         artifact_list=config.CONFIG["Artifacts.non_kb_interrogate_artifacts"],
         next_state="ProcessArtifactResponses")
 
-    # Update the client index for the AFF4 client.
-    client_index.CreateClientIndex(token=self.token).AddClient(client)
+    if data_store.AFF4Enabled():
+      # Update the client index for the AFF4 client.
+      client_index.CreateClientIndex(token=self.token).AddClient(client)
 
     if data_store.RelationalDBWriteEnabled():
       try:
@@ -299,29 +310,32 @@ class InterrogateMixin(object):
     if not list(responses):
       return
 
-    with self._OpenClient(mode="rw") as client:
-      new_volumes = []
-      for response in responses:
-        if isinstance(response, rdf_client_fs.Volume):
-          # AFF4 client.
-          new_volumes.append(response)
+    if data_store.AFF4Enabled():
+      with self._OpenClient(mode="rw") as client:
+        new_volumes = []
+        for response in responses:
+          if isinstance(response, rdf_client_fs.Volume):
+            # AFF4 client.
+            new_volumes.append(response)
+          elif isinstance(response, rdf_client.HardwareInfo):
+            # AFF4 client.
+            client.Set(client.Schema.HARDWARE_INFO, response)
+          else:
+            raise ValueError("Unexpected response type: %s" % type(response))
 
-          # rdf_objects.ClientSnapshot.
-          self.state.client.volumes.append(response)
-        elif isinstance(response, rdf_client.HardwareInfo):
-          # AFF4 client.
-          client.Set(client.Schema.HARDWARE_INFO, response)
+        if new_volumes:
+          volumes = client.Schema.VOLUMES()
+          for v in new_volumes:
+            volumes.Append(v)
+          client.Set(client.Schema.VOLUMES, volumes)
 
-          # rdf_objects.ClientSnapshot.
-          self.state.client.hardware_info = response
-        else:
-          raise ValueError("Unexpected response type: %s" % type(response))
-
-      if new_volumes:
-        volumes = client.Schema.VOLUMES()
-        for v in new_volumes:
-          volumes.Append(v)
-        client.Set(client.Schema.VOLUMES, volumes)
+    for response in responses:
+      if isinstance(response, rdf_client_fs.Volume):
+        self.state.client.volumes.append(response)
+      elif isinstance(response, rdf_client.HardwareInfo):
+        self.state.client.hardware_info = response
+      else:
+        raise ValueError("Unexpected response type: %s" % type(response))
 
   FILTERED_IPS = ["127.0.0.1", "::1", "fe80::1"]
 
@@ -331,26 +345,27 @@ class InterrogateMixin(object):
       self.Log("Could not enumerate interfaces: %s" % responses.status)
       return
 
-    # AFF4 client.
-    with self._CreateClient() as client:
-      interface_list = client.Schema.INTERFACES()
-      mac_addresses = []
-      ip_addresses = []
-      for response in responses:
-        interface_list.Append(response)
+    if data_store.AFF4Enabled():
+      # AFF4 client.
+      with self._CreateClient() as client:
+        interface_list = client.Schema.INTERFACES()
+        mac_addresses = []
+        ip_addresses = []
+        for response in responses:
+          interface_list.Append(response)
 
-        # Add a hex encoded string for searching
-        if (response.mac_address and
-            response.mac_address != "\x00" * len(response.mac_address)):
-          mac_addresses.append(response.mac_address.human_readable_address)
+          # Add a hex encoded string for searching
+          if (response.mac_address and
+              response.mac_address != "\x00" * len(response.mac_address)):
+            mac_addresses.append(response.mac_address.human_readable_address)
 
-        for address in response.addresses:
-          if address.human_readable_address not in self.FILTERED_IPS:
-            ip_addresses.append(address.human_readable_address)
+          for address in response.addresses:
+            if address.human_readable_address not in self.FILTERED_IPS:
+              ip_addresses.append(address.human_readable_address)
 
-      client.Set(client.Schema.MAC_ADDRESS("\n".join(mac_addresses)))
-      client.Set(client.Schema.HOST_IPS("\n".join(ip_addresses)))
-      client.Set(client.Schema.INTERFACES(interface_list))
+        client.Set(client.Schema.MAC_ADDRESS("\n".join(mac_addresses)))
+        client.Set(client.Schema.HOST_IPS("\n".join(ip_addresses)))
+        client.Set(client.Schema.INTERFACES(interface_list))
 
     # rdf_objects.ClientSnapshot.
     self.state.client.interfaces = sorted(responses, key=lambda i: i.ifname)
@@ -364,52 +379,56 @@ class InterrogateMixin(object):
     # rdf_objects.ClientSnapshot.
     self.state.client.filesystems = responses
 
-    # AFF4 client.
-    filesystems = aff4_grr.VFSGRRClient.SchemaCls.FILESYSTEM()
-    for response in responses:
-      filesystems.Append(response)
+    if data_store.AFF4Enabled():
+      # AFF4 client.
+      filesystems = aff4_grr.VFSGRRClient.SchemaCls.FILESYSTEM()
+      for response in responses:
+        filesystems.Append(response)
 
-    with self._CreateClient() as client:
-      client.Set(client.Schema.FILESYSTEM, filesystems)
+      with self._CreateClient() as client:
+        client.Set(client.Schema.FILESYSTEM, filesystems)
 
-    # Create default pathspecs for all devices.
-    for response in responses:
-      if response.type == "partition":
-        (device, offset) = response.device.rsplit(":", 1)
+      # Create default pathspecs for all devices.
+      for response in responses:
+        if response.type == "partition":
+          (device, offset) = response.device.rsplit(":", 1)
 
-        offset = int(offset)
+          offset = int(offset)
 
-        pathspec = rdf_paths.PathSpec(
-            path=device, pathtype=rdf_paths.PathSpec.PathType.OS, offset=offset)
+          pathspec = rdf_paths.PathSpec(
+              path=device,
+              pathtype=rdf_paths.PathSpec.PathType.OS,
+              offset=offset)
 
-        pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
+          pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-        urn = pathspec.AFF4Path(self.client_urn)
-        fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
-        fd.Set(fd.Schema.PATHSPEC(pathspec))
-        fd.Close()
-        continue
-
-      if response.device:
-        pathspec = rdf_paths.PathSpec(
-            path=response.device, pathtype=rdf_paths.PathSpec.PathType.OS)
-
-        pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
-
-        urn = pathspec.AFF4Path(self.client_urn)
-        fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
-        fd.Set(fd.Schema.PATHSPEC(pathspec))
-        fd.Close()
-
-      if response.mount_point:
-        # Create the OS device
-        pathspec = rdf_paths.PathSpec(
-            path=response.mount_point, pathtype=rdf_paths.PathSpec.PathType.OS)
-
-        urn = pathspec.AFF4Path(self.client_urn)
-        with aff4.FACTORY.Create(
-            urn, standard.VFSDirectory, token=self.token) as fd:
+          urn = pathspec.AFF4Path(self.client_urn)
+          fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
           fd.Set(fd.Schema.PATHSPEC(pathspec))
+          fd.Close()
+          continue
+
+        if response.device:
+          pathspec = rdf_paths.PathSpec(
+              path=response.device, pathtype=rdf_paths.PathSpec.PathType.OS)
+
+          pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
+
+          urn = pathspec.AFF4Path(self.client_urn)
+          fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
+          fd.Set(fd.Schema.PATHSPEC(pathspec))
+          fd.Close()
+
+        if response.mount_point:
+          # Create the OS device
+          pathspec = rdf_paths.PathSpec(
+              path=response.mount_point,
+              pathtype=rdf_paths.PathSpec.PathType.OS)
+
+          urn = pathspec.AFF4Path(self.client_urn)
+          with aff4.FACTORY.Create(
+              urn, standard.VFSDirectory, token=self.token) as fd:
+            fd.Set(fd.Schema.PATHSPEC(pathspec))
 
   def ClientInfo(self, responses):
     """Obtain some information about the GRR client running."""
@@ -428,10 +447,11 @@ class InterrogateMixin(object):
       if label != fleetspeak_connector.unknown_label or not response.labels:
         response.labels = [label]
 
-    # AFF4 client.
-    with self._OpenClient(mode="rw") as client:
-      client.Set(client.Schema.CLIENT_INFO(response))
-      client.AddLabels(response.labels, owner="GRR")
+    if data_store.AFF4Enabled():
+      # AFF4 client.
+      with self._OpenClient(mode="rw") as client:
+        client.Set(client.Schema.CLIENT_INFO(response))
+        client.AddLabels(response.labels, owner="GRR")
 
     # rdf_objects.ClientSnapshot.
     self.state.client.startup_info.client_info = response
@@ -443,9 +463,10 @@ class InterrogateMixin(object):
 
     response = responses.First()
 
-    # AFF4 client.
-    with self._CreateClient() as client:
-      client.Set(client.Schema.GRR_CONFIGURATION(response))
+    if data_store.AFF4Enabled():
+      # AFF4 client.
+      with self._CreateClient() as client:
+        client.Set(client.Schema.GRR_CONFIGURATION(response))
 
     # rdf_objects.ClientSnapshot.
     for k, v in iteritems(response):
@@ -457,9 +478,10 @@ class InterrogateMixin(object):
       return
 
     response = responses.First()
-    # AFF4 client.
-    with self._CreateClient() as client:
-      client.Set(client.Schema.LIBRARY_VERSIONS(response))
+    if data_store.AFF4Enabled():
+      # AFF4 client.
+      with self._CreateClient() as client:
+        client.Set(client.Schema.LIBRARY_VERSIONS(response))
 
     # rdf_objects.ClientSnapshot.
     for k, v in iteritems(response):
@@ -484,21 +506,22 @@ class InterrogateMixin(object):
       except db.UnknownClientError:
         pass
 
-    client = self._OpenClient()
-
     if data_store.RelationalDBReadEnabled():
       summary = self.state.client.GetSummary()
       summary.client_id = self.client_id
       summary.timestamp = rdfvalue.RDFDatetime.Now()
-    else:
+
+    if data_store.AFF4Enabled():
+      client = self._OpenClient()
       summary = client.GetSummary()
+
+      # Update the client index
+      client_index.CreateClientIndex(token=self.token).AddClient(client)
 
     events.Events.PublishEvent("Discovery", summary, token=self.token)
 
     self.SendReply(summary)
 
-    # Update the client index
-    client_index.CreateClientIndex(token=self.token).AddClient(client)
     if data_store.RelationalDBWriteEnabled():
       try:
         index = client_index.ClientIndex()

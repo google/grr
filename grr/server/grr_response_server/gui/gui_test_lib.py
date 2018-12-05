@@ -635,16 +635,16 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
     # Make the user use the advanced gui so we can test it.
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users/%s" % self.token.username),
-        aff4_type=users.GRRUser,
-        mode="w",
-        token=self.token) as user_fd:
-      user_fd.Set(user_fd.Schema.GUI_SETTINGS(mode="ADVANCED"))
-
     if data_store.RelationalDBReadEnabled():
       data_store.REL_DB.WriteGRRUser(
           self.token.username, ui_mode=users.GUISettings.UIMode.ADVANCED)
+    else:
+      with aff4.FACTORY.Create(
+          aff4.ROOT_URN.Add("users/%s" % self.token.username),
+          aff4_type=users.GRRUser,
+          mode="w",
+          token=self.token) as user_fd:
+        user_fd.Set(user_fd.Schema.GUI_SETTINGS(mode="ADVANCED"))
 
     self._artifact_patcher = ar_test_lib.PatchDatastoreOnlyArtifactRegistry()
     self._artifact_patcher.start()
@@ -668,19 +668,26 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.CheckBrowserErrors()
     super(GRRSeleniumTest, self).tearDown()
 
-  def WaitForNotification(self, user):
+  def WaitForNotification(self, username):
     sleep_time = 0.2
     iterations = 50
     for _ in range(iterations):
       try:
-        fd = aff4.FACTORY.Open(user, users.GRRUser, mode="r", token=self.token)
-        pending_notifications = fd.Get(fd.Schema.PENDING_NOTIFICATIONS)
-        if pending_notifications:
-          return
+        if data_store.RelationalDBReadEnabled():
+          pending_notifications = data_store.REL_DB.ReadUserNotifications(
+              username, state=rdf_objects.UserNotification.State.STATE_PENDING)
+          if pending_notifications:
+            return
+        else:
+          urn = "aff4:/users/%s" % username
+          fd = aff4.FACTORY.Open(urn, users.GRRUser, mode="r", token=self.token)
+          pending_notifications = fd.Get(fd.Schema.PENDING_NOTIFICATIONS)
+          if pending_notifications:
+            return
       except IOError:
         pass
       time.sleep(sleep_time)
-    self.fail("Notification for user %s never sent." % user)
+    self.fail("Notification for user %s never sent." % username)
 
 
 class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
@@ -854,5 +861,5 @@ class DummyOutputPlugin(output_plugin.OutputPlugin):
   description = "Dummy do do."
   args_type = processes.ListProcessesArgs
 
-  def ProcessResponses(self, responses):
+  def ProcessResponses(self, state, responses):
     pass

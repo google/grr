@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Utils common to macOS and Linux."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import logging

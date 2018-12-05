@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 """This module contains regression tests for user API handlers."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
-from grr_response_core.lib import rdfvalue
 
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import notification
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.aff4_objects import users as aff4_users
@@ -22,6 +21,7 @@ from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 from grr.test_lib import acl_test_lib
+from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
@@ -250,7 +250,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
               approval_id=approval1_id),
           replace={
               hunt1_id: "H:123456",
-              approval1_id: "approval:111111"
+              approval1_id: "approval:111111",
           })
       self.Check(
           "GetHuntApproval",
@@ -299,13 +299,14 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.CreateAdminUser(u"approver")
 
       client_urn = self.SetupClient(0)
-      flow_urn = flow.StartAFF4Flow(
-          flow_name=discovery.Interrogate.__name__,
+      flow_id = flow_test_lib.StartFlow(
+          discovery.Interrogate,
           client_id=client_urn,
-          token=self.token)
+          creator=self.token.username,
+          notify_to_user=True)
 
       ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
-          flow_urn.Basename(), client_urn.Basename())
+          flow_id, client_urn.Basename())
       with self.CreateHunt(
           description="hunt started from flow",
           original_object=ref) as hunt_obj:
@@ -324,9 +325,16 @@ class ApiGetHuntApprovalHandlerRegressionTest(
               hunt_id=hunt_id,
               approval_id=approval_id),
           replace={
-              flow_urn.Basename(): "F:112233",
-              hunt_id: "H:667788",
-              approval_id: "approval:444444"
+              # TODO(user): remove this replacement as soon as REL_DB
+              # migration is done.
+              "%s/%s" % (client_urn.Basename(), flow_id):
+                  "%s/flows/F:112233" % (client_urn.Basename()),
+              flow_id:
+                  "F:112233",
+              hunt_id:
+                  "H:667788",
+              approval_id:
+                  "approval:444444"
           })
 
   def Run(self):
@@ -675,57 +683,6 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
       self.Check(
           "ListAndResetUserNotifications",
           args=user_plugin.ApiListAndResetUserNotificationsArgs(filter="other"))
-
-
-class ApiListPendingGlobalNotificationsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
-  """Regression test for ApiListPendingGlobalNotificationsHandler."""
-
-  api_method = "ListPendingGlobalNotifications"
-  handler = user_plugin.ApiListPendingGlobalNotificationsHandler
-
-  # Global notifications are only shown in a certain time interval. By default,
-  # this is from the moment they are created until two weeks later. Create
-  # a notification that is too old to be returned and two valid ones.
-  NOW = rdfvalue.RDFDatetime.Now()
-  TIME_TOO_EARLY = NOW - rdfvalue.Duration("4w")
-  TIME_0 = NOW - rdfvalue.Duration("12h")
-  TIME_1 = NOW - rdfvalue.Duration("1h")
-
-  def Run(self):
-    with aff4.FACTORY.Create(
-        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-        aff4_type=aff4_users.GlobalNotificationStorage,
-        mode="rw",
-        token=self.token) as storage:
-      storage.AddNotification(
-          aff4_users.GlobalNotification(
-              type=aff4_users.GlobalNotification.Type.ERROR,
-              header="Oh no, we're doomed!",
-              content="Houston, Houston, we have a prob...",
-              link="http://www.google.com",
-              show_from=self.TIME_0))
-
-      storage.AddNotification(
-          aff4_users.GlobalNotification(
-              type=aff4_users.GlobalNotification.Type.INFO,
-              header="Nothing to worry about!",
-              link="http://www.google.com",
-              show_from=self.TIME_1))
-
-      storage.AddNotification(
-          aff4_users.GlobalNotification(
-              type=aff4_users.GlobalNotification.Type.WARNING,
-              header="Nothing to worry, we won't see this!",
-              link="http://www.google.com",
-              show_from=self.TIME_TOO_EARLY))
-
-    replace = {
-        ("%d" % self.TIME_0.AsMicrosecondsSinceEpoch()): "0",
-        ("%d" % self.TIME_1.AsMicrosecondsSinceEpoch()): "0"
-    }
-
-    self.Check("ListPendingGlobalNotifications", replace=replace)
 
 
 class ApiListApproverSuggestionsHandlerRegressionTest(

@@ -3,6 +3,7 @@
 """Unit test for the linux file parser."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import io
@@ -15,7 +16,6 @@ from future.utils import iteritems
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import parser as lib_parser
-from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -135,7 +135,7 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
     """Make sure the parsed_results match expected_output."""
 
     # Check the size matches.
-    self.assertEqual(len(parsed_results), len(expected_output))
+    self.assertLen(parsed_results, len(expected_output))
 
     # Sort parsed_results and expected_outputs so we're comparing properly.
     results = sorted(parsed_results, key=operator.attrgetter("device"))
@@ -160,7 +160,7 @@ user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user2:/bin/bash
 """
     out = list(parser.Parse(None, io.BytesIO(dat), None))
-    self.assertEqual(len(out), 2)
+    self.assertLen(out, 2)
     self.assertTrue(isinstance(out[1], rdf_client.User))
     self.assertTrue(isinstance(out[1], rdf_client.User))
     self.assertEqual(out[0].username, "user1")
@@ -183,7 +183,7 @@ user2:x:1001:1001:User2 Name,,,:/home/user
 
     ff_result = rdf_file_finder.FileFinderResult(matches=[buf1, buf2])
     out = list(parser.Parse(ff_result, None))
-    self.assertEqual(len(out), 2)
+    self.assertLen(out, 2)
     self.assertTrue(isinstance(out[1], rdf_client.User))
     self.assertTrue(isinstance(out[1], rdf_client.User))
     self.assertEqual(out[0].username, "user1")
@@ -192,7 +192,7 @@ user2:x:1001:1001:User2 Name,,,:/home/user
   def testNetgroupParser(self):
     """Ensure we can extract users from a netgroup file."""
     parser = linux_file_parser.NetgroupParser()
-    dat = b"""group1 (-,user1,) (-,user2,) (-,user3,)
+    dat = """group1 (-,user1,) (-,user2,) (-,user3,)
 #group1 comment
 group2 (-,user4,) (-,user2,)
 
@@ -200,29 +200,27 @@ super_group (-,user5,) (-,user6,) (-,文德文,) group1 group2
 super_group2 (-,user7,) super_group
 super_group3 (-,user5,) (-,user6,) group1 group2
 """
-    dat_fd = io.BytesIO(dat)
+    dat_fd = io.BytesIO(dat.encode("utf-8"))
 
-    with test_lib.ConfigOverrider({
-        "Artifacts.netgroup_user_blacklist": ["user2", "user3"]
-    }):
+    with test_lib.ConfigOverrider(
+        {"Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
       out = list(parser.Parse(None, dat_fd, None))
       users = []
       for result in out:
         if isinstance(result, rdf_anomaly.Anomaly):
-          self.assertTrue(utils.SmartUnicode(u"文德文") in result.symptom)
+          self.assertIn("文德文", result.symptom)
         else:
           users.append(result)
 
-      self.assertItemsEqual([x.username for x in users],
+      self.assertCountEqual([x.username for x in users],
                             [u"user1", u"user4", u"user5", u"user6", u"user7"])
 
       dat_fd.seek(0)
 
-    with test_lib.ConfigOverrider({
-        "Artifacts.netgroup_filter_regexes": [r"^super_group3$"]
-    }):
+    with test_lib.ConfigOverrider(
+        {"Artifacts.netgroup_filter_regexes": [r"^super_group3$"]}):
       out = list(parser.Parse(None, dat_fd, None))
-      self.assertItemsEqual([x.username for x in out], [u"user5", u"user6"])
+      self.assertCountEqual([x.username for x in out], [u"user5", u"user6"])
 
   def testNetgroupBufferParser(self):
     """Ensure we can extract users from a netgroup file."""
@@ -233,11 +231,10 @@ super_group3 (-,user5,) (-,user6,) group1 group2
         data=b"super_group3 (-,user5,) (-,user6,) group1 group2\n")
 
     ff_result = rdf_file_finder.FileFinderResult(matches=[buf1, buf2])
-    with test_lib.ConfigOverrider({
-        "Artifacts.netgroup_user_blacklist": ["user2", "user3"]
-    }):
+    with test_lib.ConfigOverrider(
+        {"Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
       out = list(parser.Parse(ff_result, None))
-      self.assertItemsEqual([x.username for x in out],
+      self.assertCountEqual([x.username for x in out],
                             [u"user1", u"user5", u"user6"])
 
   def testNetgroupParserBadInput(self):
@@ -258,8 +255,8 @@ super_group2 (-,user7,) super_group
     with open(path, "rb") as wtmp_fd:
       out = list(parser.Parse(None, wtmp_fd, None))
 
-    self.assertEqual(len(out), 3)
-    self.assertItemsEqual(["%s:%d" % (x.username, x.last_logon) for x in out], [
+    self.assertLen(out, 3)
+    self.assertCountEqual(["%s:%d" % (x.username, x.last_logon) for x in out], [
         "user1:1296552099000000", "user2:1296552102000000",
         "user3:1296569997000000"
     ])
@@ -338,7 +335,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     rdfs = parser.ParseMultiple(stats, files, None)
     results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
 
-    self.assertEqual(len(expected), len(results))
+    self.assertLen(expected, len(results))
     for expect, result in zip(expected, results):
       self.assertRDFValuesEqual(expect, result)
 
@@ -396,11 +393,11 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     rdfs = parser.ParseMultiple(stats, files, None)
     results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
 
-    self.assertEqual(len(expected), len(results))
+    self.assertLen(expected, len(results))
     for expect, result in zip(expected, results):
       self.assertEqual(expect.symptom, result.symptom)
       # Expand out repeated field helper.
-      self.assertItemsEqual(list(expect.finding), list(result.finding))
+      self.assertCountEqual(list(expect.finding), list(result.finding))
       self.assertEqual(expect.type, result.type)
 
   def GetExpectedUser(self, algo, user_store, group_store):
@@ -422,7 +419,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     self.assertEqual(expect.gid, result.gid)
     self.assertEqual(expect.pw_entry.store, result.pw_entry.store)
     self.assertEqual(expect.pw_entry.hash_type, result.pw_entry.hash_type)
-    self.assertItemsEqual(expect.gids, result.gids)
+    self.assertCountEqual(expect.gids, result.gids)
 
   def CheckExpectedGroup(self, algo, expect, result):
     self.assertEqual(expect.name, result.name)
@@ -436,8 +433,8 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     results = list(parser.ParseMultiple(stats, files, None))
     usrs = [r for r in results if isinstance(r, rdf_client.User)]
     grps = [r for r in results if isinstance(r, rdf_client.Group)]
-    self.assertEqual(1, len(usrs), "Different number of usr %s results" % algo)
-    self.assertEqual(1, len(grps), "Different number of grp %s results" % algo)
+    self.assertLen(usrs, 1, "Different number of usr %s results" % algo)
+    self.assertLen(grps, 1, "Different number of grp %s results" % algo)
     self.CheckExpectedUser(algo, usr, usrs[0])
     self.CheckExpectedGroup(algo, grp, grps[0])
 
@@ -514,8 +511,8 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
         "PERL5LIB": [".", "shouldntbeignored"]
     }
     # Got the same environment variables for bash and cshrc files.
-    self.assertItemsEqual(expected, bashrc)
-    self.assertItemsEqual(expected, cshrc)
+    self.assertCountEqual(expected, bashrc)
+    self.assertCountEqual(expected, cshrc)
     # The path values are expanded correctly.
     for var_name in ("PATH", "PYTHONPATH", "LD_LIBRARY_PATH"):
       self.assertEqual(expected[var_name], bashrc[var_name])

@@ -170,10 +170,9 @@ def GetOutputPluginStates(output_plugins, source=None, token=None):
   output_plugins_states = []
   for plugin_descriptor in output_plugins:
     plugin_class = plugin_descriptor.GetPluginClass()
-    plugin = plugin_class(
-        source_urn=source, args=plugin_descriptor.plugin_args, token=token)
     try:
-      plugin.InitializeState()
+      plugin, plugin_state = plugin_class.CreatePluginAndDefaultState(
+          source_urn=source, args=plugin_descriptor.plugin_args, token=token)
     except Exception as e:  # pylint: disable=broad-except
       logging.warning("Plugin %s failed to initialize (%s), ignoring it.",
                       plugin, e)
@@ -181,12 +180,12 @@ def GetOutputPluginStates(output_plugins, source=None, token=None):
 
     # TODO(amoser): Those do not need to be inside the state, they
     # could be part of the plugin descriptor.
-    plugin.state["logs"] = []
-    plugin.state["errors"] = []
+    plugin_state["logs"] = []
+    plugin_state["errors"] = []
 
     output_plugins_states.append(
         rdf_flow_runner.OutputPluginState(
-            plugin_state=plugin.state, plugin_descriptor=plugin_descriptor))
+            plugin_state=plugin_state, plugin_descriptor=plugin_descriptor))
 
   return output_plugins_states
 
@@ -697,10 +696,6 @@ class GRRFlow(FlowBase):
   # This is used to arrange flows into a tree view
   category = ""
   friendly_name = None
-
-  # If this is set, the flow is only displayed in the UI if the user has one of
-  # the labels given.
-  AUTHORIZED_LABELS = []
 
   # Behaviors set attributes of this flow. See FlowBehavior() above.
   behaviours = FlowBehaviour("ADVANCED")

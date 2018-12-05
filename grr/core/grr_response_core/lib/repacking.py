@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Client repacking library."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -17,6 +18,7 @@ from future.utils import iterkeys
 from grr_response_core import config
 from grr_response_core.lib import build
 from grr_response_core.lib import config_lib
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.builders import signing
 
 
@@ -199,11 +201,21 @@ class TemplateRepacker(object):
           # pylint: disable=g-import-not-at-top
           from grr_response_server import maintenance_utils
           # pylint: enable=g-import-not-at-top
-          dest = config.CONFIG.Get(
-              "Executables.installer", context=repack_context)
+          client_platform = config.CONFIG.Get(
+              "Client.platform", context=repack_context)
+          repack_basename = config.CONFIG.Get(
+              "ClientRepacker.output_basename", context=repack_context)
+          repack_extension = config.CONFIG.Get(
+              "ClientBuilder.output_extension", context=repack_context)
+          repack_filename = repack_basename + repack_extension
+          # TODO(user): Use signed_binary_utils.GetAFF4ExecutablesRoot()
+          # here instead of hardcoding the root once repacking logic has been
+          # moved to grr-response-server.
+          binary_urn = rdfvalue.RDFURN("aff4:/config/executables").Add(
+              client_platform).Add("installers").Add(repack_filename)
           maintenance_utils.UploadSignedConfigBlob(
               open(result_path, "rb").read(100 * 1024 * 1024),
-              dest,
+              binary_urn,
               client_context=repack_context,
               token=token)
       else:

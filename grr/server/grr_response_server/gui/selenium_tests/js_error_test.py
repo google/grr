@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test Selenium tests JS errors detection logic."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 

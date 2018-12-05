@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for GRR fingerprint-related flows."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_test.end_to_end_tests import test_base
 
@@ -24,9 +25,9 @@ class TestFingerprintFileOSLinux(test_base.EndToEndTest):
     self.assertGreater(len(results), 0)
 
     fingerprint_result = results[0].payload
-    self.assertEqual(len(fingerprint_result.hash_entry.md5), 16)
-    self.assertEqual(len(fingerprint_result.hash_entry.sha1), 20)
-    self.assertEqual(len(fingerprint_result.hash_entry.sha256), 32)
+    self.assertLen(fingerprint_result.hash_entry.md5, 16)
+    self.assertLen(fingerprint_result.hash_entry.sha1, 20)
+    self.assertLen(fingerprint_result.hash_entry.sha256, 32)
 
 
 class TestFingerprintFileOSWindows(test_base.EndToEndTest):

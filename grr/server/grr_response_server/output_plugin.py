@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 """Output plugins used by flows and hunts for results exports."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-import logging
 import threading
 
-
-from future.utils import itervalues
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
@@ -24,23 +22,6 @@ class OutputPluginBatchProcessingStatus(rdf_structs.RDFProtoStruct):
   protobuf = output_plugin_pb2.OutputPluginBatchProcessingStatus
   rdf_deps = [
       rdf_output_plugin.OutputPluginDescriptor,
-  ]
-
-
-class OutputPluginVerificationResult(rdf_structs.RDFProtoStruct):
-  """Describes result of an output plugin's output verification."""
-  protobuf = output_plugin_pb2.OutputPluginVerificationResult
-  rdf_deps = [
-      rdf_output_plugin.OutputPluginDescriptor,
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class OutputPluginVerificationResultsList(rdf_structs.RDFProtoStruct):
-  """List of OutputPluginVerificationsResults."""
-  protobuf = output_plugin_pb2.OutputPluginVerificationResultsList
-  rdf_deps = [
-      OutputPluginVerificationResult,
   ]
 
 
@@ -69,57 +50,47 @@ class OutputPlugin(with_metaclass(registry.OutputPluginRegistry, object)):
   description = ""
   args_type = None
 
-  def __init__(self, source_urn=None, args=None, token=None, state=None):
+  @classmethod
+  def CreatePluginAndDefaultState(cls, source_urn=None, args=None, token=None):
+    state = rdf_protodict.AttributedDict()
+    state["source_urn"] = source_urn
+    state["args"] = args
+    state["token"] = token
+    plugin = cls(source_urn=source_urn, args=args, token=token)
+    plugin.InitializeState(state)
+    return plugin, state
+
+  def __init__(self, source_urn=None, args=None, token=None):
     """OutputPlugin constructor.
 
-    Note that OutputPlugin constructor may run with security checks enabled
-    (if they're enabled in the config). Therefore it's a bad idea to write
-    anything to AFF4 in the constructor.
-
-    Constructor should only be overriden if some non-self.state-stored
-    class members should be initialized.
+    Constructor should be overridden to maintain instance-local state - i.e.
+    state that gets accumulated during the single output plugin run and that
+    should be used to update the global state via UpdateState method.
 
     Args:
       source_urn: URN of the data source to process the results from.
       args: This plugin's arguments.
       token: Security token.
-      state: A dict representing the plugin's state. If this is passed, no
-        initialization will be performed, only the state will be applied.
-
-    Raises:
-      ValueError: when state argument is passed together with args or token
-                  arguments.
     """
-    if state and (token or args):
-      raise ValueError("'state' argument can't be passed together with 'args' "
-                       "or 'token'.")
-
-    if not state:
-      self.state = rdf_protodict.AttributedDict()
-      self.state.source_urn = source_urn
-      self.state.args = args
-      self.state.token = token
-
-      self.InitializeState()
-    else:
-      self.state = state
-
-    self.args = self.state["args"]
-    self.token = self.state["token"]
-
+    self.source_urn = source_urn
+    self.args = args
+    self.token = token
     self.lock = threading.RLock()
 
-  def InitializeState(self):
+  def InitializeState(self, state):
     """Initializes the state the output plugin can use later.
 
     InitializeState() is called only once per plugin's lifetime. It
     will be called when hunt or flow is created. It should be used to
     register state variables. It's called on the worker, so no
     security checks apply.
+
+    Args:
+      state: rdf_protodict.AttributedDict to be filled with default values.
     """
 
   @abc.abstractmethod
-  def ProcessResponses(self, responses):
+  def ProcessResponses(self, state, responses):
     """Processes bunch of responses.
 
     When responses are processed, multiple ProcessResponses() calls can
@@ -131,10 +102,13 @@ class OutputPlugin(with_metaclass(registry.OutputPluginRegistry, object)):
     ProcessResponses() is called on the worker, so no security checks apply.
 
     Args:
+      state: rdf_protodict.AttributedDict with plugin's state. NOTE:
+        ProcessResponses should not change state object. All such changes should
+        take place in the UpdateState method (see below).
       responses: GrrMessages from the hunt results collection.
     """
 
-  def Flush(self):
+  def Flush(self, state):
     """Flushes the output plugin's state.
 
     Flush is *always* called after a series of ProcessResponses() calls.
@@ -142,6 +116,23 @@ class OutputPlugin(with_metaclass(registry.OutputPluginRegistry, object)):
 
     NOTE: This method doesn't have to be thread-safe as it's called once
     after a series of ProcessResponses() calls is complete.
+
+    Args:
+      state: rdf_protodict.AttributedDict with plugin's state. NOTE:
+        ProcessResponses should not change state object. All such changes should
+        take place in the UpdateState method (see below).
+    """
+
+  def UpdateState(self, state):
+    """Updates state of the output plugin.
+
+    UpdateState is called after a series of ProcessResponses() calls and
+    after a Flush() call. The implementation of this method should be
+    lightweight, since its will be guaranteed to be called atomically
+    in a middle of database transaction.
+
+    Args:
+      state: rdf_protodict.AttributedDict with plugin's state to be updated.
     """
 
 
@@ -154,105 +145,3 @@ class UnknownOutputPlugin(OutputPlugin):
 
   def ProcessResponses(self, responses):
     pass
-
-
-class MultiVerifyHuntOutputError(Error):
-  """Used when problem is detected when verifying hunts in bulk."""
-
-  def __init__(self, message=None, errors=None):
-    super(MultiVerifyHuntOutputError, self).__init__(message)
-    self.errors = errors or []
-
-
-class OutputPluginVerifier(with_metaclass(registry.MetaclassRegistry, object)):
-  """Verifier object that check that output plugin's output is complete."""
-  __abstract = True  # pylint: disable=g-bad-name
-
-  plugin_name = ""
-
-  @classmethod
-  def VerifierClassesForPlugin(cls, plugin_name):
-    if not plugin_name:
-      return []
-    return [c for c in itervalues(cls.classes) if c.plugin_name == plugin_name]
-
-  def VerifyHuntOutput(self, plugin, hunt):
-    """Verifies hunt output generated by this plugin.
-
-    Checks implemented in this method are "defensive" checks that can be
-    implemented in certain plugins to be more sure that they work as expected.
-    A good example of such a plugin is a BigQueryOutputPlugin. We want to be
-    sure that hunts results are uploaded correctly into the BigQuery service
-    and that we can be sure that none are missing. Doing a "black-box" check
-    (that VerifyHuntOutput is inteded to be) gives us more guarantees than
-    relying on BigQueryOutputPlugin correct error reporting.
-
-    Args:
-      plugin: OutputPlugin object instance corresponding to a plugin that was
-        used to process hunt results.
-      hunt: Hunt object. Output of this hunt was fed into the output plugin of
-        this class with the arguments specified by "args" argument.
-
-    Returns:
-      OutputPluginVerificationResult object.
-    """
-    raise NotImplementedError()
-
-  def MultiVerifyHuntOutput(self, plugins_hunts_pairs):
-    """Verfires hunts output generated by respective plugins.
-
-    MultiVerifyHuntOutput is similar to VerifyHuntOutput except that it may be
-    optimized for verifying multiple hunts at the same time. Default
-    implementation just applies VerifyHuntOutput iteratively.
-
-    Args:
-      plugins_hunts_pairs: A list of (plugin, hunt) tuples where "plugin" is an
-        OutputPlugin object instance corresponding to a plugin that was used to
-        process hunt results, and "hunt" is a GRRHunt object.
-
-    Yields:
-      (RDFURN, OutputPluginVerificationResult) pairs, where urns
-      correspond to hunts that were verified.
-
-    Raises:
-      MultiVerifyHuntOutputError: if an error was encountered while verifying
-      any of the hunts. Note that the error will be thrown only after all the
-      verification results are produced.
-    """
-    errors = []
-    for plugin, hunt in plugins_hunts_pairs:
-      try:
-        yield hunt.urn, self.VerifyHuntOutput(plugin, hunt)
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception(e)
-        errors.append((hunt.urn, e))
-
-    if errors:
-      error_messages = [
-          "Error validating hunt %s: %s" % (hunt_urn, e)
-          for hunt_urn, e in errors
-      ]
-      raise MultiVerifyHuntOutputError(
-          "\n".join(error_messages), errors=[e for _, e in errors])
-
-  def VerifyFlowOutput(self, plugin, flow):
-    """Verifies flow output generated by this plugin.
-
-    Checks implemented in this method are "defensive" checks that can be
-    implemented in certain plugins to be more sure that they work as expected.
-    A good example of such a plugin is a BigQueryOutputPlugin. We want to be
-    sure that flows results are uploaded correctly into the BigQuery service
-    and that we can be sure that none are missing. Doing a "black-box" check
-    (that VerifyFlowOutput is inteded to be) gives us more guarantees than
-    relying on BigQueryOutputPlugin correct error reporting.
-
-    Args:
-      plugin: OutputPlugin object instance corresponding to a plugin that was
-        used to process flow results.
-      flow: Flow object. Output of this flow was fed into the output plugin of
-        this class with the arguments specified by "args" argument.
-
-    Returns:
-      OutputPluginVerificationResult object.
-    """
-    raise NotImplementedError()

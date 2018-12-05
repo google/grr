@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -310,14 +311,14 @@ class PathInfoTest(absltest.TestCase):
     path_info = rdf_objects.PathInfo(components=["foo"])
 
     results = list(path_info.GetAncestors())
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].components, [])
 
   def testGetAncestorsOrder(self):
     path_info = rdf_objects.PathInfo(components=["foo", "bar", "baz", "quux"])
 
     results = list(path_info.GetAncestors())
-    self.assertEqual(len(results), 4)
+    self.assertLen(results, 4)
     self.assertEqual(results[0].components, ["foo", "bar", "baz"])
     self.assertEqual(results[1].components, ["foo", "bar"])
     self.assertEqual(results[2].components, ["foo"])

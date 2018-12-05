@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """In-memory implementation of DB methods for handling server metrics."""
 from __future__ import absolute_import
+from __future__ import division
 
 from __future__ import unicode_literals
 
@@ -70,12 +71,17 @@ class InMemoryDBStatsMixin(object):
     return stats_entries
 
   @utils.Synchronized
-  def DeleteStatsStoreEntriesOlderThan(self, cutoff):
+  def DeleteStatsStoreEntriesOlderThan(self, cutoff,
+                                       limit):
     """See db.Database."""
-    new_entries = {}
+    entries_to_delete = []
     for entry_id, serialized_stats_entry in iteritems(self.stats_store_entries):
       stats_entry = stats_values.StatsStoreEntry.FromSerializedString(
           serialized_stats_entry)
-      if stats_entry.timestamp >= cutoff:
-        new_entries[entry_id] = serialized_stats_entry
-    self.stats_store_entries = new_entries
+      if stats_entry.timestamp < cutoff:
+        entries_to_delete.append(entry_id)
+      if len(entries_to_delete) >= limit:
+        break
+    for entry_id in entries_to_delete:
+      del self.stats_store_entries[entry_id]
+    return len(entries_to_delete)

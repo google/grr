@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for transfer flows."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_test.end_to_end_tests import test_base
 

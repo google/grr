@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the filestore stats."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -59,7 +60,7 @@ class FilestoreStatsCronFlowTest(flow_test_lib.FlowTestsBaseclass):
         token=self.token)
 
     filetypes = fd.Get(fd.Schema.FILESTORE_FILETYPES)
-    self.assertEqual(len(filetypes), 1)
+    self.assertLen(filetypes, 1)
     self.assertEqual(filetypes.data[0].label, "FileStoreImage")
     self.assertEqual(filetypes.data[0].y_value, 12)
 

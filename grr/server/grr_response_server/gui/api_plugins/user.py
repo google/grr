@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API handlers for user-related data and actions."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import email
@@ -45,11 +46,6 @@ from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.hunts import implementation
 
 from grr_response_server.rdfvalues import objects as rdf_objects
-
-
-class GlobalNotificationNotFoundError(
-    api_call_handler_base.ResourceNotFoundError):
-  """Raised when a specific global notification could not be found."""
 
 
 class ApprovalNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -517,10 +513,17 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
     original_object = approval_subject_obj.runner_args.original_object
     if original_object.object_type == "FLOW_REFERENCE":
-      urn = original_object.flow_reference.ToFlowURN()
-      original_flow = aff4.FACTORY.Open(urn, aff4_type=flow.GRRFlow)
-      self.copied_from_flow = api_flow.ApiFlow().InitFromAff4Object(
-          original_flow, flow_id=original_flow.urn.Basename())
+      if data_store.RelationalDBFlowsEnabled():
+        original_flow = data_store.REL_DB.ReadFlowObject(
+            original_object.flow_reference.client_id,
+            original_object.flow_reference.flow_id)
+        self.copied_from_flow = api_flow.ApiFlow().InitFromFlowObject(
+            original_flow)
+      else:
+        urn = original_object.flow_reference.ToFlowURN()
+        original_flow = aff4.FACTORY.Open(urn, aff4_type=flow.GRRFlow)
+        self.copied_from_flow = api_flow.ApiFlow().InitFromAff4Object(
+            original_flow, flow_id=original_flow.urn.Basename())
     elif original_object.object_type == "HUNT_REFERENCE":
       urn = original_object.hunt_reference.ToHuntURN()
       original_hunt = aff4.FACTORY.Open(urn, aff4_type=implementation.GRRHunt)
@@ -539,6 +542,7 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
     self._FillInSubject(
         aff4.ROOT_URN.Add("hunts").Add(db_obj.subject_id),
         approval_subject_obj=approval_subject_obj)
+
     return self
 
   @property
@@ -598,6 +602,7 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
         approval_subject_obj=approval_subject_obj)
     return self
 
+  # TODO(user): migrate to using REL_DB.
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
     _InitApiApprovalFromDatabaseObject(self, db_obj)
     self._FillInSubject(
@@ -1342,8 +1347,8 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
     approvals, subjects_by_urn = self._GetApprovals(
         "hunt", args.offset, args.count, token=token)
     return ApiListHuntApprovalsResult(
-        items=self._HandleApprovals(approvals, subjects_by_urn, self
-                                    ._ApprovalToApiApproval))
+        items=self._HandleApprovals(approvals, subjects_by_urn,
+                                    self._ApprovalToApiApproval))
 
   def HandleRelationalDB(self, args, token=None):
     approvals = sorted(
@@ -1479,8 +1484,8 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
     approvals, subjects_by_urn = self._GetApprovals(
         "cron", args.offset, args.count, token=token)
     return ApiListCronJobApprovalsResult(
-        items=self._HandleApprovals(approvals, subjects_by_urn, self
-                                    ._ApprovalToApiApproval))
+        items=self._HandleApprovals(approvals, subjects_by_urn,
+                                    self._ApprovalToApiApproval))
 
   def HandleRelationalDB(self, args, token=None):
     approvals = sorted(
@@ -1802,61 +1807,6 @@ class ApiListAndResetUserNotificationsHandler(
       return self.HandleLegacy(args, token=token)
 
 
-class ApiListPendingGlobalNotificationsResult(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListPendingGlobalNotificationsResult
-  rdf_deps = [
-      aff4_users.GlobalNotification,
-  ]
-
-
-class ApiListPendingGlobalNotificationsHandler(
-    api_call_handler_base.ApiCallHandler):
-  """Returns the pending global notifications for the current user."""
-
-  result_type = ApiListPendingGlobalNotificationsResult
-
-  def Handle(self, args, token=None):
-    """Fetches the list of pending global notifications."""
-
-    user_record = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="r",
-        token=token)
-
-    notifications = user_record.GetPendingGlobalNotifications()
-
-    return ApiListPendingGlobalNotificationsResult(items=notifications)
-
-
-class ApiDeletePendingGlobalNotificationArgs(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiDeletePendingGlobalNotificationArgs
-
-
-class ApiDeletePendingGlobalNotificationHandler(
-    api_call_handler_base.ApiCallHandler):
-  """Deletes the global notification from the list of unseen notifications."""
-
-  args_type = ApiDeletePendingGlobalNotificationArgs
-
-  def Handle(self, args, token=None):
-    """Marks the given global notification as seen."""
-
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="rw",
-        token=token) as user_record:
-
-      notifications = user_record.GetPendingGlobalNotifications()
-      for notif in notifications:
-        if notif.type == args.type:
-          user_record.MarkGlobalNotificationAsShown(notif)
-          return
-
-    raise GlobalNotificationNotFoundError()
-
-
 class ApiListApproverSuggestionsArgs(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiListApproverSuggestionsArgs
   rdf_deps = []
@@ -1874,7 +1824,7 @@ class ApiListApproverSuggestionsResult(rdf_structs.RDFProtoStruct):
 
 def _GetAllUsernames():
   if data_store.RelationalDBReadEnabled():
-    users = data_store.REL_DB.ReadAllGRRUsers()
+    users = data_store.REL_DB.ReadGRRUsers()
     usernames = [user.username for user in users]
   else:
     urns = aff4.FACTORY.ListChildren("aff4:/users")

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API E2E tests for an ApiCallRouterWithChecks."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -188,22 +189,6 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
         # This must raise now.
         self.assertRaises(grr_api_errors.AccessForbiddenError,
                           self.api.Client(client_id).Flow(f.flow_id).Get)
-
-  def testNonAdminsCanNotStartAdminOnlyFlow(self):
-    client_id = self.SetupClient(0).Basename()
-    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
-
-    with self.assertRaises(grr_api_errors.AccessForbiddenError):
-      self.api.Client(client_id).CreateFlow(
-          name=flow_test_lib.AdminOnlyFlow.__name__)
-
-  def testAdminsCanStartAdminOnlyFlow(self):
-    client_id = self.SetupClient(0).Basename()
-    self.CreateAdminUser(self.token.username)
-    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
-
-    self.api.Client(client_id).CreateFlow(
-        name=flow_test_lib.AdminOnlyFlow.__name__)
 
   def testClientFlowWithoutCategoryCanNotBeStartedWithClient(self):
     client_id = self.SetupClient(0).Basename()

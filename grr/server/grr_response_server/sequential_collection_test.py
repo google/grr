@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for SequentialCollection and related subclasses."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import threading
@@ -82,7 +83,7 @@ class SequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
                 value=None))
 
     even_results = sorted([r for r in collection.MultiResolve(records[::2])])
-    self.assertEqual(len(even_results), 50)
+    self.assertLen(even_results, 50)
     self.assertEqual(even_results[0], 0)
     self.assertEqual(even_results[49], 98)
 
@@ -141,7 +142,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       self.assertEqual(collection[i], i)
 
     self.assertEqual(collection.CalculateLength(), 100)
-    self.assertEqual(len(collection), 100)
+    self.assertLen(collection, 100)
 
   def testStaticAddGet(self):
     aff4_path = "aff4:/sequential_collection/testStaticAddGet"
@@ -157,7 +158,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       self.assertEqual(collection[i], i)
 
     self.assertEqual(collection.CalculateLength(), 100)
-    self.assertEqual(len(collection), 100)
+    self.assertLen(collection, 100)
 
   def testIndexCreate(self):
     spacing = 10
@@ -250,7 +251,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
     with test_lib.Instrument(sequential_collection.SequentialCollection,
                              "Scan") as scan:
-      self.assertEqual(len(list(collection)), 100)
+      self.assertLen(list(collection), 100)
       # Listing should be done using a single scan but there is another one
       # for calculating the length.
       self.assertEqual(scan.call_count, 2)

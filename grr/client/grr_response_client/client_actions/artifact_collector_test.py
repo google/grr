@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests the client artifactor collection."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import __builtin__
@@ -138,7 +139,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
       result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
       collected_artifact = result.collected_artifacts[0]
 
-      self.assertEqual(len(collected_artifact.action_results), 4)
+      self.assertLen(collected_artifact.action_results, 4)
       for action_result in collected_artifact.action_results:
         value = action_result.value
         self.assertIsInstance(value, rdf_client.User)
@@ -146,7 +147,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
           self.fail("Unexpected user found: %s" % value.username)
 
       # Test that the users were added to the knowledge base
-      self.assertEqual(len(result.knowledge_base.users), 4)
+      self.assertLen(result.knowledge_base.users, 4)
       for user in result.knowledge_base.users:
         self.assertIn(user.username, ["user1", "user2", "user3", "utuser"])
 
@@ -181,7 +182,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
 
     collected_artifact = self.RunArtifactCollector(request)
 
-    self.assertEqual(len(collected_artifact.action_results), 1)
+    self.assertLen(collected_artifact.action_results, 1)
     action_result = collected_artifact.action_results[0].value
     self.assertIsInstance(action_result, rdf_client_fs.Volume)
 
@@ -228,7 +229,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                      vfs_test_lib.FakeFullVFSHandler):
         collected_artifact = self.RunArtifactCollector(request)
-        self.assertEqual(len(collected_artifact.action_results), 1)
+        self.assertLen(collected_artifact.action_results, 1)
         file_stat = collected_artifact.action_results[0].value
         self.assertTrue(isinstance(file_stat, rdf_client_fs.StatEntry))
 
@@ -246,7 +247,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                      vfs_test_lib.FakeFullVFSHandler):
         collected_artifact = self.RunArtifactCollector(request)
-        self.assertEqual(len(collected_artifact.action_results), 0)
+        self.assertEmpty(collected_artifact.action_results)
 
   def testDirectoryArtifact(self):
     """Test the source type `DIRECTORY`."""
@@ -298,7 +299,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     request = GetRequest(source, "TestGrep")
 
     collected_artifact = self.RunArtifactCollector(request)
-    self.assertEqual(len(collected_artifact.action_results), 1)
+    self.assertLen(collected_artifact.action_results, 1)
     result = collected_artifact.action_results[0].value
     self.assertIsInstance(result, rdf_client_fs.StatEntry)
     self.assertTrue(result.pathspec.path.endswith("auth.log"))
@@ -319,7 +320,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     request.artifacts.append(ext_art)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
     collected_artifacts = list(result.collected_artifacts)
-    self.assertEqual(len(collected_artifacts), 2)
+    self.assertLen(collected_artifacts, 2)
     self.assertEqual(collected_artifacts[0].name, "TestCmdArtifact")
     self.assertEqual(collected_artifacts[1].name, "TestCmdArtifact")
     execute_response_1 = collected_artifacts[0].action_results[0].value
@@ -345,7 +346,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     request.artifacts.append(ext_art)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
     collected_artifacts = list(result.collected_artifacts)
-    self.assertEqual(len(collected_artifacts), 1)
+    self.assertLen(collected_artifacts, 1)
     self.assertEqual(collected_artifacts[0].name, "TestCmdArtifact")
     execute_response = collected_artifacts[0].action_results[0].value
     self.assertGreater(execute_response.time_used, 0)
@@ -443,7 +444,7 @@ class OSXArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
       result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
       collected_artifact = result.collected_artifacts[0]
 
-      self.assertEqual(len(collected_artifact.action_results), 7)
+      self.assertLen(collected_artifact.action_results, 7)
 
       res = collected_artifact.action_results[0].value
       self.assertIsInstance(res, rdf_client_fs.Filesystem)
@@ -462,7 +463,7 @@ class OSXArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
       result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
       collected_artifact = result.collected_artifacts[0]
 
-      self.assertEqual(len(collected_artifact.action_results), 1)
+      self.assertLen(collected_artifact.action_results, 1)
 
       res = collected_artifact.action_results[0].value
       self.assertIsInstance(res, rdf_client.OSXServiceInformation)
@@ -634,10 +635,10 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
         ignore_interpolation_errors=True,
         apply_parsers=True)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
-    self.assertEqual(len(result.collected_artifacts[0].action_results), 1)
+    self.assertLen(result.collected_artifacts[0].action_results, 1)
     res = result.collected_artifacts[0].action_results[0].value
     self.assertIsInstance(res, rdf_protodict.AttributedDict)
-    self.assertEqual(len(res.users), 1000)
+    self.assertLen(res.users, 1000)
     self.assertEqual(res.filename, file_path)
 
   @mock.patch.object(parsers, "MULTI_FILE_PARSER_FACTORY",
@@ -660,10 +661,10 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
         ignore_interpolation_errors=True,
         apply_parsers=True)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
-    self.assertEqual(len(result.collected_artifacts[0].action_results), 1)
+    self.assertLen(result.collected_artifacts[0].action_results, 1)
     res = result.collected_artifacts[0].action_results[0].value
     self.assertIsInstance(res, rdf_protodict.AttributedDict)
-    self.assertEqual(len(res.users), 1000)
+    self.assertLen(res.users, 1000)
     self.assertEqual(res.filename, file_path)
 
 
@@ -701,7 +702,7 @@ class KnowledgeBaseUpdateTest(client_test_lib.EmptyActionTest):
     self.request = self.InitializeRequest()
     self.response = rdf_client.User(username="user1", homedir="/home/foo")
     knowledge_base = self.GetUpdatedKnowledgeBase()
-    self.assertEqual(len(knowledge_base.users), 1)
+    self.assertLen(knowledge_base.users, 1)
     user = knowledge_base.users[0]
     self.assertEqual(user.username, "user1")
     self.assertEqual(user.homedir, "/home/foo")
@@ -713,7 +714,7 @@ class KnowledgeBaseUpdateTest(client_test_lib.EmptyActionTest):
     self.request = self.InitializeRequest(initial_knowledge_base)
     self.response = rdf_client.User(username="user1", homedir="/home/foo")
     knowledge_base = self.GetUpdatedKnowledgeBase()
-    self.assertEqual(len(knowledge_base.users), 1)
+    self.assertLen(knowledge_base.users, 1)
     user = knowledge_base.users[0]
     self.assertEqual(user.username, "user1")
     self.assertEqual(user.homedir, "/home/foo")

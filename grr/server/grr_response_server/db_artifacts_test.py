@@ -141,7 +141,7 @@ class DatabaseTestArtifactsMixin(object):
     for artifact in artifacts:
       self.db.WriteArtifact(artifact)
 
-    self.assertItemsEqual(self.db.ReadAllArtifacts(), artifacts)
+    self.assertCountEqual(self.db.ReadAllArtifacts(), artifacts)
 
   def testReadAllArtifactsReturnsCopy(self):
     name = lambda artifact: artifact.name
@@ -150,10 +150,10 @@ class DatabaseTestArtifactsMixin(object):
     self.db.WriteArtifact(rdf_artifacts.Artifact(name="Bar"))
 
     artifacts = self.db.ReadAllArtifacts()
-    self.assertItemsEqual(map(name, artifacts), ["Foo", "Bar"])
+    self.assertCountEqual(map(name, artifacts), ["Foo", "Bar"])
 
     artifacts[0].name = "Quux"
     artifacts[1].name = "Norf"
 
     artifacts = self.db.ReadAllArtifacts()
-    self.assertItemsEqual(map(name, artifacts), ["Foo", "Bar"])
+    self.assertCountEqual(map(name, artifacts), ["Foo", "Bar"])

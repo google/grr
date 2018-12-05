@@ -6,6 +6,7 @@ good artifacts can still succeed if some bad artifacts are defined, and the
 various ways of loading artifacts.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -153,7 +154,7 @@ supported_os: [ "Linux" ]
       # TODO(user): RunKeys for S-1-5-20 are not found because users.sid only
       # expands to users with profiles.
       pathspecs = getfile_instrument.args[0][0].args.pathspecs
-      self.assertItemsEqual([x.path for x in pathspecs],
+      self.assertCountEqual([x.path for x in pathspecs],
                             [u"C:\\Windows\\TEMP\\A.exe"])
 
     artifact_list = ["BadPathspecArtifact"]

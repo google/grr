@@ -6,6 +6,7 @@ and must be accessed from a machine that runs GRR services directly (it runs
 on top of a server bound to "localhost").
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_server.gui import api_call_router

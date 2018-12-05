@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Mixin class to be used in tests for DB implementations."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import abc
@@ -21,6 +22,7 @@ from grr_response_server import db_foreman_rules_test
 from grr_response_server import db_hunts_test
 from grr_response_server import db_message_handler_test
 from grr_response_server import db_paths_test
+from grr_response_server import db_signed_binaries_test
 from grr_response_server import db_stats_test
 from grr_response_server import db_users_test
 
@@ -38,6 +40,7 @@ class DatabaseTestMixin(
         db_hunts_test.DatabaseTestHuntMixin,
         db_message_handler_test.DatabaseTestHandlerMixin,
         db_paths_test.DatabaseTestPathsMixin,
+        db_signed_binaries_test.DatabaseTestSignedBinariesMixin,
         db_stats_test.DatabaseTestStatsMixin,
         db_users_test.DatabaseTestUsersMixin,
     )):

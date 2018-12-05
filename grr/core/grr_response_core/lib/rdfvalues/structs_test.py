@@ -3,6 +3,7 @@
 """Test RDFStruct implementations."""
 
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import random
@@ -378,7 +379,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     new_tested = TestStruct.FromSerializedString(data)
 
     # Test the repeated field.
-    self.assertEqual(len(new_tested.repeat_nested), 10)
+    self.assertLen(new_tested.repeat_nested, 10)
     self.assertEqual(new_tested.repeat_nested[1].foobar, "Nest1")
 
     # Check that slicing works.
@@ -387,7 +388,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(sliced.type_descriptor,
                      new_tested.repeat_nested.type_descriptor)
 
-    self.assertEqual(len(sliced), 2)
+    self.assertLen(sliced, 2)
     self.assertEqual(sliced[0].foobar, "Nest3")
 
   def testUnknownFields(self):
@@ -509,14 +510,14 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     # When we serialize the modified proto we should get the new field
     # serialized. If the cache is not properly invalidated, we will return the
     # old result instead.
-    self.assertTrue("booo" in path.SerializeToString())
+    self.assertIn("booo", path.SerializeToString())
 
   def testLateBinding(self):
     # The LateBindingTest protobuf is not fully defined.
     self.assertRaises(KeyError, LateBindingTest.type_infos.__getitem__,
                       "nested")
 
-    self.assertTrue("UndefinedYet" in rdfvalue._LATE_BINDING_STORE)
+    self.assertIn("UndefinedYet", rdfvalue._LATE_BINDING_STORE)
 
     # We can still use this protobuf
     tested = LateBindingTest()
@@ -533,7 +534,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
               name="foobar", field_number=1, description="A string value"),)
 
     # The field is now resolved.
-    self.assertFalse("UndefinedYet" in rdfvalue._LATE_BINDING_STORE)
+    self.assertNotIn("UndefinedYet", rdfvalue._LATE_BINDING_STORE)
     nested_field = LateBindingTest.type_infos["nested"]
     self.assertEqual(nested_field.name, "nested")
 
@@ -547,7 +548,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertRaises(KeyError, LateBindingTest.type_infos.__getitem__,
                       "rdfvalue")
 
-    self.assertTrue("UndefinedRDFValue" in rdfvalue._LATE_BINDING_STORE)
+    self.assertIn("UndefinedRDFValue", rdfvalue._LATE_BINDING_STORE)
 
     # We can still use this protobuf
     tested = LateBindingTest()
@@ -562,7 +563,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
       pass
 
     # The field is now resolved.
-    self.assertFalse("UndefinedRDFValue" in rdfvalue._LATE_BINDING_STORE)
+    self.assertNotIn("UndefinedRDFValue", rdfvalue._LATE_BINDING_STORE)
     rdfvalue_field = LateBindingTest.type_infos["rdfvalue"]
     self.assertEqual(rdfvalue_field.name, "rdfvalue")
 
@@ -575,7 +576,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertRaises(KeyError, LateBindingTest.type_infos.__getitem__,
                       "repeated")
 
-    self.assertTrue("UndefinedRDFValue2" in rdfvalue._LATE_BINDING_STORE)
+    self.assertIn("UndefinedRDFValue2", rdfvalue._LATE_BINDING_STORE)
 
     # We can still use this protobuf
     tested = LateBindingTest()
@@ -590,13 +591,13 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
       pass
 
     # The field is now resolved.
-    self.assertFalse("UndefinedRDFValue2" in rdfvalue._LATE_BINDING_STORE)
+    self.assertNotIn("UndefinedRDFValue2", rdfvalue._LATE_BINDING_STORE)
     rdfvalue_field = LateBindingTest.type_infos["repeated"]
     self.assertEqual(rdfvalue_field.name, "repeated")
 
     # We can now use the protobuf as normal.
     tested = LateBindingTest(repeated=["foo"])
-    self.assertEqual(len(tested.repeated), 1)
+    self.assertLen(tested.repeated, 1)
     self.assertEqual(tested.repeated[0], "foo")
     self.assertEqual(type(tested.repeated[0]), UndefinedRDFValue2)
 

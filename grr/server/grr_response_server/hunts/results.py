@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Classes to store and manage hunt results.
-"""
+"""Classes to store and manage hunt results."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
@@ -49,13 +49,10 @@ class HuntResultQueue(aff4_queue.Queue):
 
     Args:
       token: The security token to perform database operations with.
-
       start_time: If set, an RDFDateTime indicating at what point to start
         claiming notifications. Only notifications with a timestamp after this
         point will be claimed.
-
       lease_time: How long to claim the notifications for.
-
       collection: The urn of the collection to find notifications for. If unset,
         the earliest (unclaimed) notification will determine the collection.
 
@@ -131,6 +128,9 @@ class ResultQueueInitHook(registry.InitHook):
   pre = [aff4.AFF4InitHook]
 
   def Run(self):
+    if not data_store.AFF4Enabled():
+      return
+
     try:
       with aff4.FACTORY.Create(
           RESULT_NOTIFICATION_QUEUE,

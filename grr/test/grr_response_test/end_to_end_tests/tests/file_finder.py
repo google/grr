@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for GRR FileFinder flow."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_proto import jobs_pb2
 from grr_response_test.end_to_end_tests import test_base
@@ -181,14 +182,14 @@ class TestFileFinderLiteralMatching(test_base.AbstractFileTransferTest):
     f = self.RunFlowAndWait(flow, args=args)
 
     results = list(f.ListResults())
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     result = results[0].payload
 
-    self.assertTrue("ls" in result.stat_entry.pathspec.path)
+    self.assertIn("ls", result.stat_entry.pathspec.path)
 
     self.assertGreater(len(result.matches), 0)
     for match in result.matches:
-      self.assertTrue(keyword in match.data)
+      self.assertIn(keyword, match.data)
 
   def testLiteralMatching(self):
     self._testLiteralMatching("FileFinder")
@@ -227,14 +228,14 @@ class TestFileFinderRegexMatching(test_base.AbstractFileTransferTest):
     f = self.RunFlowAndWait(flow, args=args)
 
     results = list(f.ListResults())
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     result = results[0].payload
 
-    self.assertTrue("ls" in result.stat_entry.pathspec.path)
+    self.assertIn("ls", result.stat_entry.pathspec.path)
 
     self.assertGreater(len(result.matches), 0)
     for match in result.matches:
-      self.assertTrue(keywords[self.platform] in match.data.lower())
+      self.assertIn(keywords[self.platform], match.data.lower())
 
   def testRegexMatching(self):
     self._testRegexMatching("FileFinder")

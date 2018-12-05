@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests email links."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import re
@@ -73,7 +74,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         approver=self.GRANTOR_USERNAME,
         requestor=self.token.username)
 
-    self.assertEqual(len(self.messages_sent), 1)
+    self.assertLen(self.messages_sent, 1)
     message = self.messages_sent[0]
 
     self.assertIn(self.APPROVAL_REASON, message)
@@ -100,7 +101,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.
-    self.assertEqual(len(self.messages_sent), 2)
+    self.assertLen(self.messages_sent, 2)
 
     message = self.messages_sent[1]
 
@@ -127,7 +128,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         approver=self.GRANTOR_USERNAME,
         requestor=self.token.username)
 
-    self.assertEqual(len(self.messages_sent), 1)
+    self.assertLen(self.messages_sent, 1)
     message = self.messages_sent[0]
 
     self.assertIn(self.APPROVAL_REASON, message)
@@ -154,7 +155,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.
-    self.assertEqual(len(self.messages_sent), 2)
+    self.assertLen(self.messages_sent, 2)
 
     message = self.messages_sent[1]
     self.assertIn(self.APPROVAL_REASON, message)
@@ -186,7 +187,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         approver=self.GRANTOR_USERNAME,
         requestor=self.token.username)
 
-    self.assertEqual(len(self.messages_sent), 1)
+    self.assertLen(self.messages_sent, 1)
     message = self.messages_sent[0]
 
     self.assertIn(self.APPROVAL_REASON, message)
@@ -215,7 +216,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.
-    self.assertEqual(len(self.messages_sent), 2)
+    self.assertLen(self.messages_sent, 2)
     message = self.messages_sent[1]
     self.assertIn(self.APPROVAL_REASON, message)
     self.assertIn(self.GRANTOR_USERNAME, message)

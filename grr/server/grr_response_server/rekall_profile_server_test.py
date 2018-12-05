@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the Rekall profile server."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import zlib
@@ -63,7 +64,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
       profile = self.server.GetProfileByName(
           profile_name, version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION)
       uncompressed = zlib.decompress(profile.data, 16 + zlib.MAX_WBITS)
-      self.assertTrue("BusQueryDeviceID" in uncompressed)
+      self.assertIn("BusQueryDeviceID", uncompressed)
 
     # We issued one http request.
     self.assertEqual(FakeHandle.read_count, 1)
@@ -101,7 +102,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
             token=self.token).ListChildren())
 
     # We cache the .gz only.
-    self.assertEqual(len(cached_items), 1)
+    self.assertLen(cached_items, 1)
     self.assertEqual(cached_items[0].Basename(), "pe")
 
 

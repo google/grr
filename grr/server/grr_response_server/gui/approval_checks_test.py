@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for approval_checks module."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import mock
@@ -115,18 +116,18 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
 
     approval_checks.CheckApprovalRequest(approval_request)
 
-    self.assertEqual(len(mock_mgr.CheckApproversForLabel.mock_calls), 2)
+    self.assertLen(mock_mgr.CheckApproversForLabel.mock_calls, 2)
 
     args = mock_mgr.CheckApproversForLabel.mock_calls[0][1]
-    self.assertEqual(
-        args, (access_control.ACLToken(username=u"requestor"),
-               rdfvalue.RDFURN(self.client.client_id), u"requestor",
-               set(["grantor1", "grantor2"]), u"bar"))
+    self.assertEqual(args,
+                     (access_control.ACLToken(username=u"requestor"),
+                      rdfvalue.RDFURN(self.client.client_id), u"requestor",
+                      set(["grantor1", "grantor2"]), u"bar"))
     args = mock_mgr.CheckApproversForLabel.mock_calls[1][1]
-    self.assertEqual(
-        args, (access_control.ACLToken(username=u"requestor"),
-               rdfvalue.RDFURN(self.client.client_id), u"requestor",
-               set(["grantor1", "grantor2"]), u"foo"))
+    self.assertEqual(args,
+                     (access_control.ACLToken(username=u"requestor"),
+                      rdfvalue.RDFURN(self.client.client_id), u"requestor",
+                      set(["grantor1", "grantor2"]), u"foo"))
 
   @mock.patch(client_approval_auth.__name__ + ".CLIENT_APPROVAL_AUTH_MGR")
   def testWhenAuthMgrActiveRaisesIfAuthMgrRaises(self, mock_mgr):

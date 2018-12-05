@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test the process list module."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import os
@@ -41,7 +42,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     # Check the output collection
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)
 
-    self.assertEqual(len(processes), 1)
+    self.assertLen(processes, 1)
     self.assertEqual(processes[0].ctime, 1333718907167083)
     self.assertEqual(processes[0].cmdline, ["cmd.exe"])
 
@@ -79,7 +80,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     # Expect one result that matches regex
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)
 
-    self.assertEqual(len(processes), 1)
+    self.assertLen(processes, 1)
     self.assertEqual(processes[0].ctime, 1333718907167083)
     self.assertEqual(processes[0].cmdline, ["cmd2.exe"])
 
@@ -130,11 +131,11 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         flow_urn, client_mock, client_id=client_id, token=self.token)
 
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertEqual(len(processes), 2)
+    self.assertLen(processes, 2)
     states = set()
     for process in processes:
       states.add(str(process.connections[0].state))
-    self.assertItemsEqual(states, ["ESTABLISHED", "LISTEN"])
+    self.assertCountEqual(states, ["ESTABLISHED", "LISTEN"])
 
   def testWhenFetchingFiltersOutProcessesWithoutExeAndConnectionState(self):
     client_id = self.SetupClient(0)
@@ -164,7 +165,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
 
     # No output matched.
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertEqual(len(processes), 0)
+    self.assertEmpty(processes)
 
   def testFetchesAndStoresBinary(self):
     process = rdf_client.Process(
@@ -185,7 +186,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
 
     results = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(results)
-    self.assertEqual(len(binaries), 1)
+    self.assertLen(binaries, 1)
     self.assertEqual(binaries[0].pathspec.path, process.exe)
     self.assertEqual(binaries[0].st_size, os.stat(process.exe).st_size)
 
@@ -214,7 +215,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         token=self.token)
 
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)
-    self.assertEqual(len(processes), 1)
+    self.assertLen(processes, 1)
 
   def testWhenFetchingIgnoresMissingFiles(self):
     process1 = rdf_client.Process(
@@ -243,7 +244,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
 
     results = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(results)
-    self.assertEqual(len(binaries), 1)
+    self.assertLen(binaries, 1)
     self.assertEqual(binaries[0].pathspec.path, process1.exe)
 
 

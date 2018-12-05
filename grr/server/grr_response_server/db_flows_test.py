@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the flow database api."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
@@ -51,12 +52,12 @@ class DatabaseTestFlowMixin(object):
     self.db.WriteClientMessages([msg])
 
     read_msgs = self.db.ReadClientMessages(client_id)
-    self.assertEqual(len(read_msgs), 1)
+    self.assertLen(read_msgs, 1)
     self.assertEqual(msg, read_msgs[0])
 
     self.db.DeleteClientMessages([msg])
     read_msgs = self.db.ReadClientMessages(client_id)
-    self.assertEqual(len(read_msgs), 0)
+    self.assertEmpty(read_msgs)
 
     # Extra delete should not raise.
     self.db.DeleteClientMessages([msg])
@@ -82,7 +83,7 @@ class DatabaseTestFlowMixin(object):
       msg.ttl -= 1
       self.db.WriteClientMessages([msg])
       read_msgs = self.db.ReadClientMessages(client_id)
-      self.assertEqual(len(read_msgs), 1)
+      self.assertLen(read_msgs, 1)
       self.assertEqual(msg, read_msgs[0])
 
   def testClientMessageLeasing(self):
@@ -102,7 +103,7 @@ class DatabaseTestFlowMixin(object):
       leased = self.db.LeaseClientMessages(
           client_id, lease_time=lease_time, limit=5)
 
-      self.assertEqual(len(leased), 5)
+      self.assertLen(leased, 5)
 
       for request in leased:
         self.assertEqual(request.leased_until, t0_expiry)
@@ -114,7 +115,7 @@ class DatabaseTestFlowMixin(object):
       leased = self.db.LeaseClientMessages(
           client_id, lease_time=lease_time, limit=5)
 
-      self.assertEqual(len(leased), 5)
+      self.assertLen(leased, 5)
 
       for request in leased:
         self.assertEqual(request.leased_until, t1_expiry)
@@ -124,30 +125,30 @@ class DatabaseTestFlowMixin(object):
       leased = self.db.LeaseClientMessages(
           client_id, lease_time=lease_time, limit=2)
 
-      self.assertEqual(len(leased), 0)
+      self.assertEmpty(leased)
 
     read = self.db.ReadClientMessages(client_id)
 
-    self.assertEqual(len(read), 10)
+    self.assertLen(read, 10)
     for r in read:
       self.assertEqual(r.leased_by, utils.ProcessIdString())
 
-    self.assertEqual(len([r for r in read if r.leased_until == t0_expiry]), 5)
-    self.assertEqual(len([r for r in read if r.leased_until == t1_expiry]), 5)
+    self.assertLen([r for r in read if r.leased_until == t0_expiry], 5)
+    self.assertLen([r for r in read if r.leased_until == t1_expiry], 5)
 
     # Half the leases expired.
     t2 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 350)
     with test_lib.FakeTime(t2):
       leased = self.db.LeaseClientMessages(client_id, lease_time=lease_time)
 
-      self.assertEqual(len(leased), 5)
+      self.assertLen(leased, 5)
 
     # All of them expired.
     t3 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 10350)
     with test_lib.FakeTime(t3):
       leased = self.db.LeaseClientMessages(client_id, lease_time=lease_time)
 
-      self.assertEqual(len(leased), 10)
+      self.assertLen(leased, 10)
 
   def testClientMessagesAreSorted(self):
     client_id = self.InitializeClient()
@@ -162,7 +163,7 @@ class DatabaseTestFlowMixin(object):
 
     read = self.db.ReadClientMessages(client_id)
 
-    self.assertEqual(len(read), 10)
+    self.assertLen(read, 10)
     task_ids = [m.task_id for m in read]
     self.assertEqual(task_ids, sorted(task_ids))
 
@@ -193,7 +194,7 @@ class DatabaseTestFlowMixin(object):
     with test_lib.FakeTime(now):
       leased = self.db.LeaseClientMessages(
           client_id, lease_time=lease_time, limit=10)
-      self.assertLen(leased, 0)
+      self.assertEmpty(leased)
 
     # ReadClientMessages includes also messages whose TTL has expired. Make sure
     # that the messages have been deleted from the db.
@@ -298,7 +299,7 @@ class DatabaseTestFlowMixin(object):
 
     read = self.db.ReadAllFlowObjects(client_id_1)
 
-    self.assertEqual(len(read), 2)
+    self.assertLen(read, 2)
 
     for flow_obj in read:
       self.assertEqual(flow_obj.client_id, client_id_1)
@@ -429,7 +430,7 @@ class DatabaseTestFlowMixin(object):
         read = self.db.ReadAllFlowRequestsAndResponses(
             client_id=client_id, flow_id=flow_id)
 
-        self.assertEqual(len(read), 3)
+        self.assertLen(read, 3)
         self.assertEqual([req.request_id for (req, _) in read], list(
             range(1, 4)))
         for _, responses in read:
@@ -491,7 +492,7 @@ class DatabaseTestFlowMixin(object):
     self.db.WriteFlowResponses(responses)
 
     request_list = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
-    self.assertItemsEqual([req.request_id for req, _ in request_list],
+    self.assertCountEqual([req.request_id for req, _ in request_list],
                           [req.request_id for req in requests])
 
     random.shuffle(requests)
@@ -500,7 +501,7 @@ class DatabaseTestFlowMixin(object):
       request = requests.pop()
       self.db.DeleteFlowRequests([request])
       request_list = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
-      self.assertItemsEqual([req.request_id for req, _ in request_list],
+      self.assertCountEqual([req.request_id for req, _ in request_list],
                             [req.request_id for req in requests])
 
   def testResponsesForUnknownFlow(self):
@@ -535,9 +536,9 @@ class DatabaseTestFlowMixin(object):
 
     # We should have one response in the db.
     read = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
-    self.assertEqual(len(read), 1)
+    self.assertLen(read, 1)
     request, responses = read[0]
-    self.assertEqual(len(responses), 1)
+    self.assertLen(responses, 1)
 
   def testResponseWriting(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -558,7 +559,7 @@ class DatabaseTestFlowMixin(object):
     self.db.WriteFlowResponses(responses)
 
     all_requests = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
-    self.assertEqual(len(all_requests), 1)
+    self.assertLen(all_requests, 1)
 
     read_request, read_responses = all_requests[0]
     self.assertEqual(read_request, request)
@@ -592,7 +593,7 @@ class DatabaseTestFlowMixin(object):
     self.db.WriteFlowResponses(responses)
 
     all_requests = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
-    self.assertEqual(len(all_requests), 1)
+    self.assertLen(all_requests, 1)
 
     _, read_responses = all_requests[0]
     self.assertEqual(list(read_responses), [0, 1, 2, 3, 4])
@@ -870,17 +871,17 @@ class DatabaseTestFlowMixin(object):
 
     children = self.db.ReadChildFlowObjects(client_id, u"00000001")
 
-    self.assertEqual(len(children), 2)
+    self.assertLen(children, 2)
     for c in children:
       self.assertEqual(c.parent_flow_id, u"00000001")
 
     children = self.db.ReadChildFlowObjects(client_id, u"00000002")
-    self.assertEqual(len(children), 1)
+    self.assertLen(children, 1)
     self.assertEqual(children[0].parent_flow_id, u"00000002")
     self.assertEqual(children[0].flow_id, u"00000003")
 
     children = self.db.ReadChildFlowObjects(client_id, u"00000003")
-    self.assertEqual(len(children), 0)
+    self.assertEmpty(children)
 
   def _WriteRequestAndResponses(self, client_id, flow_id):
     rdf_flow = rdf_flow_objects.Flow(
@@ -904,9 +905,9 @@ class DatabaseTestFlowMixin(object):
 
   def _CheckRequestsAndResponsesAreThere(self, client_id, flow_id):
     all_requests = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
-    self.assertEqual(len(all_requests), 3)
+    self.assertLen(all_requests, 3)
     for _, responses in all_requests:
-      self.assertEqual(len(responses), 2)
+      self.assertLen(responses, 2)
 
   def testDeleteAllFlowRequestsAndResponses(self):
     client_id1 = u"C.1234567890123456"
@@ -968,7 +969,7 @@ class DatabaseTestFlowMixin(object):
     # We expect three requests here. Req #1 is old and should not be there, req
     # #7 can't be processed since we are missing #6 in between. That leaves
     # requests #3, #4 and #5.
-    self.assertEqual(len(requests_for_processing), 3)
+    self.assertLen(requests_for_processing, 3)
     self.assertEqual(list(requests_for_processing), [3, 4, 5])
 
     for request_id in requests_for_processing:
@@ -1007,7 +1008,7 @@ class DatabaseTestFlowMixin(object):
             "Timed out waiting for messages, expected 5, got %d" % len(got))
       got.append(l)
 
-    self.assertItemsEqual(requests, got)
+    self.assertCountEqual(requests, got)
 
     self.db.UnregisterFlowProcessingHandler()
 
@@ -1047,7 +1048,7 @@ class DatabaseTestFlowMixin(object):
       got.append(l)
       self.assertGreater(rdfvalue.RDFDatetime.Now(), l.delivery_time)
 
-    self.assertItemsEqual(requests, got)
+    self.assertCountEqual(requests, got)
 
     leftover = self.db.ReadFlowProcessingRequests()
     self.assertEqual(leftover, [])
@@ -1076,14 +1077,14 @@ class DatabaseTestFlowMixin(object):
     # there.
     stored_requests = self.db.ReadFlowProcessingRequests()
     stored_requests.sort(key=lambda r: r.flow_id)
-    self.assertEqual(len(stored_requests), 5)
-    self.assertItemsEqual([r.flow_id for r in stored_requests], flow_ids)
+    self.assertLen(stored_requests, 5)
+    self.assertCountEqual([r.flow_id for r in stored_requests], flow_ids)
 
     # Now we ack requests 1 and 2. There should be three remaining in the db.
     self.db.AckFlowProcessingRequests(stored_requests[1:3])
     stored_requests = self.db.ReadFlowProcessingRequests()
-    self.assertEqual(len(stored_requests), 3)
-    self.assertItemsEqual([r.flow_id for r in stored_requests],
+    self.assertLen(stored_requests, 3)
+    self.assertCountEqual([r.flow_id for r in stored_requests],
                           [flow_ids[0], flow_ids[3], flow_ids[4]])
 
     # Make sure DeleteAllFlowProcessingRequests removes all requests.
@@ -1129,7 +1130,7 @@ class DatabaseTestFlowMixin(object):
       self.db.WriteFlowResults(client_id, flow_id, [sample_result])
 
     results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0].payload, sample_result.payload)
 
   def testWritesAndReadsMultipleFlowResultsOfSingleType(self):
@@ -1137,12 +1138,12 @@ class DatabaseTestFlowMixin(object):
     sample_results = self._WriteFlowResults(client_id, flow_id)
 
     results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
-    self.assertEqual(len(results), len(sample_results))
+    self.assertLen(results, len(sample_results))
 
     # All results were written with the same timestamp (as they were written
     # via a single WriteFlowResults call), so no assumptions about
     # the order are made.
-    self.assertItemsEqual(
+    self.assertCountEqual(
         [i.payload for i in results],
         [i.payload for i in sample_results],
     )
@@ -1153,7 +1154,7 @@ class DatabaseTestFlowMixin(object):
         client_id, flow_id, multiple_timestamps=True)
 
     results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
-    self.assertEqual(len(results), len(sample_results))
+    self.assertLen(results, len(sample_results))
 
     # Returned results have to be sorted by the timestamp in the ascending
     # order.
@@ -1198,9 +1199,9 @@ class DatabaseTestFlowMixin(object):
             ]))
 
     results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
-    self.assertEqual(len(results), len(sample_results))
+    self.assertLen(results, len(sample_results))
 
-    self.assertItemsEqual(
+    self.assertCountEqual(
         [i.payload for i in results],
         [i.payload for i in sample_results],
     )
@@ -1237,7 +1238,7 @@ class DatabaseTestFlowMixin(object):
 
     results = self.db.ReadFlowResults(
         client_id, flow_id, 0, 100, with_tag="tag_1")
-    self.assertEquals([i.payload for i in results], [sample_results[1].payload])
+    self.assertEqual([i.payload for i in results], [sample_results[1].payload])
 
   def testReadFlowResultsCorrectlyAppliesWithTypeFilter(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -1278,7 +1279,7 @@ class DatabaseTestFlowMixin(object):
         0,
         100,
         with_type=compatibility.GetName(rdf_client.ClientSummary))
-    self.assertItemsEqual(
+    self.assertCountEqual(
         [i.payload for i in results],
         [i.payload for i in sample_results[:10]],
     )
@@ -1301,7 +1302,7 @@ class DatabaseTestFlowMixin(object):
 
     results = self.db.ReadFlowResults(
         client_id, flow_id, 0, 100, with_substring="manufacturer_1")
-    self.assertEquals([i.payload for i in results], [sample_results[1].payload])
+    self.assertEqual([i.payload for i in results], [sample_results[1].payload])
 
   def testReadFlowResultsCorrectlyAppliesVariousCombinationsOfFilters(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -1333,7 +1334,7 @@ class DatabaseTestFlowMixin(object):
               with_type=type_value,
               with_substring=substring_value)
 
-          self.assertItemsEqual(
+          self.assertCountEqual(
               [i.payload for i in expected], [i.payload for i in results],
               "Result items do not match for "
               "(tag=%s, type=%s, substring=%s): %s vs %s" %
@@ -1352,7 +1353,7 @@ class DatabaseTestFlowMixin(object):
     finally:
       rdfvalue.RDFValue.classes[type_name] = cls
 
-    self.assertEqual(len(sample_results), len(results))
+    self.assertLen(sample_results, len(results))
     for r in results:
       self.assertTrue(
           isinstance(r.payload, rdf_objects.SerializedValueOfUnrecognizedType))
@@ -1432,7 +1433,7 @@ class DatabaseTestFlowMixin(object):
         client_id, flow_id, [rdf_flow_objects.FlowLogEntry(message=message)])
 
     entries = self.db.ReadFlowLogEntries(client_id, flow_id, 0, 100)
-    self.assertEqual(len(entries), 1)
+    self.assertLen(entries, 1)
     self.assertEqual(entries[0].message, message)
 
   def _WriteFlowLogEntries(self, client_id, flow_id):

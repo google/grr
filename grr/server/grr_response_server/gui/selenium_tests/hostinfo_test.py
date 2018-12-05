@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the GUI host information."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -13,7 +14,6 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -65,19 +65,8 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
                    "css=button:contains('Interrogate') i")
 
     # Get the started flow and finish it, this will re-enable the button.
-    client_id = rdf_client.ClientURN(self.client_id)
-
-    fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
-    flows = list(fd.ListChildren())
-
-    client_mock = action_mocks.ActionMock()
-    for flow_urn in flows:
-      flow_test_lib.TestFlowHelper(
-          flow_urn,
-          client_mock,
-          client_id=client_id,
-          token=self.token,
-          check_flow_errors=False)
+    flow_test_lib.FinishAllFlowsOnClient(
+        self.client_id, check_flow_errors=False)
 
     self.WaitUntilNot(self.IsElementPresent,
                       "css=button:contains('Interrogate')[disabled]")

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for email output plugin."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -36,9 +37,9 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
                        plugin_args=None,
                        responses=None,
                        process_responses_separately=False):
-    plugin = email_plugin.EmailOutputPlugin(
+    plugin_cls = email_plugin.EmailOutputPlugin
+    plugin, plugin_state = plugin_cls.CreatePluginAndDefaultState(
         source_urn=self.results_urn, args=plugin_args, token=self.token)
-    plugin.InitializeState()
 
     messages = []
     for response in responses:
@@ -52,11 +53,12 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       if process_responses_separately:
         for message in messages:
-          plugin.ProcessResponses([message])
+          plugin.ProcessResponses(plugin_state, [message])
       else:
-        plugin.ProcessResponses(messages)
+        plugin.ProcessResponses(plugin_state, messages)
 
-    plugin.Flush()
+    plugin.Flush(plugin_state)
+    plugin.UpdateState(plugin_state)
 
   def testEmailPluginSendsEmailPerEveyBatchOfResponses(self):
     self.ProcessResponses(
@@ -64,13 +66,13 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
             email_address=self.email_address),
         responses=[rdf_client.Process(pid=42)])
 
-    self.assertEqual(len(self.email_messages), 1)
+    self.assertLen(self.email_messages, 1)
 
     msg = self.email_messages[0]
     self.assertEqual(msg["address"], self.email_address)
-    self.assertTrue("got a new result in %s" % self.results_urn in msg["title"])
-    self.assertTrue(utils.SmartStr(self.client_id) in msg["message"])
-    self.assertTrue(utils.SmartStr(self.hostname) in msg["message"])
+    self.assertIn("got a new result in %s" % self.results_urn, msg["title"])
+    self.assertIn(utils.SmartStr(self.client_id), msg["message"])
+    self.assertIn(utils.SmartStr(self.hostname), msg["message"])
 
   def testEmailPluginStopsSendingEmailsAfterLimitIsReached(self):
     responses = [rdf_client.Process(pid=i) for i in range(11)]
@@ -80,20 +82,20 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         responses=responses,
         process_responses_separately=True)
 
-    self.assertEqual(len(self.email_messages), 10)
+    self.assertLen(self.email_messages, 10)
 
     for msg in self.email_messages:
       self.assertEqual(msg["address"], self.email_address)
       self.assertTrue(
           "got a new result in %s" % self.results_urn in msg["title"])
-      self.assertTrue(utils.SmartStr(self.client_id) in msg["message"])
-      self.assertTrue(utils.SmartStr(self.hostname) in msg["message"])
+      self.assertIn(utils.SmartStr(self.client_id), msg["message"])
+      self.assertIn(utils.SmartStr(self.hostname), msg["message"])
 
     for msg in self.email_messages[:10]:
-      self.assertFalse("sending of emails will be disabled now" in msg)
+      self.assertNotIn("sending of emails will be disabled now", msg)
 
-    self.assertTrue("sending of emails will be disabled now" in
-                    self.email_messages[9]["message"])
+    self.assertIn("sending of emails will be disabled now",
+                  self.email_messages[9]["message"])
 
 
 def main(argv):

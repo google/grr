@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Interface to Objective C libraries on OS X."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import ctypes

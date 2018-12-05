@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Fleetspeak-related helpers for use in tests."""
 from __future__ import absolute_import
+from __future__ import division
 
 from grr_response_server import fleetspeak_connector
 

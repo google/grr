@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the message handler database api."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -42,7 +43,7 @@ class DatabaseTestHandlerMixin(object):
     self.db.DeleteMessageHandlerRequests(requests[4:5])
 
     read = self.db.ReadMessageHandlerRequests()
-    self.assertEqual(len(read), 2)
+    self.assertLen(read, 2)
     read = sorted(read, key=lambda req: req.request_id)
     for r in read:
       r.timestamp = None

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """BigQuery output plugin."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import gzip
@@ -85,18 +86,20 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
   def __init__(self, *args, **kwargs):
     super(BigQueryOutputPlugin, self).__init__(*args, **kwargs)
     self.temp_output_trackers = {}
+    self.output_jobids = {}
+    self.failure_count = 0
 
-  def InitializeState(self):
-    super(BigQueryOutputPlugin, self).InitializeState()
-    # The last job ID if there was a failure. Keys are output types.
-    self.state.output_jobids = {}
+  def InitializeState(self, state):
     # Total number of BigQuery upload failures.
-    self.state.failure_count = 0
+    state.failure_count = 0
 
-  def ProcessResponses(self, responses):
+  def UpdateState(self, state):
+    state.failure_count += self.failure_count
+
+  def ProcessResponses(self, state, responses):
     default_metadata = export.ExportedMetadata(
         annotations=u",".join(self.args.export_options.annotations),
-        source_urn=self.state.source_urn)
+        source_urn=self.source_urn)
 
     if self.args.convert_values:
       # This is thread-safe - we just convert the values.
@@ -109,7 +112,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
       converted_responses = responses
 
     # This is not thread-safe, therefore WriteValueToJSONFile is synchronized.
-    self.WriteValuesToJSONFile(converted_responses)
+    self.WriteValuesToJSONFile(state, converted_responses)
 
   def _GetNestedDict(self, value):
     """Turn Exported* protos with embedded metadata into a nested dict."""
@@ -161,12 +164,12 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     except KeyError:
       return self._CreateOutputFileHandles(value_type), True
 
-  def Flush(self):
+  def Flush(self, state):
     """Finish writing JSON files, upload to cloudstorage and bigquery."""
     self.bigquery = bigquery.GetBigQueryClient()
     # BigQuery job ids must be alphanum plus dash and underscore.
-    urn_str = self.state.source_urn.RelativeName("aff4:/").replace(
-        "/", "_").replace(":", "").replace(".", "-")
+    urn_str = self.source_urn.RelativeName("aff4:/").replace("/", "_").replace(
+        ":", "").replace(".", "-")
 
     for tracker in itervalues(self.temp_output_trackers):
       # Close out the gzip handle and pass the original file handle to the
@@ -183,25 +186,25 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
       # If we have a job id stored, that means we failed last time. Re-use the
       # job id and append to the same file if it continues to fail. This avoids
       # writing many files on failure.
-      if tracker.output_type in self.state.output_jobids:
-        job_id = self.state.output_jobids[tracker.output_type]
+      if tracker.output_type in self.output_jobids:
+        job_id = self.output_jobids[tracker.output_type]
       else:
-        self.state.output_jobids[tracker.output_type] = job_id
+        self.output_jobids[tracker.output_type] = job_id
 
-      if (self.state.failure_count >=
+      if (state.failure_count + self.failure_count >=
           config.CONFIG["BigQuery.max_upload_failures"]):
         logging.error(
             "Exceeded BigQuery.max_upload_failures for %s, giving up.",
-            self.state.source_urn)
+            self.source_urn)
       else:
         try:
           self.bigquery.InsertData(tracker.output_type,
                                    tracker.gzip_filehandle_parent,
                                    tracker.schema, job_id)
-          self.state.failure_count = max(0, self.state.failure_count - 1)
-          del self.state.output_jobids[tracker.output_type]
+          self.failure_count = max(0, self.failure_count - 1)
+          del self.output_jobids[tracker.output_type]
         except bigquery.BigQueryJobUploadError:
-          self.state.failure_count += 1
+          self.failure_count += 1
 
     # Now that everything is in bigquery we can remove the output streams
     self.temp_output_trackers = {}
@@ -245,13 +248,14 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     return fields_array
 
   @utils.Synchronized
-  def WriteValuesToJSONFile(self, values):
+  def WriteValuesToJSONFile(self, state, values):
     """Write newline separated JSON dicts for each value.
 
     We write each dict separately so we don't have to hold all of the output
     streams in memory. We open and close the JSON array manually with [].
 
     Args:
+      state: rdf_protodict.AttributedDict with the plugin's state.
       values: RDF values to export.
     """
     value_counters = {}
@@ -271,7 +275,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
         output_tracker.gzip_filehandle.flush()
         if os.path.getsize(output_tracker.gzip_filehandle.name) > max_post_size:
           # Flush what we have and get new temp output handles.
-          self.Flush()
+          self.Flush(state)
           value_counters[class_name] = 0
           output_tracker, created = self._GetTempOutputFileHandles(class_name)
 

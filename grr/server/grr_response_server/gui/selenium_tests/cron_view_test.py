@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the cron_view interface."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 
@@ -108,7 +109,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     except AttributeError:
       run_id = runs[0].urn.Basename()
 
-    self.assertEqual(len(runs), 1)
+    self.assertLen(runs, 1)
     self.WaitUntil(self.IsElementPresent, "css=td:contains('%s')" % run_id)
 
   def testToolbarStateForDisabledCronJob(self):
@@ -164,8 +165,8 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
     self.WaitUntilEqual(
-        1,
-        lambda: len(self.ListCronJobApprovals(requestor=self.token.username)))
+        1, lambda: len(
+            self.ListCronJobApprovals(requestor=self.token.username)))
 
   def testEnableCronJob(self):
     cronjobs.GetCronManager().DisableJob(job_id=u"OSBreakDown")

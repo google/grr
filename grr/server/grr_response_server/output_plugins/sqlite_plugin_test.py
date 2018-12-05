@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the SQLite instant output plugin."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
@@ -50,9 +51,10 @@ class SqliteTestStruct(rdf_structs.RDFProtoStruct):
           name="enum_field",
           field_number=7,
           enum_name="EnumField",
-          enum={"FIRST": 1,
-                "SECOND": 2}),
-      rdf_structs.ProtoBoolean(name="bool_field", field_number=8),
+          enum={
+              "FIRST": 1,
+              "SECOND": 2
+          }), rdf_structs.ProtoBoolean(name="bool_field", field_number=8),
       rdf_structs.ProtoRDFValue(
           name="urn_field", field_number=9, rdf_type="RDFURN"),
       rdf_structs.ProtoRDFValue(
@@ -105,22 +107,23 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   def testColumnTypeInference(self):
     schema = self.plugin._GetSqliteSchema(SqliteTestStruct)
     column_types = {k: v.sqlite_type for k, v in iteritems(schema)}
-    self.assertEqual(column_types, {
-        "string_field": "TEXT",
-        "bytes_field": "TEXT",
-        "uint_field": "INTEGER",
-        "int_field": "INTEGER",
-        "float_field": "REAL",
-        "double_field": "REAL",
-        "enum_field": "TEXT",
-        "bool_field": "INTEGER",
-        "urn_field": "TEXT",
-        "time_field": "INTEGER",
-        "time_field_seconds": "INTEGER",
-        "duration_field": "INTEGER",
-        "embedded_field.e_string_field": "TEXT",
-        "embedded_field.e_double_field": "REAL"
-    })
+    self.assertEqual(
+        column_types, {
+            "string_field": "TEXT",
+            "bytes_field": "TEXT",
+            "uint_field": "INTEGER",
+            "int_field": "INTEGER",
+            "float_field": "REAL",
+            "double_field": "REAL",
+            "enum_field": "TEXT",
+            "bool_field": "INTEGER",
+            "urn_field": "TEXT",
+            "time_field": "INTEGER",
+            "time_field_seconds": "INTEGER",
+            "duration_field": "INTEGER",
+            "embedded_field.e_string_field": "TEXT",
+            "embedded_field.e_double_field": "REAL"
+        })
 
   def testConversionToCanonicalSqlDict(self):
     schema = self.plugin._GetSqliteSchema(SqliteTestStruct)
@@ -163,9 +166,8 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         })
 
   def testExportedFilenamesAndManifestForValuesOfSameType(self):
-    zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES
-    })
+    zip_fd, prefix = self.ProcessValuesToZip(
+        {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
     self.assertEqual(
         set(zip_fd.namelist()),
         {"%s/MANIFEST" % prefix,
@@ -179,9 +181,8 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
                      }})
 
   def testExportedTableStructureForValuesOfSameType(self):
-    zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES
-    })
+    zip_fd, prefix = self.ProcessValuesToZip(
+        {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
     sqlite_dump = zip_fd.read("%s/ExportedFile_from_StatEntry.sql" % prefix)
     # Import the sql dump into an in-memory db.
     with self.db_connection:
@@ -190,7 +191,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     # See what tables were written to the db.
     self.db_cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = self.db_cursor.fetchall()
-    self.assertEqual(len(tables), 1)
+    self.assertLen(tables, 1)
     self.assertEqual(tables[0][0], "ExportedFile.from_StatEntry")
 
     # Ensure all columns in the schema exist in the in-memory table.
@@ -204,9 +205,8 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertEqual(column_types["st_atime"], "INTEGER")
 
   def testExportedRowsForValuesOfSameType(self):
-    zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES
-    })
+    zip_fd, prefix = self.ProcessValuesToZip(
+        {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
     sqlite_dump = zip_fd.read("%s/ExportedFile_from_StatEntry.sql" % prefix)
 
     # Import the sql dump into an in-memory db.
@@ -223,7 +223,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         "SELECT %s FROM "
         "\"ExportedFile.from_StatEntry\";" % ",".join(escaped_column_names))
     rows = self.db_cursor.fetchall()
-    self.assertEqual(len(rows), 10)
+    self.assertLen(rows, 10)
     for i, row in enumerate(rows):
       results = {k: row[j] for j, k in enumerate(select_columns)}
       expected_results = {
@@ -262,16 +262,17 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         })
 
     parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
-    self.assertEqual(parsed_manifest, {
-        "export_stats": {
-            "StatEntry": {
-                "ExportedFile": 1
-            },
-            "Process": {
-                "ExportedProcess": 1
+    self.assertEqual(
+        parsed_manifest, {
+            "export_stats": {
+                "StatEntry": {
+                    "ExportedFile": 1
+                },
+                "Process": {
+                    "ExportedProcess": 1
+                }
             }
-        }
-    })
+        })
 
   def testExportedRowsForValuesOfMultipleTypes(self):
     zip_fd, prefix = self.ProcessValuesToZip({
@@ -293,7 +294,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         "SELECT \"metadata.client_urn\", \"metadata.source_urn\", urn "
         "FROM \"ExportedFile.from_StatEntry\";")
     stat_entry_results = self.db_cursor.fetchall()
-    self.assertEqual(len(stat_entry_results), 1)
+    self.assertLen(stat_entry_results, 1)
     # Client URN
     self.assertEqual(stat_entry_results[0][0], str(self.client_id))
     # Source URN
@@ -306,7 +307,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         "SELECT \"metadata.client_urn\", \"metadata.source_urn\", pid "
         "FROM \"ExportedProcess.from_Process\";")
     process_results = self.db_cursor.fetchall()
-    self.assertEqual(len(process_results), 1)
+    self.assertLen(process_results, 1)
     # Client URN
     self.assertEqual(process_results[0][0], str(self.client_id))
     # Source URN
@@ -332,7 +333,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
     self.db_cursor.execute("SELECT urn FROM \"ExportedFile.from_StatEntry\";")
     results = self.db_cursor.fetchall()
-    self.assertEqual(len(results), 1)
+    self.assertLen(results, 1)
     self.assertEqual(results[0][0], self.client_id.Add("/fs/os/中国新闻网新闻中"))
 
   def testHandlingOfMultipleRowBatches(self):
@@ -345,15 +346,14 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
               pathspec=rdf_paths.PathSpec(
                   path="/foo/bar/%d" % i, pathtype="OS")))
 
-    zip_fd, prefix = self.ProcessValuesToZip({
-        rdf_client_fs.StatEntry: responses
-    })
+    zip_fd, prefix = self.ProcessValuesToZip(
+        {rdf_client_fs.StatEntry: responses})
     with self.db_connection:
       self.db_cursor.executescript(
           zip_fd.read("%s/ExportedFile_from_StatEntry.sql" % prefix))
     self.db_cursor.execute("SELECT urn FROM \"ExportedFile.from_StatEntry\";")
     results = self.db_cursor.fetchall()
-    self.assertEqual(len(results), num_rows)
+    self.assertLen(results, num_rows)
     for i in range(num_rows):
       self.assertEqual(results[i][0],
                        self.client_id.Add("/fs/os/foo/bar/%d" % i))

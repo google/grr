@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Plugin that exports results as SQLite db scripts."""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import unicode_literals
 
 import collections

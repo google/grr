@@ -26,23 +26,25 @@ class IEHistoryTest(test_lib.GRRBaseTest):
     time_results = [x["mtime"] for x in entries]
     self.assertEqual(time_results, sorted(time_results))
 
-    self.assertEqual(entries[1]["url"],
-                     "Visited: testing@http://www.google.com/chrome/chrome"
-                     "/eula.html")
+    self.assertEqual(
+        entries[1]["url"],
+        "Visited: testing@http://www.google.com/chrome/chrome"
+        "/eula.html")
     dt1 = datetime.datetime.utcfromtimestamp(entries[1]["ctime"] / 1e6)
     self.assertEqual(str(dt1), "2009-12-11 17:55:46.968000")
     dt2 = datetime.datetime.utcfromtimestamp(entries[-1]["ctime"] / 1e6)
     self.assertEqual(str(dt2), "2011-06-23 18:57:24.250000")
-    self.assertEqual(entries[-1]["url"],
-                     "Visited: testing@mshelp://windows/?id=d063548a-3fc9-"
-                     "4723-99f3-b12a0c4354a8")
-    self.assertEqual(len(entries), 18)
+    self.assertEqual(
+        entries[-1]["url"],
+        "Visited: testing@mshelp://windows/?id=d063548a-3fc9-"
+        "4723-99f3-b12a0c4354a8")
+    self.assertLen(entries, 18)
 
   def testErrors(self):
     """Test empty files don't raise errors."""
     c = ie_history.IEParser(io.BytesIO())
     entries = [x for x in c.Parse()]
-    self.assertEqual(len(entries), 0)
+    self.assertEmpty(entries)
 
 
 def main(argv):
