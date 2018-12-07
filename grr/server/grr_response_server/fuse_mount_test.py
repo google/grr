@@ -88,7 +88,7 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
 
     for item in contents:
       # All the filenames should be unicode strings.
-      self.assertTrue(isinstance(item, unicode))
+      self.assertIsInstance(item, unicode)
     self.assertTrue("." in contents and ".." in contents)
     contents.remove(".")
     contents.remove("..")

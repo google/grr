@@ -33,6 +33,7 @@ from grr_response_server import queue_manager
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
+from grr_response_server.gui import archive_generator
 from grr_response_server.gui.api_plugins import client
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
@@ -743,9 +744,9 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     self.path_globs_blacklist = path_globs_blacklist
     self.path_globs_whitelist = path_globs_whitelist
 
-  def _WrapContentGenerator(self, generator, collection, args, token=None):
+  def _WrapContentGenerator(self, generator, flow_results, args, token=None):
     try:
-      for item in generator.Generate(collection, token=token):
+      for item in generator.Generate(flow_results, token=token):
         yield item
 
       notification.Notify(
@@ -782,49 +783,62 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       for pattern in expression.Interpolate(client=client_obj):
         whitelist_regexes.append(rdf_paths.GlobExpression(pattern).AsRegEx())
 
-    def Predicate(fd):
-      pathspec = fd.Get(fd.Schema.PATHSPEC)
-      path = pathspec.CollapsePath()
+    def Predicate(client_path):
+      # Enforce leading / since Regexes require it.
+      path = "/" + client_path.Path().lstrip("/")
       return (not any(r.Match(path) for r in blacklist_regexes) and
               any(r.Match(path) for r in whitelist_regexes))
 
     return Predicate
 
-  def Handle(self, args, token=None):
-    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
-    flow_obj = aff4.FACTORY.Open(
-        flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
+  def _GetFlow(self, args, token=None):
+    if data_store.RelationalDBFlowsEnabled():
+      client_id = unicode(args.client_id)
+      flow_id = unicode(args.flow_id)
+      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      flow_api_object = ApiFlow().InitFromFlowObject(flow_obj)
+      flow_results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
+                                                       sys.maxsize)
+      flow_results = [r.payload for r in flow_results]
+      return flow_api_object, flow_results
+    else:
+      flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
+      flow_obj = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
+      flow_api_object = ApiFlow().InitFromAff4Object(
+          flow_obj, flow_id=args.flow_id)
+      flow_results = flow.GRRFlow.ResultCollectionForFID(flow_urn)
+      return flow_api_object, flow_results
 
-    flow_api_object = ApiFlow().InitFromAff4Object(
-        flow_obj, flow_id=args.flow_id)
+  def Handle(self, args, token=None):
+    flow_api_object, flow_results = self._GetFlow(args, token)
+
     description = (
         "Files downloaded by flow %s (%s) that ran on client %s by "
         "user %s on %s" % (flow_api_object.name, args.flow_id, args.client_id,
                            flow_api_object.creator, flow_api_object.started_at))
 
     target_file_prefix = "%s_flow_%s_%s" % (
-        args.client_id, flow_obj.runner_args.flow_name,
-        flow_urn.Basename().replace(":", "_"))
-
-    collection = flow.GRRFlow.ResultCollectionForFID(flow_urn)
+        args.client_id, flow_api_object.name, unicode(
+            flow_api_object.flow_id).replace(":", "_"))
 
     if args.archive_format == args.ArchiveFormat.ZIP:
-      archive_format = api_call_handler_utils.CollectionArchiveGenerator.ZIP
+      archive_format = archive_generator.CollectionArchiveGenerator.ZIP
       file_extension = ".zip"
     elif args.archive_format == args.ArchiveFormat.TAR_GZ:
-      archive_format = api_call_handler_utils.CollectionArchiveGenerator.TAR_GZ
+      archive_format = archive_generator.CollectionArchiveGenerator.TAR_GZ
       file_extension = ".tar.gz"
     else:
       raise ValueError("Unknown archive format: %s" % args.archive_format)
 
-    generator = api_call_handler_utils.CollectionArchiveGenerator(
+    generator = archive_generator.CompatCollectionArchiveGenerator(
         prefix=target_file_prefix,
         description=description,
         archive_format=archive_format,
         predicate=self._BuildPredicate(args.client_id, token=token),
         client_id=args.client_id.ToClientURN())
     content_generator = self._WrapContentGenerator(
-        generator, collection, args, token=token)
+        generator, flow_results, args, token=token)
     return api_call_handler_base.ApiBinaryStream(
         target_file_prefix + file_extension,
         content_generator=content_generator)

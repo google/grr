@@ -13,6 +13,7 @@ import zipfile
 import yaml
 
 from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -29,6 +30,7 @@ from grr_response_server.hunts import standard
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -181,9 +183,10 @@ class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):
             runner_args=flow_runner_args))
 
     result = self.handler.Handle(args, token=self.token)
-    self.assertFalse(utils.SmartStr(result.urn).startswith("aff4:/foo"))
+    self.assertNotStartsWith(unicode(result.urn), "aff4:/foo")
 
 
+@db_test_lib.DualDBTest
 class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Tests for ApiGetFlowFilesArchiveHandler."""
 
@@ -194,15 +197,17 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.client_id = self.SetupClient(0)
 
-    self.flow_urn = flow.StartAFF4Flow(
-        flow_name=file_finder.FileFinder.__name__,
-        client_id=self.client_id,
-        paths=[os.path.join(self.base_path, "test.plist")],
-        action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
-        token=self.token)
     action_mock = action_mocks.FileFinderClientMock()
-    flow_test_lib.TestFlowHelper(
-        self.flow_urn, action_mock, client_id=self.client_id, token=self.token)
+    self.flow_id = flow_test_lib.TestFlowHelper(
+        file_finder.FileFinder.__name__,
+        action_mock,
+        client_id=self.client_id,
+        token=self.token,
+        paths=[os.path.join(self.base_path, "test.plist")],
+        action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"))
+
+    if isinstance(self.flow_id, rdfvalue.SessionID):
+      self.flow_id = self.flow_id.Basename()
 
   def _GetZipManifest(self, result):
     out_fd = io.BytesIO()
@@ -221,7 +226,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
     result = self.handler.Handle(
         flow_plugin.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id,
-            flow_id=self.flow_urn.Basename(),
+            flow_id=self.flow_id,
             archive_format="ZIP"),
         token=self.token)
     manifest = self._GetZipManifest(result)
@@ -238,7 +243,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
     result = handler.Handle(
         flow_plugin.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id,
-            flow_id=self.flow_urn.Basename(),
+            flow_id=self.flow_id,
             archive_format="ZIP"),
         token=self.token)
     manifest = self._GetZipManifest(result)
@@ -258,7 +263,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
     result = handler.Handle(
         flow_plugin.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id,
-            flow_id=self.flow_urn.Basename(),
+            flow_id=self.flow_id,
             archive_format="ZIP"),
         token=self.token)
     manifest = self._GetZipManifest(result)
@@ -274,7 +279,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
     result = handler.Handle(
         flow_plugin.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id,
-            flow_id=self.flow_urn.Basename(),
+            flow_id=self.flow_id,
             archive_format="ZIP"),
         token=self.token)
     manifest = self._GetZipManifest(result)
@@ -291,7 +296,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
     result = self.handler.Handle(
         flow_plugin.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id,
-            flow_id=self.flow_urn.Basename(),
+            flow_id=self.flow_id,
             archive_format="TAR_GZ"),
         token=self.token)
 

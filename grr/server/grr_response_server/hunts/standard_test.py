@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import glob
 import logging
-import math
 import os
 import time
 
@@ -86,8 +85,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     logging.error = self.old_logging_error
 
   def AssertNoCollectionCorruption(self, message, *args, **kwargs):
-    self.assertFalse(
-        "Results collection was changed outside of hunt" in message)
+    self.assertNotIn("Results collection was changed outside of hunt", message)
     self.old_logging_error(message, *args, **kwargs)
 
   def testResultCounting(self):
@@ -135,7 +133,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
       target = fd.Get(fd.Schema.SYMLINK_TARGET)
       # Check that the symlink points into the hunt's namespace.
-      self.assertTrue(str(target).startswith(str(hunt_urn)))
+      self.assertStartsWith(str(target), str(hunt_urn))
 
   @db_test_lib.LegacyDataStoreOnly
   def testDeletesSymlinksOnClientsWhenGetsDeletedItself(self):
@@ -1144,20 +1142,16 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     # Start and the StoreResults methods.
     usage_stats = hunt.context.usage_stats
     self.assertEqual(usage_stats.user_cpu_stats.num, 10)
-    self.assertTrue(math.fabs(usage_stats.user_cpu_stats.mean - 5.5) < 1e-7)
-    self.assertTrue(
-        math.fabs(usage_stats.user_cpu_stats.std - 2.8722813) < 1e-7)
+    self.assertAlmostEqual(usage_stats.user_cpu_stats.mean, 5.5)
+    self.assertAlmostEqual(usage_stats.user_cpu_stats.std, 2.8722813)
 
     self.assertEqual(usage_stats.system_cpu_stats.num, 10)
-    self.assertTrue(math.fabs(usage_stats.system_cpu_stats.mean - 11) < 1e-7)
-    self.assertTrue(
-        math.fabs(usage_stats.system_cpu_stats.std - 5.7445626) < 1e-7)
+    self.assertAlmostEqual(usage_stats.system_cpu_stats.mean, 11)
+    self.assertAlmostEqual(usage_stats.system_cpu_stats.std, 5.7445626)
 
     self.assertEqual(usage_stats.network_bytes_sent_stats.num, 10)
-    self.assertTrue(
-        math.fabs(usage_stats.network_bytes_sent_stats.mean - 16.5) < 1e-7)
-    self.assertTrue(
-        math.fabs(usage_stats.network_bytes_sent_stats.std - 8.61684396) < 1e-7)
+    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.mean, 16.5)
+    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.std, 8.61684396)
 
     # NOTE: Not checking histograms here. RunningStatsTest tests that mean,
     # standard deviation and histograms are calculated correctly. Therefore
@@ -1167,8 +1161,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
     prev = usage_stats.worst_performers[0]
     for p in usage_stats.worst_performers[1:]:
-      self.assertTrue(
-          prev.cpu_usage.user_cpu_time + prev.cpu_usage.system_cpu_time >
+      self.assertGreater(
+          prev.cpu_usage.user_cpu_time + prev.cpu_usage.system_cpu_time,
           p.cpu_usage.user_cpu_time + p.cpu_usage.system_cpu_time)
       prev = p
 

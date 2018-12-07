@@ -99,7 +99,7 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, dict(foo="bar"))
 
     v = a.Validate(dict(path="blah", pathtype="TSK"))
-    self.assertTrue(isinstance(v, rdf_paths.PathSpec))
+    self.assertIsInstance(v, rdf_paths.PathSpec)
     self.assertEqual(v.path, "blah")
     self.assertEqual(v.pathtype, "TSK")
 

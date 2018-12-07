@@ -791,7 +791,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
 
     try:
       fd = file_store.OpenFile(client_path, max_timestamp=args.timestamp)
-    except file_store.FileHasNoContent:
+    except file_store.FileHasNoContentError:
       raise FileContentNotFoundError(
           "File %s with timestamp %s wasn't found on client %s" %
           (args.file_path, args.timestamp, args.client_id))

@@ -208,8 +208,8 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
     self.assertIn("/home/john/Downloads/funcats_scr.exe",
                   [d.download_path for d in fd])
     self.assertIn("http://www.java.com/", [d.url for d in fd])
-    self.assertTrue(fd[0].source_path.endswith(
-        "/home/test/.config/google-chrome/Default/History"))
+    self.assertEndsWith(fd[0].source_path,
+                        "/home/test/.config/google-chrome/Default/History")
 
   @parser_test_lib.WithParser("Firefox", firefox3_history.FirefoxHistoryParser)
   def testFirefox(self):
@@ -223,8 +223,9 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
     self.assertLen(fd, 5)
     self.assertEqual(fd[0].access_time.AsSecondsSinceEpoch(), 1340623334)
     self.assertIn("http://sport.orf.at/", [d.url for d in fd])
-    self.assertTrue(fd[0].source_path.endswith(
-        "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"))
+    self.assertEndsWith(
+        fd[0].source_path,
+        "/home/test/.mozilla/firefox/adts404t.default/places.sqlite")
 
 
 def main(argv):

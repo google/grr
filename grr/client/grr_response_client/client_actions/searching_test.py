@@ -184,8 +184,8 @@ class FindTest(client_test_lib.EmptyActionTest):
         break
 
       self.assertLen(result, 2)
-      self.assertTrue(isinstance(result[0], rdf_client_fs.FindSpec))
-      self.assertTrue(isinstance(result[1], rdf_client_action.Iterator))
+      self.assertIsInstance(result[0], rdf_client_fs.FindSpec)
+      self.assertIsInstance(result[1], rdf_client_action.Iterator)
       files.append(result[0].hit)
 
       request.iterator = result[1].Copy()
@@ -245,7 +245,7 @@ class FindTest(client_test_lib.EmptyActionTest):
     for filename in all_files:
       # Our mock filesize is the length of the base filename, check all the
       # files we got match the size criteria
-      self.assertTrue(4 <= len(filename) <= 15)
+      self.assertBetween(len(filename), 4, 15)
 
   def testNoFilters(self):
     """Test the we get all files with no filters in place."""

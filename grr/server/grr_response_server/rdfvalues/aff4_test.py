@@ -4,8 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import re
-
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -128,44 +126,36 @@ class AFF4ObjectLabelsListTest(rdf_test_base.RDFValueTestMixin,
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="drei", owner="GRR"))
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="vier", owner="test"))
 
-    self.assertTrue(
-        re.match(
-            rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("ein"),
-            str(labels_list)))
-    self.assertTrue(
-        re.match(
-            rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("zwei"),
-            str(labels_list)))
-    self.assertTrue(
-        re.match(
-            rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("drei"),
-            str(labels_list)))
-    self.assertTrue(
-        re.match(
-            rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("vier"),
-            str(labels_list)))
+    self.assertRegexpMatches(
+        str(labels_list),
+        rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("ein"))
+    self.assertRegexpMatches(
+        str(labels_list),
+        rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("zwei"))
+    self.assertRegexpMatches(
+        str(labels_list),
+        rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("drei"))
+    self.assertRegexpMatches(
+        str(labels_list),
+        rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("vier"))
 
   def testRegexForStringifiedValueDoesNotMatchLabelsNotInList(self):
     labels_list = rdf_aff4.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="ein", owner="GRR"))
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="zwei", owner="test"))
-    self.assertFalse(
-        re.match(
-            rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("e"),
-            str(labels_list)))
-    self.assertFalse(
-        re.match(
-            rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("in"),
-            str(labels_list)))
-    self.assertFalse(
-        re.match(
-            rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
-                "a.zwer"), str(labels_list)))
-    self.assertFalse(
-        re.match(
-            rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("ein."),
-            str(labels_list)))
+    self.assertNotRegexpMatches(
+        str(labels_list),
+        rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("e"))
+    self.assertNotRegexpMatches(
+        str(labels_list),
+        rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("in"))
+    self.assertNotRegexpMatches(
+        str(labels_list),
+        rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("a.zwer"))
+    self.assertNotRegexpMatches(
+        str(labels_list),
+        rdf_aff4.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("ein."))
 
   def testGetSortedLabelSet(self):
     labels_list = rdf_aff4.AFF4ObjectLabelsList()

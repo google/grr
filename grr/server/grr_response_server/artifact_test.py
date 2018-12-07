@@ -350,7 +350,7 @@ supported_os: [Linux]
                   artifact_registry.REGISTRY._artifacts)
     artifact_obj = artifact_registry.REGISTRY.GetArtifact(
         "WMIActiveScriptEventConsumer")
-    self.assertTrue(artifact_obj.loaded_from.startswith("file:"))
+    self.assertStartsWith(artifact_obj.loaded_from, "file:")
 
     # The artifact is gone from the collection.
     coll = artifact_registry.ArtifactCollection(artifact_store_urn)

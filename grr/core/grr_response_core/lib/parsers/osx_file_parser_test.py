@@ -87,7 +87,7 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
       results = list(parser.Parse(stat, plist_file, None))
 
     self.assertLen(results, 4)
-    self.assertTrue(isinstance(results[0], rdf_client.SoftwarePackage))
+    self.assertIsInstance(results[0], rdf_client.SoftwarePackage)
 
     # ESET AV
     self.assertEqual(results[0].name, "ESET NOD32 Antivirus")

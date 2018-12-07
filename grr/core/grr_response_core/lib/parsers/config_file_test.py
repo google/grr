@@ -51,7 +51,7 @@ class SshdConfigTest(test_lib.GRRBaseTest):
   def testParseConfig(self):
     """Ensure we can extract sshd settings."""
     result = self.GetConfig()
-    self.assertTrue(isinstance(result, rdf_config_file.SshdConfig))
+    self.assertIsInstance(result, rdf_config_file.SshdConfig)
     self.assertCountEqual([2], result.config.protocol)
     expect = ["aes128-ctr", "aes256-ctr", "aes128-cbc", "aes256-cbc"]
     self.assertCountEqual(expect, result.config.ciphers)

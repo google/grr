@@ -32,7 +32,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
       self.collection.Add(rdfvalue.RDFInteger(42), mutation_pool=self.pool)
 
     items = list(self.collection)
-    self.assertTrue(isinstance(items[0], rdf_flows.GrrMessage))
+    self.assertIsInstance(items[0], rdf_flows.GrrMessage)
     self.assertEqual(items[0].payload, 42)
 
   def testValuesOfSingleTypeAreAddedAndIterated(self):

@@ -98,8 +98,8 @@ class ArtifactCollectorFlowMixin(object):
     self.state.knowledge_base = self.args.knowledge_base
     self.state.response_count = 0
 
-    if (self.args.dependencies == rdf_artifacts.ArtifactCollectorFlowArgs
-        .Dependency.FETCH_NOW):
+    if (self.args.dependencies ==
+        rdf_artifacts.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
       # String due to dependency loop with discover.py.
       self.CallFlow("Interrogate", next_state="StartCollection")
       return
@@ -397,6 +397,7 @@ class ArtifactCollectorFlowMixin(object):
         max_file_size=self.args.max_file_size,
         ignore_interpolation_errors=self.args.ignore_interpolation_errors,
         dependencies=self.args.dependencies,
+        knowledge_base=self.args.knowledge_base,
         request_data={
             "artifact_name": self.current_artifact_name,
             "source": source.ToPrimitiveDict()
@@ -807,8 +808,8 @@ class ArtifactFilesDownloaderFlowMixin(transfer.MultiGetFileLogic):
             original_result=response)
         results_without_pathspecs.append(result)
 
-    grouped_results = collection.Group(results_with_pathspecs,
-                                       lambda x: x.found_pathspec)
+    grouped_results = collection.Group(
+        results_with_pathspecs, lambda x: x.found_pathspec)
     for pathspec, group in iteritems(grouped_results):
       self.StartFileFetch(pathspec, request_data=dict(results=group))
 

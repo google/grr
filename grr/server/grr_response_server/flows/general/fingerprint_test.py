@@ -46,8 +46,7 @@ class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(results, 1)
     for reply in results:
-      self.assertTrue(
-          isinstance(reply, flows_fingerprint.FingerprintFileResult))
+      self.assertIsInstance(reply, flows_fingerprint.FingerprintFileResult)
       self.assertTrue(
           str(reply.file_urn).endswith(
               "test_data/winexec_img.dd/winpmem-amd64.sys"))

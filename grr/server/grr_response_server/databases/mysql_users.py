@@ -117,7 +117,7 @@ class MySQLDBUsersMixin(object):
 
     row = cursor.fetchone()
     if row is None:
-      raise db.UnknownGRRUserError("User '%s' not found." % username)
+      raise db.UnknownGRRUserError(username)
 
     return self._RowToGRRUser(row)
 
@@ -145,7 +145,7 @@ class MySQLDBUsersMixin(object):
     cursor.execute("DELETE FROM grr_users WHERE username = %s", (username,))
 
     if cursor.rowcount == 0:
-      raise db.UnknownGRRUserError("User '%s' not found." % username)
+      raise db.UnknownGRRUserError(username)
 
   @mysql_utils.WithTransaction()
   def WriteApprovalRequest(self, approval_request, cursor=None):
@@ -290,7 +290,7 @@ class MySQLDBUsersMixin(object):
     try:
       cursor.execute(query, args)
     except MySQLdb.IntegrityError:
-      raise db.UnknownGRRUserError("User %s not found!" % notification.username)
+      raise db.UnknownGRRUserError(notification.username)
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadUserNotifications(self,

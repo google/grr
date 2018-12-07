@@ -18,7 +18,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import export as flow_export
-from grr_response_server.gui import api_call_handler_utils
+from grr_response_server.gui import archive_generator
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
@@ -180,7 +180,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(api_call_handler_utils.CollectionArchiveGenerator,
+    with utils.Stubber(archive_generator.Aff4CollectionArchiveGenerator,
                        "Generate", RaisingStub):
       self.Open("/")
       self.Click("css=a[grrtarget=hunts]")
@@ -201,7 +201,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
       yield b"bar"
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(api_call_handler_utils.CollectionArchiveGenerator,
+    with utils.Stubber(archive_generator.Aff4CollectionArchiveGenerator,
                        "Generate", RaisingStub):
       self.Open("/")
       self.Click("css=a[grrtarget=hunts]")

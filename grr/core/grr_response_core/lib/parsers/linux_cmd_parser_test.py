@@ -27,7 +27,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
         parser.Parse("/usr/bin/yum", ["list installed -q"], content, "", 0, 5,
                      None))
     self.assertLen(out, 2)
-    self.assertTrue(isinstance(out[0], rdf_client.SoftwarePackage))
+    self.assertIsInstance(out[0], rdf_client.SoftwarePackage)
     self.assertEqual(out[0].name, "ConsoleKit")
     self.assertEqual(out[0].architecture, "x86_64")
     self.assertEqual(out[0].publisher, "@base")
@@ -39,7 +39,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     repolist = list(
         parser.Parse("/usr/bin/yum", ["repolist", "-v", "-q"], content, "", 0,
                      5, None))
-    self.assertTrue(isinstance(repolist[0], rdf_client.PackageRepository))
+    self.assertIsInstance(repolist[0], rdf_client.PackageRepository)
 
     self.assertEqual(repolist[0].id, "rhel")
     self.assertEqual(repolist[0].name, "rhel repo")
@@ -95,7 +95,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     out = list(
         parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
     self.assertLen(out, 181)
-    self.assertTrue(isinstance(out[1], rdf_client.SoftwarePackage))
+    self.assertIsInstance(out[1], rdf_client.SoftwarePackage)
     self.assertTrue(out[0].name, "acpi-support-base")
 
   def testDpkgCmdParserPrecise(self):
@@ -107,7 +107,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     out = list(
         parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
     self.assertLen(out, 30)
-    self.assertTrue(isinstance(out[1], rdf_client.SoftwarePackage))
+    self.assertIsInstance(out[1], rdf_client.SoftwarePackage)
     self.assertTrue(out[0].name, "adduser")
 
   def testDmidecodeParser(self):
@@ -119,7 +119,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     self.assertLen(parse_result, 1)
     hardware = parse_result[0]
 
-    self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
+    self.assertIsInstance(hardware, rdf_client.HardwareInfo)
 
     self.assertEqual(hardware.serial_number, "2UA25107BB")
     self.assertEqual(hardware.system_manufacturer, "Hewlett-Packard")

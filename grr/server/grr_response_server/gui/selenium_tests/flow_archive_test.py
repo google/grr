@@ -16,8 +16,8 @@ from grr_response_server import data_store
 from grr_response_server import flow
 
 from grr_response_server.flows.general import transfer as flows_transfer
-from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import api_call_router_with_approval_checks
+from grr_response_server.gui import archive_generator
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.output_plugins import csv_plugin
@@ -132,8 +132,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(api_call_handler_utils.CollectionArchiveGenerator,
-                       "Generate", RaisingStub):
+    with utils.Stubber(archive_generator.GetCompatClass(), "Generate",
+                       RaisingStub):
       self.Open("/#/clients/%s" % self.client_id)
 
       self.Click("css=a[grrtarget='client.flows']")

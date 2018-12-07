@@ -68,7 +68,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(results, 4)
     for child in results:
       path = utils.SmartStr(child.AFF4Path(self.client_id))
-      self.assertTrue(path.endswith("bash"))
+      self.assertEndsWith(path, "bash")
       self.assertEqual(child.__class__.__name__, "StatEntry")
 
   def testFindFilesWithGlob(self):
@@ -98,7 +98,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(results, 2)
     for child in results:
       path = utils.SmartStr(child.AFF4Path(self.client_id))
-      self.assertTrue(path.endswith("bash"))
+      self.assertEndsWith(path, "bash")
       self.assertEqual(child.__class__.__name__, "StatEntry")
 
   def testFindDirectories(self):

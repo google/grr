@@ -161,8 +161,8 @@ user2:x:1001:1001:User2 Name,,,:/home/user2:/bin/bash
 """
     out = list(parser.Parse(None, io.BytesIO(dat), None))
     self.assertLen(out, 2)
-    self.assertTrue(isinstance(out[1], rdf_client.User))
-    self.assertTrue(isinstance(out[1], rdf_client.User))
+    self.assertIsInstance(out[1], rdf_client.User)
+    self.assertIsInstance(out[1], rdf_client.User)
     self.assertEqual(out[0].username, "user1")
     self.assertEqual(out[0].full_name, "User1 Name,,,")
     dat = b"""
@@ -184,8 +184,8 @@ user2:x:1001:1001:User2 Name,,,:/home/user
     ff_result = rdf_file_finder.FileFinderResult(matches=[buf1, buf2])
     out = list(parser.Parse(ff_result, None))
     self.assertLen(out, 2)
-    self.assertTrue(isinstance(out[1], rdf_client.User))
-    self.assertTrue(isinstance(out[1], rdf_client.User))
+    self.assertIsInstance(out[1], rdf_client.User)
+    self.assertIsInstance(out[1], rdf_client.User)
     self.assertEqual(out[0].username, "user1")
     self.assertEqual(out[0].full_name, "User1 Name,,,")
 

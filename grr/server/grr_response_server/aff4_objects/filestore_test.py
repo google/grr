@@ -377,10 +377,10 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
       worker.Simulate()
 
     fd1 = aff4.FACTORY.Open(urn1, token=self.token)
-    self.assertTrue(isinstance(fd1, aff4_grr.VFSBlobImage))
+    self.assertIsInstance(fd1, aff4_grr.VFSBlobImage)
 
     fd2 = aff4.FACTORY.Open(urn2, token=self.token)
-    self.assertTrue(isinstance(fd2, aff4_grr.VFSBlobImage))
+    self.assertIsInstance(fd2, aff4_grr.VFSBlobImage)
 
     self.assertTrue(fd1.Get(fd1.Schema.STAT))
     self.assertTrue(fd2.Get(fd2.Schema.STAT))

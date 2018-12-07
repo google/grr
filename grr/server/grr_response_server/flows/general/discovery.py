@@ -291,6 +291,7 @@ class InterrogateMixin(object):
     self.CallFlow(
         collectors.ArtifactCollectorFlow.__name__,
         artifact_list=config.CONFIG["Artifacts.non_kb_interrogate_artifacts"],
+        knowledge_base=kb,
         next_state="ProcessArtifactResponses")
 
     if data_store.AFF4Enabled():

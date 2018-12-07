@@ -28,10 +28,10 @@ class OSXLaunchdJobDictTest(test_lib.GRRBaseTest):
     for job in self.jobdict:
       if self.parser.FilterItem(job):
         filtered += 1
-        self.assertTrue(job["Label"].startswith("0x"), job["Label"])
+        self.assertStartsWith(job["Label"], "0x")
       else:
         unfiltered += 1
-        self.assertFalse(job["Label"].startswith("0x"))
+        self.assertNotStartsWith(job["Label"], "0x")
         self.assertNotIn("anonymous", job["Label"])
         self.assertNotIn("mach_init.crash_inspector", job["Label"])
 

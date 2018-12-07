@@ -92,7 +92,7 @@ class VFSTest(test_lib.GRRBaseTest):
       fds.append(fd)
 
     # This should not create any new file handles.
-    self.assertTrue(len(current_process.open_files()) - num_open_files < 5)
+    self.assertLess(len(current_process.open_files()) - num_open_files, 5)
 
   def testOpenFilehandlesExpire(self):
     """Test that file handles expire from cache."""
@@ -115,7 +115,7 @@ class VFSTest(test_lib.GRRBaseTest):
       fds.append(child_fd)
 
     # This should not create any new file handles.
-    self.assertTrue(len(current_process.open_files()) - num_open_files < 5)
+    self.assertLess(len(current_process.open_files()) - num_open_files, 5)
 
     # Make sure we exceeded the size of the cache.
     self.assertGreater(fds, 20)
@@ -351,7 +351,7 @@ class VFSTest(test_lib.GRRBaseTest):
 
     vfs.VFSOpen(ps, progress_callback=Progress)
 
-    self.assertTrue(self.progress_counter > 0)
+    self.assertGreater(self.progress_counter, 0)
 
   def testUnicodeFile(self):
     """Test ability to read unicode files from images."""

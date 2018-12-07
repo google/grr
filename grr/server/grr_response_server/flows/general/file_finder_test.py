@@ -207,7 +207,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   def CheckReplies(self, replies, action, expected_files):
     reply_count = 0
     for reply in replies:
-      self.assertTrue(isinstance(reply, rdf_file_finder.FileFinderResult))
+      self.assertIsInstance(reply, rdf_file_finder.FileFinderResult)
 
       reply_count += 1
       if action == rdf_file_finder.FileFinderAction.Action.STAT:
@@ -581,7 +581,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       urn = rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(image_path)
       vfs_file = aff4.FACTORY.Open(urn, token=self.token)
       # Make sure just a VFSFile got written.
-      self.assertTrue(isinstance(vfs_file, aff4_grr.VFSFile))
+      self.assertIsInstance(vfs_file, aff4_grr.VFSFile)
 
       expected_data = open(image_path, "rb").read(expected_size)
       d = hashlib.sha1()
@@ -607,7 +607,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     urn = rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(image_path)
     blobimage = aff4.FACTORY.Open(urn, token=self.token)
     # Make sure a VFSBlobImage got written.
-    self.assertTrue(isinstance(blobimage, aff4_grr.VFSBlobImage))
+    self.assertIsInstance(blobimage, aff4_grr.VFSBlobImage)
 
     self.assertLen(blobimage, expected_size)
     data = blobimage.read(100 * expected_size)

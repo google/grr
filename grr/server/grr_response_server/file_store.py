@@ -23,19 +23,23 @@ class Error(Exception):
   """FileStore-related error class."""
 
 
-class BlobNotFound(Error):
+class BlobNotFoundError(Error):
   """Raised when a blob was expected to exist, but couldn't be found."""
 
 
-class FileHasNoContent(Error):
+class FileHasNoContentError(Error):
   """Raised when trying to read a file that was never downloaded."""
 
+  def __init__(self, path):
+    super(FileHasNoContentError,
+          self).__init__("File was never collected: %r" % (path,))
 
-class MissingBlobReferences(Error):
+
+class MissingBlobReferencesError(Error):
   """Raised when blob refs are supposed to be there but couldn't be found."""
 
 
-class OversizedRead(Error):
+class OversizedReadError(Error):
   """Raises when trying to read large files without specifying read length."""
 
 
@@ -118,9 +122,9 @@ class BlobStream(object):
       length = self._length - self._offset
 
     if length > self._max_unbound_read:
-      raise OversizedRead("Attempted to read %d bytes when "
-                          "Server.max_unbound_read_size is %d" %
-                          (length, self._max_unbound_read))
+      raise OversizedReadError("Attempted to read %d bytes when "
+                               "Server.max_unbound_read_size is %d" %
+                               (length, self._max_unbound_read))
 
     result = io.BytesIO()
     while result.tell() < length:
@@ -186,7 +190,7 @@ def AddFileWithUnknownHash(blob_ids):
     data = data_store.BLOBS.ReadBlobs(unique_ids)
     for k, v in iteritems(data):
       if v is None:
-        raise BlobNotFound("Couldn't find one of referenced blobs: %s" % k)
+        raise BlobNotFoundError("Couldn't find one of referenced blobs: %s" % k)
 
     for blob_id in blob_ids_batch:
       blob_data = data[blob_id]
@@ -272,22 +276,22 @@ def OpenFile(client_path, max_timestamp=None):
     A file like object with random access support.
 
   Raises:
-    FileHasNoContent: if the file was never collected.
-    MissingBlobReferences: if one of the blobs was not found.
+    FileHasNoContentError: if the file was never collected.
+    MissingBlobReferencesError: if one of the blobs was not found.
   """
 
   path_info = data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
       [client_path], max_timestamp=max_timestamp)[client_path]
 
   if path_info is None:
-    raise FileHasNoContent("File was never collected.")
+    raise FileHasNoContentError(client_path)
 
   hash_id = rdf_objects.SHA256HashID.FromBytes(
       path_info.hash_entry.sha256.AsBytes())
   blob_references = data_store.REL_DB.ReadHashBlobReferences([hash_id])[hash_id]
 
   if blob_references is None:
-    raise MissingBlobReferences(
+    raise MissingBlobReferencesError(
         "File hash was expected to have corresponding "
         "blob references, but they were not found: %r" % hash_id)
 

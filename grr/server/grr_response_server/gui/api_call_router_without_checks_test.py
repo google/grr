@@ -23,7 +23,7 @@ class ApiCallRouterWithoutChecksTest(test_lib.GRRBaseTest):
   def testAllAnnotatedMethodsReturnHandler(self):
     for name in api_call_router.ApiCallRouter.GetAnnotatedMethods():
       handler = getattr(self.router, name)(None, token=None)
-      self.assertTrue(isinstance(handler, api_call_handler_base.ApiCallHandler))
+      self.assertIsInstance(handler, api_call_handler_base.ApiCallHandler)
 
 
 def main(argv):

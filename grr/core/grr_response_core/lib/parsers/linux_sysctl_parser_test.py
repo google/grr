@@ -38,7 +38,7 @@ class ProcSysParserTest(test_lib.GRRBaseTest):
     stats, files = self._GenTestData(paths, vals)
     results = parser.ParseMultiple(stats, files, None)
     self.assertLen(results, 1)
-    self.assertTrue(isinstance(results[0], rdf_protodict.AttributedDict))
+    self.assertIsInstance(results[0], rdf_protodict.AttributedDict)
     self.assertEqual("0", results[0].net_ipv4_ip_forward)
     self.assertEqual(["3", "4", "1", "3"], results[0].kernel_printk)
 
@@ -55,7 +55,7 @@ class SysctlCmdParserTest(test_lib.GRRBaseTest):
     parser = linux_sysctl_parser.SysctlCmdParser()
     results = parser.Parse("/sbin/sysctl", ["-a"], content, "", 0, 5, None)
     self.assertLen(results, 1)
-    self.assertTrue(isinstance(results[0], rdf_protodict.AttributedDict))
+    self.assertIsInstance(results[0], rdf_protodict.AttributedDict)
     self.assertEqual("0", results[0].net_ipv4_ip_forward)
     self.assertEqual(["3", "4", "1", "3"], results[0].kernel_printk)
 

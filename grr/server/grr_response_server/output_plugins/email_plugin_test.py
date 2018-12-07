@@ -86,8 +86,7 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     for msg in self.email_messages:
       self.assertEqual(msg["address"], self.email_address)
-      self.assertTrue(
-          "got a new result in %s" % self.results_urn in msg["title"])
+      self.assertIn("got a new result in %s" % self.results_urn, msg["title"])
       self.assertIn(utils.SmartStr(self.client_id), msg["message"])
       self.assertIn(utils.SmartStr(self.hostname), msg["message"])
 

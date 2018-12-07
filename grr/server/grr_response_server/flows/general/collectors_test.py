@@ -314,7 +314,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     # Test the statentry got stored.
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertIsInstance(results[0], rdf_client_fs.StatEntry)
-    self.assertTrue(results[0].pathspec.CollapsePath().endswith("BootExecute"))
+    self.assertEndsWith(results[0].pathspec.CollapsePath(), "BootExecute")
 
   def testRegistryDefaultValueArtifact(self):
     client_id = self.SetupClient(0, system="Linux")

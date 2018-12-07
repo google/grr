@@ -224,7 +224,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Can assign a nested field.
     test_pb.dynamic.foobar = "Hello"
-    self.assertTrue(isinstance(test_pb.dynamic, TestStruct))
+    self.assertIsInstance(test_pb.dynamic, TestStruct)
 
     # Test serialization/deserialization.
     serialized = test_pb.SerializeToString()
@@ -261,7 +261,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Can assign a nested field.
     test_pb.dynamic.foobar = "Hello"
-    self.assertTrue(isinstance(test_pb.dynamic, TestStruct))
+    self.assertIsInstance(test_pb.dynamic, TestStruct)
 
     # Test serialization/deserialization.
     serialized = test_pb.SerializeToString()
@@ -283,7 +283,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Can assign a nested field.
     test_pb.dynamic = rdfvalue.RDFString("Hello")
-    self.assertTrue(isinstance(test_pb.dynamic, rdfvalue.RDFString))
+    self.assertIsInstance(test_pb.dynamic, rdfvalue.RDFString)
 
     # Test serialization/deserialization.
     serialized = test_pb.SerializeToString()
@@ -460,7 +460,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Coercing on assignment. This field is an RDFURN:
     tested.urn = "www.example.com"
-    self.assertTrue(isinstance(tested.urn, rdfvalue.RDFURN))
+    self.assertIsInstance(tested.urn, rdfvalue.RDFURN)
 
     self.assertEqual(tested.urn, rdfvalue.RDFURN("www.example.com"))
 
@@ -541,7 +541,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     # We can now use the protobuf as normal.
     tested = LateBindingTest()
     tested.nested.foobar = "foobar string"
-    self.assertTrue(isinstance(tested.nested, UndefinedYet))
+    self.assertIsInstance(tested.nested, UndefinedYet)
 
   def testRDFValueLateBinding(self):
     # The LateBindingTest protobuf is not fully defined.
@@ -607,7 +607,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     result = rdf_client_fs.StatEntry.FromSerializedString(data)
 
-    self.assertTrue(isinstance(result.st_mode, rdf_client_fs.StatMode))
+    self.assertIsInstance(result.st_mode, rdf_client_fs.StatMode)
 
   def testDefaults(self):
     """Accessing a field which does not exist returns a default."""

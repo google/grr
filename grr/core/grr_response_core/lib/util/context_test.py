@@ -51,9 +51,9 @@ class MultiContextTest(absltest.TestCase):
 
     with context.MultiContext([foo, bar, baz]) as filepaths:
       self.assertLen(filepaths, 3)
-      self.assertTrue(filepaths[0].endswith("foo"))
-      self.assertTrue(filepaths[1].endswith("bar"))
-      self.assertTrue(filepaths[2].endswith("baz"))
+      self.assertEndsWith(filepaths[0], "foo")
+      self.assertEndsWith(filepaths[1], "bar")
+      self.assertEndsWith(filepaths[2], "baz")
 
       wbopen = functools.partial(io.open, mode="wb")
       with context.MultiContext(map(wbopen, filepaths)) as filedescs:

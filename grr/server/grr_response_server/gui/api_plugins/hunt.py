@@ -35,6 +35,7 @@ from grr_response_server import output_plugin
 from grr_response_server.flows.general import export
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
+from grr_response_server.gui import archive_generator
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
@@ -952,15 +953,15 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     target_file_prefix = "hunt_" + hunt.urn.Basename().replace(":", "_")
 
     if args.archive_format == args.ArchiveFormat.ZIP:
-      archive_format = api_call_handler_utils.CollectionArchiveGenerator.ZIP
+      archive_format = archive_generator.CollectionArchiveGenerator.ZIP
       file_extension = ".zip"
     elif args.archive_format == args.ArchiveFormat.TAR_GZ:
-      archive_format = api_call_handler_utils.CollectionArchiveGenerator.TAR_GZ
+      archive_format = archive_generator.CollectionArchiveGenerator.TAR_GZ
       file_extension = ".tar.gz"
     else:
       raise ValueError("Unknown archive format: %s" % args.archive_format)
 
-    generator = api_call_handler_utils.CollectionArchiveGenerator(
+    generator = archive_generator.Aff4CollectionArchiveGenerator(
         prefix=target_file_prefix,
         description=description,
         archive_format=archive_format)

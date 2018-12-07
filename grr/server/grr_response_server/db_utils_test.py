@@ -27,7 +27,7 @@ class CallLoggedAndAccountedTest(stats_test_lib.StatsTestMixin,
 
   @db_utils.CallLoggedAndAccounted
   def SampleCallWithGRRError(self):
-    raise db.UnknownGRRUserError()
+    raise db.UnknownGRRUserError("Unknown")
 
   @db_utils.CallLoggedAndAccounted
   def SampleCallWithDBError(self):

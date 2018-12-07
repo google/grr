@@ -609,7 +609,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       urn = pathspec.AFF4Path(self.client_id)
       blobimage = aff4.FACTORY.Open(urn, token=self.token)
       # Make sure a VFSBlobImage got written.
-      self.assertTrue(isinstance(blobimage, aff4_grr.VFSBlobImage))
+      self.assertIsInstance(blobimage, aff4_grr.VFSBlobImage)
 
       self.assertLen(blobimage, expected_size)
       data = blobimage.read(100 * expected_size)

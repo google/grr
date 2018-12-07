@@ -241,29 +241,21 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
         artifact="DebianPackagesStatus", labels="foo")
     self.assertCountEqual(expect, result)
 
-    expect = set(["SSHD-CHECK"])
-    result = set(
+    self.assertIn(
+        "SSHD-CHECK",
         checks.CheckRegistry.FindChecks(
             artifact="SshdConfigFile", os_name="Darwin"))
-    residual = expect - result
-    self.assertFalse(residual)
 
-    result = set(
+    self.assertIn(
+        "SSHD-CHECK",
         checks.CheckRegistry.FindChecks(
             artifact="SshdConfigFile", os_name="Linux"))
-    residual = expect - result
-    self.assertFalse(residual)
 
     # All sshd config checks specify an OS, so should get no results.
-    expect = set([])
-    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile"))
-    residual = expect - result
-    self.assertFalse(residual)
-    result = set(
+    self.assertEmpty(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile"))
+    self.assertEmpty(
         checks.CheckRegistry.FindChecks(
             artifact="SshdConfigFile", os_name="Windows"))
-    residual = expect - result
-    self.assertFalse(residual)
 
   def testRestrictChecksFiltersCheckOptions(self):
     result = set(
@@ -282,28 +274,22 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
   def testMapArtifactsToTriggers(self):
     """Identify the artifacts that should be collected based on criteria."""
     # Test whether all expected checks were mapped.
-    expect = set(["DebianPackagesStatus", "SshdConfigFile"])
-    result = set(checks.CheckRegistry.SelectArtifacts(os_name="Linux"))
-    residual = expect - result
-    self.assertFalse(residual)
+    self.assertContainsSubset(
+        ["DebianPackagesStatus", "SshdConfigFile"],
+        checks.CheckRegistry.SelectArtifacts(os_name="Linux"))
 
-    expect = set(["WMIInstalledSoftware"])
-    result = set(checks.CheckRegistry.SelectArtifacts(os_name="Windows"))
-    residual = expect - result
-    self.assertFalse(residual)
+    self.assertIn("WMIInstalledSoftware",
+                  checks.CheckRegistry.SelectArtifacts(os_name="Windows"))
 
-    expect = set(["DebianPackagesStatus"])
-    result = set(
+    self.assertIn(
+        "DebianPackagesStatus",
         checks.CheckRegistry.SelectArtifacts(
             os_name=None, cpe=None, labels="foo"))
-    residual = expect - result
-    self.assertFalse(residual)
 
-    expect = set(["DebianPackagesStatus"])
-    result = set(
+    self.assertIn(
+        "DebianPackagesStatus",
         checks.CheckRegistry.SelectArtifacts(
             os_name="Linux", restrict_checks=["SW-CHECK"]))
-    self.assertCountEqual(expect, result)
 
 
 class ProcessHostDataTests(checks_test_lib.HostCheckTest):

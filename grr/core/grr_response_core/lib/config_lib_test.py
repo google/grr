@@ -240,7 +240,7 @@ Section1.foobar: 6d
 """)
 
     value = conf.Get("Section1.foobar")
-    self.assertTrue(isinstance(value, rdfvalue.Duration))
+    self.assertIsInstance(value, rdfvalue.Duration)
     self.assertEqual(value, rdfvalue.Duration("6d"))
 
   def testSemanticStructType(self):
@@ -259,7 +259,7 @@ Section1.foobar:
 """)
 
     values = conf.Get("Section1.foobar")
-    self.assertTrue(isinstance(values, rdf_file_finder.FileFinderArgs))
+    self.assertIsInstance(values, rdf_file_finder.FileFinderArgs)
     self.assertEqual(values.paths, ["a/b", "b/c"])
     self.assertEqual(values.pathtype, "TSK")
 

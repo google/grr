@@ -3,16 +3,12 @@
 from __future__ import absolute_import
 from __future__ import division
 
-import codecs
 import datetime
 import email
 import functools
 import logging
 import os
-import pdb
 import shutil
-import socket
-import sys
 import threading
 import time
 import unittest
@@ -831,44 +827,6 @@ def RequiresPackage(package_name):
     return Wrapper
 
   return Decorator
-
-
-class RemotePDB(pdb.Pdb):
-  """A Remote debugger facility.
-
-  Place breakpoints in the code using:
-  test_lib.RemotePDB().set_trace()
-
-  Once the debugger is attached all remote break points will use the same
-  connection.
-  """
-  handle = None
-  prompt = "RemotePDB>"
-
-  def __init__(self):
-    # Use a global socket for remote debugging.
-    if RemotePDB.handle is None:
-      self.ListenForConnection()
-
-    pdb.Pdb.__init__(
-        self, stdin=self.handle, stdout=codecs.getwriter("utf8")(self.handle))
-
-  def ListenForConnection(self):
-    """Listens and accepts a single connection."""
-    logging.warn("Remote debugger waiting for connection on %s",
-                 config.CONFIG["Test.remote_pdb_port"])
-
-    RemotePDB.old_stdout = sys.stdout
-    RemotePDB.old_stdin = sys.stdin
-    RemotePDB.skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    RemotePDB.skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    RemotePDB.skt.bind(("127.0.0.1", config.CONFIG["Test.remote_pdb_port"]))
-    RemotePDB.skt.listen(1)
-
-    (clientsocket, address) = RemotePDB.skt.accept()
-    RemotePDB.handle = clientsocket.makefile("rw", 1)
-    logging.warn("Received a connection from %s", address)
 
 
 class SuppressLogs(object):

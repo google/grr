@@ -44,10 +44,10 @@ class RDFIntegerTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testComparableToPrimiviteInts(self):
     self.assertEqual(rdfvalue.RDFInteger(10), 10)
-    self.assertTrue(rdfvalue.RDFInteger(10) > 5)
-    self.assertTrue(15 > rdfvalue.RDFInteger(10))
-    self.assertTrue(rdfvalue.RDFInteger(10) < 15)
-    self.assertTrue(5 < rdfvalue.RDFInteger(10))
+    self.assertGreater(rdfvalue.RDFInteger(10), 5)
+    self.assertGreater(15, rdfvalue.RDFInteger(10))
+    self.assertLess(rdfvalue.RDFInteger(10), 15)
+    self.assertLess(5, rdfvalue.RDFInteger(10))
 
   def testDividesAndIsDividableByPrimitiveInts(self):
     self.assertEqual(rdfvalue.RDFInteger(10) // 5, 2)

@@ -59,7 +59,7 @@ class BlobStreamTest(test_lib.GRRBaseTest):
       self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
 
       self.blob_stream.read(self.blob_size)
-      with self.assertRaises(file_store.OversizedRead):
+      with self.assertRaises(file_store.OversizedReadError):
         self.blob_stream.read(self.blob_size + 1)
 
   def testWhenReadingWholeFileAndWholeFileSizeIsTooBig(self):
@@ -71,7 +71,7 @@ class BlobStreamTest(test_lib.GRRBaseTest):
       # Recreate to make sure the new config option value is applied.
       self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
 
-      with self.assertRaises(file_store.OversizedRead):
+      with self.assertRaises(file_store.OversizedReadError):
         self.blob_stream.read()
 
 
@@ -90,7 +90,7 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
 
   def testRaisesIfSingleBlobIsNotFound(self):
     blob_id = rdf_objects.BlobID.FromBlobData("")
-    with self.assertRaises(file_store.BlobNotFound):
+    with self.assertRaises(file_store.BlobNotFoundError):
       file_store.AddFileWithUnknownHash([blob_id])
 
   def testAddsFileWithSingleBlob(self):
@@ -99,7 +99,7 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
 
   def testRaisesIfOneOfTwoBlobsIsNotFound(self):
     blob_id = rdf_objects.BlobID.FromBlobData("")
-    with self.assertRaises(file_store.BlobNotFound):
+    with self.assertRaises(file_store.BlobNotFoundError):
       file_store.AddFileWithUnknownHash([self.blob_ids[0], blob_id])
 
   def testAddsFileWithTwoBlobs(self):
@@ -144,13 +144,13 @@ class OpenFileTest(test_lib.GRRBaseTest):
 
   def testRaisesForFileWithSinglePathInfoWithoutHash(self):
     data_store.REL_DB.WritePathInfos(self.client_id, [self._PathInfo()])
-    with self.assertRaises(file_store.FileHasNoContent):
+    with self.assertRaises(file_store.FileHasNoContentError):
       file_store.OpenFile(self.client_path)
 
   def testRaisesForFileWithSinglePathInfoWithUnknownHash(self):
     data_store.REL_DB.WritePathInfos(self.client_id,
                                      [self._PathInfo(self.invalid_hash_id)])
-    with self.assertRaises(file_store.FileHasNoContent):
+    with self.assertRaises(file_store.FileHasNoContentError):
       file_store.OpenFile(self.client_path)
 
   def testOpensFileWithTwoPathInfosWhereOldestHasHash(self):

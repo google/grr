@@ -72,7 +72,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     execute_response = collected_artifact.action_results[0].value
 
     self.assertEqual(collected_artifact.name, "TestCmdArtifact")
-    self.assertTrue(execute_response.time_used > 0)
+    self.assertGreater(execute_response.time_used, 0)
 
   def testGRRClientActionGetHostname(self):
     """Test the GRR Client Action GetHostname."""
@@ -207,9 +207,9 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
                                      vfs_test_lib.FakeFullVFSHandler):
         collected_artifact = self.RunArtifactCollector(request)
         file_stat = collected_artifact.action_results[0].value
-        self.assertTrue(isinstance(file_stat, rdf_client_fs.StatEntry))
+        self.assertIsInstance(file_stat, rdf_client_fs.StatEntry)
         urn = file_stat.pathspec.AFF4Path(self.SetupClient(0))
-        self.assertTrue(str(urn).endswith("BootExecute"))
+        self.assertEndsWith(str(urn), "BootExecute")
 
   def testRegistryKeyArtifact(self):
     """Test the basic Registry Key collection."""
@@ -231,7 +231,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
         collected_artifact = self.RunArtifactCollector(request)
         self.assertLen(collected_artifact.action_results, 1)
         file_stat = collected_artifact.action_results[0].value
-        self.assertTrue(isinstance(file_stat, rdf_client_fs.StatEntry))
+        self.assertIsInstance(file_stat, rdf_client_fs.StatEntry)
 
   def testRegistryNoKeysArtifact(self):
     """Test the basic Registry Key collection."""
@@ -302,7 +302,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     self.assertLen(collected_artifact.action_results, 1)
     result = collected_artifact.action_results[0].value
     self.assertIsInstance(result, rdf_client_fs.StatEntry)
-    self.assertTrue(result.pathspec.path.endswith("auth.log"))
+    self.assertEndsWith(result.pathspec.path, "auth.log")
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testMultipleArtifacts(self, registry):
@@ -610,7 +610,7 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
         apply_parsers=True)
     result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
     self.assertIsInstance(result, rdf_artifact.ClientArtifactCollectorResult)
-    self.assertTrue(len(result.collected_artifacts), 1)
+    self.assertLen(result.collected_artifacts, 1)
     res = result.collected_artifacts[0].action_results[0].value
     self.assertIsInstance(res, rdf_client.SoftwarePackage)
     self.assertEqual(res.description, "1\n")

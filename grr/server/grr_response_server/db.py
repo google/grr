@@ -28,6 +28,7 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import foreman_rules
@@ -147,7 +148,12 @@ class UnknownRuleError(NotFoundError):
 
 
 class UnknownGRRUserError(NotFoundError):
-  pass
+  """An error thrown when no user is found for a given username."""
+
+  def __init__(self, username):
+    self.username = username
+    message = "Cannot find user with username %r" % username
+    super(UnknownGRRUserError, self).__init__(message)
 
 
 class UnknownApprovalRequestError(NotFoundError):
@@ -322,6 +328,11 @@ class ClientPath(object):
 
   def Path(self):
     return "/".join(self.components)
+
+  def __repr__(self):
+    return "<%s client_id=%r path_type=%r components=%r>" % (
+        compatibility.GetName(
+            self.__class__), self.client_id, self.path_type, self.components)
 
 
 class ClientPathHistory(object):

@@ -1001,7 +1001,7 @@ class DataStoreTestMixin(object):
     # Check the time is reasonable
     end = int(time.time() + 60) * 1e6
 
-    self.assertTrue(ts >= start and ts <= end)
+    self.assertBetween(ts, start, end)
     self.assertEqual(stored, "1")
 
   def testSpecificTimestamps(self):

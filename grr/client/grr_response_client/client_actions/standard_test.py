@@ -44,7 +44,7 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
-    self.assertTrue(result.time_used > 0)
+    self.assertGreater(result.time_used, 0)
     self.assertEqual(result.return_val, "")
     self.assertEqual(utils.TEST_VAL, "modified")
 
@@ -73,7 +73,7 @@ magic_return_str = decode(s)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
-    self.assertTrue(result.time_used > 0)
+    self.assertGreater(result.time_used, 0)
     self.assertEqual(result.return_val, "Hello World!")
 
   def testStdoutHooking(self):
@@ -91,7 +91,7 @@ print("Done.")
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
-    self.assertTrue(result.time_used > 0)
+    self.assertGreater(result.time_used, 0)
     self.assertEqual(result.return_val, "Calling f.\nF called: 1\nDone.\n")
 
   def testProgress(self):
@@ -110,7 +110,7 @@ print("Done.")
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
-    self.assertTrue(result.time_used > 0)
+    self.assertGreater(result.time_used, 0)
     self.assertEqual(result.return_val, "Done.\n")
 
   def testExecuteModifiedPython(self):
@@ -159,7 +159,7 @@ print("Done.")
 
     result = self.RunAction(standard.ExecuteBinaryCommand, request)[0]
 
-    self.assertTrue(result.time_used > 0)
+    self.assertGreater(result.time_used, 0)
     self.assertIn(__file__, result.stdout)
 
   def testReturnVals(self):

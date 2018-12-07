@@ -680,9 +680,9 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
       self.assertLen(ver_list, 3)
       v1, v2, v3 = ver_list
 
-      self.assertTrue(isinstance(v1, aff4_grr.VFSGRRClient))
-      self.assertTrue(isinstance(v2, aff4_grr.VFSGRRClient))
-      self.assertTrue(isinstance(v3, aff4_grr.VFSFile))
+      self.assertIsInstance(v1, aff4_grr.VFSGRRClient)
+      self.assertIsInstance(v2, aff4_grr.VFSGRRClient)
+      self.assertIsInstance(v3, aff4_grr.VFSFile)
       self.assertTrue(
           int(v1.Get(v1.Schema.TYPE).age) < int(v2.Get(v2.Schema.TYPE).age))
       self.assertTrue(
@@ -1887,9 +1887,9 @@ class AFF4SymlinkTest(aff4_test_lib.AFF4ObjectTest):
     for fd in aff4.FACTORY.MultiOpen([self.symlink_source_urn, fd_urn2],
                                      token=self.token):
       if fd.urn == fd_urn2:
-        self.assertTrue(isinstance(fd, aff4.AFF4Image))
+        self.assertIsInstance(fd, aff4.AFF4Image)
       elif fd.urn == fd_urn1:
-        self.assertTrue(isinstance(fd, AFF4SymlinkTestSubject))
+        self.assertIsInstance(fd, AFF4SymlinkTestSubject)
         self.assertIsNotNone(fd.symlink_urn)
         self.assertEqual(fd.urn, self.symlink_target_urn)
         self.assertEqual(fd.symlink_urn, self.symlink_source_urn)
@@ -1911,7 +1911,7 @@ class AFF4SymlinkTest(aff4_test_lib.AFF4ObjectTest):
                                aff4_type=AFF4SymlinkTestSubject,
                                token=self.token))
     self.assertLen(fds, 1)
-    self.assertTrue(isinstance(fds[0], AFF4SymlinkTestSubject))
+    self.assertIsInstance(fds[0], AFF4SymlinkTestSubject)
 
     # AFF4Image should be returned, but symlinked AFF4SymlinkTestSubject should
     # get filtered out due to aff4_type restriction.
@@ -1920,7 +1920,7 @@ class AFF4SymlinkTest(aff4_test_lib.AFF4ObjectTest):
                                aff4_type=aff4.AFF4Image,
                                token=self.token))
     self.assertLen(fds, 1)
-    self.assertTrue(isinstance(fds[0], aff4.AFF4Image))
+    self.assertIsInstance(fds[0], aff4.AFF4Image)
 
   def testOpenedSymlinkAFF4AttributesAreEqualToTarget(self):
     fd, symlink_obj = self.CreateAndOpenObjectAndSymlink()

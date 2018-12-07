@@ -41,7 +41,7 @@ class InMemoryDBUsersMixin(object):
     try:
       return self.users[username].Copy()
     except KeyError:
-      raise db.UnknownGRRUserError("Can't find user with name: %s" % username)
+      raise db.UnknownGRRUserError(username)
 
   @utils.Synchronized
   def ReadGRRUsers(self, offset=0, count=None):
@@ -63,7 +63,7 @@ class InMemoryDBUsersMixin(object):
     try:
       del self.users[username]
     except KeyError:
-      raise db.UnknownGRRUserError("Can't find user with name: %s" % username)
+      raise db.UnknownGRRUserError(username)
 
   @utils.Synchronized
   def WriteApprovalRequest(self, approval_request):
@@ -127,7 +127,7 @@ class InMemoryDBUsersMixin(object):
   def WriteUserNotification(self, notification):
     """Writes a notification for a given user."""
     if notification.username not in self.users:
-      raise db.UnknownGRRUserError("User %s not found!" % notification.username)
+      raise db.UnknownGRRUserError(notification.username)
 
     cloned_notification = notification.Copy()
     if not cloned_notification.timestamp:

@@ -146,7 +146,7 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
         client_id=self.client_urn.Basename()).File("fs").GetTimeline()
     self.assertTrue(timeline)
     for item in timeline:
-      self.assertTrue(isinstance(item, vfs_pb2.ApiVfsTimelineItem))
+      self.assertIsInstance(item, vfs_pb2.ApiVfsTimelineItem)
 
   def testGetTimelineAsCsv(self):
     out = io.BytesIO()

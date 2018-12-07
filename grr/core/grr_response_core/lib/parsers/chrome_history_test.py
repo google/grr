@@ -40,11 +40,11 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
     self.assertEqual(time_results, sorted(time_results))
 
     self.assertEqual(str(dt1), "2013-05-03 15:11:26.556635")
-    self.assertTrue(entries[0][2].startswith(
-        "https://www.google.ch/search?q=why+you+shouldn"))
+    self.assertStartsWith(entries[0][2],
+                          "https://www.google.ch/search?q=why+you+shouldn")
 
     self.assertEqual(str(dt2), "2013-05-03 15:11:39.763984")
-    self.assertTrue(entries[-1][2].startswith("http://www.test.ch/"))
+    self.assertStartsWith(entries[-1][2], "http://www.test.ch/")
 
     self.assertLen(entries, 4)
 
@@ -85,9 +85,10 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
     self.assertEqual(entries[0][2], "http://start.ubuntu.com/10.04/Google/")
 
     self.assertEqual(str(dt2), "2011-05-23 08:37:27.061516")
-    self.assertTrue(entries[-1][2].startswith("https://chrome.google.com/webs"
-                                              "tore/detail/mfjkgbjaikamkkojmak"
-                                              "jclmkianficch"))
+    self.assertStartsWith(
+        entries[-1][2], "https://chrome.google.com/webs"
+        "tore/detail/mfjkgbjaikamkkojmak"
+        "jclmkianficch")
 
     self.assertLen(entries, 71)
 

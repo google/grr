@@ -146,7 +146,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     stats, file_objs = artifact_test_lib.GenStatFileData(TELNET_ONLY_CONFIG)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertLen(out, 1)
-    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
+    self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(TELNET_ONLY_CONFIG_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -157,7 +157,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     stats, file_objs = artifact_test_lib.GenStatFileData(TELNET_WITH_PAMCONF)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertLen(out, 1)
-    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
+    self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     entry = out[0].entries[0]
     self.assertEqual(
         ('telnet', 'auth',
@@ -171,7 +171,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     stats, file_objs = artifact_test_lib.GenStatFileData(PAM_CONF_SIMPLE)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertLen(out, 1)
-    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
+    self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(PAM_CONF_SIMPLE_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -181,7 +181,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     stats, file_objs = artifact_test_lib.GenStatFileData(PAM_CONF_OVERRIDE)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertLen(out, 1)
-    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
+    self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(PAM_CONF_OVERRIDE_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -193,7 +193,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
         PAM_CONF_OVERRIDE_COMPLEX)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertLen(out, 1)
-    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
+    self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(PAM_CONF_OVERRIDE_COMPLEX_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -204,7 +204,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     stats, file_objs = artifact_test_lib.GenStatFileData(PAM_CONF_TYPICAL)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertLen(out, 1)
-    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
+    self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(PAM_CONF_TYPICAL_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -213,7 +213,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     stats, file_objs = artifact_test_lib.GenStatFileData(PAM_CONF_EXTERNAL_REF)
     out = list(parser.ParseMultiple(stats, file_objs, self.kb))
     self.assertLen(out, 1)
-    self.assertTrue(isinstance(out[0], rdf_config_file.PamConfig))
+    self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(PAM_CONF_EXTERNAL_REF_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertCountEqual(PAM_CONF_EXTERNAL_REF_ERRORS,

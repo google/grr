@@ -137,7 +137,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
 
   def CheckCrash(self, crash, expected_session_id, client_id):
     """Checks that ClientCrash object's fields are correctly filled in."""
-    self.assertTrue(crash is not None)
+    self.assertIsNotNone(crash)
     self.assertEqual(crash.client_id, client_id)
     self.assertEqual(crash.session_id, expected_session_id)
     self.assertEqual(crash.client_info.client_name, "GRR Monitor")
@@ -513,8 +513,8 @@ sys.test_code_ran_here = True
       self.assertEqual(client_test_lib.Popen.running_args[2], "356")
 
       # Check the command was in the tmp file.
-      self.assertTrue(client_test_lib.Popen.running_args[0].startswith(
-          config.CONFIG["Client.tempdir_roots"][0]))
+      self.assertStartsWith(client_test_lib.Popen.running_args[0],
+                            config.CONFIG["Client.tempdir_roots"][0])
 
   def testExecuteLargeBinaries(self):
     client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
@@ -562,8 +562,8 @@ sys.test_code_ran_here = True
       self.assertEqual(client_test_lib.Popen.running_args[2], "356")
 
       # Check the command was in the tmp file.
-      self.assertTrue(client_test_lib.Popen.running_args[0].startswith(
-          config.CONFIG["Client.tempdir_roots"][0]))
+      self.assertStartsWith(client_test_lib.Popen.running_args[0],
+                            config.CONFIG["Client.tempdir_roots"][0])
 
   def testUpdateClient(self):
     client_mock = action_mocks.UpdateAgentClientMock()

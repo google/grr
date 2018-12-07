@@ -73,8 +73,10 @@ class DatabaseTestUsersMixin(object):
   def testReadingUnknownGRRUserFails(self):
     d = self.db
 
-    with self.assertRaises(db.UnknownGRRUserError):
+    with self.assertRaises(db.UnknownGRRUserError) as context:
       d.ReadGRRUser("foo")
+
+    self.assertEqual(context.exception.username, "foo")
 
   def testReadingMultipleGRRUsersEntriesWorks(self):
     d = self.db

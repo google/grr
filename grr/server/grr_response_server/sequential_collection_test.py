@@ -198,7 +198,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
           timestamp, suffix = collection._index[index]
           self.assertLessEqual(twenty_seconds_ago, timestamp)
           self.assertLessEqual(timestamp, now)
-          self.assertTrue(0 <= suffix <= 0xFFFFFF)
+          self.assertBetween(suffix, 0, 0xFFFFFF)
 
       # Now check that the index was persisted to aff4 by re-opening
       # and checking that a read from head does load full index
@@ -216,7 +216,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
         timestamp, suffix = collection._index[index]
         self.assertLessEqual(twenty_seconds_ago, timestamp)
         self.assertLessEqual(timestamp, now)
-        self.assertTrue(0 <= suffix <= 0xFFFFFF)
+        self.assertBetween(suffix, 0, 0xFFFFFF)
 
   def testIndexedReads(self):
     spacing = 10

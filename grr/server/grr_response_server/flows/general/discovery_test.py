@@ -276,7 +276,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     error_str = error_str[:error_str.find("%s")]
     for key in admin.GetLibraryVersions.library_map:
       self.assertIn(key, libs)
-      self.assertFalse(libs[key].startswith(error_str))
+      self.assertNotStartsWith(libs[key], error_str)
 
   def _CheckClientLibrariesRelational(self, client):
     versions = client.library_versions
@@ -290,7 +290,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
     values = [item.value for item in versions]
     for v in values:
-      self.assertFalse(v.startswith(error_str))
+      self.assertNotStartsWith(v, error_str)
 
   def _CheckMemoryAFF4(self, client):
     self.assertTrue(client.Get(client.Schema.MEMORY_SIZE))

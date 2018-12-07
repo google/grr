@@ -342,7 +342,7 @@ class GRRClientWorkerTest(test_lib.GRRBaseTest):
     self.assertLen(messages, 1)
     self.assertEqual(messages[0].args_rdf_name,
                      compatibility.GetName(rdfvalue.RDFDatetime))
-    self.assertTrue(isinstance(messages[0].payload, rdfvalue.RDFDatetime))
+    self.assertIsInstance(messages[0].payload, rdfvalue.RDFDatetime)
     self.assertEqual(messages[0].payload, rdfvalue.RDFDatetime(0))
 
 

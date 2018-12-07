@@ -119,12 +119,12 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
     self.assertLen(result_list, 1)
 
     result = result_list.pop()
-    self.assertTrue(isinstance(result, rdf_protodict.Dict))
+    self.assertIsInstance(result, rdf_protodict.Dict)
     nest = result["NestingTest"]
 
     self.assertEqual(nest["one"]["two"], [3, 4])
     self.assertTrue("Unsupported type" in nest["one"]["broken"])
-    self.assertTrue(isinstance(nest["one"]["three"], rdf_protodict.Dict))
+    self.assertIsInstance(nest["one"]["three"], rdf_protodict.Dict)
 
     self.assertEqual(nest["four"], [])
     self.assertEqual(nest["five"], "astring")
@@ -133,7 +133,7 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
     self.assertCountEqual(iterkeys(nest["rdfvalue"]), ["a"])
 
     self.assertEqual(result["GatewayCostMetric"], [0, 256])
-    self.assertTrue(isinstance(result["OpaqueObject"], string_types))
+    self.assertIsInstance(result["OpaqueObject"], string_types)
     self.assertIn("Unsupported type", result["OpaqueObject"])
 
 

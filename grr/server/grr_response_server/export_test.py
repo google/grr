@@ -128,7 +128,7 @@ class ExportTest(ExportTestBase):
     dummy_value = DummyRDFValue("result")
     result = list(export.ConvertValues(self.metadata, [dummy_value]))
     self.assertLen(result, 1)
-    self.assertTrue(isinstance(result[0], rdfvalue.RDFString))
+    self.assertIsInstance(result[0], rdfvalue.RDFString)
     self.assertEqual(result[0], "result")
 
   def testDoesNotRaiseWhenNoSpecificConverterIsDefined(self):
@@ -1328,7 +1328,7 @@ class DataAgnosticExportConverterTest(ExportTestBase):
     self.assertEqual(converted_value.enum_value,
                      converted_value.EnumOption.OPTION_2)
 
-    self.assertTrue(isinstance(converted_value.urn_value, rdfvalue.RDFURN))
+    self.assertIsInstance(converted_value.urn_value, rdfvalue.RDFURN)
     self.assertEqual(converted_value.urn_value, rdfvalue.RDFURN("aff4:/bar"))
 
     self.assertTrue(

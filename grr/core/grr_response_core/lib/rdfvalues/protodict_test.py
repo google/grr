@@ -60,7 +60,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
   def testIsMapping(self):
     test_dict = rdf_protodict.Dict(a=1)
-    self.assertTrue(isinstance(test_dict, collections.Mapping))
+    self.assertIsInstance(test_dict, collections.Mapping)
 
   def testDictBehaviour(self):
     tested = rdf_protodict.Dict(a=1)
@@ -162,7 +162,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
   def testBool(self):
     sample = rdf_protodict.Dict(a=True)
-    self.assertTrue(isinstance(sample["a"], bool))
+    self.assertIsInstance(sample["a"], bool)
     sample = rdf_protodict.Dict(a="true")
     self.assertEqual(sample["a"], "true")
 

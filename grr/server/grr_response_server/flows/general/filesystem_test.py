@@ -844,7 +844,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     # Smaller than the size of the file.
     fd = self.ReadTestImage(size_threshold=0)
 
-    self.assertTrue(isinstance(fd, aff4_standard.AFF4SparseImage))
+    self.assertIsInstance(fd, aff4_standard.AFF4SparseImage)
 
     # The file should be empty.
     self.assertEqual(fd.Read(10000), "")
@@ -857,7 +857,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # We shouldn't be a sparse image in this case.
     self.assertFalse(isinstance(fd, aff4_standard.AFF4SparseImage))
-    self.assertTrue(isinstance(fd, aff4.AFF4Image))
+    self.assertIsInstance(fd, aff4.AFF4Image)
     self.assertTrue(fd.Read(10000))
     self.assertNotEqual(fd.Get(fd.Schema.SIZE), 0)
 
