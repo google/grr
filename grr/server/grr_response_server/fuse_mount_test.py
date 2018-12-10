@@ -113,8 +113,8 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
 
   def testReadDirFile(self):
     # We can't ls a file.
+    file_path = os.path.join(self.root, self.client_name, "fs/os/c/bin/bash")
     with self.assertRaises(MockFuseOSError):
-      file_path = os.path.join(self.root, self.client_name, "fs/os/c/bin/bash")
       # We iterate through the generator so the error actually gets thrown.
       list(self.passthrough.readdir(file_path))
 
@@ -186,8 +186,8 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
     self.assertCountEqual(self.passthrough.getattr(bash_path), bash_stat)
 
   def testReadNotFile(self):
+    existing_dir = os.path.join(self.root, self.client_name, "/fs/os/c/bin")
     with self.assertRaises(MockFuseOSError):
-      existing_dir = os.path.join(self.root, self.client_name, "/fs/os/c/bin")
       self.passthrough.Read(existing_dir)
 
 

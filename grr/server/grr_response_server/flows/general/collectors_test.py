@@ -34,7 +34,10 @@ from grr_response_server import aff4
 from grr_response_server import aff4_flows
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import file_store
 from grr_response_server.flows.general import collectors
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
@@ -180,7 +183,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     client_id = self.SetupClient(0, system="Linux")
 
     # Dynamically add an ArtifactSource specifying the base path.
-    file_path = os.path.join(self.base_path, "test_img.dd")
+    file_path = os.path.join(self.base_path, "hello.exe")
     coll1 = rdf_artifacts.ArtifactSource(
         type=rdf_artifacts.ArtifactSource.SourceType.FILE,
         attributes={"paths": [file_path]})
@@ -195,13 +198,26 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         token=self.token,
         client_id=client_id)
 
-    # Test the AFF4 file that was created.
-    fd1 = aff4.FACTORY.Open(
-        "%s/fs/os/%s" % (client_id, file_path), token=self.token)
     fd2 = open(file_path, "rb")
     fd2.seek(0, 2)
+    expected_size = fd2.tell()
 
-    self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
+    if data_store.AFF4Enabled():
+      # Test the AFF4 file that was created.
+      fd1 = aff4.FACTORY.Open(
+          "%s/fs/os/%s" % (client_id, file_path), token=self.token)
+      size = fd1.Get(fd1.Schema.SIZE)
+      self.assertEqual(size, expected_size)
+    else:
+      components = file_path.strip("/").split("/")
+      fd = file_store.OpenFile(
+          db.ClientPath(
+              client_id.Basename(),
+              rdf_objects.PathInfo.PathType.OS,
+              components=tuple(components)))
+      fd.Seek(0, 2)
+      size = fd.Tell()
+      self.assertEqual(size, expected_size)
 
   def testArtifactSkipping(self):
     client_mock = action_mocks.ActionMock()
@@ -298,8 +314,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
                 "key_value_pairs": [{
                     "key": (r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet"
                             r"\Control\Session Manager"),
-                    "value":
-                        "BootExecute"
+                    "value": "BootExecute"
                 }]
             })
         self.fakeartifact.sources.append(coll1)

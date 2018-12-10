@@ -63,6 +63,11 @@ class RelationalDBEnabledMixin(object):
         data_store, "RelationalDBFlowsEnabled", return_value=True)
     self._rel_db_flows_enabled_patch.start()
 
+    self._filestore_config_overrider = test_lib.ConfigOverrider({
+        "Database.useForReads.filestore": True,
+    })
+    self._filestore_config_overrider.Start()
+
     super(RelationalDBEnabledMixin, self).setUp()
 
   def tearDown(self):  # pylint: disable=invalid-name
@@ -79,6 +84,7 @@ class RelationalDBEnabledMixin(object):
     self._vfs_config_overrider.Stop()
     self._artifacts_config_overrider.Stop()
     self._signed_binaries_overrider.Stop()
+    self._filestore_config_overrider.Stop()
 
 
 class StableRelationalDBEnabledMixin(object):

@@ -164,14 +164,15 @@ class GetFileMixin(object):
         # TODO(user): when all the code can read files from REL_DB,
         # protect this with:
         # if not data_store.RelationalDBReadEnabled(category="filestore"):
-        with aff4.FACTORY.Create(
-            urn, aff4_grr.VFSBlobImage, token=self.token) as fd:
-          fd.SetChunksize(self.CHUNK_SIZE)
-          fd.Set(fd.Schema.STAT(stat_entry))
+        if data_store.AFF4Enabled():
+          with aff4.FACTORY.Create(
+              urn, aff4_grr.VFSBlobImage, token=self.token) as fd:
+            fd.SetChunksize(self.CHUNK_SIZE)
+            fd.Set(fd.Schema.STAT(stat_entry))
 
-          for data, length in self.state.blobs:
-            fd.AddBlob(rdf_objects.BlobID.FromBytes(data), length)
-            fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+            for data, length in self.state.blobs:
+              fd.AddBlob(rdf_objects.BlobID.FromBytes(data), length)
+              fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
         if data_store.RelationalDBWriteEnabled():
           path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
@@ -716,6 +717,7 @@ class MultiGetFileLogic(object):
           length = file_tracker["size_to_download"] % self.CHUNK_SIZE
         else:
           length = self.CHUNK_SIZE
+
         self.CallClient(
             server_stubs.HashBuffer,
             pathspec=file_tracker["stat_entry"].pathspec,
@@ -1048,14 +1050,15 @@ class GetMBRMixin(object):
       mbr_data = b"".join(self.state.buffers)
       self.state.buffers = None
 
-      mbr = aff4.FACTORY.Create(
-          self.client_urn.Add("mbr"),
-          aff4_grr.VFSFile,
-          mode="w",
-          token=self.token)
-      mbr.write(mbr_data)
-      mbr.Close()
-      self.Log("Successfully stored the MBR (%d bytes)." % len(mbr_data))
+      if data_store.AFF4Enabled():
+        with aff4.FACTORY.Create(
+            self.client_urn.Add("mbr"),
+            aff4_grr.VFSFile,
+            mode="w",
+            token=self.token) as mbr:
+          mbr.write(mbr_data)
+
+      self.Log("Successfully collected the MBR (%d bytes)." % len(mbr_data))
       self.SendReply(rdfvalue.RDFBytes(mbr_data))
 
 

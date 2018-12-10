@@ -352,24 +352,24 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         vfs_path=self.aff4_file_path,
         timestamp=rdfvalue.RDFDatetime.Now())
 
+    args = model_args.Copy()
+    args.hunt_id = None
     with self.assertRaises(ValueError):
-      args = model_args.Copy()
-      args.hunt_id = None
       self.handler.Handle(args)
 
+    args = model_args.Copy()
+    args.client_id = None
     with self.assertRaises(ValueError):
-      args = model_args.Copy()
-      args.client_id = None
       self.handler.Handle(args)
 
+    args = model_args.Copy()
+    args.vfs_path = None
     with self.assertRaises(ValueError):
-      args = model_args.Copy()
-      args.vfs_path = None
       self.handler.Handle(args)
 
+    args = model_args.Copy()
+    args.timestamp = None
     with self.assertRaises(ValueError):
-      args = model_args.Copy()
-      args.timestamp = None
       self.handler.Handle(args)
 
   def testRaisesIfVfsRootIsNotWhitelisted(self):
@@ -601,24 +601,24 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(before, after)
 
   def testRaisesIfStateIsSetToNotStartedOrStopped(self):
+    self.args.state = "COMPLETED"
     with self.assertRaises(hunt_plugin.InvalidHuntStateError):
-      self.args.state = "COMPLETED"
       self.handler.Handle(self.args, token=self.token)
 
   def testRaisesWhenStartingHuntInTheWrongState(self):
     self.hunt.Run()
     self.hunt.Stop()
 
+    self.args.state = "STARTED"
     with self.assertRaises(hunt_plugin.HuntNotStartableError):
-      self.args.state = "STARTED"
       self.handler.Handle(self.args, token=self.token)
 
   def testRaisesWhenStoppingHuntInTheWrongState(self):
     self.hunt.Run()
     self.hunt.Stop()
 
+    self.args.state = "STOPPED"
     with self.assertRaises(hunt_plugin.HuntNotStoppableError):
-      self.args.state = "STOPPED"
       self.handler.Handle(self.args, token=self.token)
 
   def testStartsHuntCorrectly(self):
@@ -638,8 +638,8 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testRaisesWhenModifyingHuntInNonPausedState(self):
     self.hunt.Run()
 
+    self.args.client_rate = 100
     with self.assertRaises(hunt_plugin.HuntNotModifiableError):
-      self.args.client_rate = 100
       self.handler.Handle(self.args, token=self.token)
 
   def testModifiesHuntCorrectly(self):
@@ -657,9 +657,9 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
   def testDoesNotModifyHuntIfStateChangeFails(self):
+    self.args.client_limit = 42
+    self.args.state = "COMPLETED"
     with self.assertRaises(hunt_plugin.InvalidHuntStateError):
-      self.args.client_limit = 42
-      self.args.state = "COMPLETED"
       self.handler.Handle(self.args, token=self.token)
 
     after = hunt_plugin.ApiHunt().InitFromAff4Object(

@@ -71,19 +71,13 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         token=self.token)
 
-    if data_store.RelationalDBFlowsEnabled():
-      results = [
-          r.payload for r in data_store.REL_DB.ReadFlowResults(
-              self.client_id.Basename(), flow_id, 0, 100)
-      ]
-    else:
-      results = list(flow.GRRFlow.ResultCollectionForFID(flow_id))
-
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 1)
-    stat_entry = results[0]
-    aff4_path = stat_entry.pathspec.AFF4Path(self.client_id)
-    fd = aff4.FACTORY.Open(aff4_path, token=self.token)
-    self.assertEqual(fd.Read("10"), b"\xff" * 10)
+    if data_store.AFF4Enabled():
+      stat_entry = results[0]
+      aff4_path = stat_entry.pathspec.AFF4Path(self.client_id)
+      fd = aff4.FACTORY.Open(aff4_path, token=self.token)
+      self.assertEqual(fd.Read("10"), b"\xff" * 10)
 
   def testUnknownChipset(self):
     """Fail to dump flash of unknown chipset."""

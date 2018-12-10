@@ -21,9 +21,9 @@ class JavascriptErrorTest(gui_test_lib.GRRSeleniumTest):
     # Things are guaranteed to stop working correctly after this.
     self.GetJavaScriptValue("window.angular = undefined;")
 
+    self.Click("client_query_submit")
     with self.assertRaisesRegexp(self.failureException,
                                  "Javascript error encountered"):
-      self.Click("client_query_submit")
       self.WaitUntil(self.IsElementPresent, "css=grr-clients-list")
 
     # The page has some tickers running that also use Angular so there

@@ -67,3 +67,12 @@ def GetUrnHashEntry(urn, token=None):
   else:
     with aff4.FACTORY.Open(urn, token=token) as fd:
       return GetFileHashEntry(fd)
+
+
+def GetClientKnowledgeBase(client_id, token=None):
+  if data_store.RelationalDBReadEnabled():
+    client = data_store.REL_DB.ReadClientSnapshot(client_id)
+    return client.knowledge_base
+  else:
+    client = aff4.FACTORY.Open(client_id, token=token)
+    return client.Get(client.Schema.KNOWLEDGE_BASE)

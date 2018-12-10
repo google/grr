@@ -60,28 +60,33 @@ class GetMBRFlowTest(flow_test_lib.FlowTestsBaseclass):
   def testGetMBR(self):
     """Test that the GetMBR flow works."""
 
-    flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         transfer.GetMBR.__name__,
         ClientMock(self.mbr),
         token=self.token,
         client_id=self.client_id)
 
-    fd = aff4.FACTORY.Open(self.client_id.Add("mbr"), token=self.token)
-    self.assertEqual(fd.Read(4096), self.mbr)
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0], self.mbr)
+
+    if data_store.AFF4Enabled():
+      fd = aff4.FACTORY.Open(self.client_id.Add("mbr"), token=self.token)
+      self.assertEqual(fd.Read(4096), self.mbr)
 
   def _RunAndCheck(self, chunk_size, download_length):
 
     with utils.Stubber(constants, "CLIENT_MAX_BUFFER_SIZE", chunk_size):
-      flow_test_lib.TestFlowHelper(
+      flow_id = flow_test_lib.TestFlowHelper(
           transfer.GetMBR.__name__,
           ClientMock(self.mbr),
           token=self.token,
           client_id=self.client_id,
           length=download_length)
 
-      fd = aff4.FACTORY.Open(self.client_id.Add("mbr"), token=self.token)
-      self.assertEqual(fd.Read(download_length), self.mbr[:download_length])
-      aff4.FACTORY.Delete(fd.urn, token=self.token)
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0], self.mbr[:download_length])
 
   def testGetMBRChunked(self):
 
@@ -92,11 +97,6 @@ class GetMBRFlowTest(flow_test_lib.FlowTestsBaseclass):
     # Not a multiple of the chunk size.
     download_length = 15 * chunk_size + chunk_size // 2
     self._RunAndCheck(chunk_size, download_length)
-
-
-class GetMBRRelationalFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                               GetMBRFlowTest):
-  pass
 
 
 class CompareFDsMixin(object):

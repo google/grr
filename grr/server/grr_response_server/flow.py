@@ -705,6 +705,7 @@ class GRRFlow(FlowBase):
     super(GRRFlow, self).Initialize()
     self._client_version = None
     self._client_os = None
+    self._client_knowledge_base = None
 
     if "r" in self.mode:
       state = self.Get(self.Schema.FLOW_STATE_DICT)
@@ -819,6 +820,13 @@ class GRRFlow(FlowBase):
           self.client_id, token=self.token)
 
     return self._client_os
+
+  @property
+  def client_knowledge_base(self):
+    if self._client_knowledge_base is None:
+      self._client_knowledge_base = data_store_utils.GetClientKnowledgeBase(
+          self.client_id, token=self.token)
+    return self._client_knowledge_base
 
   def Name(self):
     return self.__class__.__name__

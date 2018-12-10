@@ -64,8 +64,8 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
     return self._condition_handlers
 
   def _ConditionWeight(self, condition_options):
-    _, condition_weight = self._GetConditionHandlers()[condition_options
-                                                       .condition_type]
+    _, condition_weight = self._GetConditionHandlers()[
+        condition_options.condition_type]
     return condition_weight
 
   def Start(self):
@@ -117,6 +117,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""
     super(FileFinderMixin, self).GlobReportMatch(response)
+
     self.ApplyCondition(
         rdf_file_finder.FileFinderResult(stat_entry=response),
         condition_index=0)
@@ -229,8 +230,8 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
     else:
       # Apply the next condition handler.
       condition_options = self.state.sorted_conditions[condition_index]
-      condition_handler, _ = self._GetConditionHandlers()[condition_options
-                                                          .condition_type]
+      condition_handler, _ = self._GetConditionHandlers()[
+          condition_options.condition_type]
 
       condition_handler(response, condition_options, condition_index)
 
@@ -362,8 +363,8 @@ class ClientFileFinderMixin(object):
         server_stubs.FileFinderOS, request=self.args, next_state="StoreResults")
 
   def _InterpolatePaths(self, globs):
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    kb = client.Get(client.Schema.KNOWLEDGE_BASE)
+
+    kb = self.client_knowledge_base
 
     for glob in globs:
       param_path = glob.SerializeToString()
@@ -391,30 +392,29 @@ class ClientFileFinderMixin(object):
               response.stat_entry.pathspec.AFF4Path(self.client_urn))
 
     if files_to_publish:
-      events.Events.PublishMultipleEvents({
-          "LegacyFileStore.AddFileToStore": files_to_publish
-      })
+      events.Events.PublishMultipleEvents(
+          {"LegacyFileStore.AddFileToStore": files_to_publish})
 
   def _WriteFileContent(self, response, mutation_pool=None):
     """Writes file content to the db."""
     urn = response.stat_entry.pathspec.AFF4Path(self.client_urn)
 
-    filedesc = aff4.FACTORY.Create(
-        urn,
-        aff4_grr.VFSBlobImage,
-        token=self.token,
-        mutation_pool=mutation_pool)
+    if data_store.AFF4Enabled():
+      with aff4.FACTORY.Create(
+          urn,
+          aff4_grr.VFSBlobImage,
+          token=self.token,
+          mutation_pool=mutation_pool) as filedesc:
+        filedesc.SetChunksize(response.transferred_file.chunk_size)
+        filedesc.Set(filedesc.Schema.STAT, response.stat_entry)
 
-    with filedesc:
-      filedesc.SetChunksize(response.transferred_file.chunk_size)
-      filedesc.Set(filedesc.Schema.STAT, response.stat_entry)
+        chunks = sorted(
+            response.transferred_file.chunks, key=lambda _: _.offset)
+        for chunk in chunks:
+          filedesc.AddBlob(
+              rdf_objects.BlobID.FromBytes(chunk.digest), chunk.length)
 
-      chunks = sorted(response.transferred_file.chunks, key=lambda _: _.offset)
-      for chunk in chunks:
-        filedesc.AddBlob(
-            rdf_objects.BlobID.FromBytes(chunk.digest), chunk.length)
-
-      filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+        filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
     if data_store.RelationalDBWriteEnabled():
       path_info = rdf_objects.PathInfo.FromStatEntry(response.stat_entry)

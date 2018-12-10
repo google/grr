@@ -10,7 +10,6 @@ from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
 from grr_response_server import artifact
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -46,10 +45,7 @@ class CheckRunnerMixin(object):
 
   def Start(self):
     """Initialize the system check flow."""
-    self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.state.knowledge_base = self.client.Get(
-        self.client.Schema.KNOWLEDGE_BASE)
-    self.state.labels = list(self.client.GetLabels())
+    self.state.knowledge_base = self.client_knowledge_base
     self.state.artifacts_wanted = {}
     self.state.artifacts_fetched = set()
     self.state.checks_run = []

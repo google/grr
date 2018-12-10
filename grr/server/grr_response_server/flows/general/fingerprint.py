@@ -84,10 +84,12 @@ class FingerprintFileLogic(object):
 
     self.state.urn = pathspec.AFF4Path(self.client_urn)
 
-    with aff4.FACTORY.Create(
-        self.state.urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
-      hash_obj = response.hash
-      fd.Set(fd.Schema.HASH, hash_obj)
+    hash_obj = response.hash
+
+    if data_store.AFF4Enabled():
+      with aff4.FACTORY.Create(
+          self.state.urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
+        fd.Set(fd.Schema.HASH, hash_obj)
 
     if data_store.RelationalDBWriteEnabled():
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)

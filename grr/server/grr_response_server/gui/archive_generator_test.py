@@ -158,7 +158,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         "test_prefix/%s/client_info.yaml" % self.client_id.Basename())
     manifest_name = "test_prefix/MANIFEST"
 
-    self.assertItemsEqual(
+    self.assertCountEqual(
         names, self.archive_paths + [client_info_name, manifest_name])
 
     contents = zip_fd.read(self.archive_paths[0])

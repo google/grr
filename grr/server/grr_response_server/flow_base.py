@@ -100,6 +100,10 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
     self._state = None
 
+    self._client_version = None
+    self._client_os = None
+    self._client_knowledge_base = None
+
   def Start(self):
     """The first state of the flow."""
 
@@ -706,21 +710,25 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
   @property
   def client_version(self):
-    try:
-      return self._client_version
-    except AttributeError:
+    if self._client_version is None:
       self._client_version = data_store_utils.GetClientVersion(self.client_id)
 
     return self._client_version
 
   @property
   def client_os(self):
-    try:
-      return self._client_os
-    except AttributeError:
+    if self._client_os is None:
       self._client_os = data_store_utils.GetClientOs(self.client_id)
 
     return self._client_os
+
+  @property
+  def client_knowledge_base(self):
+    if self._client_knowledge_base is None:
+      self._client_knowledge_base = data_store_utils.GetClientKnowledgeBase(
+          self.client_id)
+
+    return self._client_knowledge_base
 
   @property
   def creator(self):

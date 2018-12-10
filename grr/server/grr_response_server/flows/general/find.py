@@ -87,27 +87,28 @@ class FindFilesMixin(object):
 
     with data_store.DB.GetMutationPool() as pool:
       for response in responses:
-        # Create the file in the VFS
-        vfs_urn = response.hit.pathspec.AFF4Path(self.client_urn)
+        if data_store.AFF4Enabled():
+          # Create the file in the VFS
+          vfs_urn = response.hit.pathspec.AFF4Path(self.client_urn)
 
-        if stat.S_ISDIR(response.hit.st_mode):
-          fd = aff4.FACTORY.Create(
-              vfs_urn,
-              standard.VFSDirectory,
-              mutation_pool=pool,
-              token=self.token)
-        else:
-          fd = aff4.FACTORY.Create(
-              vfs_urn, aff4_grr.VFSFile, mutation_pool=pool, token=self.token)
+          if stat.S_ISDIR(response.hit.st_mode):
+            fd = aff4.FACTORY.Create(
+                vfs_urn,
+                standard.VFSDirectory,
+                mutation_pool=pool,
+                token=self.token)
+          else:
+            fd = aff4.FACTORY.Create(
+                vfs_urn, aff4_grr.VFSFile, mutation_pool=pool, token=self.token)
 
-        with fd:
-          stat_response = fd.Schema.STAT(response.hit)
-          fd.Set(stat_response)
-          fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
+          with fd:
+            stat_response = fd.Schema.STAT(response.hit)
+            fd.Set(stat_response)
+            fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
 
         if data_store.RelationalDBWriteEnabled():
           path_info = rdf_objects.PathInfo.FromStatEntry(response.hit)
           data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
         # Send the stat to the parent flow.
-        self.SendReply(stat_response)
+        self.SendReply(response.hit)

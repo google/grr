@@ -79,7 +79,7 @@ class DumpFlashImageMixin(object):
     # Writing files (or symlinks) into random places is not supported anymore in
     # the relational db schema. We are going to replace this with annotations
     # for collected temp files soon.
-    if not data_store.RelationalDBReadEnabled():
+    if data_store.AFF4Enabled():
       # Update the symbolic link to the new instance.
       with aff4.FACTORY.Create(
           self.client_urn.Add("spiflash"), aff4.AFF4Symlink,

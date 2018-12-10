@@ -20,6 +20,9 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import rdf_yara
 from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import yara_flows
 from grr.test_lib import action_mocks
@@ -378,6 +381,16 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           token=self.token)
     return flow_test_lib.GetFlowResults(self.client_id.Basename(), session_id)
 
+  def _ReadFromPathspec(self, pathspec, num_bytes):
+    if data_store.AFF4Enabled():
+      image = aff4.FACTORY.Open(
+          pathspec.AFF4Path(self.client_id), aff4_grr.VFSBlobImage)
+      return image.read(num_bytes)
+    else:
+      fd = file_store.OpenFile(
+          db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec))
+      return fd.read(num_bytes)
+
   def testYaraProcessDump(self):
     results = self._RunProcessDump()
 
@@ -386,9 +399,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
       if isinstance(result, rdf_client_fs.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
 
-        image = aff4.FACTORY.Open(
-            result.pathspec.AFF4Path(self.client_id), aff4_grr.VFSBlobImage)
-        data = image.read(1000)
+        data = self._ReadFromPathspec(result.pathspec, 1000)
 
         self.assertIn(data,
                       [GeneratePattern(b"A", 100),
@@ -412,9 +423,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
       if isinstance(result, rdf_client_fs.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
 
-        image = aff4.FACTORY.Open(
-            result.pathspec.AFF4Path(self.client_id), aff4_grr.VFSBlobImage)
-        data = image.read(1000)
+        data = self._ReadFromPathspec(result.pathspec, 1000)
 
         self.assertIn(data,
                       [GeneratePattern(b"A", 100),
@@ -436,9 +445,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
       if isinstance(result, rdf_client_fs.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
 
-        image = aff4.FACTORY.Open(
-            result.pathspec.AFF4Path(self.client_id), aff4_grr.VFSBlobImage)
-        data = image.read(1000)
+        data = self._ReadFromPathspec(result.pathspec, 1000)
 
         self.assertEqual(data, GeneratePattern(b"A", 100))
       elif isinstance(result, rdf_yara.YaraProcessDumpResponse):

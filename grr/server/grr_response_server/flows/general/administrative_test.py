@@ -760,6 +760,41 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
 
     self._CheckNannyEmail(client_id, nanny_message, email_dict)
 
+  def testNannyMessageHandlerForUnknownClient(self):
+    client_id = "C.1000000000000000"
+    nanny_message = "Oh no!"
+    email_dict = {}
+
+    def SendEmail(address, sender, title, message, **_):
+      email_dict.update(
+          dict(address=address, sender=sender, title=title, message=message))
+
+    with test_lib.ConfigOverrider({
+        "Database.useForReads": True,
+        "Database.useForReads.message_handlers": True
+    }):
+      with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+        flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
+            rdf_flows.GrrMessage(
+                source=client_id,
+                session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
+                payload=rdf_protodict.DataBlob(string=nanny_message),
+                request_id=0,
+                auth_state="AUTHENTICATED",
+                response_id=123))
+
+    # We expect the email to be sent.
+    self.assertEqual(
+        email_dict.get("address"), config.CONFIG["Monitoring.alert_email"])
+
+    # Make sure the message is included in the email message.
+    self.assertIn(nanny_message, email_dict["message"])
+
+    if data_store.RelationalDBReadEnabled():
+      self.assertIn(client_id, email_dict["title"])
+    else:
+      self.assertIn(client_id.Basename(), email_dict["title"])
+
   def testClientAlertHandler(self):
     client_id = self.SetupClient(0).Basename()
     client_message = "Oh no!"

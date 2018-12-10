@@ -726,11 +726,15 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
     """Processes this event."""
     logging.info(self.logline, client_id, message)
 
+    client_info = None
+    hostname = None
+
     # Write crash data.
     if data_store.RelationalDBReadEnabled():
       client = data_store.REL_DB.ReadClientSnapshot(client_id)
-      client_info = client.startup_info.client_info
-      hostname = client.knowledge_base.fqdn
+      if client is not None:
+        client_info = client.startup_info.client_info
+        hostname = client.knowledge_base.fqdn
     else:
       client = aff4.FACTORY.Open(client_id, token=self.token)
       client_info = client.Get(client.Schema.CLIENT_INFO)

@@ -103,19 +103,19 @@ class AssertDictTypeTest(absltest.TestCase):
     precondition.AssertDictType(dct, int, str)
 
   def testNotADictIncorrect(self):
+    dct = [(1, "foo"), (2, "bar"), (3, "baz")]
     with self.assertRaises(TypeError):
-      dct = [(1, "foo"), (2, "bar"), (3, "baz")]
       precondition.AssertDictType(dct, int, str)
 
   def testWrongKeyType(self):
+    dct = {"foo": 1, b"bar": 2, "baz": 3}
     with self.assertRaises(TypeError):
-      dct = {"foo": 1, b"bar": 2, "baz": 3}
-      precondition.AssertDictType(dct, str)
+      precondition.AssertDictType(dct, str, int)
 
   def testWrongValueType(self):
+    dct = {"foo": 1, "bar": 2, "baz": 3.14}
     with self.assertRaises(TypeError):
-      dct = {"foo": 1, "bar": 2, "baz": 3.14}
-      precondition.AssertDictType(dct, str)
+      precondition.AssertDictType(dct, str, int)
 
 
 if __name__ == "__main__":
