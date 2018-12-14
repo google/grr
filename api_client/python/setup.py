@@ -78,7 +78,7 @@ setup_args = dict(
         "cryptography==2.3",
         "ipython==5.0.0",
         "protobuf==3.3.0",
-        "requests==2.20.0",
+        "requests==2.21.0",
         "Werkzeug==0.11.3",
     ],
     data=["version.ini"])
