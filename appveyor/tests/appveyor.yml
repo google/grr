@@ -27,7 +27,13 @@ install:
   fi
 - travis/install_protobuf.sh linux
 - virtualenv "${GRR_VENV}"
-- ${GRR_VENV}/bin/pip install pytest-xdist
+# Install a version of pytest-xdist that is known to be stable.
+# Version 1.25.0 fails with
+# "PluginValidationError: Plugin 'xdist.looponfail' could not be loaded"
+# when trying to run tests.
+# TODO(ogaro): Stop hard-coding the version when the newest version starts
+# working.
+- ${GRR_VENV}/bin/pip install pytest-xdist==1.24.0
 - travis/install.sh
 
 # Appveyor will try to build any Visual Studio projects it finds
