@@ -128,7 +128,7 @@ setup_args = dict(
         "binplist==0.1.4",
         "configparser==3.5.0",
         "cryptography==2.3",
-        "fleetspeak==0.0.7",
+        "fleetspeak==0.1.1",
         "future==0.16.0",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
