@@ -121,6 +121,16 @@ class ArtifactCollectorFlowMixin(object):
     # In all other cases start the collection state.
     self.CallState(next_state="StartCollection")
 
+  def _GetArtifactFromName(self, name):
+    """Gets an artifact from the registry, refreshing the registry if needed."""
+    try:
+      return artifact_registry.REGISTRY.GetArtifact(name)
+    except artifact_registry.ArtifactNotRegisteredError:
+      # If we don't have an artifact, things shouldn't have passed validation
+      # so we assume it's a new one in the datastore.
+      artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
+      return artifact_registry.REGISTRY.GetArtifact(name)
+
   def StartCollection(self, responses):
     """Start collecting."""
     if not responses.success:
@@ -132,7 +142,7 @@ class ArtifactCollectorFlowMixin(object):
           self.client_id, allow_uninitialized=True, token=self.token)
 
     for artifact_name in self.args.artifact_list:
-      artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
+      artifact_obj = self._GetArtifactFromName(artifact_name)
 
       # Ensure artifact has been written sanely. Note that this could be
       # removed if it turns out to be expensive. Artifact tests should catch
