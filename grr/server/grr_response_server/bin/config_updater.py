@@ -27,6 +27,7 @@ from grr_response_server import artifact_registry
 from grr_response_server import maintenance_utils
 from grr_response_server import rekall_profile_server
 from grr_response_server import server_startup
+from grr_response_server.bin import config_updater_keys_util
 from grr_response_server.bin import config_updater_util
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -207,6 +208,7 @@ def _ExtendWithUploadSignedArgs(upload_signed_parser):
       "uploaded binary will be 'windows/test/hello.exe', relative to "
       "the root path for executables.")
 
+
 # Upload parsers.
 
 parser_upload_artifact = subparsers.add_parser(
@@ -290,7 +292,7 @@ def main(argv):
 
   if flags.FLAGS.subparser_name == "generate_keys":
     try:
-      config_updater_util.GenerateKeys(
+      config_updater_keys_util.GenerateKeys(
           grr_config.CONFIG, overwrite_keys=flags.FLAGS.overwrite_keys)
     except RuntimeError as e:
       # GenerateKeys will raise if keys exist and overwrite_keys is not set.
