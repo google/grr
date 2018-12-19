@@ -47,7 +47,13 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
     return urn.Basename()
 
   def _NormalizeKeyword(self, keyword):
-    return keyword.lower()
+    # We're not sure about the type here, so converting the string to
+    # unicode first to lower it properly and then converting it back
+    # to utf-8 bytestring, since it's what the rest of the code is
+    # expecting.
+    # TODO(user): deprecate this code and make sure that ClientIndex
+    # implementation below doesn't rely on such hacks.
+    return utils.SmartStr(utils.SmartUnicode(keyword).lower())
 
   def _AnalyzeKeywords(self, keywords):
     start_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("180d")
@@ -140,6 +146,7 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
 
     Args:
       keywords: A list of keywords we are interested in.
+
     Returns:
       A dict mapping each keyword to a list of matching clients.
     """
@@ -180,7 +187,7 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
         keyword_string = self._NormalizeKeyword(utils.SmartStr(keyword))
         keywords.append(keyword_string)
         if prefix:
-          keywords.append(prefix + ":" + keyword_string)
+          keywords.append(utils.SmartStr(prefix) + b":" + keyword_string)
 
     def TryAppendPrefixes(prefix, keyword, delimiter):
       TryAppend(prefix, keyword)
@@ -294,6 +301,7 @@ def GetClientURNsForHostnames(hostnames, token=None):
   Args:
     hostnames: A list of hostnames / FQDNs.
     token: An ACL token.
+
   Returns:
     A dict with a list of all known GRR client_ids for each hostname.
   """
@@ -396,6 +404,7 @@ class ClientIndex(object):
 
     Args:
       keywords: A list of keywords we are interested in.
+
     Returns:
       A dict mapping each keyword to a list of matching clients.
     """

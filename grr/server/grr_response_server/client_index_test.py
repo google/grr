@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests for grr.lib.client_index."""
 from __future__ import absolute_import
 from __future__ import division
@@ -41,10 +42,12 @@ class AFF4ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
         client.Schema.CLIENT_INFO(
             client_name="grr monitor", labels=["client-label-23"]))
     kb = rdf_client.KnowledgeBase()
+    # Using cyrillic characters to make sure non-latin username and fullname
+    # works fine.
     kb.users.Append(
         rdf_client.User(
-            username="Bert",
-            full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson"))
+            username="ЛевТолстой",
+            full_name="Лев (граф ) 'Николаевич' \"Толстой\" ЛНТ"))
     kb.users.Append(
         rdf_client.User(username="Ernie", full_name="Steve O'Bryan"))
     client.Set(client.Schema.KNOWLEDGE_BASE(kb))
@@ -54,23 +57,23 @@ class AFF4ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     self.assertNotIn("", keywords)
 
     # OS of the client
-    self.assertIn("windows", keywords)
+    self.assertIn(b"windows", keywords)
 
     # Users of the client.
-    self.assertIn("bert", keywords)
-    self.assertIn("bertrand", keywords)
+    self.assertIn(b"левтолстой", keywords)
+    self.assertIn(b"граф", keywords)
     self.assertNotIn(")", keywords)
-    self.assertIn("russell", keywords)
-    self.assertIn("logician", keywords)
-    self.assertIn("ernie", keywords)
-    self.assertIn("eric", keywords)
-    self.assertIn("jacobson", keywords)
-    self.assertIn("steve o'bryan", keywords)
-    self.assertIn("o'bryan", keywords)
+    self.assertIn(b"николаевич", keywords)
+    self.assertIn(b"толстой", keywords)
+    self.assertIn(b"ernie", keywords)
+    self.assertIn(b"лев", keywords)
+    self.assertIn(b"лнт", keywords)
+    self.assertIn(b"steve o'bryan", keywords)
+    self.assertIn(b"o'bryan", keywords)
 
     # Client information.
-    self.assertIn("grr monitor", keywords)
-    self.assertIn("client-label-23", keywords)
+    self.assertIn(b"grr monitor", keywords)
+    self.assertIn(b"client-label-23", keywords)
 
   def testAddLookupClients(self):
     index = client_index.CreateClientIndex(token=self.token)
