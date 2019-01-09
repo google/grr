@@ -69,11 +69,11 @@ class ServerCommunicator(communicator.Communicator):
     cert = client.Get(client.Schema.CERT)
     if not cert:
       stats_collector_instance.Get().IncrementCounter("grr_unique_clients")
-      raise communicator.UnknownClientCert("Cert not found")
+      raise communicator.UnknownClientCertError("Cert not found")
 
     if rdfvalue.RDFURN(cert.GetCN()) != rdfvalue.RDFURN(common_name):
       logging.error("Stored cert mismatch for %s", common_name)
-      raise communicator.UnknownClientCert("Stored cert mismatch")
+      raise communicator.UnknownClientCertError("Stored cert mismatch")
 
     self.client_cache.Put(common_name, client)
     stats_collector_instance.Get().SetGaugeValue(
@@ -186,7 +186,7 @@ class ServerCommunicator(communicator.Communicator):
           except db.UnknownClientError:
             pass
 
-    except communicator.UnknownClientCert:
+    except communicator.UnknownClientCertError:
       pass
 
     return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
@@ -217,12 +217,12 @@ class RelationalServerCommunicator(communicator.Communicator):
       md = data_store.REL_DB.ReadClientMetadata(remote_client_id)
     except db.UnknownClientError:
       stats_collector_instance.Get().IncrementCounter("grr_unique_clients")
-      raise communicator.UnknownClientCert("Cert not found")
+      raise communicator.UnknownClientCertError("Cert not found")
 
     cert = md.certificate
     if rdfvalue.RDFURN(cert.GetCN()) != rdfvalue.RDFURN(common_name):
       logging.error("Stored cert mismatch for %s", common_name)
-      raise communicator.UnknownClientCert("Stored cert mismatch")
+      raise communicator.UnknownClientCertError("Stored cert mismatch")
 
     pub_key = cert.GetPublicKey()
     self.pub_key_cache.Put(common_name, pub_key)
@@ -307,7 +307,7 @@ class RelationalServerCommunicator(communicator.Communicator):
           last_ping=rdfvalue.RDFDatetime.Now(),
           fleetspeak_enabled=False)
 
-    except communicator.UnknownClientCert:
+    except communicator.UnknownClientCertError:
       pass
 
     return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED

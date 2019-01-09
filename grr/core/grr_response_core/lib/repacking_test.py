@@ -10,6 +10,7 @@ import os
 import shutil
 import zipfile
 
+
 import yaml
 
 from grr_response_core import config
@@ -69,8 +70,9 @@ class RepackingTests(test_lib.GRRBaseTest):
       loaded.pop("Config.includes")
 
       packaged_config = config.CONFIG.MakeNewConfig()
+      data = yaml.safe_dump(loaded)
       packaged_config.Initialize(
-          parser=config_lib.YamlParser, data=yaml.safe_dump(loaded))
+          parser=config_lib.YamlParser, data=data.decode("utf-8"))
       packaged_config.Validate(sections=build.ClientRepacker.CONFIG_SECTIONS)
       repacker = build.ClientRepacker()
       repacker.ValidateEndConfig(packaged_config)

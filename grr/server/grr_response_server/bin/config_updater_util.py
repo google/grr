@@ -191,13 +191,34 @@ def CheckMySQLConnection(db_options):
   """
   for tries_left in range(_MYSQL_MAX_RETRIES, -1, -1):
     try:
-      MySQLdb.connect(
+      connection_options = dict(
           host=db_options["Mysql.host"],
           port=db_options["Mysql.port"],
           db=db_options["Mysql.database_name"],
           user=db_options["Mysql.database_username"],
           passwd=db_options["Mysql.database_password"],
           charset="utf8")
+
+      ssl_enabled = "Mysql.client_key_path" in db_options
+      if ssl_enabled:
+        connection_options["ssl"] = {
+            "key": db_options["Mysql.client_key_path"],
+            "cert": db_options["Mysql.client_cert_path"],
+            "ca": db_options["Mysql.ca_cert_path"],
+        }
+
+      connection = MySQLdb.connect(**connection_options)
+
+      if ssl_enabled:
+        cursor = connection.cursor()
+        cursor.execute("SHOW VARIABLES LIKE 'have_ssl'")
+        res = cursor.fetchone()
+        if res[0] == "have_ssl" and res[1] == "YES":
+          print("SSL enabled successfully.")
+        else:
+          print("Unable to establish SSL connection to MySQL.")
+          return False
+
       return True
     except MySQLdb.OperationalError as mysql_op_error:
       if len(mysql_op_error.args) < 2:
@@ -258,6 +279,18 @@ def ConfigureMySQLDatastore(config):
         db_options["Mysql.database_username"])
     # pytype: enable=wrong-arg-types
 
+    use_ssl = RetryBoolQuestion("Configure SSL connections for MySQL?", False)
+    if use_ssl:
+      db_options["Mysql.client_key_path"] = RetryQuestion(
+          "Path to the client private key file",
+          default_val=config["Mysql.client_key_path"])
+      db_options["Mysql.client_cert_path"] = RetryQuestion(
+          "Path to the client certificate file",
+          default_val=config["Mysql.client_cert_path"])
+      db_options["Mysql.ca_cert_path"] = RetryQuestion(
+          "Path to the CA certificate file",
+          default_val=config["Mysql.ca_cert_path"])
+
     if CheckMySQLConnection(db_options):
       print("Successfully connected to MySQL with the provided details.")
       datastore_init_complete = True
@@ -306,6 +339,14 @@ def ConfigureDatastore(config):
            grr_config.CONFIG.Get("Mysql.port"),
            grr_config.CONFIG.Get("Mysql.database_name"),
            grr_config.CONFIG.Get("Mysql.database_username")))
+    if grr_config.CONFIG.Get("Mysql.client_key_path"):
+      print("  MySQL client key file: %s\n"
+            "  MySQL client cert file: %s\n"
+            "  MySQL ca cert file: %s\n" %
+            (grr_config.CONFIG.Get("Mysql.client_key_path"),
+             grr_config.CONFIG.Get("Mysql.client_cert_path"),
+             grr_config.CONFIG.Get("Mysql.ca_cert_path")))
+
     if not RetryBoolQuestion("Do you want to keep this configuration?", True):
       ConfigureMySQLDatastore(config)
 
@@ -509,6 +550,9 @@ def InitializeNoPrompt(config=None,
                        mysql_username = None,
                        mysql_password = None,
                        mysql_db = None,
+                       mysql_client_key_path = None,
+                       mysql_client_cert_path = None,
+                       mysql_ca_cert_path = None,
                        redownload_templates = False,
                        repack_templates = True,
                        token = None):
@@ -523,6 +567,9 @@ def InitializeNoPrompt(config=None,
     mysql_username: A username used for establishing connection to MySQL.
     mysql_password: A password used for establishing connection to MySQL.
     mysql_db: Name of the MySQL database to use.
+    mysql_client_key_path: The path name of the client private key file.
+    mysql_client_cert_path: The path name of the client public key certificate.
+    mysql_ca_cert_path: The path name of the CA certificate file.
     redownload_templates: Indicates whether templates should be re-downloaded.
     repack_templates: Indicates whether templates should be re-packed.
     token: auth token
@@ -572,6 +619,12 @@ def InitializeNoPrompt(config=None,
   # Print all configuration options, except for the MySQL password.
   print("Setting configuration as:\n\n%s" % config_dict)
   config_dict["Mysql.database_password"] = mysql_password
+
+  if mysql_client_key_path is not None:
+    config_dict["Mysql.client_key_path"] = mysql_client_key_path
+    config_dict["Mysql.client_cert_path"] = mysql_client_cert_path
+    config_dict["Mysql.ca_cert_path"] = mysql_ca_cert_path
+
   if CheckMySQLConnection(config_dict):
     print("Successfully connected to MySQL with the given configuration.")
   else:

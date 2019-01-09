@@ -147,6 +147,18 @@ parser_initialize.add_argument(
     help="Password for GRR MySQL database user (only applies if --noprompt is "
     "set).")
 
+parser_initialize.add_argument(
+    "--mysql_client_key_path",
+    help="The path name of the client private key file.")
+
+parser_initialize.add_argument(
+    "--mysql_client_cert_path",
+    help="The path name of the client public key certificate file.")
+
+parser_initialize.add_argument(
+    "--mysql_ca_cert_path",
+    help="The path name of the Certificate Authority (CA) certificate file.")
+
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
@@ -276,6 +288,9 @@ def main(args):
           mysql_username=args.mysql_username,
           mysql_password=args.mysql_password,
           mysql_db=args.mysql_db,
+          mysql_client_key_path=args.mysql_client_key_path,
+          mysql_client_cert_path=args.mysql_client_cert_path,
+          mysql_ca_cert_path=args.mysql_ca_cert_path,
           redownload_templates=args.redownload_templates,
           repack_templates=not args.norepack_templates,
           token=token)

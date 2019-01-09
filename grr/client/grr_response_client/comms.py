@@ -1401,5 +1401,5 @@ class ClientCommunicator(communicator.Communicator):
     if common_name == self.server_name:
       return self.server_public_key
 
-    raise communicator.UnknownClientCert(
+    raise communicator.UnknownClientCertError(
         "Client wants to talk to %s, not %s" % (common_name, self.server_name))

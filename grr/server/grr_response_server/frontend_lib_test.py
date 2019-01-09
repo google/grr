@@ -954,7 +954,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
           api_version=self.client_communication.api_version)
 
       return MakeResponse(200, response_comms.SerializeToString())
-    except communicator.UnknownClientCert:
+    except communicator.UnknownClientCertError:
       raise MakeHTTPException(406)
     except Exception as e:
       logging.info("Exception in mock urllib.request.Open: %s.", e)

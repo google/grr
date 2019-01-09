@@ -5,11 +5,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_server.databases import mem
+from grr_response_server.databases import mysql
 
 # All available databases go into this registry.
 REGISTRY = {}
 
 REGISTRY["InMemoryDB"] = mem.InMemoryDB
 
-# TODO(amoser): Import MySQL relational here.
+REGISTRY["MysqlDB"] = mysql.MysqlDB
 

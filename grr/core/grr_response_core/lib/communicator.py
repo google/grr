@@ -21,9 +21,8 @@ from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_utils
 
 
-# TODO(user): Move this to server_metrics.py after server and client
-# Communicators have been decoupled. These metrics should not be tracked on
-# the client.
+# Although these metrics are never queried on the client, removing them from the
+# client code seems not worth the effort.
 def GetMetricMetadata():
   """Returns a list of MetricMetadata for communicator-related metrics."""
   return [
@@ -53,7 +52,7 @@ class DecryptionError(DecodingError):
   counter = "grr_decryption_error"
 
 
-class UnknownClientCert(DecodingError):
+class UnknownClientCertError(DecodingError):
   """Raised when the client key is not retrieved."""
   counter = "grr_client_unknown"
 
@@ -496,7 +495,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
                                           cipher)
           cipher_verified = True
 
-      except UnknownClientCert:
+      except UnknownClientCertError:
         # We don't know who we are talking to.
         remote_public_key = None
 

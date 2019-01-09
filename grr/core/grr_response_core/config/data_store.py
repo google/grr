@@ -190,6 +190,28 @@ config_lib.DEFINE_integer(
     10,
     help="Maximum number of retries (happens in case a query fails).")
 
+config_lib.DEFINE_string(
+    "Mysql.rel_db_name", default="grr_db", help="Name of the database to use.")
+
+# Support for MySQL SSL connections.
+
+config_lib.DEFINE_string(
+    "Mysql.client_key_path",
+    default="",
+    help="The path name of the client private key file.")
+
+config_lib.DEFINE_string(
+    "Mysql.client_cert_path",
+    default="",
+    help="The path name of the client public key certificate file.")
+
+config_lib.DEFINE_string(
+    "Mysql.ca_cert_path",
+    default="",
+    help="The path name of the Certificate Authority (CA) certificate file. "
+    "This option, if used, must specify the same certificate used by the "
+    "server.")
+
 # CloudBigTable data store.
 config_lib.DEFINE_string(
     "CloudBigtable.project_id",

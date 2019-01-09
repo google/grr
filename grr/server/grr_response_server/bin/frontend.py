@@ -263,7 +263,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
 
       self.Send(responses_comms.SerializeToString())
 
-    except communicator.UnknownClientCert:
+    except communicator.UnknownClientCertError:
       # "406 Not Acceptable: The server can only generate a response that is not
       # accepted by the client". This is because we can not encrypt for the
       # client appropriately.
