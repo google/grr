@@ -46,4 +46,4 @@ test_script:
 # https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
 # which happen when tests stall.
 - pytest -n 3 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/
-- (cd grr/server/grr_response_server/gui/static/ && npm run gulp test)
+- if [ $(google-chrome --version | grep -Eo " [0-9]{1,3}") != "71" ]; then (cd grr/server/grr_response_server/gui/static/ && npm run gulp test); fi
