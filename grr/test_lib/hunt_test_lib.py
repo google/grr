@@ -2,6 +2,7 @@
 """Classes for hunt-related testing."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import hashlib
 import time
@@ -14,6 +15,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -38,7 +40,7 @@ class SampleHuntMock(action_mocks.ActionMock):
 
   def __init__(self,
                failrate=2,
-               data="Hello World!",
+               data=b"Hello World!",
                user_cpu_time=None,
                system_cpu_time=None,
                network_bytes_sent=None):
@@ -141,8 +143,14 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
       worker_mock.Next() will be called iteration_limit number of times. Every
       iteration processes worker's message queue. If new messages are sent to
       the queue during the iteration processing, they will be processed on next
-      iteration,
+      iteration.
+
+  Returns:
+    A number of iterations complete.
   """
+
+  if token is None:
+    token = access_control.ACLToken(username="test")
 
   total_flows = set()
 
@@ -155,12 +163,13 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
       for client_id, client_mock in iteritems(client_mocks)
   ]
 
-  with flow_test_lib.TestWorker(token=True) as rel_db_worker:
+  num_iterations = 0
+  with flow_test_lib.TestWorker(threadpool_size=0, token=True) as rel_db_worker:
     worker_mock = worker_test_lib.MockWorker(
         check_flow_errors=check_flow_errors, token=token)
 
     # Run the clients and worker until nothing changes any more.
-    while iteration_limit is None or iteration_limit > 0:
+    while iteration_limit is None or num_iterations < iteration_limit:
       client_processed = 0
 
       for client_mock in client_mocks:
@@ -175,14 +184,15 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
       worker_processed = rel_db_worker.ResetProcessedFlows()
       flows_run.extend(worker_processed)
 
+      num_iterations += 1
+
       if client_processed == 0 and not flows_run:
         break
 
-      if iteration_limit:
-        iteration_limit -= 1
-
     if check_flow_errors:
       flow_test_lib.CheckFlowErrors(total_flows, token=token)
+
+  return num_iterations
 
 
 def TestHuntHelper(client_mock,
@@ -205,8 +215,11 @@ def TestHuntHelper(client_mock,
       iteration processes worker's message queue. If new messages are sent to
       the queue during the iteration processing, they will be processed on next
       iteration.
+
+  Returns:
+    A number of iterations complete.
   """
-  TestHuntHelperWithMultipleMocks(
+  return TestHuntHelperWithMultipleMocks(
       dict([(client_id, client_mock) for client_id in client_ids]),
       check_flow_errors=check_flow_errors,
       iteration_limit=iteration_limit,
@@ -288,7 +301,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
 
   def RunHunt(self, client_ids=None, iteration_limit=None, **mock_kwargs):
     client_mock = SampleHuntMock(**mock_kwargs)
-    TestHuntHelper(
+    return TestHuntHelper(
         client_mock,
         client_ids or self.client_ids,
         check_flow_errors=False,

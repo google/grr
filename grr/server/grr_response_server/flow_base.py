@@ -321,7 +321,12 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
       self.flow_responses.append(response)
     else:
-      reply = rdf_flow_objects.FlowResult(payload=response, tag=tag)
+      reply = rdf_flow_objects.FlowResult(
+          client_id=self.rdf_flow.client_id,
+          flow_id=self.rdf_flow.flow_id,
+          hunt_id=self.rdf_flow.parent_hunt_id,
+          payload=response,
+          tag=tag)
       self.replies_to_write.append(reply)
       self.replies_to_process.append(reply)
 
@@ -461,12 +466,14 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       format_str: Format string
       *args: arguments to the format string
     """
+    log_entry = rdf_flow_objects.FlowLogEntry(
+        client_id=self.rdf_flow.client_id,
+        flow_id=self.rdf_flow.flow_id,
+        hunt_id=self.rdf_flow.parent_hunt_id,
+        message=format_str % args)
+    data_store.REL_DB.WriteFlowLogEntries([log_entry])
     if self.rdf_flow.parent_hunt_id:
       db_compat.ProcessHuntFlowLog(self.rdf_flow, format_str % args)
-    else:
-      log_entry = rdf_flow_objects.FlowLogEntry(message=format_str % args)
-      data_store.REL_DB.WriteFlowLogEntries(self.rdf_flow.client_id,
-                                            self.rdf_flow.flow_id, [log_entry])
 
   def RunStateMethod(self, method_name, request=None, responses=None):
     """Completes the request by calling the state method.
@@ -519,7 +526,10 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
         method(responses)
 
       if self.replies_to_process:
-        self._ProcessRepliesWithOutputPlugins(self.replies_to_process)
+        if self.rdf_flow.parent_hunt_id and not self.rdf_flow.parent_flow_id:
+          self._ProcessRepliesWithHuntOutputPlugins(self.replies_to_process)
+        else:
+          self._ProcessRepliesWithFlowOutputPlugins(self.replies_to_process)
         self.replies_to_process = []
 
     # We don't know here what exceptions can be thrown in the flow but we have
@@ -626,13 +636,45 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
                                    self.rdf_flow.parent_hunt_id,
                                    self.replies_to_write)
       else:
-        data_store.REL_DB.WriteFlowResults(self.rdf_flow.client_id,
-                                           self.rdf_flow.flow_id,
-                                           self.replies_to_write)
+        data_store.REL_DB.WriteFlowResults(self.replies_to_write)
       self.replies_to_write = []
 
-  def _ProcessRepliesWithOutputPlugins(self, replies):
+  def _ProcessRepliesWithHuntOutputPlugins(self, replies):
+    if db_compat.IsLegacyHunt(self.rdf_flow.parent_hunt_id):
+      return
+
+    hunt_obj = data_store.REL_DB.ReadHuntObject(self.rdf_flow.parent_hunt_id)
+    self.rdf_flow.output_plugins = hunt_obj.output_plugins
+    self.rdf_flow.output_plugins_states = hunt_obj.output_plugins_states
+
+    created_plugins = self._ProcessRepliesWithFlowOutputPlugins(replies)
+
+    def UpdateFn(hunt_to_update):
+      for plugin, state in zip(created_plugins,
+                               hunt_to_update.output_plugins_states):
+        if plugin is None:
+          state.plugin_state["error_count"] += 1
+        else:
+          state.plugin_state["success_count"] += 1
+          plugin.UpdateState(state.plugin_state)
+      return hunt_to_update
+
+    data_store.REL_DB.UpdateHuntObject(hunt_obj.hunt_id, UpdateFn)
+
+    for plugin_def, created_plugin in zip(hunt_obj.output_plugins,
+                                          created_plugins):
+      if created_plugin is not None:
+        stats_collector_instance.Get().IncrementCounter(
+            "hunt_results_ran_through_plugin",
+            delta=len(replies),
+            fields=[plugin_def.plugin_name])
+      else:
+        stats_collector_instance.Get().IncrementCounter(
+            "hunt_output_plugin_errors", fields=[plugin_def.plugin_name])
+
+  def _ProcessRepliesWithFlowOutputPlugins(self, replies):
     """Processes replies with output plugins."""
+    created_output_plugins = []
     for output_plugin_state in self.rdf_flow.output_plugins_states:
       plugin_descriptor = output_plugin_state.plugin_descriptor
       output_plugin_cls = plugin_descriptor.GetPluginClass()
@@ -642,8 +684,11 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
           token=access_control.ACLToken(username=self.rdf_flow.creator))
 
       try:
-        output_plugin.ProcessResponses(output_plugin_state.plugin_state,
-                                       [r.payload for r in replies])
+        # TODO(user): refactor output plugins to use FlowResponse
+        # instead of GrrMessage.
+        output_plugin.ProcessResponses(
+            output_plugin_state.plugin_state,
+            [r.AsLegacyGrrMessage() for r in replies])
         output_plugin.Flush(output_plugin_state.plugin_state)
         output_plugin.UpdateState(output_plugin_state.plugin_state)
 
@@ -655,7 +700,11 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
         self.Log("Plugin %s successfully processed %d flow replies.",
                  plugin_descriptor, len(replies))
+
+        created_output_plugins.append(output_plugin)
       except Exception as e:  # pylint: disable=broad-except
+        created_output_plugins.append(None)
+
         error = output_plugin_lib.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_descriptor,
             status="ERROR",
@@ -665,6 +714,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
         self.Log("Plugin %s failed to process %d replies due to: %s",
                  plugin_descriptor, len(replies), e)
+
+    return created_output_plugins
 
   def MergeQueuedMessages(self, flow_obj):
     self.flow_requests.extend(flow_obj.flow_requests)

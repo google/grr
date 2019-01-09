@@ -1,4 +1,4 @@
-<abbr title="Type label: to open a list of possible labels completions.">
+<div>
   <a href="/help/{$ controller.contextHelpUrl $}" target="_blank"
      class="pull-right">
     <i class="glyphicon glyphicon-question-sign input-append"></i>
@@ -13,7 +13,10 @@
                placeholder="Search Box" ng-model="controller.query"
                ng-keypress="$event.which == 13 && controller.submitQuery()"
                uib-typeahead="label for label in controller.labels | filter:$viewValue | limitTo:8"
-               typeahead-min-length="3" typeahead-focus-first="false" />
+               typeahead-min-length="3"
+               typeahead-focus-first="false"
+               typeahead-template-url="/static/angular-components/core/typeahead-match.html"
+        />
         <span class="input-group-btn">
           <button id="client_query_submit"
                   type="button"
@@ -25,4 +28,4 @@
       </div>
     </div>
   </form>
-</abbr>
+</div>

@@ -13,7 +13,6 @@ from grr_response_client.client_actions import admin
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
-from grr_response_core.stats import stats_collector_instance
 
 
 class ClientStatsCollector(threading.Thread):
@@ -49,11 +48,6 @@ class ClientStatsCollector(threading.Thread):
 
     self._last_send_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
     self._should_send = False
-
-    stats_collector = stats_collector_instance.Get()
-    stats_collector.SetGaugeCallback("grr_client_cpu_usage",
-                                     self._PrintCpuSamples)
-    stats_collector.SetGaugeCallback("grr_client_io_usage", self._PrintIOSample)
 
   def RequestSend(self):
     """Requests to send the collected data.
@@ -159,17 +153,6 @@ class ClientStatsCollector(threading.Thread):
     self._io_samples = self.IOSamplesBetween(
         start_time=rdfvalue.RDFDatetime.Now() - self.KEEP_DURATION,
         end_time=rdfvalue.RDFDatetime.Now())
-
-  def _PrintCpuSamples(self):
-    """Returns a string with last 20 cpu load samples."""
-    samples = [str(sample.percent) for sample in self._cpu_samples[-20:]]
-    return ", ".join(samples)
-
-  def _PrintIOSample(self):
-    try:
-      return str(self._process.io_counters())
-    except (NotImplementedError, AttributeError):
-      return "Not available on this platform."
 
 
 def _SamplesBetween(samples, start_time, end_time):

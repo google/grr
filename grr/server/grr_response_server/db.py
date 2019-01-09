@@ -9,24 +9,30 @@ WIP, will eventually replace datastore.py.
 """
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import abc
 import re
 
 
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
+from typing import Generator, List, Optional, Text
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import time_utils
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
@@ -37,6 +43,8 @@ from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+
+CLIENT_STATS_RETENTION = rdfvalue.Duration("31d")
 
 
 class Error(Exception):
@@ -196,6 +204,15 @@ class UnknownFlowError(NotFoundError):
     self.flow_id = flow_id
 
 
+class UnknownHuntError(NotFoundError):
+
+  def __init__(self, hunt_id, cause=None):
+    message = "Hunt with hunt id '%s' does not exist" % hunt_id
+    super(UnknownHuntError, self).__init__(message, cause=cause)
+
+    self.hunt_id = hunt_id
+
+
 class AtLeastOneUnknownFlowError(NotFoundError):
 
   def __init__(self, flow_keys, cause=None):
@@ -230,14 +247,6 @@ class DuplicateMetricValueError(Error):
     """
     super(DuplicateMetricValueError, self).__init__(
         "Tried to insert a duplicate StatsStoreEntry in the DB", cause=cause)
-
-
-class UnknownHuntError(NotFoundError):
-
-  def __init__(self, hunt_id, cause=None):
-    message = ("Hunt with hunt id '%s' does not exist" % hunt_id)
-    super(UnknownHuntError, self).__init__(message, cause=cause)
-    self.hunt_id = hunt_id
 
 
 # TODO(user): migrate to Python 3 enums as soon as Python 3 is default.
@@ -322,6 +331,9 @@ class ClientPath(object):
 
   def __eq__(self, other):
     return self._repr == other._repr  # pylint: disable=protected-access
+
+  def __ne__(self, other):
+    return not self.__eq__(other)
 
   def __hash__(self):
     return hash(self._repr)
@@ -742,6 +754,65 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Returns:
       A list of rdfvalue.objects.ClientLabel values.
+    """
+
+  @abc.abstractmethod
+  def WriteClientStats(self, client_id,
+                       stats):
+    """Stores a ClientStats instance.
+
+    If stats.create_time is unset, a copy of stats with create_time = now()
+    will be stored.
+
+    Stats are not stored if create_time is older than the retention period
+    db.CLIENT_STATS_RETENTION.
+
+    Any existing entry with identical client_id and create_time will be
+    overwritten.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+      stats: an instance of rdfvalues.client_stats.ClientStats
+    """
+
+  @abc.abstractmethod
+  def ReadClientStats(self,
+                      client_id,
+                      min_timestamp = None,
+                      max_timestamp = None
+                     ):
+    """Reads ClientStats for a given client and optional time range.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+      min_timestamp: minimum rdfvalue.RDFDateTime (inclusive). If None,
+        ClientStats since the retention date will be returned.
+      max_timestamp: maximum rdfvalue.RDFDateTime (inclusive). If None,
+        ClientStats up to the current time will be returned.
+    Returns: A List of rdfvalues.client_stats.ClientStats instances, sorted by
+      create_time.
+    """
+
+  @abc.abstractmethod
+  def DeleteOldClientStats(self,
+                           yield_after_count,
+                           retention_time = None
+                          ):
+    """Deletes ClientStats older than a given timestamp.
+
+    This function yields when no more ClientStats can be deleted or the number
+    of deleted ClientStats equals yield_after_count.
+
+    Args:
+      yield_after_count: A positive integer, representing the maximum number of
+        deleted entries, after which this function must yield to allow
+        heartbeats.
+      retention_time: An RDFDateTime representing the oldest create_time of
+        ClientStats that remains after deleting all older entries. If not
+        specified, defaults to Now() - db.CLIENT_STATS_RETENTION.
+
+    Yields:
+      The number of ClientStats that were deleted since the last yield.
     """
 
   @abc.abstractmethod
@@ -1205,10 +1276,11 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
   @abc.abstractmethod
   def ReadAPIAuditEntries(self,
-                          username=None,
-                          router_method_name=None,
-                          min_timestamp=None,
-                          max_timestamp=None):
+                          username = None,
+                          router_method_names = None,
+                          min_timestamp = None,
+                          max_timestamp = None
+                         ):
     """Returns audit entries stored in the database.
 
     The event log is sorted according to their timestamp (with the oldest
@@ -1216,7 +1288,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       username: username associated with the audit entries
-      router_method_name: name of router method that handled the request
+      router_method_names: list of names of router methods
       min_timestamp: minimum rdfvalue.RDFDateTime (inclusive)
       max_timestamp: maximum rdfvalue.RDFDateTime (inclusive)
 
@@ -1592,12 +1664,21 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadAllFlowObjects(self, client_id, min_create_time=None):
-    """Reads all flow objects from the database for a given client.
+  def ReadAllFlowObjects(
+      self,
+      client_id = None,
+      min_create_time = None,
+      max_create_time = None,
+      include_child_flows = True,
+  ):
+    """Returns all flow objects.
 
     Args:
       client_id: The client id.
       min_create_time: the minimum creation time (inclusive)
+      max_create_time: the maximum creation time (inclusive)
+      include_child_flows: include child flows in the results. If False, only
+        parent flows are returned.
 
     Returns:
       A list of rdf_flow_objects.Flow objects.
@@ -1804,12 +1885,10 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def WriteFlowResults(self, client_id, flow_id, results):
+  def WriteFlowResults(self, results):
     """Writes flow results for a given flow.
 
     Args:
-      client_id: The client id on which the flow is running.
-      flow_id: The id of the flow to write results for.
       results: An iterable with FlowResult rdfvalues.
     """
 
@@ -1867,12 +1946,10 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def WriteFlowLogEntries(self, client_id, flow_id, entries):
+  def WriteFlowLogEntries(self, entries):
     """Writes flow log entries for a given flow.
 
     Args:
-      client_id: The client id on which the flow is running.
-      flow_id: The id of the flow to write log entries for.
       entries: An iterable of FlowLogEntry values.
     """
 
@@ -1959,6 +2036,23 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       hunt_obj: An rdf_hunt_objects.Hunt object to write.
+    """
+
+  @abc.abstractmethod
+  def UpdateHuntObject(self, hunt_id, update_fn):
+    """Updates the hunt object by applying the update function.
+
+    Updates are done by applying the update function. They're guaranteed to
+    be atomic.
+
+    Args:
+      hunt_id: Id of the hunt to be updated.
+      update_fn: A function accepting a single rdf_hunt_objects.Hunt argument
+        and returning a modified rdf_hunt_objects.Hunt object.
+
+    Returns:
+      An updated rdf_hunt_objects.Hunt object (result of the update_fn function
+      call).
     """
 
   @abc.abstractmethod
@@ -2142,6 +2236,52 @@ class Database(with_metaclass(abc.ABCMeta, object)):
         delete.
     """
 
+  @abc.abstractmethod
+  def WriteClientGraphSeries(self, graph_series, client_label, timestamp=None):
+    """Writes the provided graphs to the DB with the given client label.
+
+    Args:
+      graph_series: rdf_stats.ClientGraphSeries containing aggregated data for a
+        particular type of client report.
+      client_label: Client label by which data in the graph series was
+        aggregated.
+      timestamp: RDFDatetime for the graph series. This will be used for
+        graphing data in the graph series. If not provided, the current
+        timestamp will be used.
+    """
+
+  @abc.abstractmethod
+  def ReadAllClientGraphSeries(self, client_label, report_type,
+                               time_range=None):
+    """Reads graph series for the given label and report-type from the DB.
+
+    Args:
+      client_label: Client label for which to return data.
+      report_type: rdf_stats.ClientGraphSeries.ReportType of data to read from
+        the DB.
+      time_range: A TimeRange specifying the range of timestamps to read. If not
+        provided, all timestamps in the DB will be considered.
+
+    Returns:
+      A dict mapping timestamps to graph-series. The timestamps
+      represent when the graph-series were written to the DB.
+    """
+
+  @abc.abstractmethod
+  def ReadMostRecentClientGraphSeries(self, client_label, report_type):
+    """Fetches the latest graph series for a client-label from the DB.
+
+    Args:
+      client_label: Client label for which to return data.
+      report_type: rdf_stats.ClientGraphSeries.ReportType of the graph series to
+        return.
+
+    Returns:
+      The graph series for the given label and report type that was last
+      written to the DB, or None if no series for that label and report-type
+      exist.
+    """
+
 
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
@@ -2158,14 +2298,14 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteArtifact(artifact)
 
   def ReadArtifact(self, name):
-    precondition.AssertType(name, unicode)
+    precondition.AssertType(name, Text)
     return self.delegate.ReadArtifact(name)
 
   def ReadAllArtifacts(self):
     return self.delegate.ReadAllArtifacts()
 
   def DeleteArtifact(self, name):
-    precondition.AssertType(name, unicode)
+    precondition.AssertType(name, Text)
     return self.delegate.DeleteArtifact(name)
 
   def WriteClientMetadata(self,
@@ -2316,6 +2456,57 @@ class DatabaseValidationWrapper(Database):
 
   def ReadAllClientLabels(self):
     return self.delegate.ReadAllClientLabels()
+
+  def WriteClientStats(self, client_id,
+                       stats):
+    _ValidateClientId(client_id)
+    precondition.AssertType(stats, rdf_client_stats.ClientStats)
+
+    if not stats.HasField("create_time"):
+      stats = stats.Copy()
+      stats.create_time = rdfvalue.RDFDatetime.Now()
+
+    # Only save if create_time lies in retention period.
+    if stats.create_time >= rdfvalue.RDFDatetime.Now() - CLIENT_STATS_RETENTION:
+      self.delegate.WriteClientStats(client_id, stats)
+
+  def ReadClientStats(self,
+                      client_id,
+                      min_timestamp = None,
+                      max_timestamp = None
+                     ):
+    _ValidateClientId(client_id)
+
+    if min_timestamp is None:
+      min_timestamp = rdfvalue.RDFDatetime.Now() - CLIENT_STATS_RETENTION
+    else:
+      _ValidateTimestamp(min_timestamp)
+
+    if max_timestamp is None:
+      max_timestamp = rdfvalue.RDFDatetime.Now()
+    else:
+      _ValidateTimestamp(max_timestamp)
+
+    return self.delegate.ReadClientStats(client_id, min_timestamp,
+                                         max_timestamp)
+
+  def DeleteOldClientStats(self,
+                           yield_after_count,
+                           retention_time = None
+                          ):
+    if retention_time is None:
+      retention_time = rdfvalue.RDFDatetime.Now() - CLIENT_STATS_RETENTION
+    else:
+      _ValidateTimestamp(retention_time)
+
+    precondition.AssertType(yield_after_count, int)
+    if yield_after_count < 1:
+      raise ValueError(
+          "yield_after_count must be >= 1. Got %r" % (yield_after_count,))
+
+    for deleted_count in self.delegate.DeleteOldClientStats(
+        yield_after_count, retention_time):
+      yield deleted_count
 
   def WriteForemanRule(self, rule):
     precondition.AssertType(rule, foreman_rules.ForemanCondition)
@@ -2576,13 +2767,14 @@ class DatabaseValidationWrapper(Database):
         username, timestamps, state=state)
 
   def ReadAPIAuditEntries(self,
-                          username=None,
-                          router_method_name=None,
-                          min_timestamp=None,
-                          max_timestamp=None):
+                          username = None,
+                          router_method_names = None,
+                          min_timestamp = None,
+                          max_timestamp = None
+                         ):
     return self.delegate.ReadAPIAuditEntries(
         username=username,
-        router_method_name=router_method_name,
+        router_method_names=router_method_names,
         min_timestamp=min_timestamp,
         max_timestamp=max_timestamp)
 
@@ -2745,10 +2937,22 @@ class DatabaseValidationWrapper(Database):
     _ValidateFlowId(flow_id)
     return self.delegate.ReadFlowObject(client_id, flow_id)
 
-  def ReadAllFlowObjects(self, client_id, min_create_time=None):
-    _ValidateClientId(client_id)
+  def ReadAllFlowObjects(
+      self,
+      client_id = None,
+      min_create_time = None,
+      max_create_time = None,
+      include_child_flows = True,
+  ):
+    if client_id is not None:
+      _ValidateClientId(client_id)
+    precondition.AssertOptionalType(min_create_time, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(max_create_time, rdfvalue.RDFDatetime)
     return self.delegate.ReadAllFlowObjects(
-        client_id, min_create_time=min_create_time)
+        client_id=client_id,
+        min_create_time=min_create_time,
+        max_create_time=max_create_time,
+        include_child_flows=include_child_flows)
 
   def ReadChildFlowObjects(self, client_id, flow_id):
     _ValidateClientId(client_id)
@@ -2869,12 +3073,15 @@ class DatabaseValidationWrapper(Database):
   def UnregisterFlowProcessingHandler(self, timeout=None):
     return self.delegate.UnregisterFlowProcessingHandler(timeout=timeout)
 
-  def WriteFlowResults(self, client_id, flow_id, results):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
-    precondition.AssertIterableType(results, rdf_flow_objects.FlowResult)
+  def WriteFlowResults(self, results):
+    for r in results:
+      precondition.AssertType(r, rdf_flow_objects.FlowResult)
+      _ValidateClientId(r.client_id)
+      _ValidateFlowId(r.flow_id)
+      if r.HasField("hunt_id") and r.hunt_id:
+        _ValidateHuntId(r.hunt_id)
 
-    return self.delegate.WriteFlowResults(client_id, flow_id, results)
+    return self.delegate.WriteFlowResults(results)
 
   def ReadFlowResults(self,
                       client_id,
@@ -2886,9 +3093,9 @@ class DatabaseValidationWrapper(Database):
                       with_substring=None):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
-    precondition.AssertOptionalType(with_tag, unicode)
-    precondition.AssertOptionalType(with_type, unicode)
-    precondition.AssertOptionalType(with_substring, unicode)
+    precondition.AssertOptionalType(with_tag, Text)
+    precondition.AssertOptionalType(with_type, Text)
+    precondition.AssertOptionalType(with_substring, Text)
 
     return self.delegate.ReadFlowResults(
         client_id,
@@ -2908,18 +3115,21 @@ class DatabaseValidationWrapper(Database):
   ):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
-    precondition.AssertOptionalType(with_tag, unicode)
-    precondition.AssertOptionalType(with_type, unicode)
+    precondition.AssertOptionalType(with_tag, Text)
+    precondition.AssertOptionalType(with_type, Text)
 
     return self.delegate.CountFlowResults(
         client_id, flow_id, with_tag=with_tag, with_type=with_type)
 
-  def WriteFlowLogEntries(self, client_id, flow_id, entries):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+  def WriteFlowLogEntries(self, entries):
+    for e in entries:
+      _ValidateClientId(e.client_id)
+      _ValidateFlowId(e.flow_id)
+      if e.HasField("hunt_id") and e.hunt_id:
+        _ValidateHuntId(e.hunt_id)
     precondition.AssertIterableType(entries, rdf_flow_objects.FlowLogEntry)
 
-    return self.delegate.WriteFlowLogEntries(client_id, flow_id, entries)
+    return self.delegate.WriteFlowLogEntries(entries)
 
   def ReadFlowLogEntries(self,
                          client_id,
@@ -2929,7 +3139,7 @@ class DatabaseValidationWrapper(Database):
                          with_substring=None):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
-    precondition.AssertOptionalType(with_substring, unicode)
+    precondition.AssertOptionalType(with_substring, Text)
 
     return self.delegate.ReadFlowLogEntries(
         client_id, flow_id, offset, count, with_substring=with_substring)
@@ -2950,18 +3160,12 @@ class DatabaseValidationWrapper(Database):
                             metric_name,
                             time_range=None,
                             max_results=0):
-    precondition.AssertType(process_id_prefix, unicode)
-    precondition.AssertType(metric_name, unicode)
+    precondition.AssertType(process_id_prefix, Text)
+    precondition.AssertType(metric_name, Text)
     if time_range is not None:
       # Both start- and end-timestamps must be provided if a time_range is
       # given.
-      time_range_start, time_range_end = time_range
-      _ValidateTimestamp(time_range_start)
-      _ValidateTimestamp(time_range_end)
-      if time_range_start > time_range_end:
-        raise ValueError("Invalid time-range: %d > %d." %
-                         (time_range_start.AsMicrosecondsSinceEpoch(),
-                          time_range_end.AsMicrosecondsSinceEpoch()))
+      _ValidateClosedTimeRange(time_range)
 
     return self.delegate.ReadStatsStoreEntries(
         process_id_prefix,
@@ -2980,6 +3184,11 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertType(hunt_obj, rdf_hunt_objects.Hunt)
     self.delegate.WriteHuntObject(hunt_obj)
 
+  def UpdateHuntObject(self, hunt_id, update_fn):
+    """Updates the hunt object by applying the update function."""
+    _ValidateHuntId(hunt_id)
+    return self.delegate.UpdateHuntObject(hunt_id, update_fn)
+
   def ReadHuntObject(self, hunt_id):
     _ValidateHuntId(hunt_id)
     return self.delegate.ReadHuntObject(hunt_id)
@@ -2989,7 +3198,7 @@ class DatabaseValidationWrapper(Database):
 
   def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):
     _ValidateHuntId(hunt_id)
-    precondition.AssertOptionalType(with_substring, unicode)
+    precondition.AssertOptionalType(with_substring, Text)
 
     return self.delegate.ReadHuntLogEntries(
         hunt_id, offset, count, with_substring=with_substring)
@@ -3006,9 +3215,9 @@ class DatabaseValidationWrapper(Database):
                       with_type=None,
                       with_substring=None):
     _ValidateHuntId(hunt_id)
-    precondition.AssertOptionalType(with_tag, unicode)
-    precondition.AssertOptionalType(with_type, unicode)
-    precondition.AssertOptionalType(with_substring, unicode)
+    precondition.AssertOptionalType(with_tag, Text)
+    precondition.AssertOptionalType(with_type, Text)
+    precondition.AssertOptionalType(with_substring, Text)
     return self.delegate.ReadHuntResults(
         hunt_id,
         offset,
@@ -3019,8 +3228,8 @@ class DatabaseValidationWrapper(Database):
 
   def CountHuntResults(self, hunt_id, with_tag=None, with_type=None):
     _ValidateHuntId(hunt_id)
-    precondition.AssertOptionalType(with_tag, unicode)
-    precondition.AssertOptionalType(with_type, unicode)
+    precondition.AssertOptionalType(with_tag, Text)
+    precondition.AssertOptionalType(with_type, Text)
     return self.delegate.CountHuntResults(
         hunt_id, with_tag=with_tag, with_type=with_type)
 
@@ -3059,6 +3268,36 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertType(binary_id, rdf_objects.SignedBinaryID)
     return self.delegate.DeleteSignedBinaryReferences(binary_id)
 
+  def WriteClientGraphSeries(self, graph_series, client_label, timestamp=None):
+    precondition.AssertType(graph_series, rdf_stats.ClientGraphSeries)
+    precondition.AssertType(client_label, Text)
+    precondition.AssertOptionalType(timestamp, rdfvalue.RDFDatetime)
+    if (graph_series.report_type ==
+        rdf_stats.ClientGraphSeries.ReportType.UNKNOWN):
+      raise ValueError("Report-type for graph series must be set.")
+    self.delegate.WriteClientGraphSeries(
+        graph_series, client_label, timestamp=timestamp)
+
+  def ReadAllClientGraphSeries(self, client_label, report_type,
+                               time_range=None):
+    precondition.AssertType(client_label, Text)
+    if (report_type == rdf_stats.ClientGraphSeries.ReportType.UNKNOWN or
+        str(report_type) not in rdf_stats.ClientGraphSeries.ReportType.enum_dict
+       ):
+      raise ValueError("Invalid report type given: %s" % report_type)
+    precondition.AssertOptionalType(time_range, time_utils.TimeRange)
+    return self.delegate.ReadAllClientGraphSeries(
+        client_label, report_type, time_range=time_range)
+
+  def ReadMostRecentClientGraphSeries(self, client_label, report_type):
+    precondition.AssertType(client_label, Text)
+    if (report_type == rdf_stats.ClientGraphSeries.ReportType.UNKNOWN or
+        str(report_type) not in rdf_stats.ClientGraphSeries.ReportType.enum_dict
+       ):
+      raise ValueError("Invalid report type given: %s" % report_type)
+    return self.delegate.ReadMostRecentClientGraphSeries(
+        client_label, report_type)
+
 
 def _ValidateEnumType(value, expected_enum_type):
   if value not in expected_enum_type.reverse_enum:
@@ -3067,7 +3306,7 @@ def _ValidateEnumType(value, expected_enum_type):
 
 
 def _ValidateStringId(typename, value):
-  precondition.AssertType(value, unicode)
+  precondition.AssertType(value, Text)
   if not value:
     message = "Expected %s `%s` to be non-empty" % (typename, value)
     raise ValueError(message)
@@ -3077,12 +3316,12 @@ def _ValidateClientId(client_id):
   _ValidateStringId("client_id", client_id)
   # TODO(hanuszczak): Eventually, we should allow only either lower or upper
   # case letters in the client id.
-  if re.match(r"^C\.[0-9A-Z]{16}$", client_id, re.IGNORECASE) is None:
+  if re.match(r"^C\.[0-9a-fA-F]{16}$", client_id) is None:
     raise ValueError("Client id has incorrect format: `%s`" % client_id)
 
 
 def _ValidateClientIds(client_ids):
-  precondition.AssertIterableType(client_ids, unicode)
+  precondition.AssertIterableType(client_ids, Text)
   for client_id in client_ids:
     _ValidateClientId(client_id)
 
@@ -3142,8 +3381,7 @@ def _ValidatePathInfos(path_infos):
 
     path_key = (path_info.path_type, path_info.GetPathID())
     if path_key in validated:
-      message = "Conflicting writes for path: '{path}' ({path_type})"
-      message.format(
+      message = "Conflicting writes for path: '{path}' ({path_type})".format(
           path="/".join(path_info.components), path_type=path_info.path_type)
       raise ValueError(message)
 
@@ -3151,7 +3389,7 @@ def _ValidatePathInfos(path_infos):
 
 
 def _ValidatePathComponents(components):
-  precondition.AssertIterableType(components, unicode)
+  precondition.AssertIterableType(components, Text)
 
 
 def _ValidateNotificationType(notification_type):
@@ -3178,6 +3416,17 @@ def _ValidateTimeRange(timerange):
   (start, end) = timerange
   precondition.AssertOptionalType(start, rdfvalue.RDFDatetime)
   precondition.AssertOptionalType(end, rdfvalue.RDFDatetime)
+
+
+def _ValidateClosedTimeRange(time_range):
+  """Checks that a time-range has both start and end timestamps set."""
+  time_range_start, time_range_end = time_range
+  _ValidateTimestamp(time_range_start)
+  _ValidateTimestamp(time_range_end)
+  if time_range_start > time_range_end:
+    raise ValueError("Invalid time-range: %d > %d." %
+                     (time_range_start.AsMicrosecondsSinceEpoch(),
+                      time_range_end.AsMicrosecondsSinceEpoch()))
 
 
 def _ValidateDuration(duration):

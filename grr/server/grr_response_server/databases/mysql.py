@@ -22,6 +22,7 @@ from grr_response_server import db as db_module
 from grr_response_server import threadpool
 from grr_response_server.databases import mysql_artifacts
 from grr_response_server.databases import mysql_blobs
+from grr_response_server.databases import mysql_client_reports
 from grr_response_server.databases import mysql_clients
 from grr_response_server.databases import mysql_cronjobs
 from grr_response_server.databases import mysql_ddl
@@ -59,6 +60,7 @@ def _IsRetryable(error):
 # pyformat: disable
 class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
               mysql_blobs.MySQLDBBlobsMixin,
+              mysql_client_reports.MySQLDBClientReportsMixin,
               mysql_clients.MySQLDBClientMixin,
               mysql_cronjobs.MySQLDBCronJobMixin,
               mysql_events.MySQLDBEventMixin,

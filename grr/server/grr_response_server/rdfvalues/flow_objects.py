@@ -45,7 +45,7 @@ class FlowResponse(FlowMessage, rdf_structs.RDFProtoStruct):
         session_id="%s/flows/%s" % (self.client_id, self.flow_id),
         request_id=self.request_id,
         response_id=self.response_id,
-        type="MESSAGE",
+        type=rdf_flows.GrrMessage.Type.MESSAGE,
         timestamp=self.timestamp,
         payload=self.payload)
 
@@ -88,6 +88,14 @@ class FlowResult(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdfvalue.RDFDatetime,
   ]
+
+  def AsLegacyGrrMessage(self):
+    return rdf_flows.GrrMessage(
+        session_id="%s/flows/%s" % (self.client_id, self.flow_id),
+        source=self.client_id,
+        type="MESSAGE",
+        timestamp=self.timestamp,
+        payload=self.payload)
 
 
 class FlowLogEntry(rdf_structs.RDFProtoStruct):

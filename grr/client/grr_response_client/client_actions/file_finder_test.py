@@ -103,10 +103,10 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertIn("a/b/d/hellod.txt", relative_results)
 
   def testRegexGlob(self):
-    paths = [self.base_path + "/rekall*.gz"]
+    paths = [self.base_path + "/valid_win_mbr*.gz"]
     results = self._RunFileFinder(paths, self.stat_action)
     relative_results = self._GetRelativeResults(results)
-    for glob_result in glob.glob(self.base_path + "/rekall*gz"):
+    for glob_result in glob.glob(self.base_path + "/valid_win_mbr*gz"):
       self.assertIn(os.path.basename(glob_result), relative_results)
 
   def testRecursiveRegexGlob(self):
@@ -570,7 +570,11 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       action = rdf_file_finder.FileFinderAction.Stat()
       results = self._RunFileFinder([temp_filepath], action)
       self.assertLen(results, 1)
-      self.assertEmpty(results[0].stat_entry.ext_attrs)
+      # We do not have an assertion whether the attributes were collected or not
+      # because apparently `xattr` is sometimes able to do that and sometimes
+      # not depending on the file system. This is fine as primary objective of
+      # this test is to ensure that failures are handled gracefully and nothing
+      # explodes.
 
   def testLinkStat(self):
     """Tests resolving symlinks when getting stat entries."""

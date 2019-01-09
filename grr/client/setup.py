@@ -76,8 +76,8 @@ setup_args = dict(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
+        "absl-py==0.6.1",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        "rekall-core==1.7.2rc1",
         "pyinstaller==3.2.1",
     ],
     extras_require={

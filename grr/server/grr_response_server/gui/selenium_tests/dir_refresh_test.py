@@ -76,8 +76,8 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     def MultiGetFileStarted():
       if data_store.RelationalDBFlowsEnabled():
         return compatibility.GetName(transfer.MultiGetFile) in [
-            f.flow_class_name
-            for f in data_store.REL_DB.ReadAllFlowObjects(client_id.Basename())
+            f.flow_class_name for f in data_store.REL_DB.ReadAllFlowObjects(
+                client_id=client_id.Basename())
         ]
       else:
         return transfer.MultiGetFile.__name__ in list(

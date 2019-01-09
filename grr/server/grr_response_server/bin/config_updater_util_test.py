@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 import getpass
 import os
 
-import builtins
+from future import builtins
+
 import mock
 import MySQLdb
 from MySQLdb import connections

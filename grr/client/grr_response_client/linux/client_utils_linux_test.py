@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import os
 import platform
 import tempfile
-import time
 import unittest
 
 from absl.testing import absltest
@@ -15,7 +14,9 @@ from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
 from grr_response_client import client_utils_linux
+from grr_response_client import client_utils_osx_linux
 from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -74,30 +75,27 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 
   def testLinuxNanny(self):
     """Tests the linux nanny."""
-    self.exit_called = False
 
-    def MockExit(value):
-      self.exit_called = value
-      # Kill the nanny thread.
-      raise RuntimeError("Nannythread exiting.")
+    def MockExit(unused_value):
+      raise RuntimeError("Exit was called.")
+
+    now = rdfvalue.RDFDatetime.Now()
 
     with utils.Stubber(os, "_exit", MockExit):
-      nanny_controller = client_utils_linux.NannyController()
-      nanny_controller.StartNanny(unresponsive_kill_period=0.5)
-      try:
-        for _ in range(10):
-          # Unfortunately we really need to sleep because we cant mock out
-          # time.time.
-          time.sleep(0.1)
-          nanny_controller.Heartbeat()
+      nanny = client_utils_osx_linux.NannyThread(unresponsive_kill_period=5)
+      with test_lib.FakeTime(now):
+        nanny.Heartbeat()
 
-        self.assertEqual(self.exit_called, False)
+      for i in range(10):
+        with test_lib.FakeTime(now + i * rdfvalue.Duration("1s")):
+          nanny._CheckHeartbeatDeadline(nanny.last_heart_beat_time +
+                                        nanny.unresponsive_kill_period)
+          nanny.Heartbeat()
 
-        # Main thread sleeps for long enough for the nanny to fire.
-        time.sleep(1)
-        self.assertEqual(self.exit_called, -1)
-      finally:
-        nanny_controller.StopNanny()
+      with test_lib.FakeTime(now + (10 + 5) * rdfvalue.Duration("1s")):
+        with self.assertRaises(RuntimeError):
+          nanny._CheckHeartbeatDeadline(nanny.last_heart_beat_time +
+                                        nanny.unresponsive_kill_period)
 
   def testLinuxTransactionLog(self):
     """Tests the linux transaction log."""

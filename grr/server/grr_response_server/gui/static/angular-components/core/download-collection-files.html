@@ -2,7 +2,7 @@
   <div class="pull-left">
     Files referenced in this collection can be downloaded as an archive:&nbsp;
 
-    <div class="btn-group">
+    <div class="btn-group" uib-dropdown>
       <button class="btn btn-default DownloadButton"
               ng-disabled="controller.fileArchiveGenerationStarted"
               ng-click="controller.generateFileArchive(controller.primaryArchiveExtension)">
@@ -10,10 +10,10 @@
       </button>
       <button class="btn btn-default dropdown-toggle"
               ng-disabled="controller.fileArchiveGenerationStarted"
-              data-toggle="dropdown">
+              uib-dropdown-toggle>
         <span class="caret"></span>
       </button>
-      <ul class="dropdown-menu">
+      <ul class="dropdown-menu" uib-dropdown-menu>
        <li>
          <a ng-click="controller.generateFileArchive(controller.secondaryArchiveExtension); $event.preventDefault()"
             href="#">

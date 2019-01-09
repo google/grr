@@ -88,8 +88,6 @@ import psutil
 import queue
 import requests
 
-from google.protobuf import json_format
-
 from grr_response_client import actions
 from grr_response_client import client_stats
 from grr_response_client import client_utils
@@ -105,7 +103,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_core.stats import stats_collector_instance
 
 
@@ -671,18 +668,6 @@ class GRRClientWorker(threading.Thread):
       # There is nothing we can do about it here - we just lose the message and
       # keep going.
       logging.info("Queue is full, dropping messages.")
-
-  def GetRekallProfile(self, profile_name, version="v1.0"):
-    response = self.http_manager.OpenServerEndpoint(
-        u"/rekall_profiles/%s/%s" % (version, profile_name))
-
-    if response.code != 200:
-      return None
-
-    pb = rdf_rekall_types.RekallProfile.protobuf()
-    json_format.Parse(response.data.lstrip(")]}'\n"), pb)
-    return rdf_rekall_types.RekallProfile.FromSerializedString(
-        pb.SerializeToString())
 
   @utils.Synchronized
   def ChargeBytesToSession(self, session_id, length, limit=0):

@@ -32,7 +32,6 @@ from grr_response_server import db
 from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import queue_manager
-from grr_response_server import rekall_profile_server
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -708,23 +707,3 @@ class FrontEndServer(object):
   def _GetClientPublicKey(self, client_id):
     client_obj = aff4.FACTORY.Open(client_id, token=aff4.FACTORY.root_token)
     return client_obj.Get(client_obj.Schema.CERT).GetPublicKey()
-
-  def _GetRekallProfileServer(self):
-    try:
-      return self._rekall_profile_server
-    except AttributeError:
-      server_type = config.CONFIG["Rekall.profile_server"]
-      self._rekall_profile_server = rekall_profile_server.ProfileServer.classes[
-          server_type]()
-      return self._rekall_profile_server
-
-  def GetRekallProfile(self, name, version="v1.0"):
-    server = self._GetRekallProfileServer()
-
-    logging.debug("Serving Rekall profile %s/%s", version, name)
-    try:
-      return server.GetProfileByName(name, version)
-    # TODO(amoser): We raise too many different exceptions in profile server.
-    except Exception as e:  # pylint: disable=broad-except
-      logging.debug("Unable to serve profile %s/%s: %s", version, name, e)
-      return None

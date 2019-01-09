@@ -14,9 +14,12 @@ import string
 from cryptography.hazmat.primitives import constant_time
 
 from future.builtins import int
+from future.builtins import str
 
 import jinja2
 import psutil
+
+from typing import Text
 
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing as werkzeug_routing
@@ -40,7 +43,7 @@ CSRF_TOKEN_DURATION = rdfvalue.Duration("10h")
 
 def GenerateCSRFToken(user_id, time):
   """Generates a CSRF token based on a secret key, id and time."""
-  precondition.AssertType(user_id, unicode)
+  precondition.AssertType(user_id, Text)
   precondition.AssertOptionalType(time, int)
 
   time = time or rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
@@ -52,7 +55,7 @@ def GenerateCSRFToken(user_id, time):
   digester = hmac.new(secret.encode("ascii"), digestmod=hashlib.sha256)
   digester.update(user_id.encode("ascii"))
   digester.update(CSRF_DELIMITER)
-  digester.update(unicode(time).encode("ascii"))
+  digester.update(str(time).encode("ascii"))
   digest = digester.digest()
 
   token = base64.urlsafe_b64encode(b"%s%s%d" % (digest, CSRF_DELIMITER, time))
@@ -148,9 +151,9 @@ class HttpRequest(werkzeug_wrappers.Request):
 
   @user.setter
   def user(self, value):
-    if not isinstance(value, unicode):
+    if not isinstance(value, Text):
       message = "Expected instance of '%s' but got value '%s' of type '%s'"
-      message %= (unicode, value, type(value))
+      message %= (Text, value, type(value))
       raise TypeError(message)
 
     self._user = value

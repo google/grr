@@ -2,6 +2,7 @@
 """A library for tests."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import datetime
 import email
@@ -23,7 +24,6 @@ import pkg_resources
 
 from grr_response_client import comms
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -853,6 +853,5 @@ class SuppressLogs(object):
 
 def main(argv=None):
   del argv  # Unused.
-  flags.Initialize()
   testing_startup.TestInit()
   absltest.main()

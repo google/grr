@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 # pylint: disable=unused-import,g-bad-import-order
-import logging
 
 # These imports populate the Action registry
 from grr_response_core.lib import rdfvalue
@@ -24,6 +23,3 @@ from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions import yara_actions
-
-# Former GRR component, now a built-in part of the client.
-from grr_response_client.components.rekall_support import grr_rekall

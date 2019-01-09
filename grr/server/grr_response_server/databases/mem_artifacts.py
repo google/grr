@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
 from future.utils import itervalues
 
 from grr_response_server import db
@@ -14,7 +15,7 @@ class InMemoryDBArtifactsMixin(object):
 
   def WriteArtifact(self, artifact):
     """Writes new artifact to the database."""
-    name = unicode(artifact.name)
+    name = str(artifact.name)
 
     if name in self.artifacts:
       raise db.DuplicatedArtifactError(name)

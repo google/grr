@@ -11,6 +11,7 @@ import os
 import stat
 
 
+from future.builtins import str
 from past.builtins import long
 
 from grr_response_core import config
@@ -385,8 +386,8 @@ test = val2"""
 
     # This should raise since the config file is incorrect.
     errors = conf.Validate("Section1")
-    self.assertTrue(
-        "Invalid value val2 for Integer" in str(errors["Section1.test"]))
+    self.assertIn("Invalid value val2 for Integer",
+                  str(errors["Section1.test"]))
 
   def testCopyConfig(self):
     """Check we can copy a config and use it without affecting the old one."""
@@ -655,8 +656,7 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     conf.DEFINE_float("Section1.float", 0, "A float")
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: abc")
     errors = conf.Validate("Section1")
-    self.assertTrue(
-        "Invalid value abc for Float" in str(errors["Section1.float"]))
+    self.assertIn("Invalid value abc for Float", str(errors["Section1.float"]))
 
     self.assertRaises(config_lib.ConfigFormatError, conf.Get, "Section1.float")
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: 2")
@@ -675,8 +675,7 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     errors = conf.Validate("Section1")
 
     # Floats can not be coerced to an int because that will lose data.
-    self.assertTrue(
-        "Invalid value 2.0 for Integer" in str(errors["Section1.int"]))
+    self.assertIn("Invalid value 2.0 for Integer", str(errors["Section1.int"]))
 
     # A string can be coerced to an int if it makes sense:
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: '2'")
@@ -931,7 +930,7 @@ Test1 Context:
     config_file = os.path.join(self.temp_dir, "writeback.yaml")
     conf.SetWriteBack(config_file)
     conf.DEFINE_string("NewSection1.new_option1", u"Default Value", "Help")
-    conf.Set(unicode("NewSection1.new_option1"), u"New Value1")
+    conf.Set(str("NewSection1.new_option1"), u"New Value1")
     conf.Write()
 
     data = open(config_file).read()

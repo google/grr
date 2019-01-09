@@ -58,6 +58,16 @@ CREATE TABLE IF NOT EXISTS client_keywords(
 )""", """
 CREATE INDEX IF NOT EXISTS keyword_client_idx ON client_keywords(keyword(64))
 """, """
+CREATE TABLE IF NOT EXISTS client_stats(
+    client_id BIGINT UNSIGNED,
+    payload MEDIUMBLOB,
+    timestamp DATETIME(6),
+    -- Timestamp is the first part of the primary key, because both
+    -- ReadClientStats and DeleteOldClientStats filter by timestamp, but only
+    -- ReadClientStats filters by client_id.
+    PRIMARY KEY (timestamp, client_id),
+    FOREIGN KEY (client_id) REFERENCES clients(client_id)
+)""", """
 CREATE TABLE IF NOT EXISTS grr_users(
     username VARCHAR(128) PRIMARY KEY,
     password VARBINARY(255),
@@ -174,6 +184,8 @@ CREATE TABLE IF NOT EXISTS flows(
     PRIMARY KEY (client_id, flow_id),
     FOREIGN KEY (client_id) REFERENCES clients(client_id)
 )""", """
+CREATE INDEX IF NOT EXISTS timestamp_idx ON flows(timestamp)
+""", """
 CREATE TABLE IF NOT EXISTS flow_requests(
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,

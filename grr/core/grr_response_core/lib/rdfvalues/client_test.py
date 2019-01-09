@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import socket
 
 from absl.testing import absltest
+from future.builtins import str
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -70,24 +71,26 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   def testTimeEncoding(self):
     fast_proto = rdf_client.User(username="user")
 
-    # Check that we can coerce an int to an RDFDatetime.
-    fast_proto.last_logon = 1365177603180131
+    datetime = rdfvalue.RDFDatetime.FromHumanReadable("2013-04-05 16:00:03")
 
-    self.assertEqual(str(fast_proto.last_logon), "2013-04-05 16:00:03")
-    self.assertEqual(type(fast_proto.last_logon), rdfvalue.RDFDatetime)
+    # Check that we can coerce an int to an RDFDatetime.
+    # TODO(hanuszczak): Yeah, but why would we...?
+    fast_proto.last_logon = datetime.AsMicrosecondsSinceEpoch()
+
+    self.assertEqual(fast_proto.last_logon, datetime)
 
     # Check that this is backwards compatible with the old protobuf library.
     proto = knowledge_base_pb2.User()
     proto.ParseFromString(fast_proto.SerializeToString())
 
     # Old implementation should just see the last_logon field as an integer.
-    self.assertEqual(proto.last_logon, 1365177603180131)
+    self.assertEqual(proto.last_logon, datetime.AsMicrosecondsSinceEpoch())
     self.assertEqual(type(proto.last_logon), long)
 
     # fast protobufs interoperate with old serialized formats.
     serialized_data = proto.SerializeToString()
     fast_proto = rdf_client.User.FromSerializedString(serialized_data)
-    self.assertEqual(fast_proto.last_logon, 1365177603180131)
+    self.assertEqual(fast_proto.last_logon, datetime.AsMicrosecondsSinceEpoch())
     self.assertEqual(type(fast_proto.last_logon), rdfvalue.RDFDatetime)
 
   def testPrettyPrintMode(self):
@@ -116,7 +119,7 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         (33784, "-rwxrwx--T"),
     ]:
       value = rdf_client_fs.StatMode(mode)
-      self.assertEqual(unicode(value), result)
+      self.assertEqual(str(value), result)
 
 
 class ClientURNTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):

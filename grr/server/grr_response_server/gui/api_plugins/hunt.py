@@ -8,10 +8,12 @@ import functools
 import itertools
 import logging
 import operator
+import os
 import re
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import str
+from future.builtins import zip
 from future.utils import iteritems
 from future.utils import itervalues
 
@@ -27,7 +29,9 @@ from grr_response_proto.api import hunt_pb2
 
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server import events
+from grr_response_server import file_store
 from grr_response_server import foreman_rules
 from grr_response_server import instant_output_plugin
 from grr_response_server import notification
@@ -101,6 +105,10 @@ class ApiHuntId(rdfvalue.RDFString):
       raise ValueError("can't call ToURN() on an empty hunt id.")
 
     return HUNTS_ROOT_PATH.Add(self._value)
+
+  def IsLegacy(self):
+    """Returns True, if ApiHuntId indicates legacy, AFF4-based hunt."""
+    return self._value.startswith("H:")
 
 
 class ApiHuntReference(rdf_structs.RDFProtoStruct):
@@ -870,8 +878,6 @@ class ApiGetHuntClientCompletionStatsHandler(
       cl.append(cl_count)
       fi.append(fi_count)
 
-    # Convert to hours, starting from 0.
-    times = [(t - t0) / 3600.0 for t in times]
     return (list(zip(times, cl)), list(zip(times, fi)))
 
   def _Resample(self, stats, target_size):
@@ -881,7 +887,6 @@ class ApiGetHuntClientCompletionStatsHandler(
     interval = (t_last - t_first) / target_size
 
     result = []
-    result.append([0, 0])  # always start at (0, 0)
 
     current_t = t_first
     current_v = 0
@@ -924,7 +929,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
           "Downloaded archive of hunt %s results (archived %d "
           "out of %d items, archive size is %d)" %
-          (args.hunt_id, generator.archived_files, generator.total_files,
+          (args.hunt_id, len(generator.archived_files), generator.total_files,
            generator.output_size), None)
     except Exception as e:
       notification.Notify(
@@ -936,21 +941,27 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
       raise
 
+  def _LoadData(self, args, token=None):
+    if args.hunt_id.IsLegacy():
+      hunt_urn = args.hunt_id.ToURN()
+      hunt = aff4.FACTORY.Open(
+          hunt_urn, aff4_type=implementation.GRRHunt, token=token)
+      hunt_api_object = ApiHunt().InitFromAff4Object(hunt)
+      description = (
+          "Files downloaded by hunt %s (%s, '%s') created by user %s "
+          "on %s" % (hunt_api_object.name, hunt_api_object.urn.Basename(),
+                     hunt_api_object.description, hunt_api_object.creator,
+                     hunt_api_object.created))
+      collection = implementation.GRRHunt.ResultCollectionForHID(hunt_urn)
+      return collection, description
+    else:
+      # TODO
+      raise NotImplementedError("Relational Hunts are not yet supported in "
+                                "ApiGetHuntFilesArchiveHandler")
+
   def Handle(self, args, token=None):
-    hunt_urn = args.hunt_id.ToURN()
-    hunt = aff4.FACTORY.Open(
-        hunt_urn, aff4_type=implementation.GRRHunt, token=token)
-
-    hunt_api_object = ApiHunt().InitFromAff4Object(hunt)
-    description = (
-        "Files downloaded by hunt %s (%s, '%s') created by user %s "
-        "on %s" % (hunt_api_object.name, hunt_api_object.urn.Basename(),
-                   hunt_api_object.description, hunt_api_object.creator,
-                   hunt_api_object.created))
-
-    collection = implementation.GRRHunt.ResultCollectionForHID(hunt_urn)
-
-    target_file_prefix = "hunt_" + hunt.urn.Basename().replace(":", "_")
+    collection, description = self._LoadData(args, token=token)
+    target_file_prefix = "hunt_" + str(args.hunt_id).replace(":", "_")
 
     if args.archive_format == args.ArchiveFormat.ZIP:
       archive_format = archive_generator.CollectionArchiveGenerator.ZIP
@@ -961,7 +972,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     else:
       raise ValueError("Unknown archive format: %s" % args.archive_format)
 
-    generator = archive_generator.Aff4CollectionArchiveGenerator(
+    generator = archive_generator.CompatCollectionArchiveGenerator(
         prefix=target_file_prefix,
         description=description,
         archive_format=archive_format)
@@ -989,72 +1000,119 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
   MAX_RECORDS_TO_CHECK = 100
   CHUNK_SIZE = 1024 * 1024 * 4
 
-  def _GenerateFile(self, aff4_stream):
+  def _GenerateFile(self, fd):
     while True:
-      chunk = aff4_stream.Read(self.CHUNK_SIZE)
+      chunk = fd.read(self.CHUNK_SIZE)
       if chunk:
         yield chunk
       else:
         break
 
-  def Handle(self, args, token=None):
-    if not args.hunt_id:
-      raise ValueError("hunt_id can't be None")
-
-    if not args.client_id:
-      raise ValueError("client_id can't be None")
-
-    if not args.vfs_path:
-      raise ValueError("vfs_path can't be None")
-
-    if not args.timestamp:
-      raise ValueError("timestamp can't be None")
-
-    api_vfs.ValidateVfsPath(args.vfs_path)
-
+  def _HandleLegacy(self, args, token=None):
     results = implementation.GRRHunt.ResultCollectionForHID(
         args.hunt_id.ToURN())
 
-    expected_aff4_path = args.client_id.ToClientURN().Add(args.vfs_path)
-    # TODO(user): should after_timestamp be strictly less than the desired
-    # timestamp.
-    timestamp = rdfvalue.RDFDatetime(int(args.timestamp) - 1)
+    if data_store.RelationalDBReadEnabled("filestore"):
+      path_type, components = rdf_objects.ParseCategorizedPath(args.vfs_path)
+      expected_client_path = db.ClientPath(
+          str(args.client_id), path_type, components)
+      # TODO(user): should after_timestamp be strictly less than the desired
+      # timestamp?
+      timestamp = rdfvalue.RDFDatetime(int(args.timestamp) - 1)
 
-    # If the entry corresponding to a given path is not found within
-    # MAX_RECORDS_TO_CHECK from a given timestamp, we report a 404.
-    for _, item in results.Scan(
-        after_timestamp=timestamp.AsMicrosecondsSinceEpoch(),
-        max_records=self.MAX_RECORDS_TO_CHECK):
-      try:
-        # Do not pass the client id we got from the caller. This will
-        # get filled automatically from the hunt results and we check
-        # later that the aff4_path we get is the same as the one that
-        # was requested.
-        aff4_path = export.CollectionItemToAff4Path(item, client_id=None)
-      except export.ItemNotExportableError:
-        continue
+      # If the entry corresponding to a given path is not found within
+      # MAX_RECORDS_TO_CHECK from a given timestamp, we report a 404.
+      for _, item in results.Scan(
+          after_timestamp=timestamp.AsMicrosecondsSinceEpoch(),
+          max_records=self.MAX_RECORDS_TO_CHECK):
+        try:
+          # Do not pass the client id we got from the caller. This will
+          # get filled automatically from the hunt results and we check
+          # later that the aff4_path we get is the same as the one that
+          # was requested.
+          client_path = export.CollectionItemToClientPath(item, client_id=None)
+        except export.ItemNotExportableError:
+          continue
 
-      if aff4_path != expected_aff4_path:
-        continue
+        if client_path != expected_client_path:
+          continue
 
-      try:
-        aff4_stream = aff4.FACTORY.Open(
-            aff4_path, aff4_type=aff4.AFF4Stream, token=token)
-        if not aff4_stream.GetContentAge():
+        try:
+          # TODO(user): this effectively downloads the latest version of
+          # the file and always disregards the timestamp. Reconsider this logic
+          # after AFF4 implementation is gone. We also most likely don't need
+          # the MAX_RECORDS_TO_CHECK logic in the new implementation.
+          file_obj = file_store.OpenFile(client_path)
+          return api_call_handler_base.ApiBinaryStream(
+              "%s_%s" % (args.client_id, os.path.basename(file_obj.Path())),
+              content_generator=self._GenerateFile(file_obj),
+              content_length=file_obj.size)
+        except file_store.FileHasNoContentError:
           break
+    else:
+      expected_aff4_path = args.client_id.ToClientURN().Add(args.vfs_path)
+      # TODO(user): should after_timestamp be strictly less than the desired
+      # timestamp.
+      timestamp = rdfvalue.RDFDatetime(int(args.timestamp) - 1)
 
-        return api_call_handler_base.ApiBinaryStream(
-            "%s_%s" % (args.client_id, utils.SmartStr(aff4_path.Basename())),
-            content_generator=self._GenerateFile(aff4_stream),
-            content_length=len(aff4_stream))
-      except aff4.InstantiationError:
-        break
+      # If the entry corresponding to a given path is not found within
+      # MAX_RECORDS_TO_CHECK from a given timestamp, we report a 404.
+      for _, item in results.Scan(
+          after_timestamp=timestamp.AsMicrosecondsSinceEpoch(),
+          max_records=self.MAX_RECORDS_TO_CHECK):
+        try:
+          # Do not pass the client id we got from the caller. This will
+          # get filled automatically from the hunt results and we check
+          # later that the aff4_path we get is the same as the one that
+          # was requested.
+          aff4_path = export.CollectionItemToAff4Path(item, client_id=None)
+        except export.ItemNotExportableError:
+          continue
+
+        if aff4_path != expected_aff4_path:
+          continue
+
+        try:
+          aff4_stream = aff4.FACTORY.Open(
+              aff4_path, aff4_type=aff4.AFF4Stream, token=token)
+          if not aff4_stream.GetContentAge():
+            break
+
+          return api_call_handler_base.ApiBinaryStream(
+              "%s_%s" % (args.client_id, utils.SmartStr(aff4_path.Basename())),
+              content_generator=self._GenerateFile(aff4_stream),
+              content_length=len(aff4_stream))
+        except aff4.InstantiationError:
+          break
 
     raise HuntFileNotFoundError(
         "File %s with timestamp %s and client %s "
         "wasn't found among the results of hunt %s" %
         (utils.SmartStr(args.vfs_path), utils.SmartStr(args.timestamp),
          utils.SmartStr(args.client_id), utils.SmartStr(args.hunt_id)))
+
+  def _HandleRelational(self, args, token=None):
+    raise NotImplementedError()
+
+  def Handle(self, args, token=None):
+    if not args.hunt_id:
+      raise ValueError("ApiGetHuntFileArgs.hunt_id can't be unset")
+
+    if not args.client_id:
+      raise ValueError("ApiGetHuntFileArgs.client_id can't be unset")
+
+    if not args.vfs_path:
+      raise ValueError("ApiGetHuntFileArgs.vfs_path can't be unset")
+
+    if not args.timestamp:
+      raise ValueError("ApiGetHuntFileArgs.timestamp can't be unset")
+
+    api_vfs.ValidateVfsPath(args.vfs_path)
+
+    if args.hunt_id.IsLegacy():
+      return self._HandleLegacy(args, token=token)
+    else:
+      return self._HandleRelational(args, token=token)
 
 
 class ApiGetHuntStatsArgs(rdf_structs.RDFProtoStruct):

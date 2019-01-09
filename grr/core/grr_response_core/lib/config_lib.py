@@ -22,10 +22,12 @@ import traceback
 
 
 import configparser
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import string_types
 from future.utils import with_metaclass
+from typing import Text
 import yaml
 
 from grr_response_core.lib import flags
@@ -442,13 +444,16 @@ class OrderedYamlDict(yaml.YAMLObject, collections.OrderedDict):
   # pylint:enable=g-bad-name
 
 
-  # Ensure Yaml does not emit tags for unicode objects.
-  # http://pyyaml.org/ticket/11
+# Ensure Yaml does not emit tags for unicode objects.
+# http://pyyaml.org/ticket/11
 def UnicodeRepresenter(dumper, value):
   return dumper.represent_scalar(u"tag:yaml.org,2002:str", value)
 
 
-yaml.add_representer(unicode, UnicodeRepresenter)
+yaml.add_representer(Text, UnicodeRepresenter)
+yaml.add_representer(Text, UnicodeRepresenter, Dumper=yaml.SafeDumper)
+yaml.add_representer(str, UnicodeRepresenter)
+yaml.add_representer(str, UnicodeRepresenter, Dumper=yaml.SafeDumper)
 
 
 class YamlParser(GRRConfigParser):
@@ -562,7 +567,7 @@ def _ParseYamlFromFile(filedesc):
   """Parses given YAML file."""
 
   def StrConstructor(loader, node):
-    precondition.AssertType(node.value, unicode)
+    precondition.AssertType(node.value, Text)
     return loader.construct_scalar(node)
 
   # This makes sure that all string literals in the YAML file are parsed as an
@@ -974,7 +979,7 @@ class GrrConfigManager(object):
 
     # Check if the new value conforms with the type_info.
     if value is not None:
-      if isinstance(value, unicode):
+      if isinstance(value, Text):
         value = self.EscapeString(value)
 
     writeback_data[name] = value
@@ -1071,13 +1076,6 @@ class GrrConfigManager(object):
 
   def PrintHelp(self):
     print(self.FormatHelp())
-
-  default_descriptors = {
-      str: type_info.String,
-      unicode: type_info.String,
-      int: type_info.Integer,
-      list: type_info.List,
-  }
 
   def MergeData(self, merge_data, raw_data=None):
     """Merges data read from a config file into the current config."""
@@ -1292,7 +1290,7 @@ class GrrConfigManager(object):
       # Make sure it's not just a string and is iterable.
       if (isinstance(context, string_types) or
           not isinstance(context, collections.Iterable)):
-        raise ValueError("context should be a list, got %s" % str(context))
+        raise ValueError("context should be a list, got %r" % context)
 
     calc_context = context
 

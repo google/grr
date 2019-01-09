@@ -61,6 +61,9 @@ const HostInfoController = function(
   /** @type {?string} */
   this.interrogateOperationId;
 
+  /** @type {boolean} */
+  this.showDetails = false;
+
   /** @private {!angular.$q.Promise} */
   this.interrogateOperationInterval_;
 

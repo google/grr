@@ -3,4 +3,5 @@
        placeholder="Type %% for autocompletion..."
        uib-typeahead="item.expressionWithSuggestion as item.suggestion for item in controller.getSuggestions($viewValue)"
        typeahead-append-to-body="true"
-></input>
+       typeahead-template-url="/static/angular-components/core/typeahead-match.html"
+/>

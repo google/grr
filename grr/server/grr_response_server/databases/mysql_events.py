@@ -20,7 +20,7 @@ class MySQLDBEventMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAPIAuditEntries(self,
                           username=None,
-                          router_method_name=None,
+                          router_method_names=None,
                           min_timestamp=None,
                           max_timestamp=None,
                           cursor=None):
@@ -40,9 +40,11 @@ class MySQLDBEventMixin(object):
       conditions.append("username = %s")
       values.append(username)
 
-    if router_method_name is not None:
-      conditions.append("router_method_name = %s")
-      values.append(router_method_name)
+    if router_method_names:
+      placeholders = ["%s"] * len(router_method_names)
+      placeholders = ", ".join(placeholders)
+      conditions.append("router_method_name IN (%s)" % placeholders)
+      values.extend(router_method_names)
 
     if min_timestamp is not None:
       conditions.append("timestamp >= %s")

@@ -14,6 +14,7 @@ from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 from past.builtins import long
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -21,11 +22,9 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import reflection_pb2
-from grr_response_server import aff4
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 
 from grr_response_server.gui.api_plugins import stats as api_stats
@@ -109,7 +108,7 @@ class ApiValueRenderer(with_metaclass(registry.MetaclassRegistry, object)):
           continue
 
         if inspect.isclass(value):
-          if aff4.issubclass(value_cls, candidate_class):
+          if issubclass(value_cls, candidate_class):
             candidates.append((candidate, candidate_class))
         else:
           if isinstance(value, candidate_class):
@@ -147,9 +146,10 @@ class ApiValueRenderer(with_metaclass(registry.MetaclassRegistry, object)):
     """Renders default value of a given class.
 
     Args:
-      value_cls: Default value of this class will be rendered. This class has
-                 to be (or to be a subclass of) a self.value_class (i.e.
-                 a class that this renderer is capable of rendering).
+      value_cls: Default value of this class will be rendered. This class has to
+        be (or to be a subclass of) a self.value_class (i.e. a class that this
+        renderer is capable of rendering).
+
     Returns:
       An initialized default value.
 
@@ -160,16 +160,17 @@ class ApiValueRenderer(with_metaclass(registry.MetaclassRegistry, object)):
       return value_cls()
     except Exception as e:  # pylint: disable=broad-except
       logging.exception(e)
-      raise DefaultValueError("Can't create default for value %s: %s" %
-                              (value_cls.__name__, e))
+      raise DefaultValueError(
+          "Can't create default for value %s: %s" % (value_cls.__name__, e))
 
   def BuildTypeDescriptor(self, value_cls):
     """Renders metadata of a given value class.
 
     Args:
-      value_cls: Metadata of this class will be rendered. This class has
-                 to be (or to be a subclass of) a self.value_class (i.e.
-                 a class that this renderer is capable of rendering).
+      value_cls: Metadata of this class will be rendered. This class has to be
+        (or to be a subclass of) a self.value_class (i.e. a class that this
+        renderer is capable of rendering).
+
     Returns:
       Dictionary with class metadata.
     """
@@ -201,10 +202,10 @@ class ApiNumberRenderer(ApiValueRenderer):
 class ApiStringRenderer(ApiValueRenderer):
   """Renderer for strings."""
 
-  value_class = unicode
+  value_class = Text
 
   def RenderValue(self, value):
-    return self._IncludeTypeInfo(value, value)
+    return dict(type="unicode", value=value)
 
 
 class ApiEnumNamedValueRenderer(ApiValueRenderer):
@@ -330,16 +331,6 @@ class ApiRDFZippedBytesRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     result = base64.b64encode(value.Uncompress())
-    return self._IncludeTypeInfo(result, value)
-
-
-class ApiZippedJSONBytesRenderer(ApiValueRenderer):
-  """Renderer for ZippedJSONBytes."""
-
-  value_class = rdf_rekall_types.ZippedJSONBytes
-
-  def RenderValue(self, value):
-    result = utils.SmartUnicode(value.Uncompress())
     return self._IncludeTypeInfo(result, value)
 
 
@@ -505,7 +496,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
                   doc=enum_value.description))
 
       if (field_desc.default is not None and
-          not aff4.issubclass(field_type, rdf_structs.RDFStruct) and
+          not issubclass(field_type, rdf_structs.RDFStruct) and
           hasattr(field_desc, "GetDefault")):
         field.default = field.GetDefaultValueClass()(field_desc.GetDefault())
 

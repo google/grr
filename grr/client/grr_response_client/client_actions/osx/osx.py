@@ -20,6 +20,7 @@ import sys
 
 
 from future.builtins import bytes
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 import pytsk3
@@ -331,7 +332,8 @@ def EnumerateFilesystemsFromClient(args):
         if volume.flags == pytsk3.TSK_VS_PART_FLAG_ALLOC:
           offset = volume.start * vol_inf.info.block_size
           yield rdf_client_fs.Filesystem(
-              device=path + ":" + str(offset), type="partition")
+              device="{path}:{offset}".format(path=path, offset=offset),
+              type="partition")
 
     except (IOError, RuntimeError):
       continue
@@ -365,7 +367,7 @@ def CreateServiceProto(job):
 
   for arg in job.get("ProgramArguments", "", stringify=False):
     # Returns CFArray of CFStrings
-    service.args.Append(unicode(arg))
+    service.args.Append(str(arg))
 
   mach_dict = job.get("MachServices", {}, stringify=False)
   for key, value in iteritems(mach_dict):

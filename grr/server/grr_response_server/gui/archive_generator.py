@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import io
-import logging
 import os
 import zipfile
 
@@ -40,6 +39,11 @@ def GetCompatClass():
     return CollectionArchiveGenerator
   else:
     return Aff4CollectionArchiveGenerator
+
+
+def _ClientPathToString(client_path, prefix=""):
+  """Returns a path-like String of client_path with optional prefix."""
+  return os.path.join(prefix, client_path.client_id, client_path.vfs_path)
 
 
 class CollectionArchiveGenerator(object):
@@ -95,10 +99,10 @@ class CollectionArchiveGenerator(object):
 
     self.description = description or "Files archive collection"
 
-    self.total_files = 0
-    self.archived_files = 0
-    self.ignored_files = []
-    self.failed_files = []
+    self.archived_files = set()
+    self.ignored_files = set()
+    self.failed_files = set()
+    self.processed_files = set()
 
     self.predicate = predicate or (lambda _: True)
     self.client_id = client_id
@@ -107,23 +111,31 @@ class CollectionArchiveGenerator(object):
   def output_size(self):
     return self.archive_generator.output_size
 
+  @property
+  def total_files(self):
+    return len(self.processed_files)
+
   def _GenerateDescription(self):
     """Generates description into a MANIFEST file in the archive."""
 
     manifest = {
         "description": self.description,
-        "processed_files": self.total_files,
-        "archived_files": self.archived_files,
+        "processed_files": len(self.processed_files),
+        "archived_files": len(self.archived_files),
         "ignored_files": len(self.ignored_files),
         "failed_files": len(self.failed_files)
     }
     if self.ignored_files:
-      manifest["ignored_files_list"] = self.ignored_files
+      manifest["ignored_files_list"] = [
+          _ClientPathToString(cp, prefix="aff4:") for cp in self.ignored_files
+      ]
     if self.failed_files:
-      manifest["failed_files_list"] = self.failed_files
+      manifest["failed_files_list"] = [
+          _ClientPathToString(cp, prefix="aff4:") for cp in self.failed_files
+      ]
 
     manifest_fd = io.StringIO()
-    if self.total_files != self.archived_files:
+    if self.total_files != len(self.archived_files):
       manifest_fd.write(self.FILES_SKIPPED_WARNING)
     manifest_fd.write(yaml.safe_dump(manifest).decode("utf-8"))
 
@@ -137,7 +149,7 @@ class CollectionArchiveGenerator(object):
 
   def _GenerateClientInfo(self, client_id, client_fd):
     """Yields chucks of archive information for given client."""
-    summary_dict = client_fd.ToPrimitiveDict(serialize_leaf_fields=True)
+    summary_dict = client_fd.ToPrimitiveDict(stringify_leaf_fields=True)
     summary = yaml.safe_dump(summary_dict).decode("utf-8")
 
     client_info_path = os.path.join(self.prefix, client_id, "client_info.yaml")
@@ -165,52 +177,29 @@ class CollectionArchiveGenerator(object):
     client_ids = set()
     for item_batch in collection.Batch(items, self.BATCH_SIZE):
 
-      fds_to_write = {}
+      client_paths = set()
       for item in item_batch:
         try:
-          urn = flow_export.CollectionItemToAff4Path(item, self.client_id)
           client_path = flow_export.CollectionItemToClientPath(
               item, self.client_id)
         except flow_export.ItemNotExportableError:
           continue
 
-        fd = file_store.OpenFile(client_path)
-        self.total_files += 1
-
         if not self.predicate(client_path):
-          self.ignored_files.append(utils.SmartUnicode(urn))
+          self.ignored_files.add(client_path)
+          self.processed_files.add(client_path)
           continue
 
         client_ids.add(client_path.client_id)
+        client_paths.add(client_path)
 
-        # content_path = os.path.join(self.prefix, *urn_components)
-        self.archived_files += 1
+      for chunk in file_store.StreamFilesChunks(client_paths):
+        self.processed_files.add(chunk.client_path)
+        for output in self._WriteFileChunk(chunk=chunk):
+          yield output
 
-        # Make sure size of the original file is passed. It's required
-        # when output_writer is StreamingTarWriter.
-        st = os.stat_result((0o644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
-        fds_to_write[fd] = (client_path, urn, st)
-
-      if fds_to_write:
-        for fd, (client_path, urn, st) in iteritems(fds_to_write):
-          try:
-            for i, chunk in enumerate(
-                file_store.StreamFilesChunks([client_path])):
-              if i == 0:
-                target_path = os.path.join(self.prefix, urn.Path()[1:])
-                yield self.archive_generator.WriteFileHeader(target_path, st=st)
-
-              yield self.archive_generator.WriteFileChunk(chunk.data)
-
-            yield self.archive_generator.WriteFileFooter()
-          except Exception as exception:  # pylint: disable=broad-except
-            logging.exception(exception)
-
-            self.archived_files -= 1
-            self.failed_files.append(unicode(urn))
-
-        if self.archive_generator.is_file_write_in_progress:
-          yield self.archive_generator.WriteFileFooter()
+      self.processed_files |= client_paths - (
+          self.ignored_files | self.archived_files)
 
     if client_ids:
       for client_id, client_info in iteritems(
@@ -223,3 +212,22 @@ class CollectionArchiveGenerator(object):
       yield chunk
 
     yield self.archive_generator.Close()
+
+  def _WriteFileChunk(self, chunk):
+    """Yields binary chunks, respecting archive file headers and footers.
+
+    Args:
+      chunk: the StreamedFileChunk to be written
+    """
+    if chunk.chunk_index == 0:
+      # Make sure size of the original file is passed. It's required
+      # when output_writer is StreamingTarWriter.
+      st = os.stat_result((0o644, 0, 0, 0, 0, 0, chunk.total_size, 0, 0, 0))
+      target_path = _ClientPathToString(chunk.client_path, prefix=self.prefix)
+      yield self.archive_generator.WriteFileHeader(target_path, st=st)
+
+    yield self.archive_generator.WriteFileChunk(chunk.data)
+
+    if chunk.chunk_index == chunk.total_chunks - 1:
+      yield self.archive_generator.WriteFileFooter()
+      self.archived_files.add(chunk.client_path)

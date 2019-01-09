@@ -70,10 +70,10 @@ class MetricMetadata(rdf_structs.RDFProtoStruct):
       return 0
     elif self.value_type == self.ValueType.FLOAT:
       return 0.0
-    elif self.value_type == self.ValueType.STR:
-      return ""
-    else:
+    elif self.value_type == self.ValueType.DISTRIBUTION:
       return Distribution()
+    else:
+      raise ValueError("Illegal value type: {!r}".format(self.value_type))
 
 
 class StatsHistogramBin(rdf_structs.RDFProtoStruct):
@@ -233,3 +233,11 @@ class GraphFloat(Graph):
 class GraphSeries(rdf_protodict.RDFValueArray):
   """A sequence of graphs (e.g. evolving over time)."""
   rdf_type = Graph
+
+
+class ClientGraphSeries(rdf_structs.RDFProtoStruct):
+  """A collection of graphs for a single client-report type."""
+  protobuf = analysis_pb2.ClientGraphSeries
+  rdf_deps = [
+      Graph,
+  ]

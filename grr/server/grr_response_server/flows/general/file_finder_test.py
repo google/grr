@@ -48,35 +48,6 @@ from grr.test_lib import test_lib
 # pylint:mode=test
 
 
-class FileFinderActionMock(action_mocks.FileFinderClientMock):
-
-  def HandleMessage(self, message):
-    responses = super(FileFinderActionMock, self).HandleMessage(message)
-
-    predefined_values = {
-        "auth.log": (1333333330, 1333333332, 1333333334),
-        "dpkg.log": (1444444440, 1444444442, 1444444444),
-        "dpkg_false.log": (1555555550, 1555555552, 1555555554)
-    }
-
-    processed_responses = []
-
-    for response in responses:
-      payload = response.payload
-      if isinstance(payload, rdf_client_fs.FindSpec):
-        basename = payload.hit.pathspec.Basename()
-        try:
-          payload.hit.st_atime = predefined_values[basename][0]
-          payload.hit.st_mtime = predefined_values[basename][1]
-          payload.hit.st_ctime = predefined_values[basename][2]
-          response.payload = payload
-        except KeyError:
-          pass
-      processed_responses.append(response)
-
-    return processed_responses
-
-
 @db_test_lib.DualDBTest
 class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the FileFinder flow."""
@@ -163,7 +134,10 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         with aff4.FACTORY.Open(file_urn, token=self.token) as fd:
           size = fd.Get(fd.Schema.SIZE)
 
-      self.assertGreater(size, 100)
+      with io.open(os.path.join(self.base_path, "searching", fname)) as fd:
+        test_data = fd.read()
+
+      self.assertEqual(size, len(test_data))
 
       if data_store.RelationalDBReadEnabled(category="filestore"):
         fd = file_store.OpenFile(
@@ -173,7 +147,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
                 components=self.FilenameToPathComponents(fname)))
 
         # Make sure we can actually read the file.
-        self.assertLen(fd.read(), size)
+        self.assertEqual(fd.read(), test_data)
 
   def CheckFilesNotDownloaded(self, fnames):
     for fname in fnames:
@@ -292,7 +266,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestFileFinderFlow, self).setUp()
-    self.client_mock = FileFinderActionMock()
+    self.client_mock = action_mocks.FileFinderClientMockWithTimestamps()
     self.fixture_path = os.path.join(self.base_path, "searching")
     self.path = os.path.join(self.fixture_path, "*.log")
     self.client_id = self.SetupClient(0)
@@ -364,6 +338,18 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
           rdf_client_fs.ExtAttr(name=b"user.bar", value=b"quux"),
           rdf_client_fs.ExtAttr(name=b"user.baz", value=b"norf"),
       ])
+
+  def testFileFinderDownloadActionWithMultiplePathsAndFilesInFilestore(self):
+    # Do a first run to put all files into the file store.
+    self.RunFlowAndCheckResults(
+        action=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
+        expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
+
+    # This will get the file contents from the filestore instead of collecting
+    # them.
+    self.RunFlowAndCheckResults(
+        action=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
+        expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
 
   def testFileFinderDownloadActionWithoutConditions(self):
     self.RunFlowAndCheckResults(

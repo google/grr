@@ -8,6 +8,8 @@ import stat
 
 import pytsk3
 
+from typing import Text
+
 from grr_response_client import client_utils
 from grr_response_client import vfs
 from grr_response_core.lib import utils
@@ -203,7 +205,7 @@ class TSKFile(vfs.VFSHandler):
     Returns:
       A StatEntry which can be used to re-open this exact VFS node.
     """
-    precondition.AssertOptionalType(append_name, unicode)
+    precondition.AssertOptionalType(append_name, Text)
 
     info = tsk_file.info
     response = rdf_client_fs.StatEntry()

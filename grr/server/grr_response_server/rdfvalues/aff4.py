@@ -35,7 +35,8 @@ class AFF4ObjectLabel(rdf_structs.RDFProtoStruct):
     if not self.name:
       raise type_info.TypeValueError("Label name cannot be empty.")
 
-    if not re.match("^[\\w./:\\- ]+$", self.name):
+    is_valid = lambda char: char.isalnum() or char in " _./:-"
+    if not all(map(is_valid, self.name)):
       raise type_info.TypeValueError("Label name can only contain: "
                                      "a-zA-Z0-9_./:- but got: '%s'" % self.name)
 

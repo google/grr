@@ -99,8 +99,11 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     return ret
 
   def testRunInTransaction(self):
-    self.db.delegate._RunInTransaction(
-        lambda con: self.AddUser(con, "AzureDiamond", "hunter2"))
+
+    def AddUserFn(con):
+      self.AddUser(con, "AzureDiamond", "hunter2")
+
+    self.db.delegate._RunInTransaction(AddUserFn)
 
     users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
     self.assertEqual(users, ((u"AzureDiamond", "hunter2"),))
@@ -108,10 +111,14 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testRunInTransactionDeadlock(self):
     """A deadlock error should be retried."""
 
-    self.db.delegate._RunInTransaction(
-        lambda con: self.AddUser(con, "user1", "pw1"))
-    self.db.delegate._RunInTransaction(
-        lambda con: self.AddUser(con, "user2", "pw2"))
+    def AddUserFn1(con):
+      self.AddUser(con, "user1", "pw1")
+
+    def AddUserFn2(con):
+      self.AddUser(con, "user2", "pw2")
+
+    self.db.delegate._RunInTransaction(AddUserFn1)
+    self.db.delegate._RunInTransaction(AddUserFn2)
 
     # We'll start two transactions which read/modify rows in different orders.
     # This should force (at least) one to fail with a deadlock, which should be
@@ -356,6 +363,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testWritePathInfosHashEntry(self):
     pass
 
+  def testWriteMultiplePathInfosHashEntry(self):
+    pass
+
   def testWritePathInfosHashAndStatEntry(self):
     pass
 
@@ -592,6 +602,18 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testReadingNonExistentHuntObjectRaises(self):
     pass
 
+  def testUpdateHuntObjectRaisesIfHuntDoesNotExist(self):
+    pass
+
+  def testUpdateHuntObjectCorrectlyUpdatesHuntObject(self):
+    pass
+
+  def testUpdateHuntObjectIsAtomic(self):
+    pass
+
+  def testUpdateHuntObjectPropagatesExceptions(self):
+    pass
+
   def testReadAllHuntObjectsReturnsEmptyListWhenNoHunts(self):
     pass
 
@@ -689,6 +711,30 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testDeleteSignedBinaryReferences(self):
+    pass
+
+  def testReadAllClientGraphSeries(self):
+    pass
+
+  def testReadAllClientGraphSeries_NonExistentLabel(self):
+    pass
+
+  def testReadAllClientGraphSeries_MissingType(self):
+    pass
+
+  def testReadAllClientGraphSeries_InTimeRange(self):
+    pass
+
+  def testOverwriteClientGraphSeries(self):
+    pass
+
+  def testReadMostRecentClientGraphSeries(self):
+    pass
+
+  def testMostRecentGraphSeries_NonExistentLabel(self):
+    pass
+
+  def testReadMostRecentClientGraphSeries_MissingType(self):
     pass
 
 

@@ -63,7 +63,7 @@ def StartHunt(args=None, runner_args=None, token=None, **kwargs):
 
   # Is the required hunt a known hunt?
   hunt_cls = GRRHunt.classes.get(runner_args.hunt_name)
-  if not hunt_cls or not aff4.issubclass(hunt_cls, GRRHunt):
+  if not hunt_cls or not issubclass(hunt_cls, GRRHunt):
     raise RuntimeError("Unable to locate hunt %s" % runner_args.hunt_name)
 
   # Make a new hunt object and initialize its runner.

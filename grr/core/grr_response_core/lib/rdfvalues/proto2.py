@@ -15,6 +15,8 @@ from __future__ import unicode_literals
 
 import logging
 
+from future.builtins import str
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_proto import semantic_pb2
@@ -249,13 +251,13 @@ def DefineFromProtobuf(cls, protobuf):
       # as well.
 
       enum_desc = field.enum_type
-      enum_desc_name = unicode(enum_desc.name)
+      enum_desc_name = str(enum_desc.name)
       enum_dict = {}
       enum_descriptions = {}
       enum_labels = {}
 
       for enum_value in enum_desc.values:
-        enum_value_name = unicode(enum_value.name)
+        enum_value_name = str(enum_value.name)
 
         enum_dict[enum_value_name] = enum_value.number
         description = enum_value.GetOptions().Extensions[

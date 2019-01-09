@@ -506,7 +506,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
       packed_message_list = rdf_flows.PackedMessageList.FromSerializedString(
           plain)
     except rdfvalue.DecodeError as e:
-      raise DecryptionError(str(e))
+      raise DecryptionError(e)
 
     message_list = self.DecompressMessageList(packed_message_list)
 

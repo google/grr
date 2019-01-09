@@ -21,22 +21,32 @@ class InMemoryDBHuntMixin(object):
   @utils.Synchronized
   def WriteHuntObject(self, hunt_obj):
     """Writes a hunt object to the database."""
-    clone = hunt_obj.Copy()
+    clone = self._DeepCopy(hunt_obj)
     clone.last_update_time = rdfvalue.RDFDatetime.Now()
     self.hunts[(hunt_obj.hunt_id)] = clone
+
+  @utils.Synchronized
+  def UpdateHuntObject(self, hunt_id, update_fn):
+    """Updates the hunt object by applying the update function."""
+    hunt_obj = self.ReadHuntObject(hunt_id)
+    updated_hunt_obj = update_fn(hunt_obj)
+    if updated_hunt_obj is None:
+      raise ValueError("update_fn can't return None")
+    self.WriteHuntObject(updated_hunt_obj)
+    return updated_hunt_obj
 
   @utils.Synchronized
   def ReadHuntObject(self, hunt_id):
     """Reads a hunt object from the database."""
     try:
-      return self.hunts[hunt_id].Copy()
+      return self._DeepCopy(self.hunts[hunt_id])
     except KeyError:
       raise db.UnknownHuntError(hunt_id)
 
   @utils.Synchronized
   def ReadAllHuntObjects(self):
     """Reads all hunt objects from the database."""
-    return [h.Copy() for h in self.hunts.values()]
+    return [self._DeepCopy(h) for h in self.hunts.values()]
 
   @utils.Synchronized
   def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):
@@ -122,9 +132,8 @@ class InMemoryDBHuntMixin(object):
     elif filter_condition == db.HuntFlowsCondition.CRASHED_FLOWS_ONLY:
       filter_fn = lambda f: f.HasField("client_crash_info")
     elif filter_condition == db.HuntFlowsCondition.FLOWS_WITH_RESULTS_ONLY:
-      filter_fn = (
-          lambda f: self.ReadFlowResults(f.client_id, f.flow_id, 0, sys.maxsize)
-      )
+      filter_fn = (lambda f: self.ReadFlowResults(f.client_id, f.flow_id, 0, sys
+                                                  .maxsize))
     else:
       raise ValueError("Invalid filter condition: %d" % filter_condition)
 

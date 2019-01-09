@@ -33,12 +33,12 @@
       Interrogate
     </button>
 
-    <div class="btn-group" data-toggle="buttons">
-      <label class="btn btn-default active" ng-click="controller.showDetails = false">
-        <input type="radio" name="show-client-details" checked> Overview
+    <div class="btn-group">
+      <label class="btn btn-default" uib-btn-radio="false" ng-model="controller.showDetails">
+        Overview
       </label>
-      <label class="btn btn-default" ng-click="controller.showDetails = true">
-        <input type="radio" name="show-client-details"> Full details
+      <label class="btn btn-default" uib-btn-radio="true" ng-model="controller.showDetails">
+        Full details
       </label>
     </div>
 

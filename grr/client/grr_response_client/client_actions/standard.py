@@ -2,6 +2,7 @@
 """Standard actions that happen on the client."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -19,6 +20,8 @@ import zlib
 
 
 import psutil
+
+from typing import Text
 
 from grr_response_client import actions
 from grr_response_client import client_utils_common
@@ -458,7 +461,7 @@ class StdOutHook(object):
     self.buf = buf
 
   def write(self, text):  # pylint: disable=invalid-name
-    precondition.AssertType(text, unicode)
+    precondition.AssertType(text, Text)
     self.buf.write(text)
 
 

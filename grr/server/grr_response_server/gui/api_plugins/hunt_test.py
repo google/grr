@@ -14,10 +14,8 @@ from builtins import range  # pylint: disable=redefined-builtin
 import yaml
 
 from grr_response_core.lib import flags
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
@@ -34,6 +32,7 @@ from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -239,6 +238,7 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEmpty(result.items)
 
 
+@db_test_lib.DualDBTest
 class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         hunt_test_lib.StandardHuntTestMixin):
 
@@ -258,6 +258,7 @@ class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
         client_rate=0,
         token=self.token)
     self.hunt.Run()
+    self.hunt_id = self.hunt.urn.Basename()
 
     client_ids = self.SetupClients(10)
     self.AssignTasksToClients(client_ids=client_ids)
@@ -267,7 +268,7 @@ class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testGeneratesZipArchive(self):
     result = self.handler.Handle(
         hunt_plugin.ApiGetHuntFilesArchiveArgs(
-            hunt_id=self.hunt.urn.Basename(), archive_format="ZIP"),
+            hunt_id=self.hunt_id, archive_format="ZIP"),
         token=self.token)
 
     out_fd = io.BytesIO()
@@ -280,15 +281,17 @@ class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
       if name.endswith("MANIFEST"):
         manifest = yaml.safe_load(zip_fd.read(name))
 
-    self.assertEqual(manifest["archived_files"], 10)
-    self.assertEqual(manifest["failed_files"], 0)
-    self.assertEqual(manifest["processed_files"], 10)
-    self.assertEqual(manifest["ignored_files"], 0)
+    self.assertDictContainsSubset({
+        "archived_files": 10,
+        "failed_files": 0,
+        "processed_files": 10,
+        "ignored_files": 0,
+    }, manifest)
 
   def testGeneratesTarGzArchive(self):
     result = self.handler.Handle(
         hunt_plugin.ApiGetHuntFilesArchiveArgs(
-            hunt_id=self.hunt.urn.Basename(), archive_format="TAR_GZ"),
+            hunt_id=self.hunt_id, archive_format="TAR_GZ"),
         token=self.token)
 
     with utils.TempDirectory() as temp_dir:
@@ -310,12 +313,15 @@ class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
       with open(manifest_file_path, "rb") as fd:
         manifest = yaml.safe_load(fd.read())
 
-        self.assertEqual(manifest["archived_files"], 10)
-        self.assertEqual(manifest["failed_files"], 0)
-        self.assertEqual(manifest["processed_files"], 10)
-        self.assertEqual(manifest["ignored_files"], 0)
+        self.assertDictContainsSubset({
+            "archived_files": 10,
+            "failed_files": 0,
+            "processed_files": 10,
+            "ignored_files": 0,
+        }, manifest)
 
 
+@db_test_lib.DualDBTest
 class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
                                 hunt_test_lib.StandardHuntTestMixin):
 
@@ -436,26 +442,30 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfResultFileIsNotStream(self):
-    original_results = implementation.GRRHunt.ResultCollectionForHID(
+  def testRaisesIfResultFileDoesNotExist(self):
+    results = implementation.GRRHunt.ResultCollectionForHID(
         self.hunt.urn, token=self.token)
-    original_result = original_results[0]
+    original_result = results[0]
 
-    with aff4.FACTORY.Create(
-        original_result.payload.stat_entry.AFF4Path(self.client_id),
-        aff4_type=aff4.AFF4Volume,
-        token=self.token):
-      pass
+    with data_store.DB.GetMutationPool() as pool:
+      wrong_result = original_result.Copy()
+      payload = wrong_result.payload
+      payload.stat_entry.pathspec.path += "blah"
+      wrong_result.payload = payload
+      wrong_result.age -= rdfvalue.Duration("1s")
+
+      results.Add(wrong_result, timestamp=wrong_result.age, mutation_pool=pool)
 
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt.urn.Basename(),
         client_id=self.client_id,
-        vfs_path=self.aff4_file_path,
-        timestamp=original_result.age)
+        vfs_path=self.aff4_file_path + "blah",
+        timestamp=wrong_result.age)
 
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, token=self.token)
 
+  @db_test_lib.LegacyDataStoreOnly
   def testRaisesIfResultIsEmptyStream(self):
     original_results = implementation.GRRHunt.ResultCollectionForHID(
         self.hunt.urn, token=self.token)

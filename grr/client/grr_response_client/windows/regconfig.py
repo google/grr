@@ -16,6 +16,7 @@ import _winreg
 
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
+from typing import Text
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
@@ -58,7 +59,7 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
         name, value, value_type = _winreg.EnumValue(self.root_key, i)
         # Only support strings here.
         if value_type == _winreg.REG_SZ:
-          precondition.AssertType(value, unicode)
+          precondition.AssertType(value, Text)
           result[name] = value
       except OSError:
         break

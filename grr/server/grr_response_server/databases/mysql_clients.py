@@ -2,6 +2,7 @@
 """The MySQL database methods for client handling."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import datetime
@@ -9,12 +10,17 @@ import datetime
 
 from future.utils import iterkeys
 from future.utils import itervalues
+
 import MySQLdb
+from MySQLdb.constants import ER as mysql_error_constants
+
+from typing import Generator, List, Optional, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_server import db
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -555,3 +561,88 @@ class MySQLDBClientMixin(object):
       ci.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
       ret.append(ci)
     return ret
+
+  @mysql_utils.WithTransaction()
+  def WriteClientStats(self,
+                       client_id,
+                       stats,
+                       cursor = None):
+    """Stores a ClientStats instance."""
+
+    try:
+      cursor.execute(
+          """
+          INSERT INTO client_stats (client_id, payload, timestamp)
+          VALUES (%s, %s, %s)
+          ON DUPLICATE KEY UPDATE payload=VALUES(payload)
+          """, [
+              mysql_utils.ClientIDToInt(client_id),
+              stats.SerializeToString(),
+              mysql_utils.RDFDatetimeToMysqlString(stats.create_time)
+          ])
+    except MySQLdb.IntegrityError as e:
+      if e.args[0] == mysql_error_constants.NO_REFERENCED_ROW_2:
+        raise db.UnknownClientError(client_id, cause=e)
+      else:
+        raise
+
+  @mysql_utils.WithTransaction(readonly=True)
+  def ReadClientStats(self,
+                      client_id,
+                      min_timestamp,
+                      max_timestamp,
+                      cursor = None
+                     ):
+    """Reads ClientStats for a given client and time range."""
+
+    cursor.execute(
+        """
+        SELECT payload FROM client_stats
+        WHERE client_id = %s AND timestamp BETWEEN %s AND %s
+        ORDER BY timestamp ASC
+        """, [
+            mysql_utils.ClientIDToInt(client_id),
+            mysql_utils.RDFDatetimeToMysqlString(min_timestamp),
+            mysql_utils.RDFDatetimeToMysqlString(max_timestamp)
+        ])
+    return [
+        rdf_client_stats.ClientStats.FromSerializedString(stats_bytes)
+        for stats_bytes, in cursor.fetchall()
+    ]
+
+  # DeleteOldClientStats does not use a single transaction, since it runs for
+  # a long time. Instead, it uses multiple transactions internally.
+  def DeleteOldClientStats(
+      self, yield_after_count,
+      retention_time):
+    """Deletes ClientStats older than a given timestamp."""
+
+    yielded = False
+
+    while True:
+      deleted_count = self._DeleteClientStats(
+          limit=yield_after_count, retention_time=retention_time)
+
+      # Do not yield a trailing 0 after any non-zero count has been yielded.
+      # A trailing zero occurs, when an exact multiple of `yield_after_count`
+      # rows were in the table.
+      if not yielded or deleted_count > 0:
+        yield deleted_count
+        yielded = True
+
+      # Return, when no more rows can be deleted, indicated by a transaction
+      # that does not reach the deletion limit.
+      if deleted_count < yield_after_count:
+        return
+
+  @mysql_utils.WithTransaction()
+  def _DeleteClientStats(
+      self,
+      limit,
+      retention_time,
+      cursor = None):
+    """Deletes up to `limit` ClientStats older than `retention_time`."""
+    cursor.execute(
+        "DELETE FROM client_stats WHERE timestamp < %s LIMIT %s",
+        [mysql_utils.RDFDatetimeToMysqlString(retention_time), limit])
+    return cursor.rowcount

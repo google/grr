@@ -9,10 +9,13 @@ import datetime
 from datetime import datetime
 import time
 
+from future.builtins import str
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_core.lib.util import compatibility
 from grr.test_lib import test_lib
 
 
@@ -290,8 +293,8 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(int(date1), 1320142980000000)
 
     self.assertEqual(
-        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(int(date1) // 1e6)),
-        time_string)
+        compatibility.FormatTime("%Y-%m-%d %H:%M:%S",
+                                 time.gmtime(int(date1) // 1e6)), time_string)
 
     # We always stringify the date in UTC timezone.
     self.assertEqual(str(date1), time_string)
@@ -300,7 +303,7 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     with test_lib.FakeTime(1000):
       # Init from an empty string should generate a DateTime object with a zero
       # time.
-      date = rdfvalue.RDFDatetime.FromSerializedString("")
+      date = rdfvalue.RDFDatetime.FromSerializedString(b"")
       self.assertEqual(int(date), 0)
 
       self.assertEqual(int(date.Now()), int(1000 * 1e6))

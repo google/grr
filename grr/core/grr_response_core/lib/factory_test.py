@@ -4,6 +4,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl.testing import absltest
+from typing import Text
+
 from grr_response_core.lib import factory
 from grr_response_core.lib import flags
 from grr.test_lib import test_lib
@@ -43,7 +45,7 @@ class FactoryTest(absltest.TestCase):
       obj_factory.Unregister("foo")
 
   def testCreateString(self):
-    str_factory = factory.Factory(unicode)
+    str_factory = factory.Factory(Text)
     str_factory.Register("foo", lambda: "FOO")
     str_factory.Register("bar", lambda: "BAR")
     str_factory.Register("baz", lambda: "BAZ")

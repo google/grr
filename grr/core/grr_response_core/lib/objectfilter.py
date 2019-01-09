@@ -88,6 +88,7 @@ filter is easy. Three basic filter implementations are given:
 
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import abc
@@ -96,11 +97,15 @@ import collections
 import re
 
 
-from builtins import filter  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import filter
+from future.builtins import range
+from future.builtins import str
 from future.utils import iteritems
+from future.utils import python_2_unicode_compatible
 from future.utils import string_types
 from future.utils import with_metaclass
+
+from typing import Text
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import utils
@@ -125,6 +130,7 @@ class InvalidNumberOfOperands(Error):
 # TODO(user):pytype: Type checker doesn't see the metaclass, apparently
 # because with_metaclass is used.
 # pytype: disable=ignored-abstractmethod
+@python_2_unicode_compatible
 class Filter(with_metaclass(abc.ABCMeta, object)):
   """Base class for every filter."""
 
@@ -595,6 +601,7 @@ class BasicExpression(lexer.Expression):
     return operator(arguments=arguments, value_expander=expander)
 
 
+@python_2_unicode_compatible
 class ContextExpression(lexer.Expression):
   """Represents the context operator."""
 

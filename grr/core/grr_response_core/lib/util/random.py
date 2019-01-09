@@ -8,11 +8,12 @@ from __future__ import unicode_literals
 import os
 import struct
 
-from typing import Callable
-from typing import List
+import threading
+from typing import Callable, List
 
 _random_buffer_size = 1024  # type: int
 _random_buffer = []  # type: List[int]
+_mutex = threading.Lock()
 
 
 def UInt16():
@@ -27,13 +28,14 @@ def PositiveUInt16():
 
 def UInt32():
   """Returns a pseudo-random 32-bit unsigned integer."""
-  global _random_buffer
-
-  if not _random_buffer:
-    data = os.urandom(struct.calcsize("=L") * _random_buffer_size)
-    _random_buffer = list(struct.unpack("=" + "L" * _random_buffer_size, data))
-
-  return _random_buffer.pop()
+  with _mutex:
+    try:
+      return _random_buffer.pop()
+    except IndexError:
+      data = os.urandom(struct.calcsize("=L") * _random_buffer_size)
+      _random_buffer.extend(
+          struct.unpack("=" + "L" * _random_buffer_size, data))
+      return _random_buffer.pop()
 
 
 def PositiveUInt32():

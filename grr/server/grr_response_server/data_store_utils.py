@@ -72,6 +72,8 @@ def GetUrnHashEntry(urn, token=None):
 def GetClientKnowledgeBase(client_id, token=None):
   if data_store.RelationalDBReadEnabled():
     client = data_store.REL_DB.ReadClientSnapshot(client_id)
+    if client is None:
+      return None
     return client.knowledge_base
   else:
     client = aff4.FACTORY.Open(client_id, token=token)

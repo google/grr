@@ -10,7 +10,17 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import hunt
 from grr_response_server import message_handlers
+
+
+class Error(Exception):
+  pass
+
+
+class UnknownHuntTypeError(Error):
+  pass
 
 
 def GetForeman(token=None):
@@ -28,11 +38,23 @@ class Foreman(object):
 
   def _CheckIfHuntTaskWasAssigned(self, client_id, hunt_id):
     """Will return True if hunt's task was assigned to this client before."""
-    client_urn = rdfvalue.RDFURN(client_id)
-    for _ in aff4.FACTORY.Stat([
-        client_urn.Add("flows/%s:hunt" % rdfvalue.RDFURN(hunt_id).Basename())
-    ]):
-      return True
+    if data_store.RelationalDBFlowsEnabled():
+      flow_id = hunt_id
+      if hunt.IsLegacyHunt(hunt_id):
+        # Strip "H:" prefix.
+        flow_id = flow_id[2:]
+
+      try:
+        data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+        return True
+      except db.UnknownFlowError:
+        pass
+    else:
+      client_urn = rdfvalue.RDFURN(client_id)
+      for _ in aff4.FACTORY.Stat([
+          client_urn.Add("flows/%s:hunt" % rdfvalue.RDFURN(hunt_id).Basename())
+      ]):
+        return True
 
     return False
 
@@ -57,10 +79,16 @@ class Foreman(object):
         logging.info("Foreman: Starting hunt %s on client %s.", rule.hunt_id,
                      client_id)
 
-        flow_cls = registry.AFF4FlowRegistry.FlowClassByName(rule.hunt_name)
-        hunt_urn = rdfvalue.RDFURN("aff4:/hunts/%s" % rule.hunt_id)
-        flow_cls.StartClients(hunt_urn, [client_id])
+        # hunt_name is only used for legacy hunts.
+        if rule.hunt_name:
+          flow_cls = registry.AFF4FlowRegistry.FlowClassByName(rule.hunt_name)
+          hunt_urn = rdfvalue.RDFURN("aff4:/hunts/%s" % rule.hunt_id)
+          flow_cls.StartClients(hunt_urn, [client_id])
+        else:
+          hunt.StartHuntFlowOnClient(client_id, rule.hunt_id)
+
         actions_count += 1
+
     # There could be all kinds of errors we don't know about when starting the
     # hunt so we catch everything here.
     except Exception as e:  # pylint: disable=broad-except

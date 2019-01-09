@@ -13,6 +13,7 @@ import itertools
 import logging
 import re
 
+from future.builtins import str
 from future.utils import string_types
 
 from grr_response_core.lib import objectfilter
@@ -91,7 +92,7 @@ def InterpolateKbAttributes(pattern, knowledge_base, ignore_errors=False):
             sub_attr = value.Get(attr_name)
             # Ignore empty results
             if sub_attr:
-              sub_attrs.append(unicode(sub_attr))
+              sub_attrs.append(str(sub_attr))
 
           # If we got some results we use them. On Windows it is common for
           # users.temp to be defined for some users, but not all users.

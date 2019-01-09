@@ -16,7 +16,7 @@ DEFAULT_TIMEOUT = 650
 
 
 def GetUserInfo(knowledge_base, user):
-  # TODO(hanuszczak): This docstring cannot be a raw literal because there are
+  # TODO: This docstring cannot be a raw literal because there are
   # issues with raw unicode literals on Python 2. Once support for Python 2 is
   # dropped, it can be made raw again.
   # pylint: disable=g-docstring-has-escape

@@ -7,10 +7,13 @@ import sys
 import threading
 import traceback
 
+
+from absl import flags
 import pytest
 
-from grr_response_core.lib import flags
 from grr.test_lib import testing_startup
+
+FLAGS = flags.FLAGS
 
 SKIP_BENCHMARK = pytest.mark.skip(
     reason="benchmark tests are executed only with --benchmark flag")
@@ -47,7 +50,7 @@ def pytest_runtest_setup(item):
   # various modules might have various flags defined.
   global last_module
   if last_module != item.module:
-    flags.Initialize()
+    FLAGS(sys.argv)
     testing_startup.TestInit()
   last_module = item.module
 

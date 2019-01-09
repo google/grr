@@ -4,10 +4,10 @@
   <div ng-if="controller.fileContent">
 
     <div>
-      <uib-pagination total-items="controller.pageCount" items-per-page="1"
-                  max-size="1" rotate="false" boundary-links="true"
-                  ng-model="controller.page" ng-if="controller.pageCount > 1">
-      </uib-pagination>
+      <ul uib-pagination total-items="controller.pageCount" items-per-page="1"
+          max-size="1" rotate="false" boundary-links="true"
+          ng-model="controller.page" ng-if="controller.pageCount > 1">
+      </ul>
 
       <grr-encodings-dropdown encoding="controller.encoding">
       </grr-encodings-dropdown>
@@ -20,10 +20,10 @@
     </div>
 
     <div>
-      <uib-pagination total-items="controller.pageCount" items-per-page="1"
-                  max-size="1" rotate="false" boundary-links="true"
-                  ng-model="controller.page" ng-if="controller.pageCount > 1">
-      </uib-pagination>
+      <ul uib-pagination total-items="controller.pageCount" items-per-page="1"
+          max-size="1" rotate="false" boundary-links="true"
+          ng-model="controller.page" ng-if="controller.pageCount > 1">
+      </ul>
     </div>
 
   </div>

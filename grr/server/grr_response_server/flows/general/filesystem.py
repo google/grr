@@ -177,17 +177,23 @@ class ListDirectoryMixin(object):
       super(ListDirectoryMixin, self).NotifyAboutEnd()
       return
 
-    components = self.state.urn.Split()
-    file_ref = None
-    if len(components) > 3:
-      file_ref = rdf_objects.VfsFileReference(
-          client_id=components[0],
-          path_type=components[2].upper(),
-          path_components=components[3:])
+    st = self.state.stat
+
+    ps_path_type = st.pathspec.last.pathtype
+    path_type = rdf_objects.PathInfo.PathTypeFromPathspecPathType(ps_path_type)
+
+    full_path = st.pathspec.CollapsePath()
+    path_components = full_path.strip("/").split("/")
+
+    file_ref = rdf_objects.VfsFileReference(
+        client_id=self.client_id,
+        path_type=path_type,
+        path_components=path_components)
+
     notification.Notify(
         self.token.username,
         rdf_objects.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED,
-        "Listed {0}".format(self.args.pathspec.CollapsePath()),
+        "Listed {0}".format(full_path),
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
             vfs_file=file_ref))

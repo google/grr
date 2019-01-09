@@ -18,7 +18,6 @@ from grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs
 # pylint: enable=unused-import
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_core.lib.util import precondition
 
 
@@ -331,16 +330,3 @@ class ArtifactFilesMultiParser(Parser, MultiResponseParser):
   def ParseResponses(self, knowledge_base, responses):
     precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
     return self.ParseMultiple(responses, knowledge_base)
-
-
-# TODO(hanuszczak): This class should implement only one interface.
-class RekallPluginParser(Parser, SingleResponseParser):
-  """Parses Rekall responses."""
-
-  # TODO(hanuszczak): Declare abstract `Parse` method.
-
-  def ParseResponse(self, knowledge_base, response, path_type):
-    del path_type  # Unused.
-    precondition.AssertType(response, rdf_rekall_types.RekallResponse)
-
-    return self.Parse(response, knowledge_base)

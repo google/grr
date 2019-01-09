@@ -20,6 +20,12 @@ from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import server_logging
 from grr_response_server import server_metrics
+
+# This import is a prerequisite for Init().
+# pylint: disable=unused-import
+from grr_response_server import server_plugins
+# pylint: enable=unused-import
+
 from grr_response_server.blob_stores import registry_init as bs_registry_init
 from grr_response_server.decoders import all as all_decoders
 
