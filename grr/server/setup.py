@@ -158,7 +158,7 @@ setup_args = dict(
         "python-debian==0.1.31",
         "Werkzeug==0.11.3",
         "wsgiref==0.1.2",
-        "jwt==1.7.1",
+        "pyjwt==1.7.1",
     ],
     extras_require={
         # This is an optional component. Install to get MySQL data
