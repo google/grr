@@ -541,8 +541,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def _AddLogToFlow(self, flow_id, log_string):
     if data_store.RelationalDBFlowsEnabled():
-      entry = rdf_flow_objects.FlowLogEntry(message=log_string)
-      data_store.REL_DB.WriteFlowLogEntries(self.client_id, flow_id, [entry])
+      entry = rdf_flow_objects.FlowLogEntry(
+          client_id=self.client_id, flow_id=flow_id, message=log_string)
+      data_store.REL_DB.WriteFlowLogEntries([entry])
     else:
       flow_urn = rdfvalue.RDFURN(self.client_id).Add("flows").Add(flow_id)
       with aff4.FACTORY.Open(flow_urn, token=self.token) as fd:
@@ -577,8 +578,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def _AddResultToFlow(self, flow_id, result):
     if data_store.RelationalDBFlowsEnabled():
-      flow_result = rdf_flow_objects.FlowResult(payload=result)
-      data_store.REL_DB.WriteFlowResults(self.client_id, flow_id, [flow_result])
+      flow_result = rdf_flow_objects.FlowResult(
+          client_id=self.client_id, flow_id=flow_id, payload=result)
+      data_store.REL_DB.WriteFlowResults([flow_result])
     else:
       flow_urn = rdfvalue.RDFURN(self.client_id).Add("flows").Add(flow_id)
       with data_store.DB.GetMutationPool() as pool:

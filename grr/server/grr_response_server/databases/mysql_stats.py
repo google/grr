@@ -13,8 +13,9 @@ from grr_response_core.lib import rdfvalue
 from grr_response_server import stats_values
 
 # Type alias representing a time-range.
+# TODO: pylint: disable=invalid-name
 _TimeRange = Tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
-
+# TODO: pylint: enable=invalid-name
 
 
 # TODO(user): Implement methods for this mixin.

@@ -7,11 +7,12 @@ import functools
 import threading
 
 from builtins import range  # pylint: disable=redefined-builtin
+import mock
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import cronjobs
 from grr_response_server import data_store
@@ -63,10 +64,6 @@ def WaitForEvent(event):
 def WaitAndSignal(wait_event, signal_event):
   signal_event.set()
   wait_event.wait()
-
-
-def Error(unused_self):
-  raise ValueError("Random cron job error.")
 
 
 class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
@@ -138,21 +135,112 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
 
     cron_manager.DisableJob(job_id1, token=self.token)
 
+    event = threading.Event()
+    waiting_func = functools.partial(WaitForEvent, event)
+    try:
+      with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+        cron_manager.RunOnce(token=self.token)
+
+      cron_job1 = cron_manager.ReadJob(job_id1, token=self.token)
+      cron_job2 = cron_manager.ReadJob(job_id2, token=self.token)
+
+      # Disabled flow shouldn't be running, while not-disabled flow should run
+      # as usual.
+      self.assertFalse(cron_manager.JobIsRunning(cron_job1, token=self.token))
+      self.assertTrue(cron_manager.JobIsRunning(cron_job2, token=self.token))
+    finally:
+      event.set()
+
+  @mock.patch.object(cronjobs, "TASK_STARTUP_WAIT", 1)
+  def testCronMaxThreadsLimitIsRespectedAndCorrectlyHandled(self):
+    cron_manager = cronjobs.CronManager()
+
+    event = threading.Event()
+    waiting_func = functools.partial(WaitForEvent, event)
+
+    try:
+      create_flow_args = rdf_cronjobs.CreateCronJobArgs(
+          frequency="1h", lifetime="1h")
+      with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+        job_ids = []
+        for _ in range(cron_manager.max_threads * 2):
+          job_ids.append(cron_manager.CreateJob(cron_args=create_flow_args))
+
+        cron_manager.RunOnce(token=self.token)
+
+        count_scheduled = 0
+        for job_id in job_ids:
+          count_scheduled += len(cron_manager.ReadJobRuns(job_id))
+
+        self.assertEqual(count_scheduled, cron_manager.max_threads)
+    finally:
+      event.set()
+
+    cron_manager._GetThreadPool().Join()
+
+    count_scheduled = 0
+    for job_id in job_ids:
+      count_scheduled += len(cron_manager.ReadJobRuns(job_id))
+    # Check that tasks that were not scheduled due to max_threads limit
+    # run later.
+    self.assertEqual(count_scheduled, cron_manager.max_threads)
+
+    # Now all the cron jobs that weren't scheduled in previous RunOnce call
+    # due to max_threads limit should get scheduled.
     cron_manager.RunOnce(token=self.token)
 
-    cron_job1 = cron_manager.ReadJob(job_id1, token=self.token)
-    cron_job2 = cron_manager.ReadJob(job_id2, token=self.token)
+    count_scheduled = 0
+    for job_id in job_ids:
+      count_scheduled += len(cron_manager.ReadJobRuns(job_id))
+    self.assertEqual(count_scheduled, cron_manager.max_threads * 2)
 
-    # Disabled flow shouldn't be running, while not-disabled flow should run
-    # as usual.
-    self.assertFalse(cron_manager.JobIsRunning(cron_job1, token=self.token))
-    self.assertTrue(cron_manager.JobIsRunning(cron_job2, token=self.token))
+  def testNonExistingSystemCronJobDoesNotPreventOtherCronJobsFromRunning(self):
+    cron_manager = cronjobs.CronManager()
+
+    # Have a fake non-existing cron job. We assume that cron jobs are going
+    # to be processed in alphabetical order, according to their cron job ids.
+    args = rdf_cronjobs.CronJobAction(
+        action_type=rdf_cronjobs.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+        system_cron_action=rdf_cronjobs.SystemCronAction(
+            job_class_name="__AbstractFakeCronJob__"))
+
+    job = rdf_cronjobs.CronJob(
+        cron_job_id="cron_1",
+        args=args,
+        enabled=True,
+        frequency=rdfvalue.Duration("2h"),
+        lifetime=rdfvalue.Duration("1h"),
+        allow_overruns=False)
+    data_store.REL_DB.WriteCronJob(job)
+
+    # Have a proper cron job.
+    cron_manager = cronjobs.CronManager()
+    args = rdf_cronjobs.CronJobAction(
+        action_type=rdf_cronjobs.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+        system_cron_action=rdf_cronjobs.SystemCronAction(
+            job_class_name="DummyStatefulSystemCronJobRel"))
+
+    job = rdf_cronjobs.CronJob(
+        cron_job_id="cron_2",
+        args=args,
+        enabled=True,
+        frequency=rdfvalue.Duration("2h"),
+        lifetime=rdfvalue.Duration("1h"),
+        allow_overruns=False)
+    data_store.REL_DB.WriteCronJob(job)
+
+    with self.assertRaises(cronjobs.OneOrMoreCronJobsFailedError):
+      cron_manager.RunOnce()
+    cron_manager._GetThreadPool().Join()
+
+    self.assertLen(cron_manager.ReadJobRuns("cron_1"), 0)
+    self.assertLen(cron_manager.ReadJobRuns("cron_2"), 1)
 
   def testCronJobRunDoesNothingIfCurrentFlowIsRunning(self):
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
-    with utils.Stubber(standard.RunHunt, "Run", waiting_func):
+    with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
       try:
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
@@ -183,7 +271,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
-    with utils.Stubber(standard.RunHunt, "Run", waiting_func):
+    with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
       try:
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
@@ -258,7 +346,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
     try:
-      with utils.Stubber(standard.RunHunt, "Run", waiting_func):
+      with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
@@ -292,7 +380,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
     try:
-      with utils.Stubber(standard.RunHunt, "Run", waiting_func):
+      with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
@@ -338,7 +426,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
 
-    with utils.Stubber(standard.RunHunt, "Run", waiting_func):
+    with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
       cron_manager = cronjobs.CronManager()
       create_flow_args = rdf_cronjobs.CreateCronJobArgs(
           frequency="1w", lifetime="1d")
@@ -384,13 +472,100 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
       self.assertEqual(current_latency_value.count - prev_latency_value.count,
                        1)
 
-  def testTimeout(self):
+  def testTimeoutOfCrashedCronJobIsHandledCorrectly(self):
     wait_event = threading.Event()
     signal_event = threading.Event()
     waiting_func = functools.partial(WaitAndSignal, wait_event, signal_event)
 
     fake_time = rdfvalue.RDFDatetime.Now()
-    with utils.Stubber(standard.RunHunt, "Run", waiting_func):
+    with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+      with test_lib.FakeTime(fake_time):
+        cron_manager = cronjobs.CronManager()
+        create_flow_args = rdf_cronjobs.CreateCronJobArgs()
+        create_flow_args.frequency = "1h"
+        create_flow_args.lifetime = "1h"
+
+        job_id = cron_manager.CreateJob(cron_args=create_flow_args)
+
+        cron_manager.RunOnce(token=self.token)
+        # Make sure the cron job has actually been started.
+        signal_event.wait(10)
+
+        cron_job = cron_manager.ReadJob(job_id, token=self.token)
+        self.assertTrue(cron_manager.JobIsRunning(cron_job))
+        runs = cron_manager.ReadJobRuns(job_id)
+        self.assertLen(runs, 1)
+        run = runs[0]
+        self.assertEqual(cron_job.current_run_id, run.run_id)
+        self.assertEqual(run.status, "RUNNING")
+
+      try:
+        prev_timeout_value = stats_collector_instance.Get().GetMetricValue(
+            "cron_job_timeout", fields=[job_id])
+        prev_latency_value = stats_collector_instance.Get().GetMetricValue(
+            "cron_job_latency", fields=[job_id])
+
+        fake_time += rdfvalue.Duration("2h")
+        with test_lib.FakeTime(fake_time):
+          signal_event.clear()
+          # First RunOnce call will mark the stuck job as failed.
+          cron_manager.RunOnce(token=self.token)
+          cron_job = cron_manager.ReadJob(job_id, token=self.token)
+          self.assertEqual(cron_job.last_run_status, "LIFETIME_EXCEEDED")
+          runs = cron_manager.ReadJobRuns(job_id)
+          self.assertLen(runs, 1)
+          self.assertEqual(runs[0].status, "LIFETIME_EXCEEDED")
+
+          # Second RunOnce call will schedule a new invocation.
+          cron_manager.RunOnce(token=self.token)
+          signal_event.wait(10)
+
+          # Previous job run should be considered stuck by now. A new one
+          # has to be started.
+          cron_job = cron_manager.ReadJob(job_id, token=self.token)
+          runs = cron_manager.ReadJobRuns(job_id)
+          self.assertLen(runs, 2)
+
+          old_run, new_run = sorted(runs, key=lambda r: r.started_at)
+          self.assertIsNotNone(new_run.started_at)
+
+          self.assertEqual(new_run.status, "RUNNING")
+          self.assertEqual(cron_job.current_run_id, new_run.run_id)
+          self.assertIsNotNone(old_run.started_at)
+          self.assertIsNotNone(old_run.finished_at)
+          self.assertEqual(old_run.status, "LIFETIME_EXCEEDED")
+
+          self.assertEqual(cron_job.last_run_status, "LIFETIME_EXCEEDED")
+
+          # Check that timeout counter got updated.
+          current_timeout_value = stats_collector_instance.Get().GetMetricValue(
+              "cron_job_timeout", fields=[job_id])
+          self.assertEqual(current_timeout_value - prev_timeout_value, 1)
+
+          # Check that latency stat got updated.
+          current_latency_value = stats_collector_instance.Get().GetMetricValue(
+              "cron_job_latency", fields=[job_id])
+          self.assertEqual(
+              current_latency_value.count - prev_latency_value.count, 1)
+          self.assertEqual(current_latency_value.sum - prev_latency_value.sum,
+                           rdfvalue.Duration("2h").seconds)
+
+      finally:
+        # Make sure that the cron job thread actually finishes.
+        wait_event.set()
+        cron_manager._GetThreadPool().Join()
+
+      # Make sure cron job got updated correctly after stuck job as finished.
+      cron_job = cron_manager.ReadJob(job_id, token=self.token)
+      self.assertEqual(cron_job.last_run_status, "FINISHED")
+
+  def testTimeoutOfLongRunningJobIsHandledCorrectly(self):
+    wait_event = threading.Event()
+    signal_event = threading.Event()
+    waiting_func = functools.partial(WaitAndSignal, wait_event, signal_event)
+
+    fake_time = rdfvalue.RDFDatetime.Now()
+    with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
       with test_lib.FakeTime(fake_time):
         cron_manager = cronjobs.CronManager()
         create_flow_args = rdf_cronjobs.CreateCronJobArgs()
@@ -442,7 +617,10 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
                          rdfvalue.Duration("2h").seconds)
 
   def testError(self):
-    with utils.Stubber(standard.RunHunt, "Run", Error):
+    with mock.patch.object(
+        standard.RunHunt,
+        "Run",
+        side_effect=ValueError("Random cron job error.")):
       cron_manager = cronjobs.CronManager()
       create_flow_args = rdf_cronjobs.CreateCronJobArgs()
 
@@ -572,6 +750,101 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
         self.assertEqual(run.status, "FINISHED")
 
     self.assertListEqual(DummyStatefulSystemCronJobRel.VALUES, [0, 1, 2])
+
+  def testHeartbeat_EnforceMaxRuntime(self):
+    cron_started_event = threading.Event()
+    heartbeat_event = threading.Event()
+
+    class HeartbeatingCronJob(cronjobs.SystemCronJobBase):
+      lifetime = rdfvalue.Duration("1h")
+      frequency = rdfvalue.Duration("2h")
+      allow_overruns = False
+
+      def Run(self):
+        cron_started_event.set()
+        heartbeat_event.wait()
+        fake_time = self.run_state.started_at + rdfvalue.Duration("3h")
+        with test_lib.FakeTime(fake_time):
+          self.HeartBeat()
+
+    self._TestHeartBeat(HeartbeatingCronJob, cron_started_event,
+                        heartbeat_event)
+
+  def testHeartbeat_AllowOverruns(self):
+    cron_started_event = threading.Event()
+    heartbeat_event = threading.Event()
+
+    class HeartbeatingOverruningCronJob(cronjobs.SystemCronJobBase):
+      lifetime = rdfvalue.Duration("1h")
+      frequency = rdfvalue.Duration("2h")
+      allow_overruns = True
+
+      def Run(self):
+        cron_started_event.set()
+        heartbeat_event.wait()
+        fake_time = self.run_state.started_at + rdfvalue.Duration("3h")
+        with test_lib.FakeTime(fake_time):
+          self.HeartBeat()
+
+    self._TestHeartBeat(HeartbeatingOverruningCronJob, cron_started_event,
+                        heartbeat_event)
+
+  def _TestHeartBeat(self, cron_class, cron_started_event, heartbeat_event):
+    """Helper for heartbeat tests."""
+    cron_name = compatibility.GetName(cron_class)
+    cronjobs.ScheduleSystemCronJobs(names=[cron_name])
+    cron_manager = cronjobs.CronManager()
+    jobs = cronjobs.CronManager().ListJobs()
+    self.assertIn(cron_name, jobs)
+
+    try:
+      cron_manager.RunOnce()
+      cron_started_event.wait()
+      runs = cron_manager.ReadJobRuns(cron_name)
+      self.assertLen(runs, 1)
+      self.assertEqual(runs[0].status,
+                       rdf_cronjobs.CronJobRun.CronJobRunStatus.RUNNING)
+    finally:
+      heartbeat_event.set()
+      cron_manager._GetThreadPool().Join()
+      runs = cron_manager.ReadJobRuns(cron_name)
+      self.assertLen(runs, 1)
+      if cron_class.allow_overruns:
+        expected_status = rdf_cronjobs.CronJobRun.CronJobRunStatus.FINISHED
+      else:
+        expected_status = (
+            rdf_cronjobs.CronJobRun.CronJobRunStatus.LIFETIME_EXCEEDED)
+      self.assertEqual(runs[0].status, expected_status)
+
+  @mock.patch.object(cronjobs, "_MAX_LOG_MESSAGES", 5)
+  def testLogging(self):
+
+    class LoggingCronJob(cronjobs.SystemCronJobBase):
+      lifetime = rdfvalue.Duration("1h")
+      frequency = rdfvalue.Duration("2h")
+
+      def Run(self):
+        for i in range(7):
+          self.Log("Log message %d." % i)
+
+    cron_name = compatibility.GetName(LoggingCronJob)
+    cronjobs.ScheduleSystemCronJobs(names=[cron_name])
+    cron_manager = cronjobs.CronManager()
+    try:
+      cron_manager.RunOnce()
+    finally:
+      cron_manager._GetThreadPool().Join()
+      runs = cron_manager.ReadJobRuns(cron_name)
+      self.assertLen(runs, 1)
+      self.assertEmpty(runs[0].backtrace)
+      self.assertEqual(runs[0].status,
+                       rdf_cronjobs.CronJobRun.CronJobRunStatus.FINISHED)
+      # The first two log messages should be discarded since
+      # _MAX_LOG_MESSAGES is 5.
+      self.assertMultiLineEqual(
+          runs[0].log_message,
+          "Log message 6.\nLog message 5.\nLog message 4.\nLog message 3.\n"
+          "Log message 2.")
 
 
 def main(argv):

@@ -13,6 +13,7 @@ import traceback
 
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
+from typing import Text
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
 from werkzeug import wrappers as werkzeug_wrappers
@@ -355,7 +356,7 @@ class HttpRequestHandler(object):
 
   def _BuildStreamingResponse(self, binary_stream, method_name=None):
     """Builds HTTPResponse object for streaming."""
-    precondition.AssertType(method_name, unicode)
+    precondition.AssertType(method_name, Text)
 
     # We get a first chunk of the output stream. This way the likelihood
     # of catching an exception that may happen during response generation
@@ -429,6 +430,7 @@ class HttpRequestHandler(object):
     # TODO(user): increase token expiry time.
     token = self.BuildToken(request, 60).SetUID()
 
+    # TODO:
     # AFF4 edge case: if a user is issuing a request, before they are created
     # using CreateGRRUser (e.g. in E2E tests or with single sign-on),
     # AFF4's ReadGRRUsers will NEVER contain the user, because the creation

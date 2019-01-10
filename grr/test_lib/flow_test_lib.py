@@ -2,14 +2,16 @@
 """Helper classes for flows-related testing."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import logging
 import pdb
 import sys
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 from future.utils import iteritems
+from typing import Text
 
 from grr_response_client.client_actions import standard
 
@@ -39,6 +41,22 @@ from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
+
+
+@flow_base.DualDBFlow
+class InfiniteFlowMixin(object):
+  """Flow that never ends."""
+
+  def Start(self):
+    self.CallClient(server_stubs.GetFileStat, next_state="NextState")
+
+  def NextState(self, responses):
+    _ = responses
+    self.CallClient(server_stubs.GetFileStat, next_state="NextStateAgain")
+
+  def NextStateAgain(self, responses):
+    _ = responses
+    self.CallClient(server_stubs.GetFileStat, next_state="NextState")
 
 
 @flow_base.DualDBFlow
@@ -84,7 +102,7 @@ class FlowWithOneClientRequestMixin(object):
   """Test flow that does one client request in Start() state."""
 
   def Start(self):
-    self.CallClient(client_test_lib.Test, data="test", next_state="End")
+    self.CallClient(client_test_lib.Test, data=b"test", next_state="End")
 
 
 @flow_base.DualDBFlow
@@ -96,7 +114,7 @@ class FlowOrderTestMixin(object):
     flow.GRRFlow.__init__(self, *args, **kwargs)
 
   def Start(self):
-    self.CallClient(client_test_lib.Test, data="test", next_state="Incoming")
+    self.CallClient(client_test_lib.Test, data=b"test", next_state="Incoming")
 
   def Incoming(self, responses):
     """Record the message id for testing."""
@@ -294,7 +312,7 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
 class CrashClientMock(action_mocks.ActionMock):
   """Client mock that simulates a client crash."""
 
-  def __init__(self, client_id, token):
+  def __init__(self, client_id=None, token=None):
     self.client_id = client_id
     self.token = token
 
@@ -302,7 +320,7 @@ class CrashClientMock(action_mocks.ActionMock):
     """Handle client messages."""
 
     crash_details = rdf_client.ClientCrash(
-        client_id=self.client_id,
+        client_id=self.client_id or message.session_id.Split()[0],
         session_id=message.session_id,
         crash_message="Client killed during transaction",
         timestamp=rdfvalue.RDFDatetime.Now())
@@ -645,8 +663,7 @@ def RunFlow(client_id,
         if rdf_flow.flow_state != rdf_flow.FlowState.FINISHED:
           raise RuntimeError(
               "Flow %s on %s completed in state %s (error message: %s)" %
-              (flow_id, client_id, unicode(rdf_flow.flow_state),
-               rdf_flow.error_message))
+              (flow_id, client_id, rdf_flow.flow_state, rdf_flow.error_message))
 
     return flow_id
   finally:
@@ -682,8 +699,8 @@ def GetFlowResults(client_id, flow_id):
 
 
 def GetFlowResultsByTag(client_id, flow_id):
-  precondition.AssertType(client_id, unicode)
-  precondition.AssertType(flow_id, unicode)
+  precondition.AssertType(client_id, Text)
+  precondition.AssertType(flow_id, Text)
 
   results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
                                               sys.maxsize)
@@ -696,9 +713,8 @@ def FinishAllFlowsOnClient(client_id, **kwargs):
     client_id = client_id.Basename()
 
   if data_store.RelationalDBFlowsEnabled():
-    flows = [f.flow_id for f in data_store.REL_DB.ReadAllFlowObjects(client_id)]
-    for flow_id in flows:
-      RunFlow(client_id, flow_id, **kwargs)
+    for cur_flow in data_store.REL_DB.ReadAllFlowObjects(client_id=client_id):
+      RunFlow(client_id, cur_flow.flow_id, **kwargs)
   else:
     fd = aff4.FACTORY.Open(rdfvalue.RDFURN(client_id).Add("flows"))
     flows = list(fd.OpenChildren())

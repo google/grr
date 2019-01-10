@@ -43,21 +43,3 @@ class ClientFleetStats(aff4.AFF4Object):
 
     LAST_CONTACTED_HISTOGRAM = aff4.Attribute(
         "aff4:stats/last_contacted", rdf_stats.Graph, "Last contacted time")
-
-
-class FilestoreStats(aff4.AFF4Object):
-  """AFF4 object for storing filestore statistics."""
-
-  class SchemaCls(aff4.AFF4Object.SchemaCls):
-    """SchemaCls."""
-    FILESTORE_FILETYPES = aff4.Attribute(
-        "aff4:stats/filestore/filetypes", rdf_stats.Graph,
-        "Number of files in the filestore by type")
-
-    FILESTORE_FILETYPES_SIZE = aff4.Attribute(
-        "aff4:stats/filestore/filetypes_size", rdf_stats.GraphFloat,
-        "Total filesize in GB of files in the filestore by type")
-
-    FILESTORE_FILESIZE_HISTOGRAM = aff4.Attribute(
-        "aff4:stats/filestore/filesize", rdf_stats.Graph,
-        "Filesize histogram of files in the filestore")

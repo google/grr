@@ -134,7 +134,7 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
 
     def ReplaceFlowId():
       if data_store.RelationalDBFlowsEnabled():
-        flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
+        flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
         return {flows[0].flow_id: "W:ABCDEF"}
       else:
         flows_dir_fd = aff4.FACTORY.Open(
@@ -239,7 +239,7 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
 
     def ReplaceFlowId():
       if data_store.RelationalDBFlowsEnabled():
-        flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
+        flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
         return {flows[0].flow_id: "W:ABCDEF"}
       else:
         flows_dir_fd = aff4.FACTORY.Open(

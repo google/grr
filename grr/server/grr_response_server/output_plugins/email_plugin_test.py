@@ -11,24 +11,22 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_server import aff4
 from grr_response_server import email_alerts
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.output_plugins import email_plugin
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   """Tests email output plugin."""
 
   def setUp(self):
     super(EmailOutputPluginTest, self).setUp()
 
-    self.client_id = self.SetupClient(0)
-    self.hostname = aff4.FACTORY.Open(
-        self.client_id,
-        token=self.token).Get(aff4_grr.VFSGRRClient.SchemaCls.HOSTNAME)
+    self.hostname = "somehostname"
+    self.client_id = self.SetupClient(0, fqdn=self.hostname)
     self.results_urn = self.client_id.Add("Results")
     self.email_messages = []
     self.email_address = "notify@%s" % config.CONFIG["Logging.domain"]

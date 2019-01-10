@@ -20,6 +20,7 @@ import tempfile
 import zipfile
 
 
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
@@ -336,7 +337,7 @@ class ClientRepacker(BuilderBase):
         new_config.Set("Client.fleetspeak_enabled", True)
 
       if deploy_timestamp:
-        deploy_time_string = unicode(rdfvalue.RDFDatetime.Now())
+        deploy_time_string = str(rdfvalue.RDFDatetime.Now())
         new_config.Set("Client.deploy_time", deploy_time_string)
       new_config.Write()
 

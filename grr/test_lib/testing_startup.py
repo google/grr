@@ -2,8 +2,13 @@
 """Initialize for tests."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import os
+
+# pylint: disable=unused-import,g-bad-import-order
+from grr_response_server import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
 
 from grr_response_client import client_metrics
 from grr_response_core import config

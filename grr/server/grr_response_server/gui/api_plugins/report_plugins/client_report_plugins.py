@@ -4,15 +4,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import time
-
 
 from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
-from grr_response_server import aff4
-
-from grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_server import client_report_utils
 from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugin_base
 
@@ -29,56 +26,45 @@ class GRRVersion1ReportPlugin(report_plugin_base.ReportPluginBase):
 
   ACTIVE_DAY = 1
 
-  def _ProcessGraphSeries(self, graph_series, categories):
-    for graph in graph_series:
+  def _ProcessGraphSeries(self, graph_series, timestamp, categories):
+    for graph in graph_series.graphs:
       # Find the correct graph and merge the OS categories together
       if "%d day" % self.__class__.ACTIVE_DAY in graph.title:
         for sample in graph:
-          timestamp = graph_series.age.AsMicrosecondsSinceEpoch() // 1000
-          categories.setdefault(sample.label, []).append((timestamp,
+          timestamp_millis = timestamp.AsMicrosecondsSinceEpoch() // 1000
+          categories.setdefault(sample.label, []).append((timestamp_millis,
                                                           sample.y_value))
         break
 
   def GetReportData(self, get_report_args, token):
     """Show how the last active breakdown evolved over time."""
-    ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        LINE_CHART)
+    report = rdf_report_plugins.ApiReportData(
+        representation_type=rdf_report_plugins.ApiReportData.RepresentationType
+        .LINE_CHART)
 
-    try:
-      # now
-      end_time = int(time.time() * 1e6)
+    series_with_timestamps = client_report_utils.FetchAllGraphSeries(
+        get_report_args.client_label,
+        rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION,
+        period=rdfvalue.Duration("180d"))
 
-      # half a year ago
-      start_time = end_time - (60 * 60 * 24 * 1000000 * 180)
+    categories = {}
+    for timestamp, graph_series in sorted(iteritems(series_with_timestamps)):
+      self._ProcessGraphSeries(graph_series, timestamp, categories)
 
-      fd = aff4.FACTORY.Open(
-          rdfvalue.RDFURN("aff4:/stats/ClientFleetStats").Add(
-              get_report_args.client_label),
-          token=token,
-          age=(start_time, end_time))
-      categories = {}
-      for graph_series in fd.GetValuesForAttribute(
-          aff4_stats.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM):
-        self._ProcessGraphSeries(graph_series, categories)
+    graphs = []
+    for k, v in iteritems(categories):
+      graph = dict(label=k, data=v)
+      graphs.append(graph)
 
-      graphs = []
-      for k, v in iteritems(categories):
-        graph = dict(label=k, data=v)
-        graphs.append(graph)
+    report.line_chart.data = sorted(
+        (rdf_report_plugins.ApiReportDataSeries2D(
+            label=label,
+            points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
+                    for x, y in points))
+         for label, points in iteritems(categories)),
+        key=lambda series: series.label)
 
-      ret.line_chart.data = sorted(
-          (rdf_report_plugins.ApiReportDataSeries2D(
-              label=label,
-              points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
-                      for x, y in points))
-           for label, points in iteritems(categories)),
-          key=lambda series: series.label)
-
-    except IOError:
-      pass
-
-    return ret
+    return report
 
 
 class GRRVersion7ReportPlugin(GRRVersion1ReportPlugin):
@@ -108,56 +94,46 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
 
   ACTIVE_DAYS_DISPLAY = [1, 3, 7, 30, 60]
 
-  def _ProcessGraphSeries(self, graph_series, categories):
-    for sample in graph_series:
+  def _ProcessGraphSeries(self, graph_series, timestamp, categories):
+    for sample in graph_series.graphs[0]:
       # Provide the time in js timestamps (milliseconds since the epoch).
       days = sample.x_value // 1000000 // 24 // 60 // 60
       if days in self.__class__.ACTIVE_DAYS_DISPLAY:
         label = "%s day active" % days
-        timestamp = graph_series.age.AsMicrosecondsSinceEpoch() // 1000
-        categories.setdefault(label, []).append((timestamp, sample.y_value))
+        timestamp_millis = timestamp.AsMicrosecondsSinceEpoch() // 1000
+        categories.setdefault(label, []).append((timestamp_millis,
+                                                 sample.y_value))
 
   def GetReportData(self, get_report_args, token):
     """Show how the last active breakdown evolved over time."""
-    ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        LINE_CHART)
+    report = rdf_report_plugins.ApiReportData(
+        representation_type=rdf_report_plugins.ApiReportData.RepresentationType
+        .LINE_CHART)
 
-    try:
-      # now
-      end_time = int(time.time() * 1e6)
+    series_with_timestamps = client_report_utils.FetchAllGraphSeries(
+        get_report_args.client_label,
+        rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE,
+        period=rdfvalue.Duration("180d"))
 
-      # half a year ago
-      start_time = end_time - (60 * 60 * 24 * 1000000 * 180)
+    categories = {}
+    for timestamp, graph_series in sorted(iteritems(series_with_timestamps)):
+      self._ProcessGraphSeries(graph_series, timestamp, categories)
 
-      fd = aff4.FACTORY.Open(
-          rdfvalue.RDFURN("aff4:/stats/ClientFleetStats").Add(
-              get_report_args.client_label),
-          token=token,
-          age=(start_time, end_time))
-      categories = {}
-      for graph_series in fd.GetValuesForAttribute(
-          aff4_stats.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM):
-        self._ProcessGraphSeries(graph_series, categories)
+    graphs = []
+    for k, v in iteritems(categories):
+      graph = dict(label=k, data=v)
+      graphs.append(graph)
 
-      graphs = []
-      for k, v in iteritems(categories):
-        graph = dict(label=k, data=v)
-        graphs.append(graph)
+    report.line_chart.data = sorted(
+        (rdf_report_plugins.ApiReportDataSeries2D(
+            label=label,
+            points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
+                    for x, y in points))
+         for label, points in iteritems(categories)),
+        key=lambda series: int(series.label.split()[0]),
+        reverse=True)
 
-      ret.line_chart.data = sorted(
-          (rdf_report_plugins.ApiReportDataSeries2D(
-              label=label,
-              points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
-                      for x, y in points))
-           for label, points in iteritems(categories)),
-          key=lambda series: int(series.label.split()[0]),
-          reverse=True)
-
-    except IOError:
-      pass
-
-    return ret
+    return report
 
 
 class OSBreakdown1ReportPlugin(report_plugin_base.ReportPluginBase):
@@ -172,30 +148,28 @@ class OSBreakdown1ReportPlugin(report_plugin_base.ReportPluginBase):
 
   def GetReportData(self, get_report_args, token):
     """Extract only the operating system type from the active histogram."""
-    ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        PIE_CHART)
+    report = rdf_report_plugins.ApiReportData(
+        representation_type=rdf_report_plugins.ApiReportData.RepresentationType
+        .PIE_CHART)
 
-    try:
-      fd = aff4.FACTORY.Open(
-          rdfvalue.RDFURN("aff4:/stats/ClientFleetStats").Add(
-              get_report_args.client_label),
-          token=token)
-      for graph in fd.Get(aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM):
+    graph_series = client_report_utils.FetchMostRecentGraphSeries(
+        get_report_args.client_label,
+        rdf_stats.ClientGraphSeries.ReportType.OS_TYPE,
+        token=token)
+    if graph_series is not None:
+      for graph in graph_series.graphs:
         # Find the correct graph and merge the OS categories together
         if "%s day" % self.__class__.ACTIVE_DAYS in graph.title:
           for sample in graph:
-            ret.pie_chart.data.Append(
+            report.pie_chart.data.Append(
                 rdf_report_plugins.ApiReportDataPoint1D(
                     label=sample.label, x=sample.y_value))
           break
-    except (IOError, TypeError):
-      pass
 
-    ret.pie_chart.data = sorted(
-        ret.pie_chart.data, key=lambda point: point.label)
+    report.pie_chart.data = sorted(
+        report.pie_chart.data, key=lambda point: point.label)
 
-    return ret
+    return report
 
 
 class OSBreakdown7ReportPlugin(OSBreakdown1ReportPlugin):
@@ -234,31 +208,26 @@ class OSReleaseBreakdown1ReportPlugin(report_plugin_base.ReportPluginBase):
 
   def GetReportData(self, get_report_args, token):
     """Extract only the operating system type from the active histogram."""
-    ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        PIE_CHART)
+    report = rdf_report_plugins.ApiReportData(
+        representation_type=rdf_report_plugins.ApiReportData.RepresentationType
+        .PIE_CHART)
 
-    try:
-      fd = aff4.FACTORY.Open(
-          rdfvalue.RDFURN("aff4:/stats/ClientFleetStats").Add(
-              get_report_args.client_label),
-          token=token)
-      for graph in fd.Get(
-          aff4_stats.ClientFleetStats.SchemaCls.RELEASE_HISTOGRAM):
+    graph_series = client_report_utils.FetchMostRecentGraphSeries(
+        get_report_args.client_label,
+        rdf_stats.ClientGraphSeries.ReportType.OS_RELEASE,
+        token=token)
+    if graph_series is not None:
+      for graph in graph_series.graphs:
         # Find the correct graph and merge the OS categories together
         if "%s day" % self.__class__.ACTIVE_DAYS in graph.title:
           for sample in graph:
-            ret.pie_chart.data.Append(
+            report.pie_chart.data.Append(
                 rdf_report_plugins.ApiReportDataPoint1D(
                     label=sample.label, x=sample.y_value))
           break
-    except (IOError, TypeError):
-      pass
-
-    ret.pie_chart.data = sorted(
-        ret.pie_chart.data, key=lambda point: point.label)
-
-    return ret
+    report.pie_chart.data = sorted(
+        report.pie_chart.data, key=lambda point: point.label)
+    return report
 
 
 class OSReleaseBreakdown7ReportPlugin(OSReleaseBreakdown1ReportPlugin):

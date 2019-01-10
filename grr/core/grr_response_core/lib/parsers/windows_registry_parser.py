@@ -10,6 +10,7 @@ import os
 import re
 
 
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 

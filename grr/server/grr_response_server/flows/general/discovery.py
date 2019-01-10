@@ -79,10 +79,12 @@ class InterrogateMixin(object):
           urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
         fd.Set(fd.Schema.PATHSPEC, pathspec)
 
+    # ClientInfo should be collected early on since we might need the client
+    # version later on to know what actions a client supports.
+    self.CallClient(server_stubs.GetClientInfo, next_state="ClientInfo")
     self.CallClient(server_stubs.GetPlatformInfo, next_state="Platform")
     self.CallClient(server_stubs.GetMemorySize, next_state="StoreMemorySize")
     self.CallClient(server_stubs.GetInstallDate, next_state="InstallDate")
-    self.CallClient(server_stubs.GetClientInfo, next_state="ClientInfo")
     self.CallClient(
         server_stubs.GetConfiguration, next_state="ClientConfiguration")
     self.CallClient(
@@ -268,14 +270,14 @@ class InterrogateMixin(object):
     if data_store.AFF4Enabled():
       # AFF4 client.
       client = self._OpenClient(mode="rw")
-      client.Set(client.Schema.KNOWLEDGE_BASE, kb)
+      with client:
+        client.Set(client.Schema.KNOWLEDGE_BASE, kb)
 
-      # Copy usernames.
-      usernames = [user.username for user in kb.users if user.username]
-      client.AddAttribute(client.Schema.USERNAMES(" ".join(usernames)))
+        # Copy usernames.
+        usernames = [user.username for user in kb.users if user.username]
+        client.AddAttribute(client.Schema.USERNAMES(" ".join(usernames)))
 
-      self.CopyOSReleaseFromKnowledgeBase(kb, client)
-      client.Flush()
+        self.CopyOSReleaseFromKnowledgeBase(kb, client)
 
     # rdf_objects.ClientSnapshot.
 
@@ -287,6 +289,14 @@ class InterrogateMixin(object):
       kb.fqdn = self.state.fqdn
 
     self.state.client.knowledge_base = kb
+
+    if data_store.RelationalDBReadEnabled():
+      existing_client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+      if existing_client is None:
+        # This is the first time we interrogate this client. In that case, we
+        # need to store basic information about this client right away so follow
+        # up flows work properly.
+        data_store.REL_DB.WriteClientSnapshot(self.state.client)
 
     self.CallFlow(
         collectors.ArtifactCollectorFlow.__name__,

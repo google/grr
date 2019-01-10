@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import __builtin__
 import glob
 import io
 import os
@@ -28,6 +27,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import compatibility
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import osx_launchd_testdata
@@ -125,16 +125,16 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
       try:
         fixture_path = os.path.join(self.base_path, "VFSFixture",
                                     requested_path.lstrip("/"))
-        return __builtin__.open.old_target(fixture_path, mode)
+        return compatibility.builtins.open.old_target(fixture_path, mode)
       except IOError:
-        return __builtin__.open.old_target(requested_path, mode)
+        return compatibility.builtins.open.old_target(requested_path, mode)
 
     source = rdf_artifact.ArtifactSource(
         type=self.source_type.GRR_CLIENT_ACTION,
         attributes={"client_action": "EnumerateUsers"})
     request = GetRequest(source, "TestClientActionArtifact")
 
-    with utils.MultiStubber((__builtin__, "open", MockedOpen),
+    with utils.MultiStubber((compatibility.builtins, "open", MockedOpen),
                             (glob, "glob", lambda x: ["/var/log/wtmp"])):
       result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
       collected_artifact = result.collected_artifacts[0]

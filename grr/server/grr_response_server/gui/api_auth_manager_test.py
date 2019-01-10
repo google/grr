@@ -4,9 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import __builtin__
-
-import mock
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -78,11 +75,8 @@ class APIAuthorizationManagerTest(test_lib.GRRBaseTest):
     # exercise the functionality. Each test will supply its own ACL data. We
     # also have to set up a default API router that will be used when none of
     # the rules matches.
-    self.config_overrider = test_lib.ConfigOverrider({
-        "API.RouterACLConfigFile": "dummy",
-        "API.DefaultRouter": DefaultDummyAuthManagerTestApiRouter.__name__,
-        "ACL.group_access_manager_class": DummyGroupAccessManager.__name__
-    })
+    self.config_overrider = test_lib.ConfigOverrider(
+        {"ACL.group_access_manager_class": DummyGroupAccessManager.__name__})
     self.config_overrider.Start()
 
   def tearDown(self):
@@ -90,14 +84,13 @@ class APIAuthorizationManagerTest(test_lib.GRRBaseTest):
     self.config_overrider.Stop()
 
   def testMatchesIfOneOfUsersIsMatching(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestApiRouter"
 users:
 - "u1"
 - "u2"
-"""
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
@@ -106,20 +99,20 @@ users:
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
 
   def testReturnsDefaultOnNoMatchByUser(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestApiRouter"
 users:
 - "u1"
 - "u2"
-"""
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u4")
     self.assertEqual(router.__class__, DefaultDummyAuthManagerTestApiRouter)
 
   def testMatchesFirstRouterIfMultipleRoutersMatchByUser(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestApiRouter"
 users:
 - "u1"
@@ -129,16 +122,14 @@ router: "DummyAuthManagerTestApiRouter2"
 users:
 - "u1"
 - "u2"
-
-"""
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
 
   def testReturnsFirstRouterWhenMatchingByUser(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestApiRouter"
 users:
 - "u1"
@@ -153,9 +144,7 @@ router: "DummyAuthManagerTestApiRouter3"
 users:
 - "u2"
 - "u4"
-"""
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u2")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter2)
@@ -164,20 +153,19 @@ users:
     self.assertTrue(router.__class__, DummyAuthManagerTestApiRouter3)
 
   def testMatchingByGroupWorks(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestApiRouter2"
 groups:
 - "g1"
-"""
-
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter2)
 
   def testMatchingByUserHasPriorityOverMatchingByGroup(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestApiRouter"
 users:
 - "u1"
@@ -185,16 +173,14 @@ users:
 router: "DummyAuthManagerTestApiRouter2"
 groups:
 - "g1"
-"""
-
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
 
   def testReturnsFirstRouterWhenMultipleMatchByGroup(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestApiRouter"
 groups:
 - "g3"
@@ -202,16 +188,14 @@ groups:
 router: "DummyAuthManagerTestApiRouter2"
 groups:
 - "g1"
-"""
-
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
 
   def testReturnsFirstMatchingRouterWhenItMatchesByGroupAndOtherByUser(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestApiRouter"
 groups:
 - "g3"
@@ -219,16 +203,14 @@ groups:
 router: "DummyAuthManagerTestApiRouter2"
 users:
 - "u1"
-"""
-
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
 
   def testReturnsDefaultRouterWhenNothingMatchesByGroup(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestApiRouter"
 groups:
 - "g5"
@@ -236,62 +218,53 @@ groups:
 router: "DummyAuthManagerTestApiRouter2"
 groups:
 - "g6"
-"""
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DefaultDummyAuthManagerTestApiRouter)
 
-  def testDefaultRouterIsReturnedIfNoConfigFileDefined(self):
-    """The default router is returned if no API.RouterACLConfigFile defined."""
-    with test_lib.ConfigOverrider({"API.RouterACLConfigFile": ""}):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
-      router = auth_mgr.GetRouterForUser("u1")
-      self.assertEqual(router.__class__, DefaultDummyAuthManagerTestApiRouter)
+  def testDefaultRouterIsReturnedIfNoAclsAreDefined(self):
+    auth_mgr = api_auth_manager.APIAuthorizationManager(
+        [], DefaultDummyAuthManagerTestApiRouter)
+
+    router = auth_mgr.GetRouterForUser("u1")
+    self.assertEqual(router.__class__, DefaultDummyAuthManagerTestApiRouter)
 
   def testRaisesWhenNonConfigurableRouterInitializedWithParams(self):
-    acls = """
+    exception = api_auth_manager.ApiCallRouterDoesNotExpectParameters
+    with self.assertRaises(exception):
+      api_auth_manager.APIAuthorizationManager.FromYaml(
+          """
 router: "DummyAuthManagerTestApiRouter"
 router_params:
   foo: "Oh no!"
   bar: 42
 users:
 - "u1"
-"""
-
-    with self.assertRaises(
-        api_auth_manager.ApiCallRouterDoesNotExpectParameters):
-      with mock.patch.object(
-          __builtin__, "open", mock.mock_open(read_data=acls)):
-        api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
   def testConfigurableRouterIsInitializedWithoutParameters(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestConfigurableApiRouter"
 users:
 - "u1"
-"""
-
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.params.foo, "")
     self.assertEqual(router.params.bar, 0)
 
   def testConfigurableRouterIsInitializedWithParameters(self):
-    acls = """
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
 router: "DummyAuthManagerTestConfigurableApiRouter"
 router_params:
   foo: "Oh no!"
   bar: 42
 users:
 - "u1"
-"""
-
-    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.APIAuthorizationManager()
+""", DefaultDummyAuthManagerTestApiRouter)
 
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.params.foo, "Oh no!")

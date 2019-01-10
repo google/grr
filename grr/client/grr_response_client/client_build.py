@@ -15,19 +15,24 @@ import subprocess
 import sys
 
 
+from absl import app
+from absl import flags
+from absl.flags import argparse_flags
+
 from grr_response_client import client_startup
 from grr_response_core import config as grr_config
 from grr_response_core.config import contexts
 from grr_response_core.lib import build
 from grr_response_core.lib import builders
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import flags
 from grr_response_core.lib import repacking
 # pylint: disable=unused-import
 # Required for google_config_validator
 from grr_response_core.lib.local import plugins
 
 # pylint: enable=unused-import
+
+FLAGS = flags.FLAGS
 
 
 class Error(Exception):
@@ -38,7 +43,8 @@ class ErrorDuringRepacking(Error):
   pass
 
 
-parser = flags.PARSER
+parser = argparse_flags.ArgumentParser(
+    description="A tool for building client binaries.")
 
 # Initialize sub parsers and their arguments.
 subparsers = parser.add_subparsers(
@@ -163,25 +169,24 @@ parser_signer.add_argument(
 class TemplateBuilder(object):
   """Build client templates."""
 
-  def GetBuilder(self, context):
+  def GetBuilder(self, context, fleetspeak_service_config):
     """Get instance of builder class based on flags."""
     try:
       if "Target:Darwin" in context:
-        builder_class = builders.DarwinClientBuilder
+        return builders.DarwinClientBuilder(
+            context=context,
+            fleetspeak_service_config=fleetspeak_service_config)
       elif "Target:Windows" in context:
-        builder_class = builders.WindowsClientBuilder
+        return builders.WindowsClientBuilder(context=context)
       elif "Target:LinuxDeb" in context:
-        builder_class = builders.LinuxClientBuilder
+        return builders.LinuxClientBuilder(context=context)
       elif "Target:LinuxRpm" in context:
-        builder_class = builders.CentosClientBuilder
+        return builders.CentosClientBuilder(context=context)
       else:
         parser.error("Bad build context: %s" % context)
-
     except AttributeError:
       raise RuntimeError("Unable to build for platform %s when running "
                          "on current platform." % self.platform)
-
-    return builder_class(context=context)
 
   def GetArch(self):
     if platform.architecture()[0] == "32bit":
@@ -198,7 +203,10 @@ class TemplateBuilder(object):
       else:
         raise RuntimeError("Unknown distro, can't determine package format")
 
-  def BuildTemplate(self, context=None, output=None):
+  def BuildTemplate(self,
+                    context=None,
+                    output=None,
+                    fleetspeak_service_config=None):
     """Find template builder and call it."""
     context = context or []
     context.append("Arch:%s" % self.GetArch())
@@ -217,7 +225,7 @@ class TemplateBuilder(object):
           grr_config.CONFIG.Get(
               "PyInstaller.template_filename", context=context))
 
-    builder_obj = self.GetBuilder(context)
+    builder_obj = self.GetBuilder(context, fleetspeak_service_config)
     builder_obj.MakeExecutableTemplate(output_file=template_path)
 
 
@@ -385,12 +393,11 @@ def GetClientConfig(filename):
     builder.WriteBuildYaml(fd, build_timestamp=False)
 
 
-def main(_):
+def main(args):
   """Launch the appropriate builder."""
 
   grr_config.CONFIG.AddContext(contexts.CLIENT_BUILD_CONTEXT)
 
-  args = flags.FLAGS
   if args.subparser_name == "generate_client_config":
     # We don't need a full init to just build a config.
     GetClientConfig(args.client_config_output)
@@ -398,7 +405,7 @@ def main(_):
 
   # We deliberately use args.context because client_startup.py pollutes
   # grr_config.CONFIG.context with the running system context.
-  context = args.context
+  context = FLAGS.context
   context.append(contexts.CLIENT_BUILD_CONTEXT)
   client_startup.ClientInit()
 
@@ -420,7 +427,10 @@ def main(_):
       grr_config.CONFIG.Set(
           "ClientBuilder.client_path",
           "grr_response_client.grr_fs_client")
-    TemplateBuilder().BuildTemplate(context=context, output=args.output)
+    TemplateBuilder().BuildTemplate(
+        context=context,
+        output=args.output,
+        fleetspeak_service_config=args.fleetspeak_service_config)
   elif args.subparser_name == "repack":
     if args.debug_build:
       context.append("DebugClientBuild Context")
@@ -458,7 +468,7 @@ def main(_):
         repack_configs,
         templates,
         args.output_dir,
-        config=args.config,
+        config=FLAGS.config,
         sign=args.sign,
         signed_template=args.signed_template)
   elif args.subparser_name == "sign_template":
@@ -468,5 +478,9 @@ def main(_):
       raise RuntimeError("Signing failed: output not written")
 
 
+def Run():
+  app.run(main, flags_parser=lambda argv: parser.parse_args(argv[1:]))
+
+
 if __name__ == "__main__":
-  flags.StartMain(main)
+  Run()

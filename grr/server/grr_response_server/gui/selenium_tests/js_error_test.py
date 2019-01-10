@@ -14,16 +14,18 @@ from grr.test_lib import test_lib
 class JavascriptErrorTest(gui_test_lib.GRRSeleniumTest):
   """Tests that Javascript errors are caught in Selenium tests."""
 
-  def testJavascriptErrorTriggersPythonExcpetion(self):
+  def testJavascriptErrorTriggersPythonException(self):
     self.Open("/")
 
     # Erase global Angular object.
     # Things are guaranteed to stop working correctly after this.
     self.GetJavaScriptValue("window.angular = undefined;")
 
-    self.Click("client_query_submit")
     with self.assertRaisesRegexp(self.failureException,
                                  "Javascript error encountered"):
+      # Note that self.Click(), can, on rare occasions, trigger a
+      # Javascript error, because of tickers that are running on the page.
+      self.Click("client_query_submit")
       self.WaitUntil(self.IsElementPresent, "css=grr-clients-list")
 
     # The page has some tickers running that also use Angular so there

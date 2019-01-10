@@ -5,7 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.builtins import str
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -240,14 +241,16 @@ class ApiListClientCrashesHandlerRegressionTest(
                                                     False, self.token)
 
     if data_store.RelationalDBReadEnabled():
-      crashes = data_store.REL_DB.ReadClientCrashInfoHistory(unicode(client_id))
+      crashes = data_store.REL_DB.ReadClientCrashInfoHistory(str(client_id))
     else:
       crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
           rdf_client.ClientURN(client_id))
 
     crash = list(crashes)[0]
-    session_id = crash.session_id.Basename()
-    replace = {hunt_obj.urn.Basename(): "H:123456", session_id: "H:11223344"}
+    replace = {
+        hunt_obj.urn.Basename(): "H:123456",
+        str(crash.session_id): "<some session id>"
+    }
 
     self.Check(
         "ListClientCrashes",
@@ -337,7 +340,6 @@ class ApiGetClientLoadStatsHandlerRegressionTest(
         aff4_type=aff4_stats.ClientStats,
         token=self.token,
         mode="rw") as stats_fd:
-
       for i in range(6):
         with test_lib.FakeTime((i + 1) * 10):
           timestamp = int((i + 1) * 10 * 1e6)
@@ -355,6 +357,10 @@ class ApiGetClientLoadStatsHandlerRegressionTest(
           st.io_samples.Append(sample)
 
           stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
+
+          if data_store.RelationalDBWriteEnabled():
+            data_store.REL_DB.WriteClientStats(
+                client_id=client_id.Basename(), stats=st)
 
   def Run(self):
     client_id = self.SetupClient(0)

@@ -25,7 +25,6 @@ from grr_response_server.flows.general import find
 from grr_response_server.flows.general import fingerprint
 from grr_response_server.flows.general import hardware
 
-from grr_response_server.flows.general import memory
 from grr_response_server.flows.general import network
 from grr_response_server.flows.general import processes
 from grr_response_server.flows.general import registry

@@ -53,7 +53,8 @@ class StatsStoreValue(rdf_structs.RDFProtoStruct):
       value = self.int_value
     elif self.value_type == rdf_stats.MetricMetadata.ValueType.FLOAT:
       value = self.float_value
-    elif self.value_type == rdf_stats.MetricMetadata.ValueType.STR:
+    # TODO: String gauges are deprecated.
+    elif self.value_type == rdf_stats.MetricMetadata.ValueType.DEPRECATED_STR:
       value = self.str_value
     elif self.value_type == rdf_stats.MetricMetadata.ValueType.DISTRIBUTION:
       value = self.distribution_value
@@ -68,7 +69,8 @@ class StatsStoreValue(rdf_structs.RDFProtoStruct):
       self.int_value = value
     elif value_type == rdf_stats.MetricMetadata.ValueType.FLOAT:
       self.float_value = value
-    elif value_type == rdf_stats.MetricMetadata.ValueType.STR:
+    # TODO: String gauges are deprecated.
+    elif value_type == rdf_stats.MetricMetadata.ValueType.DEPRECATED_STR:
       self.str_value = value
     elif value_type == rdf_stats.MetricMetadata.ValueType.DISTRIBUTION:
       self.distribution_value = value

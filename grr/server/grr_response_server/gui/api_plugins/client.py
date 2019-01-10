@@ -4,10 +4,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import shlex
 import sys
 
 
+from future.builtins import str
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
 from future.utils import iterkeys
@@ -303,7 +303,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     end = args.count or sys.maxsize
 
-    keywords = shlex.split(args.query)
+    keywords = compatibility.ShlexSplit(args.query)
 
     api_clients = []
 
@@ -369,7 +369,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
       end = sys.maxsize
       batch_size = end
 
-    keywords = shlex.split(args.query)
+    keywords = compatibility.ShlexSplit(args.query)
     api_clients = []
 
     if data_store.RelationalDBReadEnabled():
@@ -444,7 +444,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
       age = rdfvalue.RDFDatetime(args.timestamp)
     api_client = None
     if data_store.RelationalDBReadEnabled():
-      client_id = unicode(args.client_id)
+      client_id = str(args.client_id)
       info = data_store.REL_DB.ReadClientFullInfo(client_id)
       if info is None:
         raise api_call_handler_base.ResourceNotFoundError()
@@ -499,12 +499,15 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
     items = []
 
     if data_store.RelationalDBReadEnabled():
-      client_id = unicode(args.client_id)
+      client_id = str(args.client_id)
       history = data_store.REL_DB.ReadClientSnapshotHistory(
           client_id, timerange=(start_time, end_time))
+      labels = data_store.REL_DB.ReadClientLabels(client_id)
 
       for client in history[::-1]:
-        items.append(ApiClient().InitFromClientObject(client))
+        c = ApiClient().InitFromClientObject(client)
+        c.labels = labels
+        items.append(c)
     else:
       all_clients = aff4.FACTORY.OpenDiscreteVersions(
           args.client_id.ToClientURN(),
@@ -547,7 +550,7 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
       # faster. However, there is a chance that this will not be
       # needed anymore once we use the relational db everywhere, let's
       # decide later.
-      client_id = unicode(args.client_id)
+      client_id = str(args.client_id)
       history = data_store.REL_DB.ReadClientSnapshotHistory(client_id)
       times = [h.timestamp for h in history]
     else:
@@ -583,7 +586,7 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     if data_store.RelationalDBFlowsEnabled():
       flow_id = flow.StartFlow(
-          flow_cls=discovery.Interrogate, client_id=unicode(args.client_id))
+          flow_cls=discovery.Interrogate, client_id=str(args.client_id))
 
       # TODO(user): don't encode client_id inside the operation_id, but
       # rather have it as a separate field.
@@ -618,8 +621,8 @@ class ApiGetInterrogateOperationStateHandler(
 
   def Handle(self, args, token=None):
     if data_store.RelationalDBFlowsEnabled():
-      client_id = unicode(args.client_id)
-      flow_id = unicode(args.operation_id)
+      client_id = str(args.client_id)
+      flow_id = str(args.operation_id)
       # TODO(user): test both exception scenarios below.
       try:
         flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -681,7 +684,7 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetLastClientIPAddressResult
 
   def Handle(self, args, token=None):
-    client_id = unicode(args.client_id)
+    client_id = str(args.client_id)
 
     if data_store.RelationalDBReadEnabled():
       md = data_store.REL_DB.ReadClientMetadata(client_id)
@@ -736,7 +739,7 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     if data_store.RelationalDBReadEnabled():
       crashes = data_store.REL_DB.ReadClientCrashInfoHistory(
-          unicode(args.client_id))
+          str(args.client_id))
       total_count = len(crashes)
       result = api_call_handler_utils.FilterList(
           crashes, args.offset, count=args.count, filter_value=args.filter)
@@ -983,7 +986,7 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
   def _HandleRelational(self, args):
     result = ApiListClientActionRequestsResult()
 
-    for task in data_store.REL_DB.ReadClientMessages(unicode(args.client_id)):
+    for task in data_store.REL_DB.ReadClientMessages(str(args.client_id)):
       request = ApiClientActionRequest(
           leased_until=task.leased_until,
           session_id=task.session_id,
@@ -994,7 +997,7 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
         # TODO(amoser): This is slightly wasteful but this api method is not
         # used too frequently.
         requests_responses = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-            unicode(args.client_id), task.session_id.Basename())
+            str(args.client_id), task.session_id.Basename())
 
         for req, responses in requests_responses:
           if req.request_id == task.request_id:
@@ -1052,14 +1055,20 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
     if not start_time:
       start_time = end_time - rdfvalue.Duration("30m")
 
-    fd = aff4.FACTORY.Create(
-        args.client_id.ToClientURN().Add("stats"),
-        aff4_type=aff4_stats.ClientStats,
-        mode="r",
-        token=token,
-        age=(start_time, end_time))
+    if data_store.RelationalDBReadEnabled("client_stats"):
+      stat_values = data_store.REL_DB.ReadClientStats(
+          client_id=str(args.client_id),
+          min_timestamp=start_time,
+          max_timestamp=end_time)
+    else:
+      fd = aff4.FACTORY.Create(
+          args.client_id.ToClientURN().Add("stats"),
+          aff4_type=aff4_stats.ClientStats,
+          mode="r",
+          token=token,
+          age=(start_time, end_time))
 
-    stat_values = list(fd.GetValuesForAttribute(fd.Schema.STATS))
+      stat_values = list(fd.GetValuesForAttribute(fd.Schema.STATS))
     points = []
     for stat_value in reversed(stat_values):
       if args.metric == args.Metric.CPU_PERCENT:
@@ -1120,7 +1129,7 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
     result = ApiGetClientLoadStatsResult()
     for value, timestamp in ts.data:
       dp = api_stats.ApiStatsStoreMetricDataPoint(
-          timestamp=timestamp, value=value)
+          timestamp=timestamp, value=float(value))
       result.data_points.append(dp)
 
     return result

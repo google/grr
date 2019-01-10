@@ -25,7 +25,9 @@ from cryptography.hazmat.primitives.ciphers import modes
 from cryptography.hazmat.primitives.kdf import pbkdf2
 from cryptography.x509 import oid
 
+from future.builtins import str
 from future.utils import string_types
+from typing import Text
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
@@ -106,7 +108,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     self.GetCN()
 
   def ParseFromHumanReadable(self, string):
-    precondition.AssertType(string, unicode)
+    precondition.AssertType(string, Text)
     self.ParseFromString(string.encode("ascii"))
 
   def ParseFromDatastore(self, value):
@@ -171,8 +173,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     builder = builder.serial_number(serial)
     builder = builder.subject_name(
         x509.Name(
-            [x509.NameAttribute(oid.NameOID.COMMON_NAME,
-                                unicode(common_name))]))
+            [x509.NameAttribute(oid.NameOID.COMMON_NAME, str(common_name))]))
 
     now = rdfvalue.RDFDatetime.Now()
     now_plus_year = now + rdfvalue.Duration("52w")
@@ -217,13 +218,12 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
         self.ParseFromString(initializer)
       elif common_name and private_key:
         self._value = x509.CertificateSigningRequestBuilder().subject_name(
-            x509.Name([
-                x509.NameAttribute(oid.NameOID.COMMON_NAME,
-                                   unicode(common_name))
-            ])).sign(
-                private_key.GetRawPrivateKey(),
-                hashes.SHA256(),
-                backend=openssl.backend)
+            x509.Name(
+                [x509.NameAttribute(oid.NameOID.COMMON_NAME,
+                                    str(common_name))])).sign(
+                                        private_key.GetRawPrivateKey(),
+                                        hashes.SHA256(),
+                                        backend=openssl.backend)
       elif initializer is not None:
         raise rdfvalue.InitializeError(
             "Cannot initialize %s from %s." % (self.__class__, initializer))
@@ -279,7 +279,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
         self._value = initializer
       elif isinstance(initializer, bytes):
         self.ParseFromString(initializer)
-      elif isinstance(initializer, unicode):
+      elif isinstance(initializer, Text):
         self.ParseFromString(initializer.encode("ascii"))
       else:
         raise rdfvalue.InitializeError(
@@ -301,7 +301,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     self.ParseFromString(value)
 
   def ParseFromHumanReadable(self, string):
-    precondition.AssertType(string, unicode)
+    precondition.AssertType(string, Text)
     self.ParseFromString(string.encode("ascii"))
 
   def SerializeToString(self):
@@ -376,14 +376,14 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
         self._value = initializer
       elif isinstance(initializer, bytes):
         self.ParseFromString(initializer)
-      elif isinstance(initializer, unicode):
+      elif isinstance(initializer, Text):
         self.ParseFromString(initializer.encode("ascii"))
       else:
         raise rdfvalue.InitializeError(
             "Cannot initialize %s from %s." % (self.__class__, initializer))
 
   def ParseFromHumanReadable(self, string):
-    precondition.AssertType(string, unicode)
+    precondition.AssertType(string, Text)
     self.ParseFromString(string.encode("ascii"))
 
   def GetRawPrivateKey(self):

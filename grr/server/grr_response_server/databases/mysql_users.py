@@ -78,6 +78,7 @@ class MySQLDBUsersMixin(object):
       columns.append("canary_mode")
       # TODO(amoser): This int conversion is dirty but necessary with
       # the current MySQL driver.
+      # TODO: We can remove this once the bug is fixed.
       values.append(int(bool(canary_mode)))
     if user_type is not None:
       columns.append("user_type")

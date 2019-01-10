@@ -54,8 +54,6 @@ from grr_response_server.aff4_objects import security
 # pylint: disable=wildcard-import
 from grr_response_server.console_utils import *
 # pylint: enable=wildcard-import
-
-from grr_response_server.flows.general import memory
 # pylint: enable=unused-import
 
 flags.DEFINE_string(

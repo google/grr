@@ -11,7 +11,6 @@ import collections
 from future.utils import with_metaclass
 
 from grr_response_client import streaming
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 
@@ -214,7 +213,7 @@ class LiteralMatchCondition(ContentCondition):
     self.params = params.contents_literal_match
 
   def Search(self, path):
-    matcher = LiteralMatcher(utils.SmartStr(self.params.literal))
+    matcher = LiteralMatcher(self.params.literal.AsBytes())
     for match in self.Scan(path, matcher):
       yield match
 

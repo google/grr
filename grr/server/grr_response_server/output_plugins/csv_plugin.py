@@ -7,6 +7,8 @@ from __future__ import unicode_literals
 import os
 import zipfile
 
+from future.builtins import str
+
 import yaml
 
 from grr_response_core.lib import utils
@@ -44,7 +46,7 @@ class CSVInstantOutputPlugin(
       if type_info.__class__.__name__ == "ProtoEmbedded":
         row.extend(self._GetCSVRow(value.Get(type_info.name)))
       else:
-        row.append(unicode(value.Get(type_info.name)))
+        row.append(str(value.Get(type_info.name)))
 
     return row
 

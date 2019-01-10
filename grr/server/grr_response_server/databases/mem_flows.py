@@ -2,6 +2,7 @@
 """The in memory database methods for flow handling."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import logging
@@ -9,8 +10,8 @@ import sys
 import threading
 import time
 
-from future.utils import iteritems
 from future.utils import itervalues
+from typing import List, Optional, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -223,13 +224,20 @@ class InMemoryDBFlowMixin(object):
     except KeyError:
       raise db.UnknownFlowError(client_id, flow_id)
 
-  def ReadAllFlowObjects(self, client_id, min_create_time=None):
-    """Reads all flow objects from the database for a given client."""
+  def ReadAllFlowObjects(
+      self,
+      client_id = None,
+      min_create_time = None,
+      max_create_time = None,
+      include_child_flows = True,
+  ):
+    """Returns all flow objects."""
     res = []
-    for client_flow_id, flow in iteritems(self.flows):
-      if min_create_time is not None and flow.create_time < min_create_time:
-        continue
-      if client_flow_id[0] == client_id:
+    for flow in itervalues(self.flows):
+      if ((client_id is None or flow.client_id == client_id) and
+          (min_create_time is None or flow.create_time >= min_create_time) and
+          (max_create_time is None or flow.create_time <= max_create_time) and
+          (include_child_flows or not flow.parent_flow_id)):
         res.append(flow.Copy())
     return res
 
@@ -329,7 +337,9 @@ class InMemoryDBFlowMixin(object):
         if flow.next_request_to_process == request.request_id:
           flow_processing_requests.append(
               rdf_flows.FlowProcessingRequest(
-                  client_id=request.client_id, flow_id=request.flow_id))
+                  client_id=request.client_id,
+                  flow_id=request.flow_id,
+                  delivery_time=request.start_time))
 
     if flow_processing_requests:
       self.WriteFlowProcessingRequests(flow_processing_requests)
@@ -600,10 +610,10 @@ class InMemoryDBFlowMixin(object):
 
       time.sleep(0.2)
 
-  def WriteFlowResults(self, client_id, flow_id, results):
+  def WriteFlowResults(self, results):
     """Writes flow results for a given flow."""
-    dest = self.flow_results.setdefault((client_id, flow_id), [])
     for r in results:
+      dest = self.flow_results.setdefault((r.client_id, r.flow_id), [])
       to_write = r.Copy()
       to_write.timestamp = rdfvalue.RDFDatetime.Now()
       dest.append(to_write)
@@ -658,10 +668,10 @@ class InMemoryDBFlowMixin(object):
             with_tag=with_tag,
             with_type=with_type))
 
-  def WriteFlowLogEntries(self, client_id, flow_id, entries):
+  def WriteFlowLogEntries(self, entries):
     """Writes flow log entries for a given flow."""
-    dest = self.flow_log_entries.setdefault((client_id, flow_id), [])
     for e in entries:
+      dest = self.flow_log_entries.setdefault((e.client_id, e.flow_id), [])
       to_write = e.Copy()
       to_write.timestamp = rdfvalue.RDFDatetime.Now()
       dest.append(to_write)

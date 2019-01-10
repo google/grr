@@ -15,7 +15,7 @@ from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.sdist import sdist
 
-# TODO(hanuszczak): Fix this import once support for Python 2 is dropped.
+# TODO: Fix this import once support for Python 2 is dropped.
 # pylint: disable=g-import-not-at-top
 if sys.version_info.major == 2:
   import ConfigParser as configparser

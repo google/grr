@@ -2,6 +2,7 @@
 """Utililies for modifying the GRR server configuration."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -14,13 +15,19 @@ import sys
 import time
 
 
-import builtins
+# Usually we import concrete items from the builtins module. However, here we
+# use `builtins.input` which is stubbed in the test, so we have to always use
+# qualified version.
+from future import builtins
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
+
 import MySQLdb
 from MySQLdb.constants import CR as mysql_conn_errors
 from MySQLdb.constants import ER as general_mysql_errors
 import pkg_resources
+
+from typing import Optional, Text
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
@@ -29,7 +36,6 @@ from grr_response_server import server_plugins
 from grr_api_client import api
 from grr_api_client import errors as api_errors
 from grr_response_core import config as grr_config
-from grr_response_core.lib import flags
 from grr_response_core.lib import repacking
 from grr_response_server import access_control
 from grr_response_server import maintenance_utils
@@ -137,19 +143,17 @@ def RetryBoolQuestion(question_text, default_bool):
                        default_val)[0].upper() == "Y"
 
 
-def ConfigureHostnames(config):
+def ConfigureHostnames(config, external_hostname = None):
   """This configures the hostnames stored in the config."""
-  if flags.FLAGS.external_hostname:
-    hostname = flags.FLAGS.external_hostname
-  else:
+  if not external_hostname:
     try:
-      hostname = socket.gethostname()
+      external_hostname = socket.gethostname()
     except (OSError, IOError):
       print("Sorry, we couldn't guess your hostname.\n")
 
-    hostname = RetryQuestion(
+    external_hostname = RetryQuestion(
         "Please enter your hostname e.g. "
-        "grr.example.com", "^[\\.A-Za-z0-9-]+$", hostname)
+        "grr.example.com", "^[\\.A-Za-z0-9-]+$", external_hostname)
 
   print("""\n\n-=Server URL=-
 The Server URL specifies the URL that the clients will connect to
@@ -157,7 +161,7 @@ communicate with the server. For best results this should be publicly
 accessible. By default this will be port 8080 with the URL ending in /control.
 """)
   frontend_url = RetryQuestion("Frontend URL", "^http://.*/$",
-                               "http://%s:8080/" % hostname)
+                               "http://%s:8080/" % external_hostname)
   config.Set("Client.server_urls", [frontend_url])
 
   frontend_port = urlparse.urlparse(frontend_url).port or grr_config.CONFIG.Get(
@@ -168,7 +172,7 @@ accessible. By default this will be port 8080 with the URL ending in /control.
 The UI URL specifies where the Administrative Web Interface can be found.
 """)
   ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
-                         "http://%s:8000" % hostname)
+                         "http://%s:8000" % external_hostname)
   config.Set("AdminUI.url", ui_url)
   ui_port = urlparse.urlparse(ui_url).port or grr_config.CONFIG.Get(
       "AdminUI.port")
@@ -187,13 +191,34 @@ def CheckMySQLConnection(db_options):
   """
   for tries_left in range(_MYSQL_MAX_RETRIES, -1, -1):
     try:
-      MySQLdb.connect(
+      connection_options = dict(
           host=db_options["Mysql.host"],
           port=db_options["Mysql.port"],
           db=db_options["Mysql.database_name"],
           user=db_options["Mysql.database_username"],
           passwd=db_options["Mysql.database_password"],
           charset="utf8")
+
+      ssl_enabled = "Mysql.client_key_path" in db_options
+      if ssl_enabled:
+        connection_options["ssl"] = {
+            "key": db_options["Mysql.client_key_path"],
+            "cert": db_options["Mysql.client_cert_path"],
+            "ca": db_options["Mysql.ca_cert_path"],
+        }
+
+      connection = MySQLdb.connect(**connection_options)
+
+      if ssl_enabled:
+        cursor = connection.cursor()
+        cursor.execute("SHOW VARIABLES LIKE 'have_ssl'")
+        res = cursor.fetchone()
+        if res[0] == "have_ssl" and res[1] == "YES":
+          print("SSL enabled successfully.")
+        else:
+          print("Unable to establish SSL connection to MySQL.")
+          return False
+
       return True
     except MySQLdb.OperationalError as mysql_op_error:
       if len(mysql_op_error.args) < 2:
@@ -254,6 +279,18 @@ def ConfigureMySQLDatastore(config):
         db_options["Mysql.database_username"])
     # pytype: enable=wrong-arg-types
 
+    use_ssl = RetryBoolQuestion("Configure SSL connections for MySQL?", False)
+    if use_ssl:
+      db_options["Mysql.client_key_path"] = RetryQuestion(
+          "Path to the client private key file",
+          default_val=config["Mysql.client_key_path"])
+      db_options["Mysql.client_cert_path"] = RetryQuestion(
+          "Path to the client certificate file",
+          default_val=config["Mysql.client_cert_path"])
+      db_options["Mysql.ca_cert_path"] = RetryQuestion(
+          "Path to the CA certificate file",
+          default_val=config["Mysql.ca_cert_path"])
+
     if CheckMySQLConnection(db_options):
       print("Successfully connected to MySQL with the provided details.")
       datastore_init_complete = True
@@ -302,11 +339,19 @@ def ConfigureDatastore(config):
            grr_config.CONFIG.Get("Mysql.port"),
            grr_config.CONFIG.Get("Mysql.database_name"),
            grr_config.CONFIG.Get("Mysql.database_username")))
+    if grr_config.CONFIG.Get("Mysql.client_key_path"):
+      print("  MySQL client key file: %s\n"
+            "  MySQL client cert file: %s\n"
+            "  MySQL ca cert file: %s\n" %
+            (grr_config.CONFIG.Get("Mysql.client_key_path"),
+             grr_config.CONFIG.Get("Mysql.client_cert_path"),
+             grr_config.CONFIG.Get("Mysql.ca_cert_path")))
+
     if not RetryBoolQuestion("Do you want to keep this configuration?", True):
       ConfigureMySQLDatastore(config)
 
 
-def ConfigureUrls(config):
+def ConfigureUrls(config, external_hostname = None):
   """Guides the user through configuration of various URLs used by GRR."""
   print("\n\n-=GRR URLs=-\n"
         "For GRR to work each client has to be able to communicate with the\n"
@@ -334,12 +379,12 @@ def ConfigureUrls(config):
       config.Set("Client.control_urls", ["deprecated use Client.server_urls"])
 
   if not existing_frontend_urns or not existing_ui_urn:
-    ConfigureHostnames(config)
+    ConfigureHostnames(config, external_hostname=external_hostname)
   else:
     print("Found existing settings:\n  AdminUI URL: %s\n  "
           "Frontend URL(s): %s\n" % (existing_ui_urn, existing_frontend_urns))
     if not RetryBoolQuestion("Do you want to keep this configuration?", True):
-      ConfigureHostnames(config)
+      ConfigureHostnames(config, external_hostname=external_hostname)
 
 
 def ConfigureEmails(config):
@@ -383,16 +428,6 @@ def ConfigureEmails(config):
   config.Set("Monitoring.emergency_access_email", emergency_email)
 
 
-def ConfigureRekall(config):
-  rekall_enabled = grr_config.CONFIG.Get("Rekall.enabled", False)
-  if rekall_enabled:
-    rekall_enabled = RetryBoolQuestion("Keep Rekall enabled?", True)
-  else:
-    rekall_enabled = RetryBoolQuestion(
-        "Rekall is no longer actively supported. Enable anyway?", False)
-  config.Set("Rekall.enabled", rekall_enabled)
-
-
 def InstallTemplatePackage():
   """Call pip to install the templates."""
   virtualenv_bin = os.path.dirname(sys.executable)
@@ -411,7 +446,12 @@ def InstallTemplatePackage():
   ])
 
 
-def FinalizeConfigInit(config, token):
+def FinalizeConfigInit(config,
+                       token,
+                       admin_password = None,
+                       redownload_templates = False,
+                       repack_templates = True,
+                       prompt = True):
   """Performs the final steps of config initialization."""
   config.Set("Server.initialized", True)
   print("\nWriting configuration to %s." % config["Config.writeback"])
@@ -422,22 +462,19 @@ def FinalizeConfigInit(config, token):
 
   print("\nStep 3: Adding GRR Admin User")
   try:
-    CreateUser("admin", password=flags.FLAGS.admin_password, is_admin=True)
+    CreateUser("admin", password=admin_password, is_admin=True)
   except UserAlreadyExistsError:
-    if flags.FLAGS.noprompt:
-      UpdateUser("admin", password=flags.FLAGS.admin_password, is_admin=True)
-    else:
+    if prompt:
       # pytype: disable=wrong-arg-count
       if ((builtins.input("User 'admin' already exists, do you want to "
                           "reset the password? [yN]: ").upper() or "N") == "Y"):
-        UpdateUser("admin", password=flags.FLAGS.admin_password, is_admin=True)
+        UpdateUser("admin", password=admin_password, is_admin=True)
       # pytype: enable=wrong-arg-count
+    else:
+      UpdateUser("admin", password=admin_password, is_admin=True)
 
   print("\nStep 4: Repackaging clients with new configuration.")
-  if flags.FLAGS.noprompt:
-    redownload_templates = flags.FLAGS.redownload_templates
-    repack_templates = not flags.FLAGS.norepack_templates
-  else:
+  if prompt:
     redownload_templates = RetryBoolQuestion(
         "Server debs include client templates. Re-download templates?", False)
     repack_templates = RetryBoolQuestion("Repack client templates?", True)
@@ -452,7 +489,12 @@ def FinalizeConfigInit(config, token):
         "effect.\n")
 
 
-def Initialize(config=None, token=None):
+def Initialize(config=None,
+               external_hostname = None,
+               admin_password = None,
+               redownload_templates = False,
+               repack_templates = True,
+               token = None):
   """Initialize or update a GRR configuration."""
 
   print("Checking write access on config %s" % config["Config.writeback"])
@@ -465,8 +507,8 @@ def Initialize(config=None, token=None):
   if prev_config_file and os.access(prev_config_file, os.R_OK):
     print("Found config file %s." % prev_config_file)
     # pytype: disable=wrong-arg-count
-    if builtins.input("Do you want to import this configuration?"
-                      " [yN]: ").upper() == "Y":
+    if builtins.input("Do you want to import this configuration? "
+                      "[yN]: ").upper() == "Y":
       options_imported = ImportConfig(prev_config_file, config)
     # pytype: enable=wrong-arg-count
   else:
@@ -475,9 +517,8 @@ def Initialize(config=None, token=None):
   print("\nStep 1: Setting Basic Configuration Parameters")
   print("We are now going to configure the server using a bunch of questions.")
   ConfigureDatastore(config)
-  ConfigureUrls(config)
+  ConfigureUrls(config, external_hostname=external_hostname)
   ConfigureEmails(config)
-  ConfigureRekall(config)
 
   print("\nStep 2: Key Generation")
   if config.Get("PrivateKeys.server_key", default=None):
@@ -492,14 +533,45 @@ def Initialize(config=None, token=None):
   else:
     config_updater_keys_util.GenerateKeys(config)
 
-  FinalizeConfigInit(config, token)
+  FinalizeConfigInit(
+      config,
+      token,
+      admin_password=admin_password,
+      redownload_templates=redownload_templates,
+      repack_templates=repack_templates,
+      prompt=True)
 
 
-def InitializeNoPrompt(config=None, token=None):
+def InitializeNoPrompt(config=None,
+                       external_hostname = None,
+                       admin_password = None,
+                       mysql_hostname = None,
+                       mysql_port = None,
+                       mysql_username = None,
+                       mysql_password = None,
+                       mysql_db = None,
+                       mysql_client_key_path = None,
+                       mysql_client_cert_path = None,
+                       mysql_ca_cert_path = None,
+                       redownload_templates = False,
+                       repack_templates = True,
+                       token = None):
   """Initialize GRR with no prompts.
 
   Args:
     config: config object
+    external_hostname: A hostname.
+    admin_password: A password used for the admin user.
+    mysql_hostname: A hostname used for establishing connection to MySQL.
+    mysql_port: A port used for establishing connection to MySQL.
+    mysql_username: A username used for establishing connection to MySQL.
+    mysql_password: A password used for establishing connection to MySQL.
+    mysql_db: Name of the MySQL database to use.
+    mysql_client_key_path: The path name of the client private key file.
+    mysql_client_cert_path: The path name of the client public key certificate.
+    mysql_ca_cert_path: The path name of the CA certificate file.
+    redownload_templates: Indicates whether templates should be re-downloaded.
+    repack_templates: Indicates whether templates should be re-packed.
     token: auth token
 
   Raises:
@@ -515,12 +587,12 @@ def InitializeNoPrompt(config=None, token=None):
   """
   if config["Server.initialized"]:
     raise ValueError("Config has already been initialized.")
-  if not flags.FLAGS.external_hostname:
+  if not external_hostname:
     raise ValueError(
         "--noprompt set, but --external_hostname was not provided.")
-  if not flags.FLAGS.admin_password:
+  if not admin_password:
     raise ValueError("--noprompt set, but --admin_password was not provided.")
-  if flags.FLAGS.mysql_password is None:
+  if mysql_password is None:
     raise ValueError("--noprompt set, but --mysql_password was not provided.")
 
   print("Checking write access on config %s" % config.parser)
@@ -529,28 +601,30 @@ def InitializeNoPrompt(config=None, token=None):
 
   config_dict = {}
   config_dict["Datastore.implementation"] = "MySQLAdvancedDataStore"
-  config_dict["Mysql.host"] = (
-      flags.FLAGS.mysql_hostname or config["Mysql.host"])
-  config_dict["Mysql.port"] = (flags.FLAGS.mysql_port or config["Mysql.port"])
-  config_dict["Mysql.database_name"] = (
-      flags.FLAGS.mysql_db or config["Mysql.database_name"])
+  config_dict["Mysql.host"] = mysql_hostname or config["Mysql.host"]
+  config_dict["Mysql.port"] = mysql_port or config["Mysql.port"]
+  config_dict["Mysql.database_name"] = mysql_db or config["Mysql.database_name"]
   config_dict["Mysql.database_username"] = (
-      flags.FLAGS.mysql_username or config["Mysql.database_username"])
-  hostname = flags.FLAGS.external_hostname
+      mysql_username or config["Mysql.database_username"])
   config_dict["Client.server_urls"] = [
-      "http://%s:%s/" % (hostname, config["Frontend.bind_port"])
+      "http://%s:%s/" % (external_hostname, config["Frontend.bind_port"])
   ]
-
-  config_dict["AdminUI.url"] = "http://%s:%s" % (hostname,
+  config_dict["AdminUI.url"] = "http://%s:%s" % (external_hostname,
                                                  config["AdminUI.port"])
-  config_dict["Logging.domain"] = hostname
-  config_dict["Monitoring.alert_email"] = "grr-monitoring@%s" % hostname
+  config_dict["Logging.domain"] = external_hostname
+  config_dict["Monitoring.alert_email"] = (
+      "grr-monitoring@%s" % external_hostname)
   config_dict["Monitoring.emergency_access_email"] = (
-      "grr-emergency@%s" % hostname)
-  config_dict["Rekall.enabled"] = flags.FLAGS.enable_rekall
+      "grr-emergency@%s" % external_hostname)
   # Print all configuration options, except for the MySQL password.
   print("Setting configuration as:\n\n%s" % config_dict)
-  config_dict["Mysql.database_password"] = flags.FLAGS.mysql_password
+  config_dict["Mysql.database_password"] = mysql_password
+
+  if mysql_client_key_path is not None:
+    config_dict["Mysql.client_key_path"] = mysql_client_key_path
+    config_dict["Mysql.client_cert_path"] = mysql_client_cert_path
+    config_dict["Mysql.ca_cert_path"] = mysql_ca_cert_path
+
   if CheckMySQLConnection(config_dict):
     print("Successfully connected to MySQL with the given configuration.")
   else:
@@ -559,7 +633,13 @@ def InitializeNoPrompt(config=None, token=None):
   for key, value in iteritems(config_dict):
     config.Set(key, value)
   config_updater_keys_util.GenerateKeys(config)
-  FinalizeConfigInit(config, token)
+  FinalizeConfigInit(
+      config,
+      token,
+      admin_password=admin_password,
+      redownload_templates=redownload_templates,
+      repack_templates=repack_templates,
+      prompt=False)
 
 
 def GetToken():
@@ -686,6 +766,7 @@ def _GetUserTypeAndPassword(username, password=None, is_admin=False):
   else:
     user_type = api_user.ApiGrrUser.UserType.USER_TYPE_STANDARD
   if password is None:
+    # TODO
     # pytype: disable=wrong-arg-types
     password = getpass.getpass(
         prompt="Please enter password for user '%s':" % username)

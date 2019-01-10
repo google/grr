@@ -29,8 +29,6 @@ Logging.verbose: False
 AdminUI Context:
   Logging.filename: "%(Logging.path)/grr-ui.log"
 
-  Monitoring.http_port: 44449
-
 # The client's reported architecture string depends on the Arch context
 Arch:amd64:
   Client.arch: amd64
@@ -56,9 +54,6 @@ Target:Darwin:
 
   Client.install_path: |
     /usr/local/lib/%(Client.name)/%(ClientRepacker.output_basename)
-
-  Client.rekall_profile_cache_path: |
-    %(Client.install_path)/rekall_profiles
 
   ClientBuilder.build_dest: "%(Client.name)-build"
 
@@ -108,9 +103,6 @@ Target:Linux:
 
   Config.writeback: /etc/%(Client.name).local.yaml
 
-  Client.rekall_profile_cache_path: |
-    %(Client.install_path)/rekall_profiles
-
   Client.name: grr
 
   ClientBuilder.daemon_link: |
@@ -142,9 +134,6 @@ Target:Linux:
 
     Client.install_path: |
       /usr/lib64/%(Client.name)/%(ClientRepacker.output_basename)
-
-    Client.rekall_profile_cache_path: |
-      %(Client.install_path)/rekall_profiles
 
   # This indicates that we are building a client for debugging. It needs to
   # be nested deeper than the Client context so it always takes precedence

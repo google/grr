@@ -177,11 +177,13 @@ class StatsDBUtilsTest(absltest.TestCase):
             value_type=rdf_stats.MetricMetadata.ValueType.FLOAT,
             float_value=4.2),
         timestamp=_one_second_timestamp)
+    # TODO: String gauges are deprecated.
     str_entry = stats_values.StatsStoreEntry(
         process_id="test_process",
         metric_name="test_metric",
         metric_value=stats_values.StatsStoreValue(
-            value_type=rdf_stats.MetricMetadata.ValueType.STR, str_value="foo"),
+            value_type=rdf_stats.MetricMetadata.ValueType.DEPRECATED_STR,
+            str_value="foo"),
         timestamp=_one_second_timestamp)
     distribution_entry = stats_values.StatsStoreEntry(
         process_id="test_process",

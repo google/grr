@@ -1,12 +1,14 @@
-<div class="btn-group large">
-  <button class="btn btn-default" data-toggle="dropdown">
-    <i class="fa fa-file-o"></i>
-    <i class="fa fa-arrow-circle-down annotation"></i>
-  </button>
-  <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-    <span class="caret"></span>
-  </button>
-  <ul class="dropdown-menu">
+<span uib-dropdown>
+  <div class="btn-group large" uib-dropdown-toggle>
+    <button type="button" class="btn btn-default">
+      <i class="fa fa-file-o"></i>
+      <i class="fa fa-arrow-circle-down annotation"></i>
+    </button>
+    <button type="button" class="btn btn-default dropdown-toggle">
+      <span class="caret"></span>
+    </button>
+  </div>
+  <ul class="dropdown-menu" uib-dropdown-menu>
     <li ng-class="{'disabled': controller.downloadCurrentFolderDisabled}">
       <a name="downloadCurrentFolder"
          ng-click="controller.downloadCurrentFolder($event)"
@@ -22,4 +24,4 @@
       </a>
     </li>
   </ul>
-</div>
+</span>

@@ -42,7 +42,9 @@ class Reader(object):
       filedesc = io.StringIO(self._content)
 
     reader = csv.reader(
-        filedesc, delimiter=str(self._delimiter), lineterminator=str("\n"))
+        filedesc,
+        delimiter=compatibility.NativeStr(self._delimiter),
+        lineterminator=compatibility.NativeStr("\n"))
 
     for values in reader:
       row = []
@@ -78,10 +80,10 @@ class Writer(object):
     else:
       self._output = io.StringIO()
 
-    # We call `str` on the delimiter in order to ensure it is `bytes` on Python
-    # 2 and `unicode` on Python 3.
     self._csv = csv.writer(
-        self._output, delimiter=str(delimiter), lineterminator=str("\n"))
+        self._output,
+        delimiter=compatibility.NativeStr(delimiter),
+        lineterminator=compatibility.NativeStr("\n"))
 
   def WriteRow(self, values):
     """Writes a single row to the underlying buffer.

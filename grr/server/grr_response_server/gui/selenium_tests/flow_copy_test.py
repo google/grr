@@ -165,7 +165,8 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
 
     # Now open the last flow and check that it has the changes we made.
     if data_store.RelationalDBFlowsEnabled():
-      flows = data_store.REL_DB.ReadAllFlowObjects(self.client_id.Basename())
+      flows = data_store.REL_DB.ReadAllFlowObjects(
+          client_id=self.client_id.Basename())
       flows.sort(key=lambda f: f.create_time)
       fobj = flows[-1]
 

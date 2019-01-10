@@ -9,6 +9,8 @@ import datetime
 import os
 
 
+from typing import Text
+
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
@@ -88,7 +90,7 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
 
     for item in contents:
       # All the filenames should be unicode strings.
-      self.assertIsInstance(item, unicode)
+      self.assertIsInstance(item, Text)
     self.assertTrue("." in contents and ".." in contents)
     contents.remove(".")
     contents.remove("..")

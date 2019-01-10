@@ -8,7 +8,9 @@ from __future__ import unicode_literals
 import sys
 
 
-import builtins
+from absl import app
+from absl.flags import argparse_flags
+from future.builtins import input
 import yaml
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -20,22 +22,20 @@ from grr_response_core import config as grr_config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import flags
 from grr_response_core.lib import repacking
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import maintenance_utils
-from grr_response_server import rekall_profile_server
 from grr_response_server import server_startup
 from grr_response_server.bin import config_updater_keys_util
 from grr_response_server.bin import config_updater_util
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-parser = flags.PARSER
-parser.description = ("Set configuration parameters for the GRR Server."
-                      "\nThis script has numerous subcommands to perform "
-                      "various actions. When you are first setting up, you "
-                      "probably only care about 'initialize'.")
+parser = argparse_flags.ArgumentParser(
+    description=("Set configuration parameters for the GRR Server."
+                 "\nThis script has numerous subcommands to perform "
+                 "various actions. When you are first setting up, you "
+                 "probably only care about 'initialize'."))
 
 # Generic arguments.
 parser.add_argument(
@@ -48,7 +48,7 @@ subparsers = parser.add_subparsers(
 
 # Subparsers.
 
-# TODO(hanuszczak): Before Python 3.3 there is no way to make subparsers
+# TODO: Before Python 3.3 there is no way to make subparsers
 # optional, so having a `--version` flag in a non-magic way (through `version`
 # action) is impossible. As a temporary hack we use `version` command instead
 # of a flag to achieve that. Once we migrate to Abseil this should no longer be
@@ -116,17 +116,12 @@ parser_initialize.add_argument(
     help="Re-download templates during noninteractive config initialization "
     "(server debs already include templates).")
 
+# TODO(hanuszczak): Rename this flag to `repack_templates` (true by default).
 parser_initialize.add_argument(
     "--norepack_templates",
     default=False,
     action="store_true",
     help="Skip template repacking during noninteractive config initialization.")
-
-parser_initialize.add_argument(
-    "--enable_rekall",
-    default=False,
-    action="store_true",
-    help="Enable Rekall during noninteractive config initialization.")
 
 parser_initialize.add_argument(
     "--mysql_hostname",
@@ -152,6 +147,18 @@ parser_initialize.add_argument(
     help="Password for GRR MySQL database user (only applies if --noprompt is "
     "set).")
 
+parser_initialize.add_argument(
+    "--mysql_client_key_path",
+    help="The path name of the client private key file.")
+
+parser_initialize.add_argument(
+    "--mysql_client_cert_path",
+    help="The path name of the client public key certificate file.")
+
+parser_initialize.add_argument(
+    "--mysql_ca_cert_path",
+    help="The path name of the Certificate Authority (CA) certificate file.")
+
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
@@ -166,7 +173,7 @@ parser_show_user = subparsers.add_parser(
     "show_user", help="Display user settings or list all users.")
 
 parser_show_user.add_argument(
-    "username",
+    "--username",
     default=None,
     nargs="?",
     help="Username to display. If not specified, list all users.")
@@ -244,11 +251,6 @@ parser_upload_exe = subparsers.add_parser(
 _ExtendWithUploadArgs(parser_upload_exe)
 _ExtendWithUploadSignedArgs(parser_upload_exe)
 
-subparsers.add_parser(
-    "download_missing_rekall_profiles",
-    help="Downloads all Rekall profiles from the repository that are not "
-    "currently present in the database.")
-
 parser_rotate_key = subparsers.add_parser(
     "rotate_server_key", help="Sets a new server key.")
 
@@ -262,11 +264,10 @@ parser_rotate_key.add_argument(
     "Defaults to the Server.rsa_key_length config option.")
 
 
-def main(argv):
+def main(args):
   """Main."""
-  del argv  # Unused.
 
-  if flags.FLAGS.subparser_name == "version":
+  if args.subparser_name == "version":
     version = config_server.VERSION["packageversion"]
     print("GRR configuration updater {}".format(version))
     return
@@ -275,12 +276,32 @@ def main(argv):
   grr_config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
   grr_config.CONFIG.AddContext(contexts.CONFIG_UPDATER_CONTEXT)
 
-  if flags.FLAGS.subparser_name == "initialize":
+  if args.subparser_name == "initialize":
     config_lib.ParseConfigCommandLine()
-    if flags.FLAGS.noprompt:
-      config_updater_util.InitializeNoPrompt(grr_config.CONFIG, token=token)
+    if args.noprompt:
+      config_updater_util.InitializeNoPrompt(
+          grr_config.CONFIG,
+          external_hostname=args.external_hostname,
+          admin_password=args.admin_password,
+          mysql_hostname=args.mysql_hostname,
+          mysql_port=args.mysql_port,
+          mysql_username=args.mysql_username,
+          mysql_password=args.mysql_password,
+          mysql_db=args.mysql_db,
+          mysql_client_key_path=args.mysql_client_key_path,
+          mysql_client_cert_path=args.mysql_client_cert_path,
+          mysql_ca_cert_path=args.mysql_ca_cert_path,
+          redownload_templates=args.redownload_templates,
+          repack_templates=not args.norepack_templates,
+          token=token)
     else:
-      config_updater_util.Initialize(grr_config.CONFIG, token=token)
+      config_updater_util.Initialize(
+          grr_config.CONFIG,
+          external_hostname=args.external_hostname,
+          admin_password=args.admin_password,
+          redownload_templates=args.redownload_templates,
+          repack_templates=not args.norepack_templates,
+          token=token)
     return
 
   server_startup.Init()
@@ -290,87 +311,80 @@ def main(argv):
   except AttributeError:
     raise RuntimeError("No valid config specified.")
 
-  if flags.FLAGS.subparser_name == "generate_keys":
+  if args.subparser_name == "generate_keys":
     try:
       config_updater_keys_util.GenerateKeys(
-          grr_config.CONFIG, overwrite_keys=flags.FLAGS.overwrite_keys)
+          grr_config.CONFIG, overwrite_keys=args.overwrite_keys)
     except RuntimeError as e:
       # GenerateKeys will raise if keys exist and overwrite_keys is not set.
       print("ERROR: %s" % e)
       sys.exit(1)
     grr_config.CONFIG.Write()
 
-  elif flags.FLAGS.subparser_name == "repack_clients":
-    upload = not flags.FLAGS.noupload
+  elif args.subparser_name == "repack_clients":
+    upload = not args.noupload
     repacking.TemplateRepacker().RepackAllTemplates(upload=upload, token=token)
 
-  elif flags.FLAGS.subparser_name == "show_user":
-    if flags.FLAGS.username:
-      print(config_updater_util.GetUserSummary(flags.FLAGS.username))
+  elif args.subparser_name == "show_user":
+    if args.username:
+      print(config_updater_util.GetUserSummary(args.username))
     else:
       print(config_updater_util.GetAllUserSummaries())
 
-  elif flags.FLAGS.subparser_name == "update_user":
+  elif args.subparser_name == "update_user":
     config_updater_util.UpdateUser(
-        flags.FLAGS.username,
-        password=flags.FLAGS.password,
-        is_admin=flags.FLAGS.admin)
+        args.username, password=args.password, is_admin=args.admin)
 
-  elif flags.FLAGS.subparser_name == "delete_user":
-    config_updater_util.DeleteUser(flags.FLAGS.username)
+  elif args.subparser_name == "delete_user":
+    config_updater_util.DeleteUser(args.username)
 
-  elif flags.FLAGS.subparser_name == "add_user":
+  elif args.subparser_name == "add_user":
     config_updater_util.CreateUser(
-        flags.FLAGS.username,
-        password=flags.FLAGS.password,
-        is_admin=flags.FLAGS.admin)
+        args.username, password=args.password, is_admin=args.admin)
 
-  elif flags.FLAGS.subparser_name == "upload_python":
+  elif args.subparser_name == "upload_python":
     config_updater_util.UploadSignedBinary(
-        flags.FLAGS.file,
+        args.file,
         rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK,
-        flags.FLAGS.platform,
-        upload_subdirectory=flags.FLAGS.upload_subdirectory,
+        args.platform,
+        upload_subdirectory=args.upload_subdirectory,
         token=token)
 
-  elif flags.FLAGS.subparser_name == "upload_exe":
+  elif args.subparser_name == "upload_exe":
     config_updater_util.UploadSignedBinary(
-        flags.FLAGS.file,
+        args.file,
         rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
-        flags.FLAGS.platform,
-        upload_subdirectory=flags.FLAGS.upload_subdirectory,
+        args.platform,
+        upload_subdirectory=args.upload_subdirectory,
         token=token)
 
-  elif flags.FLAGS.subparser_name == "set_var":
+  elif args.subparser_name == "set_var":
+    var = args.var
+    val = args.val
+
     config = grr_config.CONFIG
-    print("Setting %s to %s" % (flags.FLAGS.var, flags.FLAGS.val))
-    if flags.FLAGS.val.startswith("["):  # Allow setting of basic lists.
-      flags.FLAGS.val = flags.FLAGS.val[1:-1].split(",")
-    config.Set(flags.FLAGS.var, flags.FLAGS.val)
+    print("Setting %s to %s" % (var, val))
+    if val.startswith("["):  # Allow setting of basic lists.
+      val = val[1:-1].split(",")
+    config.Set(var, val)
     config.Write()
 
-  elif flags.FLAGS.subparser_name == "upload_artifact":
-    yaml.load(open(flags.FLAGS.file, "rb"))  # Check it will parse.
+  elif args.subparser_name == "upload_artifact":
+    yaml.load(open(args.file, "rb"))  # Check it will parse.
     try:
       artifact.UploadArtifactYamlFile(
-          open(flags.FLAGS.file, "rb").read(),
-          overwrite=flags.FLAGS.overwrite_artifact)
+          open(args.file, "rb").read(), overwrite=args.overwrite_artifact)
     except rdf_artifacts.ArtifactDefinitionError as e:
       print("Error %s. You may need to set --overwrite_artifact." % e)
 
-  elif flags.FLAGS.subparser_name == "delete_artifacts":
-    artifact_list = flags.FLAGS.artifact
+  elif args.subparser_name == "delete_artifacts":
+    artifact_list = args.artifact
     if not artifact_list:
       raise ValueError("No artifact to delete given.")
     artifact_registry.DeleteArtifactsFromDatastore(artifact_list, token=token)
     print("Artifacts %s deleted." % artifact_list)
 
-  elif flags.FLAGS.subparser_name == "download_missing_rekall_profiles":
-    print("Downloading missing Rekall profiles.")
-    s = rekall_profile_server.GRRRekallProfileServer()
-    s.GetMissingProfiles()
-
-  elif flags.FLAGS.subparser_name == "rotate_server_key":
+  elif args.subparser_name == "rotate_server_key":
     print("""
 You are about to rotate the server key. Note that:
 
@@ -383,15 +397,19 @@ You are about to rotate the server key. Note that:
     point on.
     """)
 
-    if builtins.input("Continue? [yN]: ").upper() == "Y":
-      if flags.FLAGS.keylength:
-        keylength = int(flags.FLAGS.keylength)
+    if input("Continue? [yN]: ").upper() == "Y":
+      if args.keylength:
+        keylength = int(args.keylength)
       else:
         keylength = grr_config.CONFIG["Server.rsa_key_length"]
 
       maintenance_utils.RotateServerKey(
-          cn=flags.FLAGS.common_name, keylength=keylength)
+          cn=args.common_name, keylength=keylength)
+
+
+def Run():
+  app.run(main, flags_parser=lambda argv: parser.parse_args(argv[1:]))
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  Run()

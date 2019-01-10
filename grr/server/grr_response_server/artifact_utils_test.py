@@ -85,9 +85,11 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     # Check supported_os = [] matches any OS
     results = registry.GetArtifacts(
-        os_name="Windows", name_list=["RekallPsList"])
+        os_name="Windows", name_list=["TestRegistryKey"])
     self.assertLen(results, 1)
-    self.assertEqual(results.pop().name, "RekallPsList")
+    artifact = results.pop()
+    self.assertEqual(artifact.name, "TestRegistryKey")
+    self.assertEqual(artifact.supported_os, [])
 
     results = registry.GetArtifacts(os_name="Windows", exclude_dependents=True)
     for result in results:

@@ -4,15 +4,18 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import collections
 import sys
 import threading
 
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import precondition
 from grr_response_server import db
 from grr_response_server.databases import mem_artifacts
 from grr_response_server.databases import mem_blobs
+from grr_response_server.databases import mem_client_reports
 from grr_response_server.databases import mem_clients
 from grr_response_server.databases import mem_cronjobs
 from grr_response_server.databases import mem_events
@@ -29,6 +32,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 # pyformat: disable
 class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
                  mem_blobs.InMemoryDBBlobsMixin,
+                 mem_client_reports.InMemoryDBClientReportsMixin,
                  mem_clients.InMemoryDBClientMixin,
                  mem_cronjobs.InMemoryDBCronJobMixin,
                  mem_events.InMemoryDBEventMixin,
@@ -54,6 +58,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.clients = {}
     self.client_messages = {}
     self.client_message_leases = {}
+    self.client_stats = collections.defaultdict(dict)
     self.crash_history = {}
     self.cronjob_leases = {}
     self.cronjobs = {}
@@ -101,6 +106,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.api_audit_entries = []
     self.hunts = {}
     self.signed_binary_references = {}
+    self.client_graph_series = {}
 
   @utils.Synchronized
   def ClearTestDB(self):
@@ -129,3 +135,19 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
       to_time = rdfvalue.RDFDatetime().FromSecondsSinceEpoch(sys.maxsize)
 
     return (from_time, to_time)
+
+  def _DeepCopy(self, obj):
+    """Creates an object copy by serializing/deserializing it.
+
+    RDFStruct.Copy() doesn't deep-copy repeated fields which may lead to
+    hard to catch bugs.
+
+    Args:
+      obj: RDFValue to be copied.
+
+    Returns:
+      A deep copy of the passed RDFValue.
+    """
+    precondition.AssertType(obj, rdfvalue.RDFValue)
+
+    return obj.__class__.FromSerializedString(obj.SerializeToString())

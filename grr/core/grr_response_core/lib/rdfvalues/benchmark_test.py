@@ -5,8 +5,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 from future.utils import iteritems
+from typing import Text
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import type_info
@@ -225,14 +226,14 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
       new_s.ParseFromString(data)
 
       self.assertEqual(new_s.session_id, "session")
-      self.assertEqual(new_s.session_id.__class__, unicode)
+      self.assertIsInstance(new_s.session_id, Text)
 
     def RDFStructDecode():
       new_s = StructGrrMessage()
       new_s.ParseFromString(data)
 
       self.assertEqual(new_s.session_id, "session")
-      self.assertEqual(new_s.session_id.__class__, unicode)
+      self.assertIsInstance(new_s.session_id, Text)
 
     self.TimeIt(RDFStructDecode)
     self.TimeIt(ProtoDecode)
@@ -253,14 +254,14 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
       new_s.ParseFromString(data)
 
       self.assertEqual(new_s.username, "user")
-      self.assertEqual(new_s.username.__class__, unicode)
+      self.assertIsInstance(new_s.username, Text)
 
     def RDFStructDecode():
       new_s = rdf_client.User()
       new_s.ParseFromString(data)
 
       self.assertEqual(new_s.username, "user")
-      self.assertEqual(new_s.username.__class__, unicode)
+      self.assertIsInstance(new_s.username, Text)
 
     self.TimeIt(RDFStructDecode)
     self.TimeIt(ProtoDecode)

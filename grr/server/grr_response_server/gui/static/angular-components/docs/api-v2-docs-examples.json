@@ -1961,93 +1961,93 @@
       "response": {
         "completePoints": [
           {
-            "xValue": 0.0,
+            "xValue": 44.0,
             "yValue": 0.0
           },
           {
-            "xValue": 0.00027777778450399637,
+            "xValue": 45.0,
             "yValue": 1.0
           },
           {
-            "xValue": 0.0030555555131286383,
+            "xValue": 55.0,
             "yValue": 2.0
           },
           {
-            "xValue": 0.005833333358168602,
+            "xValue": 65.0,
             "yValue": 3.0
           },
           {
-            "xValue": 0.008611110970377922,
+            "xValue": 75.0,
             "yValue": 4.0
           },
           {
-            "xValue": 0.011388888582587242,
+            "xValue": 85.0,
             "yValue": 5.0
           },
           {
-            "xValue": 0.014166667126119137,
+            "xValue": 95.0,
             "yValue": 6.0
           },
           {
-            "xValue": 0.016944443807005882,
+            "xValue": 105.0,
             "yValue": 7.0
           },
           {
-            "xValue": 0.019722221419215202,
+            "xValue": 115.0,
             "yValue": 8.0
           },
           {
-            "xValue": 0.02250000089406967,
+            "xValue": 125.0,
             "yValue": 9.0
           },
           {
-            "xValue": 0.02527777850627899,
+            "xValue": 135.0,
             "yValue": 10.0
           }
         ],
         "startPoints": [
           {
-            "xValue": 0.0,
+            "xValue": 44.0,
             "yValue": 0.0
           },
           {
-            "xValue": 0.00027777778450399637,
+            "xValue": 45.0,
             "yValue": 1.0
           },
           {
-            "xValue": 0.0030555555131286383,
+            "xValue": 55.0,
             "yValue": 2.0
           },
           {
-            "xValue": 0.005833333358168602,
+            "xValue": 65.0,
             "yValue": 3.0
           },
           {
-            "xValue": 0.008611110970377922,
+            "xValue": 75.0,
             "yValue": 4.0
           },
           {
-            "xValue": 0.011388888582587242,
+            "xValue": 85.0,
             "yValue": 5.0
           },
           {
-            "xValue": 0.014166667126119137,
+            "xValue": 95.0,
             "yValue": 6.0
           },
           {
-            "xValue": 0.016944443807005882,
+            "xValue": 105.0,
             "yValue": 7.0
           },
           {
-            "xValue": 0.019722221419215202,
+            "xValue": 115.0,
             "yValue": 8.0
           },
           {
-            "xValue": 0.02250000089406967,
+            "xValue": 125.0,
             "yValue": 9.0
           },
           {
-            "xValue": 0.02527777850627899,
+            "xValue": 135.0,
             "yValue": 10.0
           }
         ]
@@ -2061,45 +2061,37 @@
       "response": {
         "completePoints": [
           {
-            "xValue": 0.0,
-            "yValue": 0.0
-          },
-          {
-            "xValue": 0.006319444626569748,
+            "xValue": 66.75,
             "yValue": 3.0
           },
           {
-            "xValue": 0.012638889253139496,
+            "xValue": 89.5,
             "yValue": 5.0
           },
           {
-            "xValue": 0.018958333879709244,
+            "xValue": 112.25,
             "yValue": 7.0
           },
           {
-            "xValue": 0.02527777850627899,
+            "xValue": 135.0,
             "yValue": 10.0
           }
         ],
         "startPoints": [
           {
-            "xValue": 0.0,
-            "yValue": 0.0
-          },
-          {
-            "xValue": 0.006319444626569748,
+            "xValue": 66.75,
             "yValue": 3.0
           },
           {
-            "xValue": 0.012638889253139496,
+            "xValue": 89.5,
             "yValue": 5.0
           },
           {
-            "xValue": 0.018958333879709244,
+            "xValue": 112.25,
             "yValue": 7.0
           },
           {
-            "xValue": 0.02527777850627899,
+            "xValue": 135.0,
             "yValue": 10.0
           }
         ]
@@ -2113,93 +2105,93 @@
       "response": {
         "completePoints": [
           {
-            "xValue": 0.0,
+            "xValue": 44.0,
             "yValue": 0.0
           },
           {
-            "xValue": 0.00027777778450399637,
+            "xValue": 45.0,
             "yValue": 1.0
           },
           {
-            "xValue": 0.0030555555131286383,
+            "xValue": 55.0,
             "yValue": 2.0
           },
           {
-            "xValue": 0.005833333358168602,
+            "xValue": 65.0,
             "yValue": 3.0
           },
           {
-            "xValue": 0.008611110970377922,
+            "xValue": 75.0,
             "yValue": 4.0
           },
           {
-            "xValue": 0.011388888582587242,
+            "xValue": 85.0,
             "yValue": 5.0
           },
           {
-            "xValue": 0.014166667126119137,
+            "xValue": 95.0,
             "yValue": 6.0
           },
           {
-            "xValue": 0.016944443807005882,
+            "xValue": 105.0,
             "yValue": 7.0
           },
           {
-            "xValue": 0.019722221419215202,
+            "xValue": 115.0,
             "yValue": 8.0
           },
           {
-            "xValue": 0.02250000089406967,
+            "xValue": 125.0,
             "yValue": 9.0
           },
           {
-            "xValue": 0.02527777850627899,
+            "xValue": 135.0,
             "yValue": 10.0
           }
         ],
         "startPoints": [
           {
-            "xValue": 0.0,
+            "xValue": 44.0,
             "yValue": 0.0
           },
           {
-            "xValue": 0.00027777778450399637,
+            "xValue": 45.0,
             "yValue": 1.0
           },
           {
-            "xValue": 0.0030555555131286383,
+            "xValue": 55.0,
             "yValue": 2.0
           },
           {
-            "xValue": 0.005833333358168602,
+            "xValue": 65.0,
             "yValue": 3.0
           },
           {
-            "xValue": 0.008611110970377922,
+            "xValue": 75.0,
             "yValue": 4.0
           },
           {
-            "xValue": 0.011388888582587242,
+            "xValue": 85.0,
             "yValue": 5.0
           },
           {
-            "xValue": 0.014166667126119137,
+            "xValue": 95.0,
             "yValue": 6.0
           },
           {
-            "xValue": 0.016944443807005882,
+            "xValue": 105.0,
             "yValue": 7.0
           },
           {
-            "xValue": 0.019722221419215202,
+            "xValue": 115.0,
             "yValue": 8.0
           },
           {
-            "xValue": 0.02250000089406967,
+            "xValue": 125.0,
             "yValue": 9.0
           },
           {
-            "xValue": 0.02527777850627899,
+            "xValue": 135.0,
             "yValue": 10.0
           }
         ]
@@ -5874,7 +5866,7 @@
             },
             "crashMessage": "Client killed during transaction",
             "crashType": "Client Crash",
-            "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
+            "sessionId": "<some session id>",
             "timestamp": "45000000"
           }
         ],
@@ -5901,7 +5893,7 @@
             },
             "crashMessage": "Client killed during transaction",
             "crashType": "Client Crash",
-            "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
+            "sessionId": "<some session id>",
             "timestamp": "45000000"
           }
         ],
@@ -7100,7 +7092,7 @@
           {
             "docstring": "Sample gauge metric.",
             "metricType": "GAUGE",
-            "valueType": "STR",
+            "valueType": "FLOAT",
             "varname": "sample_gauge_value"
           }
         ]

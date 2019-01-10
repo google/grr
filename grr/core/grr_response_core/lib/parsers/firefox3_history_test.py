@@ -9,6 +9,8 @@ from __future__ import unicode_literals
 import datetime
 import os
 
+from future.builtins import str
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import firefox3_history
 from grr.test_lib import test_lib

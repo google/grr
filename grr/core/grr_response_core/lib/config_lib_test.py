@@ -11,6 +11,7 @@ import os
 import stat
 
 
+from future.builtins import str
 from past.builtins import long
 
 from grr_response_core import config
@@ -372,6 +373,57 @@ Platform:Windows:
     with utils.Stubber(conf, "Write", DontCall):
       conf.Persist("Section1.option1")
 
+  def testPersistDoesntOverwriteCustomOptions(self):
+    conf = config_lib.GrrConfigManager()
+    writeback_file = os.path.join(self.temp_dir, "writeback.yaml")
+    conf.SetWriteBack(writeback_file)
+
+    conf.DEFINE_string("Section.option", "Default Value", "Help")
+    conf.Set("Section.option", "custom")
+    conf.Write()
+
+    new_conf = config_lib.GrrConfigManager()
+    new_conf.DEFINE_string("Section.option", "Default Value", "Help")
+    new_config_file = os.path.join(self.temp_dir, "config.yaml")
+    new_conf.Initialize(filename=new_config_file)
+    new_conf.SetWriteBack(writeback_file)
+    new_conf.Write()
+
+    # At this point, the writeback file has a custom setting for
+    # "Section.option" but new_conf has nothing set.
+    with io.open(writeback_file) as fd:
+      self.assertEqual(fd.read(), "Section.option: custom\n")
+
+    # Calling persist does not change the custom value.
+    new_conf.Persist("Section.option")
+
+    with io.open(writeback_file) as fd:
+      self.assertEqual(fd.read(), "Section.option: custom\n")
+
+  def testFileFilters(self):
+    filename = os.path.join(self.temp_dir, "f.txt")
+    content = "testcontent"
+    with io.open(filename, "w") as fd:
+      fd.write(content)
+
+    conf = config_lib.GrrConfigManager()
+    conf.DEFINE_string("Valid.file", "%%(%s|file)" % filename, "test")
+    conf.DEFINE_string("Valid.optionalfile", "%%(%s|optionalfile)" % filename,
+                       "test")
+    conf.DEFINE_string("Invalid.file", "%(notafile|file)", "test")
+    conf.DEFINE_string("Invalid.optionalfile", "%(notafile|optionalfile)",
+                       "test")
+
+    conf.Initialize(data="")
+
+    self.assertEqual(conf["Valid.file"], content)
+    self.assertEqual(conf["Valid.optionalfile"], content)
+
+    with self.assertRaises(config_lib.FilterError):
+      conf["Invalid.file"]  # pylint: disable=pointless-statement
+
+    self.assertEqual(conf["Invalid.optionalfile"], "")
+
   def testErrorDetection(self):
     """Check that invalid config files are detected immediately."""
     test_conf = """
@@ -385,8 +437,8 @@ test = val2"""
 
     # This should raise since the config file is incorrect.
     errors = conf.Validate("Section1")
-    self.assertTrue(
-        "Invalid value val2 for Integer" in str(errors["Section1.test"]))
+    self.assertIn("Invalid value val2 for Integer",
+                  str(errors["Section1.test"]))
 
   def testCopyConfig(self):
     """Check we can copy a config and use it without affecting the old one."""
@@ -655,8 +707,7 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     conf.DEFINE_float("Section1.float", 0, "A float")
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: abc")
     errors = conf.Validate("Section1")
-    self.assertTrue(
-        "Invalid value abc for Float" in str(errors["Section1.float"]))
+    self.assertIn("Invalid value abc for Float", str(errors["Section1.float"]))
 
     self.assertRaises(config_lib.ConfigFormatError, conf.Get, "Section1.float")
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: 2")
@@ -675,8 +726,7 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     errors = conf.Validate("Section1")
 
     # Floats can not be coerced to an int because that will lose data.
-    self.assertTrue(
-        "Invalid value 2.0 for Integer" in str(errors["Section1.int"]))
+    self.assertIn("Invalid value 2.0 for Integer", str(errors["Section1.int"]))
 
     # A string can be coerced to an int if it makes sense:
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: '2'")
@@ -901,10 +951,10 @@ Test3 Context:
     conf.DEFINE_context("Test3 Context")
     conf.Initialize(parser=config_lib.YamlParser, data=context)
     conf.AddContext("Test1 Context")
-    result_map = [(("linux", "amd64", "deb"), True), (("linux", "i386", "deb"),
-                                                      True),
-                  (("windows", "amd64", "exe"), True), (("windows", "i386",
-                                                         "exe"), False)]
+    result_map = [(("linux", "amd64", "deb"), True),
+                  (("linux", "i386", "deb"), True),
+                  (("windows", "amd64", "exe"), True),
+                  (("windows", "i386", "exe"), False)]
     for result in result_map:
       self.assertEqual(conf.MatchBuildContext(*result[0]), result[1])
 
@@ -931,7 +981,7 @@ Test1 Context:
     config_file = os.path.join(self.temp_dir, "writeback.yaml")
     conf.SetWriteBack(config_file)
     conf.DEFINE_string("NewSection1.new_option1", u"Default Value", "Help")
-    conf.Set(unicode("NewSection1.new_option1"), u"New Value1")
+    conf.Set(str("NewSection1.new_option1"), u"New Value1")
     conf.Write()
 
     data = open(config_file).read()

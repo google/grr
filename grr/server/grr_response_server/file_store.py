@@ -47,7 +47,7 @@ class ExternalFileStore(with_metaclass(abc.ABCMeta, object)):
   """Filestore for files collected from clients."""
 
   @abc.abstractmethod
-  def AddFile(self, file_hash, blob_refs):
+  def AddFile(self, client_path, file_hash, blob_refs):
     """Add a new file to the file store."""
     raise NotImplementedError()
 
@@ -67,9 +67,9 @@ class CompositeExternalFileStore(ExternalFileStore):
 
     self.nested_stores.append(fs)
 
-  def AddFile(self, file_hash, blob_refs):
+  def AddFile(self, client_path, file_hash, blob_refs):
     for fs in self.nested_stores:
-      fs.AddFile(file_hash, blob_refs)
+      fs.AddFile(client_path, file_hash, blob_refs)
 
 
 EXTERNAL_FILE_STORE = CompositeExternalFileStore()
@@ -179,7 +179,7 @@ class BlobStream(object):
 _BLOBS_READ_BATCH_SIZE = 200
 
 
-def AddFileWithUnknownHash(blob_ids):
+def AddFileWithUnknownHash(client_path, blob_ids):
   """Add a new file consisting of given blob IDs."""
 
   blob_refs = []
@@ -206,6 +206,8 @@ def AddFileWithUnknownHash(blob_ids):
 
   hash_id = rdf_objects.SHA256HashID.FromBytes(sha256.digest())
   data_store.REL_DB.WriteHashBlobReferences({hash_id: blob_refs})
+
+  EXTERNAL_FILE_STORE.AddFile(client_path, hash_id, blob_refs)
 
   return hash_id
 

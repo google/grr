@@ -2,9 +2,11 @@
 """Client fixture-related test classes."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 
 from future.utils import iteritems
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -19,6 +21,7 @@ from grr_response_server import client_fixture
 from grr_response_server import client_index
 from grr_response_server import data_migration
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
@@ -96,13 +99,12 @@ class LegacyClientFixture(object):
 
         for attribute_name, value in iteritems(attributes):
           attribute = aff4.Attribute.PREDICATES[attribute_name]
-          if isinstance(value, (str, unicode)):
+          if isinstance(value, (bytes, Text)):
             # Interpolate the value
             value %= self.args
 
           # Is this supposed to be an RDFValue array?
-          if aff4.issubclass(attribute.attribute_type,
-                             rdf_protodict.RDFValueArray):
+          if issubclass(attribute.attribute_type, rdf_protodict.RDFValueArray):
             rdfvalue_object = attribute()
             for item in value:
               new_object = rdfvalue_object.rdf_type.FromTextFormat(
@@ -110,14 +112,13 @@ class LegacyClientFixture(object):
               rdfvalue_object.Append(new_object)
 
           # It is a text serialized protobuf.
-          elif aff4.issubclass(attribute.attribute_type,
-                               rdf_structs.RDFProtoStruct):
+          elif issubclass(attribute.attribute_type, rdf_structs.RDFProtoStruct):
             # Use the alternate constructor - we always write protobufs in
             # textual form:
             rdfvalue_object = attribute.attribute_type.FromTextFormat(
                 utils.SmartStr(value))
 
-          elif aff4.issubclass(attribute.attribute_type, rdfvalue.RDFInteger):
+          elif issubclass(attribute.attribute_type, rdfvalue.RDFInteger):
             rdfvalue_object = attribute(int(value))
           else:
             rdfvalue_object = attribute(value)
@@ -149,7 +150,9 @@ class LegacyClientFixture(object):
             if path_info is not None:
               blob_id = rdf_objects.BlobID.FromBlobData(content)
               data_store.BLOBS.WriteBlobs({blob_id: content})
-              hash_id = file_store.AddFileWithUnknownHash([blob_id])
+              hash_id = file_store.AddFileWithUnknownHash(
+                  db.ClientPath.FromPathInfo(self.client_id.Basename(),
+                                             path_info), [blob_id])
               path_info.hash_entry.num_bytes = len(content)
               path_info.hash_entry.sha256 = hash_id.AsBytes()
           elif data_store.AFF4Enabled():

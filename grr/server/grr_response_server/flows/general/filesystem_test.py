@@ -40,6 +40,7 @@ from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
@@ -1153,6 +1154,43 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         self.assertLen(children, 2)
         for child in children:
           self.assertIsNone(child.stat_entry.st_mtime)
+
+  def testNotificationWhenListingRegistry(self):
+    # Change the username so notifications get written.
+    token = self.token.Copy()
+    token.username = "notification_test"
+    acl_test_lib.CreateUser(token.username)
+
+    with vfs_test_lib.RegistryVFSStubber():
+      client_id = self.SetupClient(0)
+      pb = rdf_paths.PathSpec(
+          path="/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest",
+          pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+
+      client_mock = action_mocks.ListDirectoryClientMock()
+
+      flow_test_lib.TestFlowHelper(
+          compatibility.GetName(filesystem.ListDirectory),
+          client_mock,
+          client_id=client_id,
+          pathspec=pb,
+          token=token)
+
+    if data_store.RelationalDBReadEnabled():
+      notifications = data_store.REL_DB.ReadUserNotifications(token.username)
+      self.assertLen(notifications, 1)
+      n = notifications[0]
+      self.assertEqual(n.reference.vfs_file.path_type,
+                       rdf_objects.PathInfo.PathType.REGISTRY)
+      self.assertEqual(n.reference.vfs_file.path_components,
+                       ["HKEY_LOCAL_MACHINE", "SOFTWARE", "ListingTest"])
+    else:
+      user = aff4.FACTORY.Open("aff4:/users/%s" % token.username, token=token)
+      notifications = user.Get(user.Schema.PENDING_NOTIFICATIONS)
+      self.assertLen(notifications, 1)
+      expected_urn = ("aff4:/C.1000000000000000/registry/"
+                      "HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest")
+      self.assertEqual(notifications[0].subject, expected_urn)
 
 
 class RelFlowsTestFilesystem(db_test_lib.RelationalDBEnabledMixin,

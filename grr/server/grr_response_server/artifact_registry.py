@@ -9,6 +9,7 @@ import os
 import threading
 
 
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 import yaml
@@ -562,7 +563,7 @@ def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
 
   if data_store.RelationalDBWriteEnabled():
     for artifact_name in to_delete:
-      data_store.REL_DB.DeleteArtifact(unicode(artifact_name))
+      data_store.REL_DB.DeleteArtifact(str(artifact_name))
 
   for artifact_value in to_delete:
     REGISTRY.UnregisterArtifact(artifact_value)

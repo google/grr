@@ -586,11 +586,6 @@ sys.test_code_ran_here = True
   def testGetClientStats(self):
     client_id = self.SetupClient(0)
 
-    # TODO(amoser): Fix this.
-    if not data_store.AFF4Enabled():
-      self.skipTest(
-          "Client stats storage not yet implemented for the relational db.")
-
     class ClientMock(action_mocks.ActionMock):
 
       def GetClientStats(self, _):
@@ -618,10 +613,18 @@ sys.test_code_ran_here = True
         token=self.token,
         client_id=client_id)
 
-    urn = client_id.Add("stats")
-    stats_fd = aff4.FACTORY.Create(
-        urn, aff4_stats.ClientStats, token=self.token, mode="rw")
-    sample = stats_fd.Get(stats_fd.Schema.STATS)
+    if data_store.RelationalDBReadEnabled("client_stats"):
+      samples = data_store.REL_DB.ReadClientStats(
+          client_id=client_id.Basename(),
+          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
+          max_timestamp=rdfvalue.RDFDatetime.Now())
+      self.assertNotEmpty(samples)
+      sample = samples[0]
+    else:
+      urn = client_id.Add("stats")
+      stats_fd = aff4.FACTORY.Create(
+          urn, aff4_stats.ClientStats, token=self.token, mode="rw")
+      sample = stats_fd.Get(stats_fd.Schema.STATS)
 
     # Samples are taken at the following timestamps and should be split into 2
     # bins as follows (sample_interval is 60000000):

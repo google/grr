@@ -12,6 +12,4 @@ def GetMetadata():
   return [
       stats_utils.CreateCounterMetadata("grr_client_received_bytes"),
       stats_utils.CreateCounterMetadata("grr_client_sent_bytes"),
-      stats_utils.CreateGaugeMetadata("grr_client_cpu_usage", str),
-      stats_utils.CreateGaugeMetadata("grr_client_io_usage", str)
   ]

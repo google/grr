@@ -2,14 +2,15 @@
 """Test utilities for RELDB-related testing."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import functools
 import sys
 
 import mock
 
+from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
-from grr_response_server import foreman_rules
 from grr.test_lib import test_lib
 
 
@@ -34,39 +35,16 @@ class RelationalDBEnabledMixin(object):
         data_store, "RelationalDBWriteEnabled", return_value=True)
     self._rel_db_write_enabled_patch.start()
 
-    self._foreman_patch = mock.patch.object(
-        foreman_rules, "RelationalDBReadEnabled", return_value=True)
-    self._foreman_patch.start()
-
-    # TODO(amoser): Remove once storing the foreman rules in the
-    # relational db works.
-    self._foreman_config_overrider = test_lib.ConfigOverrider(
-        {"Database.useForReads.foreman": True})
-    self._foreman_config_overrider.Start()
-
-    self._vfs_config_overrider = test_lib.ConfigOverrider({
-        "Database.useForReads.vfs": True,
-    })
-    self._vfs_config_overrider.Start()
-
-    self._artifacts_config_overrider = test_lib.ConfigOverrider({
-        "Database.useForReads.artifacts": True,
-    })
-    self._artifacts_config_overrider.Start()
-
-    self._signed_binaries_overrider = test_lib.ConfigOverrider({
-        "Database.useForReads.signed_binaries": True,
-    })
-    self._signed_binaries_overrider.Start()
-
     self._rel_db_flows_enabled_patch = mock.patch.object(
         data_store, "RelationalDBFlowsEnabled", return_value=True)
     self._rel_db_flows_enabled_patch.start()
 
-    self._filestore_config_overrider = test_lib.ConfigOverrider({
-        "Database.useForReads.filestore": True,
+    # grr_response_server/foreman.py uses this configuration option
+    # directly, so it has to be explicitly overridden.
+    self._config_overrider = test_lib.ConfigOverrider({
+        "Database.useForReads": True,
     })
-    self._filestore_config_overrider.Start()
+    self._config_overrider.Start()
 
     super(RelationalDBEnabledMixin, self).setUp()
 
@@ -76,15 +54,10 @@ class RelationalDBEnabledMixin(object):
 
     # TODO(amoser): Enable this, see comment above.
     # self._aff4_disabler.stop()
+    self._config_overrider.Stop()
     self._rel_db_flows_enabled_patch.stop()
     self._rel_db_read_enabled_patch.stop()
     self._rel_db_write_enabled_patch.stop()
-    self._foreman_patch.stop()
-    self._foreman_config_overrider.Stop()
-    self._vfs_config_overrider.Stop()
-    self._artifacts_config_overrider.Stop()
-    self._signed_binaries_overrider.Stop()
-    self._filestore_config_overrider.Stop()
 
 
 class StableRelationalDBEnabledMixin(object):
@@ -96,9 +69,10 @@ class StableRelationalDBEnabledMixin(object):
         "Database.useForReads": True,
         "Database.useForReads.foreman": True,
         "Database.useForReads.message_handlers": True,
-        "Database.useForReads.stats": True,
         "Database.useForReads.signed_binaries": True,
         "Database.useForReads.cronjobs": True,
+        "Database.useForReads.vfs": True,
+        "Database.useForReads.filestore": True,
     })
     self._config_overrider.Start()
 
@@ -113,23 +87,28 @@ class StableRelationalDBEnabledMixin(object):
 
 def DualDBTest(cls):
   """Decorator that creates an additional RELDB-enabled test class."""
-
   module = sys.modules[cls.__module__]
+  cls_name = compatibility.GetName(cls)
 
-  db_test_cls_name = cls.__name__ + "_RelationalDBEnabled"
-  db_test_cls = type(db_test_cls_name, (RelationalDBEnabledMixin, cls), {})
+  db_test_cls_name = "{}_RelationalDBEnabled".format(cls_name)
+  db_test_cls = compatibility.MakeType(
+      name=db_test_cls_name,
+      base_classes=(RelationalDBEnabledMixin, cls),
+      namespace={})
   setattr(module, db_test_cls_name, db_test_cls)
 
-  db_test_cls_name = cls.__name__ + "_StableRelationalDBEnabled"
-  db_test_cls = type(db_test_cls_name, (StableRelationalDBEnabledMixin, cls),
-                     {})
+  db_test_cls_name = "{}_StableRelationalDBEnabled".format(cls_name)
+  db_test_cls = compatibility.MakeType(
+      name=db_test_cls_name,
+      base_classes=(StableRelationalDBEnabledMixin, cls),
+      namespace={})
   setattr(module, db_test_cls_name, db_test_cls)
 
   return cls
 
 
 def LegacyDataStoreOnly(f):
-  """Decorator for tests that shouldn't run in RELDB-enabled environemnt."""
+  """Decorator for tests that shouldn't run in RELDB-enabled environment."""
 
   @functools.wraps(f)
   def NewFunction(self, *args, **kw):

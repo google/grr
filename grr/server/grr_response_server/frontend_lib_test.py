@@ -954,7 +954,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
           api_version=self.client_communication.api_version)
 
       return MakeResponse(200, response_comms.SerializeToString())
-    except communicator.UnknownClientCert:
+    except communicator.UnknownClientCertError:
       raise MakeHTTPException(406)
     except Exception as e:
       logging.info("Exception in mock urllib.request.Open: %s.", e)
@@ -1171,9 +1171,10 @@ class HTTPClientTests(test_lib.GRRBaseTest):
           # This converts encryption keys to a string so we can corrupt them.
           field_data = field_data.SerializeToString()
 
-        # TODO(hanuszczak): On Python 2.7.6 and lower `array.array` accepts only
-        # bytestrings as argument so the call below is necessary. Once support
-        # for old Python versions is dropped, this call should be removed.
+        # TODO: On Python 2.7.6 and lower `array.array` accepts
+        # only byte strings as argument so the call below is necessary. Once
+        # support for old Python versions is dropped, this call should be
+        # removed.
         modified_data = array.array(str("c"), field_data)
         offset = len(field_data) // 2
         char = field_data[offset]

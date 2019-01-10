@@ -11,7 +11,7 @@ from grr_response_core.lib import flags
 
 def ClientBuild():
   from grr_response_client import client_build
-  flags.StartMain(client_build.main)
+  client_build.Run()
 
 
 def Client():

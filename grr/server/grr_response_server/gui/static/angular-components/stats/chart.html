@@ -1,9 +1,15 @@
-<h3>{{ controller.errorMsg }}</h3>
+<grr-line-chart ng-if="typedData.value.representation_type.value == 'LINE_CHART'"
+                typed-data="typedData['value']['line_chart']">
+</grr-line-chart>
 
-<div class="hover" ng-style="{color: controller.hoverColor}">
-  {{controller.hoverText}}
-</div>
+<grr-comparison-chart ng-if="typedData.value.representation_type.value == 'PIE_CHART'"
+                      typed-data="typedData['value']['pie_chart']">
+</grr-comparison-chart>
 
-<div class="chart" ng-show="typedData.value.representation_type.value != 'AUDIT_CHART'"></div>
+<grr-comparison-chart ng-if="typedData.value.representation_type.value == 'STACK_CHART'"
+                      typed-data="typedData['value']['stack_chart']">
+</grr-comparison-chart>
+
 <grr-audit-chart ng-if="typedData.value.representation_type.value == 'AUDIT_CHART'"
-                 typed-data="typedData"></grr-audit-chart>
+                 typed-data="typedData">
+</grr-audit-chart>

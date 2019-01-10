@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
+
 import mock
 
 from grr_response_core.lib import flags
@@ -93,8 +95,8 @@ class ParentFlow(flow_base.FlowBase):
 
   def ParentReceiveHello(self, responses):
     responses = list(responses)
-    if (len(responses) != 2 or "Child" not in unicode(responses[0]) or
-        "Hello" not in unicode(responses[1])):
+    if (len(responses) != 2 or "Child" not in str(responses[0]) or
+        "Hello" not in str(responses[1])):
       raise RuntimeError("Messages not passed to parent")
 
     ParentFlow.success = True
@@ -159,12 +161,8 @@ class FlowCreationTest(BasicFlowTest):
 
   def testUnknownArg(self):
     """Check that flows reject unknown args."""
-    self.assertRaises(
-        type_info.UnknownArg,
-        flow.StartFlow,
-        client_id=self.client_id,
-        flow_cls=CallStateFlow,
-        foobar=1)
+    with self.assertRaises(type_info.UnknownArg):
+      flow.StartFlow(client_id=self.client_id, flow_cls=CallStateFlow, foobar=1)
 
   def testPendingFlowTermination(self):
     client_mock = ClientMock()
@@ -417,8 +415,8 @@ class FlowOutputPluginsTest(BasicFlowTest):
             plugin_name="DummyFlowOutputPlugin")
     ])
 
-    self.assertTrue(
-        "Plugin DummyFlowOutputPlugin successfully processed 1 flow replies." in
+    self.assertIn(
+        "Plugin DummyFlowOutputPlugin successfully processed 1 flow replies.",
         log_messages)
 
   def testFlowLogsFailedOutputPluginProcessing(self):
@@ -426,9 +424,9 @@ class FlowOutputPluginsTest(BasicFlowTest):
         rdf_output_plugin.OutputPluginDescriptor(
             plugin_name="FailingDummyFlowOutputPlugin")
     ])
-    self.assertTrue(
+    self.assertIn(
         "Plugin FailingDummyFlowOutputPlugin failed to process 1 replies "
-        "due to: Oh no!" in log_messages)
+        "due to: Oh no!", log_messages)
 
   def testFlowDoesNotFailWhenOutputPluginFails(self):
     flow_id = self.RunFlow(output_plugins=[

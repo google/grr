@@ -135,8 +135,7 @@ def EnumerateInterfacesFromClient(args):
     ifs.add(ifname)
     try:
       iffamily = ord(m.contents.ifa_addr[0])
-      # TODO(hanuszczak): There are some Python 3-incompatible `chr` usages
-      # here, they should be fixed.
+
       if iffamily == 0x2:  # AF_INET
         data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
         ip4 = bytes(list(data.contents.sin_addr))

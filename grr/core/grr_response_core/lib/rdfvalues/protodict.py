@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 """A generic serializer for python dictionaries."""
-
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import collections
 
 
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
+from future.utils import python_2_unicode_compatible
 from past.builtins import long
-from typing import cast, List, Union
+from typing import cast, List, Text, Union
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -80,7 +82,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
     Raises:
       TypeError: if the value can't be serialized and raise_on_error is True
     """
-    type_mappings = [(unicode, "string"), (str, "data"), (bool, "boolean"),
+    type_mappings = [(Text, "string"), (bytes, "data"), (bool, "boolean"),
                      (int, "integer"), (long, "integer"), (dict, "dict"),
                      (float, "float")]
 
@@ -167,6 +169,7 @@ class KeyValue(rdf_structs.RDFProtoStruct):
   ]
 
 
+@python_2_unicode_compatible
 class Dict(rdf_structs.RDFProtoStruct):
   """A high level interface for protobuf Dict objects.
 

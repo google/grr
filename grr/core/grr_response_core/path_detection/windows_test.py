@@ -187,7 +187,7 @@ class WindowsRegistryExecutablePathsDetectorTest(test_lib.GRRBaseTest):
   def testReplacesEnvironmentVariablesWithMultipleMappings(self):
     """Test it replaces environment variables with multiple mappings."""
 
-    # TODO(hanuszczak): Raw unicode literals in Python 2 are broken since they
+    # TODO: Raw unicode literals in Python 2 are broken since they
     # do not consider "\u" to be two characters ("\" and "u") but treat it is as
     # a unicode escape sequence. This behaviour is fixed in Python 3 so once the
     # codebase does not have to support Python 2 anymore, these escaped literals

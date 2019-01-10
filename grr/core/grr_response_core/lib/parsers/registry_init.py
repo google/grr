@@ -18,11 +18,9 @@ from grr_response_core.lib.parsers import linux_sysctl_parser
 from grr_response_core.lib.parsers import local
 from grr_response_core.lib.parsers import osx_file_parser
 from grr_response_core.lib.parsers import osx_launchd
-from grr_response_core.lib.parsers import rekall_artifact_parser
 from grr_response_core.lib.parsers import windows_persistence
 from grr_response_core.lib.parsers import windows_registry_parser
 from grr_response_core.lib.parsers import wmi_parser
-
 
 try:
   # TODO(hanuszczak): Why is it imported conditionally? Is it possible to avoid

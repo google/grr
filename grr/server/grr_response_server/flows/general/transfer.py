@@ -24,6 +24,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server import events
 from grr_response_server import file_store
 from grr_response_server import flow
@@ -33,7 +34,6 @@ from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore as legacy_filestore
-from grr_response_server.rdfvalues import file_store as rdf_file_store
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -185,7 +185,8 @@ class GetFileMixin(object):
                 for data, _ in self.state.blobs
             ]
 
-            hash_id = file_store.AddFileWithUnknownHash(blob_ids)
+            client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
+            hash_id = file_store.AddFileWithUnknownHash(client_path, blob_ids)
 
             path_info.hash_entry.sha256 = hash_id.AsBytes()
 
@@ -680,7 +681,7 @@ class MultiGetFileLogic(object):
       for file_tracker in hash_to_tracker.get(hash_id, []):
         stat_entry = file_tracker["stat_entry"]
         path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
-        path_info.hash_entry = hash_obj
+        path_info.hash_entry = file_tracker["hash_obj"]
         data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
         # Report this hit to the flow's caller.
@@ -846,7 +847,8 @@ class MultiGetFileLogic(object):
 
             hash_obj = file_tracker["hash_obj"]
 
-            hash_id = file_store.AddFileWithUnknownHash(blob_ids)
+            client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
+            hash_id = file_store.AddFileWithUnknownHash(client_path, blob_ids)
             # If the hash that we've calculated matches what we got from the
             # client, then simply store the full hash entry.
             # Otherwise store just the hash that we've calculated.
@@ -854,14 +856,6 @@ class MultiGetFileLogic(object):
               path_info.hash_entry = hash_obj
             else:
               path_info.hash_entry.sha256 = hash_id.AsBytes()
-
-            # Publish the add file event to cause the file to be added to the
-            # filestore.
-            events.Events.PublishEvent(
-                "FileStore.Add",
-                rdf_file_store.FileStoreAddEvent(
-                    hash_id=hash_id, blob_ids=blob_ids),
-                token=self.token)
 
           data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
@@ -966,28 +960,6 @@ class LegacyFileStoreCreateFile(events.EventListener):
           filestore_fd.AddFile(vfs_fd)
         except Exception as e:  # pylint: disable=broad-except
           logging.exception("Exception while adding file to filestore: %s", e)
-
-
-class FileStoreCreateFile(events.EventListener):
-  """Receive an event about a new file and add it to the file store.
-
-  The file store is a central place where files are managed in the data
-  store. Files are deduplicated and stored centrally.
-
-  This event listener will be fired when a new file is collected through
-  any of the file-collection flows (i.e. MultiGetFile).
-  """
-
-  EVENTS = ["FileStore.Add"]
-
-  def ProcessMessages(self, msgs=None, token=None):
-    """Process the new file and add to the file store."""
-
-    for event in msgs:
-      try:
-        file_store.EXTERNAL_FILE_STORE.AddFile(event.hash_id, event.blob_ids)
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception("Exception while adding file to filestore: %s", e)
 
 
 class GetMBRArgs(rdf_structs.RDFProtoStruct):

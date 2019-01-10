@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 
@@ -178,8 +180,7 @@ class MultiTypeCollection(object):
     with mutation_pool:
       mutation_pool.DeleteSubject(self.collection_id)
       for urn, _, _ in data_store.DB.ScanAttribute(
-          unicode(self.collection_id),
-          data_store.DataStore.COLLECTION_ATTRIBUTE):
+          str(self.collection_id), data_store.DataStore.COLLECTION_ATTRIBUTE):
         mutation_pool.DeleteSubject(rdfvalue.RDFURN(urn))
         if mutation_pool.Size() > 50000:
           mutation_pool.Flush()

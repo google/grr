@@ -14,12 +14,14 @@ import mock
 from grr_response_client.client_actions import admin
 from grr_response_core import config
 from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import events
+from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import discovery
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -184,7 +186,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(interfaces[0].addresses[0].human_readable, "100.100.100.1")
     self.assertEqual(
         socket.inet_ntop(socket.AF_INET,
-                         str(interfaces[0].addresses[0].packed_bytes)),
+                         interfaces[0].addresses[0].packed_bytes.AsBytes()),
         "100.100.100.1")
 
   def _CheckVFS(self, client_urn):
@@ -320,10 +322,26 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.token.username = "discovery_test_user"
     self.CreateUser(self.token.username)
 
+  def _SetupMinimalClient(self):
+    client_id = "C.0000000000000000"
+    client_urn = rdf_client.ClientURN("aff4:/C.0000000000000000")
+    if data_store.AFF4Enabled():
+      with aff4.FACTORY.Create(
+          client_urn,
+          aff4_type=aff4_grr.VFSGRRClient,
+          mode="w",
+          token=self.token):
+        pass
+
+    if data_store.RelationalDBWriteEnabled():
+      data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    return client_id, client_urn
+
   @parser_test_lib.WithAllParsers
   def testInterrogateCloudMetadataLinux(self):
     """Check google cloud metadata on linux."""
-    client_id = self.SetupClient(0, system="Linux")
+    client_id, client_urn = self._SetupMinimalClient()
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                    vfs_test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
@@ -342,16 +360,16 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
               client_id=client_id)
 
     if data_store.RelationalDBReadEnabled():
-      client = self._OpenClient(client_id.Basename())
+      client = self._OpenClient(client_id)
       self._CheckCloudMetadataRelational(client)
     else:
-      client = aff4.FACTORY.Open(client_id, token=self.token)
+      client = aff4.FACTORY.Open(client_urn, token=self.token)
       self._CheckCloudMetadataAFF4(client)
 
   @parser_test_lib.WithAllParsers
   def testInterrogateCloudMetadataWindows(self):
     """Check google cloud metadata on windows."""
-    client_id = self.SetupClient(0, system="Windows")
+    client_id, client_urn = self._SetupMinimalClient()
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
                                    vfs_test_lib.FakeRegistryVFSHandler):
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
@@ -367,17 +385,16 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
               client_id=client_id)
 
     if data_store.RelationalDBReadEnabled():
-      client = self._OpenClient(client_id.Basename())
+      client = self._OpenClient(client_id)
       self._CheckCloudMetadataRelational(client)
     else:
-      client = aff4.FACTORY.Open(client_id, token=self.token)
+      client = aff4.FACTORY.Open(client_urn, token=self.token)
       self._CheckCloudMetadataAFF4(client)
 
   @parser_test_lib.WithAllParsers
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
-    client_id = self.SetupClient(0, system="Linux")
-
+    client_id, client_urn = self._SetupMinimalClient()
     with vfs_test_lib.FakeTestDataVFSOverrider():
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
@@ -386,7 +403,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
           "Artifacts.netgroup_filter_regexes": [r"^login$"]
       }):
         client_mock = action_mocks.InterrogatedClient()
-        client_mock.InitializeClient(version="14.4")
+        client_mock.InitializeClient(version="14.4", release="Ubuntu")
 
         with test_lib.SuppressLogs():
           flow_test_lib.TestFlowHelper(
@@ -396,7 +413,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
               client_id=client_id)
 
     if data_store.RelationalDBReadEnabled():
-      client_id = client_id.Basename()
       client = self._OpenClient(client_id)
       self._CheckBasicInfoRelational(client, "test_node.test", "Linux",
                                      100 * 1000000)
@@ -424,13 +440,13 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
       self._CheckClientLibrariesRelational(client)
       self._CheckMemoryRelational(client)
     else:
-      client = aff4.FACTORY.Open(client_id, token=self.token)
+      client = aff4.FACTORY.Open(client_urn, token=self.token)
       self._CheckBasicInfoAFF4(client, "test_node.test", "Linux", 100 * 1000000)
       self._CheckClientInfoAFF4(client)
       self._CheckGRRConfigAFF4(client)
-      self._CheckNotificationsCreatedAFF4(self.token.username, client_id)
+      self._CheckNotificationsCreatedAFF4(self.token.username, client_urn)
       self._CheckClientSummary(
-          client_id,
+          client_urn,
           client.GetSummary(),
           "Linux",
           "14.4",
@@ -442,9 +458,9 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
       self._CheckUsersAFF4(client,
                            ["yagharek", "isaac", "user1", "user2", "user3"])
       self._CheckNetworkInfoAFF4(client)
-      self._CheckVFS(client_id)
+      self._CheckVFS(client_urn)
       self._CheckLabelsAFF4(client)
-      self._CheckLabelIndexAFF4(client_id, token=self.token)
+      self._CheckLabelIndexAFF4(client_urn, token=self.token)
       self._CheckClientKwIndexAFF4(["Linux"], 1)
       self._CheckClientKwIndexAFF4(["Label2"], 1)
       self._CheckClientLibrariesAFF4(client)
@@ -453,8 +469,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
   @parser_test_lib.WithAllParsers
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
-    client_id = self.SetupClient(0, system="Windows")
-
+    client_id, client_urn = self._SetupMinimalClient()
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
                                    vfs_test_lib.FakeRegistryVFSHandler):
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
@@ -472,7 +487,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
             client_id=client_id)
 
     if data_store.RelationalDBReadEnabled():
-      client_id = client_id.Basename()
       client = self._OpenClient(client_id)
       self._CheckBasicInfoRelational(client, "test_node.test", "Windows",
                                      100 * 1000000)
@@ -498,14 +512,14 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
       self._CheckClientKwIndexRelational(["Label2"], 1)
       self._CheckMemoryRelational(client)
     else:
-      client = aff4.FACTORY.Open(client_id, token=self.token)
+      client = aff4.FACTORY.Open(client_urn, token=self.token)
       self._CheckBasicInfoAFF4(client, "test_node.test", "Windows",
                                100 * 1000000)
       self._CheckClientInfoAFF4(client)
       self._CheckGRRConfigAFF4(client)
-      self._CheckNotificationsCreatedAFF4(self.token.username, client_id)
+      self._CheckNotificationsCreatedAFF4(self.token.username, client_urn)
       self._CheckClientSummary(
-          client_id,
+          client_urn,
           client.GetSummary(),
           "Windows",
           "6.1.7600",
@@ -513,11 +527,11 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
       # jim parsed from registry profile keys
       self._CheckUsersAFF4(client, ["jim", "kovacs"])
       self._CheckNetworkInfoAFF4(client)
-      self._CheckVFS(client_id)
+      self._CheckVFS(client_urn)
       self._CheckLabelsAFF4(client)
-      self._CheckLabelIndexAFF4(client_id, token=self.token)
+      self._CheckLabelIndexAFF4(client_urn, token=self.token)
       self._CheckWindowsDiskInfoAFF4(client)
-      self._CheckRegistryPathspecAFF4(client_id)
+      self._CheckRegistryPathspecAFF4(client_urn)
       self._CheckClientKwIndexAFF4(["Linux"], 0)
       self._CheckClientKwIndexAFF4(["Windows"], 1)
       self._CheckClientKwIndexAFF4(["Label2"], 1)

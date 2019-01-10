@@ -9,8 +9,9 @@ from __future__ import unicode_literals
 import hashlib
 import os
 
-from builtins import chr  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import chr
+from future.builtins import range
+from future.builtins import str
 from future.utils import iterkeys
 
 from grr_response_core import config

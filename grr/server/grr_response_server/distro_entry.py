@@ -21,7 +21,7 @@ def ApiShellRawAccess():
 
 def ConfigUpdater():
   from grr_response_server.bin import config_updater
-  flags.StartMain(config_updater.main)
+  config_updater.Run()
 
 
 def GrrServer():

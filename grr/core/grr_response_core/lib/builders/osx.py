@@ -14,7 +14,6 @@ import zipfile
 
 from grr_response_core import config
 from grr_response_core.lib import build
-from grr_response_core.lib import flags
 from grr_response_core.lib import package
 from grr_response_core.lib import utils
 
@@ -22,9 +21,10 @@ from grr_response_core.lib import utils
 class DarwinClientBuilder(build.ClientBuilder):
   """Builder class for the Mac OS X (Darwin) client."""
 
-  def __init__(self, context=None):
+  def __init__(self, context=None, fleetspeak_service_config=None):
     """Initialize the Mac OS X client builder."""
     super(DarwinClientBuilder, self).__init__(context=context)
+    self.fleetspeak_service_config = fleetspeak_service_config
     self.context.append("Target:Darwin")
 
   def MakeExecutableTemplate(self, output_file=None):
@@ -109,7 +109,7 @@ class DarwinClientBuilder(build.ClientBuilder):
 
   def InterpolateFiles(self):
     if self.fleetspeak_enabled:
-      shutil.copy(flags.FLAGS.fleetspeak_service_config,
+      shutil.copy(self.fleetspeak_service_config,
                   self.pkg_fleetspeak_service_dir)
       build_files_dir = package.ResourcePath(
           "grr-response-core", "install_data/macosx/client/fleetspeak")

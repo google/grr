@@ -33,9 +33,6 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
         stats_utils.CreateEventMetadata(
             "events_with_fields", fields=[("source", str)]),
         stats_utils.CreateGaugeMetadata("int_gauge", int),
-        stats_utils.CreateGaugeMetadata("str_gauge", str),
-        stats_utils.CreateGaugeMetadata(
-            "str_gauge_with_fields", str, fields=[("task", int)])
     ])
     fake_stats_context = stats_test_utils.FakeStatsContext(fake_stats_collector)
     fake_stats_context.start()

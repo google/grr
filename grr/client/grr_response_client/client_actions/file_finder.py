@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
 import psutil
 
 from grr_response_client import actions
@@ -164,7 +165,7 @@ def GetExpandedPaths(args):
       pathtype=pathtype)
 
   for path in args.paths:
-    for expanded_path in globbing.ExpandPath(unicode(path), opts):
+    for expanded_path in globbing.ExpandPath(str(path), opts):
       yield expanded_path
 
 

@@ -2,13 +2,14 @@
 """The MySQL database methods for flow handling."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import logging
 import threading
 import time
-
 import MySQLdb
+from typing import List, Optional, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -324,14 +325,35 @@ class MySQLDBFlowMixin(object):
     return self._FlowObjectFromRow(row)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadAllFlowObjects(self, client_id, min_create_time=None, cursor=None):
-    """Reads all flow objects from the database for a given client."""
-    query = "SELECT " + self.FLOW_DB_FIELDS + " FROM flows WHERE client_id=%s"
-    args = [mysql_utils.ClientIDToInt(client_id)]
+  def ReadAllFlowObjects(self,
+                         client_id = None,
+                         min_create_time = None,
+                         max_create_time = None,
+                         include_child_flows = True,
+                         cursor = None
+                        ):
+    """Returns all flow objects."""
+    conditions = []
+    args = []
+
+    if client_id is not None:
+      conditions.append("client_id = %s")
+      args.append(mysql_utils.ClientIDToInt(client_id))
 
     if min_create_time is not None:
-      query += " AND timestamp >= %s"
+      conditions.append("timestamp >= %s")
       args.append(mysql_utils.RDFDatetimeToMysqlString(min_create_time))
+
+    if max_create_time is not None:
+      conditions.append("timestamp <= %s")
+      args.append(mysql_utils.RDFDatetimeToMysqlString(max_create_time))
+
+    if not include_child_flows:
+      conditions.append("parent_flow_id IS NULL")
+
+    query = "SELECT {} FROM flows".format(self.FLOW_DB_FIELDS)
+    if conditions:
+      query += " WHERE " + " AND ".join(conditions)
 
     cursor.execute(query, args)
     return [self._FlowObjectFromRow(row) for row in cursor.fetchall()]
@@ -1114,7 +1136,7 @@ class MySQLDBFlowMixin(object):
       self.flow_processing_request_handler_thread = None
 
   @mysql_utils.WithTransaction()
-  def WriteFlowResults(self, client_id, flow_id, results, cursor=None):
+  def WriteFlowResults(self, results, cursor=None):
     """Writes flow results for a given flow."""
 
   @mysql_utils.WithTransaction()
