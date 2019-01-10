@@ -17,13 +17,10 @@ import ipaddr
 import portpicker
 import requests
 
-from google.protobuf import json_format
-
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
@@ -36,7 +33,6 @@ from grr_response_server.flows.general import file_finder
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
 
@@ -48,12 +44,6 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
   @classmethod
   def setUpClass(cls):
     super(GRRHTTPServerTest, cls).setUpClass()
-
-    cls.config_overrider = test_lib.ConfigOverrider({
-        "Rekall.profile_server":
-            rekall_test_lib.TestRekallRepositoryProfileServer.__name__,
-    })
-    cls.config_overrider.Start()
 
     # Bring up a local server for testing.
     port = portpicker.pick_unused_port()
@@ -75,7 +65,6 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
 
   @classmethod
   def tearDownClass(cls):
-    cls.config_overrider.Stop()
     cls.httpd.Shutdown()
     cls.httpd_thread.join()
 
@@ -278,37 +267,6 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         self.assertIsInstance(filestore_fd, aff4_grr.VFSBlobImage)
         # No STAT object attached.
         self.assertFalse(filestore_fd.Get(filestore_fd.Schema.STAT))
-
-  def testRekallProfiles(self):
-    session = requests.Session()
-    req = session.get(self.base_url + "rekall_profiles")
-    self.assertEqual(req.status_code, 500)
-
-    req = session.get(self.base_url + "rekall_profiles/v1.0")
-    self.assertEqual(req.status_code, 500)
-    req.connection.close()
-
-    known_profile = "F8E2A8B5C9B74BF4A6E4A48F180099942"
-    unknown_profile = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-
-    req = session.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
-                      unknown_profile)
-    self.assertEqual(req.status_code, 404)
-    req.connection.close()
-
-    req = session.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
-                      known_profile)
-    self.assertEqual(req.status_code, 200)
-    data = req.content
-    req.connection.close()
-
-    pb = rdf_rekall_types.RekallProfile.protobuf()
-    json_format.Parse(data.lstrip(")]}'\n"), pb)
-    profile = rdf_rekall_types.RekallProfile.FromSerializedString(
-        pb.SerializeToString())
-    self.assertEqual(profile.name, "nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942")
-    self.assertEqual(profile.version, "v1.0")
-    self.assertEqual(profile.data[:2], b"\x1f\x8b")
 
 
 def main(args):

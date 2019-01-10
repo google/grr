@@ -117,18 +117,6 @@ def CloseKey(key):
 
 def QueryInfoKey(key):
   """This calls the Windows RegQueryInfoKey function in a Unicode safe way."""
-  # Rekall uses exactly the same code to make registry calls. This is a problem
-  # because python validates the FileTime object when it is passed at call time.
-  # So if the advapi32.RegQueryInfoKeyW.argtypes currently has the argument
-  # defined as a rekall.plugins.response.registry.FileTime object instead of the
-  # GRR version it will raise with "expected LP_FileTime instance instead of
-  # pointer to FileTime". To avoid this we use getitem to access the methods we
-  # want since this seems to get us a new function pointer each time instead of
-  # using the one modified by rekall. Since this may not be reliable long-term
-  # we also set the argtypes just before we use them, which leaves a tiny
-  # possibility of a race but should be safe for practical purposes.
-  # TODO(user): a better approach may be to move rekall and GRR to share
-  # https://github.com/DanielStutzbach/winreg_unicode
   regqueryinfokey = advapi32["RegQueryInfoKeyW"]
   regqueryinfokey.restype = ctypes.c_long
   regqueryinfokey.argtypes = [
@@ -286,24 +274,17 @@ class RegistryFile(vfs.VFSHandler):
 
   # Maps the registry types to protobuf enums
   registry_map = {
-      _winreg.REG_NONE:
-          rdf_client_fs.StatEntry.RegistryType.REG_NONE,
-      _winreg.REG_SZ:
-          rdf_client_fs.StatEntry.RegistryType.REG_SZ,
-      _winreg.REG_EXPAND_SZ:
-          rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ,
-      _winreg.REG_BINARY:
-          rdf_client_fs.StatEntry.RegistryType.REG_BINARY,
-      _winreg.REG_DWORD:
-          rdf_client_fs.StatEntry.RegistryType.REG_DWORD,
+      _winreg.REG_NONE: rdf_client_fs.StatEntry.RegistryType.REG_NONE,
+      _winreg.REG_SZ: rdf_client_fs.StatEntry.RegistryType.REG_SZ,
+      _winreg.REG_EXPAND_SZ: rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ,
+      _winreg.REG_BINARY: rdf_client_fs.StatEntry.RegistryType.REG_BINARY,
+      _winreg.REG_DWORD: rdf_client_fs.StatEntry.RegistryType.REG_DWORD,
       _winreg.REG_DWORD_LITTLE_ENDIAN: (
           rdf_client_fs.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN),
       _winreg.REG_DWORD_BIG_ENDIAN: (
           rdf_client_fs.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN),
-      _winreg.REG_LINK:
-          rdf_client_fs.StatEntry.RegistryType.REG_LINK,
-      _winreg.REG_MULTI_SZ:
-          rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ,
+      _winreg.REG_LINK: rdf_client_fs.StatEntry.RegistryType.REG_LINK,
+      _winreg.REG_MULTI_SZ: rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ,
   }
 
   def __init__(self, base_fd, pathspec=None, progress_callback=None):

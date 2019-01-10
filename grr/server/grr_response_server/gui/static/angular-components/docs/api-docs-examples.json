@@ -2177,11 +2177,11 @@
         "data_points": [
           [
             10000.0,
-            10
+            10.0
           ],
           [
             20000.0,
-            12
+            12.0
           ]
         ]
       },
@@ -6848,93 +6848,93 @@
       "response": {
         "complete_points": [
           {
-            "x_value": 0.0,
+            "x_value": 44,
             "y_value": 0
           },
           {
-            "x_value": 0.0002777777777777778,
+            "x_value": 45,
             "y_value": 1
           },
           {
-            "x_value": 0.0030555555555555557,
+            "x_value": 55,
             "y_value": 2
           },
           {
-            "x_value": 0.005833333333333334,
+            "x_value": 65,
             "y_value": 3
           },
           {
-            "x_value": 0.008611111111111111,
+            "x_value": 75,
             "y_value": 4
           },
           {
-            "x_value": 0.01138888888888889,
+            "x_value": 85,
             "y_value": 5
           },
           {
-            "x_value": 0.014166666666666666,
+            "x_value": 95,
             "y_value": 6
           },
           {
-            "x_value": 0.016944444444444446,
+            "x_value": 105,
             "y_value": 7
           },
           {
-            "x_value": 0.01972222222222222,
+            "x_value": 115,
             "y_value": 8
           },
           {
-            "x_value": 0.0225,
+            "x_value": 125,
             "y_value": 9
           },
           {
-            "x_value": 0.025277777777777777,
+            "x_value": 135,
             "y_value": 10
           }
         ],
         "start_points": [
           {
-            "x_value": 0.0,
+            "x_value": 44,
             "y_value": 0
           },
           {
-            "x_value": 0.0002777777777777778,
+            "x_value": 45,
             "y_value": 1
           },
           {
-            "x_value": 0.0030555555555555557,
+            "x_value": 55,
             "y_value": 2
           },
           {
-            "x_value": 0.005833333333333334,
+            "x_value": 65,
             "y_value": 3
           },
           {
-            "x_value": 0.008611111111111111,
+            "x_value": 75,
             "y_value": 4
           },
           {
-            "x_value": 0.01138888888888889,
+            "x_value": 85,
             "y_value": 5
           },
           {
-            "x_value": 0.014166666666666666,
+            "x_value": 95,
             "y_value": 6
           },
           {
-            "x_value": 0.016944444444444446,
+            "x_value": 105,
             "y_value": 7
           },
           {
-            "x_value": 0.01972222222222222,
+            "x_value": 115,
             "y_value": 8
           },
           {
-            "x_value": 0.0225,
+            "x_value": 125,
             "y_value": 9
           },
           {
-            "x_value": 0.025277777777777777,
+            "x_value": 135,
             "y_value": 10
           }
         ]
@@ -6948,45 +6948,37 @@
       "response": {
         "complete_points": [
           {
-            "x_value": 0,
-            "y_value": 0
-          },
-          {
-            "x_value": 0.006319444444444444,
+            "x_value": 66.75,
             "y_value": 3
           },
           {
-            "x_value": 0.012638888888888889,
+            "x_value": 89.5,
             "y_value": 5
           },
           {
-            "x_value": 0.018958333333333334,
+            "x_value": 112.25,
             "y_value": 7
           },
           {
-            "x_value": 0.025277777777777777,
+            "x_value": 135.0,
             "y_value": 10
           }
         ],
         "start_points": [
           {
-            "x_value": 0,
-            "y_value": 0
-          },
-          {
-            "x_value": 0.006319444444444444,
+            "x_value": 66.75,
             "y_value": 3
           },
           {
-            "x_value": 0.012638888888888889,
+            "x_value": 89.5,
             "y_value": 5
           },
           {
-            "x_value": 0.018958333333333334,
+            "x_value": 112.25,
             "y_value": 7
           },
           {
-            "x_value": 0.025277777777777777,
+            "x_value": 135.0,
             "y_value": 10
           }
         ]
@@ -7000,93 +6992,93 @@
       "response": {
         "complete_points": [
           {
-            "x_value": 0.0,
+            "x_value": 44,
             "y_value": 0
           },
           {
-            "x_value": 0.0002777777777777778,
+            "x_value": 45,
             "y_value": 1
           },
           {
-            "x_value": 0.0030555555555555557,
+            "x_value": 55,
             "y_value": 2
           },
           {
-            "x_value": 0.005833333333333334,
+            "x_value": 65,
             "y_value": 3
           },
           {
-            "x_value": 0.008611111111111111,
+            "x_value": 75,
             "y_value": 4
           },
           {
-            "x_value": 0.01138888888888889,
+            "x_value": 85,
             "y_value": 5
           },
           {
-            "x_value": 0.014166666666666666,
+            "x_value": 95,
             "y_value": 6
           },
           {
-            "x_value": 0.016944444444444446,
+            "x_value": 105,
             "y_value": 7
           },
           {
-            "x_value": 0.01972222222222222,
+            "x_value": 115,
             "y_value": 8
           },
           {
-            "x_value": 0.0225,
+            "x_value": 125,
             "y_value": 9
           },
           {
-            "x_value": 0.025277777777777777,
+            "x_value": 135,
             "y_value": 10
           }
         ],
         "start_points": [
           {
-            "x_value": 0.0,
+            "x_value": 44,
             "y_value": 0
           },
           {
-            "x_value": 0.0002777777777777778,
+            "x_value": 45,
             "y_value": 1
           },
           {
-            "x_value": 0.0030555555555555557,
+            "x_value": 55,
             "y_value": 2
           },
           {
-            "x_value": 0.005833333333333334,
+            "x_value": 65,
             "y_value": 3
           },
           {
-            "x_value": 0.008611111111111111,
+            "x_value": 75,
             "y_value": 4
           },
           {
-            "x_value": 0.01138888888888889,
+            "x_value": 85,
             "y_value": 5
           },
           {
-            "x_value": 0.014166666666666666,
+            "x_value": 95,
             "y_value": 6
           },
           {
-            "x_value": 0.016944444444444446,
+            "x_value": 105,
             "y_value": 7
           },
           {
-            "x_value": 0.01972222222222222,
+            "x_value": 115,
             "y_value": 8
           },
           {
-            "x_value": 0.0225,
+            "x_value": 125,
             "y_value": 9
           },
           {
-            "x_value": 0.025277777777777777,
+            "x_value": 135,
             "y_value": 10
           }
         ]
@@ -14436,7 +14428,7 @@
               },
               "session_id": {
                 "type": "SessionID",
-                "value": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344"
+                "value": "<some session id>"
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -14463,7 +14455,7 @@
             },
             "crash_message": "Client killed during transaction",
             "crash_type": "Client Crash",
-            "session_id": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
+            "session_id": "<some session id>",
             "timestamp": 45000000
           }
         ],
@@ -14520,7 +14512,7 @@
               },
               "session_id": {
                 "type": "SessionID",
-                "value": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344"
+                "value": "<some session id>"
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -14547,7 +14539,7 @@
             },
             "crash_message": "Client killed during transaction",
             "crash_type": "Client Crash",
-            "session_id": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
+            "session_id": "<some session id>",
             "timestamp": 45000000
           }
         ],
@@ -15577,28 +15569,7 @@
                     "value": 0
                   },
                   "errors": [],
-                  "logs": [],
-                  "source_urn": {
-                    "type": "RDFURN",
-                    "value": "aff4:/C.1000000000000000/flows/W:ABCDEF/Results"
-                  },
-                  "token": {
-                    "type": "ACLToken",
-                    "value": {
-                      "expiry": {
-                        "type": "RDFDatetime",
-                        "value": 32409072000000000
-                      },
-                      "reason": {
-                        "type": "unicode",
-                        "value": "Running tests"
-                      },
-                      "username": {
-                        "type": "unicode",
-                        "value": "api_test_user"
-                      }
-                    }
-                  }
+                  "logs": []
                 }
               }
             }
@@ -15624,13 +15595,7 @@
               },
               "emails_sent": 0,
               "errors": [],
-              "logs": [],
-              "source_urn": "aff4:/C.1000000000000000/flows/W:ABCDEF/Results",
-              "token": {
-                "expiry": 32409072000000000,
-                "reason": "Running tests",
-                "username": "api_test_user"
-              }
+              "logs": []
             }
           }
         ]
@@ -18823,7 +18788,7 @@
               },
               "value_type": {
                 "type": "EnumNamedValue",
-                "value": "STR"
+                "value": "FLOAT"
               },
               "varname": {
                 "type": "unicode",
@@ -18855,7 +18820,7 @@
             "docstring": "Sample gauge metric.",
             "fields_defs": [],
             "metric_type": "GAUGE",
-            "value_type": "STR",
+            "value_type": "FLOAT",
             "varname": "sample_gauge_value"
           }
         ]

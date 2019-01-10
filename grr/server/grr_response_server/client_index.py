@@ -515,7 +515,7 @@ class ClientIndex(object):
     for label in labels:
       keyword_string = self._NormalizeKeyword(utils.SmartStr(label))
       keywords.add(keyword_string)
-      keywords.add("label:" + keyword_string)
+      keywords.add(b"label:" + keyword_string)
 
     data_store.REL_DB.AddClientKeywords(client_id, keywords)
 

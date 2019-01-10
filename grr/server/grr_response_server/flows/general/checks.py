@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from future.builtins import str
+
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -115,7 +117,7 @@ class CheckRunnerMixin(object):
     Args:
       responses: Input from previous states as an rdfvalue.Dict
     """
-    artifact_name = unicode(responses.request_data["artifact_name"])
+    artifact_name = str(responses.request_data["artifact_name"])
     # In some cases, artifacts may not find anything. We create an empty set of
     # host data so the checks still run.
     artifact_data = self.state.host_data.get(artifact_name, {})

@@ -1,12 +1,12 @@
 <div class="pull-right horizontally-padded">
-  <div class="btn-group" data-toggle="buttons">
+  <div class="btn-group">
     <label class="btn btn-default" name="ShowOutstandingClients"
-           ng-click="controller.clientType = 'outstanding'">
-      <input type="radio">Outstanding</input>
+           ng-model="controller.clientType" uib-btn-radio="'outstanding'">
+      Outstanding
     </label>
-    <label class="btn btn-default active" name="ShowCompletedClients"
-           ng-click="controller.clientType = 'completed'">
-      <input type="radio">Completed</input>
+    <label class="btn btn-default" name="ShowCompletedClients"
+           ng-model="controller.clientType" uib-btn-radio="'completed'">
+      Completed
     </label>
   </div>
 </div>

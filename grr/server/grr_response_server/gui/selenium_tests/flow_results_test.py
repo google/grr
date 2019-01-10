@@ -39,9 +39,10 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
         stderr=stderr.encode("utf-8"), stdout=stdout.encode("utf-8"))
 
     if data_store.RelationalDBFlowsEnabled():
-      data_store.REL_DB.WriteFlowResults(
-          self.client_id, flow_id,
-          [rdf_flow_objects.FlowResult(payload=response)])
+      data_store.REL_DB.WriteFlowResults([
+          rdf_flow_objects.FlowResult(
+              client_id=self.client_id, flow_id=flow_id, payload=response)
+      ])
     else:
       with data_store.DB.GetMutationPool() as pool:
         flow.GRRFlow.ResultCollectionForFID(

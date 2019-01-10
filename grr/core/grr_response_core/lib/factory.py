@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from future.utils import iterkeys
+from typing import Text
 
 from grr_response_core.lib.util import precondition
 
@@ -41,7 +42,7 @@ class Factory(object):
     Raises:
       ValueError: If there already is a constructor associated with given name.
     """
-    precondition.AssertType(name, unicode)
+    precondition.AssertType(name, Text)
 
     if name in self._constructors:
       message = "Duplicated constructors %r and %r for name '%s'"
@@ -59,7 +60,7 @@ class Factory(object):
     Raises:
       ValueError: If constructor with specified name has never been registered.
     """
-    precondition.AssertType(name, unicode)
+    precondition.AssertType(name, Text)
 
     try:
       del self._constructors[name]
@@ -75,7 +76,7 @@ class Factory(object):
     Returns:
       An instance of the type that the factory supports.
     """
-    precondition.AssertType(name, unicode)
+    precondition.AssertType(name, Text)
 
     try:
       constructor = self._constructors[name]

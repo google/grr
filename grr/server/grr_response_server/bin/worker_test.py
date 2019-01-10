@@ -646,8 +646,16 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     worker_obj.RunOnce()
     worker_obj.thread_pool.Join()
 
-    client = aff4.FACTORY.Open(client_id.Add("stats"), token=self.token)
-    stats = client.Get(client.Schema.STATS)
+    if data_store.RelationalDBReadEnabled("client_stats"):
+      results = data_store.REL_DB.ReadClientStats(
+          client_id=client_id.Basename(),
+          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
+          max_timestamp=rdfvalue.RDFDatetime.Now())
+      self.assertLen(results, 1)
+      stats = results[0]
+    else:
+      client = aff4.FACTORY.Open(client_id.Add("stats"), token=self.token)
+      stats = client.Get(client.Schema.STATS)
     self.assertEqual(stats.RSS_size, 1234)
 
     # Make sure no notifications have been sent.

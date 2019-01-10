@@ -8,10 +8,19 @@ grr-timeseries-graph {
   margin-bottom: 4em;
 
   .timeseries-graph {
-    width: 100%;
-    height: 300px;
-    padding: 0;
-    position: relative;
-    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 15px;
+    bottom: 0;
+  }
+
+  .timeseries-graph-legend {
+    position: absolute;
+    left: 6em;
+    top: 5px;
+    width: 20em;
+    background-color: $color-default-background;
+    font-size: 11px !important;
   }
 }

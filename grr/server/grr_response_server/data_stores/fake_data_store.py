@@ -10,8 +10,10 @@ import threading
 import time
 
 
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import string_types
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -172,8 +174,8 @@ class FakeDataStore(data_store.DataStore):
                      after_urn="",
                      max_records=None,
                      relaxed_order=False):
-    precondition.AssertType(subject_prefix, unicode)
-    precondition.AssertIterableType(attributes, unicode)
+    precondition.AssertType(subject_prefix, Text)
+    precondition.AssertIterableType(attributes, Text)
 
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
@@ -327,7 +329,7 @@ class FakeDataStore(data_store.DataStore):
           break
         # TODO(hanuszczak): After resolving the TODO comment above this call to
         # `unicode` should be redundant.
-        if unicode(attribute).startswith(prefix):
+        if str(attribute).startswith(prefix):
           for encoded_value, ts in values:
             results_list = results.setdefault(attribute, [])
             # If we are always after the latest ts we clear older ones.

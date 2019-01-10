@@ -11,6 +11,7 @@ describe('approver input', () => {
   let grrApiService;
 
   beforeEach(module('/static/angular-components/user/approver-input.html'));
+  beforeEach(module('/static/angular-components/core/typeahead-match.html'));
   beforeEach(module(userModule.name));
   beforeEach(module(testsModule.name));
 

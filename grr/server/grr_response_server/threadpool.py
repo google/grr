@@ -55,6 +55,10 @@ class Error(Exception):
   pass
 
 
+class ThreadPoolNotStartedError(Error):
+  """Raised when a task is added to a not-yet-started pool."""
+
+
 class DuplicateThreadpoolError(Error):
   """Raised when a thread pool with the same name already exists."""
 
@@ -215,7 +219,7 @@ class ThreadPool(object):
   JOIN_TIMEOUT_DECISECONDS = 600
 
   @classmethod
-  def Factory(cls, name, min_threads, max_threads=None, cpu_check=True):
+  def Factory(cls, name, min_threads, max_threads=None):
     """Creates a new thread pool with the given name.
 
     If the thread pool of this name already exist, we just return the existing
@@ -227,7 +231,6 @@ class ThreadPool(object):
       min_threads: The number of threads in the pool.
       max_threads: The maximum number of threads to grow the pool to. If not set
         we do not grow the pool.
-      cpu_check: If false, don't check CPU load when adding new threads.
 
     Returns:
       A threadpool instance.
@@ -236,11 +239,11 @@ class ThreadPool(object):
       result = cls.POOLS.get(name)
       if result is None:
         cls.POOLS[name] = result = cls(
-            name, min_threads, max_threads=max_threads, cpu_check=cpu_check)
+            name, min_threads, max_threads=max_threads)
 
       return result
 
-  def __init__(self, name, min_threads, max_threads=None, cpu_check=True):
+  def __init__(self, name, min_threads, max_threads=None):
     """This creates a new thread pool using min_threads workers.
 
     Args:
@@ -248,7 +251,6 @@ class ThreadPool(object):
       min_threads: The minimum number of worker threads this pool should have.
       max_threads: The maximum number of threads to grow the pool to. If not set
         we do not grow the pool.
-      cpu_check: If false, don't check CPU load when adding new threads.
 
     Raises:
       threading.ThreadError: If no threads can be spawned at all, ThreadError
@@ -261,7 +263,6 @@ class ThreadPool(object):
       max_threads = min_threads
 
     self.max_threads = max_threads
-    self.cpu_check = cpu_check
     self._queue = queue.Queue(maxsize=max_threads)
     self.name = name
     self.started = False
@@ -380,8 +381,12 @@ class ThreadPool(object):
         available again and therefore decrease efficiency.
 
     Raises:
-      Full() if the pool is full and can not accept new jobs.
+      ThreadPoolNotStartedError: if the pool was not started yet.
+      queue.Full: if the pool is full and can not accept new jobs.
     """
+    if not self.started:
+      raise ThreadPoolNotStartedError(self.name)
+
     # This pool should have no worker threads - just run the task inline.
     if self.max_threads == 0:
       target(*args)
@@ -392,6 +397,19 @@ class ThreadPool(object):
 
     with self.lock:
       while True:
+        # This check makes sure that the threadpool will add new workers
+        # even if the queue is not full. This is needed for a scenario when
+        # a fresh threadpool is created (say, with min_threads=1 and
+        # max_threads=10) and 2 long-running tasks are added. The code below
+        # will spawn a new worker for a second long-running task.
+        if len(self) < self.max_threads:
+          try:
+            self._AddWorker()
+          except (RuntimeError, threading.ThreadError) as e:
+            logging.error(
+                "Threadpool exception: "
+                "Could not spawn worker threads: %s", e)
+
         try:
           # Push the task on the queue but raise if unsuccessful.
           self._queue.put((target, args, name, time.time()), block=False)
@@ -401,15 +419,16 @@ class ThreadPool(object):
           # maximum _and_ our process CPU utilization is not too high. This
           # ensures that if the workers are waiting on IO we add more workers,
           # but we do not waste workers when tasks are CPU bound.
-          if len(self) < self.max_threads and self.CPUUsage() < 90:
+          if len(self) < self.max_threads:
             try:
               self._AddWorker()
               continue
 
             # If we fail to add a worker we should keep going anyway.
-            except (RuntimeError, threading.ThreadError):
-              logging.error("Threadpool exception: "
-                            "Could not spawn worker threads.")
+            except (RuntimeError, threading.ThreadError) as e:
+              logging.error(
+                  "Threadpool exception: "
+                  "Could not spawn worker threads: %s", e)
 
           # If we need to process the task inline just break out of the loop,
           # therefore releasing the lock and run the task inline.
@@ -434,17 +453,13 @@ class ThreadPool(object):
       target(*args)
 
   def CPUUsage(self):
-    if self.cpu_check:
-      # Do not block this call.
-      return self.process.cpu_percent(0)
-    else:
-      return 0
+    return self.process.cpu_percent(0)
 
   def Join(self):
     """Waits until all outstanding tasks are completed."""
 
     for _ in range(self.JOIN_TIMEOUT_DECISECONDS):
-      if self._queue.empty() and not self._queue.unfinished_tasks:
+      if self._queue.empty() and not self.busy_threads:
         return
       time.sleep(0.1)
 

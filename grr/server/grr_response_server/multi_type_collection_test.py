@@ -5,7 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.builtins import str
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -81,10 +82,10 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
             rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)))
 
         self.collection.Add(
-            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))),
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(str(i))),
             mutation_pool=self.pool)
         original_values.add(
-            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))))
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(str(i))))
 
     self.assertCountEqual([v.payload for v in original_values],
                           [v.payload for v in self.collection])
@@ -96,7 +97,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
             rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)),
             mutation_pool=self.pool)
         self.collection.Add(
-            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))),
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(str(i))),
             mutation_pool=self.pool)
 
     self.assertLen(self.collection, 200)
@@ -108,7 +109,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
             rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)),
             mutation_pool=self.pool)
         self.collection.Add(
-            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))),
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(str(i))),
             mutation_pool=self.pool)
 
     for index, (_, v) in enumerate(
@@ -117,7 +118,8 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
     for index, (_, v) in enumerate(
         self.collection.ScanByType(rdfvalue.RDFString.__name__)):
-      self.assertEqual(str(index), v.payload)
+      self.assertIsInstance(v.payload, rdfvalue.RDFString)
+      self.assertEqual(str(index), str(v.payload))
 
   def testLengthIsReportedCorrectlyForEveryType(self):
     with self.pool:
@@ -128,7 +130,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
       for i in range(101):
         self.collection.Add(
-            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(unicode(i))),
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(str(i))),
             mutation_pool=self.pool)
 
     self.assertEqual(99,

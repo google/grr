@@ -19,7 +19,6 @@ from grr_response_core.lib.parsers import linux_software_parser
 from grr_response_core.lib.parsers import linux_sysctl_parser
 from grr_response_core.lib.parsers import osx_file_parser
 from grr_response_core.lib.parsers import osx_launchd
-from grr_response_core.lib.parsers import rekall_artifact_parser
 from grr_response_core.lib.parsers import windows_persistence
 from grr_response_core.lib.parsers import windows_registry_parser
 from grr_response_core.lib.parsers import wmi_parser
@@ -107,12 +106,6 @@ def Register():
   parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
       "WindowsPersistenceMechanism",
       windows_persistence.WindowsPersistenceMechanismsParser)
-
-  # Rekall parsers.
-  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
-      "RekallPsList", rekall_artifact_parser.RekallPsListParser)
-  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
-      "RekallVad", rekall_artifact_parser.RekallVADParser)
 
   # Registry multi-parsers.
   parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(

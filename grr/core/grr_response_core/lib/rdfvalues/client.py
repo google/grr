@@ -16,10 +16,12 @@ import socket
 import struct
 
 
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import string_types
 from past.builtins import long
 import psutil
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -67,7 +69,7 @@ class ClientURN(rdfvalue.RDFURN):
     Args:
       value: string value to parse
     """
-    precondition.AssertType(value, unicode)
+    precondition.AssertType(value, Text)
     value = value.strip()
 
     super(ClientURN, self).ParseFromUnicode(value)
@@ -85,7 +87,7 @@ class ClientURN(rdfvalue.RDFURN):
   @classmethod
   def Validate(cls, value):
     if value:
-      return bool(cls.CLIENT_ID_RE.match(unicode(value)))
+      return bool(cls.CLIENT_ID_RE.match(str(value)))
 
     return False
 
@@ -617,9 +619,8 @@ class VersionString(rdfvalue.RDFString):
 
   @property
   def versions(self):
-    version = unicode(self)
     result = []
-    for x in version.split("."):
+    for x in str(self).split("."):
       try:
         result.append(int(x))
       except ValueError:

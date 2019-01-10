@@ -10,15 +10,17 @@ import copy
 import struct
 
 
-from builtins import chr  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import chr
+from future.builtins import range
+from future.builtins import str
+from future.builtins import zip
 from future.utils import iteritems
 from future.utils import itervalues
+from future.utils import python_2_unicode_compatible
 from future.utils import string_types
 from future.utils import with_metaclass
 from past.builtins import long
-from typing import cast, Type
+from typing import cast, Iterator, Text, Type
 
 # pylint: disable=g-import-not-at-top
 try:
@@ -29,13 +31,13 @@ except ImportError:
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
 
-from google.protobuf import descriptor_pb2
 from google.protobuf import text_format
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import proto2 as rdf_proto2
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_proto import semantic_pb2
 # pylint: disable=super-init-not-called
@@ -275,6 +277,7 @@ if _semantic:
 # pylint: enable=invalid-name
 
 
+@python_2_unicode_compatible
 class ProtoType(type_info.TypeInfoObject):
   """A specific type descriptor for protobuf fields.
 
@@ -425,6 +428,7 @@ class ProtoType(type_info.TypeInfoObject):
     return self.default
 
   def __str__(self):
+    # TODO: This fails for ProtoList.
     return "<Field %s (%s) of %s: field_number: %s>" % (
         self.name, self.__class__.__name__, self.owner.__name__,
         self.field_number)
@@ -455,29 +459,23 @@ class ProtoString(ProtoType):
 
   def Validate(self, value, **_):
     """Validates a python format representation of the value."""
-    # We only accept a base string, unicode object or RDFString here.
-    if not (value.__class__ is str or value.__class__ is unicode or
-            value.__class__ is rdfvalue.RDFString):
-      raise type_info.TypeValueError("%s not a valid string" % value)
+    if isinstance(value, rdfvalue.RDFString):
+      # TODO(hanuszczak): Use `str` here.
+      return Text(value)
 
-    if value.__class__ is unicode:
+    if isinstance(value, Text):
       return value
 
-    # A String means a unicode String. We must be dealing with unicode strings
-    # here and the input must be encodable as a unicode object.
-    try:
-      try:
-        return value.__unicode__()
-      except AttributeError:
-        return unicode(value, "utf8")
-    except UnicodeError:
-      raise type_info.TypeValueError("Not a valid unicode string")
+    if isinstance(value, bytes):
+      return value.decode("utf-8")
+
+    raise type_info.TypeValueError("Not a valid unicode string")
 
   def ConvertFromWireFormat(self, value, container=None):
     """Internally strings are utf8 encoded."""
     try:
-      return unicode(value[2], "utf8")
-    except UnicodeError:
+      return value[2].decode("utf8")
+    except UnicodeDecodeError:
       raise rdfvalue.DecodeError("Unicode decoding error")
 
   def ConvertToWireFormat(self, value):
@@ -676,6 +674,7 @@ class ProtoDouble(ProtoFixed64):
     return struct.unpack("<d", value[2])[0]
 
 
+@python_2_unicode_compatible
 class EnumNamedValue(rdfvalue.RDFInteger):
   """A class that wraps enums.
 
@@ -691,12 +690,12 @@ class EnumNamedValue(rdfvalue.RDFInteger):
     super(EnumNamedValue, self).__init__(initializer, age=age)
 
     if name is None:
-      name = unicode(initializer)
+      name = str(initializer)
     if labels is None:
       labels = []
 
-    precondition.AssertType(name, unicode)
-    precondition.AssertOptionalType(description, unicode)
+    precondition.AssertType(name, Text)
+    precondition.AssertOptionalType(description, Text)
     precondition.AssertIterableType(labels, int)
 
     self.name = name
@@ -707,9 +706,6 @@ class EnumNamedValue(rdfvalue.RDFInteger):
     return int(self) == other or self.name == other
 
   def __str__(self):
-    return self.name.encode("utf-8")
-
-  def __unicode__(self):
     return self.name
 
   def Copy(self):
@@ -1055,8 +1051,8 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
 
     # If one of the protobuf library wrapper classes is used, unwrap the value.
     if result.type_url.startswith("type.googleapis.com/google.protobuf."):
-      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[converted_value
-                                                   .data_store_type]
+      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
+          converted_value.data_store_type]
       wrapper_value = wrapper_cls()
       wrapper_value.ParseFromString(result.value)
       return converted_value.FromDatastoreValue(wrapper_value.value)
@@ -1086,8 +1082,8 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
       data = value.SerializeToString()
     # Is it a primitive value?
     elif hasattr(value.__class__, "data_store_type"):
-      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[value.__class__
-                                                   .data_store_type]
+      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
+          value.__class__.data_store_type]
       wrapped_data = wrapper_cls()
       wrapped_data.value = value.SerializeToDataStore()
 
@@ -1105,6 +1101,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
 
+@python_2_unicode_compatible
 class RepeatedFieldHelper(object):
   """A helper for the RDFProto to handle repeated fields.
 
@@ -1233,8 +1230,7 @@ class RepeatedFieldHelper(object):
     return True
 
   def __str__(self):
-    result = []
-    result.append("'%s': [" % self.type_descriptor.name)
+    result = ["'%s': [" % self.type_descriptor.name]
     for element in self:
       for line in self.type_descriptor.Format(element):
         result.append(" %s" % line)
@@ -1243,8 +1239,10 @@ class RepeatedFieldHelper(object):
 
     return "\n".join(result)
 
-  def __unicode__(self):
-    return utils.SmartUnicode(str(self))
+  def __repr__(self):
+    # Skip self.container and self.type_descriptor to avoid cyclical output.
+    return "<{} {!r}>".format(
+        compatibility.GetName(type(self)), self.wrapped_list)
 
   def Validate(self):
     for x in self:
@@ -1273,6 +1271,7 @@ class ProtoList(ProtoType):
   #  |  /   V        ))       V   \  |
   #  |/     `       //        '     \|
   #  `              V                '
+  # TODO
   set_default_on_access = True
 
   def __init__(self, delegate, labels=None, **kwargs):
@@ -1536,7 +1535,7 @@ class ProtoRDFValue(ProtoType):
 
   def Format(self, value):
     yield "%s:" % self.type.__name__
-    for line in unicode(value).splitlines():
+    for line in str(value).splitlines():
       yield "  %s" % line
 
   def __str__(self):
@@ -1577,6 +1576,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
     cls._class_attributes = set(dir(cls))  # pylint: disable=protected-access
 
 
+@python_2_unicode_compatible
 class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   """An RDFValue object which contains fields like a struct.
 
@@ -1797,9 +1797,6 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   def __str__(self):
     return "\n".join(self.Format())
 
-  def __unicode__(self):
-    return utils.SmartUnicode(str(self))
-
   def __dir__(self):
     """Add the virtualized fields to the console's tab completion."""
     return (dir(super(RDFStruct, self)) + [x.name for x in self.type_infos])
@@ -1991,12 +1988,12 @@ class RDFProtoStruct(RDFStruct):
       nested_value.FromDict(dictionary[dynamic_field.name])
       self.Set(dynamic_field.name, nested_value)
 
-  def ToPrimitiveDict(self, serialize_leaf_fields=False):
-    return self._ToPrimitive(self.AsDict(), serialize_leaf_fields)
+  def ToPrimitiveDict(self, stringify_leaf_fields=False):
+    return self._ToPrimitive(self.AsDict(), stringify_leaf_fields)
 
-  def _ToPrimitive(self, value, serialize_leaf_fields):
+  def _ToPrimitive(self, value, stringify_leaf_fields):
     if isinstance(value, RepeatedFieldHelper):
-      return list(self._ToPrimitive(v, serialize_leaf_fields) for v in value)
+      return list(self._ToPrimitive(v, stringify_leaf_fields) for v in value)
     # Hack to avoid dependency loop. Safe because if value is a protodict.Dict,
     # then protodict has already been loaded.
     # TODO(user): remove this hack
@@ -2006,22 +2003,22 @@ class RDFProtoStruct(RDFStruct):
       # TODO(user):pytype: get rid of a dependency loop described above and
       # do a proper type check.
       for k, v in iteritems(value.ToDict()):  # pytype: disable=attribute-error
-        primitive_dict[k] = self._ToPrimitive(v, serialize_leaf_fields)
+        primitive_dict[k] = self._ToPrimitive(v, stringify_leaf_fields)
       return primitive_dict
     elif isinstance(value, dict):
       primitive_dict = {}
       for k, v in iteritems(value):
-        primitive_dict[k] = self._ToPrimitive(v, serialize_leaf_fields)
+        primitive_dict[k] = self._ToPrimitive(v, stringify_leaf_fields)
       return primitive_dict
     elif isinstance(value, RDFProtoStruct):
-      return self._ToPrimitive(value.AsDict(), serialize_leaf_fields)
+      return self._ToPrimitive(value.AsDict(), stringify_leaf_fields)
     elif isinstance(value, (EnumNamedValue)):
       return str(value)
     elif isinstance(value, rdfvalue.RDFBytes):
       return base64.encodestring(value.SerializeToString())
     else:
-      if serialize_leaf_fields:
-        return utils.SmartStr(value)
+      if stringify_leaf_fields:
+        return str(value)
       else:
         return value
 
@@ -2037,161 +2034,6 @@ class RDFProtoStruct(RDFStruct):
 
     result += "}\n"
     return result
-
-  PRIMITIVE_TYPE_MAPPING = {
-      "string": descriptor_pb2.FieldDescriptorProto.TYPE_STRING,
-      "bytes": descriptor_pb2.FieldDescriptorProto.TYPE_BYTES,
-      "uint64": descriptor_pb2.FieldDescriptorProto.TYPE_UINT64,
-      "int64": descriptor_pb2.FieldDescriptorProto.TYPE_INT32,
-      "float": descriptor_pb2.FieldDescriptorProto.TYPE_FLOAT,
-      "double": descriptor_pb2.FieldDescriptorProto.TYPE_DOUBLE,
-      "bool": descriptor_pb2.FieldDescriptorProto.TYPE_BOOL
-  }
-
-  @classmethod
-  def EmitProtoFileDescriptor(cls, package_name):
-    file_descriptor = descriptor_pb2.FileDescriptorProto()
-    file_descriptor.name = cls.__name__.lower() + ".proto"
-    file_descriptor.package = package_name
-
-    descriptors = dict()
-
-    message_type = file_descriptor.message_type.add()
-    message_type.name = cls.__name__
-
-    for number, desc in sorted(iteritems(cls.type_infos_by_field_number)):
-      # Name 'metadata' is reserved to store ExportedMetadata value.
-      field = None
-      if isinstance(desc, ProtoEnum) and not isinstance(desc, ProtoBoolean):
-        field = message_type.field.add()
-        field.type = descriptor_pb2.FieldDescriptorProto.TYPE_ENUM
-        field.type_name = desc.enum_name
-
-        if desc.enum_name not in [x.name for x in message_type.enum_type]:
-          enum_type = message_type.enum_type.add()
-          enum_type.name = desc.enum_name
-          for key, value in iteritems(desc.enum):
-            enum_type_value = enum_type.value.add()
-            enum_type_value.name = key
-            enum_type_value.number = int(value)
-
-      elif isinstance(desc, ProtoEmbedded):
-        field = message_type.field.add()
-        field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
-
-        if hasattr(desc.type, "protobuf"):
-          field.type_name = "." + desc.type.protobuf.DESCRIPTOR.full_name
-          descriptors[field.type_name] = desc.type.protobuf.DESCRIPTOR
-
-          # Register import of a proto file containing embedded protobuf
-          # definition.
-          if (desc.type.protobuf.DESCRIPTOR.file.name not in file_descriptor
-              .dependency):
-            file_descriptor.dependency.append(
-                desc.type.protobuf.DESCRIPTOR.file.name)
-        else:
-          raise NotImplementedError("Can't emit proto descriptor for values "
-                                    "with nested non-protobuf-based values.")
-
-      elif isinstance(desc, ProtoDynamicAnyValueEmbedded):
-        field = message_type.field.add()
-        field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
-
-        field.type_name = any_pb2.Any.DESCRIPTOR.full_name
-        descriptors[field.type_name] = any_pb2.Any.DESCRIPTOR
-
-        if any_pb2.Any.DESCRIPTOR.file.name not in file_descriptor.dependency:
-          file_descriptor.dependency.append(any_pb2.Any.DESCRIPTOR.file.name)
-
-      elif isinstance(desc, ProtoList):
-        field = message_type.field.add()
-        field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
-
-        if hasattr(desc.type, "protobuf"):
-          field.type_name = "." + desc.type.protobuf.DESCRIPTOR.full_name
-        else:
-          raise NotImplementedError("Can't emit proto descriptor for values "
-                                    "with repeated non-protobuf-based values.")
-        field.label = descriptor_pb2.FieldDescriptorProto.LABEL_REPEATED
-      else:
-        field = message_type.field.add()
-        field.type = cls.PRIMITIVE_TYPE_MAPPING[desc.proto_type_name]
-
-      if field:
-        field.name = desc.name
-        field.number = number
-        if not field.HasField("label"):
-          field.label = descriptor_pb2.FieldDescriptorProto.LABEL_OPTIONAL
-
-    # Find all dependent files.
-    files = dict((d.file.name, d.file) for d in itervalues(descriptors))
-    while True:
-      dependency_added = False
-
-      for fd in list(itervalues(files)):
-        for fd_dep in fd.dependencies:
-          if fd_dep.name not in files:
-            files[fd_dep.name] = fd_dep
-            dependency_added = True
-
-      if not dependency_added:
-        break
-
-    # This is not particularly effective, but this code is executed once per
-    # generated protobuf type. I.e. it runs very rarely.
-    def BuildDeps(f):
-      deps = []
-      for d in f.dependencies:
-        deps.append(d.name)
-        deps.extend(BuildDeps(d))
-
-      return deps
-
-    deps_matrix = {}
-    for f in itervalues(files):
-      deps_matrix[f.name] = BuildDeps(f)
-
-    # Sort files by their dependencies (this is similar to sorting imports:
-    # things with no dependencies go first, then go things that depend on
-    # previous ones).
-    def CmpFiles(f1, f2):
-      if f1.name in deps_matrix[f2.name]:
-        return -1
-      elif f2.name in deps_matrix[f1.name]:
-        return 1
-      else:
-        return 0
-
-    sorted_deps = sorted(itervalues(files), cmp=CmpFiles)
-
-    # Add all dependent files to the pool.
-    dependencies = []
-    for fd in sorted_deps:
-      dependencies.append(cls._GetFileDescriptorProto(fd))
-
-    return file_descriptor, dependencies
-
-  @classmethod
-  def _GetFileDescriptorProto(cls, file_descriptor):
-    """Returns a FileDescriptorProto from a FileDescriptor object."""
-    fd_proto = descriptor_pb2.FileDescriptorProto()
-    file_descriptor.CopyToProto(fd_proto)
-
-    # Due to a bug in the protoc compiler, the serialized protobuf does not
-    # contain the correct file names. The python objects do though, so we need
-    # to correct the produced protobuf.
-
-    # TODO(hanuszczak): Python protobuf bindings check whether the argument is
-    # a string. The problem is that the comparison is against native `str` and
-    # that means `bytes` in Python 2. Curiously, `HasField` works with `unicode`
-    # objects just fine. Related GitHub issue:
-    # https://github.com/protocolbuffers/protobuf/issues/2277
-    fd_proto.ClearField(b"dependency")
-
-    for dep in file_descriptor.dependencies:
-      fd_proto.dependency.append(dep.name)
-
-    return fd_proto
 
   def Validate(self):
     """Validates the semantic protobuf for internal consistency.
@@ -2251,9 +2093,8 @@ class RDFProtoStruct(RDFStruct):
       # This is much faster than __setattr__/__getattr__
       setattr(
           cls, field_desc.name,
-          property(lambda self: self.Get(field_desc.name),
-                   lambda self, x: self._Set(x, field_desc), None,
-                   field_desc.description))
+          property(lambda self: self.Get(field_desc.name), lambda self, x: self.
+                   _Set(x, field_desc), None, field_desc.description))
 
   def UnionCast(self):
     union_field = getattr(self, self.union_field)

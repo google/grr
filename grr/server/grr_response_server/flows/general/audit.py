@@ -13,6 +13,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_server import aff4
@@ -84,4 +86,4 @@ def _CurrentAuditLog():
   # This gives us a filename that only changes every
   # AUDIT_ROLLOVER_TIfilME seconds, but is still a valid timestamp.
   current_log = (now_sec // rollover_seconds) * rollover_seconds
-  return _AuditLogBase().Add(unicode(current_log))
+  return _AuditLogBase().Add(str(current_log))

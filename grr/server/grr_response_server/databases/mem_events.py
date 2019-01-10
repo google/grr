@@ -14,7 +14,7 @@ class InMemoryDBEventMixin(object):
   @utils.Synchronized
   def ReadAPIAuditEntries(self,
                           username=None,
-                          router_method_name=None,
+                          router_method_names=None,
                           min_timestamp=None,
                           max_timestamp=None):
     """Returns audit entries stored in the database."""
@@ -24,8 +24,8 @@ class InMemoryDBEventMixin(object):
       if username is not None and entry.username != username:
         continue
 
-      if (router_method_name is not None and
-          entry.router_method_name != router_method_name):
+      if (router_method_names and
+          entry.router_method_name not in router_method_names):
         continue
 
       if min_timestamp is not None and entry.timestamp < min_timestamp:

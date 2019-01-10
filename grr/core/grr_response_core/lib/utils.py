@@ -31,15 +31,19 @@ import zipfile
 import zlib
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import map
+from future.builtins import range
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
+from future.utils import python_2_unicode_compatible
 import psutil
 import queue
 
 from typing import Any, Optional, Text
 
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
@@ -162,6 +166,7 @@ class Node(object):
 # TODO(user):pytype: self.next and self.prev are assigned to self but then
 # are used in AppendNode in a very different way. Should be redesigned.
 # pytype: disable=attribute-error
+@python_2_unicode_compatible
 class LinkedList(object):
   """A simple doubly linked list used for fast caches."""
 
@@ -215,13 +220,7 @@ class LinkedList(object):
     return self.size
 
   def __str__(self):
-    p = self.next
-    s = []
-    while p is not self:
-      s.append(str(p.data))
-      p = p.next
-
-    return "[" + ", ".join(s) + "]"
+    return "[" + ", ".join(map(str, self)) + "]"
 
   def Print(self):
     p = self.next
@@ -506,10 +505,10 @@ def SmartStr(string):
   Returns:
     an encoded string.
   """
-  if type(string) == unicode:  # pylint: disable=unidiomatic-typecheck
+  if type(string) == Text:  # pylint: disable=unidiomatic-typecheck
     return string.encode("utf8", "ignore")
 
-  return str(string)
+  return bytes(string)
 
 
 def SmartUnicode(string):
@@ -524,11 +523,11 @@ def SmartUnicode(string):
   Returns:
     a unicode object.
   """
-  if type(string) != unicode:  # pylint: disable=unidiomatic-typecheck
+  if not isinstance(string, Text):
     try:
       return string.__unicode__()  # pytype: disable=attribute-error
     except (AttributeError, UnicodeError):
-      return str(string).decode("utf8", "ignore")
+      return bytes(string).decode("utf8", "ignore")
 
   return string
 
@@ -541,7 +540,7 @@ def Xor(bytestr, key):
   # pytype: enable=import-error
   precondition.AssertType(bytestr, bytes)
 
-  # TODO(hanuszczak): This seemingly no-op operation actually changes things.
+  # TODO: This seemingly no-op operation actually changes things.
   # In Python 2 this function receives a `str` object which has different
   # iterator semantics. So we use a `bytes` wrapper from the `future` package to
   # get the Python 3 behaviour. In Python 3 this should be indeed a no-op. Once
@@ -567,10 +566,7 @@ def FormatAsTimestamp(timestamp):
   if not timestamp:
     return "-"
 
-  # TODO(hanuszczak): Remove these string conversion functions once support for
-  # Python 2 is dropped.
-  fmt = str("%Y-%m-%d %H:%M:%S")
-  return unicode(time.strftime(fmt, time.gmtime(timestamp)))
+  return compatibility.FormatTime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
 
 
 def NormalizePath(path, sep="/"):
@@ -1369,13 +1365,13 @@ class Stat(object):
     try:
       # This import is Linux-specific.
       import fcntl  # pylint: disable=g-import-not-at-top
-      # TODO(hanuszczak): On Python 2.7.6 `array.array` accepts only bytestrings
-      # as an argument. On Python 2.7.12 and 2.7.13 unicodes are supported as
-      # well. On Python 3, only unicode strings are supported. This is why, as
-      # a temporary hack, we wrap the literal with `str` call that will convert
-      # it to whatever is the default on given Python version. This should be
-      # changed to raw literal once support for Python 2 is dropped.
-      buf = array.array(str("l"), [0])
+      # TODO: On Python 2.7.6 `array.array` accepts only byte
+      # strings as an argument. On Python 2.7.12 and 2.7.13 unicodes are
+      # supported as well. On Python 3, only unicode strings are supported. This
+      # is why, as a temporary hack, we wrap the literal with `str` call that
+      # will convert it to whatever is the default on given Python version. This
+      # should be changed to raw literal once support for Python 2 is dropped.
+      buf = array.array(compatibility.NativeStr("l"), [0])
       # TODO(user):pytype: incorrect type spec for fcntl.ioctl
       # pytype: disable=wrong-arg-types
       fcntl.ioctl(fd, self.FS_IOC_GETFLAGS, buf)

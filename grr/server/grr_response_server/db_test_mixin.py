@@ -14,6 +14,7 @@ from future.utils import with_metaclass
 from grr_response_server import db
 from grr_response_server import db_artifacts_test
 from grr_response_server import db_blobs_test
+from grr_response_server import db_client_reports_test
 from grr_response_server import db_clients_test
 from grr_response_server import db_cronjob_test
 from grr_response_server import db_events_test
@@ -32,6 +33,7 @@ class DatabaseTestMixin(
         abc.ABCMeta,
         db_artifacts_test.DatabaseTestArtifactsMixin,
         db_blobs_test.DatabaseTestBlobsMixin,
+        db_client_reports_test.DatabaseTestClientReportsMixin,
         db_clients_test.DatabaseTestClientsMixin,
         db_cronjob_test.DatabaseTestCronJobMixin,
         db_events_test.DatabaseEventsTestMixin,

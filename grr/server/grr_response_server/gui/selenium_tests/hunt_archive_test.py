@@ -5,17 +5,18 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 import mock
 
 from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
+from grr_response_server import data_store
+from grr_response_server import file_store
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import export as flow_export
 from grr_response_server.gui import archive_generator
@@ -140,13 +141,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
   def testGenerateZipButtonGetsDisabledAfterClick(self):
-    stat_entry = rdf_client_fs.StatEntry(
-        pathspec=rdf_paths.PathSpec(
-            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
-    values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
-
-    hunt_urn = self.CreateGenericHuntWithCollection(values=values)
-    self.RequestAndGrantHuntApproval(hunt_urn.Basename())
+    hunt = self._CreateHuntWithDownloadedFile()
+    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -180,8 +176,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(archive_generator.Aff4CollectionArchiveGenerator,
-                       "Generate", RaisingStub):
+    with utils.Stubber(archive_generator.GetCompatClass(), "Generate",
+                       RaisingStub):
       self.Open("/")
       self.Click("css=a[grrtarget=hunts]")
       self.Click("css=td:contains('GenericHunt')")
@@ -201,8 +197,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
       yield b"bar"
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(archive_generator.Aff4CollectionArchiveGenerator,
-                       "Generate", RaisingStub):
+    with utils.Stubber(archive_generator.GetCompatClass(), "Generate",
+                       RaisingStub):
       self.Open("/")
       self.Click("css=a[grrtarget=hunts]")
       self.Click("css=td:contains('GenericHunt')")
@@ -280,8 +276,6 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testDownloadsSingleHuntFileIfAuthorizationIsPresent(self):
     hunt = self._CreateHuntWithDownloadedFile()
     results = hunt.ResultCollection()
-    fd = aff4.FACTORY.Open(
-        flow_export.CollectionItemToAff4Path(results[0]), token=self.token)
 
     self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
@@ -289,6 +283,13 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
+
+    if data_store.RelationalDBReadEnabled("filestore"):
+      fd = file_store.OpenFile(
+          flow_export.CollectionItemToClientPath(results[0]))
+    else:
+      fd = aff4.FACTORY.Open(
+          flow_export.CollectionItemToAff4Path(results[0]), token=self.token)
 
     with mock.patch.object(fd.__class__, "Read") as mock_obj:
       self.Click(
@@ -298,10 +299,16 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testDisplaysErrorMessageIfSingleHuntFileCanNotBeRead(self):
     hunt = self._CreateHuntWithDownloadedFile()
     results = hunt.ResultCollection()
-    aff4_path = flow_export.CollectionItemToAff4Path(results[0])
-    with aff4.FACTORY.Create(
-        aff4_path, aff4_type=aff4.AFF4Volume, token=self.token) as _:
-      pass
+    original_result = results[0]
+
+    with data_store.DB.GetMutationPool() as pool:
+      wrong_result = original_result.Copy()
+      payload = wrong_result.payload
+      payload.pathspec.path += "blah"
+      wrong_result.payload = payload
+      wrong_result.age += rdfvalue.Duration("1d")
+
+      results.Add(wrong_result, timestamp=wrong_result.age, mutation_pool=pool)
 
     self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
@@ -309,7 +316,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
-    self.Click("css=grr-results-collection button:has(span.glyphicon-download)")
+    self.Click(
+        "css=grr-results-collection button:has(span.glyphicon-download):last")
     self.WaitUntil(self.IsTextPresent, "Couldn't download the file.")
 
 

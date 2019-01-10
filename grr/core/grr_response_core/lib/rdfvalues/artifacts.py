@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import json
 
 
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import string_types
@@ -136,6 +137,9 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
           "required_attributes": ["cmd", "args"],
           "output_type": "ExecuteResponse"
       },
+      # Running Rekall plugins is deprecated, we keep the type alive so we are
+      # not surprised if an old artifact is encountered.
+      # TODO(amoser): Remove this.
       artifact_pb2.ArtifactSource.REKALL_PLUGIN: {
           "required_attributes": ["plugin"],
           "output_type": "RekallResponse"
@@ -262,50 +266,29 @@ class Artifact(rdf_structs.RDFProtoStruct):
   # Labels are used to logicaly group Artifacts for ease of use.
 
   ARTIFACT_LABELS = {
-      "Antivirus":
-          "Antivirus related artifacts, e.g. quarantine files.",
-      "Authentication":
-          "Authentication artifacts.",
-      "Browser":
-          "Web Browser artifacts.",
-      "Cloud":
-          "Cloud applications artifacts.",
-      "Cloud Storage":
-          "Cloud Storage artifacts.",
-      "Configuration Files":
-          "Configuration files artifacts.",
-      "Execution":
-          "Contain execution events.",
+      "Antivirus": "Antivirus related artifacts, e.g. quarantine files.",
+      "Authentication": "Authentication artifacts.",
+      "Browser": "Web Browser artifacts.",
+      "Cloud": "Cloud applications artifacts.",
+      "Cloud Storage": "Cloud Storage artifacts.",
+      "Configuration Files": "Configuration files artifacts.",
+      "Execution": "Contain execution events.",
       "ExternalAccount": ("Information about any users\' account, e.g."
                           " username, account ID, etc."),
-      "External Media":
-          "Contain external media data / events e.g. USB drives.",
-      "History Files":
-          "History files artifacts e.g. .bash_history.",
-      "IM":
-          "Instant Messaging / Chat applications artifacts.",
-      "iOS":
-          "Artifacts related to iOS devices connected to the system.",
-      "KnowledgeBase":
-          "Artifacts used in knowledgebase generation.",
-      "Logs":
-          "Contain log files.",
-      "Mail":
-          "Mail client applications artifacts.",
-      "Memory":
-          "Artifacts retrieved from Memory.",
-      "Network":
-          "Describe networking state.",
-      "Processes":
-          "Describe running processes.",
-      "Software":
-          "Installed software.",
-      "System":
-          "Core system artifacts.",
-      "Users":
-          "Information about users.",
-      "Rekall":
-          "Artifacts using the Rekall memory forensics framework.",
+      "External Media": "Contain external media data / events e.g. USB drives.",
+      "History Files": "History files artifacts e.g. .bash_history.",
+      "IM": "Instant Messaging / Chat applications artifacts.",
+      "iOS": "Artifacts related to iOS devices connected to the system.",
+      "KnowledgeBase": "Artifacts used in knowledgebase generation.",
+      "Logs": "Contain log files.",
+      "Mail": "Mail client applications artifacts.",
+      "Memory": "Artifacts retrieved from Memory.",
+      "Network": "Describe networking state.",
+      "Processes": "Describe running processes.",
+      "Software": "Installed software.",
+      "System": "Core system artifacts.",
+      "Users": "Information about users.",
+      "Rekall": "Artifacts using the Rekall memory forensics framework.",
   }
 
   SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]

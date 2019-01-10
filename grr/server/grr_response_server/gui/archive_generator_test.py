@@ -11,6 +11,8 @@ import tarfile
 import zipfile
 
 
+from future.builtins import str
+
 import mock
 import yaml
 
@@ -21,6 +23,7 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server.gui import archive_generator
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -66,7 +69,8 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
       blob_id = rdf_objects.BlobID.FromBytes(digest)
       data_store.BLOBS.WriteBlobs({blob_id: content})
-      hash_id = file_store.AddFileWithUnknownHash([blob_id])
+      hash_id = file_store.AddFileWithUnknownHash(
+          db.ClientPath.FromPathInfo(client_id, path_info), [blob_id])
       path_info.hash_entry.sha256 = hash_id.AsBytes()
 
       data_store.REL_DB.WritePathInfos(client_id, [path_info])
@@ -91,7 +95,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
       self.stat_entries.append(
           rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(
-                  path="foo/bar/" + unicode(path).split("/")[-1],
+                  path="foo/bar/" + str(path).split("/")[-1],
                   pathtype=rdf_paths.PathSpec.PathType.OS)))
 
   def _GenerateArchive(
@@ -122,7 +126,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         archive_format=archive_generator.CollectionArchiveGenerator.ZIP)
 
     with zipfile.ZipFile(fd_path) as zip_fd:
-      names = [unicode(s) for s in zip_fd.namelist()]
+      names = [str(s) for s in zip_fd.namelist()]
 
       # Check that both files are in the archive.
       for p in self.archive_paths:
@@ -152,7 +156,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         archive_format=archive_generator.CollectionArchiveGenerator.ZIP)
 
     zip_fd = zipfile.ZipFile(fd_path)
-    names = [unicode(s) for s in sorted(zip_fd.namelist())]
+    names = [str(s) for s in sorted(zip_fd.namelist())]
 
     client_info_name = (
         "test_prefix/%s/client_info.yaml" % self.client_id.Basename())
@@ -224,54 +228,84 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
   def testCorrectlyAccountsForFailedFiles(self):
     self._InitializeFiles(hashing=True)
 
-    orig_stream_file_chunks = file_store.StreamFilesChunks
+    # TODO(user): This divergence in behavior is not nice.
+    # To be removed with AFF4.
+    if data_store.RelationalDBReadEnabled("filestore"):
+      with mock.patch.object(
+          file_store, "StreamFilesChunks", side_effect=Exception("foobar")):
+        with self.assertRaises(Exception) as context:
+          self._GenerateArchive(
+              self.stat_entries,
+              archive_format=archive_generator.CollectionArchiveGenerator.ZIP)
+        self.assertEqual(context.exception.message, "foobar")
+    else:
+      orig_aff4_stream = aff4.AFF4Stream.MultiStream
 
-    def mock_read_file_chunks(client_paths):
-      for path in client_paths:
-        if path.Path() == "foo/bar/中国新闻网新闻中.txt":
-          raise Exception()
-      return orig_stream_file_chunks(client_paths)
+      def mock_aff4_stream(fds):
+        results = list(orig_aff4_stream(fds))
+        for i, result in enumerate(results):
+          if result[0].urn.Path().endswith("foo/bar/中国新闻网新闻中.txt"):
+            results[i] = (result[0], None, Exception())
+        return results
 
-    orig_aff4_stream = aff4.AFF4Stream.MultiStream
-
-    def mock_aff4_stream(fds):
-      results = list(orig_aff4_stream(fds))
-      for i, result in enumerate(results):
-        if result[0].urn.Path().endswith("foo/bar/中国新闻网新闻中.txt"):
-          results[i] = (result[0], None, Exception())
-      return results
-
-    with mock.patch.object(
-        file_store, "StreamFilesChunks", side_effect=mock_read_file_chunks):
       with mock.patch.object(
           aff4.AFF4Stream, "MultiStream", side_effect=mock_aff4_stream):
         fd_path = self._GenerateArchive(
             self.stat_entries,
             archive_format=archive_generator.CollectionArchiveGenerator.ZIP)
 
-    zip_fd = zipfile.ZipFile(fd_path)
-    names = [unicode(s) for s in sorted(zip_fd.namelist())]
-    self.assertIn(self.archive_paths[0], names)
-    self.assertNotIn(self.archive_paths[1], names)
+      zip_fd = zipfile.ZipFile(fd_path)
+      names = [str(s) for s in sorted(zip_fd.namelist())]
+      self.assertIn(self.archive_paths[0], names)
+      self.assertNotIn(self.archive_paths[1], names)
 
-    manifest = yaml.safe_load(zip_fd.read("test_prefix/MANIFEST"))
+      manifest = yaml.safe_load(zip_fd.read("test_prefix/MANIFEST"))
+      self.assertEqual(
+          manifest, {
+              "description":
+                  "Test description",
+              "processed_files":
+                  2,
+              "archived_files":
+                  1,
+              "ignored_files":
+                  0,
+              "failed_files":
+                  1,
+              "failed_files_list": [
+                  "aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt" %
+                  self.client_id.Basename()
+              ]
+          })
+
+  def testNotFoundFilesProduceWarning(self):
+    self._InitializeFiles(hashing=True)
+
+    stat_entries = list(self.stat_entries)
+    stat_entries.append(
+        rdf_client_fs.StatEntry(
+            pathspec=rdf_paths.PathSpec(
+                path="foo/bar/notfound",
+                pathtype=rdf_paths.PathSpec.PathType.OS)))
+
+    fd_path = self._GenerateArchive(
+        stat_entries,
+        archive_format=archive_generator.CollectionArchiveGenerator.ZIP)
+
+    zip_fd = zipfile.ZipFile(fd_path)
+    yaml_str = zip_fd.read("test_prefix/MANIFEST")
+    manifest = yaml.safe_load(yaml_str)
     self.assertEqual(
         manifest, {
-            "description":
-                "Test description",
-            "processed_files":
-                2,
-            "archived_files":
-                1,
-            "ignored_files":
-                0,
-            "failed_files":
-                1,
-            "failed_files_list": [
-                "aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt" %
-                self.client_id.Basename()
-            ]
+            "description": "Test description",
+            "processed_files": 3,
+            "archived_files": 2,
+            "ignored_files": 0,
+            "failed_files": 0,
         })
+    self.assertIn(
+        archive_generator.CollectionArchiveGenerator.FILES_SKIPPED_WARNING,
+        yaml_str)
 
   def testIgnoresFilesNotMatchingPredicate(self):
     self._InitializeFiles(hashing=True)

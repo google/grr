@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 import getpass
 import os
 
-import builtins
+from future import builtins
+
 import mock
 import MySQLdb
 from MySQLdb import connections
@@ -44,6 +45,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         "1234",  # MySQL port
         "grr-test-db",  # GRR db name.
         "grr-test-user",  # GRR db user.
+        "n",  # No SSL.
     ]
     getpass_mock.return_value = "grr-test-password"  # DB password for GRR.
     connect_mock.return_value = mock.Mock(spec=connections.Connection)
@@ -67,6 +69,54 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
 
   @mock.patch.object(MySQLdb, "connect")
   @mock.patch.object(getpass, "getpass")
+  def testConfigureMySQLDatastoreWithSSL(self, getpass_mock, connect_mock):
+    # Mock user-inputs for MySQL prompts.
+    self.input_mock.side_effect = [
+        "",  # MySQL hostname (the default is localhost).
+        "1234",  # MySQL port
+        "grr-test-db",  # GRR db name.
+        "grr-test-user",  # GRR db user.
+        "Y",  # Configure SSL.
+        "key_file_path",
+        "cert_file_path",
+        "ca_cert_file_path",
+    ]
+    getpass_mock.return_value = "grr-test-password"  # DB password for GRR.
+    cursor_mock = mock.Mock()
+    cursor_mock.fetchone = mock.Mock(return_value=["have_ssl", "YES"])
+    connect_mock.return_value = mock.Mock(spec=connections.Connection)
+    connect_mock.return_value.cursor = mock.Mock(return_value=cursor_mock)
+    config = grr_config.CONFIG.CopyConfig()
+    config_updater_util.ConfigureMySQLDatastore(config)
+    connect_mock.assert_called_once_with(
+        host="localhost",
+        port=1234,
+        db="grr-test-db",
+        user="grr-test-user",
+        passwd="grr-test-password",
+        charset="utf8",
+        ssl={
+            "key": "key_file_path",
+            "cert": "cert_file_path",
+            "ca": "ca_cert_file_path",
+        })
+    self.assertEqual(config.writeback_data["Mysql.host"], "localhost")
+    self.assertEqual(config.writeback_data["Mysql.port"], 1234)
+    self.assertEqual(config.writeback_data["Mysql.database_name"],
+                     "grr-test-db")
+    self.assertEqual(config.writeback_data["Mysql.database_username"],
+                     "grr-test-user")
+    self.assertEqual(config.writeback_data["Mysql.database_password"],
+                     "grr-test-password")
+    self.assertEqual(config.writeback_data["Mysql.client_key_path"],
+                     "key_file_path")
+    self.assertEqual(config.writeback_data["Mysql.client_cert_path"],
+                     "cert_file_path")
+    self.assertEqual(config.writeback_data["Mysql.ca_cert_path"],
+                     "ca_cert_file_path")
+
+  @mock.patch.object(MySQLdb, "connect")
+  @mock.patch.object(getpass, "getpass")
   @mock.patch.object(config_updater_util, "_MYSQL_MAX_RETRIES", new=1)
   @mock.patch.object(config_updater_util, "_MYSQL_RETRY_WAIT_SECS", new=0.1)
   def testConfigureMySQLDatastore_ConnectionRetry(self, getpass_mock,
@@ -77,6 +127,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         "1234",  # MySQL port
         "grr-test-db",  # GRR db name.
         "grr-test-user",  # GRR db user.
+        "n",  # No SSL.
         "n"  # Exit config initialization after retries are depleted.
     ]
     getpass_mock.return_value = "grr-test-password"  # DB password for GRR.

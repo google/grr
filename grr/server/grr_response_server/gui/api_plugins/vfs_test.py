@@ -259,6 +259,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         timestamp=self.time_2)
     result = self.handler.Handle(args, token=self.token)
     self.assertLen(result.items, 1)
+    self.assertIsInstance(result.items[0].last_collected_size, int)
     self.assertEqual(result.items[0].last_collected_size, 13)
 
     args = vfs_plugin.ApiListFilesArgs(

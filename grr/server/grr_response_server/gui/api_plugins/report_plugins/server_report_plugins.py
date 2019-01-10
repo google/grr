@@ -4,7 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import operator
+import collections
+import re
 
 
 from builtins import range  # pylint: disable=redefined-builtin
@@ -12,118 +13,153 @@ from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
-
+from grr_response_server import data_store
 from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.flows.general import audit
 from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugin_base
 from grr_response_server.gui.api_plugins.report_plugins import report_utils
 
-TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
+
+RepresentationType = rdf_report_plugins.ApiReportData.RepresentationType
+
+
+def _LoadAuditEvents(handlers,
+                     get_report_args,
+                     actions=None,
+                     token=None,
+                     transformers=None):
+  """Returns AuditEvents for given handlers, actions, and timerange."""
+  if transformers is None:
+    transformers = {}
+
+  if data_store.RelationalDBReadEnabled():
+    entries = data_store.REL_DB.ReadAPIAuditEntries(
+        min_timestamp=get_report_args.start_time,
+        max_timestamp=get_report_args.start_time + get_report_args.duration,
+        router_method_names=list(handlers.keys()))
+    rows = [_EntryToEvent(entry, handlers, transformers) for entry in entries]
+  else:
+    entries = report_utils.GetAuditLogEntries(
+        offset=get_report_args.duration,
+        now=get_report_args.start_time + get_report_args.duration,
+        token=token)
+    if actions is None:
+      actions = set(handlers.values())
+    rows = [entry for entry in entries if entry.action in actions]
+  rows.sort(key=lambda row: row.timestamp, reverse=True)
+  return rows
+
+
+def _EntryToEvent(entry, handlers, transformers):
+  """Converts an APIAuditEntry to a legacy AuditEvent."""
+  event = rdf_events.AuditEvent(
+      timestamp=entry.timestamp,
+      user=entry.username,
+      action=handlers[entry.router_method_name])
+
+  for fn in transformers:
+    fn(entry, event)
+
+  return event
+
+
+def _ExtractClientIdFromPath(entry, event):
+  """Extracts a Client ID from an APIAuditEntry's HTTP request path."""
+  match = re.match(r".*(C\.[0-9a-fA-F]{16}).*", entry.http_request_path)
+  if match:
+    event.client = match.group(1)
+
+
+# TODO: Remove AFF4 URNs from the API data format.
+def _ExtractCronJobIdFromPath(entry, event):
+  """Extracts a CronJob ID from an APIAuditEntry's HTTP request path."""
+  match = re.match(r".*cron-job/([^/]+).*", entry.http_request_path)
+  if match:
+    event.urn = "aff4:/cron/{}".format(match.group(1))
+
+
+def _ExtractHuntIdFromPath(entry, event):
+  """Extracts a Hunt ID from an APIAuditEntry's HTTP request path."""
+  match = re.match(r".*hunt/([^/]+).*", entry.http_request_path)
+  if match:
+    event.urn = "aff4:/hunts/{}".format(match.group(1))
 
 
 class ClientApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
   """Given timerange's client approvals."""
 
-  TYPE = TYPE
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "Client Approvals"
   SUMMARY = "Client approval requests and grants for the given timerange."
   REQUIRES_TIME_RANGE = True
 
-  USED_FIELDS = ["action", "client", "description", "timestamp", "user"]
-  TYPES = [
-      rdf_events.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
-      rdf_events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
-      rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST
-  ]
+  USED_FIELDS = ["action", "client", "timestamp", "user"]
+  # TODO: Rework API data format, to remove need for legacy
+  # AuditEvent.Action.
+  HANDLERS = {
+      "GrantClientApproval":
+          rdf_events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
+      "CreateClientApproval":
+          rdf_events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST,
+  }
 
-  def GetReportData(self, get_report_args, token):
+  def GetReportData(self, get_report_args, token=None):
     """Filter the cron job approvals in the given timerange."""
     ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        AUDIT_CHART,
+        representation_type=RepresentationType.AUDIT_CHART,
         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-            used_fields=self.__class__.USED_FIELDS))
+            used_fields=self.USED_FIELDS))
 
-    try:
-      timerange_offset = get_report_args.duration
-      timerange_end = get_report_args.start_time + timerange_offset
-
-      rows = []
-      try:
-        for event in report_utils.GetAuditLogEntries(timerange_offset,
-                                                     timerange_end, token):
-          if event.action in self.__class__.TYPES:
-            rows.append(event)
-
-      except ValueError:  # Couldn't find any logs..
-        pass
-
-    except IOError:
-      pass
-
-    rows.sort(key=lambda row: row.timestamp, reverse=True)
-    ret.audit_chart.rows = rows
-
+    ret.audit_chart.rows = _LoadAuditEvents(
+        self.HANDLERS,
+        get_report_args,
+        transformers=[_ExtractClientIdFromPath],
+        token=token)
     return ret
 
 
 class CronApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
   """Given timerange's cron job approvals."""
 
-  TYPE = TYPE
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "Cron Job Approvals"
   SUMMARY = "Cron job approval requests and grants for the given timerange."
   REQUIRES_TIME_RANGE = True
 
-  USED_FIELDS = ["action", "description", "timestamp", "urn", "user"]
-  TYPES = [
-      rdf_events.AuditEvent.Action.CRON_APPROVAL_GRANT,
-      rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST
-  ]
+  USED_FIELDS = ["action", "timestamp", "user", "urn"]
+  HANDLERS = {
+      "GrantCronJobApproval":
+          rdf_events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+      "CreateCronJobApproval":
+          rdf_events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+  }
 
   def GetReportData(self, get_report_args, token):
     """Filter the cron job approvals in the given timerange."""
     ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        AUDIT_CHART,
+        representation_type=RepresentationType.AUDIT_CHART,
         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-            used_fields=self.__class__.USED_FIELDS))
+            used_fields=self.USED_FIELDS))
 
-    try:
-      timerange_offset = get_report_args.duration
-      timerange_end = get_report_args.start_time + timerange_offset
-
-      rows = []
-      try:
-        for event in report_utils.GetAuditLogEntries(timerange_offset,
-                                                     timerange_end, token):
-          if event.action in self.__class__.TYPES:
-            rows.append(event)
-
-      except ValueError:  # Couldn't find any logs..
-        pass
-
-    except IOError:
-      pass
-
-    rows.sort(key=lambda row: row.timestamp, reverse=True)
-    ret.audit_chart.rows = rows
-
+    ret.audit_chart.rows = _LoadAuditEvents(
+        self.HANDLERS,
+        get_report_args,
+        transformers=[_ExtractCronJobIdFromPath],
+        token=token)
     return ret
 
 
+# TODO: Migrate from AuditEvent to Hunts database table as source.
 class HuntActionsReportPlugin(report_plugin_base.ReportPluginBase):
   """Hunt actions in the given timerange."""
 
-  TYPE = TYPE
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "Hunts"
   SUMMARY = "Hunt management actions for the given timerange."
   REQUIRES_TIME_RANGE = True
 
-  USED_FIELDS = [
-      "action", "description", "flow_name", "timestamp", "urn", "user"
-  ]
+  USED_FIELDS = ["action", "timestamp", "user"]
   TYPES = [
       rdf_events.AuditEvent.Action.HUNT_CREATED,
       rdf_events.AuditEvent.Action.HUNT_MODIFIED,
@@ -131,289 +167,224 @@ class HuntActionsReportPlugin(report_plugin_base.ReportPluginBase):
       rdf_events.AuditEvent.Action.HUNT_STARTED,
       rdf_events.AuditEvent.Action.HUNT_STOPPED
   ]
+  HANDLERS = {
+      "CreateHunt": rdf_events.AuditEvent.Action.HUNT_CREATED,
+      "ModifyHunt": rdf_events.AuditEvent.Action.HUNT_MODIFIED,
+  }
 
   def GetReportData(self, get_report_args, token):
     """Filter the hunt actions in the given timerange."""
     ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        AUDIT_CHART,
+        representation_type=RepresentationType.AUDIT_CHART,
         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-            used_fields=self.__class__.USED_FIELDS))
+            used_fields=self.USED_FIELDS))
 
-    try:
-      timerange_offset = get_report_args.duration
-      timerange_end = get_report_args.start_time + timerange_offset
-
-      rows = []
-      try:
-        for event in report_utils.GetAuditLogEntries(timerange_offset,
-                                                     timerange_end, token):
-          if event.action in self.__class__.TYPES:
-            rows.append(event)
-
-      except ValueError:  # Couldn't find any logs..
-        pass
-
-    except IOError:
-      pass
-
-    rows.sort(key=lambda row: row.timestamp, reverse=True)
-    ret.audit_chart.rows = rows
-
+    ret.audit_chart.rows = _LoadAuditEvents(
+        self.HANDLERS, get_report_args, actions=self.TYPES, token=token)
     return ret
 
 
 class HuntApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
   """Given timerange's hunt approvals."""
 
-  TYPE = TYPE
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "Hunt Approvals"
   SUMMARY = "Hunt approval requests and grants for the given timerange."
   REQUIRES_TIME_RANGE = True
 
-  USED_FIELDS = ["action", "description", "timestamp", "urn", "user"]
-  TYPES = [
-      rdf_events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
-      rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST
-  ]
+  USED_FIELDS = ["action", "timestamp", "user", "urn"]
+  HANDLERS = {
+      "GrantHuntApproval": rdf_events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+      "CreateHuntApproval": rdf_events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+  }
 
   def GetReportData(self, get_report_args, token):
     """Filter the hunt approvals in the given timerange."""
     ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        AUDIT_CHART,
+        representation_type=RepresentationType.AUDIT_CHART,
         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-            used_fields=self.__class__.USED_FIELDS))
+            used_fields=self.USED_FIELDS))
 
-    try:
-      timerange_offset = get_report_args.duration
-      timerange_end = get_report_args.start_time + timerange_offset
-
-      rows = []
-      try:
-        for event in report_utils.GetAuditLogEntries(timerange_offset,
-                                                     timerange_end, token):
-          if event.action in self.__class__.TYPES:
-            rows.append(event)
-
-      except ValueError:  # Couldn't find any logs..
-        pass
-
-    except IOError:
-      pass
-
-    rows.sort(key=lambda row: row.timestamp, reverse=True)
-    ret.audit_chart.rows = rows
-
+    ret.audit_chart.rows = _LoadAuditEvents(
+        self.HANDLERS,
+        get_report_args,
+        transformers=[_ExtractHuntIdFromPath],
+        token=token)
     return ret
 
 
 class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
   """Reports client activity by week."""
 
-  TYPE = TYPE
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "User Breakdown"
   SUMMARY = "Active user actions."
   REQUIRES_TIME_RANGE = True
 
+  def _GetUserCounts(self, get_report_args, token=None):
+    if data_store.RelationalDBReadEnabled():
+      entries = data_store.REL_DB.ReadAPIAuditEntries(
+          min_timestamp=get_report_args.start_time,
+          max_timestamp=get_report_args.start_time + get_report_args.duration)
+      return collections.Counter(entry.username for entry in entries)
+    else:
+      events = report_utils.GetAuditLogEntries(
+          offset=get_report_args.duration,
+          now=get_report_args.start_time + get_report_args.duration,
+          token=token)
+      return collections.Counter(event.user for event in events)
+
   def GetReportData(self, get_report_args, token):
     """Filter the last week of user actions."""
     ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        PIE_CHART)
+        representation_type=RepresentationType.PIE_CHART)
 
-    try:
-      timerange_offset = get_report_args.duration
-      timerange_end = get_report_args.start_time + timerange_offset
+    counts = self._GetUserCounts(get_report_args, token)
+    for username in aff4_users.GRRUser.SYSTEM_USERS:
+      del counts[username]
 
-      counts = {}
-      try:
-        for event in report_utils.GetAuditLogEntries(timerange_offset,
-                                                     timerange_end, token):
-          counts.setdefault(event.user, 0)
-          counts[event.user] += 1
-      except ValueError:  # Couldn't find any logs..
-        pass
-
-      ret.pie_chart.data = sorted(
-          (rdf_report_plugins.ApiReportDataPoint1D(x=count, label=user)
-           for user, count in iteritems(counts)
-           if user not in aff4_users.GRRUser.SYSTEM_USERS),
-          key=lambda series: series.label)
-
-    except IOError:
-      pass
+    ret.pie_chart.data = [
+        rdf_report_plugins.ApiReportDataPoint1D(x=count, label=user)
+        for user, count in sorted(iteritems(counts))
+    ]
 
     return ret
 
 
-class SystemFlowsReportPlugin(report_plugin_base.ReportPluginBase):
-  """Count given timerange's system-created flows by type."""
+class BaseUserFlowReportPlugin(report_plugin_base.ReportPluginBase):
+  """Count given timerange's flows by type."""
 
-  TYPE = TYPE
-  TITLE = "System Flows"
-  SUMMARY = ("Flows launched by GRR crons and workers over the given timerange"
-             " grouped by type.")
-  REQUIRES_TIME_RANGE = True
+  def IncludeUser(self, username):
+    return True
 
-  def UserFilter(self, username):
-    return username in aff4_users.GRRUser.SYSTEM_USERS
+  def _GetFlows(self, get_report_args, token):
+    counts = collections.defaultdict(collections.Counter)
+
+    if data_store.RelationalDBReadEnabled():
+      flows = data_store.REL_DB.ReadAllFlowObjects(
+          min_create_time=get_report_args.start_time,
+          max_create_time=get_report_args.start_time + get_report_args.duration,
+          include_child_flows=False)
+
+      for flow in flows:
+        if self.IncludeUser(flow.creator):
+          counts[flow.flow_class_name][flow.creator] += 1
+    else:
+      counts = collections.defaultdict(collections.Counter)
+      for event in report_utils.GetAuditLogEntries(
+          offset=get_report_args.duration,
+          now=get_report_args.start_time + get_report_args.duration,
+          token=token):
+        if (event.action == rdf_events.AuditEvent.Action.RUN_FLOW and
+            self.IncludeUser(event.user)):
+          counts[event.flow_name][event.user] += 1
+
+    return counts
 
   def GetReportData(self, get_report_args, token):
     ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        STACK_CHART,
+        representation_type=RepresentationType.STACK_CHART,
         stack_chart=rdf_report_plugins.ApiStackChartReportData(x_ticks=[]))
 
-    # TODO(user): move the calculation to a cronjob and store results in
-    # AFF4.
-    try:
-      timerange_offset = get_report_args.duration
-      timerange_end = get_report_args.start_time + timerange_offset
+    counts = self._GetFlows(get_report_args, token)
+    total_counts = collections.Counter(
+        {flow: sum(cts.values()) for flow, cts in iteritems(counts)})
 
-      # Store run count total and per-user
-      counts = {}
-      try:
-        for event in report_utils.GetAuditLogEntries(timerange_offset,
-                                                     timerange_end, token):
-          if (event.action == rdf_events.AuditEvent.Action.RUN_FLOW and
-              self.UserFilter(event.user)):
-            counts.setdefault(event.flow_name, {"total": 0, event.user: 0})
-            counts[event.flow_name]["total"] += 1
-            counts[event.flow_name].setdefault(event.user, 0)
-            counts[event.flow_name][event.user] += 1
-      except ValueError:  # Couldn't find any logs..
-        pass
+    for i, (flow, total_count) in enumerate(total_counts.most_common()):
+      topusercounts = counts[flow].most_common(3)
+      topusers = ", ".join(
+          "{} ({})".format(user, count) for user, count in topusercounts)
 
-      for i, (flow, countdict) in enumerate(
-          sorted(iteritems(counts), key=lambda x: x[1]["total"], reverse=True)):
-        total_count = countdict["total"]
-        countdict.pop("total")
-        topusercounts = sorted(
-            iteritems(countdict), key=operator.itemgetter(1), reverse=True)[:3]
-        topusers = ", ".join("%s (%s)" % (user, count)
-                             for user, count in topusercounts)
-
-        ret.stack_chart.data.append(
-            rdf_report_plugins.ApiReportDataSeries2D(
-                # \u2003 is an emspace, a long whitespace character.
-                label=u"%s\u2003Run By: %s" % (flow, topusers),
-                points=[
-                    rdf_report_plugins.ApiReportDataPoint2D(x=i, y=total_count)
-                ]))
-
-    except IOError:
-      pass
+      ret.stack_chart.data.append(
+          rdf_report_plugins.ApiReportDataSeries2D(
+              # \u2003 is an emspace, a long whitespace character.
+              label="{}\u2003Run By: {}".format(flow, topusers),
+              points=[
+                  rdf_report_plugins.ApiReportDataPoint2D(x=i, y=total_count)
+              ]))
 
     return ret
 
 
-class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
-  """Display user activity by week."""
-
-  TYPE = TYPE
-  TITLE = "User Activity"
-  SUMMARY = "Number of flows ran by each user over the last few weeks."
-  # TODO(user): Support timerange selection.
-
-  WEEKS = 10
-
-  def GetReportData(self, get_report_args, token):
-    """Filter the last week of user actions."""
-    ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        STACK_CHART)
-
-    try:
-      user_activity = {}
-      week_duration = rdfvalue.Duration("7d")
-      offset = rdfvalue.Duration("%dw" % self.WEEKS)
-      now = rdfvalue.RDFDatetime.Now()
-      start_time = now - offset - audit.AUDIT_ROLLOVER_TIME
-      try:
-        for fd in audit.LegacyAuditLogsForTimespan(start_time, now, token):
-          for event in fd.GenerateItems():
-            for week in range(self.__class__.WEEKS):
-              start = now - week * week_duration
-              if start < event.timestamp < (start + week_duration):
-                weekly_activity = user_activity.setdefault(
-                    event.user,
-                    [[x, 0] for x in range(-self.__class__.WEEKS, 0, 1)])
-                weekly_activity[-week][1] += 1
-      except ValueError:  # Couldn't find any logs..
-        pass
-
-      ret.stack_chart.data = sorted(
-          (rdf_report_plugins.ApiReportDataSeries2D(
-              label=user,
-              points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
-                      for x, y in data))
-           for user, data in iteritems(user_activity)
-           if user not in aff4_users.GRRUser.SYSTEM_USERS),
-          key=lambda series: series.label)
-
-    except IOError:
-      pass
-
-    return ret
-
-
-class UserFlowsReportPlugin(report_plugin_base.ReportPluginBase):
+class UserFlowsReportPlugin(BaseUserFlowReportPlugin):
   """Count given timerange's user-created flows by type."""
 
-  TYPE = TYPE
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "User Flows"
   SUMMARY = ("Flows launched by GRR users over the given timerange grouped by "
              "type.")
   REQUIRES_TIME_RANGE = True
 
-  def UserFilter(self, username):
+  def IncludeUser(self, username):
     return username not in aff4_users.GRRUser.SYSTEM_USERS
 
+
+class SystemFlowsReportPlugin(BaseUserFlowReportPlugin):
+  """Count given timerange's system-created flows by type."""
+
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
+  TITLE = "System Flows"
+  SUMMARY = ("Flows launched by GRR crons and workers over the given timerange"
+             " grouped by type.")
+  REQUIRES_TIME_RANGE = True
+
+  def IncludeUser(self, username):
+    return username in aff4_users.GRRUser.SYSTEM_USERS
+
+
+class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
+  """Display user activity by week."""
+
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
+  TITLE = "User Activity"
+  SUMMARY = "Number of flows ran by each user over the last few weeks."
+  # TODO: Support timerange selection.
+
+  WEEKS = 10
+
+  def _LoadUserActivity(self, token):
+    week_duration = rdfvalue.Duration("7d")
+    now = rdfvalue.RDFDatetime.Now()
+    start_time = now - week_duration * self.WEEKS
+
+    if data_store.RelationalDBReadEnabled():
+      for entry in data_store.REL_DB.ReadAPIAuditEntries(
+          min_timestamp=start_time):
+        yield entry.username, entry.timestamp
+    else:
+      for fd in audit.LegacyAuditLogsForTimespan(
+          start_time=start_time - audit.AUDIT_ROLLOVER_TIME,
+          end_time=now,
+          token=token):
+        for event in fd.GenerateItems():
+          yield event.user, event.timestamp
+
   def GetReportData(self, get_report_args, token):
+    """Filter the last week of user actions."""
     ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        STACK_CHART,
-        stack_chart=rdf_report_plugins.ApiStackChartReportData(x_ticks=[]))
+        representation_type=RepresentationType.STACK_CHART)
 
-    # TODO(user): move the calculation to a cronjob and store results in
-    # AFF4.
-    try:
-      timerange_offset = get_report_args.duration
-      timerange_end = get_report_args.start_time + timerange_offset
+    now = rdfvalue.RDFDatetime.Now()
+    weeks = range(-self.WEEKS, 0, 1)
+    week_duration = rdfvalue.Duration("7d")
+    user_activity = collections.defaultdict(lambda: {week: 0 for week in weeks})
 
-      # Store run count total and per-user
-      counts = {}
-      try:
-        for event in report_utils.GetAuditLogEntries(timerange_offset,
-                                                     timerange_end, token):
-          if (event.action == rdf_events.AuditEvent.Action.RUN_FLOW and
-              self.UserFilter(event.user)):
-            counts.setdefault(event.flow_name, {"total": 0, event.user: 0})
-            counts[event.flow_name]["total"] += 1
-            counts[event.flow_name].setdefault(event.user, 0)
-            counts[event.flow_name][event.user] += 1
-      except ValueError:  # Couldn't find any logs..
-        pass
+    for username, timestamp in self._LoadUserActivity(token):
+      week = (timestamp - now).seconds // week_duration.seconds
+      if week in user_activity[username]:
+        user_activity[username][week] += 1
 
-      for i, (flow, countdict) in enumerate(
-          sorted(iteritems(counts), key=lambda x: x[1]["total"], reverse=True)):
-        total_count = countdict["total"]
-        countdict.pop("total")
-        topusercounts = sorted(
-            iteritems(countdict), key=operator.itemgetter(1), reverse=True)[:3]
-        topusers = ", ".join("%s (%s)" % (user, count)
-                             for user, count in topusercounts)
+    user_activity = sorted(iteritems(user_activity))
+    user_activity = [(user, data)
+                     for user, data in user_activity
+                     if user not in aff4_users.GRRUser.SYSTEM_USERS]
 
-        ret.stack_chart.data.append(
-            rdf_report_plugins.ApiReportDataSeries2D(
-                # \u2003 is an emspace, a long whitespace character.
-                label=u"%s\u2003Run By: %s" % (flow, topusers),
-                points=[
-                    rdf_report_plugins.ApiReportDataPoint2D(x=i, y=total_count)
-                ]))
-
-    except IOError:
-      pass
+    ret.stack_chart.data = [
+        rdf_report_plugins.ApiReportDataSeries2D(
+            label=user,
+            points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
+                    for x, y in sorted(data.items())))
+        for user, data in user_activity
+    ]
 
     return ret

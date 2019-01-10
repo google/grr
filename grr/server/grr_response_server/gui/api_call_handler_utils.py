@@ -10,6 +10,7 @@ import sys
 
 
 from future.utils import iteritems
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -32,7 +33,7 @@ class ApiDataObjectKeyValuePair(rdf_structs.RDFProtoStruct):
       pass
     elif rdfvalue.RDFInteger.IsNumeric(value):
       value = rdfvalue.RDFInteger(value)
-    elif isinstance(value, unicode):
+    elif isinstance(value, Text):
       value = rdfvalue.RDFString(value)
     elif isinstance(value, bytes):
       value = rdfvalue.RDFBytes(value)

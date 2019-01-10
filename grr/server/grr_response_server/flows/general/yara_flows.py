@@ -16,12 +16,7 @@ from grr_response_server.flows.general import transfer
 
 @flow_base.DualDBFlow
 class YaraProcessScanMixin(object):
-  """Scans process memory using Yara.
-
-  Note that accessing process memory with Yara on Linux causes
-  processes to pause. This can impact the client machines when doing
-  large scans.
-  """
+  """Scans process memory using Yara."""
 
   category = "/Yara/"
   friendly_name = "Yara Process Scan"

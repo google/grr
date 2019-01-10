@@ -32,4 +32,5 @@ from grr_response_server.data_stores import registry_init
 from grr_response_server.flows.cron import registry_init
 from grr_response_server.flows.general import registry_init
 from grr_response_server.flows.local import registry_init
+from grr_response_server.hunts import process_results
 from grr_response_server.local import registry_init

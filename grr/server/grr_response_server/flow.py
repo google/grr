@@ -157,6 +157,10 @@ RESULTS_PER_TYPE_SUFFIX = "ResultsPerType"
 LOGS_SUFFIX = "Logs"
 
 
+def IsLegacyHunt(hunt_id):
+  return hunt_id.startswith("H:")
+
+
 def FilterArgsFromSemanticProtobuf(protobuf, kwargs):
   """Assign kwargs to the protobuf, and remove them from the kwargs dict."""
   for descriptor in protobuf.type_infos:
@@ -323,6 +327,7 @@ def StartFlow(client_id=None,
               network_bytes_limit=None,
               original_flow=None,
               output_plugins=None,
+              start_at=None,
               parent_flow_obj=None,
               parent_hunt_id=None,
               **kwargs):
@@ -340,6 +345,8 @@ def StartFlow(client_id=None,
       another flow.
     output_plugins: An OutputPluginDescriptor object indicating what output
       plugins should be used for this flow.
+    start_at: If specified, flow will be started not immediately, but at a given
+      time.
     parent_flow_obj: A parent flow object. None if this is a top level flow.
     parent_hunt_id: String identifying parent hunt. Can't be passed together
       with parent_flow_obj.
@@ -391,7 +398,12 @@ def StartFlow(client_id=None,
       original_flow=original_flow,
       flow_state="RUNNING")
 
-  rdf_flow.flow_id = RandomFlowId()
+  if parent_hunt_id is not None and parent_flow_obj is None:
+    rdf_flow.flow_id = parent_hunt_id
+    if IsLegacyHunt(parent_hunt_id):
+      rdf_flow.flow_id = rdf_flow.flow_id[2:]
+  else:
+    rdf_flow.flow_id = RandomFlowId()
 
   if parent_flow_obj:  # A flow is a nested flow.
     parent_rdf_flow = parent_flow_obj.rdf_flow
@@ -425,15 +437,18 @@ def StartFlow(client_id=None,
   rdf_flow.current_state = "Start"
 
   flow_obj = flow_cls(rdf_flow)
-  # Just run the first state inline. NOTE: Running synchronously means
-  # that this runs on the thread that starts the flow. The advantage is
-  # that that Start method can raise any errors immediately.
-  flow_obj.Start()
+  if start_at is None:
+    # Just run the first state inline. NOTE: Running synchronously means
+    # that this runs on the thread that starts the flow. The advantage is
+    # that that Start method can raise any errors immediately.
+    flow_obj.Start()
 
-  # The flow does not need to actually remain running.
-  if not flow_obj.outstanding_requests:
-    flow_obj.RunStateMethod("End")
-    flow_obj.MarkDone()
+    # The flow does not need to actually remain running.
+    if not flow_obj.outstanding_requests:
+      flow_obj.RunStateMethod("End")
+      flow_obj.MarkDone()
+  else:
+    flow_obj.CallState("Start", start_time=start_at)
 
   flow_obj.PersistState()
 
@@ -976,7 +991,7 @@ class WellKnownFlow(GRRFlow):
     """Get instances of all well known flows."""
     well_known_flows = {}
     for cls in itervalues(registry.AFF4FlowRegistry.FLOW_REGISTRY):
-      if aff4.issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
+      if issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
         well_known_flow = cls(cls.well_known_session_id, mode="rw", token=token)
         well_known_flows[cls.well_known_session_id.FlowName()] = well_known_flow
 

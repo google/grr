@@ -2,16 +2,19 @@
 """The in memory database methods for client handling."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
+from typing import Generator, List, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_server import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -330,3 +333,47 @@ class InMemoryDBClientMixin(object):
       client_data.timestamp = ts
       res.append(client_data)
     return res
+
+  @utils.Synchronized
+  def WriteClientStats(self, client_id,
+                       stats):
+    """Stores a ClientStats instance."""
+    if client_id not in self.ReadAllClientIDs():
+      raise db.UnknownClientError(client_id)
+
+    self.client_stats[client_id][stats.create_time] = stats
+
+  @utils.Synchronized
+  def ReadClientStats(self, client_id,
+                      min_timestamp,
+                      max_timestamp
+                     ):
+    """Reads ClientStats for a given client and time range."""
+    results = []
+    for stats in itervalues(self.client_stats[client_id]):
+      if min_timestamp <= stats.create_time <= max_timestamp:
+        results.append(stats)
+    results.sort(key=lambda stats: stats.create_time)
+    return results
+
+  @utils.Synchronized
+  def DeleteOldClientStats(
+      self, yield_after_count,
+      retention_time):
+    """Deletes ClientStats older than a given timestamp."""
+    deleted_count = 0
+    yielded = False
+
+    for stats_dict in itervalues(self.client_stats):
+      for timestamp in list(stats_dict.keys()):
+        if timestamp < retention_time:
+          del stats_dict[timestamp]
+          deleted_count += 1
+
+          if deleted_count >= yield_after_count:
+            yield deleted_count
+            yielded = True
+            deleted_count = 0
+
+    if deleted_count > 0 or not yielded:
+      yield deleted_count

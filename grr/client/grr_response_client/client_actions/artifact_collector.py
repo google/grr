@@ -5,7 +5,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from future.builtins import str
 from future.utils import iteritems
+from typing import Text
 
 from grr_response_client import actions
 from grr_response_client import vfs
@@ -57,7 +59,6 @@ class ArtifactCollector(actions.ActionPlugin):
     result.knowledge_base = self.knowledge_base
 
     # TODO(user): Limit the number of bytes and send multiple responses.
-    # e.g. grr_rekall.py RESPONSE_CHUNK_SIZE
     self.SendReply(result)
 
   def _CollectArtifact(self, artifact, apply_parsers):
@@ -65,7 +66,7 @@ class ArtifactCollector(actions.ActionPlugin):
     artifact_result = rdf_artifacts.CollectedArtifact(name=artifact.name)
 
     if apply_parsers:
-      parser_factory = parsers.ArtifactParserFactory(unicode(artifact.name))
+      parser_factory = parsers.ArtifactParserFactory(str(artifact.name))
     else:
       parser_factory = None
 
@@ -103,7 +104,7 @@ class ArtifactCollector(actions.ActionPlugin):
 
   def SetKnowledgeBaseValue(self, attribute, value):
     if isinstance(value, rdfvalue.RDFString):
-      value = unicode(value)
+      value = str(value)
     elif isinstance(value, rdf_client_fs.StatEntry):
       value = value.registry_data.GetValue()
     if value:
@@ -386,6 +387,6 @@ def _ExtractPath(response, pathspec_attribute=None):
   if path_specification.HasField("path"):
     path_specification = path_specification.path
 
-  if isinstance(path_specification, unicode):
+  if isinstance(path_specification, Text):
     return path_specification
   return None

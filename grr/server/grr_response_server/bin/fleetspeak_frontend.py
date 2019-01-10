@@ -17,8 +17,10 @@ from grr_response_server import server_plugins
 from grr_response_core import config
 from grr_response_core.lib import communicator
 from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.stats import stats_utils
+from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import frontend_lib
@@ -47,47 +49,44 @@ class GRRFSServer(object):
     """Processes a single fleetspeak message."""
     try:
       if fs_msg.message_type == "GrrMessage":
-        self._ProcessGrrMessage(fs_msg)
-        return
-
-      if fs_msg.message_type == "MessageList":
-        self._ProcessMessageList(fs_msg)
-        return
-
-      logging.error("Received message with unrecognized message_type: %s",
-                    fs_msg.message_type)
-      context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+        grr_message = rdf_flows.GrrMessage.FromSerializedString(
+            fs_msg.data.value)
+        self._ProcessGRRMessages(fs_msg.source.client_id, [grr_message])
+      elif fs_msg.message_type == "MessageList":
+        packed_messages = rdf_flows.PackedMessageList.FromSerializedString(
+            fs_msg.data.value)
+        message_list = communicator.Communicator.DecompressMessageList(
+            packed_messages)
+        self._ProcessGRRMessages(fs_msg.source.client_id, message_list.job)
+      else:
+        logging.error("Received message with unrecognized message_type: %s",
+                      fs_msg.message_type)
+        context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
     except Exception as e:
       logging.error("Exception processing message: %s", str(e))
       raise
 
-  def _ProcessGrrMessage(self, fs_msg):
-    """Process a FS message when message_type is GrrMessage."""
-    grr_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_msg.source.client_id)
+  def _ProcessGRRMessages(self, fs_client_id, grr_messages):
+    """Handles messages from GRR clients received via Fleetspeak.
 
-    msg = rdf_flows.GrrMessage.FromSerializedString(fs_msg.data.value)
-    msg.source = grr_id
+    This method updates the last-ping timestamp of the client before beginning
+    processing.
 
-    # Fleetspeak ensures authentication.
-    msg.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
-
-    self.frontend.EnrolFleetspeakClient(client_id=grr_id)
-    self.frontend.ReceiveMessages(client_id=grr_id, messages=[msg])
-
-  def _ProcessMessageList(self, fs_msg):
-    """Process a FS message when message_type is MessageList."""
-    grr_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_msg.source.client_id)
-
-    msg_list = rdf_flows.PackedMessageList.FromSerializedString(
-        fs_msg.data.value)
-    msg_list = communicator.Communicator.DecompressMessageList(msg_list)
-
-    for msg in msg_list.job:
-      msg.source = grr_id
-      msg.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
-
-    self.frontend.EnrolFleetspeakClient(client_id=grr_id)
-    self.frontend.ReceiveMessages(client_id=grr_id, messages=msg_list.job)
+    Args:
+      fs_client_id: The Fleetspeak client-id for the client.
+      grr_messages: An Iterable of GrrMessages.
+    """
+    grr_client_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_client_id)
+    for grr_message in grr_messages:
+      grr_message.source = grr_client_id
+      grr_message.auth_state = (
+          rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
+    client_is_new = self.frontend.EnrolFleetspeakClient(client_id=grr_client_id)
+    if not client_is_new and data_store.RelationalDBReadEnabled():
+      data_store.REL_DB.WriteClientMetadata(
+          grr_client_id, last_ping=rdfvalue.RDFDatetime.Now())
+    self.frontend.ReceiveMessages(
+        client_id=grr_client_id, messages=grr_messages)
 
 
 def main(argv):

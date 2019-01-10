@@ -93,8 +93,6 @@ function compileThirdPartyJs() {
 
         NODE_MODULES + '/google-closure-library/closure/goog/base.js',
 
-        NODE_MODULES + '/bootstrap/dist/js/bootstrap.js',
-
         NODE_MODULES + '/angular/angular.js',
         NODE_MODULES + '/angular-animate/angular-animate.js',
         NODE_MODULES + '/angular-cookies/angular-cookies.js',
@@ -106,12 +104,8 @@ function compileThirdPartyJs() {
 
         NODE_MODULES + '/firebase/firebase-app.js',
         NODE_MODULES + '/firebase/firebase-auth.js',
-        NODE_MODULES + '/Flot/jquery.flot.js',
-        NODE_MODULES + '/Flot/jquery.flot.navigate.js',
-        NODE_MODULES + '/Flot/jquery.flot.pie.js',
-        NODE_MODULES + '/Flot/jquery.flot.resize.js',
-        NODE_MODULES + '/Flot/jquery.flot.stack.js',
-        NODE_MODULES + '/Flot/jquery.flot.time.js',
+
+        NODE_MODULES + '/dygraphs/dygraph-combined.js',
 
         NODE_MODULES + '/jstree/dist/jstree.js',
         NODE_MODULES + '/moment/moment.js',

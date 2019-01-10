@@ -6,6 +6,8 @@ from __future__ import unicode_literals
 
 import stat
 
+from future.builtins import str
+
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -13,6 +15,7 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server import events
 from grr_response_server import file_store
 from grr_response_server import flow
@@ -81,6 +84,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
     # Do not access `conditions`, if it has never been set before. Otherwise,
     # the field is replaced with the default value `[]`, which breaks equality
     # in unsuspected ways. Also, see the comment below.
+    # TODO
     if self.args.HasField("conditions"):
       self.state.sorted_conditions = sorted(
           self.args.conditions, key=self._ConditionWeight)
@@ -367,7 +371,7 @@ class ClientFileFinderMixin(object):
     kb = self.client_knowledge_base
 
     for glob in globs:
-      param_path = glob.SerializeToString()
+      param_path = str(glob)
       for path in artifact_utils.InterpolateKbAttributes(param_path, kb):
         yield path
 
@@ -422,8 +426,9 @@ class ClientFileFinderMixin(object):
       # Adding files to filestore requires reading data from RELDB,
       # thus protecting this code with a filestore-read-enabled check.
       if data_store.RelationalDBReadEnabled("filestore"):
+        client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
         blob_ids = [rdf_objects.BlobID.FromBytes(c.digest) for c in chunks]
-        hash_id = file_store.AddFileWithUnknownHash(blob_ids)
+        hash_id = file_store.AddFileWithUnknownHash(client_path, blob_ids)
         path_info.hash_entry.sha256 = hash_id.AsBytes()
 
       data_store.REL_DB.WritePathInfos(self.client_id, [path_info])

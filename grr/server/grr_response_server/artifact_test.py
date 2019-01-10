@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import gzip
 import logging
 import os
 import subprocess
@@ -18,7 +17,6 @@ from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_file_parser
-from grr_response_core.lib.parsers import rekall_artifact_parser
 from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
@@ -26,12 +24,10 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
-from grr_response_server import data_store
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import filesystem
@@ -41,7 +37,6 @@ from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
-from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -130,28 +125,6 @@ class MultiProvideParser(parser.RegistryValueParser):
         "environ_path": rdfvalue.RDFString("pathvalue")
     }
     yield rdf_protodict.Dict(test_dict)
-
-
-class RekallMock(action_mocks.MemoryClientMock):
-
-  def __init__(self, client_id, result_filename, *args, **kwargs):
-    super(RekallMock, self).__init__(*args, **kwargs)
-
-    self.result_filename = result_filename
-    self.client_id = client_id
-
-  def RekallAction(self, _):
-    # Generate this file with:
-    # rekal --output data -f win7_trial_64bit.raw \
-    # pslist | gzip - > rekall_pslist_result.dat.gz
-    ps_list_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                self.result_filename)
-    result = rdf_rekall_types.RekallResponse(
-        json_messages=gzip.open(ps_list_file).read(),
-        plugin="pslist",
-        client_urn=self.client_id)
-
-    return [result]
 
 
 @db_test_lib.DualDBTest
@@ -489,62 +462,6 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     self.assertLen(col, 3)
     descriptions = [package.description for package in col]
     self.assertIn("Google Chrome", descriptions)
-
-  @parser_test_lib.WithParser("RekallPsList",
-                              rekall_artifact_parser.RekallPsListParser)
-  def testRekallPsListArtifact(self):
-    """Check we can run Rekall based artifacts."""
-    client_id = test_lib.TEST_CLIENT_ID
-    with test_lib.ConfigOverrider({
-        "Rekall.enabled":
-            True,
-        "Rekall.profile_server":
-            rekall_test_lib.TestRekallRepositoryProfileServer.__name__
-    }):
-      fd = self.RunCollectorAndGetCollection(["RekallPsList"],
-                                             RekallMock(
-                                                 client_id,
-                                                 "rekall_pslist_result.dat.gz"),
-                                             client_id=client_id)
-
-    self.assertLen(fd, 35)
-    self.assertEqual(fd[0].exe, "System")
-    self.assertEqual(fd[0].pid, 4)
-    self.assertIn("DumpIt.exe", [x.exe for x in fd])
-
-  @parser_test_lib.WithParser("RekallVad",
-                              rekall_artifact_parser.RekallVADParser)
-  def testRekallVadArtifact(self):
-    """Check we can run Rekall based artifacts."""
-    client_id = self.SetupClient(0, system="Windows")
-    # The client should now be populated with the data we care about.
-    kb = rdf_client.KnowledgeBase(os="Windows", environ_systemdrive=r"c:")
-    if data_store.RelationalDBReadEnabled():
-      client = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
-      client.knowledge_base = kb
-      data_store.REL_DB.WriteClientSnapshot(client)
-    else:
-      with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as fd:
-        fd.Set(fd.Schema.KNOWLEDGE_BASE, kb)
-
-    with test_lib.ConfigOverrider({
-        "Rekall.enabled":
-            True,
-        "Rekall.profile_server":
-            rekall_test_lib.TestRekallRepositoryProfileServer.__name__
-    }):
-      fd = self.RunCollectorAndGetCollection(["FullVADBinaryList"],
-                                             RekallMock(
-                                                 client_id,
-                                                 "rekall_vad_result.dat.gz"),
-                                             client_id=client_id)
-
-    self.assertLen(fd, 1705)
-    self.assertEqual(fd[0].path, u"c:\\Windows\\System32\\ntdll.dll")
-    for x in fd:
-      self.assertEqual(x.pathtype, "OS")
-      extension = x.path.lower().split(".")[-1]
-      self.assertIn(extension, ["exe", "dll", "pyd", "drv", "mui", "cpl"])
 
 
 class GrrKbTest(ArtifactTest):

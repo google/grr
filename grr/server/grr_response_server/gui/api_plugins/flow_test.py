@@ -10,6 +10,7 @@ import tarfile
 import zipfile
 
 
+from future.builtins import str
 import yaml
 
 from grr_response_core.lib import flags
@@ -183,7 +184,7 @@ class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):
             runner_args=flow_runner_args))
 
     result = self.handler.Handle(args, token=self.token)
-    self.assertNotStartsWith(unicode(result.urn), "aff4:/foo")
+    self.assertNotStartsWith(str(result.urn), "aff4:/foo")
 
 
 @db_test_lib.DualDBTest

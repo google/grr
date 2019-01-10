@@ -2,18 +2,142 @@ syntax = "proto2";
 
 import "google/protobuf/any.proto";
 
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/flows.proto";
+import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
 
 
+message HuntArgumentsStandard {
+  optional string flow_name = 1;
+  optional google.protobuf.Any flow_args = 2 [(sem_type) = {
+      dynamic_type: "GetFlowArgsClass"
+    }];
+};
+
+message VariableHuntFlowGroup {
+  repeated string client_ids = 1;
+  optional string flow_name = 2;
+  optional google.protobuf.Any flow_args = 3 [(sem_type) = {
+      dynamic_type: "GetFlowArgsClass"
+    }];
+}
+
+message HuntArgumentsVariable {
+  repeated VariableHuntFlowGroup flow_groups = 1;
+};
+
+message HuntArguments {
+  option (semantic) = {
+    union_field: "hunt_type"
+  };
+
+  enum HuntType {
+    UNSET = 0;
+    STANDARD = 1;
+    VARIABLE = 2;
+  };
+  optional HuntType hunt_type = 1;
+
+  optional HuntArgumentsStandard standard = 2;
+  optional HuntArgumentsVariable variable = 3;
+}
+
+// Next id: 31
 message Hunt {
   optional string hunt_id = 1;
   optional string description = 2;
   optional uint64 create_time = 3 [(sem_type) = {
       type: "RDFDatetime",
     }];
-  optional uint64 last_update_time = 4 [(sem_type) = {
+
+  optional string creator = 4;
+  optional HuntArguments args = 5;
+  optional ForemanClientRuleSet client_rule_set = 6 [(sem_type) = {
+      description: "Rules that trigger this hunt."
+    }];
+  optional uint64 expiry_time = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Expiry time for the hunt.",
+    }];
+  optional float client_rate = 8 [(sem_type) = {
+      description: "The maximum number of clients to engage per minute. "
+      "A rate of 0 means to schedule clients as fast as possible."
+    }];
+
+  repeated OutputPluginDescriptor output_plugins = 9 [(sem_type) = {
+      description: "Output plugins used for this hunt. These plugins will be "
+                   "applied to hunt results."
+    }];
+  optional uint64 client_limit = 10 [(sem_type) = {
+      description: "Maximum number of clients participating in the hunt. "
+      "Best practice is for all hunts to use a limit to start with and "
+      "remove it only when client impact has been assessed by looking at "
+      "hunt stats. Note that this limit can be overshot by a small number "
+      "of clients if there are multiple workers running. ",
+    }];
+  optional uint64 crash_limit = 11 [(sem_type) = {
+      description: "Maximum number of clients that are allowed to crash "
+      "before the hunt is automatically stopped.",
+    }];
+  optional uint64 avg_results_per_client_limit = 12 [(sem_type) = {
+      description: "If the average number of results per client becomes "
+      "greater than this limit, the hunt will be automatically stopped. The "
+      "average is calculated only after 1000 clients report back to the "
+      "hunt.",
+    }];
+  optional uint64 avg_cpu_seconds_per_client_limit = 13 [(sem_type) = {
+      description: "If the average CPU usage seconds per client becomes "
+      "greater than this limit, the hunt will be automatically stopped. The "
+      "average is calculated only after 1000 clients report back to the "
+      "hunt.",
+    }];
+  optional uint64 avg_network_bytes_per_client_limit = 14 [(sem_type) = {
+      description: "If the average network usage per client becomes "
+      "greater than this limit, the hunt will be automatically stopped. The "
+      "average is calculated only after 1000 clients report back to the "
+      "hunt.",
+    }];
+  optional uint64 per_client_cpu_limit = 15 [(sem_type) = {
+      description: "A cpu limit imposed on each client in the hunt.",
+    }];
+  optional uint64 per_client_network_bytes_limit = 16 [(sem_type) = {
+      description: "A network limit (in bytes) imposed on each client in the "
+      "hunt.",
+    }];
+
+  optional FlowLikeObjectReference original_object = 17 [(sem_type) = {
+      description: "If this hunt is a copy of another hunt or flow, we store "
+      "a reference to the original here.",
+    }];
+
+  // Attributes below indicate current hunt's tate and are modified by
+  // hunt-running code during hunt's lifetime.
+   enum HuntState {
+    UNSET = 0;
+    PAUSED = 1;
+    STARTED = 2;
+    STOPPED = 3;
+    COMPLETED = 4;
+  }
+  optional HuntState hunt_state = 18;
+  optional string hunt_state_comment = 19;
+
+  optional uint64 last_update_time = 20 [(sem_type) = {
       type: "RDFDatetime",
     }];
-  // TODO(user): rest of hunt attributes will be added
-  // in the upcoming CL.
+  optional uint64 start_time = 21 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional uint64 next_client_due = 22 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional ClientResourcesStats client_resources_stats = 23;
+  optional uint64 num_clients = 24;
+  optional uint64 num_successful_clients = 25;
+  optional uint64 num_failed_clients = 26;
+  optional uint64 num_clients_with_results = 27;
+  optional uint64 num_crashed_clients = 28;
+  optional uint64 num_results = 29;
+  repeated OutputPluginState output_plugins_states = 30;
 }

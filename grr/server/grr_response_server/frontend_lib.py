@@ -32,7 +32,6 @@ from grr_response_server import db
 from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import queue_manager
-from grr_response_server import rekall_profile_server
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -70,11 +69,11 @@ class ServerCommunicator(communicator.Communicator):
     cert = client.Get(client.Schema.CERT)
     if not cert:
       stats_collector_instance.Get().IncrementCounter("grr_unique_clients")
-      raise communicator.UnknownClientCert("Cert not found")
+      raise communicator.UnknownClientCertError("Cert not found")
 
     if rdfvalue.RDFURN(cert.GetCN()) != rdfvalue.RDFURN(common_name):
       logging.error("Stored cert mismatch for %s", common_name)
-      raise communicator.UnknownClientCert("Stored cert mismatch")
+      raise communicator.UnknownClientCertError("Stored cert mismatch")
 
     self.client_cache.Put(common_name, client)
     stats_collector_instance.Get().SetGaugeValue(
@@ -187,7 +186,7 @@ class ServerCommunicator(communicator.Communicator):
           except db.UnknownClientError:
             pass
 
-    except communicator.UnknownClientCert:
+    except communicator.UnknownClientCertError:
       pass
 
     return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
@@ -218,12 +217,12 @@ class RelationalServerCommunicator(communicator.Communicator):
       md = data_store.REL_DB.ReadClientMetadata(remote_client_id)
     except db.UnknownClientError:
       stats_collector_instance.Get().IncrementCounter("grr_unique_clients")
-      raise communicator.UnknownClientCert("Cert not found")
+      raise communicator.UnknownClientCertError("Cert not found")
 
     cert = md.certificate
     if rdfvalue.RDFURN(cert.GetCN()) != rdfvalue.RDFURN(common_name):
       logging.error("Stored cert mismatch for %s", common_name)
-      raise communicator.UnknownClientCert("Stored cert mismatch")
+      raise communicator.UnknownClientCertError("Stored cert mismatch")
 
     pub_key = cert.GetPublicKey()
     self.pub_key_cache.Put(common_name, pub_key)
@@ -308,7 +307,7 @@ class RelationalServerCommunicator(communicator.Communicator):
           last_ping=rdfvalue.RDFDatetime.Now(),
           fleetspeak_enabled=False)
 
-    except communicator.UnknownClientCert:
+    except communicator.UnknownClientCertError:
       pass
 
     return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
@@ -482,25 +481,36 @@ class FrontEndServer(object):
     return result
 
   def EnrolFleetspeakClient(self, client_id):
-    """Enrols a Fleetspeak-enabled client for use with GRR."""
+    """Enrols a Fleetspeak-enabled client for use with GRR.
+
+    Args:
+      client_id: GRR client-id for the client.
+
+    Returns:
+      True if the client is new, and actually got enrolled. This method
+      is a no-op if the client already exists (in which case False is returned).
+    """
     client_urn = rdf_client.ClientURN(client_id)
 
     # If already enrolled, return.
     if data_store.RelationalDBReadEnabled():
       try:
         data_store.REL_DB.ReadClientMetadata(client_id)
-        return
+        return False
       except db.UnknownClientError:
         pass
     else:
       if aff4.FACTORY.ExistsWithType(
           client_urn, aff4_type=aff4_grr.VFSGRRClient, token=self.token):
-        return
+        return False
 
     logging.info("Enrolling a new Fleetspeak client: %r", client_id)
 
     if data_store.RelationalDBWriteEnabled():
-      data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+      data_store.REL_DB.WriteClientMetadata(
+          client_id,
+          fleetspeak_enabled=True,
+          last_ping=rdfvalue.RDFDatetime.Now())
 
     # TODO(fleetspeak-team,grr-team): If aff4 isn't reliable enough, we can
     # catch exceptions from it and forward them to Fleetspeak by failing its
@@ -522,6 +532,7 @@ class FrontEndServer(object):
 
     # Publish the client enrollment message.
     events.Events.PublishEvent("ClientEnrollment", client_urn, token=self.token)
+    return True
 
   def ReceiveMessagesRelationalFlows(self, client_id, messages):
     """Receives and processes messages for flows stored in the relational db.
@@ -708,23 +719,3 @@ class FrontEndServer(object):
   def _GetClientPublicKey(self, client_id):
     client_obj = aff4.FACTORY.Open(client_id, token=aff4.FACTORY.root_token)
     return client_obj.Get(client_obj.Schema.CERT).GetPublicKey()
-
-  def _GetRekallProfileServer(self):
-    try:
-      return self._rekall_profile_server
-    except AttributeError:
-      server_type = config.CONFIG["Rekall.profile_server"]
-      self._rekall_profile_server = rekall_profile_server.ProfileServer.classes[
-          server_type]()
-      return self._rekall_profile_server
-
-  def GetRekallProfile(self, name, version="v1.0"):
-    server = self._GetRekallProfileServer()
-
-    logging.debug("Serving Rekall profile %s/%s", version, name)
-    try:
-      return server.GetProfileByName(name, version)
-    # TODO(amoser): We raise too many different exceptions in profile server.
-    except Exception as e:  # pylint: disable=broad-except
-      logging.debug("Unable to serve profile %s/%s: %s", version, name, e)
-      return None

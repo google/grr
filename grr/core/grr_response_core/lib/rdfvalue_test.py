@@ -8,6 +8,8 @@ from __future__ import unicode_literals
 
 
 from absl.testing import absltest
+from future.builtins import str
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr.test_lib import test_lib
@@ -30,8 +32,8 @@ class RDFValueTest(absltest.TestCase):
 
   def testStr(self):
     """Test RDFValue.__str__."""
-    self.assertEqual(unicode(rdfvalue.RDFBool(True)), "1")
-    self.assertEqual(unicode(rdfvalue.RDFString(long_string)), long_string)
+    self.assertEqual(str(rdfvalue.RDFBool(True)), "1")
+    self.assertEqual(str(rdfvalue.RDFString(long_string)), long_string)
 
   # TODO(hanuszczak): Current implementation of `repr` for RDF values is broken
   # and not in line with Python guidelines. For example, `repr` should be
@@ -58,7 +60,7 @@ class RDFStringTest(absltest.TestCase):
     string = u"pchnąć w tę łódź jeża lub ośm skrzyń fig"
 
     result = rdfvalue.RDFString.FromHumanReadable(string)
-    self.assertEqual(unicode(result), string)
+    self.assertEqual(str(result), string)
 
   def testEqualWithBytes(self):
     self.assertEqual(rdfvalue.RDFString(u"foo"), b"foo")
@@ -188,6 +190,15 @@ class RDFDateTimeTest(absltest.TestCase):
   def testFloorExact(self):
     datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
     self.assertEqual(datetime.Floor(rdfvalue.Duration("1s")), datetime)
+
+
+class DurationTest(absltest.TestCase):
+
+  def testPublicAttributes(self):
+    duration = rdfvalue.Duration("1h")
+    self.assertEqual(duration.seconds, 3600)
+    self.assertEqual(duration.milliseconds, 3600 * 1000)
+    self.assertEqual(duration.microseconds, 3600 * 1000 * 1000)
 
 
 def main(argv):

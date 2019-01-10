@@ -21,7 +21,7 @@ module.exports = function(config) {
 
     // Available reporters:
     // https://npmjs.org/browse/keyword/karma-reporter
-    reporters: ['progress'],
+    reporters: ['spec'],
 
     basePath: '../',
 

@@ -46,7 +46,6 @@
 @import '../angular-components/hunt/hunt-overview';
 @import '../angular-components/hunt/new-hunt-wizard/configure-flow-page';
 @import '../angular-components/hunt/new-hunt-wizard/review-page';
-@import '../angular-components/semantic/rekall/rekall';
 @import '../angular-components/semantic/semantic-diff-annotated-proto';
 @import '../angular-components/semantic/semantic-versioned-proto';
 @import '../angular-components/semantic/stat-entry';
@@ -55,6 +54,8 @@
 @import '../angular-components/sidebar/client-summary';
 @import '../angular-components/sidebar/client-warnings';
 @import '../angular-components/sidebar/navigator';
+@import '../angular-components/stats/comparison-chart';
+@import '../angular-components/stats/line-chart';
 @import '../angular-components/stats/report-listing';
 @import '../angular-components/stats/stats-view';
 @import '../angular-components/stats/chart';
@@ -233,6 +234,7 @@ label.btn {
     right: 0;
     top: 0;
     bottom: 0;
+    overflow: auto;
   }
 }
 
@@ -886,48 +888,13 @@ td.artifact_table {
   vertical-align: top !important;
 }
 
-abbr[title] {
+abbr[title],
+.cursor-pointer {
   cursor: pointer;
 }
 
 .dl-group {
   margin-bottom: 1em;
-}
-
-
-//
-//
-// Graphs: wrapper around jQuery Flot to provide graph title and axis labels
-//
-//
-
-table.grr_flot_graph {
-  width: 100%;
-
-  .title {
-    font-size: 1.2em;
-    font-weight: bold;
-    text-align: center;
-  }
-
-  .axis-x,
-  .axis-y {
-    font-weight: bold;
-    text-align: center;
-  }
-
-  .axis-y {
-    transform: rotate(-90deg);
-    width: 40px;
-  }
-
-  .graph-wrapper {
-    position: relative;
-  }
-
-  td.legendColorBox {
-    padding-right: 3px;
-  }
 }
 
 

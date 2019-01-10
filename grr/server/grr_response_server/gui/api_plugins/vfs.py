@@ -12,8 +12,9 @@ import stat
 import zipfile
 
 
-from builtins import filter  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import filter
+from future.builtins import range
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 
@@ -427,7 +428,7 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
     # TODO(hanuszczak): The tests passed even without support for timestamp
     # filtering. The test suite should be probably improved in that regard.
-    client_id = unicode(args.client_id)
+    client_id = str(args.client_id)
     path_infos = data_store.REL_DB.ReadPathInfoHistory(client_id, path_type,
                                                        components)
     path_infos.reverse()
@@ -501,7 +502,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFilesResult
 
   def _GetRootChildren(self, args, token=None):
-    client_id = unicode(args.client_id)
+    client_id = str(args.client_id)
 
     items = []
 
@@ -787,7 +788,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
     ValidateVfsPath(args.file_path)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-    client_path = db.ClientPath(unicode(args.client_id), path_type, components)
+    client_path = db.ClientPath(str(args.client_id), path_type, components)
 
     try:
       fd = file_store.OpenFile(client_path, max_timestamp=args.timestamp)
@@ -880,7 +881,7 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
     ValidateVfsPath(args.file_path)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-    client_path = db.ClientPath(unicode(args.client_id), path_type, components)
+    client_path = db.ClientPath(str(args.client_id), path_type, components)
 
     file_obj = file_store.OpenFile(client_path, max_timestamp=args.timestamp)
     size = max(0, file_obj.size - args.offset)
@@ -945,7 +946,7 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
       return ApiGetFileVersionTimesResult(times=[])
 
     history = data_store.REL_DB.ReadPathInfoHistory(
-        unicode(args.client_id), path_type, components)
+        str(args.client_id), path_type, components)
     times = reversed([pi.timestamp for pi in history])
 
     return ApiGetFileVersionTimesResult(times=times)
@@ -1042,7 +1043,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
       components_copy = components_copy[:-1]
 
     res = data_store.REL_DB.ReadPathInfos(
-        unicode(args.client_id), path_type, all_components)
+        str(args.client_id), path_type, all_components)
 
     for k in sorted(res, key=len, reverse=True):
       path_info = res[k]
@@ -1091,7 +1092,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
       flow_cls = filesystem.RecursiveListDirectory
 
     flow_id = flow.StartFlow(
-        client_id=unicode(args.client_id),
+        client_id=str(args.client_id),
         flow_cls=flow_cls,
         flow_args=flow_args,
         creator=token.username if token else None)
@@ -1159,7 +1160,7 @@ class ApiGetVfsRefreshOperationStateHandler(
   def _HandleRelational(self, args):
     try:
       rdf_flow = data_store.REL_DB.ReadFlowObject(
-          unicode(args.client_id), unicode(args.operation_id))
+          str(args.client_id), str(args.operation_id))
     except db.UnknownFlowError:
       self._RaiseOperationNotFoundError(args)
 
@@ -1202,7 +1203,7 @@ class ApiGetVfsRefreshOperationStateHandler(
 def _GetTimelineStatEntriesLegacy(client_id, file_path, with_history=True):
   """Gets timeline entries from AFF4."""
 
-  folder_urn = aff4.ROOT_URN.Add(unicode(client_id)).Add(file_path)
+  folder_urn = aff4.ROOT_URN.Add(str(client_id)).Add(file_path)
 
   child_urns = []
   for _, children in aff4.FACTORY.RecursiveMultiListChildren([folder_urn]):
@@ -1214,7 +1215,7 @@ def _GetTimelineStatEntriesLegacy(client_id, file_path, with_history=True):
     timestamp = aff4.NEWEST_TIME
 
   for fd in aff4.FACTORY.MultiOpen(child_urns, age=timestamp):
-    file_path = "/".join(unicode(fd.urn).split("/")[2:])
+    file_path = "/".join(str(fd.urn).split("/")[2:])
 
     if not with_history:
       yield file_path, fd.Get(fd.Schema.STAT), fd.Get(fd.Schema.HASH)
@@ -1240,7 +1241,7 @@ def _GetTimelineStatEntriesRelDB(api_client_id, file_path, with_history=True):
   """Gets timeline entries from REL_DB."""
   path_type, components = rdf_objects.ParseCategorizedPath(file_path)
 
-  client_id = unicode(api_client_id)
+  client_id = str(api_client_id)
 
   try:
     root_path_info = data_store.REL_DB.ReadPathInfo(client_id, path_type,
@@ -1381,10 +1382,10 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
     for start in range(0, len(items), self.CHUNK_SIZE):
       for item in items[start:start + self.CHUNK_SIZE]:
         writer.WriteRow([
-            unicode(item.timestamp.AsMicrosecondsSinceEpoch()),
-            unicode(item.timestamp),
+            str(item.timestamp.AsMicrosecondsSinceEpoch()),
+            str(item.timestamp),
             item.file_path,
-            unicode(item.action),
+            str(item.action),
         ])
 
       yield writer.Content().encode("utf-8")
@@ -1404,7 +1405,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
       writer = csv.Writer(delimiter=u"|")
 
       if hash_v and hash_v.md5:
-        hash_str = hash_v.md5.HexDigest().decode("ascii")
+        hash_str = hash_v.md5.HexDigest()
       else:
         hash_str = u""
 
@@ -1414,15 +1415,15 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
       writer.WriteRow([
           hash_str,
           path,
-          unicode(st.st_ino),
-          unicode(st.st_mode),
-          unicode(st.st_uid),
-          unicode(st.st_gid),
-          unicode(st.st_size),
-          unicode(int(st.st_atime or 0)),
-          unicode(int(st.st_mtime or 0)),
-          unicode(int(st.st_ctime or 0)),
-          unicode(int(st.st_crtime or 0)),
+          str(st.st_ino),
+          str(st.st_mode),
+          str(st.st_uid),
+          str(st.st_gid),
+          str(st.st_size),
+          str(int(st.st_atime or 0)),
+          str(int(st.st_mtime or 0)),
+          str(int(st.st_ctime or 0)),
+          str(int(st.st_crtime or 0)),
       ])
 
       yield writer.Content().encode("utf-8")
@@ -1488,7 +1489,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
 
     path_info = data_store.REL_DB.ReadPathInfo(
-        unicode(args.client_id), path_type, components)
+        str(args.client_id), path_type, components)
 
     if (not path_info or not path_info.stat_entry or
         not path_info.stat_entry.pathspec):
@@ -1497,7 +1498,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
     flow_args = transfer.MultiGetFileArgs(
         pathspecs=[path_info.stat_entry.pathspec])
     flow_id = flow.StartFlow(
-        client_id=unicode(args.client_id),
+        client_id=str(args.client_id),
         flow_cls=transfer.MultiGetFile,
         flow_args=flow_args)
     return ApiUpdateVfsFileContentResult(operation_id=flow_id)
@@ -1526,7 +1527,7 @@ class ApiGetVfsFileContentUpdateStateHandler(
   def _HandleRelational(self, args):
     try:
       rdf_flow = data_store.REL_DB.ReadFlowObject(
-          unicode(args.client_id), unicode(args.operation_id))
+          str(args.client_id), str(args.operation_id))
     except db.UnknownFlowError:
       raise VfsFileContentUpdateNotFoundError(
           "Operation with id %s not found" % args.operation_id)
@@ -1696,7 +1697,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     yield archive_generator.Close()
 
   def _HandleRelational(self, args, token=None):
-    client_id = unicode(args.client_id)
+    client_id = str(args.client_id)
     path = args.file_path
     if not path:
       start_paths = ["fs/os", "fs/tsk", "registry", "temp"]
@@ -1745,7 +1746,7 @@ class ApiGetFileDecodersHandler(api_call_handler_base.ApiCallHandler):
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
     urn = args.client_id.ToClientURN().Add(args.file_path)
     client_path = db.ClientPath(
-        client_id=unicode(args.client_id),
+        client_id=str(args.client_id),
         path_type=path_type,
         components=components)
 
@@ -1788,7 +1789,7 @@ class ApiGetDecodedFileHandler(api_call_handler_base.ApiCallHandler):
     decoder = decoders.FACTORY.Create(args.decoder_name)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-    client_path = db.ClientPath(unicode(args.client_id), path_type, components)
+    client_path = db.ClientPath(str(args.client_id), path_type, components)
 
     fd = file_store.OpenFile(client_path)
     return api_call_handler_base.ApiBinaryStream(

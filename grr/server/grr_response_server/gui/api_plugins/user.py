@@ -10,6 +10,7 @@ import itertools
 import logging
 
 
+from future.builtins import str
 from future.utils import itervalues
 import jinja2
 
@@ -1087,7 +1088,7 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
     if args.keep_client_alive:
       if data_store.RelationalDBFlowsEnabled():
         flow.StartFlow(
-            client_id=unicode(args.client_id),
+            client_id=str(args.client_id),
             flow_cls=administrative.KeepAlive,
             creator=token.username,
             duration=3600)
@@ -1216,7 +1217,7 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
   def HandleRelationalDB(self, args, token=None):
     subject_id = None
     if args.client_id:
-      subject_id = unicode(args.client_id)
+      subject_id = str(args.client_id)
 
     approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(

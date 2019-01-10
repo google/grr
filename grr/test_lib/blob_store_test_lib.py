@@ -2,6 +2,7 @@
 """Test library for blob store-related code."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 from grr_response_core import config
 from grr_response_core.lib.util import compatibility

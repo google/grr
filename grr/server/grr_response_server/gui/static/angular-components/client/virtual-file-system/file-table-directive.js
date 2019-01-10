@@ -67,20 +67,20 @@ const FileTableController = function(
    */
   this.triggerUpdate;
 
+  /** @type {string} */
+  this.viewMode = 'list';
+
+  // We have to change 'viewMode' in the template via a ng-model binding. Doing so
+  // requires having viewMode as a controller attribute (see
+  // https://github.com/angular/angular.js/wiki/Understanding-Scopes).
+  this.scope_.$watch('viewMode', newVal => this.viewMode = newVal);
+  this.scope_.$watch('controller.viewMode', newVal => this.scope_['viewMode'] = newVal);
+
   this.scope_.$on(REFRESH_FOLDER_EVENT, this.refreshFileList_.bind(this));
   this.scope_.$on(REFRESH_FILE_EVENT, this.refreshFileList_.bind(this));
 
   this.scope_.$watch('controller.fileContext.clientId', this.refreshFileList_.bind(this));
   this.scope_.$watch('controller.fileContext.selectedFilePath', this.onFilePathChange_.bind(this));
-};
-
-
-
-/**
- * @param {string} mode
- */
-FileTableController.prototype.setViewMode = function(mode) {
-  this.scope_['viewMode'] = mode;
 };
 
 

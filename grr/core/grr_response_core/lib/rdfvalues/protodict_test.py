@@ -17,8 +17,9 @@ from __future__ import unicode_literals
 import collections
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import zip
 from future.utils import iteritems
+from typing import Text
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -231,7 +232,7 @@ class RDFValueArrayTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     # Test iterator.
     sample_list = list(sample)
     self.assertIsInstance(sample_list, list)
-    self.assertIsInstance(sample_list[0], unicode)
+    self.assertIsInstance(sample_list[0], Text)
     self.assertIsInstance(sample_list[1], rdfvalue.RDFString)
 
     # Test initialization from a list of variable types.

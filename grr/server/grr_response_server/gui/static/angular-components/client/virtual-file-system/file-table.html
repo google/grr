@@ -40,24 +40,20 @@
 
         <grr-r-we-owned-button class="space-right"></grr-r-we-owned-button>
 
-        <div class="btn-group" data-toggle="buttons">
+        <div class="btn-group" uib-dropdown>
           <label class="btn btn-default"
-                 ng-class="{'active': viewMode == 'list'}"
-                 ng-click="controller.setViewMode('list')">
-            <input type="radio" name="show-client-details" checked>
+                 uib-btn-radio="'list'" ng-model="controller.viewMode">
             <i class="fa fa-list"></i> File list
           </label>
           <label class="btn btn-default"
-                 ng-class="{'active': viewMode == 'timeline'}"
-                 ng-click="controller.setViewMode('timeline')">
-            <input type="radio" name="show-client-details">
+                 uib-btn-radio="'timeline'" ng-model="controller.viewMode">
             <i class="fa fa-history"></i> Timeline
           </label>
           <button name="timelineDropdown" class="btn btn-default dropdown-toggle"
-                  data-toggle="dropdown">
+                  uib-dropdown-toggle>
             <span class="caret"></span>
           </button>
-          <ul class="dropdown-menu">
+          <ul class="dropdown-menu" uib-dropdown-menu>
             <li>
               <a name="downloadTimelineGrrFormat"
                  ng-click="controller.downloadTimeline('GRR'); $event.preventDefault()"
@@ -86,7 +82,7 @@
 
   <div class="content">
     <div grr-force-refresh refresh-trigger="controller.fileListUrl"
-         ng-if="viewMode == 'list'">
+         ng-if="controller.viewMode === 'list'">
       <table class="table table-striped table-condensed table-hover table-bordered full-width file-list">
 
         <thead>
@@ -138,8 +134,8 @@
 
     </div>
 
-    <grr-file-timeline ng-if="viewMode == 'timeline'"
-                         filter-value="controller.filterValue">
+    <grr-file-timeline ng-if="controller.viewMode === 'timeline'"
+                       filter-value="controller.filterValue">
     </grr-file-timeline>
 
   </div>

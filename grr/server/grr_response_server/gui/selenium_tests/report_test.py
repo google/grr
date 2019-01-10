@@ -7,8 +7,10 @@ from __future__ import unicode_literals
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server.gui import gui_test_lib
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
@@ -16,13 +18,26 @@ from grr.test_lib import test_lib
 def AddFakeAuditLog(description=None,
                     client=None,
                     user=None,
-                    token=None,
-                    **kwargs):
+                    action=None,
+                    router_method_name=None,
+                    flow_name=None,
+                    token=None):
   events.Events.PublishEvent(
       "Audit",
       rdf_events.AuditEvent(
-          description=description, client=client, user=user, **kwargs),
+          description=description,
+          client=client,
+          user=user,
+          action=action,
+          flow_name=flow_name),
       token=token)
+
+  if data_store.RelationalDBWriteEnabled():
+    data_store.REL_DB.WriteAPIAuditEntry(
+        rdf_objects.APIAuditEntry(
+            username=user,
+            router_method_name=router_method_name,
+        ))
 
 
 @db_test_lib.DualDBTest
@@ -33,19 +48,11 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     """Test the reports interface."""
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
-      AddFakeAuditLog(
-          "Fake audit description 14 Dec.",
-          "C.123",
-          "User123",
-          token=self.token)
+      AddFakeAuditLog(client="C.123", user="User123", token=self.token)
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
-      AddFakeAuditLog(
-          "Fake audit description 22 Dec.",
-          "C.456",
-          "User456",
-          token=self.token)
+      AddFakeAuditLog(client="C.456", user="User456", token=self.token)
 
     # Make "test" user an admin.
     self.CreateAdminUser(u"test")
@@ -55,14 +62,12 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     # Go to reports.
     self.Click("css=#MostActiveUsersReportPlugin_anchor i.jstree-icon")
     self.WaitUntil(self.IsTextPresent, "Server | User Breakdown")
-    self.WaitUntil(self.IsTextPresent, "No data to display.")
 
     # Enter a timerange that only matches one of the two fake events.
     self.Type("css=grr-form-datetime input", "2012-12-21 12:34")
     self.Click("css=button:contains('Show report')")
 
     self.WaitUntil(self.IsTextPresent, "User456")
-    self.WaitUntil(self.IsTextPresent, "100%")
     self.assertFalse(self.IsTextPresent("User123"))
 
   def testReportsDontIncludeTimerangesInUrlsOfReportsThatDontUseThem(self):

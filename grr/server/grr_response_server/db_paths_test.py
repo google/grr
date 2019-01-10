@@ -214,6 +214,36 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(result.hash_entry.md5, hashlib.md5("foo").digest())
     self.assertEqual(result.hash_entry.num_bytes, len("foo"))
 
+  def testWriteMultiplePathInfosHashEntry(self):
+    client_id = self.InitializeClient()
+
+    names = ["asd", "Qwe", "foo", "bar", "baz"]
+    path_infos = []
+    for name in names:
+      hash_entry = rdf_crypto.Hash()
+      hash_entry.sha256 = hashlib.sha256(name).digest()
+      hash_entry.md5 = hashlib.md5(name).digest()
+      hash_entry.num_bytes = len(name)
+
+      path_infos.append(
+          rdf_objects.PathInfo.OS(
+              components=["foo", "bar", "baz", name], hash_entry=hash_entry))
+
+    self.db.WritePathInfos(client_id, path_infos)
+
+    for name in names:
+      result = self.db.ReadPathInfo(
+          client_id,
+          rdf_objects.PathInfo.PathType.OS,
+          components=("foo", "bar", "baz", name))
+
+      self.assertEqual(result.components, ["foo", "bar", "baz", name])
+      self.assertTrue(result.HasField("hash_entry"))
+      self.assertFalse(result.HasField("stat_entry"))
+      self.assertEqual(result.hash_entry.sha256, hashlib.sha256(name).digest())
+      self.assertEqual(result.hash_entry.md5, hashlib.md5(name).digest())
+      self.assertEqual(result.hash_entry.num_bytes, len(name))
+
   def testWritePathInfosHashAndStatEntry(self):
     client_id = self.InitializeClient()
 

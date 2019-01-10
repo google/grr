@@ -2,6 +2,7 @@
 """Interface to Objective C libraries on OS X."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import ctypes
@@ -10,10 +11,12 @@ import logging
 import subprocess
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 from future.utils import iteritems
+from future.utils import python_2_unicode_compatible
 from future.utils import string_types
 from past.builtins import long
+from typing import Text
 
 # kCFStringEncodingUTF8
 UTF8 = 134217984
@@ -134,7 +137,7 @@ class Foundation(object):
     length = (self.dll.CFStringGetLength(value) * 4) + 1
     buff = ctypes.create_string_buffer(length)
     self.dll.CFStringGetCString(value, buff, length * 4, UTF8)
-    return unicode(buff.value, 'utf8')
+    return buff.value.decode('utf-8')
 
   def IntToCFNumber(self, num):
     if not isinstance(num, (int, long)):
@@ -306,6 +309,7 @@ class CFNumber(CFType):
     return str(self.value)
 
 
+@python_2_unicode_compatible
 class CFString(CFType):
   """Wrapper class for CFString to behave like a python string."""
 
@@ -327,8 +331,8 @@ class CFString(CFType):
   def __len__(self):
     return self.dll.CFArrayGetCount(self.ref)
 
-  def __unicode__(self):
-    return unicode(self.value)
+  def __str__(self):
+    return self.value
 
   def __repr__(self):
     return self.value

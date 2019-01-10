@@ -9,6 +9,7 @@ import re
 
 
 from future.utils import with_metaclass
+from typing import Text
 
 from grr_response_core.lib import registry
 from grr_response_core.lib.util import compatibility
@@ -111,7 +112,7 @@ class RouterMethodMetadata(object):
                category=None,
                http_methods=None,
                no_audit_log_required=False):
-    precondition.AssertType(name, unicode)
+    precondition.AssertType(name, Text)
 
     self.name = name
     self.doc = doc

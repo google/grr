@@ -167,7 +167,7 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest,
     self.Ok("aff4:/ACL/randomuser", access)
 
     self.Ok("aff4:/stats", access)
-    self.Ok("aff4:/stats/FileStoreStats", access)
+    self.Ok("aff4:/stats/ClientFleetStats", access)
 
     self.Ok("aff4:/config", access)
     self.Ok("aff4:/config/drivers", access)

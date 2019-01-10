@@ -109,16 +109,16 @@ class TestYaraProcessDump(test_base.AbstractFileTransferTest):
     process_name = GetProcessName(self.platform)
     args.process_regex = GetProcessNameRegex(self.platform)
     args.ignore_grr_process = False
-    args.size_limit = 100 * 1024 * 1024
+    args.size_limit = 1024 * 1024
 
     f = self.RunFlowAndWait("YaraDumpProcessMemory", args=args)
 
     results = [x.payload for x in f.ListResults()]
-    self.assertTrue(results, "Expected at least a YaraProcessDumpResponse.")
+    self.assertNotEmpty(results, "Expected at least a YaraProcessDumpResponse.")
     process_dump_response = results[0]
-    self.assertTrue(process_dump_response.dumped_processes,
-                    "Expected at least one dumped process.")
-    self.assertFalse(process_dump_response.errors)
+    self.assertNotEmpty(process_dump_response.dumped_processes,
+                        "Expected at least one dumped process.")
+    self.assertEmpty(process_dump_response.errors)
 
     dump_file_count = 0
     paths_in_dump_response = set()
@@ -126,7 +126,7 @@ class TestYaraProcessDump(test_base.AbstractFileTransferTest):
       self.assertEqual(dump_info.process.name, process_name)
       paths_in_dump_response.update(
           {f.path[f.path.find(process_name):] for f in dump_info.dump_files})
-      self.assertTrue(dump_info.dump_files)
+      self.assertNotEmpty(dump_info.dump_files)
       dump_file_count += len(dump_info.dump_files)
 
     # There should be as many StatEntry responses as the total number of
@@ -139,7 +139,7 @@ class TestYaraProcessDump(test_base.AbstractFileTransferTest):
           dump_file.pathspec.path[dump_file.pathspec.path.find(process_name):])
 
       size = dump_file.st_size
-      self.assertTrue(size)
+      self.assertGreater(size, 0)
 
       if size >= 10:
         data = self.ReadFromFile("temp%s" % dump_file.pathspec.path, 10)

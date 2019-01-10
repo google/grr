@@ -8,6 +8,8 @@ import datetime
 import io
 import os
 
+from future.builtins import str
+
 from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import ie_history
 from grr.test_lib import test_lib

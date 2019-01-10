@@ -5,8 +5,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import range  # pylint: disable=redefined-builtin
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.builtins import str
+from future.builtins import zip
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -393,14 +394,14 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.handler.Handle(self.args, self.token)
 
     if data_store.RelationalDBFlowsEnabled():
-      flows = data_store.REL_DB.ReadAllFlowObjects(unicode(self.args.client_id))
+      flows = data_store.REL_DB.ReadAllFlowObjects(
+          client_id=str(self.args.client_id))
+      flow_class_names = [f.flow_class_name for f in flows]
     else:
       flows = aff4.FACTORY.Open(
           self.subject_urn.Add("flows"), token=self.token).OpenChildren()
-      keep_alive_flow = [
-          f for f in flows if compatibility.GetName(f.__class__) == "KeepAlive"
-      ]
-      self.assertLen(keep_alive_flow, 1)
+      flow_class_names = [compatibility.GetName(f.__class__) for f in flows]
+    self.assertEqual(flow_class_names, ["KeepAlive"])
 
 
 @db_test_lib.DualDBTest

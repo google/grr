@@ -753,6 +753,7 @@ class PackageSourceParser(parser.FileParser):
     """Stub Method to be overriden by APT and Yum source parsers."""
     raise NotImplementedError("Please implement FindPotentialURIs.")
 
+  # TODO: Make sure all special cases are caught by this function.
   def ParseURIFromKeyValues(self, data, separator, uri_key):
     """Parse key/value formatted source listing and return potential URLs.
 

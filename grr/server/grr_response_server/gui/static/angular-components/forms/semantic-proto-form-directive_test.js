@@ -471,11 +471,15 @@ describe('semantic proto form directive', () => {
   });
 
   describe('form for structure with 1 dynamic field', () => {
-    const defaultFooStructValue = {
-      type: 'Foo',
-      mro: ['Foo', 'RDFProtoStruct'],
-      value: {},
-    };
+    let defaultFooStructValue;
+
+    beforeEach(() => {
+      defaultFooStructValue = {
+        type: 'Foo',
+        mro: ['Foo', 'RDFProtoStruct'],
+        value: {},
+      };
+    });
 
     beforeEach(() => {
       // Reflection service is a mock. Stub out the getRDFValueDescriptor method

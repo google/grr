@@ -269,7 +269,7 @@ def ScheduleSystemCronFlows(names=None, token=None):
       errors.append("No such flow: %s." % name)
       continue
 
-    if not aff4.issubclass(cls, SystemCronFlow):
+    if not issubclass(cls, SystemCronFlow):
       errors.append("Disabled system cron job name doesn't correspond to "
                     "a flow inherited from SystemCronFlow: %s" % name)
 
@@ -279,7 +279,7 @@ def ScheduleSystemCronFlows(names=None, token=None):
   for name in names:
     cls = registry.AFF4FlowRegistry.FlowClassByName(name)
 
-    if not aff4.issubclass(cls, SystemCronFlow):
+    if not issubclass(cls, SystemCronFlow):
       continue
 
     cron_args = rdf_cronjobs.CreateCronJobFlowArgs(

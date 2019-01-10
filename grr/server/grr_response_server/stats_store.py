@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
+import random
 import re
 import threading
 import time
@@ -27,12 +28,19 @@ from grr_response_server import timeseries
 from grr_response_server.aff4_objects import stats_store as aff4_stats_store
 
 # Type alias representing a time-range.
+# TODO: pylint: disable=invalid-name
 _TimeRange = Tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
+# TODO: pylint: enable=invalid-name
 
 # Maximum number of StatsStoreEntries to load into memory at any given
 # time. Assuming the size of a single entry is ~100B in memory, this
 # translates to ~5GB.
 _MAX_STATS_ENTRIES = 50 * 1000 * 1000
+
+# A multiplier used to determine the maximum duration processes should
+# wait before starting to write stats to the data-store. This is a fraction
+# of the configured write-interval for stats.
+_STATS_WRITE_INTERVAL_JITTER = 0.25
 
 
 def ReadStats(process_id_prefix,
@@ -120,16 +128,19 @@ def _WriteStats(process_id,
   """
   if _ShouldUseRelationalDB():
     stats_entries = _GenerateStatsEntries(process_id, timestamp=timestamp)
+    logging.info("Writing %d stats entries to the DB.", len(stats_entries))
     data_store.REL_DB.WriteStatsStoreEntries(stats_entries)
   else:
     aff4_stats_store.STATS_STORE.WriteStats(
         process_id=process_id, timestamp=timestamp)
 
 
+# TODO: pyformat: disable
 def _GenerateStatsEntries(
     process_id,
     timestamp = None
 ):
+  # TODO: pyformat: enable
   """Returns StatsStoreEntries with current data-points for all defined metrics.
 
   Args:
@@ -559,22 +570,24 @@ class StatsStoreDataQuery(object):
 class _StatsStoreWorker(object):
   """_StatsStoreWorker periodically dumps stats data into the stats store."""
 
-  def __init__(self, process_id, thread_name="grr_stats_saver", sleep=None):
+  def __init__(self, process_id, thread_name="grr_stats_saver"):
     super(_StatsStoreWorker, self).__init__()
 
     self.process_id = process_id
     self.thread_name = thread_name
-    self.sleep = sleep or config.CONFIG["StatsStore.write_interval"]
+    self._write_interval_secs = config.CONFIG["StatsStore.write_interval"]
 
   def _RunLoop(self):
     """Periodically dumps metric values for the current process to the db."""
+    # Sleep for a random fraction of the write-interval, so that writes for
+    # all GRR processes are more spread-out.
+    max_jitter_secs = _STATS_WRITE_INTERVAL_JITTER * self._write_interval_secs
+    time.sleep(random.uniform(0, max_jitter_secs))
     while True:
       try:
-        logging.debug("Writing stats to stats store.")
         _WriteStats(process_id=self.process_id)
         # We use a cronjob to delete stats from the relational DB.
         if not _ShouldUseRelationalDB():
-          logging.debug("Removing old stats from stats store.")
           _DeleteStatsFromLegacyDB(self.process_id)
       except Exception as e:  # pylint: disable=broad-except
         # Log all exceptions and continue, since we do not want transient
@@ -582,12 +595,13 @@ class _StatsStoreWorker(object):
         # TODO(user): Add monitoring for these exceptions.
         logging.exception("Encountered an error while writing stats: %s", e)
 
-      time.sleep(self.sleep)
+      time.sleep(self._write_interval_secs)
 
   def Run(self):
     self.RunAsync().join()
 
   def RunAsync(self):
+    # TODO:
     # pytype: disable=wrong-arg-types
     self.running_thread = threading.Thread(
         name=self.thread_name, target=self._RunLoop)

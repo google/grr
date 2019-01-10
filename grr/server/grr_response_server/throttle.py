@@ -56,10 +56,11 @@ class FlowThrottler(object):
     """
     if data_store.RelationalDBFlowsEnabled():
       flow_list = data_store.REL_DB.ReadAllFlowObjects(
-          client_id, min_create_time=min_create_time)
+          client_id=client_id,
+          min_create_time=min_create_time,
+          include_child_flows=False)
       for flow_obj in flow_list:
-        if not flow_obj.parent_flow_id:
-          yield flow_obj
+        yield flow_obj
     else:
       now = rdfvalue.RDFDatetime.Now()
       client_id_urn = rdf_client.ClientURN(client_id)

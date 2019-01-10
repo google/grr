@@ -2,6 +2,7 @@
 """Output plugins that are used in flow tests."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 from grr_response_server import output_plugin
 

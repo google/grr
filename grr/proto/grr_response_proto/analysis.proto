@@ -61,3 +61,16 @@ message Event {
   // The sequential number of this event as stored in the time series.
   optional uint32 id = 6;
 };
+
+// Container for graphs containing client stats for a particular report type.
+message ClientGraphSeries {
+  enum ReportType {
+    UNKNOWN = 0;
+    GRR_VERSION = 1;
+    OS_TYPE = 2;
+    OS_RELEASE = 3;
+    N_DAY_ACTIVE = 4;
+  }
+  optional ReportType report_type = 1;
+  repeated Graph graphs = 2;
+}

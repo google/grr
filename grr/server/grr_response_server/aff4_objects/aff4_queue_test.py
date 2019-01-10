@@ -4,7 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.builtins import str
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -197,7 +198,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(
         100,
         sum(1 for _ in data_store.DB.ScanAttribute(
-            unicode(queue.urn.Add("Records")),
+            str(queue.urn.Add("Records")),
             data_store.DataStore.QUEUE_LOCK_ATTRIBUTE)))
 
     with aff4.FACTORY.OpenWithLock(
@@ -208,7 +209,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(
         0,
         sum(1 for _ in data_store.DB.ScanAttribute(
-            unicode(queue.urn.Add("Records")),
+            str(queue.urn.Add("Records")),
             data_store.DataStore.QUEUE_LOCK_ATTRIBUTE)))
 
 

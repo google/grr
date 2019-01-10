@@ -6,6 +6,8 @@ from __future__ import unicode_literals
 
 import sys
 
+from future.builtins import str
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
@@ -299,7 +301,7 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     try:
       cron_job = aff4_cronjobs.GetCronManager().ReadJob(
-          unicode(args.cron_job_id), token=token)
+          str(args.cron_job_id), token=token)
 
       return ApiCronJob().InitFromObject(cron_job)
     except (aff4.InstantiationError, db.UnknownCronJobError):
@@ -329,7 +331,7 @@ class ApiListCronJobRunsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     if data_store.RelationalDBReadEnabled(category="cronjobs"):
-      runs = cronjobs.CronManager().ReadJobRuns(unicode(args.cron_job_id))
+      runs = cronjobs.CronManager().ReadJobRuns(str(args.cron_job_id))
       start = args.offset
       if args.count:
         end = args.offset + args.count
@@ -369,7 +371,7 @@ class ApiGetCronJobRunHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     if data_store.RelationalDBReadEnabled(category="cronjobs"):
       run = cronjobs.CronManager().ReadJobRun(
-          unicode(args.cron_job_id), unicode(args.run_id))
+          str(args.cron_job_id), str(args.run_id))
       if not run:
         raise CronJobRunNotFoundError(
             "Cron job run with id %s could not be found" % args.run_id)
@@ -449,7 +451,7 @@ class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiForceRunCronJobArgs
 
   def Handle(self, args, token=None):
-    job_id = unicode(args.cron_job_id)
+    job_id = str(args.cron_job_id)
     if data_store.RelationalDBReadEnabled(category="cronjobs"):
       aff4_cronjobs.GetCronManager().RequestForcedRun(job_id)
     else:
@@ -471,7 +473,7 @@ class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiCronJob
 
   def Handle(self, args, token=None):
-    cron_id = unicode(args.cron_job_id)
+    cron_id = str(args.cron_job_id)
     if args.enabled:
       aff4_cronjobs.GetCronManager().EnableJob(cron_id, token=token)
     else:
@@ -494,5 +496,4 @@ class ApiDeleteCronJobHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiDeleteCronJobArgs
 
   def Handle(self, args, token=None):
-    aff4_cronjobs.GetCronManager().DeleteJob(
-        unicode(args.cron_job_id), token=token)
+    aff4_cronjobs.GetCronManager().DeleteJob(str(args.cron_job_id), token=token)

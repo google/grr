@@ -13,7 +13,9 @@ describe('download collection files directive', () => {
 
 
   const $window = {
-    navigator: {},
+    navigator: {
+      appVersion: ''
+    },
   };
   beforeEach(module(($provide) => {
     $provide.value('$window', $window);
