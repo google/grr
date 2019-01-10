@@ -36,6 +36,12 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
 
   Each test method has uniquely-named metrics to accommodate implementations
   that do not support re-definition of metrics.
+
+  For Events, the exact boundaries of Distribution bins are not tested. For
+  these histogram metrics, it is acceptable that different implementations have
+  slightly different behavior, e.g. one uses lower or equal while another uses
+  strictly lower for bounds of bins. This allows integration with third-party
+  metric libraries.
   """
 
   def setUp(self):
@@ -386,8 +392,7 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
     event_metric_name = "testMaps_event_metric"
 
     collector = self._CreateStatsCollector([
-        stats_utils.CreateEventMetadata(
-            event_metric_name, bins=[0.0, 0.1, 0.2])
+        stats_utils.CreateEventMetadata(event_metric_name, bins=[0, 0.1, 0.2])
     ])
 
     @stats_utils.Timed(event_metric_name)
@@ -396,24 +401,17 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
 
     with FakeStatsContext(collector):
       m = collector.GetMetricValue(event_metric_name)
-      self.assertEqual(m.bins_heights[0.0], 0)
-      self.assertEqual(m.bins_heights[0.1], 0)
-      self.assertEqual(m.bins_heights[0.2], 0)
+      self.assertEqual(m.bins_heights, {-_INF: 0, 0: 0, 0.1: 0, 0.2: 0})
 
       for _ in range(3):
-        TimedFunc(0)
+        TimedFunc(0.01)
 
       m = collector.GetMetricValue(event_metric_name)
-      self.assertEqual(m.bins_heights[0.0], 3)
-      self.assertEqual(m.bins_heights[0.1], 0)
-      self.assertEqual(m.bins_heights[0.2], 0)
+      self.assertEqual(m.bins_heights, {-_INF: 0, 0: 3, 0.1: 0, 0.2: 0})
 
       TimedFunc(0.11)
       m = collector.GetMetricValue(event_metric_name)
-
-      self.assertEqual(m.bins_heights[0.0], 3)
-      self.assertEqual(m.bins_heights[0.1], 1)
-      self.assertEqual(m.bins_heights[0.2], 0)
+      self.assertEqual(m.bins_heights, {-_INF: 0, 0: 3, 0.1: 1, 0.2: 0})
 
   def testCombiningDecorators(self):
     """Test combining decorators."""
@@ -436,9 +434,7 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
 
     # Check if all vars get updated
     m = collector.GetMetricValue(event_metric_name)
-    self.assertEqual(m.bins_heights[0.0], 1)
-    self.assertEqual(m.bins_heights[0.1], 0)
-    self.assertEqual(m.bins_heights[0.2], 0)
+    self.assertEqual(m.bins_heights, {-_INF: 0, 0: 1, 0.1: 0, 0.2: 0})
 
     self.assertEqual(collector.GetMetricValue(counter_name), 1)
 
@@ -449,8 +445,7 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
 
     collector = self._CreateStatsCollector([
         stats_utils.CreateCounterMetadata(counter_name),
-        stats_utils.CreateEventMetadata(
-            event_metric_name, bins=[0.0, 0.1, 0.2])
+        stats_utils.CreateEventMetadata(event_metric_name, bins=[0, 0.1, 0.2])
     ])
 
     @stats_utils.Timed(event_metric_name)
@@ -464,9 +459,7 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
 
     # Check if all vars get updated
     m = collector.GetMetricValue(event_metric_name)
-    self.assertEqual(m.bins_heights[0.0], 0)
-    self.assertEqual(m.bins_heights[0.1], 1)
-    self.assertEqual(m.bins_heights[0.2], 0)
+    self.assertEqual(m.bins_heights, {-_INF: 0, 0: 0, 0.1: 1, 0.2: 0})
 
     self.assertEqual(collector.GetMetricValue(counter_name), 1)
 
@@ -497,16 +490,14 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
       self._Sleep(n)
 
     with FakeStatsContext(collector):
-      Func1(0)
-      Func2(0)
+      Func1(0.1)
+      Func2(0.1)
       self.assertEqual(collector.GetMetricValue(counter_name), 2)
 
-      Func3(0)
-      Func4(1)
+      Func3(0.1)
+      Func4(1.1)
       m = collector.GetMetricValue(event_metric_name)
-      self.assertEqual(m.bins_heights[0.0], 1)
-      self.assertEqual(m.bins_heights[1], 1)
-      self.assertEqual(m.bins_heights[2], 0)
+      self.assertEqual(m.bins_heights, {-_INF: 0, 0: 1, 1: 1, 2: 0})
 
 # TODO:
 # pytype: enable=ignored-abstractmethod

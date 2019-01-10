@@ -6,17 +6,26 @@ full grr server.
 """
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
-import ConfigParser
 import itertools
 import os
 import shutil
 import subprocess
+import sys
 
 from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.develop import develop
 from setuptools.command.sdist import sdist
+
+# TODO: Fix this import once support for Python 2 is dropped.
+# pylint: disable=g-import-not-at-top
+if sys.version_info.major == 2:
+  import ConfigParser as configparser
+else:
+  import configparser
+# pylint: enable=g-import-not-at-top
 
 
 def find_data_files(source, ignore_dirs=None):
@@ -48,7 +57,7 @@ def get_config():
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
-  config = ConfigParser.SafeConfigParser()
+  config = configparser.SafeConfigParser()
   config.read(ini_path)
   return config
 
@@ -77,7 +86,9 @@ class Sdist(sdist):
   """Build sdist."""
 
   user_options = sdist.user_options + [
-      ("no-make-ui-files", None, "Don't build UI JS/CSS bundles (AdminUI "
+      # TODO: This has to be `bytes` on Python 2. Remove this `str`
+      # call once support for Python 2 is dropped.
+      (str("no-make-ui-files"), None, "Don't build UI JS/CSS bundles (AdminUI "
        "won't work without them)."),
   ]
 
@@ -109,7 +120,9 @@ data_files = list(
         find_data_files(
             "grr_response_server/gui/local/static",
             ignore_dirs=IGNORE_GUI_DIRS),
-        ["version.ini"],
+        # TODO: This has to be `bytes` on Python 2. Remove this
+        # `str` call once support for Python 2 is dropped.
+        [str("version.ini")],
     ))
 
 setup_args = dict(
@@ -154,10 +167,10 @@ setup_args = dict(
         "Jinja2==2.9.5",
         "pexpect==4.0.1",
         "portpicker==1.1.1",
+        "prometheus_client==0.5.0",
         "python-crontab==2.0.1",
         "python-debian==0.1.31",
         "Werkzeug==0.11.3",
-        "wsgiref==0.1.2",
     ],
     extras_require={
         # This is an optional component. Install to get MySQL data

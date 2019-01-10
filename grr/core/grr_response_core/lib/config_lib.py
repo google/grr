@@ -1444,7 +1444,7 @@ class GrrConfigManager(object):
                        context=None):
     """Interpolate the value and parse it with the appropriate type."""
     # It is only possible to interpolate strings...
-    if isinstance(value, unicode):
+    if isinstance(value, Text):
       try:
         value = StringInterpolator(
             value,

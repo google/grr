@@ -27,6 +27,7 @@ from grr_response_server import fleetspeak_utils
 from grr_response_server import queue_manager
 from grr_response_server.bin import fleetspeak_frontend as fs_frontend_tool
 from grr_response_server.flows.general import processes as flow_processes
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import fleetspeak_test_lib
@@ -104,9 +105,8 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     super(FleetspeakGRRFEServerTest, self).tearDown()
     self._conn_overrider.Stop()
 
-  # TODO(user): rewrite this test to be REL_DB-friendly.
   @db_test_lib.LegacyDataStoreOnly
-  def testReceiveMessagesFleetspeak(self):
+  def testReceiveMessages_Legacy(self):
     fsd = fs_frontend_tool.GRRFSServer()
     grr_client_nr = 0xab
     grr_client_id_urn = self.SetupClient(grr_client_nr)
@@ -167,9 +167,59 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
       stored_message.timestamp = None
       self.assertRDFValuesEqual(stored_message, want_message)
 
-  # TODO(user): rewrite this test to be REL_DB-friendly.
+  def testReceiveMessages_Relational(self):
+    if not data_store.RelationalDBFlowsEnabled():
+      self.skipTest("Rel-db-only test.")
+
+    fs_server = fs_frontend_tool.GRRFSServer()
+    client_id = "C.1234567890123456"
+    flow_id = "12345678"
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    rdf_flow = rdf_flow_objects.Flow(
+        client_id=client_id,
+        flow_id=flow_id,
+        create_time=rdfvalue.RDFDatetime.Now())
+    data_store.REL_DB.WriteFlowObject(rdf_flow)
+
+    flow_request = rdf_flow_objects.FlowRequest(
+        client_id=client_id, flow_id=flow_id, request_id=1)
+
+    data_store.REL_DB.WriteFlowRequests([flow_request])
+    session_id = "%s/%s" % (client_id, flow_id)
+    fs_client_id = fleetspeak_utils.GRRIDToFleetspeakID(client_id)
+    fs_messages = []
+    for i in range(1, 10):
+      grr_message = rdf_flows.GrrMessage(
+          request_id=1,
+          response_id=i + 1,
+          session_id=session_id,
+          payload=rdfvalue.RDFInteger(i))
+      fs_message = fs_common_pb2.Message(
+          message_type="GrrMessage",
+          source=fs_common_pb2.Address(
+              client_id=fs_client_id, service_name=FS_SERVICE_NAME))
+      fs_message.data.Pack(grr_message.AsPrimitiveProto())
+      fs_messages.append(fs_message)
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123)):
+      for fs_message in fs_messages:
+        fs_server.Process(fs_message, None)
+
+    # Ensure the last-ping timestamp gets updated.
+    client_data = data_store.REL_DB.MultiReadClientMetadata([client_id])
+    self.assertEqual(client_data[client_id].ping,
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123))
+
+    flow_data = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
+        client_id, flow_id)
+    self.assertLen(flow_data, 1)
+    stored_flow_request, flow_responses = flow_data[0]
+    self.assertEqual(stored_flow_request, flow_request)
+    self.assertLen(flow_responses, 9)
+
   @db_test_lib.LegacyDataStoreOnly
-  def testReceiveMessageListFleetspeak(self):
+  def testReceiveMessageList(self):
     fsd = fs_frontend_tool.GRRFSServer()
     grr_client_nr = 0xab
     grr_client_id_urn = self.SetupClient(grr_client_nr)
@@ -227,6 +277,59 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
                                                        want_messages):
       stored_message.timestamp = None
       self.assertRDFValuesEqual(stored_message, want_message)
+
+  def testReceiveMessageList_Relational(self):
+    if not data_store.RelationalDBFlowsEnabled():
+      self.skipTest("Rel-db-only test.")
+
+    fs_server = fs_frontend_tool.GRRFSServer()
+    client_id = "C.1234567890123456"
+    flow_id = "12345678"
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    rdf_flow = rdf_flow_objects.Flow(
+        client_id=client_id,
+        flow_id=flow_id,
+        create_time=rdfvalue.RDFDatetime.Now())
+    data_store.REL_DB.WriteFlowObject(rdf_flow)
+
+    flow_request = rdf_flow_objects.FlowRequest(
+        client_id=client_id, flow_id=flow_id, request_id=1)
+
+    data_store.REL_DB.WriteFlowRequests([flow_request])
+    session_id = "%s/%s" % (client_id, flow_id)
+    fs_client_id = fleetspeak_utils.GRRIDToFleetspeakID(client_id)
+    grr_messages = []
+    for i in range(1, 10):
+      grr_message = rdf_flows.GrrMessage(
+          request_id=1,
+          response_id=i + 1,
+          session_id=session_id,
+          payload=rdfvalue.RDFInteger(i))
+      grr_messages.append(grr_message)
+    packed_messages = rdf_flows.PackedMessageList()
+    communicator.Communicator.EncodeMessageList(
+        rdf_flows.MessageList(job=grr_messages), packed_messages)
+    fs_message = fs_common_pb2.Message(
+        message_type="MessageList",
+        source=fs_common_pb2.Address(
+            client_id=fs_client_id, service_name=FS_SERVICE_NAME))
+    fs_message.data.Pack(packed_messages.AsPrimitiveProto())
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123)):
+      fs_server.Process(fs_message, None)
+
+    # Ensure the last-ping timestamp gets updated.
+    client_data = data_store.REL_DB.MultiReadClientMetadata([client_id])
+    self.assertEqual(client_data[client_id].ping,
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123))
+
+    flow_data = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
+        client_id, flow_id)
+    self.assertLen(flow_data, 1)
+    stored_flow_request, flow_responses = flow_data[0]
+    self.assertEqual(stored_flow_request, flow_request)
+    self.assertLen(flow_responses, 9)
 
 
 @db_test_lib.DualDBTest

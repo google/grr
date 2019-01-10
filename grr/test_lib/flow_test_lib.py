@@ -9,8 +9,9 @@ import pdb
 import sys
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 from future.utils import iteritems
+from typing import Text
 
 from grr_response_client.client_actions import standard
 
@@ -662,8 +663,7 @@ def RunFlow(client_id,
         if rdf_flow.flow_state != rdf_flow.FlowState.FINISHED:
           raise RuntimeError(
               "Flow %s on %s completed in state %s (error message: %s)" %
-              (flow_id, client_id, unicode(rdf_flow.flow_state),
-               rdf_flow.error_message))
+              (flow_id, client_id, rdf_flow.flow_state, rdf_flow.error_message))
 
     return flow_id
   finally:
@@ -699,8 +699,8 @@ def GetFlowResults(client_id, flow_id):
 
 
 def GetFlowResultsByTag(client_id, flow_id):
-  precondition.AssertType(client_id, unicode)
-  precondition.AssertType(flow_id, unicode)
+  precondition.AssertType(client_id, Text)
+  precondition.AssertType(flow_id, Text)
 
   results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
                                               sys.maxsize)

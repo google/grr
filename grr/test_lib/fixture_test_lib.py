@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 
 from future.utils import iteritems
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -98,7 +99,7 @@ class LegacyClientFixture(object):
 
         for attribute_name, value in iteritems(attributes):
           attribute = aff4.Attribute.PREDICATES[attribute_name]
-          if isinstance(value, (str, unicode)):
+          if isinstance(value, (bytes, Text)):
             # Interpolate the value
             value %= self.args
 
