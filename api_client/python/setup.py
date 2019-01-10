@@ -75,7 +75,7 @@ setup_args = dict(
     install_requires=[
         "future==0.16.0",
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
-        "cryptography==2.3",
+        "cryptography==2.4.2",
         "ipython==%s" % ("5.0.0" if sys.version_info < (3, 0) else "7.2.0"),
         "protobuf==3.3.0",
         "requests==2.21.0",

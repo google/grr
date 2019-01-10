@@ -77,14 +77,14 @@ class GRRFSServer(object):
       grr_messages: An Iterable of GrrMessages.
     """
     grr_client_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_client_id)
-    if data_store.RelationalDBReadEnabled():
-      data_store.REL_DB.WriteClientMetadata(
-          grr_client_id, last_ping=rdfvalue.RDFDatetime.Now())
     for grr_message in grr_messages:
       grr_message.source = grr_client_id
       grr_message.auth_state = (
           rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
-    self.frontend.EnrolFleetspeakClient(client_id=grr_client_id)
+    client_is_new = self.frontend.EnrolFleetspeakClient(client_id=grr_client_id)
+    if not client_is_new and data_store.RelationalDBReadEnabled():
+      data_store.REL_DB.WriteClientMetadata(
+          grr_client_id, last_ping=rdfvalue.RDFDatetime.Now())
     self.frontend.ReceiveMessages(
         client_id=grr_client_id, messages=grr_messages)
 

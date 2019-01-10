@@ -145,7 +145,7 @@ setup_args = dict(
     install_requires=[
         "binplist==0.1.4",
         "configparser==3.5.0",
-        "cryptography==2.3",
+        "cryptography==2.4.2",
         "fleetspeak==0.1.2",
         "future==0.16.0",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),

@@ -173,9 +173,21 @@ class Filename(ConfigFilter):
 
   def Filter(self, data):
     try:
-      return open(data, "rb").read(1024000)
+      with io.open(data, "rb") as fd:
+        return fd.read()
     except IOError as e:
       raise FilterError("%s: %s" % (data, e))
+
+
+class OptionalFile(ConfigFilter):
+  name = "optionalfile"
+
+  def Filter(self, data):
+    try:
+      with io.open(data, "rb") as fd:
+        return fd.read()
+    except IOError:
+      return b""
 
 
 class FixPathSeparator(ConfigFilter):
@@ -1012,6 +1024,8 @@ class GrrConfigManager(object):
                          "writeback location.")
 
     writeback_raw_value = dict(self.writeback.RawData()).get(config_option)
+    raw_value = None
+
     for parser in [self.parser] + self.secondary_config_parsers:
       if parser == self.writeback:
         continue
@@ -1023,6 +1037,9 @@ class GrrConfigManager(object):
       break
 
     if writeback_raw_value == raw_value:
+      return
+
+    if raw_value is None:
       return
 
     self.SetRaw(config_option, raw_value)

@@ -22,6 +22,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_proto import jobs_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import events
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import queue_manager
@@ -174,7 +175,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     fs_server = fs_frontend_tool.GRRFSServer()
     client_id = "C.1234567890123456"
     flow_id = "12345678"
-    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
 
     rdf_flow = rdf_flow_objects.Flow(
         client_id=client_id,
@@ -285,7 +286,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     fs_server = fs_frontend_tool.GRRFSServer()
     client_id = "C.1234567890123456"
     flow_id = "12345678"
-    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
 
     rdf_flow = rdf_flow_objects.Flow(
         client_id=client_id,
@@ -330,6 +331,49 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     stored_flow_request, flow_responses = flow_data[0]
     self.assertEqual(stored_flow_request, flow_request)
     self.assertLen(flow_responses, 9)
+
+  def testWriteLastPingForNewClients(self):
+    if not data_store.RelationalDBFlowsEnabled():
+      self.skipTest("Rel-db-only test.")
+
+    fs_server = fs_frontend_tool.GRRFSServer()
+    client_id = "C.1234567890123456"
+    flow_id = "12345678"
+    session_id = "%s/%s" % (client_id, flow_id)
+    fs_client_id = fleetspeak_utils.GRRIDToFleetspeakID(client_id)
+
+    grr_message = rdf_flows.GrrMessage(
+        request_id=1,
+        response_id=1,
+        session_id=session_id,
+        payload=rdfvalue.RDFInteger(1))
+    fs_message = fs_common_pb2.Message(
+        message_type="GrrMessage",
+        source=fs_common_pb2.Address(
+            client_id=fs_client_id, service_name=FS_SERVICE_NAME))
+    fs_message.data.Pack(grr_message.AsPrimitiveProto())
+    fake_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123)
+
+    with mock.patch.object(
+        events.Events, "PublishEvent",
+        wraps=events.Events.PublishEvent) as publish_event_fn:
+      with mock.patch.object(
+          data_store.REL_DB,
+          "WriteClientMetadata",
+          wraps=data_store.REL_DB.WriteClientMetadata) as write_metadata_fn:
+        with test_lib.FakeTime(fake_time):
+          fs_server.Process(fs_message, None)
+        self.assertEqual(write_metadata_fn.call_count, 1)
+        client_data = data_store.REL_DB.MultiReadClientMetadata([client_id])
+        self.assertEqual(client_data[client_id].ping, fake_time)
+        # TODO(user): publish_event_fn.assert_any_call(
+        #     "ClientEnrollment", mock.ANY, token=mock.ANY) doesn't work here
+        # for some reason.
+        triggered_events = []
+        for call_args, _ in publish_event_fn.call_args_list:
+          if call_args:
+            triggered_events.append(call_args[0])
+        self.assertIn("ClientEnrollment", triggered_events)
 
 
 @db_test_lib.DualDBTest

@@ -481,25 +481,36 @@ class FrontEndServer(object):
     return result
 
   def EnrolFleetspeakClient(self, client_id):
-    """Enrols a Fleetspeak-enabled client for use with GRR."""
+    """Enrols a Fleetspeak-enabled client for use with GRR.
+
+    Args:
+      client_id: GRR client-id for the client.
+
+    Returns:
+      True if the client is new, and actually got enrolled. This method
+      is a no-op if the client already exists (in which case False is returned).
+    """
     client_urn = rdf_client.ClientURN(client_id)
 
     # If already enrolled, return.
     if data_store.RelationalDBReadEnabled():
       try:
         data_store.REL_DB.ReadClientMetadata(client_id)
-        return
+        return False
       except db.UnknownClientError:
         pass
     else:
       if aff4.FACTORY.ExistsWithType(
           client_urn, aff4_type=aff4_grr.VFSGRRClient, token=self.token):
-        return
+        return False
 
     logging.info("Enrolling a new Fleetspeak client: %r", client_id)
 
     if data_store.RelationalDBWriteEnabled():
-      data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+      data_store.REL_DB.WriteClientMetadata(
+          client_id,
+          fleetspeak_enabled=True,
+          last_ping=rdfvalue.RDFDatetime.Now())
 
     # TODO(fleetspeak-team,grr-team): If aff4 isn't reliable enough, we can
     # catch exceptions from it and forward them to Fleetspeak by failing its
@@ -521,6 +532,7 @@ class FrontEndServer(object):
 
     # Publish the client enrollment message.
     events.Events.PublishEvent("ClientEnrollment", client_urn, token=self.token)
+    return True
 
   def ReceiveMessagesRelationalFlows(self, client_id, messages):
     """Receives and processes messages for flows stored in the relational db.
