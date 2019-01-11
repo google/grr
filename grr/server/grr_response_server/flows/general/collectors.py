@@ -124,7 +124,7 @@ class ArtifactCollectorFlowMixin(object):
     """Gets an artifact from the registry, refreshing the registry if needed."""
     try:
       return artifact_registry.REGISTRY.GetArtifact(name)
-    except artifact_registry.ArtifactNotRegisteredError:
+    except rdf_artifacts.ArtifactNotRegisteredError:
       # If we don't have an artifact, things shouldn't have passed validation
       # so we assume it's a new one in the datastore.
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
