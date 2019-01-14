@@ -7,7 +7,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import __builtin__
 import abc
 import io
 import itertools
@@ -23,6 +22,7 @@ from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import string_types
 from future.utils import with_metaclass
+from typing import Text
 
 from grr_response_core import config
 from grr_response_core.lib import lexer
@@ -450,7 +450,7 @@ class Factory(object):
     Returns:
        A key into the cache.
     """
-    precondition.AssertType(urn, unicode)
+    precondition.AssertType(urn, Text)
     return "%s:%s" % (urn, self.ParseAgeSpecification(age))
 
   def CreateWithLock(self,
@@ -2675,7 +2675,7 @@ class AFF4MemoryStreamBase(AFF4Stream):
     return self.fd.read(int(length))
 
   def Write(self, data):
-    if isinstance(data, unicode):
+    if isinstance(data, Text):
       raise IOError("Cannot write unencoded string.")
 
     self._dirty = True
@@ -3141,21 +3141,3 @@ class ValueConverter(object):
 # A global registry of all AFF4 classes
 FACTORY = None
 ROOT_URN = rdfvalue.RDFURN("aff4:/")
-
-
-def issubclass(obj, cls):  # pylint: disable=redefined-builtin,g-bad-name
-  """A sane implementation of issubclass.
-
-  See http://bugs.python.org/issue10569
-
-  Python bare issubclass must be protected by an isinstance test first since it
-  can only work on types and raises when provided something which is not a type.
-
-  Args:
-    obj: Any object or class.
-    cls: The class to check against.
-
-  Returns:
-    True if obj is a subclass of cls and False otherwise.
-  """
-  return isinstance(obj, type) and __builtin__.issubclass(obj, cls)

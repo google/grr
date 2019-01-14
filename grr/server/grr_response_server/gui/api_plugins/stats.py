@@ -93,7 +93,7 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
         start=base_start_time, end=end_time, metric_name=args.metric_name)
 
     data = stats_store.ReadStats(
-        unicode(args.component.name.lower()),
+        args.component.name.lower(),
         args.metric_name,
         time_range=(start_time, end_time),
         token=token)

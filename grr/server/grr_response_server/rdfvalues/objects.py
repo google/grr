@@ -8,6 +8,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import binascii
 import functools
 import hashlib
 import itertools
@@ -16,7 +17,9 @@ import re
 import stat
 
 
+from future.builtins import str
 from future.utils import python_2_unicode_compatible
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -262,7 +265,10 @@ class HashID(rdfvalue.RDFValue):
     return self._value
 
   def AsHexString(self):
-    return self._value.encode("hex")
+    return binascii.hexlify(self._value)
+
+  def AsHashDigest(self):
+    return rdfvalue.HashDigest(self._value)
 
   def __repr__(self):
     return "%s(%s)" % (self.__class__.__name__, repr(self._value.encode("hex")))
@@ -302,7 +308,7 @@ class PathID(HashID):
       # could force a hash collision. So we explicitly include the lengths of
       # the components.
       string = "{lengths}:{path}".format(
-          lengths=",".join(unicode(len(component)) for component in components),
+          lengths=",".join(str(len(component)) for component in components),
           path="/".join(components))
       result = hashlib.sha256(string.encode("utf-8")).digest()
     else:
@@ -348,25 +354,25 @@ class PathInfo(rdf_structs.RDFProtoStruct):
     return cls(*args, path_type=cls.PathType.REGISTRY, **kwargs)
 
   @classmethod
+  def PathTypeFromPathspecPathType(cls, ps_path_type):
+    if ps_path_type == rdf_paths.PathSpec.PathType.OS:
+      return cls.PathType.OS
+    elif ps_path_type == rdf_paths.PathSpec.PathType.TSK:
+      return cls.PathType.TSK
+    elif ps_path_type == rdf_paths.PathSpec.PathType.REGISTRY:
+      return cls.PathType.REGISTRY
+    elif ps_path_type == rdf_paths.PathSpec.PathType.TMPFILE:
+      return cls.PathType.TEMP
+    else:
+      raise ValueError("Unexpected path type: %s" % ps_path_type)
+
+  @classmethod
   def FromPathSpec(cls, pathspec):
     # Note that since PathSpec objects may contain more information than what is
     # stored in a PathInfo object, we can only create a PathInfo object from a
     # PathSpec, never the other way around.
 
-    if pathspec.pathtype == rdf_paths.PathSpec.PathType.OS:
-      if (len(pathspec) > 1 and
-          pathspec[1].pathtype == rdf_paths.PathSpec.PathType.TSK):
-        path_type = cls.PathType.TSK
-      else:
-        path_type = cls.PathType.OS
-    elif pathspec.pathtype == rdf_paths.PathSpec.PathType.TSK:
-      path_type = cls.PathType.TSK
-    elif pathspec.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
-      path_type = cls.PathType.REGISTRY
-    elif pathspec.pathtype == rdf_paths.PathSpec.PathType.TMPFILE:
-      path_type = cls.PathType.TEMP
-    else:
-      raise ValueError("Unexpected path type: %s" % pathspec.pathtype)
+    path_type = cls.PathTypeFromPathspecPathType(pathspec.last.pathtype)
 
     components = []
     for pathelem in pathspec:
@@ -473,11 +479,11 @@ class PathInfo(rdf_structs.RDFProtoStruct):
 
     self.last_stat_entry_timestamp = max(self.last_stat_entry_timestamp,
                                          src.last_stat_entry_timestamp)
-    self.directory |= src.directory
+    self.directory = self.directory or src.directory
 
 
 def _ValidatePathComponent(component):
-  if not isinstance(component, unicode):
+  if not isinstance(component, Text):
     raise TypeError("Non-unicode path component")
   if not component:
     raise ValueError("Empty path component")

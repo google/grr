@@ -21,7 +21,6 @@ const {ObjectLabelDirective} = goog.require('grrUi.semantic.objectLabelDirective
 const {ObjectLabelsListDirective} = goog.require('grrUi.semantic.objectLabelsListDirective');
 const {PrimitiveDirective} = goog.require('grrUi.semantic.primitiveDirective');
 const {RegistryOverrideDirective, SemanticValueDirective} = goog.require('grrUi.semantic.semanticValueDirective');
-const {RekallResponseDirective} = goog.require('grrUi.semantic.rekallResponseDirective');
 const {SemanticDiffAnnotatedProtoDirective} = goog.require('grrUi.semantic.semanticDiffAnnotatedProtoDirective');
 const {SemanticProtoDirective} = goog.require('grrUi.semantic.semanticProtoDirective');
 const {SemanticProtosDiffDirective} = goog.require('grrUi.semantic.semanticProtosDiffDirective');
@@ -36,7 +35,6 @@ const {TimestampSecondsDirective} = goog.require('grrUi.semantic.timestampSecond
 const {UrnDirective} = goog.require('grrUi.semantic.urnDirective');
 const {coreModule} = goog.require('grrUi.core.core');
 const {pseudoModule} = goog.require('grrUi.semantic.pseudo.pseudo');
-const {rekallModule} = goog.require('grrUi.semantic.rekall.rekall');
 const {routingModule} = goog.require('grrUi.routing.routing');
 
 // TODO(user): Auto-generate parts of this file
@@ -48,7 +46,7 @@ const {routingModule} = goog.require('grrUi.routing.routing');
  * from the server.
  */
 exports.semanticModule = angular.module('grrUi.semantic', [
-  coreModule.name, routingModule.name, pseudoModule.name, rekallModule.name,
+  coreModule.name, routingModule.name, pseudoModule.name,
   'ui.bootstrap'
 ]);
 
@@ -87,9 +85,6 @@ exports.semanticModule.directive(
     ObjectLabelsListDirective.directive_name, ObjectLabelsListDirective);
 exports.semanticModule.directive(
     PrimitiveDirective.directive_name, PrimitiveDirective);
-
-exports.semanticModule.directive(
-    RekallResponseDirective.directive_name, RekallResponseDirective);
 
 exports.semanticModule.directive(
     SemanticDiffAnnotatedProtoDirective.directive_name,
@@ -165,8 +160,6 @@ exports.semanticModule.run(function(grrSemanticValueDirectivesRegistryService) {
   angular.forEach(PrimitiveDirective.semantic_types, function(type) {
     registry.registerDirective(type, PrimitiveDirective);
   }.bind(this));
-  registry.registerDirective(
-      RekallResponseDirective.semantic_type, RekallResponseDirective);
   registry.registerDirective(
       SemanticProtoDirective.semantic_type, SemanticProtoDirective);
   angular.forEach(StatEntryDirective.semantic_types, function(type) {

@@ -11,8 +11,9 @@ import re
 import time
 
 
-from builtins import map  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import map
+from future.builtins import range
+from future.builtins import str
 from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
@@ -25,7 +26,6 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_proto import flows_pb2
@@ -873,7 +873,7 @@ class VFSBlobImage(VFSFile):
 
   def Path(self):
     """Compatibility layer with rel db file objects."""
-    return unicode(self.urn)
+    return str(self.urn)
 
   class SchemaCls(VFSFile.SchemaCls):
     """The schema for Blob Images."""
@@ -884,14 +884,6 @@ class VFSBlobImage(VFSFile):
         "aff4:finalized", rdfvalue.RDFBool,
         "Once a blobimage is finalized, further writes"
         " will raise exceptions.")
-
-
-class AFF4RekallProfile(aff4.AFF4Object):
-  """A Rekall profile in the AFF4 namespace."""
-
-  class SchemaCls(aff4.AFF4Object.SchemaCls):
-    PROFILE = aff4.Attribute("aff4:profile", rdf_rekall_types.RekallProfile,
-                             "A Rekall profile.")
 
 
 class TempKnowledgeBase(standard.VFSDirectory):

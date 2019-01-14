@@ -8,7 +8,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.builtins import str
 
 from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -118,7 +119,6 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
     # Ensure we can convert to a string.
     str(sample)
-    unicode(sample)
 
   def testCopy(self):
     sample = rdf_paths.PathSpec(
@@ -146,7 +146,7 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
       sid=u"some sid")
 
   def GenerateSample(self, number=0):
-    return self.rdfvalue_class("/home/%%User.username%%/*" + str(number))
+    return self.rdfvalue_class("/home/%%User.username%%/*{}".format(number))
 
   def testGroupingInterpolation(self):
     glob_expression = rdf_paths.GlobExpression()

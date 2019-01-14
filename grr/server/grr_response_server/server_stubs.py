@@ -28,7 +28,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import rdf_yara
-from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class ClientActionStub(with_metaclass(registry.MetaclassRegistry, object)):
@@ -411,20 +410,6 @@ class DumpACPITable(ClientActionStub):
   out_rdfvalues = [rdf_chipsec_types.DumpACPITableResponse]
 
 
-# from components/rekall_support
-class WriteRekallProfile(ClientActionStub):
-  """A client action to write a Rekall profile to the local cache."""
-
-  in_rdfvalue = rdf_rekall_types.RekallProfile
-
-
-class RekallAction(ClientActionStub):
-  """Runs a Rekall command on live memory."""
-
-  in_rdfvalue = rdf_rekall_types.RekallRequest
-  out_rdfvalues = [rdf_rekall_types.RekallResponse]
-
-
 # from yara_actions.py
 class YaraProcessScan(ClientActionStub):
   """Scans the memory of a number of processes using Yara."""
@@ -438,7 +423,3 @@ class YaraProcessDump(ClientActionStub):
 
   in_rdfvalue = rdf_yara.YaraProcessDumpArgs
   out_rdfvalues = [rdf_yara.YaraProcessDumpResponse]
-
-
-# Rekall constants as defined in rekall/constants.py.
-REKALL_PROFILE_REPOSITORY_VERSION = "v1.0"

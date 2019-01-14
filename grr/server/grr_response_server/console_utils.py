@@ -27,6 +27,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import csv
 from grr_response_server import access_control
 from grr_response_server import aff4
@@ -42,7 +43,7 @@ from grr_response_server.aff4_objects import users
 
 def FormatISOTime(t):
   """Format a time in epoch notation to ISO UTC."""
-  return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t / 1e6))
+  return compatibility.FormatTime("%Y-%m-%d %H:%M:%S", time.gmtime(t / 1e6))
 
 
 def SearchClients(query_str, token=None, limit=1000):

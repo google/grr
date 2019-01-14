@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from future.builtins import filter
+from typing import Text
 
 from grr_response_core.lib import factory
 from grr_response_core.lib import parser
@@ -26,7 +27,7 @@ class ArtifactParserFactory(object):
       artifact_name: A name of the artifact this factory is supposed to provide
         parser instances for.
     """
-    precondition.AssertType(artifact_name, unicode)
+    precondition.AssertType(artifact_name, Text)
     self._artifact_name = artifact_name
 
   def HasSingleResponseParsers(self):

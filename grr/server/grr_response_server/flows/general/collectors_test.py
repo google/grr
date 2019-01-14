@@ -32,6 +32,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
+from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import db
@@ -178,10 +179,6 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
 
   def testGetArtifact(self):
     """Test we can get a basic artifact."""
-
-    client_mock = action_mocks.FileFinderClientMock()
-    client_id = self.SetupClient(0, system="Linux")
-
     # Dynamically add an ArtifactSource specifying the base path.
     file_path = os.path.join(self.base_path, "hello.exe")
     coll1 = rdf_artifacts.ArtifactSource(
@@ -189,7 +186,54 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         attributes={"paths": [file_path]})
     self.fakeartifact.sources.append(coll1)
 
-    artifact_list = ["FakeArtifact"]
+    self._GetArtifact("FakeArtifact")
+
+  def testArtifactUpload(self):
+    file_path = os.path.join(self.base_path, "hello.exe")
+
+    artifact_source = """
+  name: ArtifactFromSource
+  doc: My first artifact.
+  labels:
+    - Logs
+    - Authentication
+  supported_os:
+    - Linux
+  sources:
+    - type: FILE
+      attributes:
+        paths:
+          - %s
+""" % file_path
+
+    artifact_obj = artifact_registry.REGISTRY.ArtifactsFromYaml(
+        artifact_source)[0]
+    artifact_registry.REGISTRY.AddDatastoreSources(
+        [artifact.ARTIFACT_STORE_ROOT_URN])
+    artifact_registry.REGISTRY._CheckDirty()
+
+    if data_store.RelationalDBReadEnabled(category="artifacts"):
+      data_store.REL_DB.WriteArtifact(artifact_obj)
+    else:
+      with data_store.DB.GetMutationPool() as pool:
+        artifact_coll = artifact_registry.ArtifactCollection(
+            artifact.ARTIFACT_STORE_ROOT_URN)
+        artifact_coll.Delete()
+        artifact_coll.Add(artifact_obj, mutation_pool=pool)
+
+    # Make sure that the artifact is not yet registered and the flow will have
+    # to read it from the data store.
+    with self.assertRaises(rdf_artifacts.ArtifactNotRegisteredError):
+      artifact_registry.REGISTRY.GetArtifact("ArtifactFromSource")
+
+    self._GetArtifact("ArtifactFromSource")
+
+  def _GetArtifact(self, artifact_name):
+    client_mock = action_mocks.FileFinderClientMock()
+    client_id = self.SetupClient(0, system="Linux")
+    file_path = os.path.join(self.base_path, "hello.exe")
+
+    artifact_list = [artifact_name]
     flow_test_lib.TestFlowHelper(
         aff4_flows.ArtifactCollectorFlow.__name__,
         client_mock,

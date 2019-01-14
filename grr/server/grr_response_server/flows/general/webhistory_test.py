@@ -6,6 +6,8 @@ from __future__ import unicode_literals
 
 import os
 
+from future.builtins import str
+
 from grr_response_client import client_utils
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
@@ -97,7 +99,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     # Check for analysis file.
     results = flow_test_lib.GetFlowResults(self.client_id, session_id)
     self.assertGreater(len(results), 50)
-    self.assertIn("funnycats.exe", "\n".join(map(unicode, results)))
+    self.assertIn("funnycats.exe", "\n".join(map(str, results)))
 
   def testFirefoxHistoryFetch(self):
     """Test that downloading the Firefox history works."""
@@ -133,7 +135,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     # Check for analysis file.
     results = flow_test_lib.GetFlowResults(self.client_id, session_id)
     self.assertGreater(len(results), 3)
-    data = "\n".join(map(unicode, results))
+    data = "\n".join(map(str, results))
     self.assertTrue(data.find("Welcome to Firefox") != -1)
     self.assertTrue(data.find("sport.orf.at") != -1)
 

@@ -5,8 +5,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
+import collections
 import logging
-
+import threading
 
 from future.utils import iterkeys
 
@@ -20,13 +21,30 @@ from grr_response_server import data_store
 from grr_response_server import threadpool
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 
+# The maximum number of log-messages to store in the DB for a given cron-job
+# run.
+_MAX_LOG_MESSAGES = 10000
+
 
 class Error(Exception):
   pass
 
 
+class OneOrMoreCronJobsFailedError(Error):
+
+  def __init__(self, failure_map):
+    message = "One or more cron jobs failed unexpectedly: " + ", ".join(
+        "%s=%s" % (k, v) for k, v in failure_map.items())
+    super(OneOrMoreCronJobsFailedError, self).__init__(message)
+    self.failure_map = failure_map
+
+
 class LockError(Error):
   pass
+
+
+class LifetimeExceededError(Error):
+  """Exception raised when a cronjob exceeds its max allowed runtime."""
 
 
 class CronJobBase(object):
@@ -45,15 +63,45 @@ class CronJobBase(object):
   def Run(self):
     """The actual cron job logic goes into this method."""
 
-  def StartRun(self):
+  def StartRun(self, wait_for_start_event, signal_event, wait_for_write_event):
     """Starts a new run for the given cron job."""
-    self.run_state.started_at = rdfvalue.RDFDatetime.Now()
-    self.run_state.status = "RUNNING"
+    # Signal that the cron thread has started. This way the cron scheduler
+    # will know that the task is not sitting in a threadpool queue, but is
+    # actually executing.
+    wait_for_start_event.set()
+    # Wait until the cron scheduler acknowledges the run. If it doesn't
+    # acknowledge, just return (it means that the cron scheduler considers
+    # this task as "not started" and has returned the lease so that another
+    # worker can pick it up).
+    if not signal_event.wait(TASK_STARTUP_WAIT):
+      return
+
+    try:
+      logging.info("Processing cron job: %s", self.job.cron_job_id)
+      self.run_state.started_at = rdfvalue.RDFDatetime.Now()
+      self.run_state.status = "RUNNING"
+
+      data_store.REL_DB.WriteCronJobRun(self.run_state)
+      data_store.REL_DB.UpdateCronJob(
+          self.job.cron_job_id,
+          last_run_time=rdfvalue.RDFDatetime.Now(),
+          current_run_id=self.run_state.run_id,
+          forced_run_requested=False)
+    finally:
+      # Notify the cron scheduler that all the DB updates are done. At this
+      # point the cron scheduler can safely return this job's lease.
+      wait_for_write_event.set()
 
     try:
       self.Run()
       self.run_state.status = "FINISHED"
+    except LifetimeExceededError:
+      self.run_state.status = "LIFETIME_EXCEEDED"
+      stats_collector_instance.Get().IncrementCounter(
+          "cron_job_failure", fields=[self.job.cron_job_id])
     except Exception as e:  # pylint: disable=broad-except
+      logging.exception("Cronjob %s failed with an error: %s",
+                        self.job.cron_job_id, e)
       stats_collector_instance.Get().IncrementCounter(
           "cron_job_failure", fields=[self.job.cron_job_id])
       self.run_state.status = "ERROR"
@@ -70,8 +118,7 @@ class CronJobBase(object):
           self.run_state.status = "LIFETIME_EXCEEDED"
           stats_collector_instance.Get().IncrementCounter(
               "cron_job_timeout", fields=[self.job.cron_job_id])
-
-    data_store.REL_DB.WriteCronJobRun(self.run_state)
+      data_store.REL_DB.WriteCronJobRun(self.run_state)
 
     current_job = data_store.REL_DB.ReadCronJob(self.job.cron_job_id)
     # If no other job was started while we were running, update last status
@@ -102,17 +149,37 @@ class SystemCronJobBase(CronJobBase):
     if self.frequency is None or self.lifetime is None:
       raise ValueError(
           "SystemCronJob without frequency or lifetime encountered: %s" % self)
+    self._log_messages = collections.deque(maxlen=_MAX_LOG_MESSAGES)
 
+  # TODO(user): Cronjobs shouldn't have to call Heartbeat() in order to
+  # enforce max-runtime limits.
   def HeartBeat(self):
-    if self.job.lifetime:
-      expiration_time = self.run_state.started_at + self.job.lifetime
-      if self.run_state.finished_at > expiration_time:
-        raise Error("Lifetime exceeded")
+    """Terminates a cronjob-run if it has exceeded its maximum runtime.
+
+    This is a no-op for cronjobs that allow overruns.
+
+    Raises:
+      LifetimeExceededError: If the cronjob has exceeded its maximum runtime.
+    """
+    # In prod, self.job.lifetime is guaranteed to always be set, and is
+    # always equal to self.__class__.lifetime. Some tests however, do not
+    # set the job lifetime, which isn't great.
+    if self.allow_overruns or not self.job.lifetime:
+      return
+
+    runtime = rdfvalue.RDFDatetime.Now() - self.run_state.started_at
+    if runtime > self.lifetime:
+      raise LifetimeExceededError(
+          "Cronjob run has exceeded the maximum runtime of %s." % self.lifetime)
 
   def Log(self, message, *args):
-    if self.run_state.log_message:
-      self.run_state.log_message += "\n"
-    self.run_state.log_message += message % args
+    # Arrange messages in reverse chronological order.
+    self._log_messages.appendleft(message % args)
+    self.run_state.log_message = "\n".join(self._log_messages)
+    # TODO(user): Fix tests that do not set self.run_state.run_id. The field
+    # is guaranteed to always be set in prod.
+    if self.run_state.run_id:
+      data_store.REL_DB.WriteCronJobRun(self.run_state)
 
   def ReadCronState(self):
     return self.job.state
@@ -122,11 +189,18 @@ class SystemCronJobBase(CronJobBase):
     data_store.REL_DB.UpdateCronJob(self.job.cron_job_id, state=self.job.state)
 
 
+TASK_STARTUP_WAIT = 10
+
+
 class CronManager(object):
   """CronManager is used to schedule/terminate cron jobs."""
 
   def __init__(self, max_threads=10):
     super(CronManager, self).__init__()
+
+    if max_threads <= 0:
+      raise ValueError("max_threads should be >= 1")
+
     self.max_threads = max_threads
 
   def CreateJob(self, cron_args=None, job_id=None, enabled=True, token=None):
@@ -219,6 +293,11 @@ class CronManager(object):
     Args:
       names: List of cron jobs to run.  If unset, run them all.
       token: security token.
+
+    Raises:
+      OneOrMoreCronJobsFailedError: if one or more individual cron jobs fail.
+      Note: a failure of a single cron job doesn't preclude other cron jobs
+      from running.
     """
     del token
 
@@ -228,19 +307,65 @@ class CronManager(object):
     if not leased_jobs:
       return
 
+    errors = {}
     processed_count = 0
-    for job in leased_jobs:
-      if self.RunJob(job):
-        processed_count += 1
+    for job in sorted(leased_jobs, key=lambda j: j.cron_job_id):
+      if self.TerminateStuckRunIfNeeded(job):
+        continue
+
+      if not self.JobDueToRun(job):
+        continue
+
+      try:
+        if self.RunJob(job):
+          processed_count += 1
+        else:
+          logging.info(
+              "Can't schedule cron job %s on a thread pool "
+              "(all threads are busy or CPU load is high)", job.cron_job_id)
+          break
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception("Cron job %s has failed: %s", job.cron_job_id, e)
+        errors[job.cron_job_id] = e
 
     logging.info("Processed %d cron jobs.", processed_count)
     data_store.REL_DB.ReturnLeasedCronJobs(leased_jobs)
+
+    if errors:
+      raise OneOrMoreCronJobsFailedError(errors)
 
   def _GetThreadPool(self):
     pool = threadpool.ThreadPool.Factory(
         "CronJobPool", min_threads=1, max_threads=self.max_threads)
     pool.Start()
     return pool
+
+  def TerminateStuckRunIfNeeded(self, job):
+    """Cleans up job state if the last run is stuck."""
+    if job.current_run_id and job.last_run_time and job.lifetime:
+      now = rdfvalue.RDFDatetime.Now()
+      # We add additional 10 minutes to give the job run a chance to kill itself
+      # during one of the HeartBeat calls (HeartBeat checks if a cron job is
+      # run is running too long and raises if it is).
+      expiration_time = (
+          job.last_run_time + job.lifetime + rdfvalue.Duration("10m"))
+      if now > expiration_time:
+        run = data_store.REL_DB.ReadCronJobRun(job.cron_job_id,
+                                               job.current_run_id)
+        run.status = "LIFETIME_EXCEEDED"
+        run.finished_at = now
+        data_store.REL_DB.WriteCronJobRun(run)
+        data_store.REL_DB.UpdateCronJob(
+            job.cron_job_id, current_run_id=None, last_run_status=run.status)
+        stats_collector_instance.Get().RecordEvent(
+            "cron_job_latency", (now - job.last_run_time).seconds,
+            fields=[job.cron_job_id])
+        stats_collector_instance.Get().IncrementCounter(
+            "cron_job_timeout", fields=[job.cron_job_id])
+
+        return True
+
+    return False
 
   def RunJob(self, job):
     """Does the actual work of the Cron, if the job is due to run.
@@ -249,7 +374,8 @@ class CronManager(object):
       job: The cronjob rdfvalue that should be run. Must be leased.
 
     Returns:
-      A boolean indicating if this cron job was due to run.
+      A boolean indicating if this cron job was started or not. False may
+      be returned when the threadpool is already full.
 
     Raises:
       LockError: if the object is not locked.
@@ -260,14 +386,7 @@ class CronManager(object):
     if job.leased_until < rdfvalue.RDFDatetime.Now():
       raise LockError("CronJob lease expired for %s." % job.cron_job_id)
 
-    if not self.JobDueToRun(job):
-      return False
-
-    logging.info("Running cron job: %s", job.cron_job_id)
-
-    run_state = rdf_cronjobs.CronJobRun(
-        cron_job_id=job.cron_job_id, status="RUNNING")
-    run_state.GenerateRunId()
+    logging.info("Starting cron job: %s", job.cron_job_id)
 
     if job.args.action_type == job.args.ActionType.SYSTEM_CRON_ACTION:
       cls_name = job.args.system_cron_action.job_class_name
@@ -280,20 +399,41 @@ class CronManager(object):
       raise ValueError(
           "CronJob %s doesn't have a valid args type set." % job.cron_job_id)
 
-    data_store.REL_DB.WriteCronJobRun(run_state)
-
-    data_store.REL_DB.UpdateCronJob(
-        job.cron_job_id,
-        last_run_time=rdfvalue.RDFDatetime.Now(),
-        current_run_id=run_state.run_id,
-        forced_run_requested=False)
+    run_state = rdf_cronjobs.CronJobRun(
+        cron_job_id=job.cron_job_id, status="RUNNING")
+    run_state.GenerateRunId()
 
     run_obj = job_cls(run_state, job)
-    if self.max_threads == 1:
-      run_obj.StartRun()
-    else:
-      self._GetThreadPool().AddTask(target=run_obj.StartRun, name=name)
-    return True
+    wait_for_start_event, signal_event, wait_for_write_event = (
+        threading.Event(), threading.Event(), threading.Event())
+    try:
+      self._GetThreadPool().AddTask(
+          target=run_obj.StartRun,
+          args=(wait_for_start_event, signal_event, wait_for_write_event),
+          name=name,
+          blocking=False,
+          inline=False)
+      if not wait_for_start_event.wait(TASK_STARTUP_WAIT):
+        logging.error("Cron job run task for %s is too slow to start.",
+                      job.cron_job_id)
+        # Most likely the thread pool is full and the task is sitting on the
+        # queue. Make sure we don't put more things on the queue by returning
+        # False.
+        return False
+
+      # We know that the cron job task has started, unblock it by setting
+      # the signal event. If signal_event is not set (this happens if the
+      # task sits on a ThreadPool's queue doing nothing, see the
+      # if-statement above) the task will just be a no-op when ThreadPool
+      # finally gets to it. This way we can ensure that we can safely return
+      # the lease and let another worker schedule the same job.
+      signal_event.set()
+
+      wait_for_write_event.wait(TASK_STARTUP_WAIT)
+
+      return True
+    except threadpool.Full:
+      return False
 
   def JobIsRunning(self, job, token=None):
     """Returns True if there's a currently running iteration of this job."""

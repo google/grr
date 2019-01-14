@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import mock
+
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_server import data_store
@@ -88,25 +90,41 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
     ]
     data_store.BLOBS.WriteBlobs(dict(zip(self.blob_ids, self.blob_data)))
 
+    self.client_id = "C.0000111122223333"
+    self.client_path = db.ClientPath.OS(self.client_id, ["foo", "bar"])
+
   def testRaisesIfSingleBlobIsNotFound(self):
     blob_id = rdf_objects.BlobID.FromBlobData("")
     with self.assertRaises(file_store.BlobNotFoundError):
-      file_store.AddFileWithUnknownHash([blob_id])
+      file_store.AddFileWithUnknownHash(self.client_path, [blob_id])
 
   def testAddsFileWithSingleBlob(self):
-    hash_id = file_store.AddFileWithUnknownHash(self.blob_ids[:1])
+    hash_id = file_store.AddFileWithUnknownHash(self.client_path,
+                                                self.blob_ids[:1])
     self.assertEqual(hash_id.AsBytes(), self.blob_ids[0].AsBytes())
 
   def testRaisesIfOneOfTwoBlobsIsNotFound(self):
     blob_id = rdf_objects.BlobID.FromBlobData("")
     with self.assertRaises(file_store.BlobNotFoundError):
-      file_store.AddFileWithUnknownHash([self.blob_ids[0], blob_id])
+      file_store.AddFileWithUnknownHash(self.client_path,
+                                        [self.blob_ids[0], blob_id])
 
   def testAddsFileWithTwoBlobs(self):
-    hash_id = file_store.AddFileWithUnknownHash(self.blob_ids)
+    hash_id = file_store.AddFileWithUnknownHash(self.client_path, self.blob_ids)
     self.assertEqual(
         hash_id.AsBytes(),
         rdf_objects.SHA256HashID.FromData(b"".join(self.blob_data)))
+
+  @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFile")
+  def testAddsFileToExternalFileStore(self, add_file_mock):
+    hash_id = file_store.AddFileWithUnknownHash(self.client_path, self.blob_ids)
+
+    add_file_mock.assert_called_once()
+    args = add_file_mock.call_args_list[0][0]
+    self.assertEqual(args[0], self.client_path)
+    self.assertEqual(args[1], hash_id)
+    blob_ids = [ref.blob_id for ref in args[2]]
+    self.assertEqual(blob_ids, self.blob_ids)
 
 
 class OpenFileTest(test_lib.GRRBaseTest):
@@ -124,10 +142,12 @@ class OpenFileTest(test_lib.GRRBaseTest):
     ]
     data_store.BLOBS.WriteBlobs(dict(zip(self.blob_ids, self.blob_data)))
 
-    self.hash_id = file_store.AddFileWithUnknownHash(self.blob_ids[:3])
+    self.hash_id = file_store.AddFileWithUnknownHash(self.client_path,
+                                                     self.blob_ids[:3])
     self.data = b"".join(self.blob_data[:3])
 
-    self.other_hash_id = file_store.AddFileWithUnknownHash(self.blob_ids[3:])
+    self.other_hash_id = file_store.AddFileWithUnknownHash(
+        self.client_path, self.blob_ids[3:])
     self.invalid_hash_id = rdf_objects.SHA256HashID.FromData(b"")
 
   def _PathInfo(self, hash_id=None):
@@ -210,7 +230,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
 
     if blobs_range:
       hash_id = file_store.AddFileWithUnknownHash(
-          self.blob_ids[blobs_range[0]:blobs_range[1]])
+          client_path, self.blob_ids[blobs_range[0]:blobs_range[1]])
       path_info.hash_entry.sha256 = hash_id.AsBytes()
 
     data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])

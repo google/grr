@@ -19,8 +19,6 @@ from http import server as http_server
 import ipaddr
 import socketserver
 
-from google.protobuf import json_format
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
@@ -93,8 +91,6 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
     self.wfile.write(header.encode("utf-8"))
     self.wfile.write(data)
 
-  rekall_profile_path = "/rekall_profiles"
-
   static_content_path = "/static/"
 
   def do_GET(self):  # pylint: disable=g-bad-name
@@ -105,57 +101,12 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
         stats_collector_instance.Get().IncrementCounter(
             "frontend_http_requests", fields=["cert", "http"])
         self.ServerPem()
-      elif self.path.startswith(self.rekall_profile_path):
-        stats_collector_instance.Get().IncrementCounter(
-            "frontend_http_requests", fields=["rekall", "http"])
-        self.ServeRekallProfile(self.path)
       elif self.path.startswith(self.static_content_path):
         stats_collector_instance.Get().IncrementCounter(
             "frontend_http_requests", fields=["static", "http"])
         self.ServeStatic(self.path[len(self.static_content_path):])
     finally:
       self._DecrementActiveCount()
-
-  def ServeRekallProfile(self, path):
-    """This servers rekall profiles from the frontend server.
-
-    Format is /rekall_profiles/<version>/<profile_name>
-
-    Args:
-      path: The path the client requested.
-    """
-    logging.debug("Rekall profile request from IP %s for %s",
-                  self.client_address[0], path)
-    remaining_path = path[len(self.rekall_profile_path):]
-    if not remaining_path.startswith("/"):
-      self.Send("Error serving profile.", status=500, ctype="text/plain")
-      return
-
-    components = remaining_path[1:].split("/", 1)
-
-    if len(components) != 2:
-      self.Send("Error serving profile.", status=500, ctype="text/plain")
-      return
-    version, name = components
-    profile = self.server.frontend.GetRekallProfile(name, version=version)
-    if not profile:
-      self.Send("Profile not found.", status=404, ctype="text/plain")
-      return
-
-    json_data = json_format.MessageToJson(profile.AsPrimitiveProto())
-
-    sanitized_data = ")]}'\n" + json_data.replace("<", r"\u003c").replace(
-        ">", r"\u003e")
-
-    additional_headers = {
-        "Content-Disposition": "attachment; filename=response.json",
-        "X-Content-Type-Options": "nosniff"
-    }
-    self.Send(
-        sanitized_data,
-        status=200,
-        ctype="application/json",
-        additional_headers=additional_headers)
 
   AFF4_READ_BLOCK_SIZE = 10 * 1024 * 1024
 
@@ -312,7 +263,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
 
       self.Send(responses_comms.SerializeToString())
 
-    except communicator.UnknownClientCert:
+    except communicator.UnknownClientCertError:
       # "406 Not Acceptable: The server can only generate a response that is not
       # accepted by the client". This is because we can not encrypt for the
       # client appropriately.

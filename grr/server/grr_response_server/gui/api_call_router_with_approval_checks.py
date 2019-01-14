@@ -4,6 +4,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
+from typing import Text
+
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import stats_collector_instance
@@ -59,7 +62,7 @@ class RelDBChecker(object):
 
   def _CheckAccess(self, username, subject_id, approval_type):
     """Checks access to a given subject by a given user."""
-    precondition.AssertType(subject_id, unicode)
+    precondition.AssertType(subject_id, Text)
 
     cache_key = (username, subject_id, approval_type)
     try:
@@ -94,21 +97,21 @@ class RelDBChecker(object):
   def CheckClientAccess(self, username, client_id):
     """Checks whether a given user can access given client."""
     self._CheckAccess(
-        username, unicode(client_id),
+        username, str(client_id),
         rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT)
 
   def CheckHuntAccess(self, username, hunt_id):
     """Checks whether a given user can access given hunt."""
 
     self._CheckAccess(
-        username, unicode(hunt_id),
+        username, str(hunt_id),
         rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT)
 
   def CheckCronJobAccess(self, username, cron_job_id):
     """Checks whether a given user can access given cron job."""
 
     self._CheckAccess(
-        username, unicode(cron_job_id),
+        username, str(cron_job_id),
         rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
 
   def CheckIfCanStartClientFlow(self, username, flow_name):

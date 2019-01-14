@@ -207,6 +207,7 @@ class DatabaseTestStatsMixin(object):
       # it was unset, accessing the field without assigning it sets it to the
       # empty list. Even worse, this change is not apparent after converting the
       # RDF protos to raw protobufs then serializing those to strings.
+      # TODO
       entry.metric_value.fields_values  # pylint: disable=pointless-statement
 
     expected_dicts = [entry.ToPrimitiveDict() for entry in expected_seq]

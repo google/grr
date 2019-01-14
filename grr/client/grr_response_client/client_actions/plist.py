@@ -10,6 +10,8 @@ import types
 
 
 from binplist import binplist
+from future.builtins import str
+
 from grr_response_client import actions
 from grr_response_client import vfs
 from grr_response_core.lib import plist as plist_lib
@@ -49,7 +51,7 @@ class PlistQuery(actions.ActionPlugin):
       plist = binplist.readPlist(io.BytesIO(data))
 
       # Create the query parser
-      parser = plist_lib.PlistFilterParser(unicode(self.filter_query)).Parse()
+      parser = plist_lib.PlistFilterParser(str(self.filter_query)).Parse()
       filter_imp = plist_lib.PlistFilterImplementation
       matcher = parser.Compile(filter_imp)
 

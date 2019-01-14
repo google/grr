@@ -79,7 +79,8 @@ class LinuxXinetdParserTest(test_lib.GRRBaseTest):
         self.assertFalse(rslt.start_after)
         self.assertFalse(rslt.starts)
       else:
-        self.assertEqual("XINETD", str(rslt.start_mode))
+        self.assertEqual(rslt.start_mode,
+                         rdf_client.LinuxServiceInformation.StartMode.XINETD)
         self.assertCountEqual(["xinetd"], list(rslt.start_after))
         self.assertTrue(rslt.starts)
 

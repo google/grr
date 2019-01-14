@@ -2,7 +2,7 @@
 #
 # MacOS post-installation script for GRR [Fleetspeak-enabled].
 
-[[ "${3}" != '/' ]] && exit 0
+[[ "${3}" != '/' ]] && exit -1
 
 # Use the config generated during client repacking as the
 # primary config.
@@ -15,3 +15,5 @@ if [[ -f '%(ClientBuilder.fleetspeak_plist_path)' ]]; then
   launchctl unload '%(ClientBuilder.fleetspeak_plist_path)'
   launchctl load '%(ClientBuilder.fleetspeak_plist_path)'
 fi
+
+exit 0

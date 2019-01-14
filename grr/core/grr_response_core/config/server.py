@@ -135,18 +135,6 @@ config_lib.DEFINE_string("Server.email_alerter_class", "SMTPEmailAlerter",
                          "The email alerter class to use.")
 
 config_lib.DEFINE_string(
-    "Rekall.profile_repository",
-    "https://github.com/google/rekall-profiles/raw/master",
-    "The repository to use when downloading Rekall profiles.")
-
-config_lib.DEFINE_string(
-    "Rekall.profile_cache_urn", "aff4:/rekall_profiles",
-    "A cache in the aff4 space to store downloaded Rekall profiles.")
-
-config_lib.DEFINE_string("Rekall.profile_server", "GRRRekallProfileServer",
-                         "Which Rekall profile server to use.")
-
-config_lib.DEFINE_string(
     "Server.username", None,
     "System account for services to run as after initialization. Note that "
     "GRR must be running as root first before being able to switch to another "
@@ -288,14 +276,6 @@ config_lib.DEFINE_integer(
     help="Default value for HuntRunnerArgs.avg_network_bytes_per_client_limit. "
     "If the average network usage per client becomes "
     "greater than this limit, the hunt gets stopped.")
-
-config_lib.DEFINE_bool(
-    "Rekall.enabled", False,
-    "If True then Rekall-based flows (AnalyzeClientMemory, "
-    "MemoryCollector, ListVADBinaries) will be enabled in "
-    "the system. Rekall is disabled by default since it's "
-    "in the maintenance mode and may not work correctly or "
-    "may not be stable enough.")
 
 # Fleetspeak server-side integration flags.
 config_lib.DEFINE_string(

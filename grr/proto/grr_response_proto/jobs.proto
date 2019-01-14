@@ -1926,11 +1926,11 @@ message MetricMetadata {
   }
 
   // COUNTER metric must have an INT type and EVENT metric must have a
-  // DISTRIBUTION type. GAUGE metrics can be INT, FLOAT or STR.
+  // DISTRIBUTION type. GAUGE metrics can be INT or FLOAT.
   enum ValueType {
     INT = 0;
     FLOAT = 1;
-    STR = 2;
+    DEPRECATED_STR = 2;  // TODO: String Gauges are deprecated.
     DISTRIBUTION = 3;
   }
 

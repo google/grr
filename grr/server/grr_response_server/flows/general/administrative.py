@@ -230,17 +230,19 @@ class GetClientStatsProcessResponseMixin(object):
     """Actually processes the contents of the response."""
 
     downsampled = rdf_client_stats.ClientStats.Downsampled(response)
+    if isinstance(client_id, rdfvalue.RDFURN):
+      client_id = client_id.Basename()
 
-    # TODO(amoser): We need client stats storage for the relational db.
-    if not data_store.AFF4Enabled():
-      return downsampled
+    if data_store.AFF4Enabled():
+      urn = rdf_client.ClientURN(client_id).Add("stats")
 
-    urn = rdf_client.ClientURN(client_id).Add("stats")
+      with aff4.FACTORY.Create(
+          urn, aff4_stats.ClientStats, token=self.token, mode="w") as stats_fd:
+        # Only keep the average of all values that fall within one minute.
+        stats_fd.AddAttribute(stats_fd.Schema.STATS, downsampled)
 
-    with aff4.FACTORY.Create(
-        urn, aff4_stats.ClientStats, token=self.token, mode="w") as stats_fd:
-      # Only keep the average of all values that fall within one minute.
-      stats_fd.AddAttribute(stats_fd.Schema.STATS, downsampled)
+    if data_store.RelationalDBWriteEnabled():
+      data_store.REL_DB.WriteClientStats(client_id, downsampled)
 
     return downsampled
 

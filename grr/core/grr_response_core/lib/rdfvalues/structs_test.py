@@ -10,9 +10,6 @@ import random
 
 from builtins import range  # pylint: disable=redefined-builtin
 
-from google.protobuf import descriptor_pool
-from google.protobuf import message_factory
-
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -22,7 +19,6 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
-from grr_response_core.lib.util import compatibility
 from grr.test_lib import test_lib
 
 # pylint: mode=test
@@ -130,10 +126,7 @@ class DynamicAnyValueTypeTest(rdf_structs.RDFProtoStruct):
 
   type_description = type_info.TypeDescriptorSet(
       rdf_structs.ProtoString(
-          name="type",
-          field_number=1,
-          # By default return the TestStruct proto.
-          description="A string value"),
+          name="type", field_number=1, description="A string value"),
       rdf_structs.ProtoDynamicAnyValueEmbedded(
           name="dynamic",
           # The callback here returns the type specified by the type member.
@@ -291,63 +284,6 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(unserialized, test_pb)
     self.assertEqual(unserialized.dynamic, "Hello")
 
-  def testProtoFileDescriptorIsGeneratedForDynamicType(self):
-    test_pb_file_descriptor, deps = DynamicTypeTest.EmitProtoFileDescriptor(
-        "grr_export")
-
-    pool = descriptor_pool.DescriptorPool()
-    for file_descriptor in deps + [test_pb_file_descriptor]:
-      pool.Add(file_descriptor)
-
-    proto_descriptor = pool.FindMessageTypeByName("grr_export.DynamicTypeTest")
-    factory = message_factory.MessageFactory()
-    proto_class = factory.GetPrototype(proto_descriptor)
-
-    # Now let's define an RDFProtoStruct for the dynamically generated
-    # proto_class.
-    new_dynamic_class = compatibility.MakeType(
-        "DynamicTypeTestReversed", (rdf_structs.RDFProtoStruct,),
-        dict(protobuf=proto_class, rdf_deps=[rdf_client.User]))
-    new_dynamic_instance = new_dynamic_class(
-        type="foo", nested=rdf_client.User(username="bar"))
-    self.assertEqual(new_dynamic_instance.type, "foo")
-    self.assertEqual(new_dynamic_instance.nested.username, "bar")
-
-  def testProtoFileDescriptorIsGeneratedForDynamicAnyValueType(self):
-    test_pb_file_descriptor, deps = (
-        DynamicAnyValueTypeTest.EmitProtoFileDescriptor("grr_export"))
-
-    pool = descriptor_pool.DescriptorPool()
-    for file_descriptor in deps + [test_pb_file_descriptor]:
-      pool.Add(file_descriptor)
-    proto_descriptor = pool.FindMessageTypeByName(
-        "grr_export.DynamicAnyValueTypeTest")
-    factory = message_factory.MessageFactory()
-    proto_class = factory.GetPrototype(proto_descriptor)
-
-    # Now let's define an RDFProtoStruct for the dynamically generated
-    # proto_class.
-    new_dynamic_class = compatibility.MakeType(
-        "DynamicAnyValueTypeTestReversed",
-        (rdf_structs.RDFProtoStruct,),
-        dict(protobuf=proto_class),
-    )
-    new_dynamic_instance = new_dynamic_class(type="foo")
-    self.assertEqual(new_dynamic_instance.type, "foo")
-
-    # Test that a proto can be deserialized from serialized RDFValue
-    # with a dynamic AnyValue field.
-    test_pb = DynamicAnyValueTypeTest(type="TestStruct")
-    test_pb.dynamic.foobar = "Hello"
-
-    proto_value = proto_class()
-    proto_value.ParseFromString(test_pb.SerializeToString())
-
-    self.assertEqual(proto_value.type, "TestStruct")
-    self.assertEqual(proto_value.dynamic.type_url, "TestStruct")
-    self.assertEqual(proto_value.dynamic.value,
-                     test_pb.dynamic.SerializeToString())
-
   def testStructDefinition(self):
     """Ensure that errors in struct definitions are raised."""
     # A descriptor without a field number should raise.
@@ -489,7 +425,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     # Out of range values are permitted and preserved through serialization.
     tested.type = 4
     self.assertEqual(tested.type, 4)
-    serialized_type = str(tested.type)
+    serialized_type = bytes(tested.type)
     tested.type = 1
     tested.type = serialized_type
     self.assertEqual(tested.type, 4)
@@ -720,7 +656,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         }]
     }
     self.assertEqual(
-        test_struct.ToPrimitiveDict(serialize_leaf_fields=True), expected_dict)
+        test_struct.ToPrimitiveDict(stringify_leaf_fields=True), expected_dict)
 
   def _GenerateSampleWithManyFields(self):
     fields = {}

@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 import logging
 import sys
 
-
+from future.builtins import str
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -104,7 +104,7 @@ def RotateServerKey(cn=u"grr", keylength=4096):
 
   server_private_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=keylength)
   server_cert = key_utils.MakeCASignedCert(
-      unicode(cn),
+      str(cn),
       server_private_key,
       ca_certificate,
       ca_private_key,

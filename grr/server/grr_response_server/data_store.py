@@ -35,6 +35,7 @@ able to filter it directly).
 """
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -47,10 +48,13 @@ import sys
 import time
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import str
+from future.builtins import zip
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import with_metaclass
+from typing import Optional
+from typing import Text
 
 from grr_response_core import config
 from grr_response_core.lib import flags
@@ -71,12 +75,19 @@ from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 flags.DEFINE_bool("list_storage", False, "List all storage subsystems present.")
 
+# TODO(user): Move access to functions that never return None but raise
+# instead.
+
 # A global data store handle
-DB = None
+DB = None  # type: Optional[DataStore]
+
 # The global relational db handle.
-REL_DB = None
+# TODO: Replace with Database, as soon as pytype
+# correctly recognizes with_metaclass(abc.ABCMeta).
+REL_DB = None  # type: Optional[db.DatabaseValidationWrapper]
+
 # The global blobstore handle.
-BLOBS = None
+BLOBS = None  # type: Optional[blob_store.BlobStore]
 
 
 def RelationalDBWriteEnabled():
@@ -293,7 +304,7 @@ class MutationPool(object):
 
   def CollectionDelete(self, collection_id):
     for subject, _, _ in DB.ScanAttribute(
-        unicode(collection_id.Add("Results")), DataStore.COLLECTION_ATTRIBUTE):
+        str(collection_id.Add("Results")), DataStore.COLLECTION_ATTRIBUTE):
       self.DeleteSubject(subject)
       if self.Size() > 50000:
         self.Flush()
@@ -328,7 +339,7 @@ class MutationPool(object):
     filtered_count = 0
 
     for subject, values in DB.ScanAttributes(
-        unicode(queue_id.Add("Records")),
+        str(queue_id.Add("Records")),
         [DataStore.COLLECTION_ATTRIBUTE, DataStore.QUEUE_LOCK_ATTRIBUTE],
         max_records=4 * limit,
         after_urn=after_urn):
@@ -339,7 +350,7 @@ class MutationPool(object):
         self.DeleteAttributes(subject, [DataStore.QUEUE_LOCK_ATTRIBUTE])
         continue
       if DataStore.QUEUE_LOCK_ATTRIBUTE in values:
-        timestamp = rdfvalue.RDFDatetime.FromSerializedString(
+        timestamp = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
             values[DataStore.QUEUE_LOCK_ATTRIBUTE][1])
         if timestamp > now:
           continue
@@ -552,7 +563,7 @@ class MutationPool(object):
 
   def AFF4AddChild(self, subject, child, extra_attributes=None):
     """Adds a child to the specified parent."""
-    precondition.AssertType(child, unicode)
+    precondition.AssertType(child, Text)
 
     attributes = {
         DataStore.AFF4_INDEX_DIR_TEMPLATE % child: [
@@ -1394,7 +1405,7 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
               suffix=after_suffix or self.COLLECTION_MAX_SUFFIX)[0])
 
     for subject, timestamp, serialized_rdf_value in self.ScanAttribute(
-        unicode(collection_id.Add("Results")),
+        str(collection_id.Add("Results")),
         self.COLLECTION_ATTRIBUTE,
         after_urn=after_urn,
         max_records=limit):

@@ -8,15 +8,17 @@ from __future__ import unicode_literals
 import time
 
 
+from future.builtins import str
 from past.builtins import long
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_server import aff4
@@ -29,27 +31,28 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
 
   def testNestedProtobufAssignment(self):
     """Check that we can assign a nested protobuf."""
-    container = rdf_rekall_types.RekallRequest()
-    pathspec = rdf_paths.PathSpec(path=r"\\.\pmem", pathtype=1)
+    container = rdf_client.BufferReference()
+    test_path = "C:\\test"
+    pathspec = rdf_paths.PathSpec(path=test_path, pathtype=1)
 
     # Should raise - incompatible RDFType.
-    self.assertRaises(ValueError, setattr, container, "device",
+    self.assertRaises(ValueError, setattr, container, "pathspec",
                       rdfvalue.RDFString("hello"))
 
     # Should raise - incompatible RDFProto type.
-    self.assertRaises(ValueError, setattr, container, "device",
+    self.assertRaises(ValueError, setattr, container, "pathspec",
                       rdf_client_fs.StatEntry(st_size=5))
 
     # Assign directly.
     container.device = pathspec
 
-    self.assertEqual(container.device.path, r"\\.\pmem")
+    self.assertEqual(container.device.path, test_path)
 
     # Clear the field.
     container.device = None
 
     # Check the protobuf does not have the field set at all.
-    self.assertFalse(container.HasField("device"))
+    self.assertFalse(container.HasField("pathspec"))
 
   def testSimpleTypeAssignment(self):
     sample = rdf_client_fs.StatEntry()
@@ -165,7 +168,7 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
   def testEnums(self):
     """Check that enums are wrapped in a descriptor class."""
     sample = rdf_flows.GrrStatus()
-    self.assertEqual(str(sample.status), "OK")
+    self.assertEqual(sample.status, rdf_flows.GrrStatus.ReturnedStatus.OK)
 
 
 class RDFValueTestMixin(object):
@@ -233,7 +236,7 @@ class RDFValueTestMixin(object):
 
     # Serializing to a string must produce a string.
     serialized = sample.SerializeToString()
-    self.assertIsInstance(serialized, str)
+    self.assertIsInstance(serialized, bytes)
 
     # Ensure we can parse it again.
     rdfvalue_object = self.rdfvalue_class.FromSerializedString(serialized)
@@ -244,10 +247,11 @@ class RDFValueTestMixin(object):
     serialized = sample.SerializeToDataStore()
 
     if self.rdfvalue_class.data_store_type == "bytes":
-      self.assertIsInstance(serialized, str)
+      self.assertIsInstance(serialized, bytes)
     elif self.rdfvalue_class.data_store_type == "string":
-      self.assertIsInstance(serialized, unicode)
+      self.assertIsInstance(serialized, Text)
     elif self.rdfvalue_class.data_store_type in ["unsigned_integer", "integer"]:
+      # TODO(hanuszczak): Import `future.builtins.int`.
       self.assertIsInstance(serialized, (int, long))
     else:
       self.fail("%s has no valid data_store_type" % self.rdfvalue_class)

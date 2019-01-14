@@ -59,14 +59,6 @@ function download_packages() {
     pip download --find-links=sdists --dest=local_pypi "$(ls sdists/${pkg}-*.zip)"
   done
 
-  # See https://github.com/google/rekall/issues/422
-  #
-  # Installation of the grr-response-test sdist from local_pypi will fail
-  # if the version of sortedcontainers needed by Rekall is not present.
-  #
-  # TODO(user): This won't be necessary once the github issue is fixed.
-  pip download --find-links=local_pypi --dest=local_pypi sortedcontainers==1.5.7
-
   # Installation of the grr-response-test sdist from local_pypi will fail
   # if the version of idna needed by requests is not present.
   # See https://ci.appveyor.com/project/grr/grr/builds/20793753.

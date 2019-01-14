@@ -44,12 +44,11 @@ def GetKnowledgeBase(rdf_client_obj, allow_uninitialized=False):
   if not kb:
     return rdf_client.KnowledgeBase()
 
-  version = unicode(rdf_client_obj.os_version)
-  split_version = version.split(".")
+  version = rdf_client_obj.os_version.split(".")
   try:
-    kb.os_major_version = int(split_version[0])
-    if len(split_version) >= 1:
-      kb.os_minor_version = int(split_version[1])
+    kb.os_major_version = int(version[0])
+    if len(version) >= 1:
+      kb.os_minor_version = int(version[1])
   except ValueError:
     pass
 

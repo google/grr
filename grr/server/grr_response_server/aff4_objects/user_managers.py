@@ -409,8 +409,6 @@ class FullAccessControlManager(access_control.AccessControlManager):
     # object is stored there.
     h.Allow("aff4:/stats")
     h.Allow("aff4:/stats/*")
-    h.Allow("aff4:/stats/FileStoreStats")
-    h.Allow("aff4:/stats/FileStoreStats/*")
 
     # Configuration namespace used for reading drivers, python hacks etc.
     h.Allow("aff4:/config")

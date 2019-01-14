@@ -13,6 +13,9 @@ class MySQLDBHuntMixin(object):
   def WriteHuntObject(self, hunt_obj):
     raise NotImplementedError()
 
+  def UpdateHuntObject(self, hunt_id, update_fn):
+    raise NotImplementedError()
+
   def ReadHuntObject(self, hunt_id):
     raise NotImplementedError()
 

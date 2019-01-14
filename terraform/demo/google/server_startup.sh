@@ -67,7 +67,6 @@ AdminUI.port: 8000
 Logging.domain: localhost
 Monitoring.alert_email: grr-monitoring@localhost
 Monitoring.emergency_access_email: grr-emergency@localhost
-Rekall.enabled: 'False'
 Server.initialized: 'True'
 
 Client.foreman_check_frequency: 30

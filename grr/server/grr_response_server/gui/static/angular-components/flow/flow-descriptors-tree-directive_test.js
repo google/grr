@@ -139,12 +139,12 @@ describe('flow descriptors tree directive', () => {
     });
 
     const element = renderTestTemplate();
-    element.bind('DOMNodeInserted', (e) => {
+    new MutationObserver(() => {
       if (element.text().indexOf('Category foo') != -1 &&
           element.text().indexOf('Category bar') != -1) {
         done();
       }
-    });
+    }).observe(element[0], {childList: true, subtree: true});
   });
 
   it('uses friendly name if available', (done) => {
@@ -186,11 +186,11 @@ describe('flow descriptors tree directive', () => {
     });
 
     const element = renderTestTemplate();
-    element.bind('DOMNodeInserted', (e) => {
+    new MutationObserver(() => {
       if (element.text().indexOf('friendly foo') != -1) {
         done();
       }
-    });
+    }).observe(element[0], {childList: true, subtree: true});
   });
 
   it('hides flows without specified behavior', (done) => {
@@ -268,12 +268,12 @@ describe('flow descriptors tree directive', () => {
     });
 
     const element = renderTestTemplate();
-    element.bind('DOMNodeInserted', (e) => {
+    new MutationObserver(() => {
       if (element.text().indexOf('friendly bar') != -1 &&
           element.text().indexOf('friendly foo') == -1) {
         done();
       }
-    });
+    }).observe(element[0], {childList: true, subtree: true});
   });
 
   describe('when clicked', () => {
@@ -318,11 +318,11 @@ describe('flow descriptors tree directive', () => {
       });
 
       element = renderTestTemplate();
-      element.bind('DOMNodeInserted', (e) => {
+      new MutationObserver(() => {
         if (element.text().indexOf('friendly foo') != -1) {
           done();
         }
-      });
+      }).observe(element[0], {childList: true, subtree: true});
     });
 
     it('updates selectedDescriptor binding', () => {

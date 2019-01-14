@@ -1,7 +1,7 @@
 goog.module('grrUi.stats.timeseriesGraphDirective');
 goog.module.declareLegacyNamespace();
 
-
+const {buildTimeseriesGraph} = goog.require('grrUi.stats.graphUtils');
 
 /** @typedef {{
  *             label:string,
@@ -129,8 +129,7 @@ TimeseriesGraphController.prototype.onConfigurationChange_ = function() {
           // Check that these data actually correspond to the
           // request we've sent.
           if (angular.equals(prevTimeRange, this.timeRange)) {
-            var serie = response['data'];
-            serie['data_points'] = serie['data_points'] || [];
+            var serie = response['data']['data_points'] || [];
 
             if (this.scope_['computeDelta']) {
               this.computeDelta_(serie['data_points']);
@@ -165,32 +164,16 @@ TimeseriesGraphController.prototype.buildGraphIfNeeded_ = function() {
   if (Object.keys(this.fetchedSeries).length == this.seriesDescriptors.length) {
     this.inProgress = false;
 
-    var data = [];
-    for (var label in this.fetchedSeries) {
-      var item = this.fetchedSeries[label];
-      data.push({
-        label: label,
-        data: item['data_points']
-      });
-    }
-
-    var config = {
-      xaxis: {
-        mode: 'time',
-        axisLabel: 'Time'
-      },
-      yaxis: {
-        axisLabel: label
-      }
-    };
-
     // Wait until timeseries-graph appears and draw the graph.
     var intervalPromise = this.interval_(function() {
-      var graphElement = $(this.element_).find('.timeseries-graph');
+      const graphElement = $(this.element_).find('.timeseries-graph');
+      const graphLegendElement = $(this.element_).find('.timeseries-graph-legend');
+
       if (graphElement &&
           graphElement.width() > 0 &&
           graphElement.height() > 0) {
-        $.plot(graphElement, data, config);
+
+        buildTimeseriesGraph(graphElement, graphLegendElement, this.fetchedSeries);
         this.interval_.cancel(intervalPromise);
       }
     }.bind(this), 500, 10);

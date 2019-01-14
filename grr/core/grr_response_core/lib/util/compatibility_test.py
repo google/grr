@@ -1,11 +1,30 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import datetime
+
 from absl.testing import absltest
+from typing import Text
 
 from grr_response_core.lib.util import compatibility
+
+
+class ReprTest(absltest.TestCase):
+
+  def testListOfIntegers(self):
+    string = compatibility.Repr([4, 8, 15, 16, 23, 42])
+    self.assertIsInstance(string, Text)
+    self.assertEqual(string, "[4, 8, 15, 16, 23, 42]")
+
+  def testNonUnicodeBytes(self):
+    string = compatibility.Repr(b"\xfa\xfb\xfc\xfe\xff")
+    self.assertIsInstance(string, Text)
+    # We `assertEndsWith` instead of `assertEquals` to account for string having
+    # or not having `b` prefix depending on the Python version being used.
+    self.assertEndsWith(string, "'\\xfa\\xfb\\xfc\\xfe\\xff'")
 
 
 class GetNameTest(absltest.TestCase):
@@ -106,6 +125,40 @@ class MakeTypeTest(absltest.TestCase):
     foo = cls()
     self.assertEqual(foo.Bar(), 42)
     self.assertEqual(foo.Baz(42), 84)
+
+
+class FormatTimeTest(absltest.TestCase):
+
+  def testDate(self):
+    stime = datetime.date(year=2012, month=3, day=4).timetuple()
+    self.assertEqual(compatibility.FormatTime("%Y-%m-%d", stime), "2012-03-04")
+
+  def testTime(self):
+    stime = datetime.datetime.combine(
+        date=datetime.date.today(),
+        time=datetime.time(hour=13, minute=47, second=58)).timetuple()
+    self.assertEqual(compatibility.FormatTime("%H:%M:%S", stime), "13:47:58")
+
+  def testDefault(self):
+    self.assertRegex(
+        compatibility.FormatTime("%Y-%m-%d %H:%M"),
+        "^\\d{4}\\-\\d{2}\\-\\d{2} \\d{2}:\\d{2}$")
+
+
+class ShlexSplitTest(absltest.TestCase):
+
+  def testNormal(self):
+    self.assertEqual(
+        compatibility.ShlexSplit("foo bar baz"), ["foo", "bar", "baz"])
+
+  def testUnicode(self):
+    self.assertEqual(
+        compatibility.ShlexSplit("żółć jaźń gąskę"), ["żółć", "jaźń", "gąskę"])
+
+  def testQuoted(self):
+    string = "'Лев Николаевич Толсто́й' 'Сергей Александрович Есенин'"
+    parts = ["Лев Николаевич Толсто́й", "Сергей Александрович Есенин"]
+    self.assertEqual(compatibility.ShlexSplit(string), parts)
 
 
 if __name__ == "__main__":

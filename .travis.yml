@@ -49,7 +49,6 @@ matrix:
       before_install:
         - travis/set_up_gcs_auth.sh
         - travis/install_protobuf.sh "${TRAVIS_OS_NAME}"
-        - brew install libffi
         - git clone https://github.com/MacPython/terryfy
         - source terryfy/travis_tools.sh
         - get_python_environment macpython 2.7.11

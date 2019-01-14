@@ -7,7 +7,8 @@ from __future__ import unicode_literals
 import logging
 
 
-from builtins import map  # pylint: disable=redefined-builtin
+from future.builtins import map
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import string_types
 
@@ -25,7 +26,6 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_proto import flows_pb2
@@ -41,7 +41,6 @@ from grr_response_server import server_stubs
 from grr_response_server.flows.general import artifact_fallbacks
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
-from grr_response_server.flows.general import memory
 from grr_response_server.flows.general import transfer
 
 
@@ -125,7 +124,7 @@ class ArtifactCollectorFlowMixin(object):
     """Gets an artifact from the registry, refreshing the registry if needed."""
     try:
       return artifact_registry.REGISTRY.GetArtifact(name)
-    except artifact_registry.ArtifactNotRegisteredError:
+    except rdf_artifacts.ArtifactNotRegisteredError:
       # If we don't have an artifact, things shouldn't have passed validation
       # so we assume it's a new one in the datastore.
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
@@ -209,7 +208,8 @@ class ArtifactCollectorFlowMixin(object):
         elif type_name == source_type.WMI:
           self.WMIQuery(source)
         elif type_name == source_type.REKALL_PLUGIN:
-          self.RekallPlugin(source)
+          raise NotImplementedError(
+              "Running Rekall artifacts is not supported anymore.")
         elif type_name == source_type.ARTIFACT_GROUP:
           self.CollectArtifacts(source)
         elif type_name == source_type.ARTIFACT_FILES:
@@ -458,24 +458,6 @@ class ArtifactCollectorFlowMixin(object):
           },
           next_state="ProcessCollected")
 
-  def RekallPlugin(self, source):
-    request = rdf_rekall_types.RekallRequest()
-    request.plugins = [
-        # Only use these methods for listing processes.
-        rdf_rekall_types.PluginRequest(
-            plugin=source.attributes["plugin"],
-            args=source.attributes.get("args", {}))
-    ]
-    self.CallFlow(
-        memory.AnalyzeClientMemory.__name__,
-        request=request,
-        request_data={
-            "artifact_name": self.current_artifact_name,
-            "rekall_plugin": source.attributes["plugin"],
-            "source": source.ToPrimitiveDict()
-        },
-        next_state="ProcessCollected")
-
   def _GetSingleExpansion(self, value):
     results = list(
         artifact_utils.InterpolateKbAttributes(
@@ -584,7 +566,7 @@ class ArtifactCollectorFlowMixin(object):
       artifact_utils.ArtifactProcessingError: On failure to process.
     """
     flow_name = self.__class__.__name__
-    artifact_name = unicode(responses.request_data["artifact_name"])
+    artifact_name = str(responses.request_data["artifact_name"])
     source = responses.request_data.GetItem("source", None)
 
     if not responses.success:
@@ -1246,15 +1228,15 @@ class ArtifactArranger(object):
     of artifact names.
 
     Returns:
-      A list of artifacts such that if they are collected in the given order
-      their dependencies are resolved.
+      A list of `ArtifactName` instances such that if they are collected in the
+      given order their dependencies are resolved.
     """
     artifact_list = []
     while self.reachable_nodes:
       node_name = self.reachable_nodes.pop()
       node = self.graph[node_name]
       if node.is_artifact:
-        artifact_list.append(unicode(node_name))
+        artifact_list.append(node_name)
       for next_node_name in node.outgoing:
         if next_node_name not in self.graph:
           continue

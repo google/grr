@@ -5,5 +5,6 @@
        ng-model="model"
        uib-typeahead="item.suggestion as item.username for item in controller.loadApproverSuggestions($viewValue)"
        typeahead-append-to-body="true"
+       typeahead-template-url="/static/angular-components/core/typeahead-match.html"
        ng-trim="false"
 />

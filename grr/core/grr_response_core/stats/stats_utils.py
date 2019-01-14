@@ -107,8 +107,6 @@ def MetricValueTypeFromPythonType(python_type):
   """Converts Python types to MetricMetadata.ValueType enum values."""
   if python_type in (int, long):
     return rdf_stats.MetricMetadata.ValueType.INT
-  elif python_type == str:
-    return rdf_stats.MetricMetadata.ValueType.STR
   elif python_type == float:
     return rdf_stats.MetricMetadata.ValueType.FLOAT
   else:
@@ -119,8 +117,6 @@ def PythonTypeFromMetricValueType(value_type):
   """Converts MetricMetadata.ValueType enums to corresponding Python types."""
   if value_type == rdf_stats.MetricMetadata.ValueType.INT:
     return int
-  elif value_type == rdf_stats.MetricMetadata.ValueType.STR:
-    return str
   elif value_type == rdf_stats.MetricMetadata.ValueType.FLOAT:
     return float
   else:

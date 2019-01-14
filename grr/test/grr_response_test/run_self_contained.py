@@ -125,11 +125,13 @@ def StartServerComponent(name, import_main_fn, args):
     multiprocessing.Process instance corresponding to a started process.
   """
   print("Starting %s component" % name)
-  process = multiprocessing.Process(
-      name=name, target=_RunServerComponent, args=(name, import_main_fn, args))
-  process.daemon = True
-  process.start()
-  return process
+  # process = multiprocessing.Process(
+  #    name=name, target=_RunServerComponent, args=(name, import_main_fn, args))
+  # process.daemon = True
+  # process.start()
+  _RunServerComponent(name, import_main_fn, args)
+  # return process
+  return multiprocessing.Process(name="DEBUG", target=lambda: None, args=())
 
 
 def _RunClient(config_path):
@@ -377,7 +379,8 @@ def main(argv):
   ])
   p.join()
   if p.exitcode != 0:
-    raise RuntimeError("ConfigWriter execution failed.")
+    # TODO(hanuszczak): This is just a debug stuff.
+    raise RuntimeError("ConfigWriter execution failed: {}".format(p.exitcode))
 
   server_config = config_lib.LoadConfig(config.CONFIG.MakeNewConfig(),
                                         built_server_config_path)

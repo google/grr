@@ -77,7 +77,7 @@ class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
         stats_utils.CreateCounterMetadata(
             _TEST_COUNTER, docstring="Sample counter metric."),
         stats_utils.CreateGaugeMetadata(
-            _TEST_GAUGE_METRIC, str, docstring="Sample gauge metric."),
+            _TEST_GAUGE_METRIC, float, docstring="Sample gauge metric."),
         stats_utils.CreateEventMetadata(
             _TEST_EVENT_METRIC, docstring="Sample event metric."),
     ]

@@ -10,12 +10,14 @@ import platform
 import unittest
 
 from builtins import range  # pylint: disable=redefined-builtin
+import mock
 
 from grr_response_core.lib import constants
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import compatibility
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
@@ -23,6 +25,7 @@ from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import transfer
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
@@ -227,11 +230,6 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
       self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
       self.CompareFDs(fd1, fd2)
-
-
-class GetFileRelationalFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                                GetFileFlowTest):
-  pass
 
 
 @db_test_lib.DualDBTest
@@ -622,10 +620,34 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       d.update(expected_data)
       self.assertEqual(hash_obj.sha1, d.hexdigest())
 
+  @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFile")
+  def testExternalFileStoreSubmissionIsTriggeredWhenFileIsSentToFileStore(
+      self, add_file_mock):
+    if not data_store.RelationalDBReadEnabled("filestore"):
+      self.skipTest("Relational filestore has to be enabled for this test.")
 
-class MultiGetFileRelationalFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                                     MultiGetFileFlowTest):
-  pass
+    client_mock = action_mocks.GetFileClientMock()
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path=os.path.join(self.base_path, "test_img.dd"))
+
+    flow_test_lib.TestFlowHelper(
+        compatibility.GetName(transfer.GetFile),
+        client_mock,
+        token=self.token,
+        client_id=self.client_id,
+        pathspec=pathspec)
+
+    add_file_mock.assert_called_once()
+    args = add_file_mock.call_args_list[0][0]
+    self.assertLen(args, 3)
+    self.assertEqual(
+        args[0], db.ClientPath.FromPathSpec(self.client_id.Basename(),
+                                            pathspec))
+    self.assertIsInstance(args[1], rdf_objects.SHA256HashID)
+    self.assertGreater(len(args[2]), 0)
+    for blob_ref in args[2]:
+      self.assertIsInstance(blob_ref, rdf_objects.BlobReference)
 
 
 def main(argv):

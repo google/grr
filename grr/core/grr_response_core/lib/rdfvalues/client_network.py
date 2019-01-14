@@ -51,14 +51,13 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
   def human_readable_address(self):
     if self.human_readable:
       return self.human_readable
-    else:
-      try:
-        if self.address_type == NetworkAddress.Family.INET:
-          return ipv6_utils.InetNtoP(socket.AF_INET, str(self.packed_bytes))
-        else:
-          return ipv6_utils.InetNtoP(socket.AF_INET6, str(self.packed_bytes))
-      except ValueError as e:
-        return str(e)
+    elif self.packed_bytes is not None:
+      packed_bytes = self.packed_bytes.AsBytes()
+
+      if self.address_type == NetworkAddress.Family.INET:
+        return ipv6_utils.InetNtoP(socket.AF_INET, packed_bytes)
+      else:
+        return ipv6_utils.InetNtoP(socket.AF_INET6, packed_bytes)
 
   @human_readable_address.setter
   def human_readable_address(self, value):
@@ -117,15 +116,10 @@ class Interface(rdf_structs.RDFProtoStruct):
     """Return a list of IP addresses."""
     results = []
     for address in self.addresses:
-      if address.human_readable:
-        results.append(address.human_readable)
-      else:
-        if address.address_type == NetworkAddress.Family.INET:
-          results.append(
-              ipv6_utils.InetNtoP(socket.AF_INET, str(address.packed_bytes)))
-        else:
-          results.append(
-              ipv6_utils.InetNtoP(socket.AF_INET6, str(address.packed_bytes)))
+      human_readable_address = address.human_readable_address
+      if human_readable_address is not None:
+        results.append(human_readable_address)
+
     return results
 
 

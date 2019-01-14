@@ -20,6 +20,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
@@ -28,7 +29,6 @@ from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import notification as notification_lib
 from grr_response_server import queue_manager
-from grr_response_server import server_stubs
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
@@ -45,18 +45,6 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
-
-
-@flow_base.DualDBFlow
-class InfiniteFlowMixin(object):
-  """Flow that never ends."""
-
-  def Start(self):
-    self.CallClient(server_stubs.GetFileStat, next_state="NextState")
-
-  def NextState(self, responses):
-    _ = responses
-    self.CallState(next_state="Start")
 
 
 @db_test_lib.DualDBTest
@@ -158,7 +146,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     with implementation.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name="InfiniteFlow"),
+            flow_name=compatibility.GetName(aff4_flows.InfiniteFlow)),
         client_rule_set=self._CreateForemanClientRuleSet(),
         client_rate=0,
         token=self.token) as hunt:
@@ -181,7 +169,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
     if data_store.RelationalDBFlowsEnabled():
       for client_id in self.client_ids:
-        flows = data_store.REL_DB.ReadAllFlowObjects(client_id.Basename())
+        flows = data_store.REL_DB.ReadAllFlowObjects(
+            client_id=client_id.Basename())
         self.assertLen(flows, 1)
 
         flow_obj = flows[0]
@@ -754,7 +743,6 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     args = standard.VariableGenericHuntArgs()
     self._AppendFlowRequest(args.flows, 1, 1)
     self._AppendFlowRequest(args.flows, 2, 2)
-    self._AppendFlowRequest(args.flows, 2, 3)
 
     with implementation.StartHunt(
         hunt_name=standard.VariableGenericHunt.__name__,
@@ -783,9 +771,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
     started, finished, errors = hunt_obj.GetClientsCounts()
     self.assertEqual(started, 2)
-    # Amazing as it may sound, 3 is actually a correct value as we run 2 flows
-    # on a second client.
-    self.assertEqual(finished, 3)
+    self.assertEqual(finished, 2)
     self.assertEqual(errors, 0)
 
   def testHuntTermination(self):

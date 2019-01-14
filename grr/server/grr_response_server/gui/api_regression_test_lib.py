@@ -78,11 +78,6 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
           getattr(mixin, "read_from_relational_db", False)):
         continue
 
-      # Some tests don't work yet with relational flows enabled.
-      if (getattr(cls, "aff4_flows_only_test", False) and
-          getattr(mixin, "relational_db_flows", False)):
-        continue
-
       cls_name = "%s_%s" % (name, mixin.connection_type)
       test_cls = compatibility.MakeType(
           cls_name,
@@ -96,11 +91,13 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV1RegressionTestMixin)
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
+    api_regression_http.HttpApiV1RelationalDBRegressionTestMixin)
+ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RegressionTestMixin)
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RelationalDBRegressionTestMixin)
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
-    api_regression_http.HttpApiV2RelationalFlowsRegressionTestMixin)
+    api_regression_http.HttpApiV2StableRelationalDBRegressionTestMixin)
 
 
 @pytest.mark.small

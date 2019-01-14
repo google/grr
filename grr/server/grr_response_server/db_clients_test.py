@@ -12,9 +12,11 @@ from future.utils import iterkeys
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import db
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr.test_lib import test_lib
 
 CERT = rdf_crypto.RDFX509Cert(b"""-----BEGIN CERTIFICATE-----
 MIIF7zCCA9egAwIBAgIBATANBgkqhkiG9w0BAQUFADA+MQswCQYDVQQGEwJVUzEM
@@ -1045,3 +1047,164 @@ class DatabaseTestClientsMixin(object):
   def testReadClientFullInfoRaisesWhenClientIsMissing(self):
     with self.assertRaises(db.UnknownClientError):
       self.db.ReadClientFullInfo("C.00413187fefa1dcf")
+
+  def _SetupClientStats(self):
+    self.InitializeClient("C.0000000000000001")
+    self.InitializeClient("C.0000000000000002")
+
+    offsets = [
+        rdfvalue.Duration("0s"),
+        rdfvalue.Duration("1s"),
+        db.CLIENT_STATS_RETENTION,
+        db.CLIENT_STATS_RETENTION + rdfvalue.Duration("1s"),
+    ]
+    now = rdfvalue.RDFDatetime.Now()
+
+    for offset_i, offset in enumerate(offsets):
+      with test_lib.FakeTime(now - offset):
+        for client_id in [1, 2]:
+          stats = rdf_client_stats.ClientStats(
+              RSS_size=offset_i, VMS_size=client_id)
+          self.db.WriteClientStats("C.%016x" % client_id, stats)
+
+    return now
+
+  def testReadEmptyClientStats(self):
+    self._SetupClientStats()
+    self.assertEmpty(self.db.ReadClientStats("C.0000000000000003"))
+
+  def testReadClientStats(self):
+    self._SetupClientStats()
+    stats = self.db.ReadClientStats(
+        client_id="C.0000000000000001",
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+    self.assertCountEqual([0, 1, 2, 3], [st.RSS_size for st in stats])
+    self.assertEqual({1}, {st.VMS_size for st in stats})
+
+    stats = self.db.ReadClientStats(
+        client_id="C.0000000000000002",
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+    self.assertCountEqual([0, 1, 2, 3], [st.RSS_size for st in stats])
+    self.assertEqual({2}, {st.VMS_size for st in stats})
+
+  def testReadClientStatsReturnsOrderedList(self):
+    self.InitializeClient("C.0000000000000001")
+
+    for i in [1, 4, 5, 3, 2]:
+      with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(i)):
+        self.db.WriteClientStats("C.0000000000000001",
+                                 rdf_client_stats.ClientStats())
+
+    stats = self.db.ReadClientStats(
+        client_id="C.0000000000000001",
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+    stats_sorted = list(sorted(stats, key=lambda st: st.create_time))
+    self.assertEqual(stats, stats_sorted)
+
+  def testReadClientStatsAfterRetention(self):
+    now = self._SetupClientStats()
+    with test_lib.FakeTime(now):
+      stats = self.db.ReadClientStats("C.0000000000000001")
+      self.assertCountEqual([0, 1, 2], [st.RSS_size for st in stats])
+
+      stats = self.db.ReadClientStats("C.0000000000000002")
+      self.assertCountEqual([0, 1, 2], [st.RSS_size for st in stats])
+
+  def testWriteInvalidClientStats(self):
+    with self.assertRaises(ValueError):
+      self.db.WriteClientStats("C.000000000000000xx",
+                               rdf_client_stats.ClientStats())
+
+    with self.assertRaises(TypeError):
+      self.db.WriteClientStats("C.0000000000000001", None)
+
+    with self.assertRaises(TypeError):
+      self.db.WriteClientStats("C.0000000000000001", {"RSS_size": 0})
+
+  def testWriteClientStatsForNonExistingClient(self):
+    with self.assertRaises(db.UnknownClientError) as context:
+      self.db.WriteClientStats("C.0000000000000005",
+                               rdf_client_stats.ClientStats())
+    self.assertEqual(context.exception.client_id, "C.0000000000000005")
+
+  def testClientStatsOverwriteExistingRow(self):
+    client_id = "C.0000000000000001"
+    self.InitializeClient(client_id)
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now()):
+      self.db.WriteClientStats(client_id,
+                               rdf_client_stats.ClientStats(RSS_size=1))
+      self.assertEqual(self.db.ReadClientStats(client_id)[0].RSS_size, 1)
+
+      self.db.WriteClientStats(client_id,
+                               rdf_client_stats.ClientStats(RSS_size=2))
+      self.assertEqual(self.db.ReadClientStats(client_id)[0].RSS_size, 2)
+
+  def testOldClientStatsAreNotWritten(self):
+    client_id = "C.0000000000000001"
+    now = rdfvalue.RDFDatetime.Now()
+    self.InitializeClient(client_id)
+
+    with test_lib.FakeTime(now):
+      self.db.WriteClientStats(
+          client_id,
+          rdf_client_stats.ClientStats(
+              create_time=now - db.CLIENT_STATS_RETENTION -
+              rdfvalue.Duration(000000.1)))
+      self.assertEmpty(
+          self.db.ReadClientStats(
+              client_id,
+              min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)))
+
+  def testDeleteOldClientStats(self):
+    now = self._SetupClientStats()
+    with test_lib.FakeTime(now):
+      deleted = list(self.db.DeleteOldClientStats(yield_after_count=100))
+      self.assertEqual([2], deleted)
+
+      stats = self.db.ReadClientStats(
+          client_id="C.0000000000000001",
+          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+      self.assertCountEqual([0, 1, 2], [st.RSS_size for st in stats])
+
+      stats = self.db.ReadClientStats(
+          client_id="C.0000000000000002",
+          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+      self.assertCountEqual([0, 1, 2], [st.RSS_size for st in stats])
+
+  def _TestDeleteOldClientStatsYields(self, total, yield_after_count,
+                                      yields_expected):
+    self.InitializeClient("C.0000000000000001")
+    now = rdfvalue.RDFDatetime.Now()
+    for i in range(1, total + 1):
+      with test_lib.FakeTime(now - db.CLIENT_STATS_RETENTION -
+                             rdfvalue.Duration.FromSeconds(i)):
+        self.db.WriteClientStats("C.0000000000000001",
+                                 rdf_client_stats.ClientStats())
+
+    yields = []
+    with test_lib.FakeTime(now):
+      for deleted in self.db.DeleteOldClientStats(
+          yield_after_count=yield_after_count):
+        yields.append(deleted)
+    self.assertEqual(yields, yields_expected)
+
+    stats = self.db.ReadClientStats(
+        client_id="C.0000000000000001",
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+    self.assertEmpty(stats)
+
+  def testDeleteOldClientStatsYieldsZeroIfEmpty(self):
+    self._TestDeleteOldClientStatsYields(
+        total=0, yield_after_count=10, yields_expected=[0])
+
+  def testDeleteOldClientStatsYieldsExactMatch(self):
+    self._TestDeleteOldClientStatsYields(
+        total=10, yield_after_count=5, yields_expected=[5, 5])
+
+  def testDeleteOldClientStatsYieldsAtLeastOnce(self):
+    self._TestDeleteOldClientStatsYields(
+        total=10, yield_after_count=20, yields_expected=[10])
+
+  def testDeleteOldClientStatsYieldsUnexactMatch(self):
+    self._TestDeleteOldClientStatsYields(
+        total=10, yield_after_count=4, yields_expected=[4, 4, 2])

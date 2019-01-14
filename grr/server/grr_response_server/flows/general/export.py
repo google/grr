@@ -4,12 +4,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.utils import string_types
+
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import db
 from grr_response_server.flows.general import collectors
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
 
 class Error(Exception):
@@ -28,8 +32,14 @@ def CollectionItemToAff4Path(item, client_id=None):
   if isinstance(item, rdf_flows.GrrMessage):
     client_id = item.source
     item = item.payload
+  elif isinstance(item, rdf_flow_objects.FlowResult):
+    client_id = item.client_id
+    item = item.payload
+
   if not client_id:
     raise ValueError("Could not determine client_id.")
+  elif isinstance(client_id, string_types):
+    client_id = rdf_client.ClientURN(client_id)
 
   if isinstance(item, rdf_client_fs.StatEntry):
     return item.AFF4Path(client_id)
@@ -47,10 +57,13 @@ def CollectionItemToClientPath(item, client_id=None):
   if isinstance(item, rdf_flows.GrrMessage):
     client_id = item.source
     item = item.payload
+  elif isinstance(item, rdf_flow_objects.FlowResult):
+    client_id = item.client_id
+    item = item.payload
 
   if client_id is None:
     raise ValueError("Could not determine client_id.")
-  elif isinstance(client_id, rdf_client.ClientURN):
+  elif isinstance(client_id, rdfvalue.RDFURN):
     client_id = client_id.Basename()
 
   if isinstance(item, rdf_client_fs.StatEntry):

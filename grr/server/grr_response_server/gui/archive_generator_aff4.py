@@ -75,9 +75,9 @@ class Aff4CollectionArchiveGenerator(object):
     self.description = description or "Files archive collection"
 
     self.total_files = 0
-    self.archived_files = 0
-    self.ignored_files = []
-    self.failed_files = []
+    self.archived_files = set()
+    self.ignored_files = set()
+    self.failed_files = set()
 
     self.predicate = predicate or (lambda _: True)
     self.client_id = client_id
@@ -100,17 +100,17 @@ class Aff4CollectionArchiveGenerator(object):
     manifest = {
         "description": self.description,
         "processed_files": self.total_files,
-        "archived_files": self.archived_files,
+        "archived_files": len(self.archived_files),
         "ignored_files": len(self.ignored_files),
         "failed_files": len(self.failed_files)
     }
     if self.ignored_files:
-      manifest["ignored_files_list"] = self.ignored_files
+      manifest["ignored_files_list"] = list(self.ignored_files)
     if self.failed_files:
-      manifest["failed_files_list"] = self.failed_files
+      manifest["failed_files_list"] = list(self.failed_files)
 
     manifest_fd = io.StringIO()
-    if self.total_files != self.archived_files:
+    if self.total_files != len(self.archived_files):
       manifest_fd.write(self.FILES_SKIPPED_WARNING)
     manifest_fd.write(yaml.safe_dump(manifest).decode("utf-8"))
 
@@ -125,7 +125,7 @@ class Aff4CollectionArchiveGenerator(object):
   def _GenerateClientInfo(self, client_fd):
     """Yields chucks of archive information for given client."""
     summary_dict = client_fd.GetSummary().ToPrimitiveDict(
-        serialize_leaf_fields=True)
+        stringify_leaf_fields=True)
     summary = yaml.safe_dump(summary_dict).decode("utf-8")
 
     client_info_path = os.path.join(self.prefix, client_fd.urn.Basename(),
@@ -151,11 +151,10 @@ class Aff4CollectionArchiveGenerator(object):
     clients = set()
     for fd_urn_batch in collection.Batch(
         self._ItemsToUrns(items), self.BATCH_SIZE):
+      self.total_files += len(fd_urn_batch)
 
       fds_to_write = {}
       for fd in aff4.FACTORY.MultiOpen(fd_urn_batch, token=token):
-        self.total_files += 1
-
         # Derive a ClientPath from AFF4 URN to make new and old
         # archive_generator predicate input consistent.
         # TODO(user): This code is clearly hacky and intended to be removed.
@@ -168,7 +167,7 @@ class Aff4CollectionArchiveGenerator(object):
             client_id=urn_components[0], components=urn_components[3:])
 
         if not self.predicate(client_path):
-          self.ignored_files.append(utils.SmartUnicode(fd.urn))
+          self.ignored_files.add(utils.SmartUnicode(fd.urn))
           continue
 
         # Any file-like object with data in AFF4 should inherit AFF4Stream.
@@ -177,7 +176,6 @@ class Aff4CollectionArchiveGenerator(object):
           clients.add(rdf_client.ClientURN(urn_components[0]))
 
           content_path = os.path.join(self.prefix, *urn_components)
-          self.archived_files += 1
 
           # Make sure size of the original file is passed. It's required
           # when output_writer is StreamingTarWriter.
@@ -190,8 +188,11 @@ class Aff4CollectionArchiveGenerator(object):
           if exception:
             logging.exception(exception)
 
-            self.archived_files -= 1
-            self.failed_files.append(utils.SmartUnicode(fd.urn))
+            try:
+              self.archived_files.remove(utils.SmartUnicode(fd.urn))
+            except KeyError:
+              pass  # Failing is fine, since removal should be idempotent.
+            self.failed_files.add(utils.SmartUnicode(fd.urn))
             continue
 
           if prev_fd != fd:
@@ -203,6 +204,7 @@ class Aff4CollectionArchiveGenerator(object):
             yield self.archive_generator.WriteFileHeader(content_path, st=st)
 
           yield self.archive_generator.WriteFileChunk(chunk)
+          self.archived_files.add(utils.SmartUnicode(fd.urn))
 
         if self.archive_generator.is_file_write_in_progress:
           yield self.archive_generator.WriteFileFooter()

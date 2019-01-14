@@ -19,7 +19,7 @@ from grr_response_server import instant_output_plugin
 def _SerializeToYaml(value):
   preserialized = []
   if isinstance(value, rdf_structs.RDFProtoStruct):
-    preserialized.append(value.ToPrimitiveDict(serialize_leaf_fields=True))
+    preserialized.append(value.ToPrimitiveDict(stringify_leaf_fields=True))
   else:
     preserialized.append(utils.SmartStr(value))
   # Produce a YAML list entry in block format.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """This modules contains tests for clients API handlers."""
 from __future__ import absolute_import
 from __future__ import division
@@ -579,6 +580,85 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
       ip_str, ipaddr_obj = client_plugin._GetAddrFromFleetspeak(client_id)
       self.assertEqual(ip_str, "")
       self.assertIsNone(ipaddr_obj)
+
+
+@db_test_lib.DualDBTest
+class ApiSearchClientsHandlerTest(api_test_lib.ApiCallHandlerTest):
+
+  def setUp(self):
+    super(ApiSearchClientsHandlerTest, self).setUp()
+    self.search_handler = client_plugin.ApiSearchClientsHandler()
+    self.add_labels_handler = client_plugin.ApiAddClientsLabelsHandler()
+
+  def _AddLabels(self, client_id, labels):
+    args = client_plugin.ApiAddClientsLabelsArgs()
+    args.client_ids = [client_id]
+    args.labels = labels
+    self.add_labels_handler.Handle(args=args, token=self.token)
+
+  def testUnicode(self):
+    client_a_id = self.SetupClient(0).Basename()
+    self._AddLabels(client_a_id, labels=["gżegżółka"])
+
+    client_b_id = self.SetupClient(1).Basename()
+    self._AddLabels(client_b_id, labels=["orłosęp"])
+
+    args_a = client_plugin.ApiSearchClientsArgs(
+        query="label:gżegżółka", offset=0, count=128)
+
+    result_a = self.search_handler.Handle(args_a, token=self.token)
+    self.assertLen(result_a.items, 1)
+    self.assertEqual(result_a.items[0].client_id, client_a_id)
+
+    args_b = client_plugin.ApiSearchClientsArgs(
+        query="label:orłosęp", offset=0, count=128)
+
+    result_b = self.search_handler.Handle(args_b, token=self.token)
+    self.assertLen(result_b.items, 1)
+    self.assertEqual(result_b.items[0].client_id, client_b_id)
+
+  def testUnicodeMultipleClients(self):
+    client_a_id = self.SetupClient(0).Basename()
+    self._AddLabels(client_a_id, labels=["ścierwnik", "krzyżówka"])
+
+    client_b_id = self.SetupClient(1).Basename()
+    self._AddLabels(client_b_id, labels=["nurogęś", "ścierwnik"])
+
+    args = client_plugin.ApiSearchClientsArgs(
+        query="label:ścierwnik", offset=0, count=1000)
+
+    result = self.search_handler.Handle(args, token=self.token)
+    result_client_ids = [item.client_id for item in result.items]
+    self.assertCountEqual(result_client_ids, [client_a_id, client_b_id])
+
+  def testUnicodeMultipleLabels(self):
+    client_a_id = self.SetupClient(0).Basename()
+    self._AddLabels(client_a_id, labels=["pustułka", "sokół", "raróg"])
+
+    client_b_id = self.SetupClient(1).Basename()
+    self._AddLabels(client_b_id, labels=["raróg", "żuraw", "białozór"])
+
+    client_c_id = self.SetupClient(2).Basename()
+    self._AddLabels(client_c_id, labels=["raróg", "sokół", "gołąb"])
+
+    args = client_plugin.ApiSearchClientsArgs(
+        query="label:raróg label:sokół", offset=0, count=1000)
+
+    result = self.search_handler.Handle(args, token=self.token)
+    result_client_ids = [item.client_id for item in result.items]
+    self.assertCountEqual(result_client_ids, [client_a_id, client_c_id])
+
+  def testUnicodeQuoted(self):
+    client_id = self.SetupClient(0).Basename()
+    self._AddLabels(
+        client_id, labels=["dzięcioł białoszyi", "świergotek łąkowy"])
+
+    args = client_plugin.ApiSearchClientsArgs(
+        query="label:'dzięcioł białoszyi' label:'świergotek łąkowy'")
+
+    result = self.search_handler.Handle(args, token=self.token)
+    self.assertLen(result.items, 1)
+    self.assertEqual(result.items[0].client_id, client_id)
 
 
 def main(argv):

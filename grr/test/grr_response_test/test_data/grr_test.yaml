@@ -244,9 +244,6 @@ Test Context:
 
   Client.tempdir_roots: ["/tmp/"]
 
-  Rekall.profile_server: TestRekallRepositoryProfileServer
-  Client.rekall_profile_cache_path: /tmp/rekall_profiles
-
   # Disable write back
   Config.writeback: ""
 

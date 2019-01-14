@@ -5,12 +5,12 @@
   <div class="input-group">
     <input name="Search" class="form-control" style="background-color: #ffffff" type="text" placeholder="Search" ng-model="controller.search"></input>
 
-    <span class="input-group-btn">
-      <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <span class="input-group-btn" uib-dropdown>
+      <button type="button" class="btn btn-default" uib-dropdown-toggle aria-haspopup="true" aria-expanded="false">
         {$ controller.selectedPlatform || "All Platforms" $}
         <span class="caret"></span>
       </button>
-      <ul class="dropdown-menu">
+      <ul class="dropdown-menu" uib-dropdown-menu>
         <li ng-repeat="platform in controller.platforms">
           <a ng-click="controller.selectedPlatform = platform">{$ platform || "All Platforms" $}</a>
         </li>

@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from future.utils import iterkeys
 from future.utils import itervalues
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -27,7 +28,7 @@ def _GetAllTypes():
   all_types.pop(rdfvalue.RDFValue.__name__, None)
   all_types.pop(rdfvalue.RDFPrimitive.__name__, None)
 
-  for cls in [bool, int, float, long, str, unicode, list, tuple]:
+  for cls in [bool, int, float, long, str, Text, list, tuple]:
     all_types[cls.__name__] = cls
 
   return all_types

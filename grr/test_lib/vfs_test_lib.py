@@ -2,6 +2,7 @@
 """VFS-related test classes."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import io
 import os
@@ -497,7 +498,7 @@ def CreateFile(client_path, content=b"", token=None):
 
   if data_store.RelationalDBWriteEnabled():
     data_store.BLOBS.WriteBlobs({blob_id: content})
-    hash_id = file_store.AddFileWithUnknownHash([blob_id])
+    hash_id = file_store.AddFileWithUnknownHash(client_path, [blob_id])
 
     path_info = rdf_objects.PathInfo()
     path_info.path_type = client_path.path_type

@@ -51,6 +51,7 @@ import abc
 from future.utils import with_metaclass
 
 
+# TODO
 # pytype: disable=ignored-abstractmethod
 class StatsCollector(with_metaclass(abc.ABCMeta, object)):
   """Base implementation for a stats-collector.
@@ -195,4 +196,5 @@ class StatsCollector(with_metaclass(abc.ABCMeta, object)):
     """
     raise NotImplementedError()
 
+# TODO
 # pytype: enable=ignored-abstractmethod

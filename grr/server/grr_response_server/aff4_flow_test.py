@@ -7,7 +7,8 @@ from __future__ import unicode_literals
 import time
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.builtins import str
 
 from grr_response_client.client_actions import standard
 from grr_response_core import config
@@ -281,8 +282,8 @@ class FlowCreationTest(BasicFlowTest):
     self.assertEqual(runner.context.state,
                      rdf_flow_runner.FlowContext.State.ERROR)
 
-    self.assertTrue("user test" in runner.context.status)
-    self.assertTrue(reason in runner.context.status)
+    self.assertIn("user test", runner.context.status)
+    self.assertIn(reason, runner.context.status)
 
     child = aff4.FACTORY.Open(
         children[0].urn, aff4_type=CallClientChildFlow, token=self.token)
@@ -291,8 +292,8 @@ class FlowCreationTest(BasicFlowTest):
     self.assertEqual(runner.context.state,
                      rdf_flow_runner.FlowContext.State.ERROR)
 
-    self.assertTrue("user test" in runner.context.status)
-    self.assertTrue("Parent flow terminated." in runner.context.status)
+    self.assertIn("user test", runner.context.status)
+    self.assertIn("Parent flow terminated.", runner.context.status)
 
   notifications = {}
 
@@ -372,14 +373,14 @@ class FlowCreationTest(BasicFlowTest):
     self.assertLen(log_collection, 8)
     for log in log_collection:
       self.assertEqual(log.client_id, self.client_id)
-      self.assertTrue(log.log_message in [
+      self.assertIn(log.log_message, [
           "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres", "Cuatro"
       ])
-      self.assertTrue(log.flow_name in [
+      self.assertIn(log.flow_name, [
           aff4_flows.DummyLogFlow.__name__,
           aff4_flows.DummyLogFlowChild.__name__
       ])
-      self.assertTrue(str(flow_urn) in str(log.urn))
+      self.assertIn(str(flow_urn), str(log.urn))
 
   def testFlowStoresResultsPerType(self):
     flow_urn = flow_test_lib.TestFlowHelper(
@@ -688,8 +689,8 @@ class FlowOutputPluginsTest(BasicFlowTest):
     ])
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     log_messages = [item.log_message for item in flow_obj.GetLog()]
-    self.assertTrue(
-        "Plugin DummyFlowOutputPlugin successfully processed 1 flow replies." in
+    self.assertIn(
+        "Plugin DummyFlowOutputPlugin successfully processed 1 flow replies.",
         log_messages)
 
   def testFlowLogsFailedOutputPluginProcessing(self):
@@ -699,9 +700,9 @@ class FlowOutputPluginsTest(BasicFlowTest):
     ])
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     log_messages = [item.log_message for item in flow_obj.GetLog()]
-    self.assertTrue(
+    self.assertIn(
         "Plugin FailingDummyFlowOutputPlugin failed to process 1 replies "
-        "due to: Oh no!" in log_messages)
+        "due to: Oh no!", log_messages)
 
   def testFlowDoesNotFailWhenOutputPluginFails(self):
     flow_urn = self.RunFlow(plugins=[
@@ -946,8 +947,8 @@ class ParentFlow(flow.GRRFlow):
 
   def ParentReceiveHello(self, responses):
     responses = list(responses)
-    if (len(responses) != 2 or "Child" not in unicode(responses[0]) or
-        "Hello" not in unicode(responses[1])):
+    if (len(responses) != 2 or "Child" not in str(responses[0]) or
+        "Hello" not in str(responses[1])):
       raise RuntimeError("Messages not passed to parent")
 
     ParentFlow.success = True

@@ -82,13 +82,14 @@ class DatabaseEventsTestMixin(object):
   def testReadEntriesFilterRouterMethodName(self):
     entry = self._MakeEntry(router_method_name="foo")
     self.db.WriteAPIAuditEntry(entry)
-    self.db.WriteAPIAuditEntry(self._MakeEntry(router_method_name="bar"))
+    entry2 = self._MakeEntry(router_method_name="bar")
+    self.db.WriteAPIAuditEntry(entry2)
     self.db.WriteAPIAuditEntry(self._MakeEntry(router_method_name="foobar"))
 
-    entries = self.db.ReadAPIAuditEntries(router_method_name="foo")
+    entries = self.db.ReadAPIAuditEntries(router_method_names=["foo", "bar"])
     _SetTimestampNone(entries)
 
-    self.assertCountEqual(entries, [entry])
+    self.assertCountEqual(entries, [entry, entry2])
 
   def testReadEntriesFilterTimestamp(self):
     self.db.WriteAPIAuditEntry(self._MakeEntry(response_code="OK"))

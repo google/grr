@@ -9,6 +9,7 @@ import time
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import type_info
+from grr_response_core.lib.util import compatibility
 
 config_lib.DEFINE_string(
     name="ClientBuilder.output_extension",
@@ -85,7 +86,6 @@ config_lib.DEFINE_string(
     name="PyInstaller.spec",
     help="The spec file contents to use for building the client.",
     default=r"""
-import capstone
 import glob
 import os
 import platform
@@ -136,19 +136,6 @@ exe = EXE\(
     version=os.path.join\(r"%(PyInstaller.build_dir)", "version.txt"\),
     icon=os.path.join\(r"%(PyInstaller.build_dir)", "grr.ico"\)\)
 
-LIBCAPSTONE = None
-for name in ["capstone", "libcapstone"]:
-  for ext in [".so", ".dylib", ".dll"]:
-    for path in [
-      os.path.join\(capstone.__path__[0], name + ext\),
-      os.path.join\(os.path.dirname\(capstone.__path__[0]\), name + ext\)
-    ]:
-      if os.path.exists\(path\):
-        LIBCAPSTONE = path
-
-if not LIBCAPSTONE:
-  raise RuntimeError\("Can't find libcasptone"\)
-
 CHIPSEC_LIBS = []
 if platform.system\(\).lower\(\) == 'linux':
   import chipsec
@@ -161,21 +148,10 @@ RESOURCES_PREFIX = os.path.join\(sys.prefix, "resources"\)
 
 coll = COLLECT\(
     exe,
-    # Forcing PyInstaller to see libcapstone built by rekall-capstone
-    # and chipsec.
-    a.binaries + [\(os.path.basename\(LIBCAPSTONE\), LIBCAPSTONE, "BINARY"\)] +
-      [\(os.path.basename\(x\), x, "BINARY"\) for x in CHIPSEC_LIBS],
+    # Forcing PyInstaller to see chipsec.
+    a.binaries + [\(os.path.basename\(x\), x, "BINARY"\) for x in CHIPSEC_LIBS],
     a.zipfiles,
-    # Forcing PyInstaller to copy Pmem drivers from Rekall resources.
-    a.datas + [\(os.path.join\("resources", "MacPmem.kext.tgz"\),
-                 os.path.join\(RESOURCES_PREFIX, "MacPmem.kext.tgz"\),
-                 "DATA"\),
-               \(os.path.join\("resources", "WinPmem", "winpmem_x64.sys"\),
-                 os.path.join\(RESOURCES_PREFIX, "WinPmem", "winpmem_x64.sys"\),
-                 "DATA"\),
-               \(os.path.join\("resources", "WinPmem", "winpmem_x86.sys"\),
-                 os.path.join\(RESOURCES_PREFIX, "WinPmem", "winpmem_x86.sys"\),
-                 "DATA"\)],
+    a.datas,
     strip=False,
     upx=False,
     name="grr-client"
@@ -383,13 +359,14 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     name="ClientBuilder.debian_build_time",
-    default=time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
+    default=compatibility.FormatTime("%a, %d %b %Y %H:%M:%S +0000",
+                                     time.gmtime()),
     help="The build time put into the debian package. Needs to be formatted"
     " like the output of 'date -R'.")
 
 config_lib.DEFINE_string(
     name="ClientBuilder.rpm_build_time",
-    default=time.strftime("%a %b %d %Y", time.gmtime()),
+    default=compatibility.FormatTime("%a %b %d %Y", time.gmtime()),
     help="The build time put into the rpm package. Needs to be formatted"
     " according to the rpm specs.")
 
