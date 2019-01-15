@@ -143,7 +143,7 @@ config_lib.DEFINE_bool(
 # Configuration requirements for Cloud IAP Setup
 config_lib.DEFINE_string(
     "AdminUI.cloud_project_id", None,
-    "Cloud Project ID for IAP. This must be set if the IAPWebAuthManager is used."
+    "Cloud Project ID for IAP. This must be set if the IAPWebAuthManager is used. "
 )
 
 config_lib.DEFINE_string(
