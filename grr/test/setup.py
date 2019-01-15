@@ -63,7 +63,7 @@ setup_args = dict(
         "absl-py==0.6.1",
         "mock==2.0.0",
         "mox==0.5.3",
-        "pytest==3.0.5",
+        "pytest==4.1.0",
         "selenium==2.50.1",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
