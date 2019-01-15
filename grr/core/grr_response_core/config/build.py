@@ -405,7 +405,7 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     "ClientBuilder.vs_dir",
-    default=None,
+    default=r"%{C:\Program Files (x86)\Microsoft Visual Studio 12.0}",
     help="Path to visual studio installation dir.")
 
 config_lib.DEFINE_string(

@@ -70,8 +70,10 @@ config_lib.DEFINE_string("Client.plist_path",
 config_lib.DEFINE_string("Client.plist_filename", "%(Client.plist_label).plist",
                          "Filename of launchctl plist.")
 
-config_lib.DEFINE_string("Client.plist_label", None,
-                         "Identifier label for launchd")
+config_lib.DEFINE_string(
+    "Client.plist_label",
+    "%(Client.plist_label_prefix).google.code.%(Client.name)",
+    "Identifier label for launchd")
 
 config_lib.DEFINE_string("Client.plist_label_prefix", "com",
                          "Domain for launchd label.")
@@ -136,13 +138,13 @@ config_lib.DEFINE_list(
 # Windows client specific options.
 config_lib.DEFINE_string(
     "Client.config_hive",
-    r"HKEY_LOCAL_MACHINE",
+    "HKEY_LOCAL_MACHINE",
     help="The registry hive where the client "
     "configuration will be stored.")
 
 config_lib.DEFINE_string(
     "Client.config_key",
-    r"Software\\GRR",
+    r"Software\\%(Client.name)",
     help="The registry key where  client configuration "
     "will be stored.")
 
@@ -182,11 +184,13 @@ config_lib.DEFINE_integer(
 # The following configuration options are defined here but are used in
 # the windows nanny code (grr/client/nanny/windows_nanny.h).
 config_lib.DEFINE_string(
-    "Nanny.child_binary", "GRR.exe", help="The location to the client binary.")
+    "Nanny.child_binary",
+    r"%(Client.install_path)\\%(Client.binary_name)",
+    help="The location to the client binary.")
 
 config_lib.DEFINE_string(
-    "Nanny.child_command_line",
-    "%(Nanny.child_binary)",
+    "Nanny.child_command_line", r"%(child_binary) --config "
+    r"\"%(Client.install_path)\\%(Client.binary_name).yaml\"",
     help="The command line to launch the client binary.")
 
 config_lib.DEFINE_string("Client.transaction_log_file",
@@ -194,18 +198,17 @@ config_lib.DEFINE_string("Client.transaction_log_file",
                          "The file where we write the nanny transaction log.")
 
 config_lib.DEFINE_string(
-    "Nanny.service_name", "GRR Service", help="The name of the nanny.")
+    "Nanny.service_name",
+    "%(Client.name) Monitor",
+    help="The name of the nanny.")
 
 config_lib.DEFINE_string(
     "Nanny.service_description",
-    "GRR Service",
+    "%(Client.name) Monitor Service",
     help="The description of the nanny service.")
 
-config_lib.DEFINE_string("Nanny.statusfile", "%(Logging.path)/nanny.status",
+config_lib.DEFINE_string("Nanny.statusfile", "/var/run/nanny.status",
                          "The file where we write the nanny status.")
-
-config_lib.DEFINE_string("Nanny.status", "",
-                         "The regkey where we write the nanny status.")
 
 config_lib.DEFINE_string(
     "Nanny.binary",

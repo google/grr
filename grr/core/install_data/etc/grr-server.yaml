@@ -157,9 +157,6 @@ Target:Windows:
 
   ClientBuilder.template_extension: .exe.zip
 
-  ClientBuilder.vs_dir: |
-    %{C:\Program Files (x86)\Microsoft Visual Studio 12.0}
-
   # This indicates that we are building a client for debugging. It needs to
   # be nested deeper than the Client context so it always takes precedence
   # when both contexts apply.
@@ -183,8 +180,6 @@ Platform:Darwin:
 
   Client.platform: darwin
 
-  Client.plist_label: "%(Client.plist_label_prefix).google.code.%(Client.name)"
-
   Logging.engines: stderr,file,syslog
 
   Logging.syslog_path: /var/run/syslog
@@ -194,9 +189,9 @@ Platform:Linux:
 
   Client.platform: linux
 
-  Logging.engines: "stderr,file,syslog"
+  Logging.engines: stderr,file,syslog
 
-  Logging.syslog_path: "/dev/log"
+  Logging.syslog_path: /dev/log
 
   Commandline Context:
     Logging.engines: stderr
@@ -207,10 +202,6 @@ Platform:Linux:
 Platform:Windows:
   Client.binary_name: |
       %(Client.name).exe
-
-  Client.config_hive: HKEY_LOCAL_MACHINE
-
-  Client.config_key: Software\\%(Client.name)
 
   Client.install_path: |
     %(SystemRoot|env)\\System32\\%(Client.name)\\%(Source.version_string)
@@ -230,19 +221,6 @@ Platform:Windows:
 
   Logging.path: |
     %(WINDIR|env)\\System32\\logfiles\\
-
-  Nanny.child_binary: |
-    %(Client.install_path)\\%(Client.binary_name)
-
-  # The nanny is responsible for launching the client with the configuration file.
-  Nanny.child_command_line: >-
-    %(child_binary) --config "%(Client.install_path)\\%(Client.binary_name).yaml"
-
-  Nanny.service_binary_name: "%(Client.name)service.exe"
-
-  Nanny.service_description: "%(Client.name) Monitor Service"
-
-  Nanny.service_name: "%(Client.name) Monitor"
 
   Arch:amd64:
     ClientBuilder.vs_arch: x64
