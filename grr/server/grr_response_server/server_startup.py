@@ -8,6 +8,8 @@ import logging
 import os
 import platform
 
+import prometheus_client
+
 from grr_response_core import config
 from grr_response_core.lib import communicator
 from grr_response_core.lib import config_lib
@@ -16,8 +18,8 @@ from grr_response_core.lib import registry
 from grr_response_core.lib.local import plugins
 # pylint: enable=unused-import
 from grr_response_core.lib.parsers import all as all_parsers
-from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
+from grr_response_server import prometheus_stats_collector
 from grr_response_server import server_logging
 from grr_response_server import server_metrics
 
@@ -76,8 +78,9 @@ def Init():
 
   metric_metadata = server_metrics.GetMetadata()
   metric_metadata.extend(communicator.GetMetricMetadata())
-  stats_collector = default_stats_collector.DefaultStatsCollector(
-      metric_metadata)
+
+  stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
+      metric_metadata, registry=prometheus_client.REGISTRY)
   stats_collector_instance.Set(stats_collector)
 
   server_logging.ServerLoggingStartupInit()

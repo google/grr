@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 
 from grr_response_core.lib import flags
+from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
@@ -15,10 +16,12 @@ class DualDBTestDecoratorTest(test_lib.GRRBaseTest):
   """Test DualDBTest decorator."""
 
   def _IsDBTest(self):
-    return self.__class__.__name__.endswith("_RelationalDBEnabled")
+    name = compatibility.GetName(self.__class__)
+    return name.endswith("_RelationalDBEnabled")
 
   def _IsStableDBTest(self):
-    return self.__class__.__name__.endswith("_StableRelationalDBEnabled")
+    name = compatibility.GetName(self.__class__)
+    return name.endswith("_StableRelationalDBEnabled")
 
   def _Description(self):
     if self._IsDBTest() or self._IsStableDBTest():
@@ -36,9 +39,10 @@ class DualDBTestDecoratorTest(test_lib.GRRBaseTest):
 
   def testRelationalDBFlowsEnabled(self):
     result = data_store.RelationalDBFlowsEnabled()
+    expected = self._IsDBTest()
     self.assertEqual(
-        result, self._IsDBTest(), "RelationalDBFlowsEnabled() is %s for %s" %
-        (result, self._Description()))
+        result, expected, "RelationalDBFlowsEnabled() is %s for %s" %
+        (result, compatibility.GetName(self.__class__)))
 
 
 if __name__ == "__main__":

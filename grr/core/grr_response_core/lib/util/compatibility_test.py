@@ -161,5 +161,20 @@ class ShlexSplitTest(absltest.TestCase):
     self.assertEqual(compatibility.ShlexSplit(string), parts)
 
 
+class UnescapeStringTest(absltest.TestCase):
+
+  def testWhitespace(self):
+    self.assertEqual(compatibility.UnescapeString("\\n"), "\n")
+    self.assertEqual(compatibility.UnescapeString("\\r"), "\r")
+
+  def testQuotemark(self):
+    self.assertEqual(compatibility.UnescapeString("\\'"), "'")
+    self.assertEqual(compatibility.UnescapeString("\\\""), "\"")
+
+  def testMany(self):
+    self.assertEqual(
+        compatibility.UnescapeString("foo\\n\\'bar\\'\nbaz"), "foo\n'bar'\nbaz")
+
+
 if __name__ == "__main__":
   absltest.main()

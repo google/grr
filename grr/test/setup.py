@@ -9,13 +9,24 @@ If you want to do any development, you probably want this.
 """
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
-import ConfigParser
 import os
 import shutil
+import sys
+
 from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.sdist import sdist
+
+# TODO: Fix this import once support for Python 2 is dropped.
+# pylint: disable=g-import-not-at-top
+if sys.version_info.major == 2:
+  import ConfigParser as configparser
+else:
+  import configparser
+# pylint: enable=g-import-not-at-top
+
 
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
@@ -33,7 +44,7 @@ def get_config():
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
-  config = ConfigParser.SafeConfigParser()
+  config = configparser.SafeConfigParser()
   config.read(ini_path)
   return config
 
@@ -63,7 +74,7 @@ setup_args = dict(
         "absl-py==0.6.1",
         "mock==2.0.0",
         "mox==0.5.3",
-        "pytest==3.0.5",
+        "pytest==4.1.0",
         "selenium==2.50.1",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),

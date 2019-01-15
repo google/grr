@@ -176,8 +176,24 @@ class DatabaseTestClientsMixin(object):
     client_b_id = self.InitializeClient()
     client_c_id = self.InitializeClient()
 
-    result = list(self.db.ReadAllClientIDs())
-    self.assertCountEqual(result, [client_a_id, client_b_id, client_c_id])
+    self.assertCountEqual(self.db.ReadAllClientIDs(),
+                          [client_a_id, client_b_id, client_c_id])
+
+  def testReadAllClientIDsFilterLastPing(self):
+    self.db.WriteClientMetadata("C.0000000000000001", fleetspeak_enabled=True)
+    self.db.WriteClientMetadata(
+        "C.0000000000000002",
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2))
+    self.db.WriteClientMetadata(
+        "C.0000000000000003",
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
+    self.db.WriteClientMetadata(
+        "C.0000000000000004",
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4))
+    client_ids = self.db.ReadAllClientIDs(
+        min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
+    self.assertCountEqual(client_ids,
+                          ["C.0000000000000003", "C.0000000000000004"])
 
   def _SetUpReadClientSnapshotHistoryTest(self):
     d = self.db

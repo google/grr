@@ -308,17 +308,18 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.ignore_http_errors = True
     return DisabledHttpErrorChecksContextManager(self)
 
+  def GetHttpErrors(self):
+    return self.driver.execute_script(
+        "return (() => {const e = window.grrInterceptedHTTPErrors_ || []; "
+        "window.grrInterceptedHTTPErrors_ = []; return e;})();")
+
   def _CheckHttpErrors(self):
     if self.ignore_http_errors:
       return
 
-    errors = self.driver.execute_script(
-        "return (() => {const e = window.grrInterceptedHTTPErrors_ || []; "
-        "window.grrInterceptedHTTPErrors_ = []; return e;})();")
-
     msgs = []
-    for e in errors:
-      msg = "[http]: %s" % e
+    for e in self.GetHttpErrors():
+      msg = "[http]: {!r}".format(e)
       logging.error(msg)
       msgs.append(msg)
 

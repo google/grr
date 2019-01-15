@@ -19,6 +19,7 @@ from grr_response_client.client_actions import standard
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import context
 from grr_response_server import server_stubs
 
 from grr.test_lib import test_lib
@@ -181,6 +182,9 @@ class MockWindowsProcess(object):
       else:
         dic[name] = None
     return dic
+
+  def oneshot(self):
+    return context.NullContext(None)
 
 
 # pylint: enable=g-bad-name

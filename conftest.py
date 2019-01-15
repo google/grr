@@ -2,6 +2,8 @@
 """A module that configures the behaviour of pytest runner."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import sys
 import threading
@@ -11,6 +13,7 @@ import traceback
 from absl import flags
 import pytest
 
+from grr_response_core.lib.util import compatibility
 from grr.test_lib import testing_startup
 
 FLAGS = flags.FLAGS
@@ -38,7 +41,10 @@ def pytest_cmdline_preparse(config, args):
 def pytest_cmdline_main(config):
   """A pytest hook that is called when the main function is executed."""
   del config  # Unused.
-  sys.argv = ["pytest"] + test_args
+
+  # TODO: `sys.argv` on Python 2 uses `bytes` to represent passed
+  # arguments.
+  sys.argv = [compatibility.NativeStr("pytest")] + test_args
 
 
 last_module = None
@@ -78,9 +84,13 @@ def pytest_collection_modifyitems(session, config, items):
   del session  # Unused.
 
   benchmark = config.getoption("benchmark")
+  if benchmark:
+    return
+
   for item in items:
-    if not benchmark and item.get_marker("benchmark"):
-      item.add_marker(SKIP_BENCHMARK)
+    for marker in item.iter_markers():
+      if marker.name == "benchmark":
+        item.add_marker(SKIP_BENCHMARK)
 
 
 def _generate_full_thread_trace():
@@ -111,6 +121,8 @@ known_leaks = []
 @pytest.fixture(scope="function", autouse=True)
 def thread_leak_check(request):
   """Makes sure that no threads are left running by any test."""
+  global last_test_name
+
   threads = threading.enumerate()
 
   thread_names = [thread.name for thread in threads]
@@ -156,5 +168,4 @@ def thread_leak_check(request):
 
     raise RuntimeError(error_msg)
 
-  global last_test_name
   last_test_name = current_test_name

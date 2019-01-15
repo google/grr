@@ -7,11 +7,11 @@ from __future__ import unicode_literals
 from future.utils import iterkeys
 
 from grr_response_core.lib import flags
-from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_test_utils
 from grr_response_core.stats import stats_utils
 from grr_response_server import aff4
+from grr_response_server import prometheus_stats_collector
 from grr_response_server.aff4_objects import stats_store
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import test_lib
@@ -25,7 +25,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.process_id = "some_pid"
     self.stats_store = aff4.FACTORY.Create(
         None, stats_store.StatsStore, mode="w", token=self.token)
-    fake_stats_collector = default_stats_collector.DefaultStatsCollector([
+    fake_stats_collector = prometheus_stats_collector.PrometheusStatsCollector([
         stats_utils.CreateCounterMetadata("counter"),
         stats_utils.CreateCounterMetadata(
             "counter_with_fields", fields=[("source", str)]),

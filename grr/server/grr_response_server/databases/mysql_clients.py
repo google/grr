@@ -406,9 +406,14 @@ class MySQLDBClientMixin(object):
     return ret
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadAllClientIDs(self, cursor=None):
+  def ReadAllClientIDs(self, min_last_ping=None, cursor=None):
     """Reads client ids for all clients in the database."""
-    cursor.execute("SELECT client_id FROM clients")
+    query = "SELECT client_id FROM clients "
+    query_values = []
+    if min_last_ping is not None:
+      query += "WHERE last_ping >= %s"
+      query_values.append(mysql_utils.RDFDatetimeToMysqlString(min_last_ping))
+    cursor.execute(query, query_values)
     return [mysql_utils.IntToClientID(res[0]) for res in cursor.fetchall()]
 
   @mysql_utils.WithTransaction()

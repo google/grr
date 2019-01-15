@@ -7,10 +7,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+import threading
 
 import prometheus_client
 from typing import Dict, Text
 
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector
@@ -28,11 +30,13 @@ class _Metric(object):
       Gauge, or Histogram.
   """
 
-  def __init__(self, metadata):
+  def __init__(self, metadata,
+               registry):
     """Instantiates a new _Metric.
 
     Args:
       metadata: An rdf_stats.MetricMetadata instance describing this _Metric.
+      registry: A prometheus_client.Registry instance.
 
     Raises:
       ValueError: metadata contains an unknown metric_type.
@@ -44,7 +48,10 @@ class _Metric(object):
 
     if metadata.metric_type == rdf_stats.MetricMetadata.MetricType.COUNTER:
       self.metric = prometheus_client.Counter(
-          metadata.varname, metadata.docstring, labelnames=field_names)
+          metadata.varname,
+          metadata.docstring,
+          labelnames=field_names,
+          registry=registry)
     elif metadata.metric_type == rdf_stats.MetricMetadata.MetricType.EVENT:
       bins = metadata.bins or [
           0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8,
@@ -54,10 +61,14 @@ class _Metric(object):
           metadata.varname,
           metadata.docstring,
           labelnames=field_names,
-          buckets=bins)
+          buckets=bins,
+          registry=registry)
     elif metadata.metric_type == rdf_stats.MetricMetadata.MetricType.GAUGE:
       self.metric = prometheus_client.Gauge(
-          metadata.varname, metadata.docstring, labelnames=field_names)
+          metadata.varname,
+          metadata.docstring,
+          labelnames=field_names,
+          registry=registry)
     else:
       raise ValueError("Unknown metric type: {!r}".format(metadata.metric_type))
 
@@ -117,7 +128,8 @@ def _DistributionFromHistogram(metric, values_by_suffix):
     ValueError: The Histogram and metadata bin count do not match.
   """
   dist = rdf_stats.Distribution(bins=list(metric.metadata.bins))
-  if len(dist.heights) != len(values_by_suffix["_bucket"]):
+  if metric.metadata.bins and len(dist.heights) != len(
+      values_by_suffix["_bucket"]):
     raise ValueError(
         "Trying to create Distribution with {} bins, but underlying"
         "Histogram has {} buckets".format(
@@ -138,35 +150,60 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
 
   This StatsCollector maps native Counters and Gauges to their Prometheus
   counterparts. Native Events are mapped to Prometheus Histograms.
+
+  Attributes:
+    lock: threading.Lock required by the utils.Synchronized decorator.
   """
 
-  def __init__(self, metadata_list):
+  def __init__(self, metadata_list, registry=None):
+    """Instantiates a new PrometheusStatsCollector.
+
+    Args:
+      metadata_list: A list of MetricMetadata objects describing the metrics
+        that the StatsCollector will track.
+      registry: An instance of prometheus_client.CollectorRegistry. If None, a
+        new CollectorRegistry is instantiated. Use prometheus_client.REGISTRY
+        for the global default registry.
+    """
     self._metrics = {}  # type: Dict[Text, _Metric]
+
+    if registry is None:
+      self._registry = prometheus_client.CollectorRegistry(auto_describe=True)
+    else:
+      self._registry = registry
+
+    self.lock = threading.RLock()
+
     super(PrometheusStatsCollector, self).__init__(metadata_list)
 
   def _InitializeMetric(self, metadata):
-    self._metrics[metadata.varname] = _Metric(metadata)
+    self._metrics[metadata.varname] = _Metric(metadata, registry=self._registry)
 
+  @utils.Synchronized
   def IncrementCounter(self, metric_name, delta=1, fields=None):
     metric = self._metrics[metric_name]
     counter = metric.ForFields(fields)  # type: prometheus_client.Counter
     counter.inc(delta)
 
+  @utils.Synchronized
   def RecordEvent(self, metric_name, value, fields=None):
     metric = self._metrics[metric_name]
     histogram = metric.ForFields(fields)  # type: prometheus_client.Histogram
     histogram.observe(value)
 
+  @utils.Synchronized
   def SetGaugeValue(self, metric_name, value, fields=None):
     metric = self._metrics[metric_name]
     gauge = metric.ForFields(fields)  # type: prometheus_client.Gauge
     gauge.set(value)
 
+  @utils.Synchronized
   def SetGaugeCallback(self, metric_name, callback, fields=None):
     metric = self._metrics[metric_name]
     gauge = metric.ForFields(fields)  # type: prometheus_client.Gauge
     gauge.set_function(callback)
 
+  @utils.Synchronized
   def GetMetricFields(self, metric_name):
     metric = self._metrics[metric_name]
     if not metric.fields:
@@ -179,6 +216,7 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
         field_tuples.add(tuple(labels))
     return list(field_tuples)
 
+  @utils.Synchronized
   def GetMetricValue(self, metric_name, fields=None):
     metric = self._metrics[metric_name]
     metric_type = metric.metadata.metric_type

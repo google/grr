@@ -294,9 +294,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
       if not data_store.RelationalDBReadEnabled("vfs"):
         # Wait until the error is processed before we leave the
         # DisableHttpErrorChecks context.
-        self.WaitUntil(
-            self.IsTextPresent,
-            "is of type VFSMemoryFile, but required_type is VFSFile")
+        self.WaitUntil(self.GetHttpErrors)
 
   def testExportToolHintIsDisplayed(self):
     self.Open("/#/clients/%s/vfs/" % self.client_id)

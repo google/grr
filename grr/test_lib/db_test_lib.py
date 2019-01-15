@@ -67,12 +67,18 @@ class StableRelationalDBEnabledMixin(object):
     """The setUp method."""
     self._config_overrider = test_lib.ConfigOverrider({
         "Database.useForReads": True,
+        "Database.useForReads.artifacts": False,
+        "Database.useForReads.audit": False,
+        "Database.useForReads.client_messages": True,
+        "Database.useForReads.client_reports": False,
+        "Database.useForReads.cronjobs": True,
+        "Database.useForReads.filestore": True,
         "Database.useForReads.foreman": True,
         "Database.useForReads.message_handlers": True,
         "Database.useForReads.signed_binaries": True,
-        "Database.useForReads.cronjobs": True,
+        "Database.useForReads.stats": False,
         "Database.useForReads.vfs": True,
-        "Database.useForReads.filestore": True,
+        "Database.useRelationalFlows": False,
     })
     self._config_overrider.Start()
 

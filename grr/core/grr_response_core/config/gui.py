@@ -112,7 +112,7 @@ config_lib.DEFINE_semantic_struct(
     None, "List of per-client-label warning messages to be shown.")
 
 config_lib.DEFINE_bool(
-    "AdminUI.rapid_hunts_enabled", False,
+    "AdminUI.rapid_hunts_enabled", True,
     "If True, enabled 'rapid hunts' feature in the Hunts Wizard. Rapid hunts "
     "support will automatically set client rate to 0 in FileFinder hunts "
     "matching certain criteria (no recursive globs, no file downloads, etc).")

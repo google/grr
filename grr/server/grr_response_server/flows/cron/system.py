@@ -11,9 +11,7 @@ import logging
 from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems
 from future.utils import itervalues
-from future.utils import viewkeys
 
-from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -25,8 +23,6 @@ from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import db
 from grr_response_server import export_utils
-from grr_response_server import fleetspeak_connector
-from grr_response_server import fleetspeak_utils
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.aff4_objects import stats as aff4_stats
@@ -102,80 +98,41 @@ class _ActiveCounter(object):
       client_report_utils.WriteGraphSeries(graph_series, label, token=token)
 
 
-def _GetLastContactFromFleetspeak(client_ids):
-  """Fetches last contact times for the given clients from Fleetspeak.
-
-  Args:
-    client_ids: Iterable containing GRR client ids.
-
-  Returns:
-    A dict mapping the given client ids to timestamps representing when
-    Fleetspeak last contacted the clients.
-  """
-  if not fleetspeak_connector.CONN or not fleetspeak_connector.CONN.outgoing:
-    logging.warning(
-        "Tried to get last-contact timestamps for Fleetspeak clients "
-        "without an active connection to Fleetspeak.")
-    return {}
-  fs_ids = [fleetspeak_utils.GRRIDToFleetspeakID(cid) for cid in client_ids]
-  fs_result = fleetspeak_connector.CONN.outgoing.ListClients(
-      admin_pb2.ListClientsRequest(client_ids=fs_ids))
-  if len(client_ids) != len(fs_result.clients):
-    logging.error("Expected %d results from Fleetspeak; got %d instead.",
-                  len(client_ids), len(fs_result.clients))
-  last_contact_times = {}
-  for fs_client in fs_result.clients:
-    grr_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_client.client_id)
-    last_contact_times[grr_id] = fleetspeak_utils.TSToRDFDatetime(
-        fs_client.last_contact_time)
-  return last_contact_times
-
-
 CLIENT_READ_BATCH_SIZE = 50000
 
 
-def _IterateAllClients():
-  """Fetches client data from the relational db."""
-  all_client_ids = data_store.REL_DB.ReadAllClientIDs()
-  for batch in collection.Batch(all_client_ids, CLIENT_READ_BATCH_SIZE):
-    client_map = data_store.REL_DB.MultiReadClientFullInfo(batch)
-    fs_client_ids = [
-        cid for (cid, client) in iteritems(client_map)
-        if client.metadata.fleetspeak_enabled
-    ]
-    last_contact_times = _GetLastContactFromFleetspeak(fs_client_ids)
-    for cid, last_contact in iteritems(last_contact_times):
-      client_map[cid].metadata.ping = last_contact
-    for client in itervalues(client_map):
-      yield client
+def _IterateAllClients(recency_window=None):
+  """Fetches client data from the relational db.
 
+  Args:
+    recency_window: An rdfvalue.Duration specifying a window of last-ping
+      timestamps to consider. Clients that haven't communicated with GRR servers
+      longer than the given period will be skipped. If recency_window is None,
+      all clients will be iterated.
 
-def _IterateAllLegacyClients(token):
-  """Fetches client data from the legacy db."""
-  root_children = aff4.FACTORY.Open(
-      aff4.ROOT_URN, token=token).OpenChildren(mode="r")
-  for batch in collection.Batch(root_children, CLIENT_READ_BATCH_SIZE):
-    fs_client_map = {}
-    non_fs_clients = []
-    for child in batch:
-      if not isinstance(child, aff4_grr.VFSGRRClient):
-        continue
-      if child.Get(child.Schema.FLEETSPEAK_ENABLED):
-        fs_client_map[child.urn.Basename()] = child
-      else:
-        non_fs_clients.append(child)
-    last_contact_times = _GetLastContactFromFleetspeak(viewkeys(fs_client_map))
-    for client in non_fs_clients:
-      yield client.Get(client.Schema.PING), client
-    for cid, client in iteritems(fs_client_map):
-      last_contact = last_contact_times.get(cid, client.Get(client.Schema.PING))
-      yield last_contact, client
+  Yields:
+    Batches (lists) of ClientFullInfo objects.
+  """
+  if recency_window is None:
+    min_last_ping = None
+  else:
+    min_last_ping = rdfvalue.RDFDatetime.Now() - recency_window
+  client_ids = data_store.REL_DB.ReadAllClientIDs(min_last_ping=min_last_ping)
+  for client_id_batch in collection.Batch(client_ids, CLIENT_READ_BATCH_SIZE):
+    client_info_dict = data_store.REL_DB.MultiReadClientFullInfo(
+        client_id_batch)
+    yield list(itervalues(client_info_dict))
 
 
 class AbstractClientStatsCronJob(cronjobs.SystemCronJobBase):
   """Base class for all stats processing cron jobs."""
 
   CLIENT_STATS_URN = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
+
+  # An rdfvalue.Duration specifying a window of last-ping
+  # timestamps to analyze. Clients that haven't communicated with GRR servers
+  # longer than the given period will be skipped.
+  recency_window = None
 
   def BeginProcessing(self):
     pass
@@ -208,11 +165,13 @@ class AbstractClientStatsCronJob(cronjobs.SystemCronJobBase):
       self.BeginProcessing()
 
       processed_count = 0
-      for client in _IterateAllClients():
-        self.ProcessClientFullInfo(client)
-        processed_count += 1
 
-        # This flow is not dead: we don't want to run out of lease time.
+      for client_info_batch in _IterateAllClients(
+          recency_window=self.recency_window):
+        for client_info in client_info_batch:
+          self.ProcessClientFullInfo(client_info)
+        processed_count += len(client_info_batch)
+        self.Log("Processed %d clients.", processed_count)
         self.HeartBeat()
 
       self.FinishProcessing()
@@ -231,6 +190,7 @@ class GRRVersionBreakDownCronJob(AbstractClientStatsCronJob):
 
   frequency = rdfvalue.Duration("4h")
   lifetime = rdfvalue.Duration("4h")
+  recency_window = rdfvalue.Duration("30d")
 
   def BeginProcessing(self):
     self.counter = _ActiveCounter(
@@ -261,6 +221,7 @@ class OSBreakDownCronJob(AbstractClientStatsCronJob):
 
   frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("20h")
+  recency_window = rdfvalue.Duration("30d")
 
   def BeginProcessing(self):
     self.counters = [
@@ -296,6 +257,7 @@ class LastAccessStatsCronJob(AbstractClientStatsCronJob):
 
   frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("20h")
+  recency_window = rdfvalue.Duration("60d")
 
   # The number of clients fall into these bins (number of days ago)
   _bins = [1, 2, 3, 7, 14, 30, 60]
@@ -350,6 +312,11 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
 
   CLIENT_STATS_URN = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
 
+  # An rdfvalue.Duration specifying a window of last-ping
+  # timestamps to analyze. Clients that haven't communicated with GRR servers
+  # longer than the given period will be skipped.
+  recency_window = None
+
   def BeginProcessing(self):
     pass
 
@@ -384,18 +351,29 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
       self.BeginProcessing()
 
       processed_count = 0
+
       if data_store.RelationalDBReadEnabled():
-        for client in _IterateAllClients():
-          self.ProcessClientFullInfo(client)
-          processed_count += 1
-          # This flow is not dead: we don't want to run out of lease time.
+        for client_info_batch in _IterateAllClients(
+            recency_window=self.recency_window):
+          for client_info in client_info_batch:
+            self.ProcessClientFullInfo(client_info)
+          processed_count += len(client_info_batch)
+          self.Log("Processed %d clients.", processed_count)
           self.HeartBeat()
       else:
-        for ping, client in _IterateAllLegacyClients(self.token):
-          self.ProcessLegacyClient(ping, client)
-          processed_count += 1
-          # This flow is not dead: we don't want to run out of lease time.
-          self.HeartBeat()
+        root_children = aff4.FACTORY.Open(
+            aff4.ROOT_URN, token=self.token).OpenChildren(mode="r")
+        for batch in collection.Batch(root_children, CLIENT_READ_BATCH_SIZE):
+          for child in batch:
+            if not isinstance(child, aff4_grr.VFSGRRClient):
+              continue
+
+            last_ping = child.Get(child.Schema.PING)
+
+            self.ProcessLegacyClient(last_ping, child)
+            processed_count += 1
+            # This flow is not dead: we don't want to run out of lease time.
+            self.HeartBeat()
 
       self.FinishProcessing()
       for fd in itervalues(self.stats):
@@ -412,6 +390,7 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
   """Records relative ratios of GRR versions in 7 day actives."""
 
   frequency = rdfvalue.Duration("4h")
+  recency_window = rdfvalue.Duration("30d")
 
   def BeginProcessing(self):
     self.counter = _ActiveCounter(
@@ -448,6 +427,8 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
 
 class OSBreakDown(AbstractClientStatsCronFlow):
   """Records relative ratios of OS versions in 7 day actives."""
+
+  recency_window = rdfvalue.Duration("30d")
 
   def BeginProcessing(self):
     self.counters = [
@@ -491,6 +472,8 @@ class OSBreakDown(AbstractClientStatsCronFlow):
 
 class LastAccessStats(AbstractClientStatsCronFlow):
   """Calculates a histogram statistics of clients last contacted times."""
+
+  recency_window = rdfvalue.Duration("60d")
 
   # The number of clients fall into these bins (number of hours ago)
   _bins = [1, 2, 3, 7, 14, 30, 60]

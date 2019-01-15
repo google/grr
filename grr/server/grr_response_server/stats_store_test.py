@@ -8,11 +8,11 @@ from builtins import range  # pylint: disable=redefined-builtin
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_test_utils
 from grr_response_core.stats import stats_utils
 from grr_response_server import aff4
+from grr_response_server import prometheus_stats_collector
 from grr_response_server import stats_store
 from grr_response_server import timeseries
 from grr_response_server.aff4_objects import stats_store as aff4_stats_store
@@ -28,7 +28,7 @@ _EVENT_METRIC = "events"
 
 def _CreateFakeStatsCollector():
   """Returns a stats-collector for use by tests in this file."""
-  return default_stats_collector.DefaultStatsCollector([
+  return prometheus_stats_collector.PrometheusStatsCollector([
       stats_utils.CreateCounterMetadata(_SINGLE_DIM_COUNTER),
       stats_utils.CreateCounterMetadata(
           _COUNTER_WITH_ONE_FIELD, fields=[("field1", str)]),

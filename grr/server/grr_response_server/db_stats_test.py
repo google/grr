@@ -7,11 +7,11 @@ import itertools
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_test_utils
 from grr_response_core.stats import stats_utils
 from grr_response_server import db
+from grr_response_server import prometheus_stats_collector
 from grr_response_server import stats_values
 
 _TEST_PROCESS_ID = "test_process"
@@ -84,8 +84,8 @@ class DatabaseTestStatsMixin(object):
             fields=[("str_field1", str), ("str_field2", str)]),
     ]
     fake_stats_context = stats_test_utils.FakeStatsContext(
-        default_stats_collector.DefaultStatsCollector(real_metrics +
-                                                      test_metrics))
+        prometheus_stats_collector.PrometheusStatsCollector(real_metrics +
+                                                            test_metrics))
     fake_stats_context.start()
     self.addCleanup(fake_stats_context.stop)
 

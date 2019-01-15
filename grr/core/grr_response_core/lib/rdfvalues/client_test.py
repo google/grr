@@ -9,6 +9,7 @@ import socket
 
 from absl.testing import absltest
 from future.builtins import str
+import psutil
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -370,6 +371,30 @@ class ClientStatsTest(absltest.TestCase):
         stats, interval=rdfvalue.Duration("10m"))
 
     self.assertEqual(actual, expected)
+
+
+class ProcessTest(absltest.TestCase):
+
+  def testFromPsutilProcess(self):
+
+    p = psutil.Process()
+    res = rdf_client.Process.FromPsutilProcess(p)
+
+    int_fields = [
+        "pid", "ppid", "ctime", "real_uid", "effective_uid", "saved_uid",
+        "real_gid", "effective_gid", "saved_gid", "num_threads",
+        "user_cpu_time", "system_cpu_time", "RSS_size", "VMS_size",
+        "memory_percent"
+    ]
+
+    for field in int_fields:
+      self.assertGreater(getattr(res, field), 0)
+
+    string_fields = ["name", "exe", "cmdline", "cwd", "username", "terminal"]
+    for field in string_fields:
+      self.assertNotEqual(getattr(res, field), "")
+
+    self.assertEqual(res.status, "running")
 
 
 def main(argv):

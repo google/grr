@@ -17,6 +17,16 @@ from grr.test_lib import test_lib
 class HuntsWithRapidHuntingDisabledTest(gui_test_lib.GRRSeleniumHuntTest):
   """Test that rapid hunts logic does nothing when the config flag is off."""
 
+  def setUp(self):
+    super(HuntsWithRapidHuntingDisabledTest, self).setUp()
+    self._config_overrider = test_lib.ConfigOverrider(
+        {"AdminUI.rapid_hunts_enabled": False})
+    self._config_overrider.Start()
+
+  def tearDown(self):
+    super(HuntsWithRapidHuntingDisabledTest, self).tearDown()
+    self._config_overrider.Stop()
+
   def testNewHuntWizardDoesNotSetClientRateOrMentionRapidHunts(self):
     self.Open("/#/hunts")
 

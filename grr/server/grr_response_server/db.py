@@ -551,11 +551,15 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       raise UnknownClientError(client_id)
 
   @abc.abstractmethod
-  def ReadAllClientIDs(self):
+  def ReadAllClientIDs(self, min_last_ping=None):
     """Reads client ids for all clients in the database.
 
-    Yields:
-      A string representing client id.
+    Args:
+      min_last_ping: If provided, only ids for clients with a last-ping
+        timestamp newer than (or equal to) the given value will be returned.
+
+    Returns:
+      A list of client ids.
     """
 
   @abc.abstractmethod
@@ -970,34 +974,36 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       grantor_username: String with a username of a user granting the approval.
     """
 
-  def IterateAllClientsFullInfo(self, batch_size=50000, min_last_ping=None):
+  def IterateAllClientsFullInfo(self, min_last_ping=None, batch_size=50000):
     """Iterates over all available clients and yields full info protobufs.
 
     Args:
+      min_last_ping: If not None, only the clients with last-ping timestamps
+        newer than (or equal to) min_last_ping will be returned.
       batch_size: Always reads <batch_size> client full infos at a time.
-      min_last_ping: If not None, only the clients with last ping time bigger
-        than min_last_ping will be returned.
 
     Yields:
       An rdfvalues.objects.ClientFullInfo object for each client in the db.
     """
-    all_client_ids = self.ReadAllClientIDs()
+    all_client_ids = self.ReadAllClientIDs(min_last_ping=min_last_ping)
 
     for batch in collection.Batch(all_client_ids, batch_size):
-      res = self.MultiReadClientFullInfo(batch, min_last_ping=min_last_ping)
+      res = self.MultiReadClientFullInfo(batch)
       for full_info in itervalues(res):
         yield full_info
 
-  def IterateAllClientSnapshots(self, batch_size=50000):
+  def IterateAllClientSnapshots(self, min_last_ping=None, batch_size=50000):
     """Iterates over all available clients and yields client snapshot objects.
 
     Args:
+      min_last_ping: If provided, only snapshots for clients with last-ping
+        timestamps newer than (or equal to) the given value will be returned.
       batch_size: Always reads <batch_size> snapshots at a time.
 
     Yields:
       An rdfvalues.objects.ClientSnapshot object for each client in the db.
     """
-    all_client_ids = self.ReadAllClientIDs()
+    all_client_ids = self.ReadAllClientIDs(min_last_ping=min_last_ping)
 
     for batch in collection.Batch(all_client_ids, batch_size):
       res = self.MultiReadClientSnapshot(batch)
@@ -2348,8 +2354,8 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.MultiReadClientFullInfo(
         client_ids, min_last_ping=min_last_ping)
 
-  def ReadAllClientIDs(self):
-    return self.delegate.ReadAllClientIDs()
+  def ReadAllClientIDs(self, min_last_ping=None):
+    return self.delegate.ReadAllClientIDs(min_last_ping=min_last_ping)
 
   def WriteClientSnapshotHistory(self, clients):
     if not clients:

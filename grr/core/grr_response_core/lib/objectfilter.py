@@ -109,6 +109,8 @@ from typing import Text
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import precondition
 
 
 class Error(Exception):
@@ -783,13 +785,15 @@ class Parser(lexer.SearchParser):
       ParseError: For strings other than those used to define a regexp, raise an
         error if the escaped string is not one of [\'"rnbt].
     """
+    precondition.AssertType(string, Text)
+
     # Allow unfiltered strings for regexp operations so that escaped special
     # characters (e.g. \*) or special sequences (e.g. \w) can be used in
     # objectfilter.
     if self.current_expression.operator == "regexp":
-      self.string += string.decode("string_escape")
+      self.string += compatibility.UnescapeString(string)
     elif match.group(1) in "\\'\"rnbt":
-      self.string += string.decode("string_escape")
+      self.string += compatibility.UnescapeString(string)
     else:
       raise ParseError("Invalid escape character %s." % string)
 

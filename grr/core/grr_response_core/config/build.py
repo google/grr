@@ -17,7 +17,9 @@ config_lib.DEFINE_string(
     help="The file extension for the client (OS dependent).")
 
 config_lib.DEFINE_string(
-    name="ClientBuilder.package_dir", default=None, help="OSX package name.")
+    name="ClientBuilder.package_dir",
+    default="%(ClientBuilder.build_root_dir)/%(Client.name)-pkg",
+    help="OSX package name.")
 
 config_lib.DEFINE_string(
     "ClientBuilder.private_config_validator_class",
@@ -421,9 +423,11 @@ config_lib.DEFINE_string(
     default="/usr/lib/%(Client.name)",
     help="Target installation directory for client builds.")
 
+# Needed for package maker. Do not touch.
 config_lib.DEFINE_string(
     "ClientBuilder.mangled_output_basename",
-    default=None,
+    default="%(Client.name)_%(Source.version_major)."
+    "%(Source.version_minor).%(Source.version_revision)",
     help="OS X package maker mangled name.")
 
 config_lib.DEFINE_string(
@@ -438,7 +442,7 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     "ClientBuilder.signing_keychain_file",
-    default=None,
+    default="%(HOME|env)/Library/Keychains/MacApplicationSigning.keychain",
     help="Path to a keychain file to be used to sign Darwin binaries.")
 
 config_lib.DEFINE_string(
@@ -448,7 +452,7 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     "ClientBuilder.daemon_link",
-    default=None,
+    default="/usr/sbin/%(Client.binary_name)",
     help="The installer package will create a link in the system to the "
     "installed binary.")
 

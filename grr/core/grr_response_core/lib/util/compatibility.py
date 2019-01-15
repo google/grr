@@ -229,3 +229,16 @@ def ShlexSplit(string):
     # pytype: enable=attribute-error
 
   return parts
+
+
+def UnescapeString(string):
+  """A wrapper for `decode("string_escape")` that works in Python 3.
+
+  Args:
+    string: A string with escaped characters to unescape.
+
+  Returns:
+    An unescaped version of the input string.
+  """
+  precondition.AssertType(string, Text)
+  return string.encode("utf-8").decode("unicode_escape")

@@ -29,9 +29,13 @@ class Distribution(rdf_structs.RDFProtoStruct):
                        "be specified.")
 
     super(Distribution, self).__init__(initializer=initializer, age=age)
+
     if bins:
       self.bins = [-float("inf")] + bins
-      self.heights = [0] * len(self.bins)
+    else:
+      self.bins = []
+
+    self.heights = [0] * len(self.bins)
 
   def Record(self, value):
     """Records given value."""

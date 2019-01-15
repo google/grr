@@ -9,10 +9,10 @@ from future.utils import itervalues
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_test_utils
 from grr_response_core.stats import stats_utils
+from grr_response_server import prometheus_stats_collector
 from grr_response_server import stats_store
 from grr_response_server.gui import api_regression_http
 from grr_response_server.gui import api_regression_test_lib
@@ -81,7 +81,7 @@ class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
         stats_utils.CreateEventMetadata(
             _TEST_EVENT_METRIC, docstring="Sample event metric."),
     ]
-    stats_collector = default_stats_collector.DefaultStatsCollector(
+    stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
         test_metadata)
     with stats_test_utils.FakeStatsContext(stats_collector):
       # We use mixins to run the same tests against multiple APIs.
@@ -116,7 +116,7 @@ class ApiGetStatsStoreMetricHandlerRegressionTest(
           stats_utils.CreateEventMetadata(
               _TEST_EVENT_METRIC, docstring="Sample event metric."),
       ]
-      stats_collector = default_stats_collector.DefaultStatsCollector(
+      stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
           test_metadata)
       with stats_test_utils.FakeStatsContext(stats_collector):
         for i in range(10):

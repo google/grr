@@ -184,7 +184,7 @@ class FakeDataStore(data_store.DataStore):
       after_urn = utils.SmartUnicode(after_urn)
     subjects = []
     for s in self.subjects:
-      if s.startswith(subject_prefix) and s > after_urn:
+      if s.startswith(subject_prefix) and (after_urn is None or s > after_urn):
         subjects.append(s)
     subjects.sort()
 

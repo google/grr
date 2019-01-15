@@ -16,8 +16,9 @@ import time
 import zlib
 
 
-from builtins import range  # pylint: disable=redefined-builtin
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.builtins import str
+from future.builtins import zip
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import string_types
@@ -3121,9 +3122,12 @@ class ValueConverter(object):
       return rdf_structs.VarintEncode(int(value))
     elif hasattr(value, "SerializeToString"):
       return value.SerializeToString()
+    elif isinstance(value, bytes):
+      return value
+    elif isinstance(value, Text):
+      return value.encode("utf-8")
     else:
-      # Types "string" and "bytes" are stored as strings here.
-      return utils.SmartStr(value)
+      return str(value).encode("utf-8")
 
   def Decode(self, attribute, value):
     """Decode the value to the required type."""
@@ -3133,7 +3137,10 @@ class ValueConverter(object):
     elif required_type == "unsigned_integer":
       return rdf_structs.VarintReader(value, 0)[0]
     elif required_type == "string":
-      return utils.SmartUnicode(value)
+      if isinstance(value, bytes):
+        return value.decode("utf-8")
+      else:
+        return utils.SmartUnicode(value)
     else:
       return value
 

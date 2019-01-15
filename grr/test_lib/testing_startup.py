@@ -20,10 +20,10 @@ from grr_response_core.lib import package
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
-from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import prometheus_stats_collector
 from grr_response_server import server_logging
 from grr_response_server import server_metrics
 from grr_response_server.data_stores import fake_data_store
@@ -44,7 +44,7 @@ def TestInit():
   metric_metadata = server_metrics.GetMetadata()
   metric_metadata.extend(client_metrics.GetMetadata())
   metric_metadata.extend(communicator.GetMetricMetadata())
-  stats_collector = default_stats_collector.DefaultStatsCollector(
+  stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
       metric_metadata)
   stats_collector_instance.Set(stats_collector)
 

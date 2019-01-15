@@ -2,6 +2,7 @@
 """Simple parsers for configuration files."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import collections
@@ -9,9 +10,10 @@ import logging
 import re
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import zip
 from future.utils import iteritems
 from future.utils import string_types
+from typing import Text
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
@@ -21,6 +23,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib.util import precondition
 
 
 def AsIter(arg):
@@ -137,7 +140,7 @@ class FieldParser(lexer.Lexer):
     """Generate string matching state rules."""
     for i, q in enumerate(self.quot):
       label = "%s_STRING" % i
-      escaped = q.encode("unicode_escape")
+      escaped = re.escape(q)
       self._AddToken(label, escaped, "PopState", None)
       self._AddToken(label, q, "PopState", None)
       if self.ml_quote:
@@ -190,6 +193,8 @@ class FieldParser(lexer.Lexer):
     self.field = ""
 
   def ParseEntries(self, data):
+    precondition.AssertType(data, Text)
+
     # Flush any old results.
     self.Reset()
     self.Feed(data)
@@ -778,6 +783,9 @@ class PackageSourceParser(parser.FileParser):
     Returns:
       A list of potential URLs found in data
     """
+    precondition.AssertType(data, Text)
+    precondition.AssertType(separator, Text)
+
     kv_entries = KeyValueParser(kv_sep=separator).ParseEntries(data)
     spaced_entries = FieldParser().ParseEntries(data)
 

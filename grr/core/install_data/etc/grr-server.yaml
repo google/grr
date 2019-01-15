@@ -61,13 +61,7 @@ Target:Darwin:
 
   ClientBuilder.install_dir: "/usr/local/lib/%(Client.name)/%(ClientBuilder.output_basename)"
 
-  # Needed for package maker. Do not touch.
-  ClientBuilder.mangled_output_basename: |
-      %(Client.name)_%(Source.version_major).%(Source.version_minor).%(Source.version_revision)
-
   ClientBuilder.output_extension: .pkg
-
-  ClientBuilder.package_dir: "%(ClientBuilder.build_root_dir)/%(Client.name)-pkg"
 
   ClientBuilder.package_maker_organization: com.google.code
 
@@ -104,9 +98,6 @@ Target:Linux:
   Config.writeback: /etc/%(Client.name).local.yaml
 
   Client.name: grr
-
-  ClientBuilder.daemon_link: |
-    /usr/sbin/%(Client.binary_name)
 
   ClientBuilder.output_extension: .deb
 
@@ -192,13 +183,7 @@ Platform:Darwin:
 
   Client.platform: darwin
 
-  Client.plist_filename: "%(Client.plist_label).plist"
-
   Client.plist_label: "%(Client.plist_label_prefix).google.code.%(Client.name)"
-
-  Client.plist_label_prefix: com
-
-  Client.plist_path: /Library/LaunchDaemons/%(Client.plist_filename)
 
   Logging.engines: stderr,file,syslog
 

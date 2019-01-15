@@ -523,13 +523,18 @@ def SmartUnicode(string):
   Returns:
     a unicode object.
   """
-  if not isinstance(string, Text):
-    try:
-      return string.__unicode__()  # pytype: disable=attribute-error
-    except (AttributeError, UnicodeError):
-      return bytes(string).decode("utf8", "ignore")
+  if isinstance(string, Text):
+    return string
 
-  return string
+  if isinstance(string, bytes):
+    return string.decode("utf-8", "ignore")
+
+  # TODO: We need to call `__native__` because otherwise one of the
+  # Selenium tests becomes flaky. This should be investigated.
+  if compatibility.PY2:
+    return str(string).__native__()
+  else:
+    return str(string)
 
 
 def Xor(bytestr, key):

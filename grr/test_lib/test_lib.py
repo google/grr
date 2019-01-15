@@ -29,7 +29,6 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_test_utils
 from grr_response_server import access_control
@@ -38,6 +37,7 @@ from grr_response_server import artifact
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
+from grr_response_server import prometheus_stats_collector
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore
 from grr_response_server.aff4_objects import users as aff4_users
@@ -131,7 +131,7 @@ class GRRBaseTest(absltest.TestCase):
     """Creates a stats context for running tests based on defined metrics."""
     metrics_metadata = list(
         itervalues(stats_collector_instance.Get().GetAllMetricsMetadata()))
-    fake_stats_collector = default_stats_collector.DefaultStatsCollector(
+    fake_stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
         metrics_metadata)
     fake_stats_context = stats_test_utils.FakeStatsContext(fake_stats_collector)
     fake_stats_context.start()

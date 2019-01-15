@@ -65,8 +65,6 @@ def UpdateClientsFromFleetspeak(clients):
       admin_pb2.ListClientsRequest(client_ids=list(iterkeys(id_map))))
   for read in res.clients:
     api_client = id_map[read.client_id]
-    api_client.last_seen_at = fleetspeak_utils.TSToRDFDatetime(
-        read.last_contact_time)
     api_client.last_clock = fleetspeak_utils.TSToRDFDatetime(read.last_clock)
 
 

@@ -64,16 +64,16 @@ config_lib.DEFINE_integer("Client.http_timeout", 100,
                           "Timeout for HTTP requests.")
 
 config_lib.DEFINE_string("Client.plist_path",
-                         "/Library/LaunchDaemons/com.google.code.grrd.plist",
+                         "/Library/LaunchDaemons/%(Client.plist_filename)",
                          "Location of our launchctl plist.")
 
-config_lib.DEFINE_string("Client.plist_filename", None,
+config_lib.DEFINE_string("Client.plist_filename", "%(Client.plist_label).plist",
                          "Filename of launchctl plist.")
 
 config_lib.DEFINE_string("Client.plist_label", None,
                          "Identifier label for launchd")
 
-config_lib.DEFINE_string("Client.plist_label_prefix", None,
+config_lib.DEFINE_string("Client.plist_label_prefix", "com",
                          "Domain for launchd label.")
 
 config_lib.DEFINE_float("Client.poll_min", 0.2,

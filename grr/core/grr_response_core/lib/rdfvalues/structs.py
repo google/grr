@@ -702,6 +702,9 @@ class EnumNamedValue(rdfvalue.RDFInteger):
     self.description = description
     self.labels = labels
 
+  # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
+  __hash__ = rdfvalue.RDFInteger.__hash__
+
   def __eq__(self, other):
     return int(self) == other or self.name == other
 
@@ -1787,7 +1790,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
 
       # Skip printing of unknown fields.
       if isinstance(k, string_types):
-        prefix = utils.SmartStr(k) + " :"
+        prefix = "{} :".format(k)
         for line in type_descriptor.Format(python_format):
           yield " %s %s" % (prefix, line)
           prefix = ""

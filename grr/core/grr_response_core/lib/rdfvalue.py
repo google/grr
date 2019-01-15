@@ -88,6 +88,7 @@ class RDFValueMetaclass(registry.MetaclassRegistry):
 # inherits abc.ABCMeta, but type checker can't infer this, apparently because
 # with_metaclass is used.
 # pytype: disable=ignored-abstractmethod
+@python_2_unicode_compatible
 class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   """Baseclass for values.
 
@@ -221,7 +222,7 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     return super(RDFValue, self).__repr__()
 
   def __repr__(self):
-    content = utils.SmartStr(self)
+    content = str(self)
     if len(content) > 100:
       content = content[:100] + "..."
 
@@ -448,7 +449,7 @@ class RDFInteger(RDFPrimitive):
         self._value = compatibility.builtins.int(initializer)
 
   def SerializeToString(self):
-    return bytes(self._value)
+    return str(self._value).encode("ascii")
 
   def ParseFromString(self, string):
     precondition.AssertType(string, bytes)
@@ -1071,7 +1072,7 @@ class RDFURN(RDFPrimitive):
     self.ParseFromUnicode(string)
 
   def SerializeToString(self):
-    return bytes(self)
+    return str(self).encode("utf-8")
 
   def SerializeToDataStore(self):
     return str(self)
@@ -1126,6 +1127,9 @@ class RDFURN(RDFPrimitive):
 
   def __str__(self):
     return "aff4:%s" % self._string_urn
+
+  # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
+  __hash__ = RDFPrimitive.__hash__
 
   def __eq__(self, other):
     if isinstance(other, string_types):

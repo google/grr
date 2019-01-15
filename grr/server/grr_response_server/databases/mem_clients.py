@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 
 from future.utils import iteritems
-from future.utils import iterkeys
 from future.utils import itervalues
 from typing import Generator, List, Text
 
@@ -141,8 +140,13 @@ class InMemoryDBClientMixin(object):
     return res
 
   @utils.Synchronized
-  def ReadAllClientIDs(self):
-    return list(iterkeys(self.metadatas))
+  def ReadAllClientIDs(self, min_last_ping=None):
+    client_ids = []
+    for client_id, metadata in iteritems(self.metadatas):
+      last_ping = metadata.get("ping", rdfvalue.RDFDatetime(0))
+      if min_last_ping is None or last_ping >= min_last_ping:
+        client_ids.append(client_id)
+    return client_ids
 
   @utils.Synchronized
   def WriteClientSnapshotHistory(self, clients):

@@ -37,6 +37,9 @@ class Token(object):
       next_state: The next state we transition to if this Token matches.
       flags: re flags.
     """
+    precondition.AssertType(regex, Text)
+    precondition.AssertOptionalType(state_regex, Text)
+
     if state_regex:
       self.state_regex = re.compile(state_regex, re.DOTALL | re.M | re.S | re.U
                                     | flags)

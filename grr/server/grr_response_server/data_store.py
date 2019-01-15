@@ -1554,7 +1554,12 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     results = self.MultiResolvePrefix(
         locations, DataStore.FILE_HASH_PREFIX, timestamp=timestamp)
     for hash_obj, matches in results:
-      yield (hash_obj, [file_urn for _, file_urn, _ in matches])
+      file_urns = []
+      for _, serialized_file_run, _ in matches:
+        file_urn = rdfvalue.RDFURN.FromSerializedString(serialized_file_run)
+        file_urns.append(file_urn)
+
+      yield (hash_obj, file_urns)
 
   def AFF4FetchChildren(self, subject, timestamp=None, limit=None):
     results = self.ResolvePrefix(

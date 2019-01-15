@@ -8,16 +8,12 @@ from __future__ import unicode_literals
 from builtins import range  # pylint: disable=redefined-builtin
 import mock
 
-from google.protobuf import timestamp_pb2
-from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
-
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import compatibility
-from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_test_utils
 from grr_response_core.stats import stats_utils
@@ -26,8 +22,7 @@ from grr_response_server import client_report_utils
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import db
-from grr_response_server import fleetspeak_connector
-from grr_response_server import fleetspeak_utils
+from grr_response_server import prometheus_stats_collector
 from grr_response_server import stats_store
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.cron import system
@@ -42,20 +37,21 @@ class SystemCronTestMixin(object):
   def setUp(self):
     super(SystemCronTestMixin, self).setUp()
 
-    recent_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
-    # Simulate Fleetspeak clients with last-ping timestamps in the GRR DB
-    # that haven't been updated in a while. Last-contact timestamps reported
-    # by Fleetspeak should be used instead of this value.
-    ancient_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("999d")
+    one_hour_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1h")
+    eight_day_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
+    ancient_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("61d")
     self.SetupClientsWithIndices(
-        range(0, 10), system="Windows", ping=recent_ping)
+        range(0, 10), system="Windows", ping=eight_day_ping)
     self.SetupClientsWithIndices(
-        range(10, 20), system="Linux", ping=recent_ping)
-    fs_urns = self.SetupClientsWithIndices(
+        range(10, 20), system="Linux", ping=eight_day_ping)
+    self.SetupClientsWithIndices(
         range(20, 22),
         system="Darwin",
         fleetspeak_enabled=True,
-        ping=ancient_ping)
+        ping=one_hour_ping)
+    # These clients shouldn't be analyzed by any of the stats cronjobs.
+    self.SetupClientsWithIndices(
+        range(22, 24), system="Linux", ping=ancient_ping)
 
     for i in range(0, 10):
       client_id = u"C.1%015x" % i
@@ -66,27 +62,6 @@ class SystemCronTestMixin(object):
       data_store.REL_DB.AddClientLabels(client_id, u"GRR",
                                         [u"Label1", u"Label2"])
       data_store.REL_DB.AddClientLabels(client_id, u"jim", [u"UserLabel"])
-
-    fs_connector_patcher = mock.patch.object(fleetspeak_connector, "CONN")
-    self._fs_conn = fs_connector_patcher.start()
-    self.addCleanup(fs_connector_patcher.stop)
-    last_fs_contact = timestamp_pb2.Timestamp()
-    # Have Fleetspeak report that the last contact with the Fleetspeak clients
-    # happened an hour ago.
-    last_ping_rdf = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1h")
-    last_fs_contact.FromMicroseconds(last_ping_rdf.AsMicrosecondsSinceEpoch())
-    fs_clients = [
-        admin_pb2.Client(
-            client_id=fleetspeak_utils.GRRIDToFleetspeakID(
-                fs_urns[0].Basename()),
-            last_contact_time=last_fs_contact),
-        admin_pb2.Client(
-            client_id=fleetspeak_utils.GRRIDToFleetspeakID(
-                fs_urns[1].Basename()),
-            last_contact_time=last_fs_contact),
-    ]
-    self._fs_conn.outgoing.ListClients.return_value = (
-        admin_pb2.ListClientsResponse(clients=fs_clients))
 
   def _CheckVersionGraph(self, graph, expected_title, expected_count):
     self.assertEqual(graph.title, expected_title)
@@ -114,7 +89,6 @@ class SystemCronTestMixin(object):
 
   def _CheckGRRVersionBreakDown(self):
     """Checks the result of the GRRVersionBreakDown cron job."""
-    self._fs_conn.outgoing.ListClients.assert_called_once()
     # All machines should be in All once. Windows machines should be in Label1
     # and Label2. There should be no stats for UserLabel.
     report_type = rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION
@@ -128,7 +102,6 @@ class SystemCronTestMixin(object):
     self.assertDictEqual(actual_counts, expected_counts)
 
   def _CheckOSStats(self, label, report_type, counts):
-    self._fs_conn.outgoing.ListClients.assert_called_once()
     # We expect to have 1, 7, 14 and 30-day graphs for every label.
     graph_series = client_report_utils.FetchMostRecentGraphSeries(
         label, report_type)
@@ -143,7 +116,6 @@ class SystemCronTestMixin(object):
                        "30 day actives for %s label" % label, counts[3])
 
   def _CheckOSBreakdown(self):
-    self._fs_conn.outgoing.ListClients.assert_called_once()
     report_type = rdf_stats.ClientGraphSeries.ReportType.OS_TYPE
     all_stats = [
         {
@@ -182,8 +154,6 @@ class SystemCronTestMixin(object):
     return rdfvalue.Duration(duration_str).microseconds
 
   def _CheckLastAccessStats(self):
-    self._fs_conn.outgoing.ListClients.assert_called_once()
-
     # pyformat: disable
     all_counts = [
         (self._ToMicros("1d"), 2),
@@ -291,11 +261,13 @@ class SystemCronJobTest(SystemCronTestMixin, test_lib.GRRBaseTest):
 
   def testGRRVersionBreakDown(self):
     """Check that all client stats cron jobs are run."""
-    run = rdf_cronjobs.CronJobRun()
-    job = rdf_cronjobs.CronJob()
-    system.GRRVersionBreakDownCronJob(run, job).Run()
+    cron_run = rdf_cronjobs.CronJobRun()
+    job_data = rdf_cronjobs.CronJob()
+    cron = system.GRRVersionBreakDownCronJob(cron_run, job_data)
+    cron.Run()
 
     self._CheckGRRVersionBreakDown()
+    self.assertEqual(cron.run_state.log_message, "Processed 22 clients.")
 
   def testOSBreakdown(self):
     """Check that all client stats cron jobs are run."""
@@ -316,7 +288,7 @@ class SystemCronJobTest(SystemCronTestMixin, test_lib.GRRBaseTest):
   def testPurgeServerStats(self):
     if not data_store.RelationalDBReadEnabled():
       self.skipTest("Test is only for the relational DB. Skipping...")
-    fake_stats_collector = default_stats_collector.DefaultStatsCollector([
+    fake_stats_collector = prometheus_stats_collector.PrometheusStatsCollector([
         stats_utils.CreateCounterMetadata("fake_counter"),
     ])
     timestamp0 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)
