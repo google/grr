@@ -2062,6 +2062,14 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def DeleteHuntObject(self, hunt_id):
+    """Deletes a hunt object with a given id.
+
+    Args:
+      hunt_id: Id of the hunt to be deleted.
+    """
+
+  @abc.abstractmethod
   def ReadHuntObject(self, hunt_id):
     """Reads a hunt object from the database.
 
@@ -2120,7 +2128,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
                       count,
                       with_tag=None,
                       with_type=None,
-                      with_substring=None):
+                      with_substring=None,
+                      with_timestamp=None):
     """Reads hunt results of a given hunt using given query options.
 
     If both with_tag and with_type and/or with_substring arguments are provided,
@@ -2140,6 +2149,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       with_substring: (Optional) When specified, should be a string. Only
         results having the specified string as a substring in their serialized
         form will be returned.
+      with_timestamp: (Optional) When specified should an rdfvalue.RDFDatetime.
+        Only results with a given timestamp will be returned.
 
     Returns:
       A list of FlowResult values sorted by timestamp in ascending order.
@@ -2161,6 +2172,17 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Returns:
       A number of hunt results of a given hunt matching given query options.
+    """
+
+  @abc.abstractmethod
+  def CountHuntResultsByType(self, hunt_id):
+    """Returns counts of items in hunt results grouped by type.
+
+    Args:
+      hunt_id: The id of the hunt to count results for.
+
+    Returns:
+      A dictionary of "type name" => <number of items>.
     """
 
   @abc.abstractmethod
@@ -3195,6 +3217,10 @@ class DatabaseValidationWrapper(Database):
     _ValidateHuntId(hunt_id)
     return self.delegate.UpdateHuntObject(hunt_id, update_fn)
 
+  def DeleteHuntObject(self, hunt_id):
+    _ValidateHuntId(hunt_id)
+    return self.delegate.DeleteHuntObject(hunt_id)
+
   def ReadHuntObject(self, hunt_id):
     _ValidateHuntId(hunt_id)
     return self.delegate.ReadHuntObject(hunt_id)
@@ -3219,18 +3245,21 @@ class DatabaseValidationWrapper(Database):
                       count,
                       with_tag=None,
                       with_type=None,
-                      with_substring=None):
+                      with_substring=None,
+                      with_timestamp=None):
     _ValidateHuntId(hunt_id)
     precondition.AssertOptionalType(with_tag, Text)
     precondition.AssertOptionalType(with_type, Text)
     precondition.AssertOptionalType(with_substring, Text)
+    precondition.AssertOptionalType(with_timestamp, rdfvalue.RDFDatetime)
     return self.delegate.ReadHuntResults(
         hunt_id,
         offset,
         count,
         with_tag=with_tag,
         with_type=with_type,
-        with_substring=with_substring)
+        with_substring=with_substring,
+        with_timestamp=with_timestamp)
 
   def CountHuntResults(self, hunt_id, with_tag=None, with_type=None):
     _ValidateHuntId(hunt_id)
@@ -3238,6 +3267,10 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertOptionalType(with_type, Text)
     return self.delegate.CountHuntResults(
         hunt_id, with_tag=with_tag, with_type=with_type)
+
+  def CountHuntResultsByType(self, hunt_id):
+    _ValidateHuntId(hunt_id)
+    return self.delegate.CountHuntResultsByType(hunt_id)
 
   def ReadHuntFlows(self,
                     hunt_id,

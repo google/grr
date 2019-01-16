@@ -16,6 +16,9 @@ class MySQLDBHuntMixin(object):
   def UpdateHuntObject(self, hunt_id, update_fn):
     raise NotImplementedError()
 
+  def DeleteHuntObject(self, hunt_id):
+    raise NotImplementedError()
+
   def ReadHuntObject(self, hunt_id):
     raise NotImplementedError()
 
@@ -38,6 +41,9 @@ class MySQLDBHuntMixin(object):
     raise NotImplementedError()
 
   def CountHuntResults(self, hunt_id, with_tag=None, with_type=None):
+    raise NotImplementedError()
+
+  def CountHuntResultsByType(self, hunt_id):
     raise NotImplementedError()
 
   def ReadHuntFlows(self,

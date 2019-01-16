@@ -265,8 +265,8 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
       self.Click("css=button[name=copy_flow]")
       self.Click("css=button:contains('Launch')")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.modal-dialog .text-danger:contains('oh no!')")
+      self.WaitUntil(self.IsElementPresent,
+                     "css=.modal-dialog .text-danger:contains('oh no!')")
 
     # Check that closing the dialog doesn't change flow selection.
     self.Click("css=button[name=Close]")

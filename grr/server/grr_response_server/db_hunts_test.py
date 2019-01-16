@@ -135,6 +135,19 @@ class DatabaseTestHuntMixin(object):
     with self.assertRaises(RuntimeError):
       self.db.UpdateHuntObject(hunt_obj.hunt_id, RaisingFn)
 
+  def testDeletingHuntObjectWorks(self):
+    hunt_obj = rdf_hunt_objects.Hunt()
+    self.db.WriteHuntObject(hunt_obj)
+
+    # This shouldn't raise.
+    self.db.ReadHuntObject(hunt_obj.hunt_id)
+
+    self.db.DeleteHuntObject(hunt_obj.hunt_id)
+
+    # The hunt is deleted: this should raise now.
+    with self.assertRaises(db.UnknownHuntError):
+      self.db.ReadHuntObject(hunt_obj.hunt_id)
+
   def testReadAllHuntObjectsReturnsEmptyListWhenNoHunts(self):
     self.assertEqual(self.db.ReadAllHuntObjects(), [])
 
@@ -619,6 +632,49 @@ class DatabaseTestHuntMixin(object):
         with_tag="tag_1",
         with_type=compatibility.GetName(rdf_client.ClientSummary))
     self.assertEqual(num_results, 10)
+
+  def testCountHuntResultsCorrectlyAppliesWithTimestampFilter(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    sample_results = []
+    for _ in range(10):
+      client_id, flow_id = self._SetupHuntClientAndFlow(
+          hunt_id=hunt_obj.hunt_id)
+      sample_results = self._SampleSingleTypeHuntResults(
+          client_id=client_id,
+          flow_id=flow_id,
+          hunt_id=hunt_obj.hunt_id,
+          count=10)
+      self._WriteHuntResults(sample_results[:5])
+      self._WriteHuntResults(sample_results[5:])
+
+    hunt_results = self.db.ReadHuntResults(hunt_obj.hunt_id, 0, 10)
+
+    for hr in hunt_results:
+      self.assertEqual([hr],
+                       self.db.ReadHuntResults(
+                           hunt_obj.hunt_id, 0, 10,
+                           with_timestamp=hr.timestamp))
+
+  def testCountHuntResultsByTypeGroupsResultsCorrectly(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_obj.hunt_id)
+    results = self._SampleTwoTypeHuntResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        hunt_id=hunt_obj.hunt_id,
+        count_per_type=5)
+    self._WriteHuntResults(results)
+
+    counts = self.db.CountHuntResultsByType(hunt_obj.hunt_id)
+    self.assertEqual(
+        counts, {
+            compatibility.GetName(rdf_client.ClientSummary): 5,
+            compatibility.GetName(rdf_client.ClientCrash): 5
+        })
 
   def testReadHuntFlowsReturnsEmptyListWhenNoFlows(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")

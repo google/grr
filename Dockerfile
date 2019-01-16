@@ -13,8 +13,6 @@
 #    -p 0.0.0.0:8000:8000 \
 #    -p 0.0.0.0:8080:8080 \
 #    grrdocker/grr
-#
-# TODO(ogaro): Implement support for using an external MySQL instance.
 
 FROM ubuntu:xenial
 
@@ -52,9 +50,9 @@ RUN pip install --upgrade --no-cache-dir pip virtualenv && \
 # Install proto compiler
 RUN mkdir -p /usr/share/protobuf && \
 cd /usr/share/protobuf && \
-wget --quiet "https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip" && \
-unzip protoc-3.3.0-linux-x86_64.zip && \
-rm protoc-3.3.0-linux-x86_64.zip
+wget --quiet "https://github.com/google/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip" && \
+unzip protoc-3.6.1-linux-x86_64.zip && \
+rm protoc-3.6.1-linux-x86_64.zip
 
 RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir wheel six setuptools nodeenv && \
     $GRR_VENV/bin/nodeenv -p --prebuilt --node=10.12.0 && \

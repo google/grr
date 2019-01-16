@@ -617,6 +617,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testUpdateHuntObjectPropagatesExceptions(self):
     pass
 
+  def testDeletingHuntObjectWorks(self):
+    pass
+
   def testReadAllHuntObjectsReturnsEmptyListWhenNoHunts(self):
     pass
 
@@ -678,6 +681,12 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testCountHuntResultsCorrectlyAppliesWithTagAndWithTypeFilters(self):
+    pass
+
+  def testCountHuntResultsCorrectlyAppliesWithTimestampFilter(self):
+    pass
+
+  def testCountHuntResultsByTypeGroupsResultsCorrectly(self):
     pass
 
   def testReadHuntFlowsReturnsEmptyListWhenNoFlows(self):

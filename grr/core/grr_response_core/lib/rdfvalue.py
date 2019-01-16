@@ -1099,7 +1099,8 @@ class RDFURN(RDFPrimitive):
        ValueError: if the path component is not a string.
     """
     if not isinstance(path, string_types):
-      raise ValueError("Only strings should be added to a URN.")
+      raise ValueError(
+          "Only strings should be added to a URN, not %s" % path.__class__)
 
     result = self.Copy(age)
     result.Update(path=utils.JoinPath(self._string_urn, path))

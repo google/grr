@@ -8,6 +8,7 @@ import sys
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import compatibility
 from grr_response_server import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
@@ -16,7 +17,9 @@ class InMemoryDBHuntMixin(object):
   """Hunts-related DB methods implementation."""
 
   def _GetHuntFlows(self, hunt_id):
-    return [f for f in self.flows.values() if f.parent_hunt_id == hunt_id]
+    return sorted(
+        [f for f in self.flows.values() if f.parent_hunt_id == hunt_id],
+        key=lambda f: f.client_id)
 
   @utils.Synchronized
   def WriteHuntObject(self, hunt_obj):
@@ -34,6 +37,13 @@ class InMemoryDBHuntMixin(object):
       raise ValueError("update_fn can't return None")
     self.WriteHuntObject(updated_hunt_obj)
     return updated_hunt_obj
+
+  @utils.Synchronized
+  def DeleteHuntObject(self, hunt_id):
+    try:
+      del self.hunts[hunt_id]
+    except KeyError:
+      raise db.UnknownHuntError(hunt_id)
 
   @utils.Synchronized
   def ReadHuntObject(self, hunt_id):
@@ -81,7 +91,8 @@ class InMemoryDBHuntMixin(object):
                       count,
                       with_tag=None,
                       with_type=None,
-                      with_substring=None):
+                      with_substring=None,
+                      with_timestamp=None):
     """Reads hunt results of a given hunt using given query options."""
     all_results = []
     for flow_obj in self._GetHuntFlows(hunt_id):
@@ -102,6 +113,9 @@ class InMemoryDBHuntMixin(object):
                 tag=entry.tag,
                 payload=entry.payload))
 
+    if with_timestamp:
+      all_results = [r for r in all_results if r.timestamp == with_timestamp]
+
     return sorted(all_results, key=lambda x: x.timestamp)[offset:offset + count]
 
   @utils.Synchronized
@@ -110,6 +124,15 @@ class InMemoryDBHuntMixin(object):
     return len(
         self.ReadHuntResults(
             hunt_id, 0, sys.maxsize, with_tag=with_tag, with_type=with_type))
+
+  @utils.Synchronized
+  def CountHuntResultsByType(self, hunt_id):
+    result = {}
+    for hr in self.ReadHuntResults(hunt_id, 0, sys.maxsize):
+      key = compatibility.GetName(hr.payload.__class__)
+      result[key] = result.setdefault(key, 0) + 1
+
+    return result
 
   @utils.Synchronized
   def ReadHuntFlows(self,
