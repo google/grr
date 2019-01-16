@@ -140,7 +140,7 @@ config_lib.DEFINE_bool(
     "bundles being present. AdminUI.headless=True should be used to run "
     "the AdminUI as an API endpoint only.")
 
-# Configuration requirements for Cloud IAP Setup
+# Configuration statements for Cloud IAP Setup
 config_lib.DEFINE_string(
     "AdminUI.cloud_project_id", None,
     "Cloud Project ID for IAP. This must be set if the IAPWebAuthManager is used."
