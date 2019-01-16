@@ -324,7 +324,7 @@ class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
     else:
       client_ids = [urn.Basename() for urn in self.SetupClients(10)]
 
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
 
     with test_lib.FakeTime(42):
       with self.CreateHunt(description="the hunt") as hunt_obj:
@@ -513,7 +513,7 @@ class ApiGetHuntStatsHandlerRegressionTest(
       else:
         client_ids = self.SetupClients(1)
       self.AssignTasksToClients(client_ids=client_ids)
-      self.RunHunt(client_ids=client_ids)
+      self.RunHunt(client_ids=client_ids, failrate=2)
 
     # Create replace dictionary.
     replace = {hunt_urn.Basename(): "H:123456"}

@@ -39,7 +39,7 @@ class DualDBTestDecoratorTest(test_lib.GRRBaseTest):
 
   def testRelationalDBFlowsEnabled(self):
     result = data_store.RelationalDBFlowsEnabled()
-    expected = self._IsDBTest()
+    expected = self._IsDBTest() or self._IsStableDBTest()
     self.assertEqual(
         result, expected, "RelationalDBFlowsEnabled() is %s for %s" %
         (result, compatibility.GetName(self.__class__)))

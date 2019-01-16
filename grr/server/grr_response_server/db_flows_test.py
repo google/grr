@@ -1584,3 +1584,14 @@ class DatabaseTestFlowMixin(object):
 
     num_entries = self.db.CountFlowLogEntries(client_id, flow_id)
     self.assertEqual(num_entries, len(messages))
+
+  def testFlowLogsAndErrorsForUnknownFlowsRaise(self):
+    client_id = u"C.1234567890123456"
+    flow_id = flow.RandomFlowId()
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    with self.assertRaises(db.AtLeastOneUnknownFlowError):
+      self.db.WriteFlowLogEntries([
+          rdf_flow_objects.FlowLogEntry(
+              client_id=client_id, flow_id=flow_id, message="test")
+      ])

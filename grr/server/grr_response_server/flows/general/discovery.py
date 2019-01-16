@@ -223,13 +223,16 @@ class InterrogateMixin(object):
       self.Log("Unknown system type, skipping KnowledgeBaseInitializationFlow")
 
   def InstallDate(self, responses):
+    """Stores the time when the OS was installed on the client."""
     if not responses.success:
       self.Log("Could not get InstallDate")
       return
 
     response = responses.First()
 
-    if isinstance(response, rdfvalue.RDFDatetime):
+    # When using relational flows, the response is serialized as an any value
+    # and we get an equivalent RDFInteger here so we need to check for both.
+    if isinstance(response, (rdfvalue.RDFDatetime, rdfvalue.RDFInteger)):
       # New clients send the correct values already.
       install_date = response
     elif isinstance(response, rdf_protodict.DataBlob):

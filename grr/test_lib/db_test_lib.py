@@ -78,7 +78,7 @@ class StableRelationalDBEnabledMixin(object):
         "Database.useForReads.signed_binaries": True,
         "Database.useForReads.stats": False,
         "Database.useForReads.vfs": True,
-        "Database.useRelationalFlows": False,
+        "Database.useRelationalFlows": True,
     })
     self._config_overrider.Start()
 

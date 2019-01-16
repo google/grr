@@ -92,12 +92,10 @@ def ProcessHuntFlowError(flow_obj,
         hunt_urn.Add("CompletedClients"), client_urn, mutation_pool=pool)
 
   if status_msg is not None:
-    with aff4.FACTORY.OpenWithLock(
-        hunt_urn, lease_time=_HUNT_LEASE_TIME, blocking=True) as fd:
+    with aff4.FACTORY.Open(hunt_urn, mode="rw") as fd:
+      # Legacy AFF4 code expects token to be set.
+      fd.token = access_control.ACLToken(username=fd.creator)
       fd.GetRunner().SaveResourceUsage(flow_obj.client_id, status_msg)
-
-
-_HUNT_LEASE_TIME = rdfvalue.Duration("600s")
 
 
 def ProcessHuntFlowDone(flow_obj, status_msg=None):
@@ -129,20 +127,27 @@ def ProcessHuntFlowDone(flow_obj, status_msg=None):
   hunt_urn = rdfvalue.RDFURN("hunts").Add(flow_obj.parent_hunt_id)
   client_urn = rdf_client.ClientURN(flow_obj.client_id)
 
-  with aff4.FACTORY.OpenWithLock(
-      hunt_urn, lease_time=_HUNT_LEASE_TIME, blocking=True) as fd:
+  # Update the counter metrics separately from collections to minimize
+  # contention.
+  with aff4.FACTORY.Open(hunt_urn, mode="rw") as fd:
     # Legacy AFF4 code expects token to be set.
     fd.token = access_control.ACLToken(username=fd.creator)
 
-    fd.RegisterCompletedClient(client_urn)
     if flow_obj.num_replies_sent:
-      fd.RegisterClientWithResults(client_urn)
       fd.context.clients_with_results_count += 1
 
     fd.context.completed_clients_count += 1
     fd.context.results_count += flow_obj.num_replies_sent
 
     fd.GetRunner().SaveResourceUsage(flow_obj.client_id, status_msg)
+
+  with aff4.FACTORY.Open(hunt_urn, mode="rw") as fd:
+    # Legacy AFF4 code expects token to be set.
+    fd.token = access_control.ACLToken(username=fd.creator)
+
+    fd.RegisterCompletedClient(client_urn)
+    if flow_obj.num_replies_sent:
+      fd.RegisterClientWithResults(client_urn)
 
     fd.StopHuntIfAverageLimitsExceeded()
 
@@ -190,8 +195,7 @@ def ProcessHuntClientCrash(flow_obj, client_crash_info):
 
   hunt_urn = rdfvalue.RDFURN("hunts").Add(flow_obj.parent_hunt_id)
 
-  with aff4.FACTORY.OpenWithLock(
-      hunt_urn, lease_time=_HUNT_LEASE_TIME, blocking=True) as fd:
+  with aff4.FACTORY.Open(hunt_urn, mode="rw") as fd:
     # Legacy AFF4 code expects token to be set.
     fd.token = access_control.ACLToken(username=fd.creator)
     fd.RegisterCrash(client_crash_info)

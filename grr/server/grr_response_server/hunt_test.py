@@ -63,7 +63,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
       foreman_obj.AssignTasksToClient(client_id.Basename())
 
     if client_mock is None:
-      client_mock = hunt_test_lib.SampleHuntMock()
+      client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     return hunt_test_lib.TestHuntHelper(
         client_mock, client_ids, False, iteration_limit=iteration_limit)
 
@@ -220,7 +220,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     for client_id in client_ids:
       foreman_obj.AssignTasksToClient(client_id.Basename())
 
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     hunt_test_lib.TestHuntHelper(client_mock, client_ids[1:9], False)
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_obj.hunt_id)

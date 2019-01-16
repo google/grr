@@ -243,9 +243,10 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     ]:
       test_pb.dynamic = value_to_assign
       serialized = test_pb.SerializeToString()
-      self.assertEqual(
-          AnyValueWithoutTypeFunctionTest.FromSerializedString(serialized),
-          test_pb)
+      deserialized = AnyValueWithoutTypeFunctionTest.FromSerializedString(
+          serialized)
+      self.assertEqual(deserialized, test_pb)
+      self.assertEqual(type(deserialized.dynamic), type(value_to_assign))
 
   def testDynamicAnyValueType(self):
     test_pb = DynamicAnyValueTypeTest(type="TestStruct")

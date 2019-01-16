@@ -48,18 +48,18 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
         random.choice(string.ascii_uppercase + string.digits)
         for _ in range(10))
 
-    connection = MySQLdb.Connect(host=host, port=port, user=user, passwd=passwd)
-    cursor = connection.cursor()
-    cursor.execute("CREATE DATABASE " + dbname)
+    mysql.CreateDatabase(
+        host=host, port=port, user=user, passwd=passwd, db=dbname)
     logging.info("Created test database: %s", dbname)
 
     conn = mysql.MysqlDB(
         host=host, port=port, user=user, passwd=passwd, db=dbname)
 
+    def _Drop(cursor):
+      cursor.execute("DROP DATABASE {}".format(dbname))
+
     def Fin():
-      cursor.execute("DROP DATABASE " + dbname)
-      cursor.close()
-      connection.close()
+      conn._RunInTransaction(_Drop)
       conn.Close()
 
     return conn, Fin
@@ -538,6 +538,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testReadLatestPathInfosReturnsNothingForNonExistingPaths(self):
+    pass
+
+  def testFlowLogsAndErrorsForUnknownFlowsRaise(self):
     pass
 
   def testReadLatestPathInfosReturnsNothingWhenNoFilesCollected(self):

@@ -106,7 +106,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
   def testCreatesSymlinksOnClientsForEveryStartedFlow(self):
     hunt_urn = self.StartHunt()
     self.AssignTasksToClients()
-    self.RunHunt()
+    self.RunHunt(failrate=2)
 
     for client_id in self.client_ids:
       flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
@@ -127,7 +127,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
   def testDeletesSymlinksOnClientsWhenGetsDeletedItself(self):
     hunt_urn = self.StartHunt()
     self.AssignTasksToClients()
-    self.RunHunt()
+    self.RunHunt(failrate=2)
 
     for client_id in self.client_ids:
       # Check that symlinks to hunt-initiated flows are there as the hunt is
@@ -159,13 +159,15 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         iteration_limit=len(self.client_ids) * 2,
         user_cpu_time=0,
         system_cpu_time=0,
-        network_bytes_sent=0)
+        network_bytes_sent=0,
+        failrate=2)
     self.StopHunt(hunt.urn)
 
     # All flows states should be destroyed by now.
     # If something is wrong with the GenericHunt.Stop implementation,
     # this will run forever.
-    self.RunHunt(user_cpu_time=0, system_cpu_time=0, network_bytes_sent=0)
+    self.RunHunt(
+        user_cpu_time=0, system_cpu_time=0, network_bytes_sent=0, failrate=2)
 
     if data_store.RelationalDBFlowsEnabled():
       for client_id in self.client_ids:
@@ -202,7 +204,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     """This tests running the hunt on some clients."""
     hunt_urn = self.StartHunt()
     self.AssignTasksToClients()
-    self.RunHunt()
+    self.RunHunt(failrate=2)
     self.StopHunt(hunt_urn)
     self.ProcessHuntOutputPlugins()
 
@@ -248,7 +250,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertFalse(self.FindForemanRules(None, token=self.token))
 
     self.AssignTasksToClients()
-    self.RunHunt()
+    self.RunHunt(failrate=2)
     self.StopHunt(hunt_urn)
 
     with aff4.FACTORY.Open(
@@ -797,7 +799,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       self.AssignTasksToClients()
 
       # Run the hunt.
-      client_mock = hunt_test_lib.SampleHuntMock()
+      client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
       hunt_test_lib.TestHuntHelper(
           client_mock,
           self.client_ids,
@@ -915,7 +917,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         self.RunHunt(
             client_ids=client_ids,
             user_cpu_time=user_cpu_time,
-            system_cpu_time=system_cpu_time)
+            system_cpu_time=system_cpu_time,
+            failrate=2)
 
       def CheckState(expected_state, expected_user_cpu, expected_system_cpu):
         hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
@@ -960,7 +963,9 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       def RunOnClients(client_ids, network_bytes_sent):
         self.AssignTasksToClients(client_ids)
         self.RunHunt(
-            client_ids=client_ids, network_bytes_sent=network_bytes_sent)
+            client_ids=client_ids,
+            network_bytes_sent=network_bytes_sent,
+            failrate=2)
 
       def CheckState(expected_state, expected_network_bytes_sent):
         hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
@@ -1021,7 +1026,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       time.time = lambda: 5000
 
       # Run the hunt.
-      client_mock = hunt_test_lib.SampleHuntMock()
+      client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
       hunt_test_lib.TestHuntHelper(
           client_mock,
           self.client_ids,
@@ -1065,7 +1070,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.AssignTasksToClients()
 
     # Run the hunt.
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
                                  self.token)
 
@@ -1118,7 +1123,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
     self.AssignTasksToClients(client_ids=client_ids)
 
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt = aff4.FACTORY.Open(
@@ -1166,7 +1171,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     hunt_urn = hunt.urn
 
     self.AssignTasksToClients()
-    self.RunHunt()
+    self.RunHunt(failrate=2)
 
     # Check logs were written to the hunt collection
     hunt_logs = implementation.GRRHunt.LogCollectionForHID(hunt_urn)
@@ -1215,7 +1220,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         username="nonadmin", reason="testing")
     self.AssignTasksToClients()
 
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
                                  nonadmin_token)
 

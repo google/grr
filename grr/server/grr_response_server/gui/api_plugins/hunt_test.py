@@ -732,7 +732,7 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
     # random).
     for cid in self.client_ids:
       self.AssignTasksToClients(client_ids=[cid])
-      client_mock = hunt_test_lib.SampleHuntMock()
+      client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
       hunt_test_lib.TestHuntHelper(client_mock, [cid], token=self.token)
 
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):

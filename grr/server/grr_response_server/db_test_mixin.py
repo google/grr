@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Mixin class to be used in tests for DB implementations."""
 from __future__ import absolute_import
 from __future__ import division
@@ -79,6 +80,13 @@ class DatabaseTestMixin(
   def testDatabaseType(self):
     d = self.db
     self.assertIsInstance(d, db.Database)
+
+  def testDatabaseHandlesUnicodeCorrectly(self):
+    name = "🍻foo🍻"
+    self.db.WriteGRRUser(name)
+    user = self.db.ReadGRRUser(name)
+    self.assertLen(user.username, 5)
+    self.assertEqual(user.username, name)
 
   def InitializeClient(self, client_id=None):
     """Initializes a test client.

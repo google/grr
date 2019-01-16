@@ -314,7 +314,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       foreman.AssignTasksToClient(client_id.Basename())
 
     # Run the hunt.
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt_obj = aff4.FACTORY.Open(
@@ -352,7 +352,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     for client_id in client_ids:
       foreman.AssignTasksToClient(client_id.Basename())
 
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     # Just pass 8 clients to run, the other two went offline.
     hunt_test_lib.TestHuntHelper(client_mock, client_ids[1:9], False,
                                  self.token)
@@ -392,7 +392,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       num_tasks = foreman.AssignTasksToClient(client_id.Basename())
       self.assertEqual(num_tasks, 1)
 
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     # Pausing and running hunt: this leads to the fresh rules being written
@@ -436,7 +436,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       foreman.AssignTasksToClient(client_id.Basename())
 
     # Run the hunt.
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt_obj = aff4.FACTORY.Open(
@@ -473,7 +473,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       foreman.AssignTasksToClient(client_id.Basename())
 
     # Run the hunt.
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt_obj = aff4.FACTORY.Open(

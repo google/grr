@@ -238,7 +238,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
       hunt.Run()
 
     self.AssignTasksToClients(client_ids=[self.client_id])
-    self.RunHunt(client_ids=[self.client_id])
+    self.RunHunt(client_ids=[self.client_id], failrate=2)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")

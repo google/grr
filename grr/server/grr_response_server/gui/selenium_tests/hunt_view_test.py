@@ -36,7 +36,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
                           traceback.format_exc())
 
     # Run the hunt.
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
 
     hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
                                  self.token)
@@ -454,7 +454,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     finished_client_ids = self.client_ids[5:]
     outstanding_client_ids = self.client_ids[:5]
 
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     hunt_test_lib.TestHuntHelper(client_mock, finished_client_ids, False,
                                  self.token)
 

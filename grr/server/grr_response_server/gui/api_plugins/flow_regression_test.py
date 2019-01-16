@@ -157,7 +157,7 @@ class ApiListFlowResultsHandlerRegressionTest(
     flow_args = transfer.GetFileArgs(
         pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS))
-    client_mock = hunt_test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
 
     if data_store.RelationalDBFlowsEnabled():
       with test_lib.FakeTime(42):

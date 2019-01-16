@@ -96,7 +96,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
       hunt.Run()
 
     self.AssignTasksToClients(client_ids=[self.client_urn])
-    self.RunHunt(client_ids=[self.client_urn])
+    self.RunHunt(client_ids=[self.client_urn], failrate=2)
 
   def testResolvesHuntFlowURN(self):
     self._StartHunt()

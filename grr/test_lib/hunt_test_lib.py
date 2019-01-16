@@ -39,7 +39,7 @@ class SampleHuntMock(action_mocks.ActionMock):
   """Client mock for sample hunts."""
 
   def __init__(self,
-               failrate=2,
+               failrate=-1,
                data=b"Hello World!",
                user_cpu_time=None,
                system_cpu_time=None,

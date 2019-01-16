@@ -507,10 +507,9 @@ class FrontEndServer(object):
     logging.info("Enrolling a new Fleetspeak client: %r", client_id)
 
     if data_store.RelationalDBWriteEnabled():
+      now = rdfvalue.RDFDatetime.Now()
       data_store.REL_DB.WriteClientMetadata(
-          client_id,
-          fleetspeak_enabled=True,
-          last_ping=rdfvalue.RDFDatetime.Now())
+          client_id, first_seen=now, fleetspeak_enabled=True, last_ping=now)
 
     # TODO(fleetspeak-team,grr-team): If aff4 isn't reliable enough, we can
     # catch exceptions from it and forward them to Fleetspeak by failing its

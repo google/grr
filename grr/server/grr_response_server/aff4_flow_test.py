@@ -652,7 +652,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
               path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS))
 
     if client_mock is None:
-      client_mock = hunt_test_lib.SampleHuntMock()
+      client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
 
     return flow_test_lib.TestFlowHelper(
         flow_name,

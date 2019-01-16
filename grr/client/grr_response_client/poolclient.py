@@ -40,11 +40,20 @@ flags.DEFINE_bool(
     "poll mode the timeouts are predictable and benchmarks "
     "results are more stable.")
 
+flags.DEFINE_bool(
+    "send_foreman_request", False,
+    "If specified, every client will send a foreman poll request "
+    "right after startup. Useful for testing hunts.")
+
 
 class PoolGRRClient(threading.Thread):
   """A GRR client for running in pool mode."""
 
-  def __init__(self, ca_cert=None, private_key=None, fast_poll=False):
+  def __init__(self,
+               ca_cert=None,
+               private_key=None,
+               fast_poll=False,
+               send_foreman_request=False):
     """Constructor."""
     super(PoolGRRClient, self).__init__()
     self.private_key = private_key
@@ -53,6 +62,9 @@ class PoolGRRClient(threading.Thread):
     self.client = comms.GRRHTTPClient(ca_cert=ca_cert, private_key=private_key)
     if fast_poll:
       self.client.timer.FastPoll()
+
+    if send_foreman_request:
+      self.client.SendForemanRequest()
 
     self.stop = False
     # Is this client already enrolled?
@@ -91,7 +103,9 @@ def CreateClientPool(n):
           PoolGRRClient(
               private_key=certificate,
               ca_cert=config.CONFIG["CA.certificate"],
-              fast_poll=flags.FLAGS.fast_poll),)
+              fast_poll=flags.FLAGS.fast_poll,
+              send_foreman_request=flags.FLAGS.send_foreman_request,
+          ))
 
     clients_loaded = True
   except (IOError, EOFError):

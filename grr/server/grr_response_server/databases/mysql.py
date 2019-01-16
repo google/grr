@@ -49,6 +49,16 @@ _RETRYABLE_ERRORS = {
 
 _ER_BAD_DB_ERROR = 1049
 
+# Enforce sensible defaults for MySQL connection and database:
+# Use utf8mb4_unicode_ci collation and utf8mb4 character set.
+# Do not use what MySQL calls "utf8", it is only a limited subset of utf-8.
+# Do not use utf8mb4_general_ci, it has minor differences to the UTF-8 spec.
+CHARACTER_SET = "utf8mb4"
+COLLATION = "utf8mb4_unicode_ci"
+CREATE_DATABASE_QUERY = (
+    "CREATE DATABASE {} CHARACTER SET {} COLLATE {};".format(
+        "{}", CHARACTER_SET, COLLATION))  # Keep first placeholder for later.
+
 
 def _IsRetryable(error):
   """Returns whether error is likely to be retryable."""
@@ -58,6 +68,65 @@ def _IsRetryable(error):
     return False
   code = error.args[0]
   return code in _RETRYABLE_ERRORS
+
+
+def _ReadVariable(name, cursor):
+  cursor.execute("SHOW VARIABLES LIKE %s", [name])
+  row = cursor.fetchone()
+  if row is None:
+    return None
+  else:
+    return row[1]
+
+
+def _EnforceEncoding(cursor):
+  """Enforce a sane UTF-8 encoding for the DB cursor."""
+  cursor.execute("SET NAMES '{}' COLLATE '{}'".format(CHARACTER_SET, COLLATION))
+
+  collation_connection = _ReadVariable("collation_connection", cursor)
+  if collation_connection != COLLATION:
+    raise RuntimeError(
+        "Require MySQL collation_connection of {}, got {}.".format(
+            COLLATION, collation_connection))
+
+  collation_database = _ReadVariable("collation_database", cursor)
+  if collation_database != COLLATION:
+    raise RuntimeError("Require MySQL collation_database of {}, got {}."
+                       " To create your database, use: {}".format(
+                           COLLATION, collation_database,
+                           CREATE_DATABASE_QUERY))
+
+  character_set_database = _ReadVariable("character_set_database", cursor)
+  if character_set_database != CHARACTER_SET:
+    raise RuntimeError("Require MySQL character_set_database of {}, got {}."
+                       " To create your database, use: {}".format(
+                           COLLATION, collation_connection,
+                           CREATE_DATABASE_QUERY))
+
+  character_set_connection = _ReadVariable("character_set_connection", cursor)
+  if character_set_connection != CHARACTER_SET:
+    raise RuntimeError(
+        "Require MySQL character_set_connection of {}, got {}.".format(
+            CHARACTER_SET, character_set_connection))
+
+
+def CreateDatabase(host, port, user, passwd, db, **kwargs):
+  """Connect to the given MySQL host and create a utf8mb4_unicode_ci database.
+
+  Args:
+    host: The hostname to connect to.
+    port: The port to connect to.
+    user: The username to connect as.
+    passwd: The password to connect with.
+    db: The database name to create.
+    **kwargs: Further MySQL connection arguments.
+  """
+  con = MySQLdb.Connect(
+      host=host, port=port, user=user, passwd=passwd, **kwargs)
+  cursor = con.cursor()
+  cursor.execute(CREATE_DATABASE_QUERY.format(db))
+  cursor.close()
+  con.close()
 
 
 # pyformat: disable
@@ -109,15 +178,15 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
 
     def Connect():
       """Returns a MySQLdb connection and creates the db if it doesn't exist."""
+      args = self._GetConnectionArgs(
+          host=host, port=port, user=user, passwd=passwd, db=db)
       try:
-        return MySQLdb.Connect(**self._GetConnectionArgs(
-            host=host, port=port, user=user, passwd=passwd, db=db))
+        return MySQLdb.Connect(**args)
       except MySQLdb.Error as e:
         # Database does not exist
         if e[0] == _ER_BAD_DB_ERROR:
-          self._CreateDatabase()
-          return MySQLdb.Connect(**self._GetConnectionArgs(
-              host=host, port=port, user=user, passwd=passwd, db=db))
+          CreateDatabase(**args)
+          return MySQLdb.Connect(**args)
         else:
           raise
 
@@ -128,6 +197,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
         self._SetBinlogFormat(cursor)
         self._InitializeSchema(cursor)
         self._CheckForSSL(cursor)
+        _EnforceEncoding(cursor)
     self.handler_thread = None
     self.handler_stop = True
 
@@ -148,7 +218,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
         db=db,
         autocommit=False,
         use_unicode=True,
-        charset="utf8"
+        charset=CHARACTER_SET
     )
 
     if host is None:
@@ -187,23 +257,12 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
         return True
     return False
 
-  def _CreateDatabase(self):
-    no_db_args = self._GetConnectionArgs()
-    del no_db_args["db"]
-    con = MySQLdb.Connect(**no_db_args)
-    cursor = con.cursor()
-    cursor.execute("CREATE DATABASE %s;" % config.CONFIG["Mysql.rel_db_name"])
-    cursor.close()
-    con.close()
-
   def _SetBinlogFormat(self, cursor):
     # We use some queries that are deemed unsafe for statement
     # based logging. MariaDB >= 10.2.4 has MIXED logging as a
     # default, for earlier versions we set it explicitly but that
     # requires SUPER privileges.
-    cursor.execute("show variables like 'binlog_format'")
-    _, log_format = cursor.fetchone()
-    if log_format == "MIXED":
+    if _ReadVariable("binlog_format", cursor) == "MIXED":
       return
 
     logging.info("Setting mysql server binlog_format to MIXED")
@@ -223,9 +282,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
       # SSL not configured, nothing to do.
       return
 
-    cursor.execute("SHOW VARIABLES LIKE 'have_ssl'")
-    res = cursor.fetchone()
-    if res[0] == "have_ssl" and res[1] == "YES":
+    if _ReadVariable("have_ssl", cursor) == "YES":
       logging.debug("SSL enabled successfully")
     else:
       raise RuntimeError("Unable to establish SSL connection to MySQL.")

@@ -1472,7 +1472,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBReadEnabled("vfs"):
       return self._HandleRelational(args)
     else:
       return self._HandleLegacy(args, token=token)

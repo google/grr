@@ -23,7 +23,7 @@ from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 
 # The maximum number of log-messages to store in the DB for a given cron-job
 # run.
-_MAX_LOG_MESSAGES = 10000
+_MAX_LOG_MESSAGES = 20
 
 
 class Error(Exception):

@@ -438,6 +438,12 @@ def StartFlow(client_id=None,
 
   flow_obj = flow_cls(rdf_flow)
   if start_at is None:
+
+    # Store an initial version of the flow straight away. This is needed so the
+    # database doesn't raise consistency errors due to missing parent keys when
+    # writing logs / errors / results which might happen in Start().
+    data_store.REL_DB.WriteFlowObject(flow_obj.rdf_flow)
+
     # Just run the first state inline. NOTE: Running synchronously means
     # that this runs on the thread that starts the flow. The advantage is
     # that that Start method can raise any errors immediately.

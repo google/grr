@@ -670,6 +670,11 @@ class InMemoryDBFlowMixin(object):
 
   def WriteFlowLogEntries(self, entries):
     """Writes flow log entries for a given flow."""
+    flow_ids = [(e.client_id, e.flow_id) for e in entries]
+    for f in flow_ids:
+      if f not in self.flows:
+        raise db.AtLeastOneUnknownFlowError(flow_ids)
+
     for e in entries:
       dest = self.flow_log_entries.setdefault((e.client_id, e.flow_id), [])
       to_write = e.Copy()
