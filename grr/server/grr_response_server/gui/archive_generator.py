@@ -10,10 +10,10 @@ import zipfile
 
 
 from future.utils import iteritems
-import yaml
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import yaml
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.flows.general import export as flow_export
@@ -55,7 +55,7 @@ class CollectionArchiveGenerator(object):
   FILES_SKIPPED_WARNING = (
       "# NOTE: Some files were skipped because they were referenced in the \n"
       "# collection but were not downloaded by GRR, so there were no data \n"
-      "# blobs in the data store to archive.\n")
+      "# blobs in the data store to archive.\n").encode("utf-8")
 
   BATCH_SIZE = 1000
 
@@ -134,10 +134,10 @@ class CollectionArchiveGenerator(object):
           _ClientPathToString(cp, prefix="aff4:") for cp in self.failed_files
       ]
 
-    manifest_fd = io.StringIO()
+    manifest_fd = io.BytesIO()
     if self.total_files != len(self.archived_files):
       manifest_fd.write(self.FILES_SKIPPED_WARNING)
-    manifest_fd.write(yaml.safe_dump(manifest).decode("utf-8"))
+    manifest_fd.write(yaml.Dump(manifest).encode("utf-8"))
 
     manifest_fd.seek(0)
     st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0,
@@ -150,7 +150,7 @@ class CollectionArchiveGenerator(object):
   def _GenerateClientInfo(self, client_id, client_fd):
     """Yields chucks of archive information for given client."""
     summary_dict = client_fd.ToPrimitiveDict(stringify_leaf_fields=True)
-    summary = yaml.safe_dump(summary_dict).decode("utf-8")
+    summary = yaml.Dump(summary_dict).encode("utf-8")
 
     client_info_path = os.path.join(self.prefix, client_id, "client_info.yaml")
     st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(summary), 0, 0, 0))

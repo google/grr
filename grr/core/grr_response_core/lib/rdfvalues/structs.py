@@ -9,7 +9,6 @@ import base64
 import copy
 import struct
 
-
 from future.builtins import chr
 from future.builtins import range
 from future.builtins import str
@@ -1071,7 +1070,10 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
     if type_str in self.TYPE_BY_WRAPPER:
       return self.TYPE_BY_WRAPPER[type_str]
 
-    return rdfvalue.RDFValue.classes.get(type_str, None)
+    try:
+      return rdfvalue.RDFValue.classes[type_str]
+    except KeyError:
+      raise TypeError("Can't find RDFValue class for type: %s" % type_str)
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""

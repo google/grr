@@ -608,7 +608,7 @@ class FakeTimeline(object):
   since this class is intended to be used only for testing purposes.
   """
 
-  class _WorkerThreadExit(BaseException):
+  class _WorkerThreadExit(Exception):  # pylint: disable=g-bad-exception-name
     pass
 
   def __init__(self, thread, now=None):

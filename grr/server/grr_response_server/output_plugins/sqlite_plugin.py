@@ -122,7 +122,9 @@ class SqliteInstantOutputPlugin(
     db_connection = sqlite3.connect(":memory:")
     db_cursor = db_connection.cursor()
 
-    yield self.archive_generator.WriteFileChunk("BEGIN TRANSACTION;\n")
+    yield self.archive_generator.WriteFileChunk(
+        "BEGIN TRANSACTION;\n".encode("utf-8"))
+
     with db_connection:
       buf = io.StringIO()
       buf.write(u"CREATE TABLE \"%s\" (\n  " % table_name)
@@ -130,7 +132,10 @@ class SqliteInstantOutputPlugin(
       buf.write(u",\n  ".join([u"\"%s\" %s" % (k, v) for k, v in column_types]))
       buf.write(u"\n);")
       db_cursor.execute(buf.getvalue())
-      yield self.archive_generator.WriteFileChunk(buf.getvalue() + u"\n")
+
+      chunk = (buf.getvalue() + "\n").encode("utf-8")
+      yield self.archive_generator.WriteFileChunk(chunk)
+
       self._InsertValueIntoDb(table_name, schema, first_value, db_cursor)
 
     for sql in self._FlushAllRows(db_connection, table_name):
@@ -145,7 +150,7 @@ class SqliteInstantOutputPlugin(
         yield sql
 
     db_connection.close()
-    yield self.archive_generator.WriteFileChunk("COMMIT;\n")
+    yield self.archive_generator.WriteFileChunk("COMMIT;\n".encode("utf-8"))
     yield self.archive_generator.WriteFileFooter()
 
     counts_for_original_type = self.export_counts.setdefault(

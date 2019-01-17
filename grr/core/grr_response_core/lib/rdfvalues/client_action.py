@@ -16,7 +16,7 @@ from grr_response_proto import jobs_pb2
 
 
 class EchoRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.PrintStr
+  protobuf = jobs_pb2.EchoRequest
 
 
 class ExecuteBinaryRequest(rdf_structs.RDFProtoStruct):

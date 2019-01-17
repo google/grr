@@ -10,6 +10,7 @@ import time
 import zlib
 
 
+from future.builtins import str
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
@@ -246,6 +247,7 @@ class ReceivedCipher(Cipher):
 
     Args:
       remote_public_key: The remote public key.
+
     Returns:
       None
     Raises:
@@ -330,16 +332,11 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
     This function signs and then encrypts the payload.
 
     Args:
-       message_list: A MessageList rdfvalue containing a list of
-       GrrMessages.
-
+       message_list: A MessageList rdfvalue containing a list of GrrMessages.
        result: A ClientCommunication rdfvalue which will be filled in.
-
        destination: The CN of the remote system this should go to.
-
        timestamp: A timestamp to use for the signed messages. If None - use the
-              current time.
-
+         current time.
        api_version: The api version which this should be encoded in.
 
     Returns:
@@ -545,6 +542,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
       cipher_verified: If True, the cipher's signature is not verified again.
       api_version: The api version we should use.
       remote_public_key: The public key of the source.
+
     Returns:
       An rdf_flows.GrrMessage.AuthorizationState.
 

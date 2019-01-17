@@ -11,6 +11,7 @@ import time
 import traceback
 
 
+from future.builtins import str
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
 from typing import Text
@@ -279,8 +280,8 @@ class HttpRequestHandler(object):
                        rdf_structs.ProtoEmbedded, rdf_structs.ProtoList)):
           result_dict[field.name] = api_value_renderers.RenderValue(value)
         else:
-          result_dict[field.name] = api_value_renderers.RenderValue(value)[
-              "value"]
+          result_dict[field.name] = api_value_renderers.RenderValue(
+              value)["value"]
       return result_dict
     elif format_mode == JsonMode.GRR_TYPE_STRIPPED_JSON_MODE:
       rendered_data = api_value_renderers.RenderValue(result)
@@ -396,26 +397,27 @@ class HttpRequestHandler(object):
     try:
       router, method_metadata, args = self._router_matcher.MatchRouter(request)
     except access_control.UnauthorizedAccess as e:
+      error_message = str(e)
       logging.exception("Access denied to %s (%s): %s", request.path,
                         request.method, e)
 
       additional_headers = {
-          "X-GRR-Unauthorized-Access-Reason":
-              utils.SmartStr(e.message).replace("\n", ""),
-          "X-GRR-Unauthorized-Access-Subject":
-              utils.SmartStr(e.subject)
+          "X-GRR-Unauthorized-Access-Reason": error_message.replace("\n", ""),
+          "X-GRR-Unauthorized-Access-Subject": utils.SmartStr(e.subject)
       }
       return self._BuildResponse(
           403,
           dict(
-              message="Access denied by ACL: %s" % utils.SmartStr(e.message),
+              message="Access denied by ACL: %s" % error_message,
               subject=utils.SmartStr(e.subject)),
           headers=additional_headers)
 
     except ApiCallRouterNotFoundError as e:
-      return self._BuildResponse(404, dict(message=e.message))
+      error_message = str(e)
+      return self._BuildResponse(404, dict(message=error_message))
     except werkzeug_exceptions.MethodNotAllowed as e:
-      return self._BuildResponse(405, dict(message=e.message))
+      error_message = str(e)
+      return self._BuildResponse(405, dict(message=error_message))
     except Error as e:
       logging.exception("Can't match URL to router/method: %s", e)
 
@@ -447,9 +449,8 @@ class HttpRequestHandler(object):
       pool.MultiSet(
           user_urn, {
               aff4_users.GRRUser.SchemaCls.TYPE: [aff4_users.GRRUser.__name__],
-              aff4_users.GRRUser.SchemaCls.LAST: [
-                  rdfvalue.RDFDatetime.Now().SerializeToDataStore()
-              ]
+              aff4_users.GRRUser.SchemaCls.LAST:
+                  [rdfvalue.RDFDatetime.Now().SerializeToDataStore()]
           },
           replace=True)
 
@@ -517,45 +518,47 @@ class HttpRequestHandler(object):
             no_audit_log=method_metadata.no_audit_log_required,
             token=token)
     except access_control.UnauthorizedAccess as e:
+      error_message = str(e)
       logging.exception("Access denied to %s (%s) with %s: %s", request.path,
                         request.method, method_metadata.name, e)
 
       additional_headers = {
-          "X-GRR-Unauthorized-Access-Reason":
-              utils.SmartStr(e.message).replace("\n", ""),
-          "X-GRR-Unauthorized-Access-Subject":
-              utils.SmartStr(e.subject)
+          "X-GRR-Unauthorized-Access-Reason": error_message.replace("\n", ""),
+          "X-GRR-Unauthorized-Access-Subject": utils.SmartStr(e.subject)
       }
       return self._BuildResponse(
           403,
           dict(
-              message="Access denied by ACL: %s" % e.message,
+              message="Access denied by ACL: %s" % error_message,
               subject=utils.SmartStr(e.subject)),
           headers=additional_headers,
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
           token=token)
     except api_call_handler_base.ResourceNotFoundError as e:
+      error_message = str(e)
       return self._BuildResponse(
           404,
-          dict(message=e.message),
+          dict(message=error_message),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
           token=token)
     except NotImplementedError as e:
+      error_message = str(e)
       return self._BuildResponse(
           501,
-          dict(message=e.message),
+          dict(message=error_message),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
           token=token)
     except Exception as e:  # pylint: disable=broad-except
+      error_message = str(e)
       logging.exception("Error while processing %s (%s) with %s: %s",
                         request.path, request.method,
                         handler.__class__.__name__, e)
       return self._BuildResponse(
           500,
-          dict(message=str(e), traceBack=traceback.format_exc()),
+          dict(message=error_message, traceBack=traceback.format_exc()),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
           token=token)

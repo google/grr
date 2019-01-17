@@ -15,6 +15,7 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.utils import compatibility
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4_flows
@@ -355,6 +356,9 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
   def Error(self, error_message=None, backtrace=None, status=None):
     """Terminates this flow with an error."""
+    stats_collector_instance.Get().IncrementCounter(
+        "flow_errors", fields=[compatibility.GetName(self.__class__)])
+
     client_id = self.rdf_flow.client_id
     flow_id = self.rdf_flow.flow_id
 
@@ -438,6 +442,9 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
   def MarkDone(self, status=None):
     """Marks this flow as done."""
+    stats_collector_instance.Get().IncrementCounter(
+        "flow_completions", fields=[compatibility.GetName(self.__class__)])
+
     # Notify our parent flow or hunt that we are done (if there's a parent flow
     # or hunt).
     if self.rdf_flow.parent_flow_id or self.rdf_flow.parent_hunt_id:

@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import mock
 
 from grr_response_core.lib import flags
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -95,7 +94,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    hunt_urn = self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
     self.Click("link=Show export command")
@@ -107,7 +106,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         (hunt_urn.Basename(), hunt_urn.Basename().replace(":", "_")))
 
   def testExportCommandIsNotShownWhenNoResults(self):
-    hunt_urn = self.CreateGenericHuntWithCollection([])
+    hunt_urn, _ = self.CreateGenericHuntWithCollection([])
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
     self.WaitUntil(self.IsElementPresent,
@@ -117,7 +116,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testExportCommandIsNotShownForNonFileResults(self):
     values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
-    hunt_urn = self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
     self.WaitUntil(self.IsElementPresent,
@@ -142,7 +141,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testGenerateZipButtonGetsDisabledAfterClick(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
+    self.RequestAndGrantHuntApproval(hunt.Basename())
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -155,7 +154,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testShowsNotificationWhenArchiveGenerationIsDone(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
+    self.RequestAndGrantHuntApproval(hunt.Basename())
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -165,13 +164,13 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
     self.WaitUntil(self.IsUserNotificationPresent,
-                   "Downloaded archive of hunt %s" % hunt.urn.Basename())
+                   "Downloaded archive of hunt %s" % hunt.Basename())
     # Check that the archive generating flow does not end with an error.
     self.WaitUntilNot(self.IsUserNotificationPresent, "terminated due to error")
 
   def testShowsErrorMessageIfArchiveStreamingFailsBeforeFirstChunkIsSent(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
+    self.RequestAndGrantHuntApproval(hunt.Basename())
 
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
@@ -190,7 +189,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
+    self.RequestAndGrantHuntApproval(hunt.Basename())
 
     def RaisingStub(*unused_args, **unused_kwargs):
       yield b"foo"
@@ -275,9 +274,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testDownloadsSingleHuntFileIfAuthorizationIsPresent(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    results = hunt.ResultCollection()
+    results = self.GetHuntResults(hunt)
 
-    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
+    self.RequestAndGrantHuntApproval(hunt.Basename())
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -298,19 +297,16 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testDisplaysErrorMessageIfSingleHuntFileCanNotBeRead(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    results = hunt.ResultCollection()
+    results = self.GetHuntResults(hunt)
     original_result = results[0]
 
-    with data_store.DB.GetMutationPool() as pool:
-      wrong_result = original_result.Copy()
-      payload = wrong_result.payload
-      payload.pathspec.path += "blah"
-      wrong_result.payload = payload
-      wrong_result.age += rdfvalue.Duration("1d")
+    payload = original_result.payload.Copy()
+    payload.pathspec.path += "blah"
 
-      results.Add(wrong_result, timestamp=wrong_result.age, mutation_pool=pool)
+    client_id = self.SetupClients(1)[0]
+    self.AddResultsToHunt(hunt, client_id, [payload])
 
-    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
+    self.RequestAndGrantHuntApproval(hunt.Basename())
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")

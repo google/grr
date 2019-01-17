@@ -483,7 +483,7 @@ class SoftwarePackages(rdf_protodict.RDFValueArray):
 
 class LogMessage(rdf_structs.RDFProtoStruct):
   """A log message sent from the client to the server."""
-  protobuf = jobs_pb2.PrintStr
+  protobuf = jobs_pb2.LogMessage
 
 
 class Uname(rdf_structs.RDFProtoStruct):

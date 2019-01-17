@@ -195,8 +195,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
 
   def testCopyingHuntFlowWorks(self):
     self.StartHunt(description="demo hunt")
-    self.AssignTasksToClients(client_ids=[self.client_id])
-    self.RunHunt(failrate=-1)
+    self.RunHunt(client_ids=[self.client_id], failrate=-1)
 
     # Navigate to client and select newly created hunt flow.
     self.Open("/#/clients/%s" % self.client_id.Basename())

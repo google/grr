@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import collections
 import glob
+import io
 import itertools
 import logging
 import os
@@ -15,7 +16,6 @@ from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 from future.utils import string_types
-import yaml
 
 from grr_response_core import config
 from grr_response_core.lib import registry
@@ -23,6 +23,7 @@ from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import yaml
 from grr_response_proto import anomaly_pb2
 from grr_response_proto import checks_pb2
 from grr_response_server.check_lib import filters
@@ -765,8 +766,8 @@ def CheckHost(host_data,
 
 def LoadConfigsFromFile(file_path):
   """Loads check definitions from a file."""
-  with open(file_path) as data:
-    return {d["check_id"]: d for d in yaml.safe_load_all(data)}
+  with io.open(file_path, mode="r", encoding="utf-8") as data:
+    return {d["check_id"]: d for d in yaml.ParseMany(data.read())}
 
 
 def LoadCheckFromFile(file_path, check_id, overwrite_if_exists=True):

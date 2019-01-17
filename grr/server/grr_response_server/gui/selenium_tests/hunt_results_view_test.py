@@ -10,8 +10,6 @@ import mock
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_server import data_store
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import hunt as api_hunt
@@ -50,32 +48,20 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
                    "css=li.active a:contains('Browse Virtual Filesystem')")
 
   def testClientSummaryModalIsShownWhenClientInfoButtonClicked(self):
-    client_id = self.SetupClient(0)
-    h = self.CreateSampleHunt()
+    hunt_urn, client_id = self.CreateGenericHuntWithCollection(
+        [rdfvalue.RDFString("foo-result")])
 
-    with data_store.DB.GetMutationPool() as pool:
-      h.ResultCollection().Add(
-          rdf_flows.GrrMessage(
-              payload=rdfvalue.RDFString("foo-result"), source=client_id),
-          mutation_pool=pool)
-
-    self.Open("/#/hunts/%s/results" % h.urn.Basename())
+    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
     self.Click("css=td:contains('%s') button:has(.glyphicon-info-sign)" %
-               client_id.Basename())
+               self.client_ids[0].Basename())
 
     self.WaitUntil(
         self.IsElementPresent,
         "css=.modal-dialog:contains('Client %s')" % client_id.Basename())
 
   def testResultsViewGetsAutoRefreshed(self):
-    client_id = self.SetupClient(0)
-    h = self.CreateSampleHunt()
-
-    with data_store.DB.GetMutationPool() as pool:
-      h.ResultCollection().Add(
-          rdf_flows.GrrMessage(
-              payload=rdfvalue.RDFString("foo-result"), source=client_id),
-          mutation_pool=pool)
+    hunt_urn, client_id = self.CreateGenericHuntWithCollection(
+        [rdfvalue.RDFString("foo-result")])
 
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
@@ -91,17 +77,14 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-results-collection td:contains('bar-result')")
 
-    with data_store.DB.GetMutationPool() as pool:
-      h.ResultCollection().Add(
-          rdf_flows.GrrMessage(
-              payload=rdfvalue.RDFString("bar-result"), source=client_id),
-          mutation_pool=pool)
+    self.AddResultsToHunt(hunt_urn, client_id,
+                          [rdfvalue.RDFString("bar-result")])
 
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-results-collection td:contains('bar-result')")
 
   def testDownloadAsPanelNotShownForEmptyHuntResults(self):
-    hunt_urn = self.CreateGenericHuntWithCollection([])
+    hunt_urn, _ = self.CreateGenericHuntWithCollection([])
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
 
@@ -138,7 +121,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
 
   def checkHuntResultsCanBeDownloadedAsType(self, mock_method, plugin,
                                             plugin_display_name):
-    hunt_urn = self.CreateGenericHuntWithCollection()
+    hunt_urn, _ = self.CreateGenericHuntWithCollection()
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
     self.Select("id=plugin-select", plugin_display_name)

@@ -11,9 +11,9 @@ import time
 from absl.testing import absltest
 
 from future.builtins import range
+from future.builtins import str
 from future.utils import with_metaclass
 import mock
-
 
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.stats import stats_collector
@@ -498,6 +498,7 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
       Func4(1.1)
       m = collector.GetMetricValue(event_metric_name)
       self.assertEqual(m.bins_heights, {-_INF: 0, 0: 1, 1: 1, 2: 0})
+
 
 # TODO:
 # pytype: enable=ignored-abstractmethod

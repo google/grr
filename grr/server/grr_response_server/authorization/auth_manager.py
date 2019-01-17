@@ -10,8 +10,9 @@ import logging
 
 from future.utils import iterkeys
 from future.utils import itervalues
-import yaml
+import yaml as pyyaml
 
+from grr_response_core.lib.util import yaml
 from grr_response_server.authorization import groups
 
 
@@ -36,8 +37,8 @@ class AuthorizationReader(object):
 
   def CreateAuthorizations(self, yaml_data, auth_class):
     try:
-      raw_list = list(yaml.safe_load_all(yaml_data))
-    except (ValueError, yaml.YAMLError) as e:
+      raw_list = yaml.ParseMany(yaml_data)
+    except (ValueError, pyyaml.YAMLError) as e:
       raise InvalidAuthorization("Invalid YAML: %s" % e)
 
     logging.debug("Adding %s authorizations", len(raw_list))

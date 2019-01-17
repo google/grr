@@ -6,9 +6,10 @@ from __future__ import unicode_literals
 
 
 from future.utils import iteritems
-import yaml
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import yaml
 from grr_response_server import aff4
 
 
@@ -29,17 +30,17 @@ def YamlDumper(aff4object):
            value.SerializeToString(),
            str(value.age)])
 
-  return yaml.dump(
-      dict(
-          aff4_class=aff4object.__class__.__name__,
-          _urn=aff4object.urn.SerializeToString(),
-          attributes=result,
-          age_policy=aff4object.age_policy,))
+  return yaml.Dump({
+      "aff4_class": compatibility.GetName(aff4object),
+      "_urn": aff4object.urn.SerializeToString(),
+      "attributes": result,
+      "age_policy": aff4object.age_policy,
+  })
 
 
 def YamlLoader(string):
   """Load an AFF4 object from a serialized YAML representation."""
-  representation = yaml.load(string)
+  representation = yaml.Parse(string)
   result_cls = aff4.FACTORY.AFF4Object(representation["aff4_class"])
   aff4_attributes = {}
   for predicate, values in iteritems(representation["attributes"]):

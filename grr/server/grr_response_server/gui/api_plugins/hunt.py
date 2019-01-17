@@ -1180,10 +1180,7 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
     else:
       hunt_clients = sorted(hunt_clients)[args.offset:]
 
-    if data_store.RelationalDBFlowsEnabled():
-      flow_id = None
-    else:
-      flow_id = "%s:hunt" % hunt_urn.Basename()
+    flow_id = "%s:hunt" % hunt_urn.Basename()
     results = [
         ApiHuntClient(client_id=c.Basename(), flow_id=flow_id)
         for c in hunt_clients

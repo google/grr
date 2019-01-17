@@ -68,6 +68,20 @@ class ClientActionRunnerMixin(object):
         next_state="End")
 
 
+@db_test_lib.DualDBTest
+class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
+  """Tests for the KeepAlive flow."""
+
+  def testKeepAliveRunsSuccessfully(self):
+    client_ids = self.SetupClients(1)
+    client_mock = action_mocks.ActionMock(admin.Echo)
+    flow_test_lib.StartAndRunFlow(
+        administrative.KeepAlive,
+        duration=rdfvalue.Duration("1s"),
+        client_id=client_ids[0].Basename(),
+        client_mock=client_mock)
+
+
 class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
   """Tests the administrative flows."""
 

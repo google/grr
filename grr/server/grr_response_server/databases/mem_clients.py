@@ -132,11 +132,17 @@ class InMemoryDBClientMixin(object):
 
       if md and min_last_ping and md.ping < min_last_ping:
         continue
-      res[client_id] = rdf_objects.ClientFullInfo(
+      last_snapshot = self.ReadClientSnapshot(client_id)
+      full_info = rdf_objects.ClientFullInfo(
           metadata=md,
           labels=self.ReadClientLabels(client_id),
-          last_snapshot=self.ReadClientSnapshot(client_id),
           last_startup_info=self.ReadClientStartupInfo(client_id))
+      if last_snapshot is None:
+        full_info.last_snapshot = rdf_objects.ClientSnapshot(
+            client_id=client_id)
+      else:
+        full_info.last_snapshot = last_snapshot
+      res[client_id] = full_info
     return res
 
   @utils.Synchronized

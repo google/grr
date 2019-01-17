@@ -452,10 +452,20 @@ message BlobArray {
 };
 
 // This is a log message sent from the client to the server logging subsystem.
-message PrintStr {
-  optional int32 level = 1 [ default = 10 ];
+message LogMessage {
+  // LogMessage was historically a PrintStr and had an unused "level" field.
+  reserved 1;
   optional string data = 2;
 };
+
+
+// Echo request used by SendMessage client action.
+message EchoRequest {
+  // EchoRequest was historically a PrintStr and had an unused "level" field.
+  reserved 1;
+  optional string data = 2;
+};
+
 
 // CopyPathToFile request and response.
 // Request:
@@ -1810,7 +1820,7 @@ message CloudInstance {
 }
 
 // This is a summary of a GRR client.
-// Next field: 14
+// Next field: 15
 message ClientSummary {
   option (semantic) = {
     description: "A summary of the client information."
@@ -1870,6 +1880,11 @@ message ClientSummary {
     description: "Cloud instance unique ID. For Amazon EC2 it is the "
                  "instance ID, for GCE it is the zone/project_id/instance_id "
                  "concatenation."
+  }];
+
+  optional uint64 last_ping = 14 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "The last time the client communicated with GRR's servers.",
   }];
 }
 

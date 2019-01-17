@@ -47,7 +47,6 @@ from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
 class StandardHuntTest(notification_test_lib.NotificationTestMixin,
                        flow_test_lib.FlowTestsBaseclass,
                        hunt_test_lib.StandardHuntTestMixin):
@@ -105,7 +104,6 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
   @db_test_lib.LegacyDataStoreOnly
   def testCreatesSymlinksOnClientsForEveryStartedFlow(self):
     hunt_urn = self.StartHunt()
-    self.AssignTasksToClients()
     self.RunHunt(failrate=2)
 
     for client_id in self.client_ids:
@@ -126,7 +124,6 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
   @db_test_lib.LegacyDataStoreOnly
   def testDeletesSymlinksOnClientsWhenGetsDeletedItself(self):
     hunt_urn = self.StartHunt()
-    self.AssignTasksToClients()
     self.RunHunt(failrate=2)
 
     for client_id in self.client_ids:
@@ -151,8 +148,6 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         client_rate=0,
         token=self.token) as hunt:
       hunt.Run()
-
-    self.AssignTasksToClients()
 
     # Run long enough for InfiniteFlows to start.
     self.RunHunt(
@@ -203,7 +198,6 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
   def testGenericHuntWithoutOutputPlugins(self):
     """This tests running the hunt on some clients."""
     hunt_urn = self.StartHunt()
-    self.AssignTasksToClients()
     self.RunHunt(failrate=2)
     self.StopHunt(hunt_urn)
     self.ProcessHuntOutputPlugins()
@@ -249,7 +243,6 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     hunt_urn = self.StartHunt(add_foreman_rules=False)
     self.assertFalse(self.FindForemanRules(None, token=self.token))
 
-    self.AssignTasksToClients()
     self.RunHunt(failrate=2)
     self.StopHunt(hunt_urn)
 
@@ -280,11 +273,8 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_calls, 0)
     self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_responses, 0)
 
-    # Process first 5 clients
-    self.AssignTasksToClients(self.client_ids[:5])
-
-    # Run the hunt.
-    self.RunHunt(failrate=-1)
+    # Process first 5 clients.
+    self.RunHunt(client_ids=self.client_ids[:5])
 
     # Although we call ProcessHuntResultCollectionsCronFlow multiple times, it
     # should only call actual plugin once.
@@ -295,10 +285,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_responses, 5)
 
     # Process last 5 clients
-    self.AssignTasksToClients(self.client_ids[5:])
-
-    # Run the hunt.
-    self.RunHunt(failrate=-1)
+    self.RunHunt(client_ids=self.client_ids[5:])
 
     # Although we call ProcessHuntResultCollectionsCronFlow multiple times, it
     # should only call actual plugin once.
@@ -317,8 +304,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     hunt_urn = self.StartHunt(output_plugins=[plugin_descriptor])
 
     # Run the hunt and process output plugins.
-    self.AssignTasksToClients()
-    self.RunHunt(failrate=-1)
+    self.RunHunt()
     self.ProcessHuntOutputPlugins()
 
     status_collection = implementation.GRRHunt.PluginStatusCollectionForHID(
@@ -341,13 +327,11 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     hunt_urn = self.StartHunt(output_plugins=[plugin_descriptor])
 
     # Run the hunt on first 4 clients and process output plugins.
-    self.AssignTasksToClients(self.client_ids[:4])
-    self.RunHunt(failrate=-1)
+    self.RunHunt(client_ids=self.client_ids[:4])
     self.ProcessHuntOutputPlugins()
 
     # Run the hunt on last 6 clients and process output plugins.
-    self.AssignTasksToClients(self.client_ids[4:])
-    self.RunHunt(failrate=-1)
+    self.RunHunt(client_ids=self.client_ids[4:])
     self.ProcessHuntOutputPlugins()
 
     status_collection = implementation.GRRHunt.PluginStatusCollectionForHID(
@@ -378,8 +362,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         output_plugins=[failing_plugin_descriptor, plugin_descriptor])
 
     # Run the hunt and process output plugins.
-    self.AssignTasksToClients()
-    self.RunHunt(failrate=-1)
+    self.RunHunt()
     try:
       self.ProcessHuntOutputPlugins()
     except process_results.ResultsProcessingError:
@@ -419,8 +402,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     hunt_urn = self.StartHunt(output_plugins=[failing_plugin_descriptor])
 
     # Run the hunt and process output plugins.
-    self.AssignTasksToClients()
-    self.RunHunt(failrate=-1)
+    self.RunHunt()
     try:
       self.ProcessHuntOutputPlugins()
     except process_results.ResultsProcessingError:
@@ -464,8 +446,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_calls, 0)
     self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_responses, 0)
 
-    self.AssignTasksToClients()
-    self.RunHunt(failrate=-1)
+    self.RunHunt()
 
     # We shouldn't get any more calls after the first call to
     # ProcessHuntResultCollectionsCronFlow.
@@ -491,8 +472,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_calls, 0)
     self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_responses, 0)
 
-    self.AssignTasksToClients()
-    self.RunHunt(failrate=-1)
+    self.RunHunt()
 
     # We shouldn't get any more calls after the first call to
     # ProcessHuntResultCollectionsCronFlow.
@@ -522,8 +502,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
         plugin_name="FailingDummyHuntOutputPlugin")
     self.StartHunt(output_plugins=[failing_plugin_descriptor])
 
-    self.AssignTasksToClients()
-    self.RunHunt(failrate=-1)
+    self.RunHunt()
 
     # Process hunt results.
     try:
@@ -546,8 +525,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     prev_errors_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_output_plugin_errors", fields=["DummyHuntOutputPlugin"])
 
-    self.AssignTasksToClients()
-    self.RunHunt(failrate=-1)
+    self.RunHunt()
     self.ProcessHuntOutputPlugins()
 
     success_count = stats_collector_instance.Get().GetMetricValue(
@@ -571,8 +549,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     prev_errors_count = stats_collector_instance.Get().GetMetricValue(
         "hunt_output_plugin_errors", fields=["FailingDummyHuntOutputPlugin"])
 
-    self.AssignTasksToClients()
-    self.RunHunt(failrate=-1)
+    self.RunHunt()
     try:
       self.ProcessHuntOutputPlugins()
     except process_results.ResultsProcessingError:
@@ -599,10 +576,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     # cron flow for every client to ensure that output plugin will
     # run multiple times.
     for index in range(10):
-      self.AssignTasksToClients([self.client_ids[index]])
-
-      # Run the hunt.
-      self.RunHunt(failrate=-1)
+      self.RunHunt(client_ids=[self.client_ids[index]])
       self.ProcessHuntOutputPlugins()
 
     # Output plugins should have been called 10 times, adding a number
@@ -620,8 +594,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
             plugin_name="StatefulDummyHuntOutputPlugin")
     ])
 
-    self.AssignTasksToClients()
-    self.RunHunt(failrate=-1)
+    self.RunHunt()
     self.ProcessHuntOutputPlugins()
 
     # Check that plugins worked correctly
@@ -643,8 +616,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
           rdf_output_plugin.OutputPluginDescriptor(
               plugin_name="LongRunningDummyHuntOutputPlugin")
       ])
-      self.AssignTasksToClients()
-      self.RunHunt(failrate=-1)
+      self.RunHunt()
 
       # Max run time for the VerifyHuntOutputPluginsCronFlow is 0.6*lifetime so
       # 165s gives 99s max run time. LongRunningDummyHuntOutputPlugin will set
@@ -677,8 +649,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
           rdf_output_plugin.OutputPluginDescriptor(
               plugin_name="LongRunningDummyHuntOutputPlugin")
       ])
-      self.AssignTasksToClients()
-      self.RunHunt(failrate=-1)
+      self.RunHunt()
 
       # Same as above, 170s lifetime gives 102s max run time which is longer
       # than 100s, the time LongRunningDummyHuntOutputPlugin will set on the
@@ -716,16 +687,14 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       # Add 5 more results the first time we are called.
       del state
       if not self.num_processed:
-        self.AssignTasksToClients(self.client_ids[5:])
-        self.RunHunt(failrate=-1)
+        self.RunHunt(client_ids=self.client_ids[5:])
       # Just count the total number processed - we don't care about batch size
       # at this point.
       self.num_processed += len(responses)
 
     with utils.Stubber(hunt_test_lib.DummyHuntOutputPlugin, "ProcessResponses",
                        ProcessResponsesStub):
-      self.AssignTasksToClients(self.client_ids[:5])
-      self.RunHunt(failrate=-1)
+      self.RunHunt(client_ids=self.client_ids[:5])
       self.ProcessHuntOutputPlugins()
 
     self.assertEqual(10, self.num_processed)
@@ -913,7 +882,6 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
           avg_cpu_seconds_per_client_limit=3, token=self.token)
 
       def RunOnClients(client_ids, user_cpu_time, system_cpu_time):
-        self.AssignTasksToClients(client_ids)
         self.RunHunt(
             client_ids=client_ids,
             user_cpu_time=user_cpu_time,
@@ -961,7 +929,6 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
           avg_network_bytes_per_client_limit=1, token=self.token)
 
       def RunOnClients(client_ids, network_bytes_sent):
-        self.AssignTasksToClients(client_ids)
         self.RunHunt(
             client_ids=client_ids,
             network_bytes_sent=network_bytes_sent,
@@ -1170,7 +1137,6 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
 
     hunt_urn = hunt.urn
 
-    self.AssignTasksToClients()
     self.RunHunt(failrate=2)
 
     # Check logs were written to the hunt collection
@@ -1260,17 +1226,14 @@ class StandardHuntNotificationsTest(notification_test_lib.NotificationTestMixin,
     user_token = access_control.ACLToken(username="some_user", reason="testing")
     self.CreateUser(user_token.username)
 
-    hunt = implementation.StartHunt(
-        hunt_name=standard.GenericHunt.__name__,
+    self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=FlowWithCustomNotifyAboutEnd.__name__),  # pylint: disable=undefined-variable
         client_rate=0,
         token=user_token)
-    hunt.Run()
 
     client_ids = self.SetupClients(5)
-    self.AssignTasksToClients(client_ids=client_ids)
-    hunt_test_lib.TestHuntHelper(None, client_ids, token=self.token)
+    self.RunHunt(client_ids=client_ids)
 
     notifications = self.GetUserNotifications(user_token.username)
     self.assertEmpty(notifications)

@@ -8,14 +8,12 @@ from __future__ import unicode_literals
 import os
 import traceback
 
-
 from grr_response_core.lib import flags
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
+from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr.test_lib import db_test_lib
-from grr.test_lib import flow_test_lib
-from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
@@ -27,38 +25,41 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def SetupTestHuntView(self, client_limit=0, client_count=10):
     # Create some clients and a hunt to view.
-    with self.CreateSampleHunt(
-        client_limit=client_limit, client_count=client_count) as hunt:
-      hunt.Log("TestLogLine")
+    hunt_urn = self.CreateSampleHunt(
+        client_limit=client_limit, client_count=client_count)
 
-      # Log an error just with some random traceback.
-      hunt.LogClientError(self.client_ids[1], "Client Error 1",
-                          traceback.format_exc())
+    self.RunHunt(failrate=2)
 
-    # Run the hunt.
-    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
+    self.AddLogToHunt(hunt_urn, self.client_ids[0], "TestLogLine")
+    # Log an error just with some random traceback.
+    self.AddErrorToHunt(hunt_urn, self.client_ids[1], "Client Error 1",
+                        traceback.format_exc())
 
-    hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
-                                 self.token)
-
-    hunt = aff4.FACTORY.Open(hunt.urn, token=self.token)
-    all_count, _, _ = hunt.GetClientsCounts()
-    if client_limit == 0:
-      # No limit, so we should have all the clients
-      self.assertEqual(all_count, client_count)
+    if data_store.RelationalDBReadEnabled("hunts"):
+      hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_urn.Basename())
+      if client_limit == 0:
+        self.assertEqual(hunt_obj.num_clients, client_count)
+      else:
+        self.assertEqual(hunt_obj.num_clients, min(client_count, client_limit))
     else:
-      self.assertEqual(all_count, min(client_count, client_limit))
+      hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
+      all_count, _, _ = hunt.GetClientsCounts()
+      if client_limit == 0:
+        # No limit, so we should have all the clients
+        self.assertEqual(all_count, client_count)
+      else:
+        self.assertEqual(all_count, min(client_count, client_limit))
 
-    return hunt
+    return hunt_urn
 
   def testPageTitleReflectsSelectedHunt(self):
-    hunt = self.CreateSampleHunt(stopped=True)
+    hunt_urn = self.CreateSampleHunt(stopped=True)
 
     self.Open("/#/hunts")
     self.WaitUntilEqual("GRR | Hunts", self.GetPageTitle)
 
     self.Click("css=td:contains('GenericHunt')")
-    self.WaitUntilEqual("GRR | " + hunt.urn.Basename(), self.GetPageTitle)
+    self.WaitUntilEqual("GRR | " + hunt_urn.Basename(), self.GetPageTitle)
 
   def testHuntView(self):
     """Test that we can see all the hunt data."""
@@ -88,16 +89,14 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def SetupHuntDetailView(self, failrate=2):
     """Create some clients and a hunt to view."""
-    with self.CreateSampleHunt() as hunt:
-      hunt.LogClientError(self.client_ids[1], "Client Error 1",
-                          traceback.format_exc())
+    hunt_urn = self.CreateSampleHunt()
 
-    # Run the hunt.
-    client_mock = hunt_test_lib.SampleHuntMock(failrate=failrate)
-    hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
-                                 self.token)
+    self.RunHunt(client_ids=self.client_ids, failrate=failrate)
 
-    return hunt
+    self.AddErrorToHunt(hunt_urn, self.client_ids[1].Basename(),
+                        "Client Error 1", traceback.format_exc())
+
+    return hunt_urn
 
   def testHuntClientsView(self):
     """Test the detailed client view works."""
@@ -133,20 +132,25 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       self.WaitUntil(self.IsTextPresent, self.base_path)
 
   def testHuntOverviewShowsBrokenHunt(self):
-    hunt = self.CreateSampleHunt()
-    broken_hunt = self.CreateSampleHunt()
+    hunt_urn = self.CreateSampleHunt()
+    broken_hunt_urn = self.CreateSampleHunt()
 
     # Break the hunt.
-    data_store.DB.DeleteAttributes(
-        broken_hunt.urn,
-        [broken_hunt.Schema.HUNT_ARGS, broken_hunt.Schema.HUNT_RUNNER_ARGS])
-    data_store.DB.Flush()
+    if data_store.RelationalDBReadEnabled("hunts"):
+      hunt_obj = rdf_hunt_objects.Hunt(hunt_id=broken_hunt_urn.Basename())
+      data_store.REL_DB.WriteHuntObject(hunt_obj)
+    else:
+      broken_hunt = aff4.FACTORY.Open(broken_hunt_urn, token=self.token)
+      data_store.DB.DeleteAttributes(
+          broken_hunt_urn,
+          [broken_hunt.Schema.HUNT_ARGS, broken_hunt.Schema.HUNT_RUNNER_ARGS])
+      data_store.DB.Flush()
 
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/#/hunts")
 
-    hunt_id = hunt.urn.Basename()
-    broken_hunt_id = broken_hunt.urn.Basename()
+    hunt_id = hunt_urn.Basename()
+    broken_hunt_id = broken_hunt_urn.Basename()
 
     # Both hunts are shown even though one throws an error.
     self.WaitUntil(self.IsTextPresent, hunt_id)
@@ -158,10 +162,20 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntOverviewShowsStats(self):
     """Test the detailed client view works."""
-    with self.CreateSampleHunt() as hunt:
-      hunt_stats = hunt.context.usage_stats
-      hunt_stats.user_cpu_stats.sum = 5000
-      hunt_stats.network_bytes_sent_stats.sum = 1000000
+    hunt_urn = self.CreateSampleHunt()
+    if data_store.RelationalDBReadEnabled("hunts"):
+
+      def UpdateFn(h):
+        h.client_resources_stats.user_cpu_stats.sum = 5000
+        h.client_resources_stats.network_bytes_sent_stats.sum = 1000000
+        return h
+
+      data_store.REL_DB.UpdateHuntObject(hunt_urn.Basename(), UpdateFn)
+    else:
+      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt:
+        hunt_stats = hunt.context.usage_stats
+        hunt_stats.user_cpu_stats.sum = 5000
+        hunt_stats.network_bytes_sent_stats.sum = 1000000
 
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/")
@@ -177,10 +191,20 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "976.6KiB")
 
   def testHuntOverviewGetsUpdatedWhenHuntChanges(self):
-    with self.CreateSampleHunt() as hunt:
-      hunt_stats = hunt.context.usage_stats
-      hunt_stats.user_cpu_stats.sum = 5000
-      hunt_stats.network_bytes_sent_stats.sum = 1000000
+    hunt_urn = self.CreateSampleHunt()
+    if data_store.RelationalDBReadEnabled("hunts"):
+
+      def UpdateFn1(h):
+        h.client_resources_stats.user_cpu_stats.sum = 5000
+        h.client_resources_stats.network_bytes_sent_stats.sum = 1000000
+        return h
+
+      data_store.REL_DB.UpdateHuntObject(hunt_urn.Basename(), UpdateFn1)
+    else:
+      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt:
+        hunt_stats = hunt.context.usage_stats
+        hunt_stats.user_cpu_stats.sum = 5000
+        hunt_stats.network_bytes_sent_stats.sum = 1000000
 
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
@@ -193,9 +217,19 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "1h 23m 20s")
     self.WaitUntil(self.IsTextPresent, "976.6KiB")
 
-    with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as fd:
-      fd.context.usage_stats.user_cpu_stats.sum = 6000
-      fd.context.usage_stats.network_bytes_sent_stats.sum = 11000000
+    if data_store.RelationalDBReadEnabled("hunts"):
+
+      def UpdateFn2(h):
+        h.client_resources_stats.user_cpu_stats.sum = 6000
+        h.client_resources_stats.network_bytes_sent_stats.sum = 11000000
+        return h
+
+      data_store.REL_DB.UpdateHuntObject(hunt_urn.Basename(), UpdateFn2)
+    else:
+      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt:
+        hunt_stats = hunt.context.usage_stats
+        hunt_stats.user_cpu_stats.sum = 6000
+        hunt_stats.network_bytes_sent_stats.sum = 11000000
 
     self.WaitUntil(self.IsTextPresent, "1h 40m")
     self.WaitUntil(self.IsTextPresent, "10.5MiB")
@@ -238,7 +272,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt = self.CreateSampleHunt(
         path=os.path.join(self.base_path, "test.plist"))
 
-    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
+    self.RequestAndGrantHuntApproval(hunt.Basename())
 
     self.Open("/")
 
@@ -247,7 +281,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.WaitUntil(self.IsElementPresent,
                    "css=tr.row-selected td:contains('GenericHunt')")
-    self.WaitUntil(self.IsTextPresent, hunt.urn.Basename())
+    self.WaitUntil(self.IsTextPresent, hunt.Basename())
 
   def testLogsTabShowsLogsFromAllClients(self):
     self.SetupHuntDetailView(failrate=-1)
@@ -264,7 +298,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testLogsTabGetsAutoRefreshed(self):
     h = self.CreateSampleHunt()
-    h.Log("foo-log")
+    self.AddLogToHunt(h, self.client_ids[0], "foo-log")
 
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
@@ -280,7 +314,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-hunt-log td:contains('bar-log')")
 
-    h.Log("bar-log")
+    self.AddLogToHunt(h, self.client_ids[1], "bar-log")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-hunt-log td:contains('bar-log')")
@@ -308,9 +342,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
               client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabShowsDatesInUTC(self):
-    with self.CreateSampleHunt() as hunt:
-      with test_lib.FakeTime(42):
-        hunt.Log("I do log.")
+    hunt_urn = self.CreateSampleHunt()
+    with test_lib.FakeTime(42):
+      self.AddLogToHunt(hunt_urn, self.client_ids[0], "I do log.")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -329,10 +363,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       self.WaitUntil(self.IsTextPresent, client_id.Basename())
 
   def testErrorsTabGetsAutoRefreshed(self):
-    with self.CreateSampleHunt() as hunt:
-      # Log an error just with some random traceback.
-      hunt.LogClientError(self.client_ids[0], "foo-error",
-                          traceback.format_exc())
+    hunt_urn = self.CreateSampleHunt()
+    self.AddErrorToHunt(hunt_urn, self.client_ids[0].Basename(), "foo-error",
+                        traceback.format_exc())
 
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
@@ -348,17 +381,17 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-hunt-errors td:contains('bar-error')")
 
-    hunt.LogClientError(self.client_ids[0], "bar-error", traceback.format_exc())
+    self.AddErrorToHunt(hunt_urn, self.client_ids[0].Basename(), "bar-error",
+                        traceback.format_exc())
 
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-hunt-errors td:contains('bar-error')")
 
   def testErrorsTabShowsDatesInUTC(self):
-    with self.CreateSampleHunt() as hunt:
-      with test_lib.FakeTime(42):
-        # Log an error just with some random traceback.
-        hunt.LogClientError(self.client_ids[0], "Client Error 1",
-                            traceback.format_exc())
+    hunt_urn = self.CreateSampleHunt()
+    with test_lib.FakeTime(42):
+      self.AddErrorToHunt(hunt_urn, self.client_ids[0].Basename(),
+                          "Client Error 1", traceback.format_exc())
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -394,16 +427,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testCrashesTabGetsAutoRefreshed(self):
     client_ids = self.SetupClients(2)
-    with self.CreateHunt(token=self.token) as hunt:
-      hunt.Run()
+    self.StartHunt(token=self.token)
 
-    def CrashClient(client_id):
-      self.AssignTasksToClients([client_id])
-      client_mock = flow_test_lib.CrashClientMock(client_id, token=self.token)
-      hunt_test_lib.TestHuntHelper(
-          client_mock, [client_id], check_flow_errors=False, token=self.token)
-
-    CrashClient(client_ids[0])
+    self.RunHuntWithClientCrashes([client_ids[0]])
 
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
@@ -421,7 +447,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
         self.IsElementPresent,
         "css=grr-hunt-crashes td:contains('%s')" % client_ids[1].Basename())
 
-    CrashClient(client_ids[1])
+    self.RunHuntWithClientCrashes([client_ids[1]])
 
     self.WaitUntil(
         self.IsElementPresent,
@@ -430,9 +456,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testShowsResultsTabForIndividualFlowsOnClients(self):
     # Create and run the hunt.
     self.CreateSampleHunt(stopped=False)
-    client_mock = hunt_test_lib.SampleHuntMock(failrate=-1)
-    hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
-                                 self.token)
+    self.RunHunt(client_ids=self.client_ids, failrate=-1)
 
     self.RequestAndGrantClientApproval(self.client_ids[0])
 
@@ -443,7 +467,6 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=li[heading=Results]")
     # This is to check that no exceptions happened when we tried to display
     # results.
-    # TODO(user): Fail *any* test if we get a 500 in the process.
     self.WaitUntilNot(self.IsTextPresent, "Loading...")
 
   def testClientsTabShowsCompletedAndOutstandingClients(self):
@@ -454,9 +477,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     finished_client_ids = self.client_ids[5:]
     outstanding_client_ids = self.client_ids[:5]
 
-    client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
-    hunt_test_lib.TestHuntHelper(client_mock, finished_client_ids, False,
-                                 self.token)
+    self.AssignTasksToClients(client_ids=outstanding_client_ids)
+    self.RunHunt(failrate=2, client_ids=finished_client_ids)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -491,17 +513,13 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
         "~ td.proto_value")
 
   def testHuntCreatorIsNotifiedWhenHuntIsStoppedDueToCrashes(self):
-    with self.CreateHunt(crash_limit=3, token=self.token) as hunt:
-      hunt.Run()
+    hunt_urn = self.StartHunt(crash_limit=3, token=self.token)
 
-      # Run the hunt on 3 clients, one by one. Crash detection check happens
-      # when client is scheduled, so it's important to schedule the clients
-      # one by one in the test.
-      for client_id in self.SetupClients(3):
-        self.AssignTasksToClients([client_id])
-        client_mock = flow_test_lib.CrashClientMock(client_id, token=self.token)
-        hunt_test_lib.TestHuntHelper(
-            client_mock, [client_id], check_flow_errors=False, token=self.token)
+    # Run the hunt on 3 clients, one by one. Crash detection check happens
+    # when client is scheduled, so it's important to schedule the clients
+    # one by one in the test.
+    for client_id in self.SetupClients(3):
+      self.RunHuntWithClientCrashes([client_id])
 
     self.Open("/")
 
@@ -511,19 +529,21 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on the "hunt [id] reached the crashes limit" notificaiton.
     self.Click("css=td:contains(Hunt %s reached the crashes limit)" %
-               hunt.urn.Basename())
+               hunt_urn.Basename())
 
     # Clicking on notification should shown the hunt's overview page.
     self.WaitUntil(self.IsTextPresent, "/tmp/evil.txt")
 
-    # Go to the logs and check that a reason for hunt's stopping is the
-    # hunts logs.
-    # Click the Log Tab.
-    self.Click("css=li[heading=Log]")
-    self.WaitUntil(
-        self.IsTextPresent,
-        "Hunt %s reached the crashes limit of 3 and was stopped." %
-        hunt.urn.Basename())
+    # TODO(user): display hunt.hunt_state_comment in the UI.
+    # For legacy hunts: go to the logs and check that a reason for hunt's
+    # stopping is the.
+    if not data_store.RelationalDBReadEnabled("hunts"):
+      self.Click("css=li[heading=Log]")
+
+      self.WaitUntil(
+          self.IsTextPresent,
+          "Hunt %s reached the crashes limit of 3 and was stopped." %
+          hunt_urn.Basename())
 
 
 if __name__ == "__main__":

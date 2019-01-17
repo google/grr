@@ -7,13 +7,9 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib import flags
 
-from grr_response_server import foreman
 from grr_response_server.gui import gui_test_lib
-from grr_response_server.hunts import implementation
-from grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
@@ -79,38 +75,20 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
 
   def SetUpCrashedFlowInHunt(self):
     client_ids = self.SetupClients(10)
-    client_mocks = dict([(client_id,
-                          flow_test_lib.CrashClientMock(client_id, self.token))
-                         for client_id in client_ids])
+    hunt_urn = self.StartHunt()
+    self.RunHuntWithClientCrashes(client_ids)
 
-    client_rule_set = self._CreateForemanClientRuleSet()
-    # Make this not match anything.
-    client_rule_set.rules[0].regex.attribute_regex = ""
-
-    with implementation.StartHunt(
-        hunt_name=standard.SampleHunt.__name__,
-        client_rule_set=client_rule_set,
-        client_rate=0,
-        token=self.token) as hunt:
-      hunt.Run()
-
-    foreman_obj = foreman.GetForeman(token=self.token)
-    for client_id in client_ids:
-      self.assertTrue(foreman_obj.AssignTasksToClient(client_id.Basename()))
-    hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False,
-                                                  self.token)
-
-    return client_ids
+    return hunt_urn, client_ids
 
   def testClientCrashedFlowInHunt(self):
-    client_ids = [c.Basename() for c in self.SetUpCrashedFlowInHunt()]
+    hunt_urn, client_urns = self.SetUpCrashedFlowInHunt()
+    client_ids = [c.Basename() for c in client_urns]
 
     self.Open("/")
 
     # Go to hunt manager and select a hunt.
     self.Click("css=a[grrtarget=hunts]")
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
-    self.Click("css=td:contains('SampleHunt')")
+    self.Click("css=td:contains('%s')" % hunt_urn.Basename())
 
     # Click on "Crashes" tab.
     self.Click("css=li[heading=Crashes]")
@@ -140,14 +118,13 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     ])
 
   def testHuntClientCrashesTabShowsDatesInUTC(self):
-    self.SetUpCrashedFlowInHunt()
+    hunt_urn, _ = self.SetUpCrashedFlowInHunt()
 
     self.Open("/")
 
     # Go to hunt manager, select a hunt, open "Crashes" tab.
     self.Click("css=a[grrtarget=hunts]")
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
-    self.Click("css=td:contains('SampleHunt')")
+    self.Click("css=td:contains('%s')" % hunt_urn.Basename())
     self.Click("css=li[heading=Crashes]")
 
     self.WaitUntil(

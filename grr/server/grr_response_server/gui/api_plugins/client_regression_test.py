@@ -232,8 +232,7 @@ class ApiListClientCrashesHandlerRegressionTest(
         rdf_client.ClientURN(client_id), self.token)
 
     with test_lib.FakeTime(42):
-      with self.CreateHunt(description="the hunt") as hunt_obj:
-        hunt_obj.Run()
+      hunt_urn = self.StartHunt(description="the hunt")
 
     with test_lib.FakeTime(45):
       self.AssignTasksToClients(client_ids)
@@ -248,7 +247,7 @@ class ApiListClientCrashesHandlerRegressionTest(
 
     crash = list(crashes)[0]
     replace = {
-        hunt_obj.urn.Basename(): "H:123456",
+        hunt_urn.Basename(): "H:123456",
         str(crash.session_id): "<some session id>"
     }
 

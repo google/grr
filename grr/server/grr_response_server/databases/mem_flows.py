@@ -449,6 +449,7 @@ class InMemoryDBFlowMixin(object):
     res = []
     for request_id in sorted(request_dict):
       res.append((request_dict[request_id], response_dict.get(request_id, {})))
+
     return res
 
   @utils.Synchronized
@@ -494,6 +495,15 @@ class InMemoryDBFlowMixin(object):
       responses = sorted(
           itervalues(response_dict.get(request_id, {})),
           key=lambda response: response.response_id)
+      # Serialize/deserialize responses to better simulate the
+      # real DB behavior (where serialization/deserialization is almost
+      # guaranteed to be done).
+      # TODO(user): change mem-db implementation to do
+      # serialization/deserialization everywhere in a generic way.
+      responses = [
+          r.__class__.FromSerializedString(r.SerializeToString())
+          for r in responses
+      ]
       res[request_id] = (request, responses)
       next_needed_request += 1
 

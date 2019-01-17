@@ -159,6 +159,10 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
       # Exercise conversions to ensure we can move back and forth between the
       # different forms.
       art_json = art_obj.ToJson()
+      # TODO: This is a temporary hack. Once Python 3 compatibility
+      # wrapper for dealing with JSON is implemented, this should go away.
+      if isinstance(art_json, bytes):
+        art_json = art_json.decode("utf-8")
       new_art_obj = registry.ArtifactsFromYaml(art_json)[0]
       self.assertEqual(new_art_obj.ToPrimitiveDict(), art_obj.ToPrimitiveDict())
 

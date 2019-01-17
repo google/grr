@@ -11,6 +11,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import collections
 import logging
 import _winreg
 
@@ -51,7 +52,7 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
 
   def RawData(self):
     """Yields the valus in each section."""
-    result = config_lib.OrderedYamlDict()
+    result = collections.OrderedDict()
 
     i = 0
     while True:

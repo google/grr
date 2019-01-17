@@ -304,7 +304,7 @@
           "name": "GenericHunt",
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "PAUSED",
+          "state": "STARTED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:123456"
@@ -1594,7 +1594,7 @@
           "name": "GenericHunt",
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "PAUSED",
+          "state": "STARTED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:123456"
@@ -1676,7 +1676,7 @@
           "name": "GenericHunt",
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "PAUSED",
+          "state": "STARTED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:567890"
@@ -1749,7 +1749,7 @@
           "name": "GenericHunt",
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "PAUSED",
+          "state": "STARTED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:556677"
@@ -1831,7 +1831,7 @@
           },
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "PAUSED",
+          "state": "STARTED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:DDEEFF"
@@ -1944,7 +1944,7 @@
           },
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "PAUSED",
+          "state": "STARTED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:667788"
@@ -2659,7 +2659,7 @@
                 "userCpuTime": 1.0
               },
               "networkBytesSent": "3",
-              "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/<replaced session value>"
+              "sessionId": "<replaced session value>"
             }
           ]
         }
@@ -5350,7 +5350,7 @@
           "name": "GenericHunt",
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "PAUSED",
+          "state": "STARTED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:123456"
@@ -5502,10 +5502,10 @@
                     "dat": [
                       {
                         "k": {
-                          "data": "cXVlcnk="
+                          "string": "query"
                         },
                         "v": {
-                          "data": "U0VMRUNUICogZnJvbSBXaW4zMl9TeXN0ZW1Ecml2ZXI="
+                          "string": "SELECT * from Win32_SystemDriver"
                         }
                       }
                     ]
@@ -6345,25 +6345,53 @@
             "subject": {
               "allClientsCount": "0",
               "clientLimit": "100",
-              "clientRate": 20.5,
-              "clientRuleSet": {},
+              "clientRate": 0.0,
+              "clientRuleSet": {
+                "rules": [
+                  {
+                    "regex": {
+                      "attributeRegex": "GRR",
+                      "field": "CLIENT_NAME"
+                    },
+                    "ruleType": "REGEX"
+                  }
+                ]
+              },
               "clientsQueuedCount": "0",
               "clientsWithResultsCount": "0",
               "completedClientsCount": "0",
               "crashLimit": "100",
               "created": "42000000",
               "creator": "api_test_user",
-              "description": "",
+              "description": "foo",
               "expires": "1209642000000",
-              "flowName": "",
+              "flowArgs": {
+                "@type": "type.googleapis.com/GetFileArgs",
+                "pathspec": {
+                  "path": "/tmp/evil.txt",
+                  "pathtype": "OS"
+                }
+              },
+              "flowName": "GetFile",
               "huntId": "H:123456",
               "huntRunnerArgs": {
                 "avgCpuSecondsPerClientLimit": "60",
                 "avgNetworkBytesPerClientLimit": "10485760",
                 "avgResultsPerClientLimit": "1000",
-                "clientRuleSet": {},
+                "clientRate": 0.0,
+                "clientRuleSet": {
+                  "rules": [
+                    {
+                      "regex": {
+                        "attributeRegex": "GRR",
+                        "field": "CLIENT_NAME"
+                      },
+                      "ruleType": "REGEX"
+                    }
+                  ]
+                },
                 "crashLimit": "100",
-                "description": "",
+                "description": "foo",
                 "huntName": "GenericHunt",
                 "originalObject": {}
               },
@@ -6391,23 +6419,23 @@
         "items": [
           {
             "clientId": "C.1000000000000000",
-            "flowId": "H:123456:hunt"
+            "flowId": "H:123456"
           },
           {
             "clientId": "C.1000000000000001",
-            "flowId": "H:123456:hunt"
+            "flowId": "H:123456"
           },
           {
             "clientId": "C.1000000000000002",
-            "flowId": "H:123456:hunt"
+            "flowId": "H:123456"
           },
           {
             "clientId": "C.1000000000000003",
-            "flowId": "H:123456:hunt"
+            "flowId": "H:123456"
           },
           {
             "clientId": "C.1000000000000004",
-            "flowId": "H:123456:hunt"
+            "flowId": "H:123456"
           }
         ],
         "totalCount": "5"
@@ -6422,19 +6450,19 @@
         "items": [
           {
             "clientId": "C.1000000000000000",
-            "flowId": "H:123456:hunt"
+            "flowId": "H:123456"
           },
           {
             "clientId": "C.1000000000000001",
-            "flowId": "H:123456:hunt"
+            "flowId": "H:123456"
           },
           {
             "clientId": "C.1000000000000002",
-            "flowId": "H:123456:hunt"
+            "flowId": "H:123456"
           },
           {
             "clientId": "C.1000000000000003",
-            "flowId": "H:123456:hunt"
+            "flowId": "H:123456"
           }
         ],
         "totalCount": "4"
@@ -6449,7 +6477,7 @@
         "items": [
           {
             "clientId": "C.1000000000000004",
-            "flowId": "H:123456:hunt"
+            "flowId": "H:123456"
           }
         ],
         "totalCount": "1"
@@ -6530,13 +6558,13 @@
       "response": {
         "items": [
           {
-            "clientId": "C.0000111122223333",
+            "clientId": "C.1000000000000000",
             "logMessage": "Error foo.",
             "timestamp": "52000000"
           },
           {
             "backtrace": "<some backtrace>",
-            "clientId": "C.1111222233334444",
+            "clientId": "C.1000000000000001",
             "logMessage": "Error bar.",
             "timestamp": "55000000"
           }
@@ -6552,7 +6580,7 @@
       "response": {
         "items": [
           {
-            "clientId": "C.0000111122223333",
+            "clientId": "C.1000000000000000",
             "logMessage": "Error foo.",
             "timestamp": "52000000"
           }
@@ -6569,7 +6597,7 @@
         "items": [
           {
             "backtrace": "<some backtrace>",
-            "clientId": "C.1111222233334444",
+            "clientId": "C.1000000000000001",
             "logMessage": "Error bar.",
             "timestamp": "55000000"
           }
@@ -6587,13 +6615,17 @@
       "response": {
         "items": [
           {
+            "clientId": "C.1000000000000000",
+            "flowId": "H:123456",
             "flowName": "GenericHunt",
-            "logMessage": "Sample message: foo.",
+            "logMessage": "Sample message: foo",
             "timestamp": "52000000"
           },
           {
+            "clientId": "C.1000000000000000",
+            "flowId": "H:123456",
             "flowName": "GenericHunt",
-            "logMessage": "Sample message: bar.",
+            "logMessage": "Sample message: bar",
             "timestamp": "55000000"
           }
         ],
@@ -6608,8 +6640,10 @@
       "response": {
         "items": [
           {
+            "clientId": "C.1000000000000000",
+            "flowId": "H:123456",
             "flowName": "GenericHunt",
-            "logMessage": "Sample message: foo.",
+            "logMessage": "Sample message: foo",
             "timestamp": "52000000"
           }
         ],
@@ -6624,8 +6658,10 @@
       "response": {
         "items": [
           {
+            "clientId": "C.1000000000000000",
+            "flowId": "H:123456",
             "flowName": "GenericHunt",
-            "logMessage": "Sample message: bar.",
+            "logMessage": "Sample message: bar",
             "timestamp": "55000000"
           }
         ],
@@ -6642,6 +6678,7 @@
       "response": {
         "items": [
           {
+            "clientId": "C.1000000000000000",
             "payload": {
               "@type": "type.googleapis.com/google.protobuf.StringValue",
               "value": "blah1"
@@ -6650,6 +6687,7 @@
             "timestamp": "2000000"
           },
           {
+            "clientId": "C.1000000000000000",
             "payload": {
               "@type": "type.googleapis.com/google.protobuf.StringValue",
               "value": "blah2-foo"
@@ -6669,6 +6707,7 @@
       "response": {
         "items": [
           {
+            "clientId": "C.1000000000000000",
             "payload": {
               "@type": "type.googleapis.com/google.protobuf.StringValue",
               "value": "blah1"
@@ -6688,6 +6727,7 @@
       "response": {
         "items": [
           {
+            "clientId": "C.1000000000000000",
             "payload": {
               "@type": "type.googleapis.com/google.protobuf.StringValue",
               "value": "blah2-foo"
@@ -6707,6 +6747,7 @@
       "response": {
         "items": [
           {
+            "clientId": "C.1000000000000000",
             "payload": {
               "@type": "type.googleapis.com/google.protobuf.StringValue",
               "value": "blah2-foo"

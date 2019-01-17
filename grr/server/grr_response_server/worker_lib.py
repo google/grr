@@ -156,6 +156,9 @@ class GRRWorker(object):
         logging.error("Unknown message handler: %s", handler_name)
         continue
 
+      stats_collector_instance.Get().IncrementCounter(
+          "well_known_flow_requests", fields=[handler_name])
+
       try:
         logging.debug("Running %d messages for handler %s",
                       len(requests_for_handler), handler_name)

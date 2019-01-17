@@ -7,25 +7,25 @@ from __future__ import unicode_literals
 
 from grr_api_client import errors as grr_api_errors
 from grr_response_core import config
-
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
+from grr_response_server import data_store
 from grr_response_server.aff4_objects import user_managers
-
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks as api_router
 from grr_response_server.gui import api_e2e_test_lib
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
-
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
-class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
+class ApiCallRouterWithApprovalChecksE2ETest(
+    hunt_test_lib.StandardHuntTestMixin, api_e2e_test_lib.ApiE2ETest):
 
   def setUp(self):
     super(ApiCallRouterWithApprovalChecksE2ETest, self).setUp()
@@ -45,17 +45,16 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
     api_router.ApiCallRouterWithApprovalChecks.ClearCache()
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
-  def CreateHuntApproval(self, hunt_urn, token, admin=False):
-    approval_id = self.RequestHuntApproval(
-        hunt_urn.Basename(), requestor=token.username)
+  def CreateHuntApproval(self, hunt_id, token, admin=False):
+    approval_id = self.RequestHuntApproval(hunt_id, requestor=token.username)
     self.GrantHuntApproval(
-        hunt_urn.Basename(),
+        hunt_id,
         approval_id=approval_id,
         requestor=token.username,
         approver=u"Approver1",
         admin=admin)
     self.GrantHuntApproval(
-        hunt_urn.Basename(),
+        hunt_id,
         approval_id=approval_id,
         requestor=token.username,
         approver=u"Approver2",
@@ -64,10 +63,13 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
   def CreateSampleHunt(self):
     """Creats SampleHunt, writes it to the data store and returns it's id."""
 
-    with implementation.StartHunt(
-        hunt_name=standard.SampleHunt.__name__,
-        token=self.token.SetUID()) as hunt:
-      return hunt.session_id
+    if data_store.RelationalDBReadEnabled("hunts"):
+      return self.CreateHunt()
+    else:
+      with implementation.StartHunt(
+          hunt_name=standard.SampleHunt.__name__,
+          token=self.token.SetUID()) as hunt:
+        return hunt.session_id.Basename()
 
   def testSimpleUnauthorizedAccess(self):
     """Tests that simple access requires a token."""
@@ -129,18 +131,18 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   def testHuntApproval(self):
     """Tests that we can create an approval object to run hunts."""
-    hunt_urn = self.CreateSampleHunt()
+    hunt_id = self.CreateSampleHunt()
     self.assertRaises(grr_api_errors.AccessForbiddenError,
-                      self.api.Hunt(hunt_urn.Basename()).Start)
+                      self.api.Hunt(hunt_id).Start)
 
-    self.CreateHuntApproval(hunt_urn, self.token, admin=False)
+    self.CreateHuntApproval(hunt_id, self.token, admin=False)
 
     self.assertRaisesRegexp(grr_api_errors.AccessForbiddenError,
                             "Need at least 1 admin approver for access",
-                            self.api.Hunt(hunt_urn.Basename()).Start)
+                            self.api.Hunt(hunt_id).Start)
 
-    self.CreateHuntApproval(hunt_urn, self.token, admin=True)
-    self.api.Hunt(hunt_urn.Basename()).Start()
+    self.CreateHuntApproval(hunt_id, self.token, admin=True)
+    self.api.Hunt(hunt_id).Start()
 
   def testFlowAccess(self):
     """Tests access to flows."""

@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import str
 
 from grr_response_core.stats import stats_utils
 

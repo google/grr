@@ -77,12 +77,12 @@ class HuntsWithRapidHuntingDisabledTest(gui_test_lib.GRRSeleniumHuntTest):
   def testHuntViewDoesNotShowAnythingForRapidLikeHunts(self):
     # CreateHunt sets client rate to 0. Thus we have a rapid-hunting-like hunt:
     # FileFinder without download and client rate 0.
-    hunt_obj = self.CreateHunt(
+    hunt_urn = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/evil.txt"]))
 
-    self.Open("/#/hunts/%s" % hunt_obj.urn.Basename())
+    self.Open("/#/hunts/%s" % hunt_urn.Basename())
 
     self.WaitUntil(self.IsElementPresent,
                    "css=dt:contains('Client Rate') + dd:contains(0)")
@@ -293,12 +293,12 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
   def testHuntViewShowsEligibilityNoteForRapidLikeHuntWithClientRate0(self):
     # CreateHunt sets client rate to 0. Thus we have a rapid-hunting-like hunt:
     # FileFinder without download action and client rate 0.
-    hunt_obj = self.CreateHunt(
+    hunt_urn = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/evil.txt"]))
 
-    self.Open("/#/hunts/%s" % hunt_obj.urn.Basename())
+    self.Open("/#/hunts/%s" % hunt_urn.Basename())
 
     self.WaitUntil(
         self.IsElementPresent, "css=dt:contains('Client Rate') + "
@@ -312,12 +312,12 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
   def testHuntViewShowsEligibilityNoteForNonRapidHuntWithClientRate0(self):
     # CreateHunt sets client rate to 0. Thus we have a non-eligible hunt:
     # FileFinder with a recursive glob expression and client rate 0.
-    hunt_obj = self.CreateHunt(
+    hunt_urn = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/**"]))
 
-    self.Open("/#/hunts/%s" % hunt_obj.urn.Basename())
+    self.Open("/#/hunts/%s" % hunt_urn.Basename())
 
     self.WaitUntil(
         self.IsElementPresent, "css=dt:contains('Client Rate') + "
@@ -326,13 +326,13 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         self.GetText("css=dt:contains('Client Rate') + dd").startswith("0 "))
 
   def testHuntViewDoesShowsNothingForRapidLikeHuntWithClientRateNon0(self):
-    hunt_obj = self.CreateHunt(
+    hunt_urn = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/foo"]),
         client_rate=42)
 
-    self.Open("/#/hunts/%s" % hunt_obj.urn.Basename())
+    self.Open("/#/hunts/%s" % hunt_urn.Basename())
 
     self.WaitUntil(self.IsElementPresent, "css=dt:contains('Client Rate')")
     self.WaitUntilNot(
@@ -340,13 +340,13 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         "dd:contains('rapid hunting')")
 
   def testHuntViewDoesShowsNothingForNonRapidLikeHuntWithClientRateNon0(self):
-    hunt_obj = self.CreateHunt(
+    hunt_urn = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/**"]),
         client_rate=42)
 
-    self.Open("/#/hunts/%s" % hunt_obj.urn.Basename())
+    self.Open("/#/hunts/%s" % hunt_urn.Basename())
 
     self.WaitUntil(self.IsElementPresent, "css=dt:contains('Client Rate')")
     self.WaitUntilNot(

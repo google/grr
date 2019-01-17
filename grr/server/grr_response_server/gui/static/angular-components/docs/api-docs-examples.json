@@ -1077,7 +1077,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "PAUSED"
+                "value": "STARTED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -1169,7 +1169,7 @@
           "name": "GenericHunt",
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "PAUSED",
+          "state": "STARTED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
@@ -5332,7 +5332,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "PAUSED"
+                "value": "STARTED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -5421,7 +5421,7 @@
           "name": "GenericHunt",
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "PAUSED",
+          "state": "STARTED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
@@ -5658,7 +5658,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "PAUSED"
+                "value": "STARTED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -5747,7 +5747,7 @@
           "name": "GenericHunt",
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "PAUSED",
+          "state": "STARTED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:567890"
@@ -5953,7 +5953,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "PAUSED"
+                "value": "STARTED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -6218,7 +6218,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "PAUSED"
+                "value": "STARTED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -6297,7 +6297,7 @@
           "name": "GenericHunt",
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "PAUSED",
+          "state": "STARTED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:556677"
@@ -6379,7 +6379,7 @@
           },
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "PAUSED",
+          "state": "STARTED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:DDEEFF"
@@ -6714,7 +6714,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "PAUSED"
+                "value": "STARTED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -6832,7 +6832,7 @@
           },
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "PAUSED",
+          "state": "STARTED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:667788"
@@ -8644,7 +8644,7 @@
                   },
                   "session_id": {
                     "type": "SessionID",
-                    "value": "aff4:/hunts/H:123456/C.1000000000000000/<replaced session value>"
+                    "value": "<replaced session value>"
                   }
                 }
               }
@@ -8867,7 +8867,7 @@
                 "user_cpu_time": 1.0
               },
               "network_bytes_sent": 3,
-              "session_id": "aff4:/hunts/H:123456/C.1000000000000000/<replaced session value>"
+              "session_id": "<replaced session value>"
             }
           ]
         }
@@ -12650,7 +12650,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "PAUSED"
+                "value": "STARTED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -12739,7 +12739,7 @@
           "name": "GenericHunt",
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "PAUSED",
+          "state": "STARTED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
@@ -13121,8 +13121,8 @@
                           "type": "Dict",
                           "value": {
                             "query": {
-                              "type": "str",
-                              "value": "U0VMRUNUICogZnJvbSBXaW4zMl9TeXN0ZW1Ecml2ZXI="
+                              "type": "unicode",
+                              "value": "SELECT * from Win32_SystemDriver"
                             }
                           }
                         },
@@ -13181,7 +13181,7 @@
               "sources": [
                 {
                   "attributes": {
-                    "query": "U0VMRUNUICogZnJvbSBXaW4zMl9TeXN0ZW1Ecml2ZXI="
+                    "query": "SELECT * from Win32_SystemDriver"
                   },
                   "conditions": [],
                   "returned_types": [],
@@ -16142,11 +16142,36 @@
                   },
                   "client_rate": {
                     "type": "float",
-                    "value": 20.5
+                    "value": 0.0
                   },
                   "client_rule_set": {
                     "type": "ForemanClientRuleSet",
-                    "value": {}
+                    "value": {
+                      "rules": [
+                        {
+                          "type": "ForemanClientRule",
+                          "value": {
+                            "regex": {
+                              "type": "ForemanRegexClientRule",
+                              "value": {
+                                "attribute_regex": {
+                                  "type": "RegularExpression",
+                                  "value": "GRR"
+                                },
+                                "field": {
+                                  "type": "EnumNamedValue",
+                                  "value": "CLIENT_NAME"
+                                }
+                              }
+                            },
+                            "rule_type": {
+                              "type": "EnumNamedValue",
+                              "value": "REGEX"
+                            }
+                          }
+                        }
+                      ]
+                    }
                   },
                   "clients_queued_count": {
                     "type": "long",
@@ -16174,15 +16199,33 @@
                   },
                   "description": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "foo"
                   },
                   "expires": {
                     "type": "RDFDatetime",
                     "value": 1209642000000
                   },
+                  "flow_args": {
+                    "type": "GetFileArgs",
+                    "value": {
+                      "pathspec": {
+                        "type": "PathSpec",
+                        "value": {
+                          "path": {
+                            "type": "unicode",
+                            "value": "/tmp/evil.txt"
+                          },
+                          "pathtype": {
+                            "type": "EnumNamedValue",
+                            "value": "OS"
+                          }
+                        }
+                      }
+                    }
+                  },
                   "flow_name": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "GetFile"
                   },
                   "hunt_id": {
                     "type": "ApiHuntId",
@@ -16203,9 +16246,38 @@
                         "type": "long",
                         "value": 1000
                       },
+                      "client_rate": {
+                        "type": "float",
+                        "value": 0.0
+                      },
                       "client_rule_set": {
                         "type": "ForemanClientRuleSet",
-                        "value": {}
+                        "value": {
+                          "rules": [
+                            {
+                              "type": "ForemanClientRule",
+                              "value": {
+                                "regex": {
+                                  "type": "ForemanRegexClientRule",
+                                  "value": {
+                                    "attribute_regex": {
+                                      "type": "RegularExpression",
+                                      "value": "GRR"
+                                    },
+                                    "field": {
+                                      "type": "EnumNamedValue",
+                                      "value": "CLIENT_NAME"
+                                    }
+                                  }
+                                },
+                                "rule_type": {
+                                  "type": "EnumNamedValue",
+                                  "value": "REGEX"
+                                }
+                              }
+                            }
+                          ]
+                        }
                       },
                       "crash_limit": {
                         "type": "long",
@@ -16213,7 +16285,7 @@
                       },
                       "description": {
                         "type": "unicode",
-                        "value": ""
+                        "value": "foo"
                       },
                       "hunt_name": {
                         "type": "unicode",
@@ -16283,25 +16355,52 @@
             "subject": {
               "all_clients_count": 0,
               "client_limit": 100,
-              "client_rate": 20.5,
-              "client_rule_set": {},
+              "client_rate": 0.0,
+              "client_rule_set": {
+                "rules": [
+                  {
+                    "regex": {
+                      "attribute_regex": "GRR",
+                      "field": "CLIENT_NAME"
+                    },
+                    "rule_type": "REGEX"
+                  }
+                ]
+              },
               "clients_queued_count": 0,
               "clients_with_results_count": 0,
               "completed_clients_count": 0,
               "crash_limit": 100,
               "created": 42000000,
               "creator": "api_test_user",
-              "description": "",
+              "description": "foo",
               "expires": 1209642000000,
-              "flow_name": "",
+              "flow_args": {
+                "pathspec": {
+                  "path": "/tmp/evil.txt",
+                  "pathtype": "OS"
+                }
+              },
+              "flow_name": "GetFile",
               "hunt_id": "H:123456",
               "hunt_runner_args": {
                 "avg_cpu_seconds_per_client_limit": 60,
                 "avg_network_bytes_per_client_limit": 10485760,
                 "avg_results_per_client_limit": 1000,
-                "client_rule_set": {},
+                "client_rate": 0.0,
+                "client_rule_set": {
+                  "rules": [
+                    {
+                      "regex": {
+                        "attribute_regex": "GRR",
+                        "field": "CLIENT_NAME"
+                      },
+                      "rule_type": "REGEX"
+                    }
+                  ]
+                },
                 "crash_limit": 100,
-                "description": "",
+                "description": "foo",
                 "hunt_name": "GenericHunt",
                 "original_object": {}
               },
@@ -16335,7 +16434,7 @@
               },
               "flow_id": {
                 "type": "ApiFlowId",
-                "value": "H:123456:hunt"
+                "value": "H:123456"
               }
             }
           },
@@ -16348,7 +16447,7 @@
               },
               "flow_id": {
                 "type": "ApiFlowId",
-                "value": "H:123456:hunt"
+                "value": "H:123456"
               }
             }
           },
@@ -16361,7 +16460,7 @@
               },
               "flow_id": {
                 "type": "ApiFlowId",
-                "value": "H:123456:hunt"
+                "value": "H:123456"
               }
             }
           },
@@ -16374,7 +16473,7 @@
               },
               "flow_id": {
                 "type": "ApiFlowId",
-                "value": "H:123456:hunt"
+                "value": "H:123456"
               }
             }
           },
@@ -16387,7 +16486,7 @@
               },
               "flow_id": {
                 "type": "ApiFlowId",
-                "value": "H:123456:hunt"
+                "value": "H:123456"
               }
             }
           }
@@ -16399,23 +16498,23 @@
         "items": [
           {
             "client_id": "C.1000000000000000",
-            "flow_id": "H:123456:hunt"
+            "flow_id": "H:123456"
           },
           {
             "client_id": "C.1000000000000001",
-            "flow_id": "H:123456:hunt"
+            "flow_id": "H:123456"
           },
           {
             "client_id": "C.1000000000000002",
-            "flow_id": "H:123456:hunt"
+            "flow_id": "H:123456"
           },
           {
             "client_id": "C.1000000000000003",
-            "flow_id": "H:123456:hunt"
+            "flow_id": "H:123456"
           },
           {
             "client_id": "C.1000000000000004",
-            "flow_id": "H:123456:hunt"
+            "flow_id": "H:123456"
           }
         ],
         "total_count": 5
@@ -16436,7 +16535,7 @@
               },
               "flow_id": {
                 "type": "ApiFlowId",
-                "value": "H:123456:hunt"
+                "value": "H:123456"
               }
             }
           },
@@ -16449,7 +16548,7 @@
               },
               "flow_id": {
                 "type": "ApiFlowId",
-                "value": "H:123456:hunt"
+                "value": "H:123456"
               }
             }
           },
@@ -16462,7 +16561,7 @@
               },
               "flow_id": {
                 "type": "ApiFlowId",
-                "value": "H:123456:hunt"
+                "value": "H:123456"
               }
             }
           },
@@ -16475,7 +16574,7 @@
               },
               "flow_id": {
                 "type": "ApiFlowId",
-                "value": "H:123456:hunt"
+                "value": "H:123456"
               }
             }
           }
@@ -16487,19 +16586,19 @@
         "items": [
           {
             "client_id": "C.1000000000000000",
-            "flow_id": "H:123456:hunt"
+            "flow_id": "H:123456"
           },
           {
             "client_id": "C.1000000000000001",
-            "flow_id": "H:123456:hunt"
+            "flow_id": "H:123456"
           },
           {
             "client_id": "C.1000000000000002",
-            "flow_id": "H:123456:hunt"
+            "flow_id": "H:123456"
           },
           {
             "client_id": "C.1000000000000003",
-            "flow_id": "H:123456:hunt"
+            "flow_id": "H:123456"
           }
         ],
         "total_count": 4
@@ -16520,7 +16619,7 @@
               },
               "flow_id": {
                 "type": "ApiFlowId",
-                "value": "H:123456:hunt"
+                "value": "H:123456"
               }
             }
           }
@@ -16532,7 +16631,7 @@
         "items": [
           {
             "client_id": "C.1000000000000004",
-            "flow_id": "H:123456:hunt"
+            "flow_id": "H:123456"
           }
         ],
         "total_count": 1
@@ -16731,7 +16830,7 @@
             "value": {
               "client_id": {
                 "type": "ApiClientId",
-                "value": "C.0000111122223333"
+                "value": "C.1000000000000000"
               },
               "log_message": {
                 "type": "unicode",
@@ -16752,7 +16851,7 @@
               },
               "client_id": {
                 "type": "ApiClientId",
-                "value": "C.1111222233334444"
+                "value": "C.1000000000000001"
               },
               "log_message": {
                 "type": "unicode",
@@ -16771,13 +16870,13 @@
       "type_stripped_response": {
         "items": [
           {
-            "client_id": "C.0000111122223333",
+            "client_id": "C.1000000000000000",
             "log_message": "Error foo.",
             "timestamp": 52000000
           },
           {
             "backtrace": "<some backtrace>",
-            "client_id": "C.1111222233334444",
+            "client_id": "C.1000000000000001",
             "log_message": "Error bar.",
             "timestamp": 55000000
           }
@@ -16796,7 +16895,7 @@
             "value": {
               "client_id": {
                 "type": "ApiClientId",
-                "value": "C.0000111122223333"
+                "value": "C.1000000000000000"
               },
               "log_message": {
                 "type": "unicode",
@@ -16815,7 +16914,7 @@
       "type_stripped_response": {
         "items": [
           {
-            "client_id": "C.0000111122223333",
+            "client_id": "C.1000000000000000",
             "log_message": "Error foo.",
             "timestamp": 52000000
           }
@@ -16838,7 +16937,7 @@
               },
               "client_id": {
                 "type": "ApiClientId",
-                "value": "C.1111222233334444"
+                "value": "C.1000000000000001"
               },
               "log_message": {
                 "type": "unicode",
@@ -16858,7 +16957,7 @@
         "items": [
           {
             "backtrace": "<some backtrace>",
-            "client_id": "C.1111222233334444",
+            "client_id": "C.1000000000000001",
             "log_message": "Error bar.",
             "timestamp": 55000000
           }
@@ -16877,13 +16976,21 @@
           {
             "type": "ApiHuntLog",
             "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "H:123456"
+              },
               "flow_name": {
                 "type": "unicode",
                 "value": "GenericHunt"
               },
               "log_message": {
                 "type": "unicode",
-                "value": "Sample message: foo."
+                "value": "Sample message: foo"
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -16894,13 +17001,21 @@
           {
             "type": "ApiHuntLog",
             "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "H:123456"
+              },
               "flow_name": {
                 "type": "unicode",
                 "value": "GenericHunt"
               },
               "log_message": {
                 "type": "unicode",
-                "value": "Sample message: bar."
+                "value": "Sample message: bar"
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -16915,13 +17030,17 @@
       "type_stripped_response": {
         "items": [
           {
+            "client_id": "C.1000000000000000",
+            "flow_id": "H:123456",
             "flow_name": "GenericHunt",
-            "log_message": "Sample message: foo.",
+            "log_message": "Sample message: foo",
             "timestamp": 52000000
           },
           {
+            "client_id": "C.1000000000000000",
+            "flow_id": "H:123456",
             "flow_name": "GenericHunt",
-            "log_message": "Sample message: bar.",
+            "log_message": "Sample message: bar",
             "timestamp": 55000000
           }
         ],
@@ -16937,13 +17056,21 @@
           {
             "type": "ApiHuntLog",
             "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "H:123456"
+              },
               "flow_name": {
                 "type": "unicode",
                 "value": "GenericHunt"
               },
               "log_message": {
                 "type": "unicode",
-                "value": "Sample message: foo."
+                "value": "Sample message: foo"
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -16958,8 +17085,10 @@
       "type_stripped_response": {
         "items": [
           {
+            "client_id": "C.1000000000000000",
+            "flow_id": "H:123456",
             "flow_name": "GenericHunt",
-            "log_message": "Sample message: foo.",
+            "log_message": "Sample message: foo",
             "timestamp": 52000000
           }
         ],
@@ -16975,13 +17104,21 @@
           {
             "type": "ApiHuntLog",
             "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "H:123456"
+              },
               "flow_name": {
                 "type": "unicode",
                 "value": "GenericHunt"
               },
               "log_message": {
                 "type": "unicode",
-                "value": "Sample message: bar."
+                "value": "Sample message: bar"
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -16996,8 +17133,10 @@
       "type_stripped_response": {
         "items": [
           {
+            "client_id": "C.1000000000000000",
+            "flow_id": "H:123456",
             "flow_name": "GenericHunt",
-            "log_message": "Sample message: bar.",
+            "log_message": "Sample message: bar",
             "timestamp": 55000000
           }
         ],
@@ -17316,6 +17455,10 @@
           {
             "type": "ApiHuntResult",
             "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "payload": {
                 "type": "RDFString",
                 "value": "blah1"
@@ -17333,6 +17476,10 @@
           {
             "type": "ApiHuntResult",
             "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "payload": {
                 "type": "RDFString",
                 "value": "blah2-foo"
@@ -17354,11 +17501,13 @@
       "type_stripped_response": {
         "items": [
           {
+            "client_id": "C.1000000000000000",
             "payload": "blah1",
             "payload_type": "RDFString",
             "timestamp": 2000000
           },
           {
+            "client_id": "C.1000000000000000",
             "payload": "blah2-foo",
             "payload_type": "RDFString",
             "timestamp": 43000000
@@ -17376,6 +17525,10 @@
           {
             "type": "ApiHuntResult",
             "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "payload": {
                 "type": "RDFString",
                 "value": "blah1"
@@ -17397,6 +17550,7 @@
       "type_stripped_response": {
         "items": [
           {
+            "client_id": "C.1000000000000000",
             "payload": "blah1",
             "payload_type": "RDFString",
             "timestamp": 2000000
@@ -17414,6 +17568,10 @@
           {
             "type": "ApiHuntResult",
             "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "payload": {
                 "type": "RDFString",
                 "value": "blah2-foo"
@@ -17435,6 +17593,7 @@
       "type_stripped_response": {
         "items": [
           {
+            "client_id": "C.1000000000000000",
             "payload": "blah2-foo",
             "payload_type": "RDFString",
             "timestamp": 43000000
@@ -17452,6 +17611,10 @@
           {
             "type": "ApiHuntResult",
             "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "payload": {
                 "type": "RDFString",
                 "value": "blah2-foo"
@@ -17473,6 +17636,7 @@
       "type_stripped_response": {
         "items": [
           {
+            "client_id": "C.1000000000000000",
             "payload": "blah2-foo",
             "payload_type": "RDFString",
             "timestamp": 43000000

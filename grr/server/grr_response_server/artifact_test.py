@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import logging
 import os
 import subprocess
@@ -195,8 +196,9 @@ class GRRArtifactTest(ArtifactTest):
 
       test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                          "artifacts", "test_artifacts.json")
-      filecontent = open(test_artifacts_file, "rb").read()
-      artifact.UploadArtifactYamlFile(filecontent)
+
+      with io.open(test_artifacts_file, mode="r", encoding="utf-8") as filedesc:
+        artifact.UploadArtifactYamlFile(filedesc.read())
       loaded_artifacts = artifact_registry.REGISTRY.GetArtifacts()
       self.assertGreaterEqual(len(loaded_artifacts), 20)
       self.assertIn("DepsWindirRegex", [a.name for a in loaded_artifacts])
@@ -205,12 +207,12 @@ class GRRArtifactTest(ArtifactTest):
       yaml_data = artifact_registry.REGISTRY.DumpArtifactsToYaml()
       for snippet in [
           "name: TestFilesArtifact",
-          "urls: ['https://msdn.microsoft.com/en-us/library/aa384749%28v=vs.85",
-          "returned_types: [SoftwarePackage]",
-          "args: [--list]",
+          "urls:\\s*- https://msdn.microsoft.com/en-us/library/",
+          "returned_types:\\s*- SoftwarePackage",
+          "args:\\s*- --list",
           "cmd: /usr/bin/dpkg",
       ]:
-        self.assertIn(snippet, yaml_data)
+        self.assertRegexpMatches(yaml_data, snippet)
     finally:
       artifact.ArtifactLoader().RunOnce()
 

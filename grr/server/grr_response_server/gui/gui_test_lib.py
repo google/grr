@@ -28,7 +28,6 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
@@ -37,7 +36,6 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import db
 from grr_response_server import flow_base
-from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import output_plugin
 from grr_response_server.aff4_objects import standard as aff4_standard
@@ -48,8 +46,6 @@ from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp_testlib
-from grr_response_server.hunts import implementation
-from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
@@ -691,7 +687,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.fail("Notification for user %s never sent." % username)
 
 
-class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
+class GRRSeleniumHuntTest(hunt_test_lib.StandardHuntTestMixin, GRRSeleniumTest):
   """Common functionality for hunt gui tests."""
 
   def _CreateForemanClientRuleSet(self):
@@ -706,9 +702,9 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
     hunt = self.CreateSampleHunt(
         path=os.path.join(self.base_path, "test.plist"), client_count=1)
 
-    action_mock = action_mocks.FileFinderClientMock()
-    hunt_test_lib.TestHuntHelper(action_mock, self.client_ids, False,
-                                 self.token)
+    self.RunHunt(
+        client_ids=self.client_ids,
+        client_mock=action_mocks.FileFinderClientMock())
 
     return hunt
 
@@ -725,10 +721,9 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
     token = token or self.token
     self.client_ids = self.SetupClients(client_count)
 
-    with implementation.StartHunt(
-        hunt_name=standard.GenericHunt.__name__,
+    self.hunt_urn = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=transfer.GetFile.__name__),
+            flow_name=compatibility.GetName(transfer.GetFile)),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
                 path=path or "/tmp/evil.txt",
@@ -738,20 +733,13 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
         output_plugins=output_plugins or [],
         client_rate=0,
         client_limit=client_limit,
-        token=token) as hunt:
-      if not stopped:
-        hunt.Run()
+        token=token,
+        paused=stopped)
 
-    foreman_obj = foreman.GetForeman(token=token)
-    for client_id in self.client_ids:
-      foreman_obj.AssignTasksToClient(client_id.Basename())
-
-    self.hunt_urn = hunt.urn
-    return aff4.FACTORY.Open(
-        hunt.urn, mode="rw", token=token, age=aff4.ALL_TIMES)
+    return self.hunt_urn
 
   def CreateGenericHuntWithCollection(self, values=None):
-    self.client_ids = self.SetupClients(10)
+    self.client_ids = self.SetupClients(1)
 
     CreateFileVersion(self.client_ids[0], "fs/os/c/bin/bash", token=self.token)
 
@@ -763,32 +751,21 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
           rdfvalue.RDFURN("aff4:/sample/3")
       ]
 
-    with implementation.StartHunt(
-        hunt_name=standard.GenericHunt.__name__,
+    hunt_urn = self.StartHunt(
         client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=[],
-        token=self.token) as hunt:
+        token=self.token)
 
-      runner = hunt.GetRunner()
-      runner.Start()
+    self.AddResultsToHunt(hunt_urn, self.client_ids[0], values)
 
-      collection = hunt.ResultCollection()
-      with data_store.DB.GetMutationPool() as pool:
-        for value in values:
-          collection.Add(
-              rdf_flows.GrrMessage(payload=value, source=self.client_ids[0]),
-              mutation_pool=pool)
-
-      return hunt.urn
+    return hunt_urn, self.client_ids[0]
 
 
-class SearchClientTestBase(GRRSeleniumTest):
+class SearchClientTestBase(hunt_test_lib.StandardHuntTestMixin,
+                           GRRSeleniumTest):
 
   def CreateSampleHunt(self, description, token=None):
-    return implementation.StartHunt(
-        hunt_name=standard.GenericHunt.__name__,
-        description=description,
-        token=token)
+    return self.StartHunt(description=description, paused=True, token=token)
 
 
 class RecursiveTestFlowArgs(rdf_structs.RDFProtoStruct):

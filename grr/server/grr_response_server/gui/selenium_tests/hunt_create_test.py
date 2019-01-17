@@ -8,20 +8,16 @@ from selenium.webdriver.common import keys
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
+from grr_response_server import hunt as lib_hunt
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import gui_test_lib
-from grr_response_server.hunts import implementation
-from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import db_test_lib
@@ -33,40 +29,15 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   """Test the "new hunt wizard" GUI."""
 
   @staticmethod
-  def FindForemanRules(hunt, token):
+  def FindForemanRules(hunt_urn, token):
     if data_store.RelationalDBReadEnabled(category="foreman"):
       rules = data_store.REL_DB.ReadAllForemanRules()
-      return [rule for rule in rules if rule.hunt_id == hunt.urn.Basename()]
+      return [rule for rule in rules if rule.hunt_id == hunt_urn.Basename()]
     else:
       fman = aff4.FACTORY.Open(
           "aff4:/foreman", mode="r", aff4_type=aff4_grr.GRRForeman, token=token)
       rules = fman.Get(fman.Schema.RULES, [])
-      return [rule for rule in rules if rule.hunt_id == hunt.urn]
-
-  @staticmethod
-  def CreateHuntFixtureWithTwoClients():
-    token = access_control.ACLToken(username="test", reason="test")
-
-    # Ensure that clients list is empty
-    root = aff4.FACTORY.Open(aff4.ROOT_URN, token=token)
-    for client_urn in root.ListChildren():
-      if aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(client_urn.Basename()):
-        data_store.DB.DeleteSubject(client_urn)
-
-    # Add 2 distinct clients
-    client_id = "C.1%015d" % 0
-    fd = aff4.FACTORY.Create(
-        rdf_client.ClientURN(client_id), aff4_grr.VFSGRRClient, token=token)
-    fd.Set(fd.Schema.SYSTEM("Windows"))
-    fd.Set(fd.Schema.CLOCK(2336650631137737))
-    fd.Close()
-
-    client_id = "C.1%015d" % 1
-    fd = aff4.FACTORY.Create(
-        rdf_client.ClientURN(client_id), aff4_grr.VFSGRRClient, token=token)
-    fd.Set(fd.Schema.SYSTEM("Linux"))
-    fd.Set(fd.Schema.CLOCK(2336650631137737))
-    fd.Close()
+      return [rule for rule in rules if rule.hunt_id == hunt_urn]
 
   def setUp(self):
     super(TestNewHuntWizard, self).setUp()
@@ -80,8 +51,6 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
         self.foreman.Close()
 
   def testNewHuntWizard(self):
-    self.CreateHuntFixtureWithTwoClients()
-
     # Open up and click on View Hunts.
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -304,36 +273,54 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
             "css=grr-hunt-inspector:contains('Client Rule Set')"))
 
     # Check that the hunt object was actually created
-    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-    hunts_list = list(hunts_root.OpenChildren())
-    self.assertLen(hunts_list, 1)
+    if data_store.RelationalDBReadEnabled("hunts"):
+      hunts_list = sorted(
+          data_store.REL_DB.ReadAllHuntObjects(), key=lambda x: x.create_time)
+      self.assertLen(hunts_list, 1)
 
-    # Check that the hunt was created with a correct flow
-    hunt = hunts_list[0]
-    self.assertEqual(hunt.args.flow_runner_args.flow_name,
-                     file_finder.FileFinder.__name__)
-    self.assertEqual(hunt.args.flow_args.paths[0], "/tmp")
-    self.assertEqual(hunt.args.flow_args.pathtype,
-                     rdf_paths.PathSpec.PathType.TSK)
-    # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
-    self.assertTrue(hunt.runner_args.output_plugins[0].plugin_name,
-                    "DummyOutputPlugin")
+      # Check that the hunt was created with a correct flow
+      hunt = hunts_list[0]
 
-    # Check that hunt was not started
-    self.assertEqual(hunt.Get(hunt.Schema.STATE), "PAUSED")
+      self.assertEqual(hunt.args.standard.flow_name,
+                       file_finder.FileFinder.__name__)
+      self.assertEqual(hunt.args.standard.flow_args.paths[0], "/tmp")
+      self.assertEqual(hunt.args.standard.flow_args.pathtype,
+                       rdf_paths.PathSpec.PathType.TSK)
+      # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
+      self.assertTrue(hunt.output_plugins[0].plugin_name, "DummyOutputPlugin")
 
-    # Now try to start the hunt.
-    self.Click("css=button[name=RunHunt]")
+      # Check that hunt was not started
+      self.assertEqual(hunt.hunt_state, hunt.HuntState.PAUSED)
 
-    # Note that hunt ACL controls are already tested in acl_manager_test.py.
+      lib_hunt.StartHunt(hunt.hunt_id)
 
-    # Run the hunt.
-    with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as hunt:
-      hunt.Run()
+      hunt_rules = self.FindForemanRules(
+          rdfvalue.RDFURN("hunts").Add(hunt.hunt_id), token=self.token)
+    else:
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = list(hunts_root.OpenChildren())
+      self.assertLen(hunts_list, 1)
+
+      # Check that the hunt was created with a correct flow
+      hunt = hunts_list[0]
+      self.assertEqual(hunt.args.flow_runner_args.flow_name,
+                       file_finder.FileFinder.__name__)
+      self.assertEqual(hunt.args.flow_args.paths[0], "/tmp")
+      self.assertEqual(hunt.args.flow_args.pathtype,
+                       rdf_paths.PathSpec.PathType.TSK)
+      # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
+      self.assertTrue(hunt.runner_args.output_plugins[0].plugin_name,
+                      "DummyOutputPlugin")
+
+      # Check that hunt was not started
+      self.assertEqual(hunt.Get(hunt.Schema.STATE), "PAUSED")
+
+      with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as hunt:
+        hunt.Run()
+
+      hunt_rules = self.FindForemanRules(hunt.urn, token=self.token)
 
     # Check that the hunt was created with correct rules
-    hunt_rules = self.FindForemanRules(hunt, token=self.token)
-
     self.assertLen(hunt_rules, 1)
     lifetime = hunt_rules[0].GetLifetime()
     lifetime -= rdfvalue.Duration("2w")
@@ -442,17 +429,30 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=button.Next")
 
     # Check that the hunt object was actually created
-    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-    hunts_list = list(hunts_root.OpenChildren())
-    self.assertLen(hunts_list, 1)
+    if data_store.RelationalDBReadEnabled("hunts"):
+      hunts_list = sorted(
+          data_store.REL_DB.ReadAllHuntObjects(), key=lambda x: x.create_time)
+      self.assertLen(hunts_list, 1)
 
-    # Check that the hunt was created with a correct literal value.
-    hunt = hunts_list[0]
-    self.assertEqual(hunt.args.flow_runner_args.flow_name,
-                     file_finder.FileFinder.__name__)
-    self.assertEqual(
-        hunt.args.flow_args.conditions[0].contents_literal_match.literal,
-        b"foo\x0d\xc8bar")
+      # Check that the hunt was created with a correct literal value.
+      hunt = hunts_list[0]
+      self.assertEqual(hunt.args.standard.flow_name,
+                       file_finder.FileFinder.__name__)
+      self.assertEqual(
+          hunt.args.standard.flow_args.conditions[0].contents_literal_match
+          .literal, b"foo\x0d\xc8bar")
+    else:
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = list(hunts_root.OpenChildren())
+      self.assertLen(hunts_list, 1)
+
+      # Check that the hunt was created with a correct literal value.
+      hunt = hunts_list[0]
+      self.assertEqual(hunt.args.flow_runner_args.flow_name,
+                       file_finder.FileFinder.__name__)
+      self.assertEqual(
+          hunt.args.flow_args.conditions[0].contents_literal_match.literal,
+          b"foo\x0d\xc8bar")
 
   def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
     self.Open("/#main=ManageHunts")
@@ -583,11 +583,18 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-wizard-form:contains('Created Hunt')")
 
-    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-    hunts_list = list(hunts_root.OpenChildren(mode="rw"))
-    hunt = hunts_list[0]
+    if data_store.RelationalDBReadEnabled("hunts"):
+      hunts_list = sorted(
+          data_store.REL_DB.ReadAllHuntObjects(), key=lambda x: x.create_time)
+      hunt = hunts_list[0]
+      lib_hunt.StartHunt(hunt.hunt_id)
+    else:
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = list(hunts_root.OpenChildren())
+      hunt = hunts_list[0]
 
-    hunt.Run()  # Run the hunt so that rules are added to the foreman.
+      with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as hunt:
+        hunt.Run()
 
     foreman_obj = foreman.GetForeman(token=self.token)
     for client_id in client_ids:
@@ -598,8 +605,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
         self.assertFalse(tasks_assigned)
 
   def CreateSampleHunt(self, description, token=None):
-    implementation.StartHunt(
-        hunt_name=standard.GenericHunt.__name__,
+    self.StartHunt(
         description=description,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
@@ -616,481 +622,10 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
                     filename_regex="blah!", fetch_binaries=True))
         ],
         client_rate=60,
+        paused=True,
         token=token)
 
-  def testCopyHuntPrefillsNewHuntWizard(self):
-    self.CreateSampleHunt("model hunt", token=self.token)
-
-    self.Open("/#main=ManageHunts")
-    self.Click("css=tr:contains('model hunt')")
-    self.Click("css=button[name=CopyHunt]:not([disabled])")
-
-    # Wait until dialog appears.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('What to run?')")
-
-    # Check that non-default values of sample hunt are prefilled.
-    self.WaitUntilEqual(
-        "/tmp/evil.txt", self.GetValue, "css=grr-new-hunt-wizard-form "
-        "label:contains('Path') ~ * input:text")
-
-    self.WaitUntilEqual(
-        "TSK", self.GetText, "css=grr-new-hunt-wizard-form "
-        "label:contains('Pathtype') ~ * select option:selected")
-
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
-
-    self.WaitUntilEqual(
-        "model hunt (copy)", self.GetValue, "css=grr-new-hunt-wizard-form "
-        "label:contains('Description') ~ * input:text")
-
-    self.WaitUntilEqual(
-        "60", self.GetValue, "css=grr-new-hunt-wizard-form "
-        "label:contains('Client rate') ~ * input")
-
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
-
-    # Check that output plugins list is prefilled.
-    self.WaitUntilEqual(
-        "DummyOutputPlugin", self.GetText, "css=grr-new-hunt-wizard-form "
-        "label:contains('Plugin') ~ * select option:selected")
-
-    self.WaitUntilEqual(
-        "blah!", self.GetValue, "css=grr-new-hunt-wizard-form "
-        "label:contains('Filename Regex') ~ * input:text")
-
-    self.WaitUntil(
-        self.IsElementPresent, "css=grr-new-hunt-wizard-form "
-        "label:contains('Fetch Binaries') ~ * input:checked")
-
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Where to run?')")
-
-    # Check that rules list is prefilled.
-    self.WaitUntilEqual(
-        "Regex", self.GetText, "css=grr-new-hunt-wizard-form "
-        "label:contains('Rule type') "
-        "~ * select option:selected")
-    rule = foreman_rules.ForemanRegexClientRule
-    label = rule.ForemanStringField.CLIENT_NAME.description
-    self.WaitUntilEqual(
-        label, self.GetText, "css=grr-new-hunt-wizard-form "
-        "label:contains('Field') "
-        "~ * select option:selected")
-
-    self.WaitUntilEqual(
-        "GRR", self.GetValue, "css=grr-new-hunt-wizard-form "
-        "label:contains('Attribute regex') ~ * input:text")
-
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Review')")
-
-    # Check that review page contains expected values.
-    self.WaitUntil(self.IsElementPresent, "css=grr-wizard-form:contains('TSK')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('/tmp/evil.txt')")
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=grr-wizard-form:contains('%s')" % transfer.GetFile.__name__)
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('DummyOutputPlugin')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('blah!')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('model hunt (copy)')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('GRR client')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-wizard-form:contains('60')")
-
-  def testCopyHuntCreatesExactCopyWithChangedDescription(self):
-    self.CreateSampleHunt("model hunt", token=self.token)
-
-    self.Open("/#main=ManageHunts")
-    self.Click("css=tr:contains('model hunt')")
-    self.Click("css=button[name=CopyHunt]:not([disabled])")
-
-    # Wait until dialog appears and then click through.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('What to run?')")
-
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
-
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
-
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Where to run?')")
-
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Review')")
-
-    # Click on "Run" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Created Hunt')")
-
-    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-    hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
-
-    self.assertLen(hunts_list, 2)
-
-    first_hunt = aff4.FACTORY.Open(hunts_list[0], token=self.token)
-    last_hunt = aff4.FACTORY.Open(hunts_list[1], token=self.token)
-
-    # Check that generic hunt arguments are equal.
-    self.assertEqual(first_hunt.args, last_hunt.args)
-
-    # Check that hunts runner arguments are equal except for the description.
-    # Hunt copy has ' (copy)' added to the description.
-    first_runner_args = first_hunt.runner_args
-    last_runner_args = last_hunt.runner_args
-
-    self.assertEqual(first_runner_args.description + " (copy)",
-                     last_runner_args.description)
-    self.assertEqual(first_runner_args.client_rate,
-                     last_runner_args.client_rate)
-    self.assertEqual(first_runner_args.hunt_name, last_runner_args.hunt_name)
-    self.assertEqual(first_runner_args.client_rule_set,
-                     last_runner_args.client_rule_set)
-
-  def testCopyHuntRespectsUserChanges(self):
-    self.CreateSampleHunt("model hunt", token=self.token)
-
-    self.Open("/#main=ManageHunts")
-    self.Click("css=tr:contains('model hunt')")
-    self.Click("css=button[name=CopyHunt]:not([disabled])")
-
-    # Wait until dialog appears and then click through.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('What to run?')")
-
-    # Change values in the flow configuration.
-    self.Type(
-        "css=grr-new-hunt-wizard-form label:contains('Path') "
-        "~ * input:text", "/tmp/very-evil.txt")
-
-    self.Select(
-        "css=grr-new-hunt-wizard-form label:contains('Pathtype') "
-        "~ * select", "OS")
-
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
-
-    self.Type(
-        "css=grr-new-hunt-wizard-form label:contains('Description') "
-        "~ * input:text", "my personal copy")
-
-    self.Type(
-        "css=grr-new-hunt-wizard-form label:contains('Client rate') "
-        "~ * input", "42")
-
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
-
-    # Change output plugin and add another one.
-    self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
-    self.Select("css=grr-configure-output-plugins-page select:eq(0)",
-                "DummyOutputPlugin")
-    self.Type(
-        "css=grr-configure-output-plugins-page "
-        "label:contains('Filename Regex'):eq(0) ~ * input:text", "foobar!")
-
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Where to run?')")
-
-    # Replace a rule with another one.
-    self.Click("css=grr-configure-rules-page button[name=Remove]")
-    self.Click("css=grr-configure-rules-page button[name=Add]")
-    self.Click("css=grr-configure-rules-page label:contains('Os darwin') ~ * "
-               "input[type=checkbox]")
-
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Review')")
-
-    # Check that expected values are shown in the review.
-    self.WaitUntil(self.IsElementPresent, "css=grr-wizard-form:contains('OS')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('/tmp/very-evil.txt')")
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=grr-wizard-form:contains('%s')" % transfer.GetFile.__name__)
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('DummyOutputPlugin')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('foobar!')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('blah!')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('my personal copy')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Os darwin')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-wizard-form:contains('42')")
-
-    # Click on "Run" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Created Hunt')")
-
-    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-    hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
-
-    self.assertLen(hunts_list, 2)
-    last_hunt = aff4.FACTORY.Open(hunts_list[-1], token=self.token)
-
-    self.assertEqual(last_hunt.args.flow_args.pathspec.path,
-                     "/tmp/very-evil.txt")
-    self.assertEqual(last_hunt.args.flow_args.pathspec.pathtype, "OS")
-    self.assertEqual(last_hunt.args.flow_runner_args.flow_name,
-                     transfer.GetFile.__name__)
-
-    self.assertLen(last_hunt.runner_args.output_plugins, 2)
-    self.assertEqual(last_hunt.runner_args.output_plugins[0].plugin_name,
-                     "DummyOutputPlugin")
-    self.assertEqual(
-        last_hunt.runner_args.output_plugins[0].plugin_args.filename_regex,
-        "foobar!")
-    self.assertEqual(
-        last_hunt.runner_args.output_plugins[0].plugin_args.fetch_binaries,
-        False)
-    self.assertEqual(last_hunt.runner_args.output_plugins[1].plugin_name,
-                     "DummyOutputPlugin")
-    self.assertEqual(
-        last_hunt.runner_args.output_plugins[1].plugin_args.filename_regex,
-        "blah!")
-    self.assertEqual(
-        last_hunt.runner_args.output_plugins[1].plugin_args.fetch_binaries,
-        True)
-
-    runner_args = last_hunt.runner_args
-    self.assertAlmostEqual(runner_args.client_rate, 42)
-    self.assertEqual(runner_args.description, "my personal copy")
-    self.assertEqual(
-        runner_args.client_rule_set,
-        foreman_rules.ForemanClientRuleSet(rules=[
-            foreman_rules.ForemanClientRule(
-                os=foreman_rules.ForemanOsClientRule(os_darwin=True))
-        ]))
-
-  def testCopyHuntHandlesLiteralExpressionCorrectly(self):
-    """Literals are raw bytes. Testing that raw bytes are processed right."""
-    literal_match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
-        literal=b"foo\x0d\xc8bar")
-
-    implementation.StartHunt(
-        hunt_name=standard.GenericHunt.__name__,
-        description="model hunt",
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=file_finder.FileFinder.__name__),
-        flow_args=rdf_file_finder.FileFinderArgs(
-            conditions=[
-                rdf_file_finder.FileFinderCondition(
-                    condition_type="CONTENTS_LITERAL_MATCH",
-                    contents_literal_match=literal_match)
-            ],
-            paths=["/tmp/evil.txt"]),
-        token=self.token)
-
-    self.Open("/#main=ManageHunts")
-    self.Click("css=tr:contains('model hunt')")
-    self.Click("css=button[name=CopyHunt]:not([disabled])")
-
-    # Wait until dialog appears.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('What to run?')")
-
-    # Check that non-default values of sample hunt are prefilled.
-    self.WaitUntilEqual(
-        "foo\\x0d\\xc8bar", self.GetValue, "css=grr-new-hunt-wizard-form "
-        "label:contains('Literal') ~ * input:text")
-
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Where to run?')")
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Review')")
-
-    # Check that the arguments summary is present.
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=grr-wizard-form:contains('%s')" % file_finder.FileFinder.__name__)
-    self.WaitUntil(self.IsTextPresent, "foo\\x0d\\xc8bar")
-
-    # Click on "Run" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Created Hunt')")
-    # Close the window and check that the hunt was created.
-    self.Click("css=button.Next")
-
-    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-    hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
-
-    self.assertLen(hunts_list, 2)
-    last_hunt = aff4.FACTORY.Open(hunts_list[-1], token=self.token)
-
-    # Check that the hunt was created with a correct literal value.
-    self.assertEqual(last_hunt.args.flow_runner_args.flow_name,
-                     file_finder.FileFinder.__name__)
-    self.assertEqual(
-        last_hunt.args.flow_args.conditions[0].contents_literal_match.literal,
-        b"foo\x0d\xc8bar")
-
-  def testCopyHuntPreservesRuleType(self):
-    implementation.StartHunt(
-        hunt_name=standard.GenericHunt.__name__,
-        description="model hunt",
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=transfer.GetFile.__name__),
-        flow_args=transfer.GetFileArgs(
-            pathspec=rdf_paths.PathSpec(
-                path="/tmp/evil.txt",
-                pathtype=rdf_paths.PathSpec.PathType.TSK,
-            )),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(rules=[
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                os=foreman_rules.ForemanOsClientRule(os_darwin=True))
-        ]),
-        token=self.token)
-
-    self.Open("/#main=ManageHunts")
-    self.Click("css=tr:contains('model hunt')")
-    self.Click("css=button[name=CopyHunt]:not([disabled])")
-
-    # Wait until dialog appears.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('What to run?')")
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
-    # Click on "Next" button.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Where to run?')")
-    self.WaitUntil(
-        self.IsElementPresent, "css=grr-new-hunt-wizard-form "
-        "label:contains('Os darwin') ~ * input:checked")
-
-  def testRuleTypeChangeClearsItsProto(self):
-    # Open up and click on View Hunts.
-    self.Open("/")
-    self.Click("css=a[grrtarget=hunts]")
-
-    # Open up "New Hunt" wizard
-    self.Click("css=button[name=NewHunt]")
-
-    # Click on Filesystem item in flows list
-    self.Click("css=#_Filesystem > i.jstree-icon")
-
-    # Click on the FileFinder item in Filesystem flows list
-    self.Click("link=File Finder")
-
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
-
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
-
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Where to run?')")
-
-    # Changing the rule type clears the entered data under the hood.
-    self.Click("css=grr-configure-rules-page button[name=Add]")
-    self.Click("css=grr-configure-rules-page div.well:nth(0) "
-               "label:contains('Os windows') ~ * input[type=checkbox]")
-    self.Select("css=grr-configure-rules-page div.well:nth(0) select",
-                "Integer")
-
-    rule = foreman_rules.ForemanIntegerClientRule
-    label = rule.ForemanIntegerField.CLIENT_CLOCK.description
-    self.Select(
-        "css=grr-configure-rules-page div.well:nth(0) "
-        "label:contains('Field') ~ * select", label)
-
-    # Click on "Next" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Review')")
-
-    # Click on "Run" button
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Created Hunt')")
-    # Close the window
-    self.Click("css=button.Next")
-
-    # Check that the hunt object was actually created
-    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-    hunts_list = list(hunts_root.OpenChildren())
-    self.assertLen(hunts_list, 1)
-
-    hunt = hunts_list[0]
-
-    # Check that the hunt was created with correct rules
-    rules = hunt.runner_args.client_rule_set.rules
-    self.assertLen(rules, 1)
-    rule = rules[0]
-
-    self.assertEqual(rule.rule_type,
-                     foreman_rules.ForemanClientRule.Type.INTEGER)
-    self.assertEqual(rule.integer.field, "CLIENT_CLOCK")
-
-    # Assert that the deselected union field is cleared
-    self.assertFalse(rule.os.os_windows)
-
   def testPathAutocomplete(self):
-    self.CreateHuntFixtureWithTwoClients()
-
     # Open Hunts
     self.Open("/#/hunts")
 

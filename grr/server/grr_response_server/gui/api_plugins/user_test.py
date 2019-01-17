@@ -23,11 +23,7 @@ from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_test_lib
-
 from grr_response_server.gui.api_plugins import user as user_plugin
-from grr_response_server.hunts import implementation
-from grr_response_server.hunts import standard
-
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -536,9 +532,9 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
 
 @db_test_lib.DualDBTest
-class ApiCreateHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                       ApiCreateApprovalHandlerTestMixin,
-                                       hunt_test_lib.StandardHuntTestMixin):
+class ApiCreateHuntApprovalHandlerTest(ApiCreateApprovalHandlerTestMixin,
+                                       hunt_test_lib.StandardHuntTestMixin,
+                                       api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateHuntApprovalHandler."""
 
   def ReadApproval(self, approval_id):
@@ -552,8 +548,8 @@ class ApiCreateHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.SetUpApprovalTest()
 
-    with self.CreateHunt(description="foo") as hunt_obj:
-      hunt_id = hunt_obj.urn.Basename()
+    hunt_urn = self.StartHunt(description="foo")
+    hunt_id = hunt_urn.Basename()
 
     self.handler = user_plugin.ApiCreateHuntApprovalHandler()
 
@@ -564,7 +560,7 @@ class ApiCreateHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
 
 @db_test_lib.DualDBTest
-class ApiListHuntApprovalsHandlerTest(acl_test_lib.AclTestMixin,
+class ApiListHuntApprovalsHandlerTest(hunt_test_lib.StandardHuntTestMixin,
                                       api_test_lib.ApiCallHandlerTest):
   """Test for ApiListHuntApprovalsHandler."""
 
@@ -573,12 +569,10 @@ class ApiListHuntApprovalsHandlerTest(acl_test_lib.AclTestMixin,
     self.handler = user_plugin.ApiListHuntApprovalsHandler()
 
   def testRendersRequestedHuntAppoval(self):
-    with implementation.StartHunt(
-        hunt_name=standard.SampleHunt.__name__, token=self.token) as hunt:
-      pass
+    hunt_urn = self.StartHunt()
 
     self.RequestHuntApproval(
-        hunt.urn.Basename(),
+        hunt_urn.Basename(),
         reason=self.token.reason,
         approver=u"approver",
         requestor=self.token.username)

@@ -72,6 +72,9 @@ config_lib.DEFINE_bool("Database.useForReads.signed_binaries", False,
 config_lib.DEFINE_bool("Database.useForReads.client_reports", False,
                        "Read client-report data from the relational database.")
 
+config_lib.DEFINE_bool("Database.useForReads.hunts", False,
+                       "Read hunts from the relational database by default.")
+
 config_lib.DEFINE_bool("Database.aff4_enabled", True,
                        "Enables reading/writing to the legacy data store.")
 

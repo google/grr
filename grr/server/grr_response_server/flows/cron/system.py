@@ -188,8 +188,8 @@ class AbstractClientStatsCronJob(cronjobs.SystemCronJobBase):
 class GRRVersionBreakDownCronJob(AbstractClientStatsCronJob):
   """Records relative ratios of GRR versions in 7 day actives."""
 
-  frequency = rdfvalue.Duration("4h")
-  lifetime = rdfvalue.Duration("4h")
+  frequency = rdfvalue.Duration("6h")
+  lifetime = rdfvalue.Duration("6h")
   recency_window = rdfvalue.Duration("30d")
 
   def BeginProcessing(self):

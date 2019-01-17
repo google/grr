@@ -120,11 +120,19 @@ class Flow(rdf_structs.RDFProtoStruct):
 
 
 def _ClientIDFromSessionID(session_id):
-  client_id = session_id.Split(3)[0]
-  if not re.match(r"C\.[0-9a-f]{16}", client_id):
-    raise ValueError(
-        "Unable to parse client id from session_id: %s" % session_id)
-  return client_id
+  """Extracts the client id from a session id."""
+
+  parts = session_id.Split(3)
+  client_id = parts[0]
+  if re.match(r"C\.[0-9a-f]{16}", client_id):
+    return client_id
+
+  # Maybe it's a legacy hunt id (aff4:/hunts/<hunt_id>/<client_id>/...
+  client_id = parts[2]
+  if re.match(r"C\.[0-9a-f]{16}", client_id):
+    return client_id
+
+  raise ValueError("Unable to parse client id from session_id: %s" % session_id)
 
 
 status_map = {

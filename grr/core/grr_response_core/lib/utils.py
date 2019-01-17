@@ -956,6 +956,7 @@ class StreamingZipGenerator(object):
 
   def WriteFileChunk(self, chunk):
     """Writes file chunk."""
+    precondition.AssertType(chunk, bytes)
 
     if not self._stream:
       raise ArchiveAlreadyClosedError(

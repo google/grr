@@ -5,13 +5,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import os
 import socket
-import yaml
 
 from grr_response_core import config
 from grr_response_core.lib import flags
 from grr_response_core.lib import ipv6_utils
+from grr_response_core.lib.util import yaml
 from grr.test_lib import test_lib
 
 
@@ -33,8 +34,8 @@ class Ipv6UtilsTest(test_lib.GRRBaseTest):
 
   def testInetPtoNandNtoP(self):
     path = os.path.join(config.CONFIG["Test.data_dir"], "ipv6_addresses.yaml")
-    with open(path, "rb") as test_data:
-      test_dict = yaml.safe_load(test_data)
+    with io.open(path, "r") as test_data:
+      test_dict = yaml.Parse(test_data.read())
 
     for address in test_dict["ipv6_test_set"]:
       expected_packed, expected_unpacked = test_dict["ipv6_test_set"][address]

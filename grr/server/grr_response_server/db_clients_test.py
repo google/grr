@@ -1056,6 +1056,15 @@ class DatabaseTestClientsMixin(object):
         [present_client_id, missing_client_id])
     self.assertEqual(full_infos.keys(), [present_client_id])
 
+  def testMultiReadClientsFullInfoNoSnapshot(self):
+    d = self.db
+
+    client_id = "C.fc413187fefa1dcf"
+    d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    full_info = d.MultiReadClientFullInfo([client_id])[client_id]
+    expected_snapshot = rdf_objects.ClientSnapshot(client_id=client_id)
+    self.assertEqual(full_info.last_snapshot, expected_snapshot)
+
   def testReadClientMetadataRaisesWhenClientIsMissing(self):
     with self.assertRaises(db.UnknownClientError):
       self.db.ReadClientMetadata("C.00413187fefa1dcf")

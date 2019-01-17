@@ -489,7 +489,7 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
   """Tests the GRRFEServer with relational flows enabled."""
 
   def testReceiveMessages(self):
-    """Tests Receiving messages."""
+    """Tests receiving messages."""
     client_id = u"C.1234567890123456"
     flow_id = u"12345678"
     data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
@@ -521,6 +521,23 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(received, 1)
     self.assertEqual(received[0][0], req)
     self.assertLen(received[0][1], 9)
+
+  def testOldStyleHuntIDsDontError(self):
+    """Tests receiving messages with old style hunt ids."""
+    client_id = u"C.1234567890123456"
+    hunt_id = "aff4:/hunts/H:3479C8EA/C.917bf16e123bf731/H:5E69190A/H:A21A1AA2"
+    messages = [
+        rdf_flows.GrrMessage(
+            request_id=1,
+            response_id=1,
+            session_id=hunt_id,
+            auth_state="AUTHENTICATED",
+            payload=rdfvalue.RDFInteger(1))
+    ]
+
+    # This must not raise even though we don't generate session ids like the one
+    # above anymore.
+    ReceiveMessages(client_id, messages)
 
 
 class FleetspeakFrontendTests(frontend_test_lib.FrontEndServerTest):

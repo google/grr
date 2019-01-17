@@ -5,13 +5,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import io
 import sys
 
 
 from absl import app
 from absl.flags import argparse_flags
 from future.builtins import input
-import yaml
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
@@ -370,10 +370,10 @@ def main(args):
     config.Write()
 
   elif args.subparser_name == "upload_artifact":
-    yaml.load(open(args.file, "rb"))  # Check it will parse.
+    with io.open(args.file, "r") as filedesc:
+      source = filedesc.read()
     try:
-      artifact.UploadArtifactYamlFile(
-          open(args.file, "rb").read(), overwrite=args.overwrite_artifact)
+      artifact.UploadArtifactYamlFile(source, overwrite=args.overwrite_artifact)
     except rdf_artifacts.ArtifactDefinitionError as e:
       print("Error %s. You may need to set --overwrite_artifact." % e)
 

@@ -10,11 +10,10 @@ import os
 import zipfile
 
 
-import yaml
-
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import yaml
 from grr_response_server import aff4
 from grr_response_server import db
 from grr_response_server.aff4_objects import aff4_grr
@@ -30,7 +29,7 @@ class Aff4CollectionArchiveGenerator(object):
   FILES_SKIPPED_WARNING = (
       "# NOTE: Some files were skipped because they were referenced in the \n"
       "# collection but were not downloaded by GRR, so there were no data \n"
-      "# blobs in the data store to archive.\n")
+      "# blobs in the data store to archive.\n").encode("utf-8")
 
   BATCH_SIZE = 1000
 
@@ -109,10 +108,10 @@ class Aff4CollectionArchiveGenerator(object):
     if self.failed_files:
       manifest["failed_files_list"] = list(self.failed_files)
 
-    manifest_fd = io.StringIO()
+    manifest_fd = io.BytesIO()
     if self.total_files != len(self.archived_files):
       manifest_fd.write(self.FILES_SKIPPED_WARNING)
-    manifest_fd.write(yaml.safe_dump(manifest).decode("utf-8"))
+    manifest_fd.write(yaml.Dump(manifest).encode("utf-8"))
 
     manifest_fd.seek(0)
     st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0,
@@ -126,7 +125,7 @@ class Aff4CollectionArchiveGenerator(object):
     """Yields chucks of archive information for given client."""
     summary_dict = client_fd.GetSummary().ToPrimitiveDict(
         stringify_leaf_fields=True)
-    summary = yaml.safe_dump(summary_dict).decode("utf-8")
+    summary = yaml.Dump(summary_dict).encode("utf-8")
 
     client_info_path = os.path.join(self.prefix, client_fd.urn.Basename(),
                                     "client_info.yaml")

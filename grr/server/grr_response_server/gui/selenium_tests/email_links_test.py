@@ -20,8 +20,6 @@ from grr_response_server import email_alerts
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import gui_test_lib
-from grr_response_server.hunts import implementation
-from grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
@@ -53,17 +51,6 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     m = re.search(r"href='(.+?)'", message, re.MULTILINE)
     link = urlparse.urlparse(m.group(1))
     return link.path + "/" + "#" + link.fragment
-
-  def CreateSampleHunt(self, token=None):
-
-    with implementation.StartHunt(
-        hunt_name=standard.SampleHunt.__name__,
-        client_rate=100,
-        filename="TestFilename",
-        client_rule_set=self._CreateForemanClientRuleSet(),
-        token=token or self.token) as hunt:
-
-      return hunt.session_id
 
   def testEmailClientApprovalRequestLinkLeadsToACorrectPage(self):
     client_id = self.SetupClient(0)
@@ -119,7 +106,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
 
   def testEmailHuntApprovalRequestLinkLeadsToACorrectPage(self):
-    hunt_id = self.CreateSampleHunt()
+    hunt_id = self.StartHunt(description="foobar")
 
     # Request hunt approval, it will trigger an email message.
     self.RequestHuntApproval(
@@ -142,10 +129,10 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
     self.WaitUntil(self.IsTextPresent, hunt_id.Basename())
-    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "foobar")
 
   def testEmailHuntApprovalGrantNotificationLinkLeadsToCorrectPage(self):
-    hunt_id = self.CreateSampleHunt()
+    hunt_id = self.StartHunt()
 
     self.RequestAndGrantHuntApproval(
         hunt_id.Basename(),

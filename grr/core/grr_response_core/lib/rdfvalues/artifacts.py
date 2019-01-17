@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import collections
 import json
 
 
@@ -12,7 +13,6 @@ from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import string_types
-import yaml
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -20,6 +20,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import yaml
 from grr_response_proto import artifact_pb2
 from grr_response_proto import flows_pb2
 
@@ -336,13 +337,15 @@ class Artifact(rdf_structs.RDFProtoStruct):
     sources_dict = artifact_dict.get("sources")
     if sources_dict:
       artifact_dict["sources"] = [ReduceDict(c) for c in sources_dict]
+
     # Do some clunky stuff to put the name and doc first in the YAML.
     # Unfortunately PYYaml makes doing this difficult in other ways.
-    name = artifact_dict.pop("name")
-    doc = artifact_dict.pop("doc")
-    doc_str = yaml.safe_dump({"doc": doc}, allow_unicode=True, width=80)[1:-2]
-    yaml_str = yaml.safe_dump(artifact_dict, allow_unicode=True, width=80)
-    return "name: %s\n%s\n%s" % (name, doc_str, yaml_str)
+    ordered_artifact_dict = collections.OrderedDict()
+    ordered_artifact_dict["name"] = artifact_dict.pop("name")
+    ordered_artifact_dict["doc"] = artifact_dict.pop("doc")
+    ordered_artifact_dict.update(artifact_dict)
+
+    return yaml.Dump(ordered_artifact_dict)
 
 
 class ArtifactProcessorDescriptor(rdf_structs.RDFProtoStruct):

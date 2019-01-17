@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
 from future.utils import iterkeys
 
 from grr_response_core.lib import flags

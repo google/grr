@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
+
 from future.utils import string_types
 
 from grr_response_core import config
@@ -92,7 +94,8 @@ class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
     if yaml_data:
       self.reader.CreateAuthorizations(yaml_data, ClientApprovalAuthorization)
     else:
-      with open(config.CONFIG["ACL.approvers_config_file"], mode="rb") as fh:
+      config_filepath = config.CONFIG["ACL.approvers_config_file"]
+      with io.open(config_filepath, mode="r", encoding="utf-8") as fh:
         self.reader.CreateAuthorizations(fh.read(), ClientApprovalAuthorization)
 
     for approval_spec in self.reader.GetAllAuthorizationObjects():

@@ -24,7 +24,6 @@ from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
-import yaml
 
 # pylint: disable=g-import-not-at-top,unused-import
 # This is a workaround so we don't need to maintain the whole PyInstaller
@@ -57,6 +56,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.local import plugins
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.util import yaml
 
 # pylint: enable=g-import-not-at-top,unused-import
 
@@ -238,7 +238,7 @@ class ClientBuilder(BuilderBase):
     if output_keys != self.REQUIRED_BUILD_YAML_KEYS:
       raise RuntimeError("Bad build.yaml: expected %s, got %s" %
                          (self.REQUIRED_BUILD_YAML_KEYS, output_keys))
-    fd.write(yaml.dump(output))
+    fd.write(yaml.Dump(output).encode("utf-8"))
 
   def CopyMissingModules(self):
     """Copy any additional DLLs that cant be found."""

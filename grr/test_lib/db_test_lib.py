@@ -22,13 +22,19 @@ class RelationalDBEnabledMixin(object):
 
     self._aff4_disabler = mock.patch.object(
         data_store, "AFF4Enabled", return_value=False)
+
     # TODO(amoser): This does not work yet. We need to clean up lots of flows
     # that still use AFF4 but also we need to make hunts work on the relational
     # db only.
     # self._aff4_disabler.start()
 
+    # NOTE: this is a temporary (until the next REL_DB hunts CL) solution to
+    # allow for an easy CL split of REL_DB logic.
+    def ReadEnabledStub(category=None):
+      return category != "hunts"
+
     self._rel_db_read_enabled_patch = mock.patch.object(
-        data_store, "RelationalDBReadEnabled", return_value=True)
+        data_store, "RelationalDBReadEnabled", side_effect=ReadEnabledStub)
     self._rel_db_read_enabled_patch.start()
 
     self._rel_db_write_enabled_patch = mock.patch.object(

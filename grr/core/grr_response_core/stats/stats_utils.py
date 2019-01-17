@@ -9,8 +9,10 @@ import functools
 import time
 
 from past.builtins import long
+from typing import Text
 
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
 
 
@@ -75,11 +77,12 @@ class CountingExceptionMixin(object):
 
 def FieldDefinitionProtosFromTuples(field_def_tuples):
   """Converts (field-name, type) tuples to MetricFieldDefinition protos."""
+  # TODO: This needs fixing for Python 3.
   field_def_protos = []
   for field_name, field_type in field_def_tuples:
     if field_type in (int, long):
       field_type = rdf_stats.MetricFieldDefinition.FieldType.INT
-    elif field_type == str:
+    elif issubclass(field_type, Text):
       field_type = rdf_stats.MetricFieldDefinition.FieldType.STR
     else:
       raise ValueError("Invalid field type: %s" % field_type)
@@ -91,12 +94,14 @@ def FieldDefinitionProtosFromTuples(field_def_tuples):
 
 def FieldDefinitionTuplesFromProtos(field_def_protos):
   """Converts MetricFieldDefinition protos to (field-name, type) tuples."""
+  # TODO: This needs fixing for Python 3.
   field_def_tuples = []
   for proto in field_def_protos:
     if proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.INT:
       field_type = int
     elif proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.STR:
-      field_type = str
+      # Use old style str in Python 2 here or the streamz library will break.
+      field_type = compatibility.builtins.str
     else:
       raise ValueError("Unknown field type: %s" % proto.field_type)
     field_def_tuples.append((proto.field_name, field_type))

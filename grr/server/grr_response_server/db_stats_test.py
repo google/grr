@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 
 import itertools
 
+from future.builtins import str
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.stats import stats_collector_instance
@@ -104,13 +106,13 @@ class DatabaseTestStatsMixin(object):
       self.db.WriteStatsStoreEntries([bad_single_dim_entry])
     self.assertEqual(
         "Value for metric single_dim_counter had 2 field values, yet the "
-        "metric was defined to have 0 fields.", cm.exception.message)
+        "metric was defined to have 0 fields.", str(cm.exception))
 
     with self.assertRaises(ValueError) as cm:
       self.db.WriteStatsStoreEntries([bad_multi_dim_entry])
     self.assertEqual(
         "Value for metric multi_dim_counter had 0 field values, yet the "
-        "metric was defined to have 2 fields.", cm.exception.message)
+        "metric was defined to have 2 fields.", str(cm.exception))
 
   def testDuplicateStatsEntryWrite_SingleDimensional(self):
     """Tests errors raised when writing duplicate single-dimensional entries."""

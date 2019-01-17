@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 
 from grr_response_core.lib import flags
-
+from grr_response_core.lib.util import compatibility
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.output_plugins import email_plugin
@@ -30,7 +30,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
 
   def testCreateHuntFromFlow(self):
     email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name=email_plugin.EmailOutputPlugin.__name__,
+        plugin_name=compatibility.GetName(email_plugin.EmailOutputPlugin),
         plugin_args=email_plugin.EmailOutputPluginArgs(
             email_address="test@localhost", emails_limit=42))
 
@@ -87,7 +87,8 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilEqual(1, self.GetCssCount,
                         "css=grr-hunts-list table tbody tr.row-selected")
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
-    self.WaitUntil(self.IsTextPresent, flows_processes.ListProcesses.__name__)
+    self.WaitUntil(self.IsTextPresent,
+                   compatibility.GetName(flows_processes.ListProcesses))
 
   def testCheckCreateHuntButtonIsOnlyEnabledWithFlowSelection(self):
     flow_test_lib.StartFlow(

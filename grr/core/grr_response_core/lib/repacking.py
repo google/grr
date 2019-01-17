@@ -6,6 +6,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import getpass
+import io
 import logging
 import os
 import platform
@@ -43,7 +44,8 @@ class RepackConfig(object):
         raise RuntimeError("Couldn't find build.yaml in %s" % template_path)
       with template_zip.open(build_yaml) as buildfile:
         repack_config = config.CONFIG.CopyConfig()
-        parser = config_lib.YamlParser(fd=buildfile)
+        utf8_buildfile = io.TextIOWrapper(buildfile, encoding="utf-8")
+        parser = config_lib.YamlParser(fd=utf8_buildfile)
         config_data = parser.RawData()
         self.Validate(config_data, template_path)
         repack_config.MergeData(config_data)
