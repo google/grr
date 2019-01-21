@@ -64,20 +64,18 @@ class IAPWebAuthManager(BaseWebAuthManager):
   def __init__(self, *args, **kwargs):
     super(IAPWebAuthManager, self).__init__(*args, **kwargs)
 
-    if config.CONFIG["AdminUI.cloud_project_id"] is None or \
-       config.CONFIG["AdminUI.cloud_backend_service_id"] is None:
+    if config.CONFIG["AdminUI.google_cloud_project_id"] is None or \
+       config.CONFIG["AdminUI.google_cloud_backend_service_id"] is None:
       raise RuntimeError("The necessary Cloud IAP configuration options are"
-                         "not set. Please set your AdminUI.cloud_project_id"
-                         "or AdminUI.cloud_backend_service_id keys.")
+                         "not set. Please set your AdminUI.google_cloud_project_id"
+                         "or AdminUI.google_cloud_backend_service_id keys.")
 
-    self.cloud_project_id = config.CONFIG["AdminUI.cloud_project_id"]
-    self.backend_service_id = config.CONFIG["AdminUI.cloud_backend_service_id"]
+    self.cloud_project_id = config.CONFIG["AdminUI.google_cloud_project_id"]
+    self.backend_service_id = config.CONFIG["AdminUI.google_cloud_backend_service_id"]
     self.iap_header = "x-goog-iap-jwt-assertion"
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     """Wrapping function."""
-    request.user = u""
-
     if self.iap_header in request.headers:
       jwt = request.headers.get(self.iap_header)
       user_id, user_email, error_str = validate_iap.ValidateIapJwtFromComputeEngine(jwt, self.cloud_project_id, self.backend_service_id)
@@ -92,16 +90,7 @@ class IAPWebAuthManager(BaseWebAuthManager):
       return werkzeug_wrappers.Response("Unauthorized", status=401)
     else:
       # Generate a new user if not created, else authenticate current
-      try:
-        grr_user = config_updater_util.GetUserSummary(user_id)
-      except config_updater_util.UserNotFoundError:
-        grr_user = None
-
-      if grr_user:
-        request.user = user_id
-      else:
-        config_updater_util.CreateUser(user_id, uuid.uuid4().hex)
-        request.user = user_id
+      request.user = user_id
 
       return func(request, *args, **kwargs)
 
