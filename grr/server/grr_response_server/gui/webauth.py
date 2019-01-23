@@ -5,7 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-
+import uuid
 
 from future.utils import with_metaclass
 from werkzeug import utils as werkzeug_utils
@@ -20,6 +20,8 @@ from grr_response_server import aff4
 
 from grr_response_server.aff4_objects import users as aff4_users
 
+from grr_response_server.bin import config_updater_util
+from grr_response_server.gui import validate_iap
 
 class BaseWebAuthManager(with_metaclass(registry.MetaclassRegistry, object)):
   """A class managing web authentication.
@@ -51,6 +53,46 @@ class BaseWebAuthManager(with_metaclass(registry.MetaclassRegistry, object)):
     """Return a redirect to the main GRR page."""
     return werkzeug_utils.redirect(config.CONFIG["AdminUI.url"])
 
+class IAPWebAuthManager(BaseWebAuthManager):
+  """Auth Manager for Google IAP.
+
+  This extension pulls the x-goog-iap-jwt-assertion header and generates
+  a new user for that header via the 'sub' claim. Authorization is now 
+  delegated to IAP.
+  """
+
+  def __init__(self, *args, **kwargs):
+    super(IAPWebAuthManager, self).__init__(*args, **kwargs)
+
+    if config.CONFIG["AdminUI.google_cloud_project_id"] is None or \
+       config.CONFIG["AdminUI.google_cloud_backend_service_id"] is None:
+      raise RuntimeError("The necessary Cloud IAP configuration options are"
+                         "not set. Please set your AdminUI.google_cloud_project_id"
+                         "or AdminUI.google_cloud_backend_service_id keys.")
+
+    self.cloud_project_id = config.CONFIG["AdminUI.google_cloud_project_id"]
+    self.backend_service_id = config.CONFIG["AdminUI.google_cloud_backend_service_id"]
+    self.iap_header = "x-goog-iap-jwt-assertion"
+
+  def SecurityCheck(self, func, request, *args, **kwargs):
+    """Wrapping function."""
+    if self.iap_header in request.headers:
+      jwt = request.headers.get(self.iap_header)
+      user_id, user_email, error_str = validate_iap.ValidateIapJwtFromComputeEngine(jwt, self.cloud_project_id, self.backend_service_id)
+    else:
+      return werkzeug_wrappers.Response("Unauthorized", status=401)
+
+    if error_str:
+      # Log error
+      logging.error("IAPWebAuthManager failed with: %s", error_str)
+
+      # Return failure if IAP is not decoded correctly
+      return werkzeug_wrappers.Response("Unauthorized", status=401)
+    else:
+      # Generate a new user if not created, else authenticate current
+      request.user = user_id
+
+      return func(request, *args, **kwargs)
 
 class BasicWebAuthManager(BaseWebAuthManager):
   """Manager using basic auth using the config file."""
