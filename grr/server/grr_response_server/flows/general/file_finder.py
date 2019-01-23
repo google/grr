@@ -412,7 +412,7 @@ class ClientFileFinderMixin(object):
           files_to_publish.append(
               response.stat_entry.pathspec.AFF4Path(self.client_urn))
 
-    if files_to_publish:
+    if files_to_publish and not data_store.RelationalDBReadEnabled("filestore"):
       events.Events.PublishMultipleEvents(
           {"LegacyFileStore.AddFileToStore": files_to_publish})
 

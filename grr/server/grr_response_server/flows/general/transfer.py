@@ -859,10 +859,11 @@ class MultiGetFileLogic(object):
 
           data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-        # Publish the new file event to cause the file to be added to the
-        # filestore.
-        events.Events.PublishEvent(
-            "LegacyFileStore.AddFileToStore", urn, token=self.token)
+        if not data_store.RelationalDBReadEnabled("filestore"):
+          # Publish the new file event to cause the file to be added to the
+          # filestore.
+          events.Events.PublishEvent(
+              "LegacyFileStore.AddFileToStore", urn, token=self.token)
 
         # Save some space.
         del file_tracker["blobs"]

@@ -247,26 +247,27 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         # There is a STAT entry.
         self.assertTrue(aff4_obj.Get(aff4_obj.Schema.STAT))
 
-        # Make sure the HashFileStore has references to this file for
-        # all hashes.
-        hash_entry = data_store_utils.GetFileHashEntry(aff4_obj)
-        fs = filestore.HashFileStore
-        md5_refs = list(fs.GetReferencesMD5(hash_entry.md5, token=self.token))
-        self.assertIn(aff4_obj.urn, md5_refs)
-        sha1_refs = list(
-            fs.GetReferencesSHA1(hash_entry.sha1, token=self.token))
-        self.assertIn(aff4_obj.urn, sha1_refs)
-        sha256_refs = list(
-            fs.GetReferencesSHA256(hash_entry.sha256, token=self.token))
-        self.assertIn(aff4_obj.urn, sha256_refs)
+        if not data_store.RelationalDBReadEnabled("filestore"):
+          # Make sure the HashFileStore has references to this file for
+          # all hashes.
+          hash_entry = data_store_utils.GetFileHashEntry(aff4_obj)
+          fs = filestore.HashFileStore
+          md5_refs = list(fs.GetReferencesMD5(hash_entry.md5, token=self.token))
+          self.assertIn(aff4_obj.urn, md5_refs)
+          sha1_refs = list(
+              fs.GetReferencesSHA1(hash_entry.sha1, token=self.token))
+          self.assertIn(aff4_obj.urn, sha1_refs)
+          sha256_refs = list(
+              fs.GetReferencesSHA256(hash_entry.sha256, token=self.token))
+          self.assertIn(aff4_obj.urn, sha256_refs)
 
-        # Open the file inside the file store.
-        urn, _ = fs(None, token=self.token).CheckHashes([hash_entry]).next()
-        filestore_fd = aff4.FACTORY.Open(urn, token=self.token)
-        # This is a VFSBlobImage too.
-        self.assertIsInstance(filestore_fd, aff4_grr.VFSBlobImage)
-        # No STAT object attached.
-        self.assertFalse(filestore_fd.Get(filestore_fd.Schema.STAT))
+          # Open the file inside the file store.
+          urn, _ = fs(None, token=self.token).CheckHashes([hash_entry]).next()
+          filestore_fd = aff4.FACTORY.Open(urn, token=self.token)
+          # This is a VFSBlobImage too.
+          self.assertIsInstance(filestore_fd, aff4_grr.VFSBlobImage)
+          # No STAT object attached.
+          self.assertFalse(filestore_fd.Get(filestore_fd.Schema.STAT))
 
 
 def main(args):

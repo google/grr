@@ -168,10 +168,10 @@ setup_args = dict(
         "pexpect==4.0.1",
         "portpicker==1.1.1",
         "prometheus_client==0.5.0",
+        "pyjwt==1.7.1",
         "python-crontab==2.0.1",
         "python-debian==0.1.31",
         "Werkzeug==0.11.3",
-        "pyjwt==1.7.1",
     ],
     extras_require={
         # This is an optional component. Install to get MySQL data

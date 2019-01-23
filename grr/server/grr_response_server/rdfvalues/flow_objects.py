@@ -130,7 +130,7 @@ class Flow(rdf_structs.RDFProtoStruct):
 def _ClientIDFromSessionID(session_id):
   """Extracts the client id from a session id."""
 
-  parts = session_id.Split(3)
+  parts = session_id.Split(4)
   client_id = parts[0]
   if re.match(r"C\.[0-9a-f]{16}", client_id):
     return client_id

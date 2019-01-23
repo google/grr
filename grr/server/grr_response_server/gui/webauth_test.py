@@ -6,8 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import base64
-
-
 import mock
 
 from werkzeug import test as werkzeug_test
@@ -18,8 +16,8 @@ from google.oauth2 import id_token
 from grr_response_core.lib import flags
 from grr_response_server import aff4
 from grr_response_server.aff4_objects import users as aff4_users
-from grr_response_server.gui import webauth
 from grr_response_server.gui import validate_iap
+from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp
 from grr.test_lib import test_lib
 
@@ -33,8 +31,7 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
     self.success_response = werkzeug_wrappers.Response("foobar")
 
   def HandlerStub(self, request, *args, **kwargs):
-    _ = args
-    _ = kwargs
+    del request, args, kwargs  # Unused.
 
     return self.success_response
 
@@ -179,9 +176,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     self.assertEqual(mock_method.call_args_list[0][1], dict(audience="foo-bar"))
 
   @mock.patch.object(
-      id_token, "verify_firebase_token", return_value={
-          "iss": "blah"
-      })
+      id_token, "verify_firebase_token", return_value={"iss": "blah"})
   def testReportsErrorIfIssuerIsWrong(self, mock_method):
     _ = mock_method
     environ = werkzeug_test.EnvironBuilder(
@@ -214,17 +209,17 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     self.assertTrue(self.checked_request)
     self.assertEqual(self.checked_request.user, "foo@bar.com")
 
+
 class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
-  
+
   def testNoHeader(self):
     """Test requests sent to the Admin UI without an IAP Header."""
 
-    environ = werkzeug_test.EnvironBuilder(
-        path="/").get_environ()
+    environ = werkzeug_test.EnvironBuilder(path="/").get_environ()
     request = wsgiapp.HttpRequest(environ)
 
     def Handler(request, *args, **kwargs):
-      del args, kwargs  # Unused.
+      del request, args, kwargs  # Unused.
 
       return werkzeug_wrappers.Response("foobar", status=200)
 
@@ -236,25 +231,29 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
   def testFailedSignatureKey(self):
     """Test requests with an invalid JWT Token."""
 
+    assertion_header = (
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsI"
+        "mtpZCI6IjZCRWVvQSJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLmdvb2dsZS5jb20"
+        "vaWFwIiwic3ViIjoiYWNjb3VudHMuZ29vZ2xlLaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaDciLCJlbWFpbCI6ImFaaaaaaaazaaaaaaaaaaaaaaaaaaaaaa8iLCJhd"
+        "WQiOiIvcHJvamVjdaaaaaaaaaaaaaaaaaayaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaayOegyMzkzOTQ2NCIsImV4cCI6MTU0Njk4MDUwNiwiaWF0Ijo"
+        "xNTQ2OTc5OTA2LCJaaCI6InNwb3apaaaaaaaaaaaaaaapayJ9.NZwDs0U_fubYS"
+        "OmYNJAI9ufgoC84zXOCzZkxclWBVXhb1dBVQHpO-VZW-lworDvKxX_BWqagKYTq"
+        "wc4ELBcKTQ")
+
     environ = werkzeug_test.EnvironBuilder(
-      path="/", headers={
-        "X-Goog-IAP-JWT-Assertion": ("eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsI"
-          "mtpZCI6IjZCRWVvQSJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLmdvb2dsZS5jb20"
-          "vaWFwIiwic3ViIjoiYWNjb3VudHMuZ29vZ2xlLaaaaaaaaaaaaaaaaaaaaaaaaa"
-          "aaaaaaaDciLCJlbWFpbCI6ImFaaaaaaaazaaaaaaaaaaaaaaaaaaaaaa8iLCJhd"
-          "WQiOiIvcHJvamVjdaaaaaaaaaaaaaaaaaayaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-          "aaaaaaaaaaaaaaayOegyMzkzOTQ2NCIsImV4cCI6MTU0Njk4MDUwNiwiaWF0Ijo"
-          "xNTQ2OTc5OTA2LCJaaCI6InNwb3apaaaaaaaaaaaaaaapayJ9.NZwDs0U_fubYS"
-          "OmYNJAI9ufgoC84zXOCzZkxclWBVXhb1dBVQHpO-VZW-lworDvKxX_BWqagKYTq"
-          "wc4ELBcKTQ")
-        }).get_environ()
+        path="/",
+        headers={
+            "X-Goog-IAP-JWT-Assertion": assertion_header
+        },
+    ).get_environ()
     request = wsgiapp.HttpRequest(environ)
 
     def Handler(request, *args, **kwargs):
-      del args, kwargs  # Unused.
+      del request, args, kwargs  # Unused.
 
-      self.assertEqual(request.user, user)
-      return werkzeug_wrappers.Response("foobar", status=200)
+      self.fail("Handler shouldn't have been executed.")
 
     manager = webauth.IAPWebAuthManager()
     response = manager.SecurityCheck(Handler, request)
@@ -262,14 +261,15 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
     self.assertEqual(response.status_code, 401)
 
   @mock.patch.object(
-    validate_iap, "ValidateIapJwtFromComputeEngine", return_value=("temp", "temp", "")
-  )
+      validate_iap,
+      "ValidateIapJwtFromComputeEngine",
+      return_value=("temp", "temp", ""))
   def testSuccessfulKey(self, mock_method):
     """Validate account creation upon successful JWT Authentication."""
 
     environ = werkzeug_test.EnvironBuilder(
-      path="/", headers={
-        "X-Goog-IAP-JWT-Assertion": ("valid_key")
+        path="/", headers={
+            "X-Goog-IAP-JWT-Assertion": ("valid_key")
         }).get_environ()
     request = wsgiapp.HttpRequest(environ)
 
@@ -283,6 +283,7 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
     response = manager.SecurityCheck(Handler, request)
 
     self.assertEqual(response.status_code, 200)
+
 
 class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
 

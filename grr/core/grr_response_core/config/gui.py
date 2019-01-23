@@ -140,13 +140,13 @@ config_lib.DEFINE_bool(
     "bundles being present. AdminUI.headless=True should be used to run "
     "the AdminUI as an API endpoint only.")
 
-# Configuration requirements for Cloud IAP Setup
+# Configuration requirements for Cloud IAP Setup.
 config_lib.DEFINE_string(
     "AdminUI.google_cloud_project_id", None,
-    "Cloud Project ID for IAP. This must be set if the IAPWebAuthManager is used."
-)
+    "Cloud Project ID for IAP. This must be set if "
+    "the IAPWebAuthManager is used.")
 
 config_lib.DEFINE_string(
     "AdminUI.google_cloud_backend_service_id", None,
-    "GCP Cloud Backend Service ID for IAP. This must be set if the IAPWebAuthManager is used."
-)
+    "GCP Cloud Backend Service ID for IAP. This must be set if "
+    "the IAPWebAuthManager is used.")
