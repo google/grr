@@ -183,7 +183,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
   def _CheckInterfaces(self, interfaces):
     self.assertEqual(interfaces[0].mac_address, "123456")
-    self.assertEqual(interfaces[0].addresses[0].human_readable, "100.100.100.1")
+    self.assertEqual(interfaces[0].addresses[0].human_readable_address,
+                     "100.100.100.1")
     self.assertEqual(
         socket.inet_ntop(socket.AF_INET,
                          interfaces[0].addresses[0].packed_bytes.AsBytes()),

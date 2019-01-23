@@ -47,4 +47,4 @@ def main(unused_args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  flags.StartMain(main, requires_root=True)

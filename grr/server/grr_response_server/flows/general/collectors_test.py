@@ -30,6 +30,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import temp
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
 from grr_response_server import artifact
@@ -44,7 +45,6 @@ from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import temp
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 

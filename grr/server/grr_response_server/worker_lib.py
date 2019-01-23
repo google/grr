@@ -408,10 +408,12 @@ class GRRWorker(object):
   def ProcessFlow(self, flow_processing_request):
     """The callback for the flow processing queue."""
 
-    data_store.REL_DB.AckFlowProcessingRequests([flow_processing_request])
-
     client_id = flow_processing_request.client_id
     flow_id = flow_processing_request.flow_id
+
+    logging.info("Processing flow %s/%s.", client_id, flow_id)
+
+    data_store.REL_DB.AckFlowProcessingRequests([flow_processing_request])
 
     rdf_flow = data_store.REL_DB.ReadFlowForProcessing(
         client_id, flow_id, processing_time=rdfvalue.Duration("6h"))

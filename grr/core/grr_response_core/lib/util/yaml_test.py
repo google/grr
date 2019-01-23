@@ -83,7 +83,7 @@ grzebiące:
     self.assertIsInstance(yaml.Parse("\"foo\""), Text)
 
 
-class ParseAllTest(absltest.TestCase):
+class ParseManyTest(absltest.TestCase):
 
   def testMultipleDicts(self):
     parsed = yaml.ParseMany("""
@@ -241,7 +241,7 @@ grzebiące:
     self.assertEqual(dumped, expected)
 
 
-class DumpAllTest(absltest.TestCase):
+class DumpManyTest(absltest.TestCase):
 
   def testMultipleDicts(self):
     dumped = yaml.DumpMany([

@@ -5,15 +5,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import socket
 
-
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 from future.utils import iteritems
 from future.utils import iterkeys
 
+import ipaddress
+
 from grr_response_core.lib import flags
-from grr_response_core.lib import ipv6_utils
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
@@ -334,20 +333,16 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
       client.knowledge_base.os = "Windows"
       client.knowledge_base.fqdn = "host-%d.example.com" % i
 
+      ipv4_addr = rdf_client_network.NetworkAddress(
+          address_type=rdf_client_network.NetworkAddress.Family.INET,
+          packed_bytes=ipaddress.IPv4Address("192.168.0.%d" % i).packed)
+      ipv6_addr = rdf_client_network.NetworkAddress(
+          address_type=rdf_client_network.NetworkAddress.Family.INET6,
+          packed_bytes=ipaddress.IPv6Address("2001:abcd::%d" % i).packed)
+
       client.interfaces = [
           rdf_client_network.Interface(
-              addresses=[
-                  rdf_client_network.NetworkAddress(
-                      address_type=rdf_client_network.NetworkAddress.Family
-                      .INET,
-                      packed_bytes=ipv6_utils.InetPtoN(socket.AF_INET,
-                                                       "192.168.0.%d" % i)),
-                  rdf_client_network.NetworkAddress(
-                      address_type=rdf_client_network.NetworkAddress.Family
-                      .INET6,
-                      packed_bytes=ipv6_utils.InetPtoN(socket.AF_INET6,
-                                                       "2001:abcd::%d" % i))
-              ],
+              addresses=[ipv4_addr, ipv6_addr],
               mac_address=("aabbccddee0%d" % i).decode("hex"))
       ]
       res[client_id] = client

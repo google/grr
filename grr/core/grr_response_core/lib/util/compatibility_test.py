@@ -176,5 +176,17 @@ class UnescapeStringTest(absltest.TestCase):
         compatibility.UnescapeString("foo\\n\\'bar\\'\nbaz"), "foo\n'bar'\nbaz")
 
 
+class EnvironTest(absltest.TestCase):
+
+  def testStandard(self):
+    self.assertIsInstance(compatibility.Environ("HOME", default=None), Text)
+    self.assertIsInstance(compatibility.Environ("PATH", default=None), Text)
+
+  def testDefault(self):
+    variable = "__GRR_SECRET_VARIABLE_THAT_SHOULD_NOT_EXIST__"
+    self.assertIsNone(compatibility.Environ(variable, default=None))
+    self.assertEqual(compatibility.Environ(variable, default="foo"), "foo")
+
+
 if __name__ == "__main__":
   absltest.main()

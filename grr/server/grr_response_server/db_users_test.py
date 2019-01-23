@@ -10,6 +10,9 @@ from grr_response_core.lib import rdfvalue
 from grr_response_server import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
+# Username with UTF-8 characters and maximum length.
+EXAMPLE_NAME = "x" + "🧙" * (db.MAX_USERNAME_LENGTH - 2) + "x"
+
 
 class DatabaseTestUsersMixin(object):
   """An abstract class for testing db.Database implementations.
@@ -22,38 +25,38 @@ class DatabaseTestUsersMixin(object):
     d = self.db
 
     u_expected = rdf_objects.GRRUser(
-        username="foo",
+        username=EXAMPLE_NAME,
         ui_mode="ADVANCED",
         canary_mode=True,
         user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
     # TODO(hanuszczak): Passwords should be required to be unicode strings.
     u_expected.password.SetPassword(b"blah")
     d.WriteGRRUser(
-        "foo",
+        EXAMPLE_NAME,
         password=u_expected.password,
         ui_mode=u_expected.ui_mode,
         canary_mode=u_expected.canary_mode,
         user_type=u_expected.user_type)
 
-    u = d.ReadGRRUser("foo")
+    u = d.ReadGRRUser(EXAMPLE_NAME)
     self.assertEqual(u_expected, u)
 
   def testEmptyGRRUserReadWrite(self):
     d = self.db
 
-    d.WriteGRRUser("foo")
-    u = d.ReadGRRUser("foo")
-    u_expected = rdf_objects.GRRUser(username="foo")
+    d.WriteGRRUser("f🧙oo")
+    u = d.ReadGRRUser("f🧙oo")
+    u_expected = rdf_objects.GRRUser(username="f🧙oo")
 
     self.assertEqual(u_expected, u)
 
   def testInsertUserTwice(self):
     d = self.db
 
-    d.WriteGRRUser("foo")
-    d.WriteGRRUser("foo")
-    u = d.ReadGRRUser("foo")
-    u_expected = rdf_objects.GRRUser(username="foo")
+    d.WriteGRRUser("f🧙oo")
+    d.WriteGRRUser("f🧙oo")
+    u = d.ReadGRRUser("f🧙oo")
+    u_expected = rdf_objects.GRRUser(username="f🧙oo")
 
     self.assertEqual(u_expected, u)
 
@@ -61,12 +64,12 @@ class DatabaseTestUsersMixin(object):
     d = self.db
 
     d.WriteGRRUser(
-        "foo", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_STANDARD)
+        "f🧙oo", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_STANDARD)
     d.WriteGRRUser(
-        "foo", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
-    u = d.ReadGRRUser("foo")
+        "f🧙oo", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+    u = d.ReadGRRUser("f🧙oo")
     u_expected = rdf_objects.GRRUser(
-        username="foo", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+        username="f🧙oo", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
 
     self.assertEqual(u_expected, u)
 
@@ -74,15 +77,15 @@ class DatabaseTestUsersMixin(object):
     d = self.db
 
     with self.assertRaises(db.UnknownGRRUserError) as context:
-      d.ReadGRRUser("foo")
+      d.ReadGRRUser("f🧙oo")
 
-    self.assertEqual(context.exception.username, "foo")
+    self.assertEqual(context.exception.username, "f🧙oo")
 
   def testReadingMultipleGRRUsersEntriesWorks(self):
     d = self.db
 
     u_foo = rdf_objects.GRRUser(
-        username="foo",
+        username="f🧙oo",
         ui_mode="ADVANCED",
         canary_mode=True,
         user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
@@ -99,61 +102,64 @@ class DatabaseTestUsersMixin(object):
     self.assertEqual(users[1], u_foo)
 
   def testReadGRRUsersWithOffset(self):
-    self.db.WriteGRRUser("foo1")
-    self.db.WriteGRRUser("foo0")
-    self.db.WriteGRRUser("foo2")
+    self.db.WriteGRRUser("f🧙oo1")
+    self.db.WriteGRRUser("f🧙oo0")
+    self.db.WriteGRRUser("f🧙oo2")
 
     users = self.db.ReadGRRUsers(offset=1)
     self.assertLen(users, 2)
-    self.assertEqual(users[0].username, "foo1")
-    self.assertEqual(users[1].username, "foo2")
+    self.assertEqual(users[0].username, "f🧙oo1")
+    self.assertEqual(users[1].username, "f🧙oo2")
 
   def testReadGRRUsersWithCount(self):
-    self.db.WriteGRRUser("foo1")
-    self.db.WriteGRRUser("foo0")
-    self.db.WriteGRRUser("foo2")
+    self.db.WriteGRRUser("f🧙oo1")
+    self.db.WriteGRRUser("f🧙oo0")
+    self.db.WriteGRRUser("f🧙oo2")
 
     users = self.db.ReadGRRUsers(count=2)
     self.assertLen(users, 2)
-    self.assertEqual(users[0].username, "foo0")
-    self.assertEqual(users[1].username, "foo1")
+    self.assertEqual(users[0].username, "f🧙oo0")
+    self.assertEqual(users[1].username, "f🧙oo1")
 
   def testReadGRRUsersWithCountAndOffset(self):
-    self.db.WriteGRRUser("foo1")
-    self.db.WriteGRRUser("foo0")
-    self.db.WriteGRRUser("foo2")
-    self.db.WriteGRRUser("foo3")
+    self.db.WriteGRRUser("f🧙oo1")
+    self.db.WriteGRRUser("f🧙oo0")
+    self.db.WriteGRRUser("f🧙oo2")
+    self.db.WriteGRRUser("f🧙oo3")
 
     users = self.db.ReadGRRUsers(count=2, offset=1)
     self.assertLen(users, 2)
-    self.assertEqual(users[0].username, "foo1")
-    self.assertEqual(users[1].username, "foo2")
+    self.assertEqual(users[0].username, "f🧙oo1")
+    self.assertEqual(users[1].username, "f🧙oo2")
+
+  def testWritingTooLongUsernameFails(self):
+    with self.assertRaises(ValueError):
+      self.db.WriteGRRUser("a" * (db.MAX_USERNAME_LENGTH + 1))
 
   def testDeleteGRRUser(self):
-    self.db.WriteGRRUser("foo")
-    self.db.DeleteGRRUser("foo")
+    self.db.WriteGRRUser(EXAMPLE_NAME)
+    self.db.DeleteGRRUser(EXAMPLE_NAME)
 
     with self.assertRaises(db.UnknownGRRUserError):
-      self.db.ReadGRRUser("foo")
+      self.db.ReadGRRUser(EXAMPLE_NAME)
 
   def testDeleteUnknownGRRUserFails(self):
-    self.db.WriteGRRUser("foobar")
+    self.db.WriteGRRUser("f🧙oobar")
 
     with self.assertRaises(db.UnknownGRRUserError):
-      self.db.DeleteGRRUser("foo")
+      self.db.DeleteGRRUser("f🧙oo")
 
-    self.db.ReadGRRUser("foobar")
+    self.db.ReadGRRUser("f🧙oobar")
 
   def testDeleteGRRUserDoesNotAffectOthers(self):
-    self.db.WriteGRRUser("foobar")
-    self.db.WriteGRRUser("foo")
-    self.db.DeleteGRRUser("foo")
-    self.db.ReadGRRUser("foobar")
+    self.db.WriteGRRUser("f🧙oobar")
+    self.db.WriteGRRUser("f🧙oo")
+    self.db.DeleteGRRUser("f🧙oo")
+    self.db.ReadGRRUser("f🧙oobar")
 
   def testReadWriteApprovalRequestWithEmptyNotifiedUsersEmailsAndGrants(self):
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     client_id = "C.0000000050000001"
@@ -179,7 +185,8 @@ class DatabaseTestUsersMixin(object):
   def testReadWriteApprovalRequestsWithFilledInUsersEmailsAndGrants(self):
     d = self.db
 
-    # Ensure that the requestor user exists.
+    d.WriteGRRUser("user_bar")
+    d.WriteGRRUser("user_foo")
     d.WriteGRRUser("requestor")
 
     client_id = "C.0000000050000001"
@@ -201,20 +208,17 @@ class DatabaseTestUsersMixin(object):
 
     read_request = d.ReadApprovalRequest("requestor", approval_id)
 
-    self.assertEqual(
-        sorted(approval_request.notified_users),
-        sorted(read_request.notified_users))
-    self.assertEqual(
-        sorted(approval_request.email_cc_addresses),
-        sorted(read_request.email_cc_addresses))
-    self.assertEqual(
-        sorted(g.grantor_username for g in approval_request.grants),
-        sorted(g.grantor_username for g in read_request.grants))
+    self.assertCountEqual(approval_request.notified_users,
+                          read_request.notified_users)
+    self.assertCountEqual(approval_request.email_cc_addresses,
+                          read_request.email_cc_addresses)
+    self.assertCountEqual([g.grantor_username for g in approval_request.grants],
+                          [g.grantor_username for g in read_request.grants])
 
   def testGrantApprovalAddsNewGrantor(self):
     d = self.db
 
-    # Ensure that the requestor user exists.
+    d.WriteGRRUser("grantor")
     d.WriteGRRUser("requestor")
 
     client_id = "C.0000000050000001"
@@ -238,7 +242,7 @@ class DatabaseTestUsersMixin(object):
   def testGrantApprovalAddsMultipleGrantorsWithSameName(self):
     d = self.db
 
-    # Ensure that the requestor user exists.
+    d.WriteGRRUser("grantor")
     d.WriteGRRUser("requestor")
 
     client_id = "C.0000000050000001"
@@ -262,7 +266,6 @@ class DatabaseTestUsersMixin(object):
   def testReadApprovalRequeststReturnsNothingWhenNoApprovals(self):
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     approvals = list(
@@ -275,7 +278,6 @@ class DatabaseTestUsersMixin(object):
     client_id = "C.0000000050000001"
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     approval_request = rdf_objects.ApprovalRequest(
@@ -306,7 +308,6 @@ class DatabaseTestUsersMixin(object):
   def testReadApprovalRequestsReturnsMultipleApprovals(self):
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     expiration_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
@@ -334,7 +335,8 @@ class DatabaseTestUsersMixin(object):
     client_id = "C.0000000050000001"
     d = self.db
 
-    # Ensure that the requestor user exists.
+    d.WriteGRRUser("grantor1")
+    d.WriteGRRUser("grantor2")
     d.WriteGRRUser("requestor")
 
     approval_request = rdf_objects.ApprovalRequest(
@@ -358,17 +360,17 @@ class DatabaseTestUsersMixin(object):
     self.assertLen(approvals, 1)
     self.assertEqual(approvals[0].approval_id, approval_id)
 
-    self.assertEqual(
-        sorted(g.grantor_username for g in approvals[0].grants),
-        ["grantor1", "grantor2"])
+    self.assertCountEqual([g.grantor_username for g in approvals[0].grants],
+                          ["grantor1", "grantor2"])
 
   def testReadApprovalRequestsIncludesGrantsIntoMultipleResults(self):
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     for i in range(10):
+      d.WriteGRRUser("grantor_%d_1" % i)
+      d.WriteGRRUser("grantor_%d_2" % i)
       approval_request = rdf_objects.ApprovalRequest(
           approval_type=rdf_objects.ApprovalRequest.ApprovalType
           .APPROVAL_TYPE_CLIENT,
@@ -391,14 +393,13 @@ class DatabaseTestUsersMixin(object):
     self.assertLen(approvals, 10)
 
     for i, approval in enumerate(approvals):
-      self.assertEqual(
-          sorted(g.grantor_username for g in approval.grants),
+      self.assertCountEqual(
+          [g.grantor_username for g in approval.grants],
           ["grantor_%d_1" % i, "grantor_%d_2" % i])
 
   def testReadApprovalRequestsFiltersOutExpiredApprovals(self):
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
@@ -430,7 +431,6 @@ class DatabaseTestUsersMixin(object):
   def testReadApprovalRequestsKeepsExpiredApprovalsWhenAsked(self):
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
@@ -461,7 +461,6 @@ class DatabaseTestUsersMixin(object):
     client_id = "C.0000000050000001"
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     approvals = list(
@@ -475,7 +474,6 @@ class DatabaseTestUsersMixin(object):
     client_id = "C.0000000050000001"
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     approval_request = rdf_objects.ApprovalRequest(
@@ -506,7 +504,6 @@ class DatabaseTestUsersMixin(object):
     client_id = "C.0000000050000001"
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     expiration_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
@@ -535,7 +532,8 @@ class DatabaseTestUsersMixin(object):
     client_id = "C.0000000050000001"
     d = self.db
 
-    # Ensure that the requestor user exists.
+    d.WriteGRRUser("grantor1")
+    d.WriteGRRUser("grantor2")
     d.WriteGRRUser("requestor")
 
     approval_request = rdf_objects.ApprovalRequest(
@@ -560,18 +558,18 @@ class DatabaseTestUsersMixin(object):
     self.assertLen(approvals, 1)
     self.assertEqual(approvals[0].approval_id, approval_id)
 
-    self.assertEqual(
-        sorted(g.grantor_username for g in approvals[0].grants),
-        ["grantor1", "grantor2"])
+    self.assertCountEqual([g.grantor_username for g in approvals[0].grants],
+                          ["grantor1", "grantor2"])
 
   def testReadApprovalRequestsForSubjectIncludesGrantsIntoMultipleResults(self):
     client_id = "C.000000000000001"
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     for i in range(10):
+      d.WriteGRRUser("grantor_%d_1" % i)
+      d.WriteGRRUser("grantor_%d_2" % i)
       approval_request = rdf_objects.ApprovalRequest(
           approval_type=rdf_objects.ApprovalRequest.ApprovalType
           .APPROVAL_TYPE_CLIENT,
@@ -595,15 +593,14 @@ class DatabaseTestUsersMixin(object):
     self.assertLen(approvals, 10)
 
     for i, approval in enumerate(approvals):
-      self.assertEqual(
-          sorted(g.grantor_username for g in approval.grants),
+      self.assertCountEqual(
+          [g.grantor_username for g in approval.grants],
           ["grantor_%d_1" % i, "grantor_%d_2" % i])
 
   def testReadApprovalRequestsForSubjectFiltersOutExpiredApprovals(self):
     client_id = "C.0000000050000001"
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
@@ -637,7 +634,6 @@ class DatabaseTestUsersMixin(object):
     client_id = "C.0000000050000001"
     d = self.db
 
-    # Ensure that the requestor user exists.
     d.WriteGRRUser("requestor")
 
     time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")

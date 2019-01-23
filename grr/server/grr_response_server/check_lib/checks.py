@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import collections
 import glob
-import io
 import itertools
 import logging
 import os
@@ -766,8 +765,7 @@ def CheckHost(host_data,
 
 def LoadConfigsFromFile(file_path):
   """Loads check definitions from a file."""
-  with io.open(file_path, mode="r", encoding="utf-8") as data:
-    return {d["check_id"]: d for d in yaml.ParseMany(data.read())}
+  return {d["check_id"]: d for d in yaml.ReadManyFromPath(file_path)}
 
 
 def LoadCheckFromFile(file_path, check_id, overwrite_if_exists=True):

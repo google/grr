@@ -11,7 +11,7 @@ from absl.testing import absltest
 import mock
 
 from grr_response_client.client_actions.file_finder_utils import uploading
-from grr.test_lib import temp
+from grr_response_core.lib.util import temp
 
 
 class UploaderTest(absltest.TestCase):

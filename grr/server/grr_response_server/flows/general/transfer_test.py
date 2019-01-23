@@ -9,7 +9,8 @@ import os
 import platform
 import unittest
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.utils import iterkeys
 import mock
 
 from grr_response_core.lib import constants
@@ -620,7 +621,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       d.update(expected_data)
       self.assertEqual(hash_obj.sha1, d.hexdigest())
 
-  @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFile")
+  @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles")
   def testExternalFileStoreSubmissionIsTriggeredWhenFileIsSentToFileStore(
       self, add_file_mock):
     if not data_store.RelationalDBReadEnabled("filestore"):
@@ -640,13 +641,13 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     add_file_mock.assert_called_once()
     args = add_file_mock.call_args_list[0][0]
-    self.assertLen(args, 3)
+    hash_id = list(iterkeys(args[0]))[0]
+    self.assertIsInstance(hash_id, rdf_objects.SHA256HashID)
     self.assertEqual(
-        args[0], db.ClientPath.FromPathSpec(self.client_id.Basename(),
-                                            pathspec))
-    self.assertIsInstance(args[1], rdf_objects.SHA256HashID)
-    self.assertGreater(len(args[2]), 0)
-    for blob_ref in args[2]:
+        args[0][hash_id].client_path,
+        db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec))
+    self.assertGreater(len(args[0][hash_id].blob_refs), 0)
+    for blob_ref in args[0][hash_id].blob_refs:
       self.assertIsInstance(blob_ref, rdf_objects.BlobReference)
 
 

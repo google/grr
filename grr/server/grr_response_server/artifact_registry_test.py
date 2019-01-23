@@ -9,8 +9,8 @@ import mock
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib.util import temp
 from grr_response_server import artifact_registry as ar
-from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 

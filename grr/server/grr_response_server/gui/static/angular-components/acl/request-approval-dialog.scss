@@ -4,4 +4,8 @@ grr-request-approval-dialog {
     margin-top: .75em;
     margin-bottom: .75em;
   }
+
+  select[name=acl_recent_reasons] {
+    width: 70%;
+  }
 }

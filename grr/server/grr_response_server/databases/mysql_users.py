@@ -65,32 +65,25 @@ class MySQLDBUsersMixin(object):
                    cursor=None):
     """Writes user object for a user with a given name."""
 
-    columns = ["username"]
-    values = [username]
+    values = {"username": username, "username_hash": mysql_utils.Hash(username)}
 
     if password is not None:
-      columns.append("password")
-      values.append(password.SerializeToString())
+      values["password"] = password.SerializeToString()
     if ui_mode is not None:
-      columns.append("ui_mode")
-      values.append(int(ui_mode))
+      values["ui_mode"] = int(ui_mode)
     if canary_mode is not None:
-      columns.append("canary_mode")
       # TODO(amoser): This int conversion is dirty but necessary with
       # the current MySQL driver.
       # TODO: We can remove this once the bug is fixed.
-      values.append(int(bool(canary_mode)))
+      values["canary_mode"] = int(bool(canary_mode))
     if user_type is not None:
-      columns.append("user_type")
-      values.append(int(user_type))
+      values["user_type"] = int(user_type)
 
-    query = "INSERT INTO grr_users ({cols}) VALUES ({vals})".format(
-        cols=", ".join(columns), vals=", ".join(["%s"] * len(columns)))
+    query = "INSERT INTO grr_users {cols} VALUES {vals}".format(
+        cols=mysql_utils.Columns(values),
+        vals=mysql_utils.NamedPlaceholders(values))
 
-    # Always execute ON DUPLICATE KEY UPDATE username=%s. Although a no-op, the
-    # statement is required to allow error-free writing of an existing user
-    # with no other fields. See DatabaseTestUsersMixin.testInsertUserTwice.
-    updates = ", ".join(["{c} = VALUES ({c})".format(c=col) for col in columns])
+    updates = ", ".join("{0} = VALUES({0})".format(col) for col in values)
     query += "ON DUPLICATE KEY UPDATE " + updates
 
     cursor.execute(query, values)
@@ -114,7 +107,7 @@ class MySQLDBUsersMixin(object):
     """Reads a user object corresponding to a given name."""
     cursor.execute(
         "SELECT username, password, ui_mode, canary_mode, user_type "
-        "FROM grr_users WHERE username=%s", [username])
+        "FROM grr_users WHERE username_hash = %s", [mysql_utils.Hash(username)])
 
     row = cursor.fetchone()
     if row is None:
@@ -143,7 +136,8 @@ class MySQLDBUsersMixin(object):
   @mysql_utils.WithTransaction()
   def DeleteGRRUser(self, username, cursor=None):
     """Deletes the user with the given username."""
-    cursor.execute("DELETE FROM grr_users WHERE username = %s", (username,))
+    cursor.execute("DELETE FROM grr_users WHERE username_hash = %s",
+                   (mysql_utils.Hash(username),))
 
     if cursor.rowcount == 0:
       raise db.UnknownGRRUserError(username)
@@ -160,29 +154,48 @@ class MySQLDBUsersMixin(object):
     grants = approval_request.grants
     approval_request.grants = None
 
-    query = ("INSERT INTO approval_request (username, approval_type, "
-             "subject_id, approval_id, timestamp, expiration_time, "
-             "approval_request) VALUES (%s, %s, %s, %s, %s, %s, %s)")
-
-    args = [
-        approval_request.requestor_username,
-        int(approval_request.approval_type), approval_request.subject_id,
-        approval_id_int, now_str,
-        mysql_utils.RDFDatetimeToMysqlString(approval_request.expiration_time),
-        approval_request.SerializeToString()
-    ]
+    args = {
+        "username_hash":
+            mysql_utils.Hash(approval_request.requestor_username),
+        "approval_type":
+            int(approval_request.approval_type),
+        "subject_id":
+            approval_request.subject_id,
+        "approval_id":
+            approval_id_int,
+        "timestamp":
+            now_str,
+        "expiration_time":
+            mysql_utils.RDFDatetimeToMysqlString(
+                approval_request.expiration_time),
+        "approval_request":
+            approval_request.SerializeToString()
+    }
+    query = ("INSERT INTO approval_request {columns} VALUES {values}".format(
+        columns=mysql_utils.Columns(args),
+        values=mysql_utils.NamedPlaceholders(args)))
     cursor.execute(query, args)
 
     for grant in grants:
-      grant_query = ("INSERT INTO approval_grant (username, approval_id, "
-                     "grantor_username, timestamp) VALUES (%s, %s, %s, %s)")
-      grant_args = [
-          approval_request.requestor_username, approval_id_int,
-          grant.grantor_username, now_str
-      ]
-      cursor.execute(grant_query, grant_args)
+      self._GrantApproval(approval_request.requestor_username, approval_id_int,
+                          grant.grantor_username, now_str, cursor)
 
     return _IntToApprovalID(approval_id_int)
+
+  def _GrantApproval(self, requestor_username, approval_id, grantor_username,
+                     timestamp, cursor):
+    """Grants approval for a given request."""
+    grant_args = {
+        "username_hash": mysql_utils.Hash(requestor_username),
+        "approval_id": approval_id,
+        "grantor_username_hash": mysql_utils.Hash(grantor_username),
+        "timestamp": timestamp
+    }
+    grant_query = (
+        "INSERT INTO approval_grant {columns} VALUES {values}".format(
+            columns=mysql_utils.Columns(grant_args),
+            values=mysql_utils.NamedPlaceholders(grant_args)))
+    cursor.execute(grant_query, grant_args)
 
   @mysql_utils.WithTransaction()
   def GrantApproval(self,
@@ -191,28 +204,32 @@ class MySQLDBUsersMixin(object):
                     grantor_username,
                     cursor=None):
     """Grants approval for a given request using given username."""
-    now_str = mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
-    grant_query = ("INSERT INTO approval_grant (username, approval_id, "
-                   "grantor_username, timestamp) VALUES (%s, %s, %s, %s)")
-    grant_args = [
-        requestor_username,
-        _ApprovalIDToInt(approval_id), grantor_username, now_str
-    ]
-    cursor.execute(grant_query, grant_args)
+    self._GrantApproval(
+        requestor_username, _ApprovalIDToInt(approval_id), grantor_username,
+        mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now()),
+        cursor)
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadApprovalRequest(self, requestor_username, approval_id, cursor=None):
     """Reads an approval request object with a given id."""
 
-    query = ("SELECT approval_request.approval_id, approval_request.timestamp, "
-             "approval_request.approval_request, "
-             "approval_grant.grantor_username, approval_grant.timestamp "
-             "FROM approval_request "
-             "LEFT JOIN approval_grant USING (username, approval_id) "
-             "WHERE approval_request.approval_id=%s "
-             "AND approval_request.username=%s")
+    query = ("""
+        SELECT
+            ar.approval_id,
+            ar.timestamp,
+            ar.approval_request,
+            u.username,
+            ag.timestamp
+        FROM approval_request ar
+        LEFT JOIN approval_grant ag USING (username_hash, approval_id)
+        LEFT JOIN grr_users u ON u.username_hash = ag.grantor_username_hash
+        WHERE ar.approval_id = %s AND ar.username_hash = %s
+        """)
 
-    cursor.execute(query, [_ApprovalIDToInt(approval_id), requestor_username])
+    cursor.execute(
+        query,
+        [_ApprovalIDToInt(approval_id),
+         mysql_utils.Hash(requestor_username)])
     res = cursor.fetchall()
     if not res:
       raise db.UnknownApprovalRequestError(
@@ -247,13 +264,20 @@ class MySQLDBUsersMixin(object):
                            cursor=None):
     """Reads approval requests of a given type for a given user."""
 
-    query = ("SELECT ar.approval_id, ar.timestamp, ar.approval_request, "
-             "ag.grantor_username, ag.timestamp "
-             "FROM approval_request ar "
-             "LEFT JOIN approval_grant AS ag USING (username, approval_id) "
-             "WHERE ar.username=%s AND ar.approval_type=%s")
+    query = """
+        SELECT
+            ar.approval_id,
+            ar.timestamp,
+            ar.approval_request,
+            u.username,
+            ag.timestamp
+        FROM approval_request ar
+        LEFT JOIN approval_grant AS ag USING (username_hash, approval_id)
+        LEFT JOIN grr_users u ON u.username_hash = ag.grantor_username_hash
+        WHERE ar.username_hash = %s AND ar.approval_type = %s
+        """
 
-    args = [requestor_username, int(approval_type)]
+    args = [mysql_utils.Hash(requestor_username), int(approval_type)]
 
     if subject_id:
       query += " AND ar.subject_id = %s"
@@ -278,16 +302,19 @@ class MySQLDBUsersMixin(object):
     if not notification.timestamp:
       notification.timestamp = rdfvalue.RDFDatetime.Now()
 
-    query = ("INSERT INTO user_notification (username, timestamp, "
-             "notification_state, notification) "
-             "VALUES (%s, %s, %s, %s)")
-
-    args = [
-        notification.username,
-        mysql_utils.RDFDatetimeToMysqlString(notification.timestamp),
-        int(notification.state),
-        notification.SerializeToString()
-    ]
+    args = {
+        "username_hash":
+            mysql_utils.Hash(notification.username),
+        "timestamp":
+            mysql_utils.RDFDatetimeToMysqlString(notification.timestamp),
+        "notification_state":
+            int(notification.state),
+        "notification":
+            notification.SerializeToString(),
+    }
+    query = "INSERT INTO user_notification {columns} VALUES {values}".format(
+        columns=mysql_utils.Columns(args),
+        values=mysql_utils.NamedPlaceholders(args))
     try:
       cursor.execute(query, args)
     except MySQLdb.IntegrityError:
@@ -303,8 +330,8 @@ class MySQLDBUsersMixin(object):
 
     query = ("SELECT timestamp, notification_state, notification "
              "FROM user_notification "
-             "WHERE username=%s ")
-    args = [username]
+             "WHERE username_hash = %s ")
+    args = [mysql_utils.Hash(username)]
 
     if state is not None:
       query += "AND notification_state = %s "
@@ -342,13 +369,13 @@ class MySQLDBUsersMixin(object):
                               cursor=None):
     """Updates existing user notification objects."""
 
-    query = ("UPDATE user_notification n "
-             "SET n.notification_state = %s "
-             "WHERE n.username = %s AND n.timestamp IN ({})").format(", ".join(
-                 ["%s"] * len(timestamps)))
+    query = ("UPDATE user_notification "
+             "SET notification_state = %s "
+             "WHERE username_hash = %s AND timestamp IN {}").format(
+                 mysql_utils.Placeholders(len(timestamps)))
 
     args = [
         int(state),
-        username,
+        mysql_utils.Hash(username),
     ] + [mysql_utils.RDFDatetimeToMysqlString(t) for t in timestamps]
     cursor.execute(query, args)

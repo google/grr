@@ -155,9 +155,9 @@ class HttpApiRegressionTestMixinBase(object):
 
 # Each mixin below configures a different way for regression tests to run. After
 # AFF4 is gone, there will be only 2 mixins left here (http API v1 and http
-# API v2) at the moment we have (v1 with rel_db, v1 without, v2 with rel_db,
-# v2 without, v2 with "stable" configuration - i.e. with a current prod
-# configuration).
+# API v2). At the moment we have v1 with rel_db, v1 without, v2 with rel_db,
+# v2 without, v2 with "stable" configuration - i.e. with a current prod-tested
+# configuration.
 #
 # Duplicated test methods are added to these classes explicitly to make sure
 # they were not misconfigured and REL_DB is enabled in tests that count on

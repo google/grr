@@ -981,7 +981,7 @@ message NetworkAddress {
     INET6 = 1;
   }
   optional Family address_type = 1;
-  optional string human_readable = 2;  // deprecated
+  optional string DEPRECATED_human_readable = 2;
   optional bytes packed_bytes = 3 [(sem_type) = {
       type: "RDFBytes"
     }];

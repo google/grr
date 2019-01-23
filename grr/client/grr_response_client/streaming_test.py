@@ -15,7 +15,7 @@ from future.utils import with_metaclass
 from grr_response_client import streaming
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_core.lib import flags
-from grr.test_lib import temp
+from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
 

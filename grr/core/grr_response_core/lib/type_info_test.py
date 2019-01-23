@@ -128,7 +128,7 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     updated_info += type_info.TypeDescriptorSet(type_infos[2],)
 
     self.assertEqual(info.descriptor_map, updated_info.descriptor_map)
-    self.assertEqual(sorted(info.descriptors), sorted(updated_info.descriptors))
+    self.assertCountEqual(info.descriptors, updated_info.descriptors)
 
     self.assertIn(type_infos[1], updated_info.descriptors)
     self.assertIn("plugins", updated_info)

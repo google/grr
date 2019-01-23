@@ -504,9 +504,11 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
         clients=[
             admin_pb2.Client(
                 client_id=fleetspeak_utils.GRRIDToFleetspeakID(client_id_1),
+                last_contact_time=TSProtoFromString("2018-01-01T00:00:01Z"),
                 last_clock=TSProtoFromString("2018-01-01T00:00:02Z")),
             admin_pb2.Client(
                 client_id=fleetspeak_utils.GRRIDToFleetspeakID(client_id_2),
+                last_contact_time=TSProtoFromString("2018-01-02T00:00:01Z"),
                 last_clock=TSProtoFromString("2018-01-02T00:00:02Z"))
         ])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
@@ -515,11 +517,15 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
         client_plugin.ApiClient(
             client_id=client_id_1,
             fleetspeak_enabled=True,
+            last_seen_at=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2018-01-01T00:00:01Z"),
             last_clock=rdfvalue.RDFDatetime.FromHumanReadable(
                 "2018-01-01T00:00:02Z")),
         client_plugin.ApiClient(
             client_id=client_id_2,
             fleetspeak_enabled=True,
+            last_seen_at=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2018-01-02T00:00:01Z"),
             last_clock=rdfvalue.RDFDatetime.FromHumanReadable(
                 "2018-01-02T00:00:02Z")),
         client_plugin.ApiClient(

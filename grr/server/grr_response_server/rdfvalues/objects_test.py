@@ -77,20 +77,12 @@ def MakeClient():
 
 class ObjectTest(absltest.TestCase):
 
-  def testInvalidClientID(self):
-
-    # No id.
-    with self.assertRaises(ValueError):
-      rdf_objects.ClientSnapshot()
-
-    # One digit short.
-    with self.assertRaises(ValueError):
-      rdf_objects.ClientSnapshot(client_id="C.000000000000000")
-
-    with self.assertRaises(ValueError):
-      rdf_objects.ClientSnapshot(client_id="not a real id")
-
-    rdf_objects.ClientSnapshot(client_id="C.0000000000000000")
+  def testDeserializeClientSnapshot(self):
+    snapshot = rdf_objects.ClientSnapshot(client_id="C.1234567890123456")
+    client_info = rdf_objects.ClientFullInfo(last_snapshot=snapshot)
+    deserialized = rdf_objects.ClientFullInfo.FromSerializedString(
+        client_info.SerializeToString())
+    self.assertEqual(deserialized.last_snapshot, snapshot)
 
   def testClientBasics(self):
     client = MakeClient()

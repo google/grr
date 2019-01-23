@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -91,4 +92,22 @@ class Hunt(rdf_structs.RDFProtoStruct):
       self.expiry_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("2w")
 
     if not self.HasField("client_rate"):
-      self.client_rate = 20.0
+      self.client_rate = 20.5
+
+    if not self.HasField("client_limit"):
+      self.client_limit = 100
+
+    if not self.HasField("crash_limit"):
+      self.crash_limit = config.CONFIG["Hunt.default_crash_limit"]
+
+    if not self.HasField("avg_results_per_client_limit"):
+      self.avg_results_per_client_limit = config.CONFIG[
+          "Hunt.default_avg_results_per_client_limit"]
+
+    if not self.HasField("avg_cpu_seconds_per_client_limit"):
+      self.avg_cpu_seconds_per_client_limit = config.CONFIG[
+          "Hunt.default_avg_cpu_seconds_per_client_limit"]
+
+    if not self.HasField("avg_network_bytes_per_client_limit"):
+      self.avg_network_bytes_per_client_limit = config.CONFIG[
+          "Hunt.default_avg_network_bytes_per_client_limit"]

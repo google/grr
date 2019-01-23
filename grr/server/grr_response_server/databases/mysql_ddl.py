@@ -6,6 +6,10 @@ from __future__ import division
 
 SCHEMA_SETUP = [
     """
+CREATE TABLE IF NOT EXISTS artifacts(
+    name_hash BINARY(32) PRIMARY KEY,
+    definition MEDIUMBLOB
+)""", """
 CREATE TABLE IF NOT EXISTS clients(
     client_id BIGINT UNSIGNED PRIMARY KEY,
     last_client_timestamp DATETIME(6),
@@ -21,12 +25,16 @@ CREATE TABLE IF NOT EXISTS clients(
 )""", """
 CREATE TABLE IF NOT EXISTS client_labels(
     client_id BIGINT UNSIGNED,
-    owner VARCHAR(64),
-    label VARCHAR(64) CHARACTER SET utf8,
-    PRIMARY KEY (client_id, owner, label),
+    owner_username_hash BINARY(32),
+    label VARCHAR(95),
+    owner_username VARCHAR(254),
+    PRIMARY KEY (client_id, owner_username_hash, label),
+    -- TODO: Add FOREIGN KEY when owner does not use `GRR` anymore.
     FOREIGN KEY (client_id) REFERENCES clients(client_id)
 )""", """
-CREATE INDEX IF NOT EXISTS owner_label_idx ON client_labels(owner, label)
+CREATE INDEX IF NOT EXISTS owner_label_idx
+    -- Maximum index length is 767 bytes = 191 UTF-8 characters. Divide evenly.
+    ON client_labels(owner_username(95), label)
 """, """
 CREATE TABLE IF NOT EXISTS client_snapshot_history(
     client_id BIGINT UNSIGNED,
@@ -51,13 +59,12 @@ CREATE TABLE IF NOT EXISTS client_crash_history(
 )""", """
 CREATE TABLE IF NOT EXISTS client_keywords(
     client_id BIGINT UNSIGNED,
-    keyword VARCHAR(255) CHARACTER SET utf8,
+    keyword_hash BINARY(32),
+    keyword VARCHAR(255),
     timestamp DATETIME(6),
-    PRIMARY KEY (client_id, keyword),
+    PRIMARY KEY (client_id, keyword_hash),
     FOREIGN KEY (client_id) REFERENCES clients(client_id)
 )""", """
-CREATE INDEX IF NOT EXISTS keyword_client_idx ON client_keywords(keyword(64))
-""", """
 CREATE TABLE IF NOT EXISTS client_stats(
     client_id BIGINT UNSIGNED,
     payload MEDIUMBLOB,
@@ -69,55 +76,59 @@ CREATE TABLE IF NOT EXISTS client_stats(
     FOREIGN KEY (client_id) REFERENCES clients(client_id)
 )""", """
 CREATE TABLE IF NOT EXISTS grr_users(
-    username VARCHAR(128) PRIMARY KEY,
+    username_hash BINARY(32) PRIMARY KEY,
+    username VARCHAR(254),
     password VARBINARY(255),
     ui_mode INT UNSIGNED,
     canary_mode BOOL,
     user_type INT UNSIGNED
 )""", """
+CREATE INDEX IF NOT EXISTS username_idx ON grr_users(username(191))
+""", """
 CREATE TABLE IF NOT EXISTS approval_request(
-    username VARCHAR(128),
+    username_hash BINARY(32),
     approval_type INT UNSIGNED,
     subject_id VARCHAR(128),
     approval_id BIGINT UNSIGNED,
     timestamp DATETIME(6),
     expiration_time DATETIME(6),
     approval_request MEDIUMBLOB,
-    PRIMARY KEY (username, approval_id),
-    FOREIGN KEY (username) REFERENCES grr_users (username)
+    PRIMARY KEY (username_hash, approval_id),
+    FOREIGN KEY (username_hash) REFERENCES grr_users (username_hash)
 )""", """
 CREATE INDEX IF NOT EXISTS by_username_type_subject
-ON approval_request(username, approval_type, subject_id)
+ON approval_request(username_hash, approval_type, subject_id)
 """, """
 CREATE TABLE IF NOT EXISTS approval_grant(
-    username VARCHAR(128),
+    username_hash BINARY(32),
     approval_id BIGINT UNSIGNED,
-    grantor_username VARCHAR(128),
+    grantor_username_hash BINARY(32),
     timestamp DATETIME(6),
-    PRIMARY KEY (username, approval_id, grantor_username, timestamp),
-    FOREIGN KEY (username) REFERENCES grr_users (username)
+    PRIMARY KEY (username_hash, approval_id, grantor_username_hash, timestamp),
+    FOREIGN KEY (username_hash) REFERENCES grr_users (username_hash),
+    FOREIGN KEY (grantor_username_hash) REFERENCES grr_users (username_hash)
 )""", """
 CREATE TABLE IF NOT EXISTS user_notification(
-    username VARCHAR(128),
+    username_hash BINARY(32),
     timestamp DATETIME(6),
     notification_state INT UNSIGNED,
     notification MEDIUMBLOB,
-    PRIMARY KEY (username, timestamp),
-    FOREIGN KEY (username) REFERENCES grr_users (username)
+    PRIMARY KEY (username_hash, timestamp),
+    FOREIGN KEY (username_hash) REFERENCES grr_users (username_hash)
 )""", """
-CREATE TABLE IF NOT EXISTS admin_ui_access_audit_entry(
-    username VARCHAR(128),
+CREATE TABLE IF NOT EXISTS api_audit_entry(
+    username_hash BINARY(32),
     router_method_name VARCHAR(128),
     timestamp DATETIME(6) DEFAULT CURRENT_TIMESTAMP,
     details MEDIUMBLOB,
-    PRIMARY KEY (username, timestamp),
-    FOREIGN KEY (username) REFERENCES grr_users (username)
+    PRIMARY KEY (username_hash, timestamp),
+    FOREIGN KEY (username_hash) REFERENCES grr_users (username_hash)
 )""", """
 CREATE INDEX IF NOT EXISTS timestamp_idx
-ON admin_ui_access_audit_entry(timestamp)
+ON api_audit_entry(timestamp)
 """, """
 CREATE INDEX IF NOT EXISTS router_method_name_idx
-ON admin_ui_access_audit_entry(router_method_name)
+ON api_audit_entry(router_method_name)
 """, """
 CREATE TABLE IF NOT EXISTS message_handler_requests(
     handlername VARCHAR(128),

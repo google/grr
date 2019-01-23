@@ -4,15 +4,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import sys
-
 
 from future.builtins import str
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
-import ipaddr
+
+import ipaddress
 
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from grr_response_core.lib import rdfvalue
@@ -65,6 +64,8 @@ def UpdateClientsFromFleetspeak(clients):
       admin_pb2.ListClientsRequest(client_ids=list(iterkeys(id_map))))
   for read in res.clients:
     api_client = id_map[read.client_id]
+    api_client.last_seen_at = fleetspeak_utils.TSToRDFDatetime(
+        read.last_contact_time)
     api_client.last_clock = fleetspeak_utils.TSToRDFDatetime(read.last_clock)
 
 
@@ -299,7 +300,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiSearchClientsResult
 
   def Handle(self, args, token=None):
-    end = args.count or sys.maxsize
+    end = args.count or db.MAX_COUNT
 
     keywords = compatibility.ShlexSplit(args.query)
 
@@ -364,7 +365,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
       # Read <count> clients ahead in case some of them fail to open / verify.
       batch_size = end + args.count
     else:
-      end = sys.maxsize
+      end = db.MAX_COUNT
       batch_size = end
 
     keywords = compatibility.ShlexSplit(args.query)
@@ -672,7 +673,7 @@ def _GetAddrFromFleetspeak(client_id):
   # last_contact_address typically includes a port
   parsed = urlparse.urlparse("//{}".format(res.clients[0].last_contact_address))
   ip_str = parsed.hostname
-  return ip_str, ipaddr.IPAddress(ip_str)
+  return ip_str, ipaddress.ip_address(ip_str)
 
 
 class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
@@ -705,7 +706,7 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
       else:
         ip_str = client.Get(client.Schema.CLIENT_IP)
         if ip_str:
-          ipaddr_obj = ipaddr.IPAddress(ip_str)
+          ipaddr_obj = ipaddress.ip_address(ip_str)
         else:
           ipaddr_obj = None
 

@@ -22,8 +22,8 @@ import mock
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import temp
 from grr.test_lib import client_test_lib
-from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 # Test method names don't conform with Google style

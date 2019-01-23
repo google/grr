@@ -7,6 +7,8 @@ from __future__ import unicode_literals
 import stat
 
 from future.builtins import str
+from future.utils import iteritems
+from future.utils import itervalues
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
@@ -361,10 +363,14 @@ class ClientFileFinderMixin(object):
     if self.args.pathtype != "OS":
       raise ValueError("Only supported pathtype is OS.")
 
-    self.args.paths = list(self._InterpolatePaths(self.args.paths))
+    interpolated_args = self.args.Copy()
+    interpolated_args.paths = list(
+        self._InterpolatePaths(interpolated_args.paths))
 
     self.CallClient(
-        server_stubs.FileFinderOS, request=self.args, next_state="StoreResults")
+        server_stubs.FileFinderOS,
+        request=interpolated_args,
+        next_state="StoreResults")
 
   def _InterpolatePaths(self, globs):
 
@@ -383,12 +389,23 @@ class ClientFileFinderMixin(object):
     self.state.files_found = len(responses)
     files_to_publish = []
     with data_store.DB.GetMutationPool() as pool:
+      transferred_file_responses = []
+      stat_entries = []
       for response in responses:
         if response.HasField("transferred_file"):
-          self._WriteFileContent(response, mutation_pool=pool)
+          transferred_file_responses.append(response)
         elif response.HasField("stat_entry"):
-          self._WriteFileStatEntry(response, mutation_pool=pool)
+          stat_entries.append(response.stat_entry)
 
+      if data_store.AFF4Enabled():
+        self._WriteFilesContentAff4(
+            transferred_file_responses, mutation_pool=pool)
+      if data_store.RelationalDBWriteEnabled():
+        self._WriteFilesContentRel(transferred_file_responses)
+
+      self._WriteStatEntries(stat_entries, mutation_pool=pool)
+
+      for response in responses:
         self.SendReply(response)
 
         if stat.S_ISREG(response.stat_entry.st_mode):
@@ -399,45 +416,62 @@ class ClientFileFinderMixin(object):
       events.Events.PublishMultipleEvents(
           {"LegacyFileStore.AddFileToStore": files_to_publish})
 
-  def _WriteFileContent(self, response, mutation_pool=None):
-    """Writes file content to the db."""
+  def _WriteFilesContentAff4(self, responses, mutation_pool=None):
+    """Writes contents of multiple files to the AFF4 datastore."""
+    for response in responses:
+      self._WriteFileContentAff4(response, mutation_pool=mutation_pool)
+
+  def _WriteFileContentAff4(self, response, mutation_pool=None):
+    """Writes file content to the AFF4 datastore."""
     urn = response.stat_entry.pathspec.AFF4Path(self.client_urn)
 
-    if data_store.AFF4Enabled():
-      with aff4.FACTORY.Create(
-          urn,
-          aff4_grr.VFSBlobImage,
-          token=self.token,
-          mutation_pool=mutation_pool) as filedesc:
-        filedesc.SetChunksize(response.transferred_file.chunk_size)
-        filedesc.Set(filedesc.Schema.STAT, response.stat_entry)
+    with aff4.FACTORY.Create(
+        urn,
+        aff4_grr.VFSBlobImage,
+        token=self.token,
+        mutation_pool=mutation_pool) as filedesc:
+      filedesc.SetChunksize(response.transferred_file.chunk_size)
+      filedesc.Set(filedesc.Schema.STAT, response.stat_entry)
 
-        chunks = sorted(
-            response.transferred_file.chunks, key=lambda _: _.offset)
-        for chunk in chunks:
-          filedesc.AddBlob(
-              rdf_objects.BlobID.FromBytes(chunk.digest), chunk.length)
+      chunks = sorted(response.transferred_file.chunks, key=lambda _: _.offset)
+      for chunk in chunks:
+        blob_id = rdf_objects.BlobID.FromBytes(chunk.digest)
+        filedesc.AddBlob(blob_id, chunk.length)
 
-        filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+      filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
-    if data_store.RelationalDBWriteEnabled():
+  def _WriteFilesContentRel(self, responses):
+    """Writes file contents of multiple files to the relational database."""
+    client_path_blob_ids = dict()
+    client_path_path_info = dict()
+
+    for response in responses:
       path_info = rdf_objects.PathInfo.FromStatEntry(response.stat_entry)
 
-      # Adding files to filestore requires reading data from RELDB,
-      # thus protecting this code with a filestore-read-enabled check.
-      if data_store.RelationalDBReadEnabled("filestore"):
-        client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
-        blob_ids = [rdf_objects.BlobID.FromBytes(c.digest) for c in chunks]
-        hash_id = file_store.AddFileWithUnknownHash(client_path, blob_ids)
-        path_info.hash_entry.sha256 = hash_id.AsBytes()
+      chunks = response.transferred_file.chunks
+      chunks = sorted(chunks, key=lambda _: _.offset)
 
-      data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+      client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
+      blob_ids = [rdf_objects.BlobID.FromBytes(c.digest) for c in chunks]
 
-  def _WriteFileStatEntry(self, response, mutation_pool=None):
-    filesystem.WriteStatEntries([response.stat_entry],
-                                client_id=self.client_id,
-                                token=self.token,
-                                mutation_pool=mutation_pool)
+      client_path_blob_ids[client_path] = blob_ids
+      client_path_path_info[client_path] = path_info
+
+    if data_store.RelationalDBReadEnabled("filestore"):
+      client_path_hash_id = file_store.AddFilesWithUnknownHashes(
+          client_path_blob_ids)
+      for client_path, hash_id in iteritems(client_path_hash_id):
+        client_path_path_info[client_path].hash_entry.sha256 = hash_id.AsBytes()
+
+    path_infos = list(itervalues(client_path_path_info))
+    data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
+
+  def _WriteStatEntries(self, stat_entries, mutation_pool=None):
+    filesystem.WriteStatEntries(
+        stat_entries,
+        client_id=self.client_id,
+        token=self.token,
+        mutation_pool=mutation_pool)
 
   def End(self, responses):
     super(ClientFileFinderMixin, self).End(responses)

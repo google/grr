@@ -540,9 +540,46 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
     _InitApiApprovalFromDatabaseObject(self, db_obj)
-    self._FillInSubject(
-        aff4.ROOT_URN.Add("hunts").Add(db_obj.subject_id),
-        approval_subject_obj=approval_subject_obj)
+
+    if data_store.RelationalDBReadEnabled("hunts"):
+      if not approval_subject_obj:
+        approval_subject_obj = data_store.REL_DB.ReadHuntObject(
+            db_obj.subject_id)
+      self.subject = api_hunt.ApiHunt().InitFromHuntObject(
+          approval_subject_obj, with_full_summary=True)
+      original_object = approval_subject_obj.original_object
+    else:
+      subject_urn = rdfvalue.RDFURN("hunts").Add(db_obj.subject_id)
+      if not approval_subject_obj:
+        approval_subject_obj = aff4.FACTORY.Open(
+            subject_urn, aff4_type=implementation.GRRHunt)
+      self.subject = api_hunt.ApiHunt().InitFromAff4Object(
+          approval_subject_obj, with_full_summary=True)
+      original_object = approval_subject_obj.runner_args.original_object
+
+    if original_object.object_type == "FLOW_REFERENCE":
+      if data_store.RelationalDBFlowsEnabled():
+        original_flow = data_store.REL_DB.ReadFlowObject(
+            original_object.flow_reference.client_id,
+            original_object.flow_reference.flow_id)
+        self.copied_from_flow = api_flow.ApiFlow().InitFromFlowObject(
+            original_flow)
+      else:
+        urn = original_object.flow_reference.ToFlowURN()
+        original_flow = aff4.FACTORY.Open(urn, aff4_type=flow.GRRFlow)
+        self.copied_from_flow = api_flow.ApiFlow().InitFromAff4Object(
+            original_flow, flow_id=original_flow.urn.Basename())
+    elif original_object.object_type == "HUNT_REFERENCE":
+      if data_store.RelationalDBReadEnabled("hunts"):
+        original_hunt = data_store.REL_DB.ReadHuntObject(
+            original_object.hunt_reference.hunt_id)
+        self.copied_from_hunt = api_hunt.ApiHunt().InitFromHuntObject(
+            original_hunt, with_full_summary=True)
+      else:
+        urn = original_object.hunt_reference.ToHuntURN()
+        original_hunt = aff4.FACTORY.Open(urn, aff4_type=implementation.GRRHunt)
+        self.copied_from_hunt = api_hunt.ApiHunt().InitFromAff4Object(
+            original_hunt, with_full_summary=True)
 
     return self
 
@@ -649,7 +686,7 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
 
 
 class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
-  """Base class for all Crate*Approval handlers."""
+  """Base class for all Create*Approval handlers."""
 
   # AFF4 type of the approval object to be checked. Should be set by a subclass.
   approval_aff4_type = None

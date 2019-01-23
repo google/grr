@@ -16,7 +16,7 @@ import mock
 from grr_response_client import client_utils_common
 from grr_response_client import client_utils_osx
 from grr_response_core.lib import flags
-from grr.test_lib import temp
+from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
 

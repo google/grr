@@ -10,7 +10,7 @@ from absl.testing import absltest
 from future.builtins import map
 
 from grr_response_core.lib.util import context
-from grr.test_lib import temp
+from grr_response_core.lib.util import temp
 
 
 class NullContextTest(absltest.TestCase):

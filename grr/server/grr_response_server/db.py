@@ -46,6 +46,18 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 CLIENT_STATS_RETENTION = rdfvalue.Duration("31d")
 
+# Use 254 as max length for usernames to allow email addresses.
+MAX_USERNAME_LENGTH = 254
+
+# Use 95 as max length for labels. This is a trade-off between label length
+# and being able to use labels as part of a composite MySQL key.
+MAX_LABEL_LENGTH = 95
+
+# Using sys.maxsize may not work with real database implementations. We need
+# to have a reasonably large number that can be used to read all the records
+# using a particular DB API call.
+MAX_COUNT = 1024**3
+
 
 class Error(Exception):
 
@@ -273,13 +285,14 @@ class ClientPath(object):
     client_id: A client to which the path belongs to.
     path_type: A type of the path.
     components: A tuple of path components.
+    basename: A basename of the path.
   """
 
   def __init__(self, client_id, path_type, components):
     _ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     _ValidatePathComponents(components)
-    self._repr = (client_id, path_type, components)
+    self._repr = (client_id, path_type, tuple(components))
 
   @classmethod
   def OS(cls, client_id, components):
@@ -329,7 +342,14 @@ class ClientPath(object):
   def vfs_path(self):
     return rdf_objects.ToCategorizedPath(self.path_type, self.components)
 
+  @property
+  def basename(self):
+    return self.components[-1]
+
   def __eq__(self, other):
+    if not isinstance(other, ClientPath):
+      return NotImplemented
+
     return self._repr == other._repr  # pylint: disable=protected-access
 
   def __ne__(self, other):
@@ -3020,7 +3040,7 @@ class DatabaseValidationWrapper(Database):
       if processing_since is not None:
         _ValidateTimestamp(processing_since)
     if processing_deadline != Database.unchanged:
-      if processing_since is not None:
+      if processing_deadline is not None:
         _ValidateTimestamp(processing_deadline)
     return self.delegate.UpdateFlow(
         client_id,
@@ -3395,12 +3415,22 @@ def _ValidateApprovalType(approval_type):
     raise ValueError("Unexpected approval type: %s" % approval_type)
 
 
+def _ValidateStringLength(name, string, max_length):
+  if len(string) > max_length:
+    raise ValueError("{} can have at most {} characters, got {}.".format(
+        name, max_length, len(string)))
+
+
 def _ValidateUsername(username):
+
   _ValidateStringId("username", username)
+  _ValidateStringLength("Usernames", username, MAX_USERNAME_LENGTH)
 
 
 def _ValidateLabel(label):
+
   _ValidateStringId("label", label)
+  _ValidateStringLength("Labels", label, MAX_LABEL_LENGTH)
 
 
 def _ValidatePathInfo(path_info):

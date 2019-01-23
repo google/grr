@@ -21,6 +21,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import temp
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
@@ -42,7 +43,6 @@ from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import temp
 from grr.test_lib import test_lib
 
 # pylint:mode=test
@@ -329,7 +329,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       client_test_lib.SetExtAttr(temp_filepath, name=b"user.bar", value=b"quux")
       client_test_lib.SetExtAttr(temp_filepath, name=b"user.baz", value=b"norf")
 
-      action = rdf_file_finder.FileFinderAction.Stat()
+      action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self.RunFlow(action=action, paths=[temp_filepath])
       self.assertLen(results, 1)
 
@@ -896,7 +896,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.client_id = self.SetupClient(0)
 
   def _RunCFF(self, paths, action):
-    session_id = flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         file_finder.ClientFileFinder.__name__,
         action_mocks.ClientFileFinderClientMock(),
         client_id=self.client_id,
@@ -906,12 +906,13 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         process_non_regular_files=True,
         token=self.token)
 
-    return flow_test_lib.GetFlowResults(self.client_id, session_id)
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    return results, flow_id
 
   def testClientFileFinder(self):
     paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
     action = rdf_file_finder.FileFinderAction.Action.STAT
-    results = self._RunCFF(paths, action)
+    results, _ = self._RunCFF(paths, action)
 
     self.assertLen(results, 5)
     relpaths = [
@@ -931,7 +932,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         os.path.join(self.base_path, "InstallHistory.plist")
     ]
     action = rdf_file_finder.FileFinderAction.Action.STAT
-    results = self._RunCFF(paths, action)
+    results, _ = self._RunCFF(paths, action)
     self.assertLen(results, 3)
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
@@ -961,7 +962,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         os.path.join(self.temp_dir, u"厨房/*.txt")
     ]
     action = rdf_file_finder.FileFinderAction.Action.STAT
-    results = self._RunCFF(paths, action)
+    results, _ = self._RunCFF(paths, action)
     self.assertLen(results, 2)
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.temp_dir)
@@ -974,7 +975,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     paths = [os.path.join(self.temp_dir, u"厨房/卫浴洁.txt")]
     action = rdf_file_finder.FileFinderAction.Action.STAT
-    results = self._RunCFF(paths, action)
+    results, _ = self._RunCFF(paths, action)
     self.assertLen(results, 1)
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.temp_dir)
@@ -1001,14 +1002,19 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       ]
 
       action = rdf_file_finder.FileFinderAction.Action.STAT
-      results = self._RunCFF(paths, action)
+      results, flow_id = self._RunCFF(paths, action)
 
-      paths = [result.stat_entry.pathspec.path for result in results]
-      self.assertCountEqual(paths, [
+      result_paths = [result.stat_entry.pathspec.path for result in results]
+      self.assertCountEqual(result_paths, [
           os.path.join(temp_dirpath, "foo", "bar"),
           os.path.join(temp_dirpath, "foo", "baz"),
           os.path.join(temp_dirpath, "thud", "norf", "plugh")
       ])
+
+    # Also check that the argument protobuf still has the original values.
+    flow_obj = flow_test_lib.GetFlowObj(self.client_id, flow_id)
+    args = flow_obj.args
+    self.assertCountEqual(args.paths, paths)
 
   # TODO(hanuszczak): Similar function can be found in other modules. It should
   # be implemented once in the test library.

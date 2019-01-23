@@ -17391,23 +17391,6 @@
                         "value": "blah!"
                       }
                     }
-                  },
-                  "source_urn": {
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:123456/Results"
-                  },
-                  "token": {
-                    "type": "ACLToken",
-                    "value": {
-                      "reason": {
-                        "type": "unicode",
-                        "value": "Running tests"
-                      },
-                      "username": {
-                        "type": "unicode",
-                        "value": "api_test_user"
-                      }
-                    }
                   }
                 }
               }
@@ -17432,11 +17415,6 @@
               "args": {
                 "fetch_binaries": true,
                 "filename_regex": "blah!"
-              },
-              "source_urn": "aff4:/hunts/H:123456/Results",
-              "token": {
-                "reason": "Running tests",
-                "username": "api_test_user"
               }
             }
           }

@@ -17,6 +17,7 @@ import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 from grr_response_core.lib import flags
 from grr_response_server import db_test_mixin
 from grr_response_server.databases import mysql
+from grr_response_server.databases import mysql_utils
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
@@ -87,8 +88,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
   def AddUser(self, connection, user, passwd):
     cursor = connection.cursor()
-    cursor.execute("INSERT INTO grr_users (username, password) VALUES (%s, %s)",
-                   (user, bytes(passwd)))
+    cursor.execute(
+        "INSERT INTO grr_users (username, username_hash, password) "
+        "VALUES (%s, %s, %s)", (user, mysql_utils.Hash(user), bytes(passwd)))
     cursor.close()
 
   def ListUsers(self, connection):
@@ -176,50 +178,6 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       self.db.ReadGRRUsers()
 
   # Tests that we don't expect to pass yet.
-
-  # TODO(hanuszczak): Remove these once artifacts are supported in MySQL.
-
-  def testReadArtifactThrowsForUnknownArtifacts(self):
-    pass
-
-  def testReadArtifactReadsWritten(self):
-    pass
-
-  def testReadArtifactReadsCopy(self):
-    pass
-
-  def testWriteArtifactThrowsForDuplicatedArtifacts(self):
-    pass
-
-  def testWriteArtifactThrowsForEmptyName(self):
-    pass
-
-  def testWriteArtifactWithSources(self):
-    pass
-
-  def testWriteArtifactMany(self):
-    pass
-
-  def testWriteArtifactWritesCopy(self):
-    pass
-
-  def testDeleteArtifactThrowsForUnknownArtifacts(self):
-    pass
-
-  def testDeleteArtifactDeletesSingle(self):
-    pass
-
-  def testDeleteArtifactDeletesMultiple(self):
-    pass
-
-  def testReadAllArtifactsEmpty(self):
-    pass
-
-  def testReadAllArtifactsReturnsAllArtifacts(self):
-    pass
-
-  def testReadAllArtifactsReturnsCopy(self):
-    pass
 
   # TODO(user): Finish implementation and enable these tests.
   def testWritePathInfosRawValidates(self):

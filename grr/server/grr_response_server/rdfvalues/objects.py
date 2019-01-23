@@ -13,7 +13,6 @@ import functools
 import hashlib
 import itertools
 import os
-import re
 import stat
 
 
@@ -65,26 +64,16 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def __init__(self, skip_verification=False, *args, **kwargs):
+  def __init__(self, *args, **kwargs):
     super(ClientSnapshot, self).__init__(*args, **kwargs)
-    if not skip_verification:
-      self.ValidateClientId()
     self.timestamp = None
-
-  def ValidateClientId(self):
-    if not self.client_id:
-      raise ValueError(
-          "Trying to instantiate a Client object without client id.")
-    if not re.match(r"C\.[0-9a-f]{16}", self.client_id):
-      raise ValueError("Client id invalid: %s" % self.client_id)
 
   @classmethod
   def FromSerializedString(cls, value, age=None):
-    res = cls(skip_verification=True)
+    res = cls()
     res.ParseFromString(value)
     if age:
       res.age = age
-    res.ValidateClientId()
     return res
 
   def Uname(self):

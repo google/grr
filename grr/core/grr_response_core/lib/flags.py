@@ -73,13 +73,15 @@ def FlagOverrider(**flag_kwargs):
   return flagsaver.flagsaver(**flag_kwargs)
 
 
-def StartMain(main):
+def StartMain(main, requires_root=False):
   """The main entry point to start applications.
 
   Parses flags and catches all exceptions for debugging.
 
   Args:
      main: A main function to call.
+     requires_root: Whether the application needs to be run with root
+       privileges.
   """
   try:
     app.run(main)

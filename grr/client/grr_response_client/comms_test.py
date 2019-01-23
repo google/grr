@@ -285,6 +285,33 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
     result.job.Extend(limited_queue.GetMessages().job)
     self.assertCountEqual(list(result.job), [msg_c] * 10 + [msg_a, msg_b] * 10)
 
+  def testSizeLimitedQueueSize(self):
+
+    q = comms.SizeLimitedQueue(1000)
+    msg_a = rdf_flows.GrrMessage(name="A")
+    msg_b = rdf_flows.GrrMessage(name="B")
+    msg_c = rdf_flows.GrrMessage(name="C")
+    msg_d = rdf_flows.GrrMessage(name="D")
+    messages = [msg_a, msg_b, msg_c, msg_d]
+
+    in_queue = set()
+    self.assertEqual(q.Size(), 0)
+
+    for m in messages:
+      q.Put(m, block=False)
+      in_queue.add(m)
+
+      self.assertEqual(q.Size(),
+                       sum([len(m.SerializeToString()) for m in in_queue]))
+
+    for _ in range(len(messages)):
+      msg_list = q.GetMessages(1)
+      self.assertLen(msg_list.job, 1)
+      in_queue.remove(msg_list.job[0])
+
+      self.assertEqual(q.Size(),
+                       sum([len(m.SerializeToString()) for m in in_queue]))
+
   def testSizeLimitedQueueOverflow(self):
 
     msg_a = rdf_flows.GrrMessage(name="A")

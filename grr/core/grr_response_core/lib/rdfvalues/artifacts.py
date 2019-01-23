@@ -273,10 +273,12 @@ class Artifact(rdf_structs.RDFProtoStruct):
       "Cloud": "Cloud applications artifacts.",
       "Cloud Storage": "Cloud Storage artifacts.",
       "Configuration Files": "Configuration files artifacts.",
+      "Docker": "Docker artifacts.",
       "Execution": "Contain execution events.",
       "ExternalAccount": ("Information about any users\' account, e.g."
                           " username, account ID, etc."),
       "External Media": "Contain external media data / events e.g. USB drives.",
+      "Hadoop": "Hadoop artifacts.",
       "History Files": "History files artifacts e.g. .bash_history.",
       "IM": "Instant Messaging / Chat applications artifacts.",
       "iOS": "Artifacts related to iOS devices connected to the system.",

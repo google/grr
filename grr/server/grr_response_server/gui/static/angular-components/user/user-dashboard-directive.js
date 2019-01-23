@@ -1,7 +1,51 @@
 goog.module('grrUi.user.userDashboardDirective');
 goog.module.declareLegacyNamespace();
 
+const MAX_SHOWN_CLIENTS = 7;
 
+/**
+ * This function gets a list of approvals and filters out duplicates.
+ * We assume that approvals are already sorted in a reversed-timestamp
+ * order. The rules are:
+ * 1. In case of equal validity and subject, we prefer the approval
+ *    that comes first in the list (meaning this would be the newer approval).
+ * 2. In case of equal subject and different validity, we prefer the approval
+ *    that is valid.
+ *
+ * @param {!Array<!Object>} approvals
+ * @return {!Array<!Object>} Filtered approvals.
+ */
+const filterOutDuplicateApprovals = function(approvals) {
+  const approvalsMap = {};
+  for (const item of approvals) {
+    const itemKey = item['value']['subject']['value']['client_id']['value'];
+    const prevApproval = approvalsMap[itemKey];
+
+    if (prevApproval) {
+      const prevApprovalHasPrecedence = (prevApproval['value']['is_valid']['value'] ||
+                                         !item['value']['is_valid']['value']);
+      if (prevApprovalHasPrecedence) {
+        continue;
+      }
+    }
+
+    approvalsMap[itemKey] = item;
+  }
+
+  const result = [];
+  for (const item of approvals) {
+    const itemKey = item['value']['subject']['value']['client_id']['value'];
+    const selectedApproval = approvalsMap[itemKey];
+
+    if (item['value']['id']['value'] ===
+        selectedApproval['value']['id']['value']) {
+      result.push(item);
+    }
+  }
+
+  return result;
+};
+exports.filterOutDuplicateApprovals = filterOutDuplicateApprovals;
 
 /**
  * Controller for UserDashboardDirective.
@@ -26,14 +70,17 @@ const UserDashboardController = function(
   /** @type {Array<Object>} */
   this.clientApprovals;
 
-  this.grrApiService_.get('/users/me/approvals/client', {count: 7}).then(
-      this.onApprovals_.bind(this));
+  // We need at most 7 approvals, but as there may be more
+  // than 1 approval for the same client, we fetch 20 and then filter
+  // the duplicates out.
+  this.grrApiService_.get('/users/me/approvals/client', {count: 20})
+      .then(r => this.onClientApprovals_(r));
   this.grrApiService_.get('/hunts',
                           {
                             count: 5,
                             active_within: '31d',
                             created_by: 'me'
-                          }).then(this.onHunts_.bind(this));
+                          }).then(r => this.onHunts_(r));
 };
 
 
@@ -43,8 +90,9 @@ const UserDashboardController = function(
  * @param {!Object} response API response.
  * @private
  */
-UserDashboardController.prototype.onApprovals_ = function(response) {
-  this.clientApprovals = response['data']['items'];
+UserDashboardController.prototype.onClientApprovals_ = function(response) {
+  this.clientApprovals = filterOutDuplicateApprovals(
+      response['data']['items']).slice(0, MAX_SHOWN_CLIENTS);
 };
 
 

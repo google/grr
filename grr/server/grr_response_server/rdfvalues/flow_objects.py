@@ -54,6 +54,14 @@ class FlowIterator(FlowMessage, rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowIterator
   rdf_deps = []
 
+  def AsLegacyGrrMessage(self):
+    return rdf_flows.GrrMessage(
+        session_id="%s/flows/%s" % (self.client_id, self.flow_id),
+        request_id=self.request_id,
+        response_id=self.response_id,
+        type=rdf_flows.GrrMessage.Type.ITERATOR,
+        timestamp=self.timestamp)
+
 
 class FlowStatus(FlowMessage, rdf_structs.RDFProtoStruct):
   """The flow status object."""

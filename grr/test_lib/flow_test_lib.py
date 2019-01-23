@@ -733,3 +733,12 @@ def GetFlowState(client_id, flow_id, token=None):
   else:
     flow_obj = aff4.FACTORY.Open(flow_id, mode="r", token=token)
     return flow_obj.state
+
+
+def GetFlowObj(client_id, flow_id, token=None):
+  if data_store.RelationalDBFlowsEnabled():
+    rdf_flow = data_store.REL_DB.ReadFlowObject(client_id.Basename(), flow_id)
+    return rdf_flow
+  else:
+    flow_obj = aff4.FACTORY.Open(flow_id, mode="r", token=token)
+    return flow_obj

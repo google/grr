@@ -60,6 +60,7 @@
 @import '../angular-components/stats/stats-view';
 @import '../angular-components/stats/chart';
 @import '../angular-components/stats/timeseries-graph';
+@import '../angular-components/user/user-dashboard';
 @import '../angular-components/user/user-notification-item';
 @import '../angular-components/user/user-settings-button';
 
@@ -377,7 +378,15 @@ label.btn {
   }
 
   select {
-    width: auto;
+    width: 70%;
+  }
+
+  grr-form-value {
+    grr-form-value {
+      select {
+        width: 100%;
+      }
+    }
   }
 
   input[type=number] {

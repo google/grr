@@ -326,10 +326,7 @@ message ApiListHuntCrashesArgs {
   optional int64 count = 3 [(sem_type) = {
       description: "Max number of crashes to fetch."
     }];
-  optional string filter = 4 [(sem_type) = {
-      description: "Return only results whose string representation "
-      "contains given substring."
-    }];
+  reserved 4;
 };
 
 message ApiListHuntCrashesResult {

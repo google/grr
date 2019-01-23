@@ -22,8 +22,8 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import temp
 from grr.test_lib import client_test_lib
-from grr.test_lib import temp
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 from grr.test_lib import worker_mocks
@@ -492,7 +492,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     with temp.AutoTempFilePath() as temp_filepath:
       client_test_lib.Chattr(temp_filepath, attrs=["+c"])
 
-      action = rdf_file_finder.FileFinderAction.Stat()
+      action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self._RunFileFinder([temp_filepath], action)
       self.assertLen(results, 1)
 
@@ -505,7 +505,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       client_test_lib.SetExtAttr(temp_filepath, name=b"user.foo", value=b"norf")
       client_test_lib.SetExtAttr(temp_filepath, name=b"user.bar", value=b"quux")
 
-      action = rdf_file_finder.FileFinderAction.Stat()
+      action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self._RunFileFinder([temp_filepath], action)
       self.assertLen(results, 1)
 
@@ -532,7 +532,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       value_1 = "kość".encode("utf-8")
       client_test_lib.SetExtAttr(temp_filepath, name=name_1, value=value_1)
 
-      action = rdf_file_finder.FileFinderAction.Stat()
+      action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self._RunFileFinder([temp_filepath], action)
       self.assertLen(results, 1)
 
@@ -550,7 +550,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
       client_test_lib.SetExtAttr(temp_filepath, name=name, value=value)
 
-      action = rdf_file_finder.FileFinderAction.Stat()
+      action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self._RunFileFinder([temp_filepath], action)
       self.assertLen(results, 1)
 
@@ -567,7 +567,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       client_test_lib.SetExtAttr(temp_filepath, name=name, value=value)
 
       # This should not explode (`xattr` does not handle non-unicode names).
-      action = rdf_file_finder.FileFinderAction.Stat()
+      action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self._RunFileFinder([temp_filepath], action)
       self.assertLen(results, 1)
       # We do not have an assertion whether the attributes were collected or not

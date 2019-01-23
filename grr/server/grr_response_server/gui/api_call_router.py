@@ -160,7 +160,9 @@ class ApiCallRouter(with_metaclass(registry.MetaclassRegistry, object)):
   params_type = None
 
   def __init__(self, params=None):
-    """Constructor. Accepts optional router parameters.
+    """Constructor.
+
+    Accepts optional router parameters.
 
     Args:
       params: None, or an RDFValue instance of params_type.
@@ -990,7 +992,7 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http("GET", "/api/users/me/approvals/client")
   @Http("GET", "/api/users/me/approvals/client/<client_id>")
   def ListClientApprovals(self, args, token=None):
-    """List client approvals of a current user."""
+    """List client approvals of a current user in reversed timestamp order."""
 
     raise NotImplementedError()
 
@@ -1021,8 +1023,7 @@ class ApiCallRouterStub(ApiCallRouter):
   @ArgsType(api_user.ApiGrantHuntApprovalArgs)
   @ResultType(api_user.ApiHuntApproval)
   @Http(
-      "POST",
-      "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>/"
+      "POST", "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>/"
       "actions/grant",
       strip_root_types=False)
   def GrantHuntApproval(self, args, token=None):

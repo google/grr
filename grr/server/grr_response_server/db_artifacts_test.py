@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -46,6 +47,16 @@ class DatabaseTestArtifactsMixin(object):
   def testWriteArtifactThrowsForEmptyName(self):
     with self.assertRaises(ValueError):
       self.db.WriteArtifact(rdf_artifacts.Artifact(name=""))
+
+  def testWriteAndReadArtifactWithLongName(self):
+    name = "a" * 1024
+    self.db.WriteArtifact(rdf_artifacts.Artifact(name=name))
+    self.assertEqual(self.db.ReadArtifact(name).name, name)
+
+  def testWriteAndReadArtifactWithUnicodeName(self):
+    name = "🍻foo🍻"
+    self.db.WriteArtifact(rdf_artifacts.Artifact(name=name))
+    self.assertEqual(self.db.ReadArtifact(name).name, name)
 
   def testWriteArtifactWithSources(self):
     file_source = rdf_artifacts.ArtifactSource(

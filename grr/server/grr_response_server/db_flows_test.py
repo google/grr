@@ -452,6 +452,19 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(read_flow.processing_since, now)
     self.assertEqual(read_flow.processing_deadline, deadline)
 
+    # None can be used to clear some fields.
+    self.db.UpdateFlow(client_id, flow_id, processing_on=None)
+    read_flow = self.db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(read_flow.processing_on, "")
+
+    self.db.UpdateFlow(client_id, flow_id, processing_since=None)
+    read_flow = self.db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(read_flow.processing_since, None)
+
+    self.db.UpdateFlow(client_id, flow_id, processing_deadline=None)
+    read_flow = self.db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(read_flow.processing_deadline, None)
+
   def testUpdateFlowsIgnoresMissingFlows(self):
     _, flow_id = self._SetupClientAndFlow()
     pending_termination = rdf_flow_objects.PendingFlowTermination(reason="test")
@@ -619,6 +632,32 @@ class DatabaseTestFlowMixin(object):
     self.assertLen(read, 1)
     request, responses = read[0]
     self.assertLen(responses, 1)
+
+  def testStatusForUnknownRequest(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    request = rdf_flow_objects.FlowRequest(
+        client_id=client_id, flow_id=flow_id, request_id=1)
+    self.db.WriteFlowRequests([request])
+
+    # Write two status responses at a time, one for the request that exists, one
+    # for a request that doesn't.
+    with test_lib.SuppressLogs():
+      self.db.WriteFlowResponses([
+          rdf_flow_objects.FlowStatus(
+              client_id=client_id, flow_id=flow_id, request_id=1,
+              response_id=1),
+          rdf_flow_objects.FlowStatus(
+              client_id=client_id, flow_id=flow_id, request_id=2, response_id=1)
+      ])
+
+    # We should have one response in the db.
+    read = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
+    self.assertLen(read, 1)
+    request, responses = read[0]
+    self.assertLen(responses, 1)
+
+    self.assertEqual(request.nr_responses_expected, 1)
 
   def testResponseWriting(self):
     client_id, flow_id = self._SetupClientAndFlow()

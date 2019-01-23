@@ -184,7 +184,7 @@
   { "name": "DepsProvidesMultiple",
     "sources": [
       { "type": "REGISTRY_VALUE",
-        "attributes": { "key_value_pairs": [{"key": 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion', "value": 'SystemRoot'}]}
+        "attributes": { "key_value_pairs": [{"key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "value": "SystemRoot"}]}
       }
     ],
     "provides": ["environ_path", "environ_temp"],
@@ -204,7 +204,7 @@
     ],
     "labels": [ "Software" ],
     "supported_os": [ "Windows" ],
-    "urls": [ "https://msdn.microsoft.com/en-us/library/aa384749%28v=vs.85%29.aspx" ],
+    "urls": [ "https://msdn.microsoft.com/en-us/library/aa384749%28v=vs.85%29.aspx" ]
   },
 
   { "name": "NoProvides",
@@ -297,7 +297,7 @@
       },
       { "type": "ARTIFACT_GROUP",
         "attributes": { "names": ["TestFileArtifact"] }
-      },
+      }
     ],
     "doc": "Test artifact group.",
     "supported_os": [ "Linux", "Darwin" ]
@@ -329,7 +329,7 @@
   { "name": "TestRegistryKey",
     "sources": [
       { "type": "REGISTRY_KEY",
-        "attributes": { "keys": ['HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager']}
+        "attributes": { "keys": ["HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager"]}
       }
     ],
     "doc": "Test registry key artifact."

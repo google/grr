@@ -15,7 +15,7 @@ import mock
 from grr_response_client import client_build
 from grr_response_core.lib import builders
 from grr_response_core.lib import flags
-from grr.test_lib import temp
+from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
 

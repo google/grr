@@ -79,33 +79,45 @@ def _ReadVariable(name, cursor):
     return row[1]
 
 
+class Error(MySQLdb.Error):
+  """Base Error for the MySQL datastore."""
+
+
+class SchemaInitializationError(Error):
+  """Raised when the setup of the MySQL schema fails."""
+
+
+class EncodingEnforcementError(Error):
+  """Raised when enforcing the UTF-8 encoding fails."""
+
+
 def _EnforceEncoding(cursor):
   """Enforce a sane UTF-8 encoding for the DB cursor."""
   cursor.execute("SET NAMES '{}' COLLATE '{}'".format(CHARACTER_SET, COLLATION))
 
   collation_connection = _ReadVariable("collation_connection", cursor)
   if collation_connection != COLLATION:
-    raise RuntimeError(
+    raise EncodingEnforcementError(
         "Require MySQL collation_connection of {}, got {}.".format(
             COLLATION, collation_connection))
 
   collation_database = _ReadVariable("collation_database", cursor)
   if collation_database != COLLATION:
-    raise RuntimeError("Require MySQL collation_database of {}, got {}."
-                       " To create your database, use: {}".format(
-                           COLLATION, collation_database,
-                           CREATE_DATABASE_QUERY))
+    raise EncodingEnforcementError(
+        "Require MySQL collation_database of {}, got {}."
+        " To create your database, use: {}".format(
+            COLLATION, collation_database, CREATE_DATABASE_QUERY))
 
   character_set_database = _ReadVariable("character_set_database", cursor)
   if character_set_database != CHARACTER_SET:
-    raise RuntimeError("Require MySQL character_set_database of {}, got {}."
-                       " To create your database, use: {}".format(
-                           COLLATION, collation_connection,
-                           CREATE_DATABASE_QUERY))
+    raise EncodingEnforcementError(
+        "Require MySQL character_set_database of {}, got {}."
+        " To create your database, use: {}".format(
+            COLLATION, collation_connection, CREATE_DATABASE_QUERY))
 
   character_set_connection = _ReadVariable("character_set_connection", cursor)
   if character_set_connection != CHARACTER_SET:
-    raise RuntimeError(
+    raise EncodingEnforcementError(
         "Require MySQL character_set_connection of {}, got {}.".format(
             CHARACTER_SET, character_set_connection))
 
@@ -292,9 +304,10 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     for command in mysql_ddl.SCHEMA_SETUP:
       try:
         cursor.execute(command)
-      except Exception:
-        logging.error("Failed to execute DDL: %s", command)
-        raise
+      except MySQLdb.MySQLError as e:
+        raise SchemaInitializationError(
+            "{}. Error occurred during execution of {}"
+            .format(e, command.strip()))
 
   def _RunInTransaction(self, function, readonly=False):
     """Runs function within a transaction.

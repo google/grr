@@ -330,7 +330,7 @@ Platform:Windows:
   def _SetupConfig(self, value):
     conf = config_lib.GrrConfigManager()
     config_file = os.path.join(self.temp_dir, "config.yaml")
-    with open(config_file, "wb") as fd:
+    with io.open(config_file, "w") as fd:
       fd.write("Section1.option1: %s" % value)
     conf.DEFINE_string("Section1.option1", "Default Value", "Help")
     conf.Initialize(filename=config_file)
@@ -777,13 +777,13 @@ Section1.int: 3
       subdir = os.path.join(temp_dir, "subdir")
       os.makedirs(subdir)
       configthree = os.path.join(subdir, "3.yaml")
-      with open(configone, "wb") as fd:
+      with io.open(configone, "w") as fd:
         fd.write(one)
 
-      with open(configtwo, "wb") as fd:
+      with io.open(configtwo, "w") as fd:
         fd.write(two)
 
-      with open(configthree, "wb") as fd:
+      with io.open(configthree, "w") as fd:
         fd.write(three)
 
       # Using filename
@@ -815,7 +815,7 @@ Section1.int: 1
 """
     with utils.TempDirectory() as temp_dir:
       configone = os.path.join(temp_dir, "1.yaml")
-      with open(configone, "wb") as fd:
+      with io.open(configone, "w") as fd:
         fd.write(one)
 
       absolute_include = r"""
@@ -845,7 +845,7 @@ Section1.int: 2
 
       # If we write it to a file it should work though.
       configtwo = os.path.join(temp_dir, "2.yaml")
-      with open(configtwo, "wb") as fd:
+      with io.open(configtwo, "w") as fd:
         fd.write(relative_include)
 
       conf.Initialize(parser=config_lib.YamlParser, filename=configtwo)
@@ -903,10 +903,10 @@ SecondaryFileIncluded: true
     with utils.TempDirectory() as temp_dir:
       configone = os.path.join(temp_dir, "1.yaml")
       configtwo = os.path.join(temp_dir, "2.yaml")
-      with open(configone, "wb") as fd:
+      with io.open(configone, "w") as fd:
         fd.write(one)
 
-      with open(configtwo, "wb") as fd:
+      with io.open(configtwo, "w") as fd:
         fd.write(two)
 
       # Without specifying the context the includes are not processed.
@@ -984,7 +984,7 @@ Test1 Context:
     conf.Set(str("NewSection1.new_option1"), u"New Value1")
     conf.Write()
 
-    data = open(config_file).read()
+    data = io.open(config_file).read()
     self.assertNotIn("!!python/unicode", data)
 
   def testNoUnicodeReading(self):
@@ -1000,7 +1000,7 @@ Client.labels: [Test1]
   def testRenameOnWritebackFailure(self):
     conf = config.CONFIG.MakeNewConfig()
     writeback_file = os.path.join(self.temp_dir, "writeback.yaml")
-    with open(writeback_file, "w") as f:
+    with io.open(writeback_file, "w") as f:
       f.write("This is a bad line of yaml{[(\n")
       f.close()
 
@@ -1011,7 +1011,7 @@ Client.labels: [Test1]
     """Don't rename config files we don't have permission to read."""
     conf = config.CONFIG.MakeNewConfig()
     writeback_file = os.path.join(self.temp_dir, "writeback.yaml")
-    with open(writeback_file, "w") as f:
+    with io.open(writeback_file, "w") as f:
       f.write("...")
       f.close()
 

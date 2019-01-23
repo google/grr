@@ -902,6 +902,7 @@ class SizeLimitedQueue(object):
       ret = rdf_flows.MessageList()
       ret_size = 0
       for message in self._Generate():
+        self._total_size -= len(message)
         ret.job.append(rdf_flows.GrrMessage.FromSerializedString(message))
         ret_size += len(message)
         if soft_size_limit is not None and ret_size > soft_size_limit:

@@ -2,20 +2,29 @@
 """REL_DB-based file store implementation."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import abc
+import collections
 import hashlib
 import io
 import os
 
 from future.utils import iteritems
+from future.utils import iterkeys
 from future.utils import with_metaclass
+
+from typing import Dict
+from typing import Iterable
+from typing import NamedTuple
 
 from grr_response_core import config
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import precondition
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -43,13 +52,29 @@ class OversizedReadError(Error):
   """Raises when trying to read large files without specifying read length."""
 
 
+FileMetadata = NamedTuple("FileMetadata", [
+    ("client_path", db.ClientPath),
+    ("blob_refs", Iterable[rdf_objects.BlobReference]),
+])
+
+
 class ExternalFileStore(with_metaclass(abc.ABCMeta, object)):
   """Filestore for files collected from clients."""
 
   @abc.abstractmethod
-  def AddFile(self, client_path, file_hash, blob_refs):
+  def AddFile(self, hash_id, metadata):
     """Add a new file to the file store."""
     raise NotImplementedError()
+
+  def AddFiles(self, hash_id_metadatas):
+    """Adds multiple files to the file store.
+
+    Args:
+      hash_id_metadatas: A dictionary mapping hash ids to file metadata (a tuple
+        of hash client path and blob references).
+    """
+    for hash_id, metadata in iteritems(hash_id_metadatas):
+      self.AddFile(hash_id, metadata)
 
 
 class CompositeExternalFileStore(ExternalFileStore):
@@ -67,9 +92,13 @@ class CompositeExternalFileStore(ExternalFileStore):
 
     self.nested_stores.append(fs)
 
-  def AddFile(self, client_path, file_hash, blob_refs):
+  def AddFile(self, hash_id, metadata):
     for fs in self.nested_stores:
-      fs.AddFile(client_path, file_hash, blob_refs)
+      fs.AddFile(hash_id, metadata)
+
+  def AddFiles(self, hash_id_metadatas):
+    for nested_store in self.nested_stores:
+      nested_store.AddFiles(hash_id_metadatas)
 
 
 EXTERNAL_FILE_STORE = CompositeExternalFileStore()
@@ -179,37 +208,76 @@ class BlobStream(object):
 _BLOBS_READ_BATCH_SIZE = 200
 
 
+def AddFilesWithUnknownHashes(
+    client_path_blob_ids
+):
+  """Adds new files consisting of given blob ids.
+
+  Args:
+    client_path_blob_ids: A dictionary mapping `db.ClientPath` instances to
+      lists of blob ids.
+
+  Returns:
+    A dictionary mapping `db.ClientPath` to hash ids of the file.
+
+  Raises:
+    BlobNotFoundError: If one of the referenced blobs cannot be found.
+  """
+  all_client_path_blob_ids = list()
+  for client_path, blob_ids in iteritems(client_path_blob_ids):
+    for blob_id in blob_ids:
+      all_client_path_blob_ids.append((client_path, blob_id))
+
+  client_path_offset = collections.defaultdict(lambda: 0)
+  client_path_sha256 = collections.defaultdict(hashlib.sha256)
+  client_path_blob_refs = collections.defaultdict(list)
+
+  client_path_blob_id_batches = collection.Batch(
+      items=all_client_path_blob_ids, size=_BLOBS_READ_BATCH_SIZE)
+
+  for client_path_blob_id_batch in client_path_blob_id_batches:
+    blob_id_batch = set(blob_id for _, blob_id in client_path_blob_id_batch)
+    blobs = data_store.BLOBS.ReadBlobs(blob_id_batch)
+
+    for client_path, blob_id in client_path_blob_id_batch:
+      blob = blobs[blob_id]
+      if blob is None:
+        message = "Could not find one of referenced blobs: {}".format(blob_id)
+        raise BlobNotFoundError(message)
+
+      offset = client_path_offset[client_path]
+      blob_ref = rdf_objects.BlobReference(
+          offset=offset, size=len(blob), blob_id=blob_id)
+
+      client_path_blob_refs[client_path].append(blob_ref)
+      client_path_offset[client_path] = offset + len(blob)
+      client_path_sha256[client_path].update(blob)
+
+  client_path_hash_id = dict()
+  hash_id_blob_refs = dict()
+  for client_path in iterkeys(client_path_blob_ids):
+    sha256 = client_path_sha256[client_path].digest()
+    hash_id = rdf_objects.SHA256HashID.FromBytes(sha256)
+
+    client_path_hash_id[client_path] = hash_id
+    hash_id_blob_refs[hash_id] = client_path_blob_refs[client_path]
+
+  data_store.REL_DB.WriteHashBlobReferences(hash_id_blob_refs)
+
+  metadatas = dict()
+  for client_path in iterkeys(client_path_blob_ids):
+    metadatas[client_path_hash_id[client_path]] = FileMetadata(
+        client_path=client_path, blob_refs=client_path_blob_refs[client_path])
+  EXTERNAL_FILE_STORE.AddFiles(metadatas)
+
+  return client_path_hash_id
+
+
 def AddFileWithUnknownHash(client_path, blob_ids):
   """Add a new file consisting of given blob IDs."""
-
-  blob_refs = []
-  offset = 0
-  sha256 = hashlib.sha256()
-  for blob_ids_batch in collection.Batch(blob_ids, _BLOBS_READ_BATCH_SIZE):
-    unique_ids = set(blob_ids_batch)
-    data = data_store.BLOBS.ReadBlobs(unique_ids)
-    for k, v in iteritems(data):
-      if v is None:
-        raise BlobNotFoundError("Couldn't find one of referenced blobs: %s" % k)
-
-    for blob_id in blob_ids_batch:
-      blob_data = data[blob_id]
-      blob_refs.append(
-          rdf_objects.BlobReference(
-              offset=offset,
-              size=len(blob_data),
-              blob_id=blob_id,
-          ))
-      offset += len(blob_data)
-
-      sha256.update(blob_data)
-
-  hash_id = rdf_objects.SHA256HashID.FromBytes(sha256.digest())
-  data_store.REL_DB.WriteHashBlobReferences({hash_id: blob_refs})
-
-  EXTERNAL_FILE_STORE.AddFile(client_path, hash_id, blob_refs)
-
-  return hash_id
+  precondition.AssertType(client_path, db.ClientPath)
+  precondition.AssertIterableType(blob_ids, rdf_objects.BlobID)
+  return AddFilesWithUnknownHashes({client_path: blob_ids})[client_path]
 
 
 def CheckHashes(hash_ids):

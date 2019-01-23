@@ -27,6 +27,7 @@ from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import string_types
 from future.utils import with_metaclass
+from typing import cast
 from typing import Text
 
 from grr_response_core.lib import flags
@@ -36,6 +37,8 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import yaml
 
 # Default is set in distro_entry.py to be taken from package resource.
@@ -89,10 +92,6 @@ class UnknownOption(Error, KeyError):
 class InterpolationError(Error):
   """Raised when a config object failed to interpolate."""
 
-  def AddContext(self, message):
-    self.message = "%s %s" % (self.message, message)
-    self.args = (self.message,)
-
 
 class FilterError(InterpolationError):
   """Raised when a filter fails to perform its function."""
@@ -145,6 +144,7 @@ class ConfigFilter(with_metaclass(registry.MetaclassRegistry, object)):
   sensitive_arg = False
 
   def Filter(self, data):
+    precondition.AssertType(data, Text)
     return data
 
 
@@ -157,6 +157,7 @@ class Lower(ConfigFilter):
   name = "lower"
 
   def Filter(self, data):
+    precondition.AssertType(data, Text)
     return data.lower()
 
 
@@ -164,6 +165,7 @@ class Upper(ConfigFilter):
   name = "upper"
 
   def Filter(self, data):
+    precondition.AssertType(data, Text)
     return data.upper()
 
 
@@ -171,8 +173,9 @@ class Filename(ConfigFilter):
   name = "file"
 
   def Filter(self, data):
+    precondition.AssertType(data, Text)
     try:
-      with io.open(data, "rb") as fd:
+      with io.open(data, "r") as fd:
         return fd.read()
     except IOError as e:
       raise FilterError("%s: %s" % (data, e))
@@ -182,17 +185,21 @@ class OptionalFile(ConfigFilter):
   name = "optionalfile"
 
   def Filter(self, data):
+    precondition.AssertType(data, Text)
     try:
-      with io.open(data, "rb") as fd:
+      with io.open(data, "r") as fd:
         return fd.read()
     except IOError:
-      return b""
+      return ""
 
 
 class FixPathSeparator(ConfigFilter):
+  """A configuration filter that fixes the path speratator."""
+
   name = "fixpathsep"
 
   def Filter(self, data):
+    precondition.AssertType(data, Text)
     if platform.system() == "Windows":
       # This will fix "X:\", and might add extra slashes to other paths, but
       # this is OK.
@@ -205,6 +212,11 @@ class Base64(ConfigFilter):
   name = "base64"
 
   def Filter(self, data):
+    precondition.AssertType(data, Text)
+    # TODO: `decode` on unicode object won't work in Python 3.
+    # Also, this method is supposed to return unicode object whereas "base64"
+    # encoding is used for binary data. Finally, this does not seem to be used
+    # anywhere so maybe it can be removed?
     return data.decode("base64")
 
 
@@ -213,7 +225,8 @@ class Env(ConfigFilter):
   name = "env"
 
   def Filter(self, data):
-    return os.environ.get(data.upper(), "")
+    precondition.AssertType(data, Text)
+    return compatibility.Environ(data.upper(), default="")
 
 
 class Expand(ConfigFilter):
@@ -221,7 +234,13 @@ class Expand(ConfigFilter):
   name = "expand"
 
   def Filter(self, data):
-    return _CONFIG.InterpolateValue(data)
+    precondition.AssertType(data, Text)
+    interpolated = _CONFIG.InterpolateValue(data)
+    # TODO(hanuszczak): This assertion should not be necessary but since the
+    # whole configuration system is one gigantic spaghetti, we can never be sure
+    # what is being returned.
+    precondition.AssertType(data, Text)
+    return cast(Text, interpolated)
 
 
 class Flags(ConfigFilter):
@@ -229,9 +248,19 @@ class Flags(ConfigFilter):
   name = "flags"
 
   def Filter(self, data):
+    precondition.AssertType(data, Text)
     try:
       logging.debug("Overriding config option with flags.FLAGS.%s", data)
-      return getattr(flags.FLAGS, data)
+      attribute = getattr(flags.FLAGS, data)
+      # TODO(hanuszczak): Filters should always return strings and this juggling
+      # should not be needed. This is just a quick hack to fix prod.
+      if isinstance(attribute, bytes):
+        attribute = attribute.decode("utf-8")
+      elif not isinstance(attribute, Text):
+        attribute = str(attribute)
+      # TODO(hanuszczak): See TODO comment in the `Expand` filter.
+      precondition.AssertType(attribute, Text)
+      return cast(Text, attribute)
     except AttributeError as e:
       raise FilterError(e)
 
@@ -621,6 +650,7 @@ class StringInterpolator(lexer.Lexer):
       if not filter_object.sensitive_arg:
         logging.debug("Applying filter %s for %s.", filter_name, arg)
       arg = filter_object().Filter(arg)
+      precondition.AssertType(arg, Text)
 
     self.stack[-1] += arg
 
@@ -1391,8 +1421,11 @@ class GrrConfigManager(object):
             parameter=type_info_obj.name,
             context=context).Parse()
       except InterpolationError as e:
-        e.AddContext(value)
-        raise
+        # TODO(hanuszczak): This is a quick hack to not refactor too much while
+        # working on Python 3 compatibility. But this is bad and exceptions
+        # should not be used like this.
+        message = "{cause}: {detail}".format(cause=e, detail=value)
+        raise type(e)(message)
 
       # Parse the data from the string.
       value = type_info_obj.FromString(value)

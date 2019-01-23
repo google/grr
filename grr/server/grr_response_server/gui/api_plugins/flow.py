@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import itertools
 import re
-import sys
 
 
 from future.builtins import str
@@ -25,6 +24,7 @@ from grr_response_proto.api import flow_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import instant_output_plugin
@@ -607,7 +607,7 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
     if data_store.RelationalDBFlowsEnabled():
       results = data_store.REL_DB.ReadFlowResults(
           str(args.client_id), str(args.flow_id), args.offset, args.count or
-          sys.maxsize)
+          db.MAX_COUNT)
       total_count = data_store.REL_DB.CountFlowResults(
           str(args.client_id), str(args.flow_id))
       items = [r.payload for r in results]
@@ -645,7 +645,7 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     if data_store.RelationalDBFlowsEnabled():
-      count = args.count or sys.maxsize
+      count = args.count or db.MAX_COUNT
 
       logs = data_store.REL_DB.ReadFlowLogEntries(
           str(args.client_id), str(args.flow_id), args.offset, count,
@@ -802,7 +802,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
       flow_api_object = ApiFlow().InitFromFlowObject(flow_obj)
       flow_results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
-                                                       sys.maxsize)
+                                                       db.MAX_COUNT)
       flow_results = [r.payload for r in flow_results]
       return flow_api_object, flow_results
     else:

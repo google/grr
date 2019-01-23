@@ -13,6 +13,7 @@ from __future__ import unicode_literals
 import logging
 
 
+from future.builtins import str
 from future.utils import itervalues
 from future.utils import string_types
 from future.utils import with_metaclass
@@ -21,7 +22,6 @@ from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 
 
@@ -101,7 +101,7 @@ class TypeInfoObject(with_metaclass(registry.MetaclassRegistry, object)):
     return string
 
   def ToString(self, value):
-    return utils.SmartStr(value)
+    return str(value)
 
   def Help(self):
     """Returns a helpful string describing this type info."""
@@ -351,7 +351,7 @@ class List(TypeInfoObject):
       raise TypeValueError("Value must be an iterable not a string.")
 
     elif not isinstance(value, (list, tuple)):
-      raise TypeValueError("%s not a valid List" % utils.SmartStr(value))
+      raise TypeValueError("%r not a valid List" % value)
 
     # Validate each value in the list validates against our type.
     return [self.validator.Validate(val) for val in value]

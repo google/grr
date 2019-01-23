@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
+
+import doctest
 import email
 import functools
 import logging
@@ -29,6 +31,8 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import temp
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_test_utils
 from grr_response_server import access_control
@@ -44,7 +48,6 @@ from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.flows.general import audit
 from grr_response_server.hunts import results as hunts_results
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr.test_lib import temp
 from grr.test_lib import testing_startup
 
 FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
@@ -849,6 +852,50 @@ class SuppressLogs(object):
     logging.warn = self.old_warn
     logging.info = self.old_info
     logging.debug = self.old_debug
+
+
+# TODO(user): It would be nice if all doctested functions (or even examples)
+# had their own method in the TestCase. This allows faster developer cycles,
+# because the developer sees all failures instead of only the first one. Also,
+# it makes it easier to see if a doctest has been added for a new docstring.
+class DocTest(absltest.TestCase):
+  """A TestCase that tests examples in docstrings using doctest.
+
+  Attributes:
+    module: A reference to the module to be tested.
+  """
+  module = None
+
+  def testDocStrings(self):
+    """Test all examples in docstrings using doctest."""
+
+    if not compatibility.PY2:
+      # TODO(user): Migrate all doctests to Python 3 only once we use Python 3
+      # in production.
+      self.skipTest("DocTest is disabled for Python 3 because of unicode string"
+                    " formatting.")
+
+    self.assertIsNotNone(self.module, "Set DocTest.module to test docstrings.")
+    try:
+      num_failed, num_attempted = doctest.testmod(
+          self.module, raise_on_error=True)
+    except doctest.DocTestFailure as e:
+      name = e.test.name
+      if "." in name:
+        name = name.split(".")[-1]  # Remove long module prefix.
+
+      filename = os.path.basename(e.test.filename)
+
+      self.fail("DocTestFailure in {} ({} on line {}):\n"
+                ">>> {}Expected : {}Actual   : {}".format(
+                    name, filename, e.test.lineno, e.example.source,
+                    e.example.want, e.got))
+
+    # Fail if DocTest is referenced, but no examples in docstrings are present.
+    self.assertGreater(num_attempted, 0, "No doctests were found!")
+
+    # num_failed > 0 should not happen because raise_on_error = True.
+    self.assertEqual(num_failed, 0, "{} doctests failed.".format(num_failed))
 
 
 def main(argv=None):

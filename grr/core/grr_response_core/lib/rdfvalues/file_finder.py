@@ -124,21 +124,45 @@ class FileFinderCondition(rdf_structs.RDFProtoStruct):
 
 
 class FileFinderStatActionOptions(rdf_structs.RDFProtoStruct):
+  """FileFinder stat action options RDFStruct."""
+
   protobuf = flows_pb2.FileFinderStatActionOptions
+
+  def __init__(self, *args, **kwargs):
+    super(FileFinderStatActionOptions, self).__init__(*args, **kwargs)
+
+    if not self.HasField("collect_ext_attrs"):
+      self.collect_ext_attrs = False
 
 
 class FileFinderHashActionOptions(rdf_structs.RDFProtoStruct):
+  """FileFinder hash action options RDFStruct."""
+
   protobuf = flows_pb2.FileFinderHashActionOptions
   rdf_deps = [
       rdfvalue.ByteSize,
   ]
 
+  def __init__(self, *args, **kwargs):
+    super(FileFinderHashActionOptions, self).__init__(*args, **kwargs)
+
+    if not self.HasField("collect_ext_attrs"):
+      self.collect_ext_attrs = False
+
 
 class FileFinderDownloadActionOptions(rdf_structs.RDFProtoStruct):
+  """FileFinder download action options RDFStruct."""
+
   protobuf = flows_pb2.FileFinderDownloadActionOptions
   rdf_deps = [
       rdfvalue.ByteSize,
   ]
+
+  def __init__(self, *args, **kwargs):
+    super(FileFinderDownloadActionOptions, self).__init__(*args, **kwargs)
+
+    if not self.HasField("collect_ext_attrs"):
+      self.collect_ext_attrs = False
 
 
 class FileFinderAction(rdf_structs.RDFProtoStruct):

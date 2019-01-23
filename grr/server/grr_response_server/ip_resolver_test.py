@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 import socket
 
-import ipaddr
+import ipaddress
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import utils
@@ -32,8 +32,7 @@ class IPResolverTest(test_lib.GRRBaseTest):
           ("69.50.225.155", ip_resolver.IPInfo.EXTERNAL),
           ("69.50.225.155", ip_resolver.IPInfo.EXTERNAL),
       ]:
-        rdf_ip = ipaddr.IPAddress(ip)
-        info, _ = resolver.RetrieveIPInfo(rdf_ip)
+        info, _ = resolver.RetrieveIPInfo(ipaddress.ip_address(ip))
         self.assertEqual(info, result)
 
     # There is one external address but it was resolved twice. There is a cache

@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import io
 import itertools
-import socket
 
 
 from future.utils import iteritems
@@ -357,11 +356,7 @@ class InterrogatedClient(ActionMock):
             mac_address=b"123456",
             addresses=[
                 rdf_client_network.NetworkAddress(
-                    address_type=rdf_client_network.NetworkAddress.Family.INET,
-                    human_readable="100.100.100.1",
-                    packed_bytes=socket.inet_pton(socket.AF_INET,
-                                                  "100.100.100.1"),
-                )
+                    human_readable_address="100.100.100.1"),
             ])
     ]
 

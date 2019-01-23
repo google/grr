@@ -19,9 +19,9 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import temp
 from grr.test_lib import benchmark_test_lib
 from grr.test_lib import client_test_lib
-from grr.test_lib import temp
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 

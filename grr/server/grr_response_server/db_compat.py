@@ -62,6 +62,16 @@ def WriteHuntResults(client_id, hunt_id, responses):
       "hunt_results_added", delta=len(responses))
 
 
+def _FlowStatusToClientResources(flow_obj, status_msg):
+  return rdf_client_stats.ClientResources(
+      client_id=flow_obj.client_id,
+      session_id=flow_obj.flow_id,
+      cpu_usage=rdf_client_stats.CpuSeconds(
+          user_cpu_time=status_msg.cpu_time_used.user_cpu_time,
+          system_cpu_time=status_msg.cpu_time_used.system_cpu_time),
+      network_bytes_sent=status_msg.network_bytes_sent)
+
+
 def ProcessHuntFlowError(flow_obj,
                          error_message=None,
                          backtrace=None,
@@ -69,9 +79,11 @@ def ProcessHuntFlowError(flow_obj,
   """Processes error and status message for a given hunt-induced flow."""
 
   if not hunt.IsLegacyHunt(flow_obj.parent_hunt_id):
+    resources = _FlowStatusToClientResources(flow_obj, status_msg)
 
     def UpdateFn(hunt_obj):
       hunt_obj.num_failed_clients += 1
+      hunt_obj.client_resources_stats.RegisterResources(resources)
       return hunt_obj
 
     hunt_obj = data_store.REL_DB.UpdateHuntObject(flow_obj.parent_hunt_id,
@@ -102,13 +114,7 @@ def ProcessHuntFlowDone(flow_obj, status_msg=None):
   """Notifis hunt about a given hunt-induced flow completion."""
 
   if not hunt.IsLegacyHunt(flow_obj.parent_hunt_id):
-    resources = rdf_client_stats.ClientResources(
-        client_id=flow_obj.client_id,
-        session_id=flow_obj.flow_id,
-        cpu_usage=rdf_client_stats.CpuSeconds(
-            user_cpu_time=status_msg.cpu_time_used.user_cpu_time,
-            system_cpu_time=status_msg.cpu_time_used.system_cpu_time),
-        network_bytes_sent=status_msg.network_bytes_sent)
+    resources = _FlowStatusToClientResources(flow_obj, status_msg)
 
     def UpdateFn(hunt_obj):
       hunt_obj.num_successful_clients += 1
@@ -183,7 +189,7 @@ def ProcessHuntClientCrash(flow_obj, client_crash_info):
                                                   UpdateFn)
 
     if (hunt_obj.crash_limit and
-        hunt_obj.num_crashed_clients > hunt_obj.crash_limit):
+        hunt_obj.num_crashed_clients >= hunt_obj.crash_limit):
       # Remove our rules from the forman and cancel all the started flows.
       # Hunt will be hard-stopped and it will be impossible to restart it.
       reason = ("Hunt %s reached the crashes limit of %d "

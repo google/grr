@@ -5,6 +5,7 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
+import os
 import shlex
 import sys
 import time
@@ -18,8 +19,13 @@ from typing import Optional
 from typing import Text
 from typing import Tuple
 from typing import Type
+from typing import TypeVar
+from typing import Union
 
 from grr_response_core.lib.util import precondition
+
+
+T = TypeVar("T")
 
 
 # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
@@ -242,3 +248,25 @@ def UnescapeString(string):
   """
   precondition.AssertType(string, Text)
   return string.encode("utf-8").decode("unicode_escape")
+
+
+def Environ(variable, default):
+  """A wrapper for `os.environ.get` that works the same way in both Pythons.
+
+  Args:
+    variable: A name of the variable to get the value of.
+    default: A default value to return in case no value for the given variable
+      is set.
+
+  Returns:
+    An environment value of the given variable.
+  """
+  precondition.AssertType(variable, Text)
+
+  value = os.environ.get(variable, default)
+  if value is None:
+    return default
+  if PY2:
+    # TODO(hanuszczak): https://github.com/google/pytype/issues/127
+    value = value.decode("utf-8")  # pytype: disable=attribute-error
+  return value

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -592,11 +592,11 @@ class DatabaseTestClientsMixin(object):
     # Typical keywords are usernames and prefixes of hostnames.
     d.AddClientKeywords(client_id_1, [
         "joe", "machine.test.example1.com", "machine.test.example1",
-        "machine.test", "machine", "⊙_ʘ"
+        "machine.test", "machine", "🚀"
     ])
     d.AddClientKeywords(client_id_2, [
         "fred", "machine.test.example2.com", "machine.test.example2",
-        "machine.test", "machine", "ಠ_ಠ"
+        "machine.test", "machine", "🚀🚀"
     ])
     d.AddClientKeywords(client_id_3, ["foo", "bar", "baz"])
 
@@ -605,7 +605,7 @@ class DatabaseTestClientsMixin(object):
     self.assertCountEqual(res["machine"], [client_id_1, client_id_2])
     self.assertEqual(res["missing"], [])
 
-    for kw, client_id in [("⊙_ʘ", client_id_1), ("ಠ_ಠ", client_id_2)]:
+    for kw, client_id in [("🚀", client_id_1), ("🚀🚀", client_id_2)]:
       res = d.ListClientsForKeywords([kw])
       self.assertEqual(
           res[kw], [client_id], "Expected [%s] when reading keyword %s, got %s"
@@ -644,33 +644,33 @@ class DatabaseTestClientsMixin(object):
 
     self.assertEqual(d.ReadClientLabels(client_id), [])
 
-    d.AddClientLabels(client_id, "owner1", ["label1"])
-    d.AddClientLabels(client_id, "owner2", ["label2", "label3"])
+    d.AddClientLabels(client_id, "owner1", ["label1🚀"])
+    d.AddClientLabels(client_id, "owner2", ["label2", "label🚀3"])
 
     all_labels = [
-        rdf_objects.ClientLabel(name="label1", owner="owner1"),
+        rdf_objects.ClientLabel(name="label1🚀", owner="owner1"),
         rdf_objects.ClientLabel(name="label2", owner="owner2"),
-        rdf_objects.ClientLabel(name="label3", owner="owner2")
+        rdf_objects.ClientLabel(name="label🚀3", owner="owner2")
     ]
 
     self.assertEqual(d.ReadClientLabels(client_id), all_labels)
     self.assertEqual(d.ReadClientLabels("C.0000000000000002"), [])
 
     # Can't hurt to insert this one again.
-    d.AddClientLabels(client_id, "owner1", ["label1"])
+    d.AddClientLabels(client_id, "owner1", ["label1🚀"])
     self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
     d.RemoveClientLabels(client_id, "owner1", ["does not exist"])
     self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
     # Label3 is actually owned by owner2.
-    d.RemoveClientLabels(client_id, "owner1", ["label3"])
+    d.RemoveClientLabels(client_id, "owner1", ["label🚀3"])
     self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
-    d.RemoveClientLabels(client_id, "owner2", ["label3"])
+    d.RemoveClientLabels(client_id, "owner2", ["label🚀3"])
     self.assertEqual(
         d.ReadClientLabels(client_id), [
-            rdf_objects.ClientLabel(name="label1", owner="owner1"),
+            rdf_objects.ClientLabel(name="label1🚀", owner="owner1"),
             rdf_objects.ClientLabel(name="label2", owner="owner2"),
         ])
 
@@ -680,14 +680,14 @@ class DatabaseTestClientsMixin(object):
 
     self.assertEqual(d.ReadClientLabels(client_id), [])
 
-    d.AddClientLabels(client_id, "owner1", ["⛄࿄1"])
-    d.AddClientLabels(client_id, "owner2", ["⛄࿄2"])
-    d.AddClientLabels(client_id, "owner2", ["⛄࿄3"])
+    d.AddClientLabels(client_id, "owner1", ["🚀🍰1"])
+    d.AddClientLabels(client_id, "owner2", ["🚀🍰2"])
+    d.AddClientLabels(client_id, "owner2", ["🚀🍰3"])
 
     all_labels = [
-        rdf_objects.ClientLabel(name="⛄࿄1", owner="owner1"),
-        rdf_objects.ClientLabel(name="⛄࿄2", owner="owner2"),
-        rdf_objects.ClientLabel(name="⛄࿄3", owner="owner2")
+        rdf_objects.ClientLabel(name="🚀🍰1", owner="owner1"),
+        rdf_objects.ClientLabel(name="🚀🍰2", owner="owner2"),
+        rdf_objects.ClientLabel(name="🚀🍰3", owner="owner2")
     ]
 
     self.assertEqual(d.ReadClientLabels(client_id), all_labels)
@@ -696,26 +696,43 @@ class DatabaseTestClientsMixin(object):
     self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
     # This label is actually owned by owner2.
-    d.RemoveClientLabels(client_id, "owner1", ["⛄࿄3"])
+    d.RemoveClientLabels(client_id, "owner1", ["🚀🍰3"])
     self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
-    d.RemoveClientLabels(client_id, "owner2", ["⛄࿄3"])
+    d.RemoveClientLabels(client_id, "owner2", ["🚀🍰3"])
     self.assertEqual(
         d.ReadClientLabels(client_id), [
-            rdf_objects.ClientLabel(name="⛄࿄1", owner="owner1"),
-            rdf_objects.ClientLabel(name="⛄࿄2", owner="owner2")
+            rdf_objects.ClientLabel(name="🚀🍰1", owner="owner1"),
+            rdf_objects.ClientLabel(name="🚀🍰2", owner="owner2")
         ])
+
+  def testLongClientLabelCanBeSaved(self):
+    label = "x" + "🚀" * (db.MAX_LABEL_LENGTH - 2) + "x"
+    d = self.db
+    client_id = self.InitializeClient()
+    d.AddClientLabels(client_id, "owner1", [label])
+    self.assertEqual(
+        d.ReadClientLabels(client_id), [
+            rdf_objects.ClientLabel(name=label, owner="owner1"),
+        ])
+
+  def testTooLongClientLabelRaises(self):
+    label = "a" * (db.MAX_LABEL_LENGTH + 1)
+    d = self.db
+    client_id = self.InitializeClient()
+    with self.assertRaises(ValueError):
+      d.AddClientLabels(client_id, "owner1", [label])
 
   def testReadAllLabelsReturnsLabelsFromSingleClient(self):
     d = self.db
 
     client_id = self.InitializeClient()
 
-    d.AddClientLabels(client_id, "owner1", ["foo"])
+    d.AddClientLabels(client_id, "owner1🚀", ["foo🚀"])
 
     all_labels = d.ReadAllClientLabels()
     self.assertEqual(all_labels,
-                     [rdf_objects.ClientLabel(name="foo", owner="owner1")])
+                     [rdf_objects.ClientLabel(name="foo🚀", owner="owner1🚀")])
 
   def testReadAllLabelsReturnsLabelsFromMultipleClients(self):
     d = self.db

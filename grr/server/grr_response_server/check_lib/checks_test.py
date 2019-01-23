@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import io
 import os
 
 
@@ -55,10 +54,9 @@ def GetWMIData():
   # Load some wmi data
   parser = wmi_parser.WMIInstalledSoftwareParser()
   test_data = os.path.join(CHECKS_DIR, "data/wmi_sw.yaml")
-  with io.open(test_data, mode="r", encoding="utf-8") as f:
-    wmi = yaml.Parse(f.read())
-    for sw in wmi:
-      WMI_SW.extend(parser.Parse(sw))
+  wmi = yaml.ReadFromPath(test_data)
+  for sw in wmi:
+    WMI_SW.extend(parser.Parse(sw))
 
   return WMI_SW
 
@@ -403,11 +401,10 @@ class ProbeTest(ChecksTestBase):
     super(ProbeTest, self).setUp(**kwargs)
     if not self.configs:
       config_file = os.path.join(CHECKS_DIR, "probes.yaml")
-      with io.open(config_file, mode="r", encoding="utf-8") as data:
-        for cfg in yaml.ParseMany(data.read()):
-          name = cfg.get("name")
-          probe_cfg = cfg.get("probe", [{}])
-          self.configs[name] = probe_cfg[0]
+      for cfg in yaml.ReadManyFromPath(config_file):
+        name = cfg.get("name")
+        probe_cfg = cfg.get("probe", [{}])
+        self.configs[name] = probe_cfg[0]
 
   def Init(self, name, artifact, handler_class, result_context):
     """Helper method to verify that the Probe sets up the right handler."""
@@ -447,9 +444,8 @@ class MethodTest(ChecksTestBase):
     super(MethodTest, self).setUp(**kwargs)
     if not self.configs:
       config_file = os.path.join(CHECKS_DIR, "sw.yaml")
-      with io.open(config_file, mode="r", encoding="utf-8") as data:
-        check_def = yaml.Parse(data.read())
-        self.configs = check_def["method"]
+      check_def = yaml.ReadFromPath(config_file)
+      self.configs = check_def["method"]
 
   def testMethodRegistersTriggers(self):
     m_1, m_2, m_3 = [checks.Method(**cfg) for cfg in self.configs]
@@ -479,8 +475,7 @@ class CheckTest(ChecksTestBase):
     super(CheckTest, self).setUp(**kwargs)
     if not self.cfg:
       config_file = os.path.join(CHECKS_DIR, "sw.yaml")
-      with io.open(config_file, mode="r", encoding="utf-8") as data:
-        self.cfg = yaml.Parse(data.read())
+      self.cfg = yaml.ReadFromPath(config_file)
       self.host_data = {
           "DebianPackagesStatus": {
               "ANOMALY": [],
@@ -557,8 +552,7 @@ class HintDefinitionTests(ChecksTestBase):
     super(HintDefinitionTests, self).setUp(**kwargs)
     if not self.configs:
       config_file = os.path.join(CHECKS_DIR, "sw.yaml")
-      with io.open(config_file, mode="r", encoding="utf-8") as data:
-        cfg = yaml.Parse(data.read())
+      cfg = yaml.ReadFromPath(config_file)
     chk = checks.Check(**cfg)
     self.lin_method, self.win_method, self.foo_method = list(chk.method)
 

@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from grr_response_core.lib import rdfvalue
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -27,7 +28,7 @@ class MySQLDBEventMixin(object):
     """Returns audit entries stored in the database."""
 
     query = """SELECT details, timestamp
-        FROM admin_ui_access_audit_entry
+        FROM api_audit_entry
         WHERE_PLACEHOLDER
         ORDER BY timestamp ASC
     """
@@ -37,8 +38,8 @@ class MySQLDBEventMixin(object):
     where = ""
 
     if username is not None:
-      conditions.append("username = %s")
-      values.append(username)
+      conditions.append("username_hash = %s")
+      values.append(mysql_utils.Hash(username))
 
     if router_method_names:
       placeholders = ["%s"] * len(router_method_names)
@@ -68,16 +69,17 @@ class MySQLDBEventMixin(object):
   @mysql_utils.WithTransaction()
   def WriteAPIAuditEntry(self, entry, cursor=None):
     """Writes an audit entry to the database."""
-
-    query = """
-    INSERT INTO admin_ui_access_audit_entry
-        (username, router_method_name, timestamp, details)
-    VALUES
-        (%(username)s, %(router_method_name)s, CURRENT_TIMESTAMP(6), %(details)s)
-    """
-    cursor.execute(
-        query, {
-            "username": entry.username,
-            "router_method_name": entry.router_method_name,
-            "details": entry.SerializeToString()
-        })
+    args = {
+        "username_hash":
+            mysql_utils.Hash(entry.username),
+        "router_method_name":
+            entry.router_method_name,
+        "details":
+            entry.SerializeToString(),
+        "timestamp":
+            mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
+    }
+    query = "INSERT INTO api_audit_entry {columns} VALUES {values}".format(
+        columns=mysql_utils.Columns(args),
+        values=mysql_utils.NamedPlaceholders(args))
+    cursor.execute(query, args)

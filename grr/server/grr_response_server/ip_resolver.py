@@ -9,11 +9,12 @@ import socket
 
 
 from future.utils import with_metaclass
-import ipaddr
+import ipaddress
 
 from grr_response_core import config
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import precondition
 
 
 class IPInfo(object):
@@ -37,10 +38,11 @@ class IPResolver(IPResolverBase):
     self.cache = utils.FastStore(max_size=100)
 
   def RetrieveIPInfo(self, ip):
-    if not ip:
+    precondition.AssertOptionalType(
+        ip, (ipaddress.IPv4Address, ipaddress.IPv6Address))
+
+    if ip is None:
       return (IPInfo.UNKNOWN, "No ip information.")
-    if not isinstance(ip, (ipaddr.IPv4Address, ipaddr.IPv6Address)):
-      raise ValueError("Excepted ipaddr.IPAddress object, got %s" % type(ip))
 
     ip_str = utils.SmartStr(ip)
     try:

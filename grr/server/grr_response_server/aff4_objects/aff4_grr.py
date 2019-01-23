@@ -48,6 +48,9 @@ class SpaceSeparatedStringArray(rdfvalue.RDFString):
     for value in self._value.split():
       yield value
 
+  def __len__(self):
+    return len(self._value.split())
+
 
 class VFSGRRClient(standard.VFSDirectory):
   """A Remote client."""

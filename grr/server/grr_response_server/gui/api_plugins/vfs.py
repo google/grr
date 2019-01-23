@@ -1473,7 +1473,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
     ValidateVfsPath(args.file_path)
 
     if data_store.RelationalDBReadEnabled("vfs"):
-      return self._HandleRelational(args)
+      return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
 
@@ -1485,7 +1485,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
 
     return ApiUpdateVfsFileContentResult(operation_id=flow_urn.Basename())
 
-  def _HandleRelational(self, args):
+  def _HandleRelational(self, args, token=None):
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
 
     path_info = data_store.REL_DB.ReadPathInfo(
@@ -1497,10 +1497,18 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
 
     flow_args = transfer.MultiGetFileArgs(
         pathspecs=[path_info.stat_entry.pathspec])
-    flow_id = flow.StartFlow(
-        client_id=str(args.client_id),
-        flow_cls=transfer.MultiGetFile,
-        flow_args=flow_args)
+    if data_store.RelationalDBFlowsEnabled():
+      flow_id = flow.StartFlow(
+          client_id=str(args.client_id),
+          flow_cls=transfer.MultiGetFile,
+          flow_args=flow_args)
+    else:
+      flow_id = flow.StartAFF4Flow(
+          client_id=str(args.client_id),
+          flow_name="MultiGetFile",
+          args=flow_args,
+          token=token).Basename()
+
     return ApiUpdateVfsFileContentResult(operation_id=flow_id)
 
 

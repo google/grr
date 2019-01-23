@@ -4,8 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import sys
-
 from future.builtins import str
 
 from grr_response_core.lib import rdfvalue
@@ -336,7 +334,7 @@ class ApiListCronJobRunsHandler(api_call_handler_base.ApiCallHandler):
       if args.count:
         end = args.offset + args.count
       else:
-        end = sys.maxsize
+        end = db.MAX_COUNT
       return ApiListCronJobRunsResult(items=[
           ApiCronJobRun().InitFromRunObject(run) for run in runs[start:end]
       ])

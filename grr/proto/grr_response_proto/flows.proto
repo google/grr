@@ -1521,9 +1521,8 @@ message FileFinderHashActionOptions {
       friendly_name: "Collect extended attributes",
       description: "If true, extended attributes and flags of the hashed file "
                    "are going to be collected as well."
-      label: ADVANCED,
-    },
-    default = true
+      label: ADVANCED
+    }
   ];
 }
 
@@ -1559,9 +1558,8 @@ message FileFinderDownloadActionOptions {
       friendly_name: "Collect extended attributes",
       description: "If true, extended attributes and flags of the downloaded "
                    "file are going to be collected as well."
-      label: ADVANCED,
-    },
-    default = true
+      label: ADVANCED
+    }
   ];
 
   /*
@@ -1599,9 +1597,8 @@ message FileFinderStatActionOptions {
     (sem_type) = {
       friendly_name: "Collect extended attributes",
       description: "If true, the action will also gather extended attributes.",
-      label: ADVANCED,
-    },
-    default = true
+      label: ADVANCED
+    }
   ];
 }
 

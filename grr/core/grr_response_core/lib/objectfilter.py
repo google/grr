@@ -801,9 +801,14 @@ class Parser(lexer.SearchParser):
     """Converts a hex escaped string."""
     hex_string = match.group(1)
     try:
-      self.string += binascii.unhexlify(hex_string)
-    except TypeError:
-      raise ParseError("Invalid hex escape %s" % string)
+      self.string += binascii.unhexlify(hex_string).decode("utf-8")
+    # TODO: In Python 2 `binascii` throws `TypeError` for invalid
+    # input values (for whathever reason). This behaviour is fixed in Python 3
+    # where `binascii.Error` (a subclass of `ValueError`) is raised. Once we do
+    # not have to support Python 2 anymore, this `TypeError` catch should be
+    # removed.
+    except (binascii.Error, TypeError) as error:
+      raise ParseError("Invalid hex escape '{}': {}".format(hex_string, error))
 
   def ContextOperator(self, string="", **_):
     self.stack.append(self.context_cls(string[1:]))

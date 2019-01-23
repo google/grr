@@ -4,6 +4,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import map
+from future.builtins import range
+from future.builtins import str
+
 import mock
 
 from grr_response_core.lib import flags
@@ -115,16 +119,134 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
         hash_id.AsBytes(),
         rdf_objects.SHA256HashID.FromData(b"".join(self.blob_data)))
 
-  @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFile")
+  @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles")
   def testAddsFileToExternalFileStore(self, add_file_mock):
     hash_id = file_store.AddFileWithUnknownHash(self.client_path, self.blob_ids)
 
     add_file_mock.assert_called_once()
     args = add_file_mock.call_args_list[0][0]
-    self.assertEqual(args[0], self.client_path)
-    self.assertEqual(args[1], hash_id)
-    blob_ids = [ref.blob_id for ref in args[2]]
+    self.assertEqual(args[0][hash_id].client_path, self.client_path)
+    blob_ids = [ref.blob_id for ref in args[0][hash_id].blob_refs]
     self.assertEqual(blob_ids, self.blob_ids)
+
+
+class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
+
+  def testDoesNotFailForEmptyDict(self):
+    file_store.AddFilesWithUnknownHashes({})
+
+  def testDoesNotFailForEmptyFiles(self):
+    client_id = self.SetupClient(0).Basename()
+
+    paths = []
+    for idx in range(100):
+      components = ("foo", "bar", str(idx))
+      paths.append(db.ClientPath.OS(client_id=client_id, components=components))
+
+    hash_ids = file_store.AddFilesWithUnknownHashes(
+        {path: [] for path in paths})
+
+    empty_hash_id = rdf_objects.SHA256HashID.FromData(b"")
+    for path in paths:
+      self.assertEqual(hash_ids[path], empty_hash_id)
+
+  def testSimpleMultiplePaths(self):
+    foo_blobs = [b"foo", b"norf", b"thud"]
+    foo_blob_ids = list(map(rdf_objects.BlobID.FromBlobData, foo_blobs))
+    foo_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(foo_blobs))
+    data_store.BLOBS.WriteBlobs(dict(zip(foo_blob_ids, foo_blobs)))
+
+    bar_blobs = [b"bar", b"quux", b"blargh"]
+    bar_blob_ids = list(map(rdf_objects.BlobID.FromBlobData, bar_blobs))
+    bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
+    data_store.BLOBS.WriteBlobs(dict(zip(bar_blob_ids, bar_blobs)))
+
+    client_id = self.SetupClient(0).Basename()
+    foo_path = db.ClientPath.OS(client_id=client_id, components=("foo",))
+    bar_path = db.ClientPath.OS(client_id=client_id, components=("bar",))
+
+    hash_ids = file_store.AddFilesWithUnknownHashes({
+        foo_path: foo_blob_ids,
+        bar_path: bar_blob_ids,
+    })
+
+    self.assertLen(hash_ids, 2)
+    self.assertEqual(hash_ids[foo_path], foo_hash_id)
+    self.assertEqual(hash_ids[bar_path], bar_hash_id)
+
+  def testSimpleOverlappingBlobIds(self):
+    foo_blobs = [b"foo", b"norf", b"quux", b"thud"]
+    bar_blobs = [b"bar", b"norf", b"blag", b"thud"]
+
+    foo_blob_ids = list(map(rdf_objects.BlobID.FromBlobData, foo_blobs))
+    foo_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(foo_blobs))
+
+    bar_blob_ids = list(map(rdf_objects.BlobID.FromBlobData, bar_blobs))
+    bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
+
+    data_store.BLOBS.WriteBlobs(dict(zip(foo_blob_ids, foo_blobs)))
+    data_store.BLOBS.WriteBlobs(dict(zip(bar_blob_ids, bar_blobs)))
+
+    client_id = self.SetupClient(0).Basename()
+    foo_path = db.ClientPath.OS(client_id=client_id, components=("foo", "quux"))
+    bar_path = db.ClientPath.OS(client_id=client_id, components=("bar", "blag"))
+
+    hash_ids = file_store.AddFilesWithUnknownHashes({
+        foo_path: foo_blob_ids,
+        bar_path: bar_blob_ids,
+    })
+
+    self.assertLen(hash_ids, 2)
+    self.assertEqual(hash_ids[foo_path], foo_hash_id)
+    self.assertEqual(hash_ids[bar_path], bar_hash_id)
+
+  def testLargeNumberOfPaths(self):
+    client_id = self.SetupClient(0).Basename()
+
+    paths = []
+    for idx in range(1337):
+      components = ("foo", "bar", str(idx))
+      paths.append(db.ClientPath.OS(client_id=client_id, components=components))
+
+    blobs = [b"foo", b"bar", b"baz"]
+    blob_ids = list(map(rdf_objects.BlobID.FromBlobData, blobs))
+    data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, blobs)))
+
+    hash_ids = file_store.AddFilesWithUnknownHashes(
+        {path: blob_ids for path in paths})
+
+    expected_hash_id = rdf_objects.SHA256HashID.FromData(b"foobarbaz")
+    for path in paths:
+      self.assertEqual(hash_ids[path], expected_hash_id)
+
+  def testLargeNumberOfBlobs(self):
+
+    def Blobs(prefix):
+      for idx in range(1337):
+        yield prefix + str(idx).encode("ascii")
+
+    foo_blobs = list(Blobs(b"foo"))
+    foo_blob_ids = list(map(rdf_objects.BlobID.FromBlobData, foo_blobs))
+    foo_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(foo_blobs))
+    data_store.BLOBS.WriteBlobs(dict(zip(foo_blob_ids, foo_blobs)))
+
+    bar_blobs = list(Blobs(b"bar"))
+    bar_blob_ids = list(map(rdf_objects.BlobID.FromBlobData, bar_blobs))
+    bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
+    data_store.BLOBS.WriteBlobs(dict(zip(bar_blob_ids, bar_blobs)))
+
+    client_id = self.SetupClient(0).Basename()
+    foo_path = db.ClientPath.OS(client_id=client_id, components=("foo",))
+    bar_path = db.ClientPath.OS(client_id=client_id, components=("bar",))
+
+    with mock.patch.object(file_store, "_BLOBS_READ_BATCH_SIZE", 42):
+      hash_ids = file_store.AddFilesWithUnknownHashes({
+          foo_path: foo_blob_ids,
+          bar_path: bar_blob_ids,
+      })
+    self.assertLen(hash_ids, 2)
+    self.assertEqual(hash_ids[foo_path], foo_hash_id)
+    self.assertEqual(hash_ids[bar_path], bar_hash_id)
 
 
 class OpenFileTest(test_lib.GRRBaseTest):

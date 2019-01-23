@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
+import itertools
 
 
 from future.utils import iterkeys
@@ -17,7 +18,6 @@ from MySQLdb.constants import ER as mysql_error_constants
 from typing import Generator, List, Optional, Text
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
@@ -380,7 +380,7 @@ class MySQLDBClientMixin(object):
         "c.last_clock, c.last_ip, c.last_foreman, c.first_seen, "
         "c.last_client_timestamp, c.last_crash_timestamp, "
         "c.last_startup_timestamp, h.client_snapshot, s.startup_info, "
-        "s_last.startup_info, l.owner, l.label "
+        "s_last.startup_info, l.owner_username, l.label "
         "FROM clients as c "
         "LEFT JOIN client_snapshot_history as h ON ( "
         "c.client_id = h.client_id AND h.timestamp = c.last_client_timestamp) "
@@ -421,13 +421,18 @@ class MySQLDBClientMixin(object):
     """Associates the provided keywords with the client."""
     cid = mysql_utils.ClientIDToInt(client_id)
     now = datetime.datetime.utcnow()
+    keywords = set(keywords)
+    args = [(cid, mysql_utils.Hash(kw), kw, now) for kw in keywords]
+    args = list(itertools.chain.from_iterable(args))  # Flatten.
 
+    query = """
+        INSERT INTO client_keywords
+            (client_id, keyword_hash, keyword, timestamp)
+        VALUES {}
+        ON DUPLICATE KEY UPDATE timestamp = VALUES(timestamp)
+            """.format(", ".join(["(%s, %s, %s, %s)"] * len(keywords)))
     try:
-      for kw in keywords:
-        cursor.execute(
-            "INSERT INTO client_keywords (client_id, keyword, timestamp) "
-            "VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE timestamp=%s",
-            [cid, utils.SmartUnicode(kw), now, now])
+      cursor.execute(query, args)
     except MySQLdb.IntegrityError as e:
       raise db.UnknownClientError(client_id, cause=e)
 
@@ -435,42 +440,48 @@ class MySQLDBClientMixin(object):
   def RemoveClientKeyword(self, client_id, keyword, cursor=None):
     """Removes the association of a particular client to a keyword."""
     cursor.execute(
-        "DELETE FROM client_keywords WHERE client_id=%s AND keyword=%s",
+        "DELETE FROM client_keywords "
+        "WHERE client_id = %s AND keyword_hash = %s",
         [mysql_utils.ClientIDToInt(client_id),
-         utils.SmartUnicode(keyword)])
+         mysql_utils.Hash(keyword)])
 
   @mysql_utils.WithTransaction(readonly=True)
   def ListClientsForKeywords(self, keywords, start_time=None, cursor=None):
     """Lists the clients associated with keywords."""
     keywords = set(keywords)
-    keyword_mapping = {utils.SmartUnicode(kw): kw for kw in keywords}
+    hash_to_kw = {mysql_utils.Hash(kw): kw for kw in keywords}
+    result = {kw: [] for kw in keywords}
 
-    result = {}
-    for kw in itervalues(keyword_mapping):
-      result[kw] = []
-
-    query = ("SELECT DISTINCT keyword, client_id FROM client_keywords WHERE "
-             "keyword IN ({})".format(",".join(["%s"] * len(keyword_mapping))))
-    args = list(iterkeys(keyword_mapping))
+    query = """
+      SELECT keyword_hash, client_id
+      FROM client_keywords
+      WHERE keyword_hash IN ({})
+    """.format(", ".join(["%s"] * len(result)))
+    args = list(iterkeys(hash_to_kw))
     if start_time:
       query += " AND timestamp >= %s"
       args.append(mysql_utils.RDFDatetimeToMysqlString(start_time))
-
     cursor.execute(query, args)
-    for kw, cid in cursor.fetchall():
-      result[keyword_mapping[kw]].append(mysql_utils.IntToClientID(cid))
+
+    for kw_hash, cid in cursor.fetchall():
+      result[hash_to_kw[kw_hash]].append(mysql_utils.IntToClientID(cid))
     return result
 
   @mysql_utils.WithTransaction()
   def AddClientLabels(self, client_id, owner, labels, cursor=None):
     """Attaches a list of user labels to a client."""
     cid = mysql_utils.ClientIDToInt(client_id)
+    labels = set(labels)
+    args = [(cid, mysql_utils.Hash(owner), owner, label) for label in labels]
+    args = list(itertools.chain.from_iterable(args))  # Flatten.
+
+    query = """
+          INSERT IGNORE INTO client_labels
+              (client_id, owner_username_hash, owner_username, label)
+          VALUES {}
+          """.format(", ".join(["(%s, %s, %s, %s)"] * len(labels)))
     try:
-      for label in labels:
-        cursor.execute(
-            "INSERT IGNORE INTO client_labels (client_id, owner, label) "
-            "VALUES (%s, %s, %s)",
-            [cid, owner, utils.SmartUnicode(label)])
+      cursor.execute(query, args)
     except MySQLdb.IntegrityError as e:
       raise db.UnknownClientError(client_id, cause=e)
 
@@ -479,7 +490,7 @@ class MySQLDBClientMixin(object):
     """Reads the user labels for a list of clients."""
 
     int_ids = [mysql_utils.ClientIDToInt(cid) for cid in client_ids]
-    query = ("SELECT client_id, owner, label "
+    query = ("SELECT client_id, owner_username, label "
              "FROM client_labels "
              "WHERE client_id IN ({})").format(", ".join(
                  ["%s"] * len(client_ids)))
@@ -488,7 +499,7 @@ class MySQLDBClientMixin(object):
     cursor.execute(query, int_ids)
     for client_id, owner, label in cursor.fetchall():
       ret[mysql_utils.IntToClientID(client_id)].append(
-          rdf_objects.ClientLabel(name=utils.SmartUnicode(label), owner=owner))
+          rdf_objects.ClientLabel(name=label, owner=owner))
 
     for r in itervalues(ret):
       r.sort(key=lambda label: (label.owner, label.name))
@@ -499,22 +510,21 @@ class MySQLDBClientMixin(object):
     """Removes a list of user labels from a given client."""
 
     query = ("DELETE FROM client_labels "
-             "WHERE client_id=%s AND owner=%s "
+             "WHERE client_id = %s AND owner_username_hash = %s "
              "AND label IN ({})").format(", ".join(["%s"] * len(labels)))
-    args = [mysql_utils.ClientIDToInt(client_id), owner]
-    args += [utils.SmartStr(l) for l in labels]
+    args = [mysql_utils.ClientIDToInt(client_id),
+            mysql_utils.Hash(owner)] + labels
     cursor.execute(query, args)
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAllClientLabels(self, cursor=None):
     """Reads the user labels for a list of clients."""
 
-    cursor.execute("SELECT DISTINCT owner, label FROM client_labels")
+    cursor.execute("SELECT DISTINCT owner_username, label FROM client_labels")
 
     result = []
     for owner, label in cursor.fetchall():
-      result.append(
-          rdf_objects.ClientLabel(name=utils.SmartUnicode(label), owner=owner))
+      result.append(rdf_objects.ClientLabel(name=label, owner=owner))
 
     result.sort(key=lambda label: (label.owner, label.name))
     return result

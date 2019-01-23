@@ -13,6 +13,7 @@ from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server.aff4_objects import user_managers
 from grr_response_server.gui import api_call_handler_base
@@ -538,13 +539,20 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.ModifyHunt(args, token=token)
 
   def _GetHuntObj(self, hunt_id, token=None):
-    hunt_urn = hunt_id.ToURN()
-    try:
-      return aff4.FACTORY.Open(
-          hunt_urn, aff4_type=implementation.GRRHunt, token=token)
-    except aff4.InstantiationError:
-      raise api_call_handler_base.ResourceNotFoundError(
-          "Hunt with id %s could not be found" % hunt_id)
+    if data_store.RelationalDBReadEnabled("hunts"):
+      try:
+        return data_store.REL_DB.ReadHuntObject(str(hunt_id))
+      except db.UnknownHuntError:
+        raise api_call_handler_base.ResourceNotFoundError(
+            "Hunt with id %s could not be found" % hunt_id)
+    else:
+      hunt_urn = hunt_id.ToURN()
+      try:
+        return aff4.FACTORY.Open(
+            hunt_urn, aff4_type=implementation.GRRHunt, token=token)
+      except aff4.InstantiationError:
+        raise api_call_handler_base.ResourceNotFoundError(
+            "Hunt with id %s could not be found" % hunt_id)
 
   def DeleteHunt(self, args, token=None):
     hunt_obj = self._GetHuntObj(args.hunt_id, token=token)

@@ -17,6 +17,7 @@ from future.utils import python_2_unicode_compatible
 from typing import Text
 
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
@@ -386,8 +387,9 @@ class SearchParser(Lexer):
        string: The string that matched.
        match: The match object (m.group(1) is the escaped code)
     """
+    precondition.AssertType(string, Text)
     if match.group(1) in "'\"rnbt":
-      self.string += string.decode("string_escape")
+      self.string += compatibility.UnescapeString(string)
     else:
       self.string += string
 

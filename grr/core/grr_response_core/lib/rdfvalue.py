@@ -325,7 +325,7 @@ class RDFString(RDFPrimitive):
 
   _value = u""
 
-  # TODO(hanuszczak): Allow initializng form arbitrary `unicode`-able object.
+  # TODO(hanuszczak): Allow initializing from arbitrary `unicode`-able object.
   def __init__(self, initializer=None, age=None):
     super(RDFString, self).__init__(initializer=None, age=age)
 
@@ -351,6 +351,9 @@ class RDFString(RDFPrimitive):
 
   def __getitem__(self, item):
     return self._value.__getitem__(item)
+
+  def __len__(self):
+    return len(self._value)
 
   def __eq__(self, other):
     if isinstance(other, RDFString):

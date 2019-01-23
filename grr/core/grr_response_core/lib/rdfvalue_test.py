@@ -71,6 +71,9 @@ class RDFStringTest(absltest.TestCase):
     self.assertGreater(rdfvalue.RDFString(u"xyz"), b"ghi")
     self.assertLess(rdfvalue.RDFString(u"012"), b"\x80\x81\x81")
 
+  def testLenOfEmoji(self):
+    self.assertLen(rdfvalue.RDFString("🚀🚀"), 2)
+
 
 class RDFIntegerTest(absltest.TestCase):
 
