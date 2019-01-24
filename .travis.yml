@@ -4,7 +4,6 @@ matrix:
     - os: linux
       language: python
       python: 2.7
-      sudo: false
       addons:
         apt:
           packages:
@@ -39,7 +38,6 @@ matrix:
       # psutil fails to install on the default beta-xcode6.1
       osx_image: xcode9.2
       python: 2.7
-      sudo: required
       env:
         - GCS_TAG=osx
         - GCS_BUCKET=autobuilds.grr-response.com
@@ -64,7 +62,6 @@ matrix:
     # 64-bit Centos 7 docker container inside an Ubuntu host, for rpm builds
     - os: linux
       dist: trusty
-      sudo: required
       services:
         - docker
       env:
@@ -112,7 +109,6 @@ matrix:
     # installed on Centos 6.
     - os: linux
       dist: trusty
-      sudo: required
       services:
         - docker
       env:
@@ -157,7 +153,6 @@ matrix:
     # 32-bit Ubuntu docker container inside a 64-bit host, for 32-bit deb builds
     - os: linux
       dist: trusty
-      sudo: required
       services:
         - docker
       env:
@@ -204,7 +199,6 @@ matrix:
     # 32-bit Centos docker container inside a 64-bit host, for 32-bit rpm builds
     - os: linux
       dist: trusty
-      sudo: required
       services:
         - docker
       env:
@@ -256,7 +250,6 @@ matrix:
     # inside the container.
     - os: linux
       dist: trusty
-      sudo: required
       env:
         - GCS_TAG=server_deb
         - GCS_BUCKET=autobuilds.grr-response.com
