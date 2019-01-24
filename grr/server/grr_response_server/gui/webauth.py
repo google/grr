@@ -78,7 +78,7 @@ class IAPWebAuthManager(BaseWebAuthManager):
     """Wrapping function."""
     if self.iap_header in request.headers:
       jwt = request.headers.get(self.iap_header)
-      user_id, _, error_str = validate_iap.ValidateIapJwtFromComputeEngine(
+      user_id, user_email, error_str = validate_iap.ValidateIapJwtFromComputeEngine(
           jwt, self.cloud_project_id, self.backend_service_id)
     else:
       return werkzeug_wrappers.Response("Unauthorized", status=401)
@@ -91,7 +91,7 @@ class IAPWebAuthManager(BaseWebAuthManager):
       return werkzeug_wrappers.Response("Unauthorized", status=401)
     else:
       # Generate a new user if not created, else authenticate current
-      request.user = user_id
+      request.user = user_email
 
       return func(request, *args, **kwargs)
 
