@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Tests for artifacts."""
 from __future__ import absolute_import
 from __future__ import division
@@ -29,9 +29,13 @@ from grr_response_server import aff4
 from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
+from grr_response_server import data_store
+from grr_response_server import db
+from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import filesystem
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
@@ -392,8 +396,14 @@ class ArtifactFlowLinuxTest(ArtifactTest):
       self.RunCollectorAndGetCollection(["TestFilesArtifact"],
                                         client_mock=self.client_mock,
                                         client_id=client_id)
-      urn = client_id.Add("fs/os/").Add("var/log/auth.log")
-      aff4.FACTORY.Open(urn, aff4_type=aff4_grr.VFSBlobImage, token=self.token)
+      if data_store.RelationalDBReadEnabled(category="vfs"):
+        cp = db.ClientPath.OS(client_id.Basename(), ("var", "log", "auth.log"))
+        fd = file_store.OpenFile(cp)
+        self.assertNotEmpty(fd.read())
+      else:
+        urn = client_id.Add("fs/os/").Add("var/log/auth.log")
+        aff4.FACTORY.Open(
+            urn, aff4_type=aff4_grr.VFSBlobImage, token=self.token)
 
   @parser_test_lib.WithParser("Passwd", linux_file_parser.PasswdBufferParser)
   def testLinuxPasswdHomedirsArtifact(self):
@@ -556,11 +566,20 @@ class GrrKbWindowsTest(GrrKbTest):
         token=self.token)
     path = paths[0].replace("\\", "/")
 
-    fd = aff4.FACTORY.Open(
-        client_id.Add("registry").Add(path), token=self.token)
-    self.assertEqual(fd.__class__.__name__, "VFSFile")
-    self.assertEqual(
-        fd.Get(fd.Schema.STAT).registry_data.GetValue(), "%SystemDrive%\\Users")
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      path_info = data_store.REL_DB.ReadPathInfo(
+          client_id.Basename(),
+          rdf_objects.PathInfo.PathType.REGISTRY,
+          components=tuple(path.split("/")))
+      self.assertEqual(path_info.stat_entry.registry_data.GetValue(),
+                       "%SystemDrive%\\Users")
+    else:
+      fd = aff4.FACTORY.Open(
+          client_id.Add("registry").Add(path), token=self.token)
+      self.assertEqual(fd.__class__.__name__, "VFSFile")
+      self.assertEqual(
+          fd.Get(fd.Schema.STAT).registry_data.GetValue(),
+          "%SystemDrive%\\Users")
 
   @parser_test_lib.WithAllParsers
   def testGetKBDependencies(self):

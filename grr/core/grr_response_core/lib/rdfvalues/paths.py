@@ -283,11 +283,8 @@ class GlobExpression(rdfvalue.RDFString):
     if len(self.RECURSION_REGEX.findall(self._value)) > 1:
       raise ValueError("Only one ** is permitted per path: %s." % self._value)
 
-  def Interpolate(self, knowledge_base=None, client=None):
-    if client is not None:
-      kb = client.Get(client.Schema.KNOWLEDGE_BASE)
-    else:
-      kb = knowledge_base
+  def Interpolate(self, knowledge_base=None):
+    kb = knowledge_base
     patterns = artifact_utils.InterpolateKbAttributes(self._value, kb)
 
     for pattern in patterns:

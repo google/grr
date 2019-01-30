@@ -23,7 +23,7 @@ class MetadataCondition(with_metaclass(abc.ABCMeta, object)):
     """Checks whether condition is met.
 
     Args:
-      stat: An `utils.Stat` object.
+      stat: An `util.filesystem.Stat` object.
 
     Returns:
       True if the condition is met.

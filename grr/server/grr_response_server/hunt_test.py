@@ -21,10 +21,10 @@ from grr_response_server import data_store
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import hunt
-from grr_response_server import output_plugin
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
 from grr_response_server.flows.general import transfer
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
@@ -352,7 +352,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
 
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")
-    hunt_id, _ = self._CreateAndRunHunt(
+    hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
         client_rule_set=foreman_rules.ForemanClientRuleSet(),
@@ -363,20 +363,28 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_calls, 5)
     self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_responses, 5)
 
-    logs = hunt.GetHuntOutputPluginLogs(hunt_id, 0, sys.maxsize)
+    logs = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
+        hunt_id,
+        # REL_DB code uses strings for output plugin ids for consistency (as
+        # all other DB ids are strings). At the moment plugin_id in the database
+        # is simply an index of the plugin in Flow/Hunt.output_plugins list.
+        output_plugin_id="0",
+        offset=0,
+        count=sys.maxsize,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
     self.assertLen(logs, 5)
+    self.assertItemsEqual([l.client_id for l in logs],
+                          [cid.Basename() for cid in client_ids])
     for l in logs:
-      self.assertEqual(l.batch_size, 1)
-      self.assertEqual(
-          l.status,
-          output_plugin.OutputPluginBatchProcessingStatus.Status.SUCCESS)
-      self.assertEqual(l.plugin_descriptor, plugin_descriptor)
+      self.assertEqual(l.hunt_id, hunt_id)
+      self.assertGreater(l.timestamp, 0)
+      self.assertEqual(l.message, "Processed 1 replies.")
 
   def testOutputPluginsErrorsAreCorrectlyWrittenAndCanBeRead(self):
     failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="FailingDummyHuntOutputPlugin")
 
-    hunt_id, _ = self._CreateAndRunHunt(
+    hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
         client_rule_set=foreman_rules.ForemanClientRuleSet(),
@@ -384,15 +392,22 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
         args=self.GetFileHuntArgs(),
         output_plugins=[failing_plugin_descriptor])
 
-    errors = hunt.GetHuntOutputPluginErrors(hunt_id, 0, sys.maxsize)
+    errors = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
+        hunt_id,
+        # REL_DB code uses strings for output plugin ids for consistency (as
+        # all other DB ids are strings). At the moment plugin_id in the database
+        # is simply an index of the plugin in Flow/Hunt.output_plugins list.
+        output_plugin_id="0",
+        offset=0,
+        count=sys.maxsize,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
     self.assertLen(errors, 5)
+    self.assertItemsEqual([e.client_id for e in errors],
+                          [cid.Basename() for cid in client_ids])
     for e in errors:
-      self.assertEqual(e.batch_size, 1)
-      self.assertEqual(
-          e.status,
-          output_plugin.OutputPluginBatchProcessingStatus.Status.ERROR)
-      self.assertEqual(e.plugin_descriptor, failing_plugin_descriptor)
-      self.assertEqual(e.summary, "Oh no!")
+      self.assertEqual(e.hunt_id, hunt_id)
+      self.assertGreater(e.timestamp, 0)
+      self.assertEqual(e.message, "Error while processing 1 replies: Oh no!")
 
   def testOutputPluginsMaintainGlobalState(self):
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
@@ -417,7 +432,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="FailingInFlushDummyHuntOutputPlugin")
 
-    hunt_id, _ = self._CreateAndRunHunt(
+    hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
         client_rule_set=foreman_rules.ForemanClientRuleSet(),
@@ -425,18 +440,28 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
         args=self.GetFileHuntArgs(),
         output_plugins=[plugin_descriptor])
 
-    logs = hunt.GetHuntOutputPluginLogs(hunt_id, 0, sys.maxsize)
+    logs = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
+        hunt_id,
+        output_plugin_id="0",
+        offset=0,
+        count=sys.maxsize,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
     self.assertEmpty(logs)
 
-    errors = hunt.GetHuntOutputPluginErrors(hunt_id, 0, sys.maxsize)
+    errors = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
+        hunt_id,
+        output_plugin_id="0",
+        offset=0,
+        count=sys.maxsize,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
     self.assertLen(errors, 5)
+    self.assertItemsEqual([e.client_id for e in errors],
+                          [cid.Basename() for cid in client_ids])
     for e in errors:
-      self.assertEqual(e.batch_size, 1)
-      self.assertEqual(
-          e.status,
-          output_plugin.OutputPluginBatchProcessingStatus.Status.ERROR)
-      self.assertEqual(e.plugin_descriptor, plugin_descriptor)
-      self.assertEqual(e.summary, "Flush, oh no!")
+      self.assertEqual(e.hunt_id, hunt_id)
+      self.assertGreater(e.timestamp, 0)
+      self.assertEqual(e.message,
+                       "Error while processing 1 replies: Flush, oh no!")
 
   def testFailingOutputPluginDoesNotAffectOtherOutputPlugins(self):
     failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
@@ -452,11 +477,21 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
         args=self.GetFileHuntArgs(),
         output_plugins=[failing_plugin_descriptor, plugin_descriptor])
 
-    errors = hunt.GetHuntOutputPluginErrors(hunt_id, 0, sys.maxsize)
+    errors = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
+        hunt_id,
+        output_plugin_id="0",
+        offset=0,
+        count=sys.maxsize,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
     self.assertLen(errors, 5)
 
     # Check that non-failing output plugin is still correctly processed.
-    logs = hunt.GetHuntOutputPluginLogs(hunt_id, 0, sys.maxsize)
+    logs = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
+        hunt_id,
+        output_plugin_id="1",
+        offset=0,
+        count=sys.maxsize,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
     self.assertLen(logs, 5)
 
   def testUpdatesStatsCounterOnOutputPluginSuccess(self):

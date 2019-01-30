@@ -9,7 +9,7 @@ import io
 import types
 
 
-from binplist import binplist
+import biplist
 from future.builtins import str
 
 from grr_response_client import actions
@@ -48,7 +48,7 @@ class PlistQuery(actions.ActionPlugin):
 
     with vfs.VFSOpen(args.pathspec, progress_callback=self.Progress) as fd:
       data = fd.Read(self.MAX_PLIST_SIZE)
-      plist = binplist.readPlist(io.BytesIO(data))
+      plist = biplist.readPlist(io.BytesIO(data))
 
       # Create the query parser
       parser = plist_lib.PlistFilterParser(str(self.filter_query)).Parse()

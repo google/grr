@@ -66,11 +66,11 @@ class ColumnsTest(absltest.TestCase):
     self.assertEqual(mysql_utils.Columns([]), "()")
 
   def testOne(self):
-    self.assertEqual(mysql_utils.Columns(["foo"]), "(foo)")
+    self.assertEqual(mysql_utils.Columns(["foo"]), "(`foo`)")
 
   def testMany(self):
     self.assertEqual(
-        mysql_utils.Columns(["bar", "baz", "foo"]), "(bar, baz, foo)")
+        mysql_utils.Columns(["bar", "baz", "foo"]), "(`bar`, `baz`, `foo`)")
 
   def testDictUsesKeys(self):
     self.assertIn(
@@ -78,11 +78,15 @@ class ColumnsTest(absltest.TestCase):
             "bar": 42,
             "baz": 42,
             "foo": 42
-        }), ["(bar, baz, foo)"])
+        }), ["(`bar`, `baz`, `foo`)"])
 
   def testSortsNames(self):
     self.assertEqual(
-        mysql_utils.Columns(["bar", "foo", "baz"]), "(bar, baz, foo)")
+        mysql_utils.Columns(["bar", "foo", "baz"]), "(`bar`, `baz`, `foo`)")
+
+  def testSortsRawNamesWithoutEscape(self):
+    self.assertGreater("`", "_")
+    self.assertEqual(mysql_utils.Columns(["a", "a_hash"]), "(`a`, `a_hash`)")
 
 
 def main(argv):

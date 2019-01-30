@@ -15,17 +15,19 @@ from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_server import flow
+from grr_response_server import data_store
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_e2e_test_lib
 
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class ApiCallRobotRouterE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   FILE_FINDER_ROUTER_CONFIG = """
@@ -93,13 +95,19 @@ users:
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
     # Now run the flow we just started.
-    client_id = rdf_client.ClientURN(flow_obj.client_id)
-    flow_urn = client_id.Add("flows").Add(flow_obj.flow_id)
-    flow_test_lib.TestFlowHelper(
-        flow_urn,
-        client_id=client_id,
-        client_mock=action_mocks.FileFinderClientMock(),
-        token=self.token)
+    if data_store.RelationalDBFlowsEnabled():
+      flow_test_lib.RunFlow(
+          flow_obj.client_id,
+          flow_obj.flow_id,
+          client_mock=action_mocks.FileFinderClientMock())
+    else:
+      client_id = rdf_client.ClientURN(flow_obj.client_id)
+      flow_urn = client_id.Add("flows").Add(flow_obj.flow_id)
+      flow_test_lib.TestFlowHelper(
+          flow_urn,
+          client_id=client_id,
+          client_mock=action_mocks.FileFinderClientMock(),
+          token=self.token)
 
     # Refresh flow.
     flow_obj = client_ref.Flow(flow_obj.flow_id).Get()
@@ -142,13 +150,11 @@ users:
   def testCheckingArbitraryFlowStateDoesNotWork(self):
     self.InitRouterConfig(
         self.__class__.FILE_FINDER_ROUTER_CONFIG % self.token.username)
-    flow_urn = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=file_finder.FileFinder.__name__,
-        token=self.token)
+    flow_id = flow_test_lib.StartFlow(
+        flow_cls=file_finder.FileFinder, client_id=self.client_id)
 
-    flow_ref = self.api.Client(client_id=self.client_id.Basename()).Flow(
-        flow_urn.Basename())
+    flow_ref = self.api.Client(
+        client_id=self.client_id.Basename()).Flow(flow_id)
     with self.assertRaises(RuntimeError):
       flow_ref.Get()
 

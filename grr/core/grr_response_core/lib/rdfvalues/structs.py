@@ -14,6 +14,7 @@ from future.builtins import range
 from future.builtins import str
 from future.builtins import zip
 from future.utils import iteritems
+from future.utils import iterkeys
 from future.utils import itervalues
 from future.utils import python_2_unicode_compatible
 from future.utils import string_types
@@ -66,14 +67,30 @@ _WIRETYPE_MAX = 5
 # protobuf library. Placing them in this file allows us to remove dependency on
 # the standard protobuf library.
 
-ORD_MAP = {chr(x).encode("latin-1"): x for x in range(0, 256)}
+# TODO: Indexing `bytes` objects works differently between Python 2
+# and Python 3. In Python 3 it returns an integer representing given byte,
+# whereas in Python 2 it returns a byte character. Because the code below is
+# (allegedly) hot, we do not want to perform any type and compatibility checks
+# there. Instead, we just override what these maps accept (byte characters in
+# Python 2, integers in Python 3) and everything seems to work fine.
+if compatibility.PY2:
+  ORD_MAP = {chr(x).encode("latin-1"): x for x in range(0, 256)}
+else:
+  ORD_MAP = {x: x for x in range(0, 256)}
+
 CHR_MAP = {x: chr(x).encode("latin-1") for x in range(0, 256)}
 HIGH_CHR_MAP = {x: chr(0x80 | x).encode("latin-1") for x in range(0, 256)}
 
 # Some optimizations to get rid of AND operations below since they are really
 # slow in Python.
-ORD_MAP_AND_0X80 = {chr(x).encode("latin-1"): x & 0x80 for x in range(0, 256)}
-ORD_MAP_AND_0X7F = {chr(x).encode("latin-1"): x & 0x7F for x in range(0, 256)}
+
+# TODO: See a comment above.
+if compatibility.PY2:
+  ORD_MAP_AND_0X80 = {chr(x).encode("latin-1"): x & 0x80 for x in range(0, 256)}
+  ORD_MAP_AND_0X7F = {chr(x).encode("latin-1"): x & 0x7F for x in range(0, 256)}
+else:
+  ORD_MAP_AND_0X80 = {x: x & 0x80 for x in range(0, 256)}
+  ORD_MAP_AND_0X7F = {x: x & 0x7F for x in range(0, 256)}
 
 
 # This function is HOT.
@@ -207,6 +224,40 @@ def SplitBuffer(buff, index=0, length=None):
       raise rdfvalue.DecodeError("Unexpected Tag.")
 
 
+def _GetOrderedEntries(data):
+  """Gets entries of `RDFProtoStruct` in a well-defined order.
+
+  Args:
+    data: A raw data dictionary of `RDFProtoStruct`.
+
+  Yields:
+    Entries of the structured in a well-defined order.
+  """
+
+  # The raw data dictionary has two kinds of keys: strings (which correspond to
+  # field name) or integers (if the name is unknown). In Python 3 it is not
+  # possible to compare integers and strings to each other, so we first tag each
+  # with either a 0 or 1 (so named fields are going to be serialized first) and
+  # let the lexicographical ordering of the tuples take care of the rest.
+  def Tag(field):
+    """Tags field name with a number to make comparison possible."""
+
+    # TODO: We use `string_types` here because in Python 2
+    # attribute names (which are passed e.g. through keyword arguments) are
+    # represented as `bytes` whereas in Python 3 it is `unicode`. This should
+    # be replaced with `str` once support for Python 2 is dropped.
+    if isinstance(field, string_types):
+      return 0, field
+    if isinstance(field, int):
+      return 1, field
+
+    message = "Unexpected field '{}' of type '{}'".format(field, type(field))
+    raise TypeError(message)
+
+  for field in sorted(iterkeys(data), key=Tag):
+    yield data[field]
+
+
 def _SerializeEntries(entries):
   """Serializes given triplets of python and wire values and a descriptor."""
 
@@ -314,13 +365,15 @@ class ProtoType(type_info.TypeInfoObject):
                set_default_on_access=None,
                **kwargs):
     super(ProtoType, self).__init__(**kwargs)
-    self.field_number = field_number
+    # TODO: Without this type hint, pytype thinks that field_number
+    # is always None.
+    self.field_number = field_number  # type: int
     self.required = required
     if set_default_on_access is not None:
       self.set_default_on_access = set_default_on_access
 
     self.labels = labels or []
-    if field_number is None:
+    if self.field_number is None:
       raise type_info.TypeValueError("No valid field number specified.")
 
     self.CalculateTags()
@@ -892,8 +945,7 @@ class ProtoEmbedded(ProtoType):
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
-    output = _SerializeEntries(
-        utils.IterValuesInSortedKeysOrder(value.GetRawData()))
+    output = _SerializeEntries(_GetOrderedEntries(value.GetRawData()))
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
   def LateBind(self, target=None):
@@ -1100,8 +1152,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
           "Can't convert value %s to an protobuf.Any value." % value)
 
     any_value = AnyValue(type_url=type_name, value=data)
-    output = _SerializeEntries(
-        utils.IterValuesInSortedKeysOrder(any_value.GetRawData()))
+    output = _SerializeEntries(_GetOrderedEntries(any_value.GetRawData()))
 
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
@@ -1551,6 +1602,8 @@ class ProtoRDFValue(ProtoType):
 class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
   """A metaclass which registers new RDFProtoStruct instances."""
 
+  _HAS_DYNAMIC_ATTRIBUTES = True  # help out pytype
+
   def __init__(untyped_cls, name, bases, env_dict):  # pylint: disable=no-self-argument
     super(RDFStructMetaclass, untyped_cls).__init__(name, bases, env_dict)
 
@@ -1560,7 +1613,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
     # biggest caveat here is that RDFStruct is defined *with the help*
     # of RDFStructMetaclass, so its name is not defined at the time
     # this code is evaluated.
-    cls = untyped_cls  # type: Type[RDFStruct]
+    cls = untyped_cls  # type: Type["RDFStruct"]
     cls.type_infos = type_info.TypeDescriptorSet()
 
     # Keep track of the late bound fields.
@@ -1754,7 +1807,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     self.dirty = True
 
   def SerializeToString(self):
-    return _SerializeEntries(utils.IterValuesInSortedKeysOrder(self._data))
+    return _SerializeEntries(_GetOrderedEntries(self._data))
 
   def ParseFromString(self, string):
     ReadIntoObject(string, 0, self)
@@ -1763,6 +1816,9 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   def ParseFromDatastore(self, value):
     precondition.AssertType(value, bytes)
     self.ParseFromString(value)
+
+  # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
+  __hash__ = rdfvalue.RDFValue.__hash__
 
   def __eq__(self, other):
     if not isinstance(other, self.__class__):
@@ -2028,6 +2084,9 @@ class RDFProtoStruct(RDFStruct):
         return value
 
   def __nonzero__(self):
+    return bool(self._data)
+
+  def __bool__(self):
     return bool(self._data)
 
   @classmethod

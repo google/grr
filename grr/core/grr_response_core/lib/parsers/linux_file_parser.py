@@ -2,6 +2,7 @@
 """Simple parsers for Linux files."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import collections
@@ -9,9 +10,11 @@ import logging
 import os
 import re
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import zip
 from future.utils import iteritems
 from future.utils import itervalues
+from typing import Optional
+from typing import Text
 
 from grr_response_core import config
 from grr_response_core.lib import parser
@@ -20,6 +23,7 @@ from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import precondition
 
 
 class PCIDevicesInfoParser(parser.FileMultiParser):
@@ -94,10 +98,12 @@ class PasswdParser(parser.FileParser):
 
   @classmethod
   def ParseLine(cls, index, line):
+    precondition.AssertType(line, Text)
+
     fields = "username,password,uid,gid,fullname,homedir,shell".split(",")
     try:
       if not line:
-        return
+        return None
       dat = dict(zip(fields, line.split(":")))
       user = rdf_client.User(
           username=dat["username"],
@@ -120,9 +126,9 @@ class PasswdParser(parser.FileParser):
         for l in utils.ReadFileBytesAsUnicode(file_object).splitlines()
     ]
     for index, line in enumerate(lines):
-      line = self.ParseLine(index, line)
-      if line:
-        yield line
+      user = self.ParseLine(index, line)
+      if user is not None:
+        yield user
 
 
 class PasswdBufferParser(parser.GrepParser):
@@ -133,10 +139,11 @@ class PasswdBufferParser(parser.GrepParser):
 
   def Parse(self, filefinderresult, knowledge_base):
     _ = knowledge_base
-    for index, line in enumerate([x.data for x in filefinderresult.matches]):
-      line = PasswdParser.ParseLine(index, line.strip())
-      if line:
-        yield line
+    lines = [x.data.decode("utf-8") for x in filefinderresult.matches]
+    for index, line in enumerate(lines):
+      user = PasswdParser.ParseLine(index, line.strip())
+      if user is not None:
+        yield user
 
 
 class UtmpStruct(utils.Struct):
@@ -186,7 +193,7 @@ class LinuxWtmpParser(parser.FileParser):
         continue
 
       # Lose the null termination
-      record.user = record.user.split("\x00", 1)[0]
+      record.user = record.user.split(b"\x00", 1)[0]
 
       # Store the latest login time.
       # TODO(user): remove the 0 here once RDFDatetime can support times
@@ -286,7 +293,7 @@ class NetgroupBufferParser(parser.GrepParser):
   def Parse(self, filefinderresult, knowledge_base):
     _ = knowledge_base
     return NetgroupParser.ParseLines(
-        [x.data.encode("utf-8").strip() for x in filefinderresult.matches])
+        [x.data.decode("utf-8").strip() for x in filefinderresult.matches])
 
 
 class LinuxBaseShadowParser(parser.FileMultiParser):
@@ -385,7 +392,7 @@ class LinuxBaseShadowParser(parser.FileMultiParser):
     for k, v in iteritems(self.entry):
       if v.pw_entry.store == store_type:
         shadow_entry = self.shadow.get(k)
-        if shadow_entry:
+        if shadow_entry is not None:
           v.pw_entry = shadow_entry
         else:
           v.pw_entry.store = "UNKNOWN"
@@ -422,8 +429,8 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
   output_types = ["Group"]
   supported_artifacts = ["LoginPolicyConfiguration"]
 
-  base_store = "GROUP"
-  shadow_store = "GSHADOW"
+  base_store = rdf_client.PwEntry.PwStore.GROUP
+  shadow_store = rdf_client.PwEntry.PwStore.GSHADOW
 
   def __init__(self, *args, **kwargs):
     super(LinuxSystemGroupParser, self).__init__(*args, **kwargs)
@@ -486,7 +493,7 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
     for grp_name, group in iteritems(self.entry):
       shadow = self.shadow.get(grp_name)
       gshadows = self.gshadow_members.get(grp_name, [])
-      if shadow:
+      if shadow is not None:
         diff = self.MemberDiff(group.members, "group", gshadows, "gshadow")
         if diff:
           msg = "Group/gshadow members differ in group: %s" % grp_name
@@ -541,8 +548,8 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
   output_types = ["User"]
   supported_artifacts = ["LoginPolicyConfiguration"]
 
-  base_store = "PASSWD"
-  shadow_store = "SHADOW"
+  base_store = rdf_client.PwEntry.PwStore.PASSWD
+  shadow_store = rdf_client.PwEntry.PwStore.SHADOW
 
   def __init__(self, *args, **kwargs):
     super(LinuxSystemPasswdParser, self).__init__(*args, **kwargs)
@@ -641,7 +648,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
     # Find privileged groups with unusual members.
     findings = []
     root_grp = self.groups.get("root")
-    if root_grp:
+    if root_grp is not None:
       root_members = sorted([m for m in root_grp.members if m != "root"])
       if root_members:
         findings.append("Accounts in 'root' group: %s" % ",".join(root_members))

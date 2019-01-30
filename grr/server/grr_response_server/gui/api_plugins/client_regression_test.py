@@ -334,32 +334,39 @@ class ApiGetClientLoadStatsHandlerRegressionTest(
   handler = client_plugin.ApiGetClientLoadStatsHandler
 
   def FillClientStats(self, client_id):
-    with aff4.FACTORY.Create(
-        client_id.Add("stats"),
-        aff4_type=aff4_stats.ClientStats,
-        token=self.token,
-        mode="rw") as stats_fd:
-      for i in range(6):
-        with test_lib.FakeTime((i + 1) * 10):
-          timestamp = int((i + 1) * 10 * 1e6)
-          st = rdf_client_stats.ClientStats()
+    stats = []
+    for i in range(6):
+      timestamp = int((i + 1) * 10 * 1e6)
+      st = rdf_client_stats.ClientStats()
 
-          sample = rdf_client_stats.CpuSample(
-              timestamp=timestamp,
-              user_cpu_time=10 + i,
-              system_cpu_time=20 + i,
-              cpu_percent=10 + i)
-          st.cpu_samples.Append(sample)
+      sample = rdf_client_stats.CpuSample(
+          timestamp=timestamp,
+          user_cpu_time=10 + i,
+          system_cpu_time=20 + i,
+          cpu_percent=10 + i)
+      st.cpu_samples.Append(sample)
 
-          sample = rdf_client_stats.IOSample(
-              timestamp=timestamp, read_bytes=10 + i, write_bytes=10 + i * 2)
-          st.io_samples.Append(sample)
+      sample = rdf_client_stats.IOSample(
+          timestamp=timestamp, read_bytes=10 + i, write_bytes=10 + i * 2)
+      st.io_samples.Append(sample)
 
-          stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
+      stats.append(st)
 
-          if data_store.RelationalDBWriteEnabled():
-            data_store.REL_DB.WriteClientStats(
-                client_id=client_id.Basename(), stats=st)
+    if data_store.AFF4Enabled():
+      for st in stats:
+        with test_lib.FakeTime(st.cpu_samples[0].timestamp):
+          with aff4.FACTORY.Create(
+              client_id.Add("stats"),
+              aff4_type=aff4_stats.ClientStats,
+              token=self.token,
+              mode="rw") as stats_fd:
+            stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
+
+    if data_store.RelationalDBWriteEnabled():
+      for st in stats:
+        with test_lib.FakeTime(st.cpu_samples[0].timestamp):
+          data_store.REL_DB.WriteClientStats(
+              client_id=client_id.Basename(), stats=st)
 
   def Run(self):
     client_id = self.SetupClient(0)

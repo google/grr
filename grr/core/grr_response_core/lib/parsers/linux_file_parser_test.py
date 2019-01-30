@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Unit test for the linux file parser."""
 
 from __future__ import absolute_import
@@ -335,7 +335,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     rdfs = parser.ParseMultiple(stats, files, None)
     results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
 
-    self.assertLen(expected, len(results))
+    self.assertLen(results, len(expected))
     for expect, result in zip(expected, results):
       self.assertRDFValuesEqual(expect, result)
 
@@ -393,7 +393,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     rdfs = parser.ParseMultiple(stats, files, None)
     results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
 
-    self.assertLen(expected, len(results))
+    self.assertLen(results, len(expected))
     for expect, result in zip(expected, results):
       self.assertEqual(expect.symptom, result.symptom)
       # Expand out repeated field helper.

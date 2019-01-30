@@ -1597,12 +1597,13 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
     if args.username or args.HasField("interface_traits"):
       raise ValueError("Only user settings can be updated.")
 
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="w",
-        token=token) as user_fd:
-      user_fd.Set(user_fd.Schema.GUI_SETTINGS(args.settings))
+    if data_store.AFF4Enabled():
+      with aff4.FACTORY.Create(
+          aff4.ROOT_URN.Add("users").Add(token.username),
+          aff4_type=aff4_users.GRRUser,
+          mode="w",
+          token=token) as user_fd:
+        user_fd.Set(user_fd.Schema.GUI_SETTINGS(args.settings))
 
     if data_store.RelationalDBWriteEnabled():
       data_store.REL_DB.WriteGRRUser(

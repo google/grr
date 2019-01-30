@@ -55,9 +55,11 @@ class SystemCronTestMixin(object):
 
     for i in range(0, 10):
       client_id = u"C.1%015x" % i
-      with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
-        client.AddLabels([u"Label1", u"Label2"], owner=u"GRR")
-        client.AddLabel(u"UserLabel", owner=u"jim")
+      if data_store.AFF4Enabled():
+        with aff4.FACTORY.Open(
+            client_id, mode="rw", token=self.token) as client:
+          client.AddLabels([u"Label1", u"Label2"], owner=u"GRR")
+          client.AddLabel(u"UserLabel", owner=u"jim")
 
       data_store.REL_DB.AddClientLabels(client_id, u"GRR",
                                         [u"Label1", u"Label2"])
@@ -191,13 +193,13 @@ class SystemCronTestMixin(object):
     for t in [1 * max_age, 1.5 * max_age, 2 * max_age]:
       with test_lib.FakeTime(t):
         urn = client_id.Add("stats")
-
-        stats_fd = aff4.FACTORY.Create(
-            urn, aff4_stats.ClientStats, token=self.token, mode="rw")
         st = rdf_client_stats.ClientStats(RSS_size=int(t))
-        stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
 
-        stats_fd.Close()
+        if data_store.AFF4Enabled():
+          with aff4.FACTORY.Create(
+              urn, aff4_stats.ClientStats, token=self.token,
+              mode="rw") as stats_fd:
+            stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
 
         if data_store.RelationalDBWriteEnabled():
           data_store.REL_DB.WriteClientStats(client_id.Basename(), st)

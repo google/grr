@@ -384,7 +384,8 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
     super(ListProcessesFleetspeakTest, self).setUp()
 
     self.client_id = self.SetupClient(0)
-    SetAFF4FSEnabledFlag(self.client_id, token=self.token)
+    if data_store.AFF4Enabled():
+      SetAFF4FSEnabledFlag(self.client_id, token=self.token)
     data_store.REL_DB.WriteClientMetadata(
         self.client_id.Basename(), fleetspeak_enabled=True)
 

@@ -487,6 +487,10 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       hunt_obj.Stop()
 
   def ProcessHuntOutputPlugins(self):
+    if data_store.RelationalDBReadEnabled("hunts"):
+      # No processing needed for new style hunts.
+      return
+
     if data_store.RelationalDBFlowsEnabled():
       job = rdf_cronjobs.CronJob(
           cron_job_id="some/id", lifetime=rdfvalue.Duration("1h"))

@@ -12,24 +12,29 @@ from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import access_control
-from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import api_call_robot_router as rr
 from grr_response_server.gui.api_plugins import flow as api_flow
 
+from grr.test_lib import acl_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class AnotherFileFinder(flow.GRRFlow):
+@flow_base.DualDBFlow
+class AnotherFileFinderMixin(object):
   args_type = rdf_file_finder.FileFinderArgs
 
 
-class AnotherArtifactCollector(flow.GRRFlow):
+@flow_base.DualDBFlow
+class AnotherArtifactCollectorMixin(object):
   args_type = rdf_artifacts.ArtifactCollectorFlowArgs
 
 
+@db_test_lib.DualDBTest
 class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
   """Tests for ApiRobotCreateFlowHandler."""
 
@@ -60,7 +65,8 @@ class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(f.args.paths, ["bar"])
 
 
-class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
+@db_test_lib.DualDBTest
+class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
   """Tests for ApiCallRobotRouter."""
 
   def _CreateRouter(self, delegate=None, **kwargs):
@@ -71,6 +77,8 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
     super(ApiCallRobotRouterTest, self).setUp()
     self.client_id = self.SetupClient(0)
     self.robot_id = "TestRobot"
+    self.another_username = "someotherguy"
+    self.CreateUser(self.another_username)
 
   def testSearchClientsIsDisabledByDefault(self):
     router = self._CreateRouter()
@@ -149,7 +157,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
   def testFileFinderFlowNameCanBeOverriden(self):
     router = self._CreateRouter(
         file_finder_flow=rr.RobotRouterFileFinderFlowParams(
-            enabled=True, file_finder_flow_name=AnotherFileFinder.__name__))
+            enabled=True, file_finder_flow_name=AnotherFileFinder.__name__))  # pylint: disable=undefined-variable
 
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.CreateFlow(
@@ -160,7 +168,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
 
     router.CreateFlow(
         api_flow.ApiCreateFlowArgs(
-            flow=api_flow.ApiFlow(name=AnotherFileFinder.__name__),
+            flow=api_flow.ApiFlow(name=AnotherFileFinder.__name__),  # pylint: disable=undefined-variable
             client_id=self.client_id),
         token=self.token)
 
@@ -270,7 +278,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
     router = self._CreateRouter(
         artifact_collector_flow=rr.RobotRouterArtifactCollectorFlowParams(
             enabled=True,
-            artifact_collector_flow_name=AnotherArtifactCollector.__name__))
+            artifact_collector_flow_name=AnotherArtifactCollector.__name__))  # pylint: disable=undefined-variable
 
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.CreateFlow(
@@ -282,7 +290,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
 
     router.CreateFlow(
         api_flow.ApiCreateFlowArgs(
-            flow=api_flow.ApiFlow(name=AnotherArtifactCollector.__name__),
+            flow=api_flow.ApiFlow(name=AnotherArtifactCollector.__name__),  # pylint: disable=undefined-variable
             client_id=self.client_id),
         token=self.token)
 
@@ -299,6 +307,14 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
               client_id=self.client_id),
           token=self.token)
 
+  # Pre-REL_DB ApiCallRobotRouter was using robot id annotation to identify
+  # flows created by a robot.
+  # REL_DB-enabled ApiCallRobotRouter ignores the robot_id and simply checks
+  # that the creator username has to match the requestor username, effectively
+  # forcing a single robot account to do all operations.
+  # Still, we have to maintain old robot_id-based logic while AFF4 code is
+  # not removed.
+  # TODO(user): remove robot_id support when AFF4 is gone.
   def _CreateFlowWithRobotId(self, flow_name=None, flow_args=None):
     flow_name = flow_name or file_finder.FileFinder.__name__
 
@@ -315,21 +331,18 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.GetFlow(None, token=self.token)
 
-  def testGetFlowRaisesIfFlowWasNotCreatedBySameRouter(self):
-    flow_urn = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=file_finder.FileFinder.__name__,
-        token=self.token)
+  def testGetFlowRaisesIfFlowWasNotCreatedBySameUser(self):
+    flow_id = flow_test_lib.StartFlow(
+        file_finder.FileFinder, self.client_id, creator=self.another_username)
 
     router = self._CreateRouter(
         get_flow=rr.RobotRouterGetFlowParams(enabled=True))
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.GetFlow(
-          api_flow.ApiGetFlowArgs(
-              client_id=self.client_id, flow_id=flow_urn.Basename()),
+          api_flow.ApiGetFlowArgs(client_id=self.client_id, flow_id=flow_id),
           token=self.token)
 
-  def testGetFlowWorksIfFlowWasCreatedBySameRouter(self):
+  def testGetFlowWorksIfFlowWasCreatedBySameUser(self):
     flow_id = self._CreateFlowWithRobotId()
     router = self._CreateRouter(
         get_flow=rr.RobotRouterGetFlowParams(enabled=True))
@@ -342,21 +355,19 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.ListFlowResults(None, token=self.token)
 
-  def testListFlowResultsRaisesIfFlowWasNotCreatedBySameRouter(self):
-    flow_urn = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=file_finder.FileFinder.__name__,
-        token=self.token)
+  def testListFlowResultsRaisesIfFlowWasNotCreatedBySameUser(self):
+    flow_id = flow_test_lib.StartFlow(
+        file_finder.FileFinder, self.client_id, creator=self.another_username)
 
     router = self._CreateRouter(
         list_flow_results=rr.RobotRouterListFlowResultsParams(enabled=True))
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.ListFlowResults(
           api_flow.ApiListFlowResultsArgs(
-              client_id=self.client_id, flow_id=flow_urn.Basename()),
+              client_id=self.client_id, flow_id=flow_id),
           token=self.token)
 
-  def testListFlowResultsWorksIfFlowWasCreatedBySameRouter(self):
+  def testListFlowResultsWorksIfFlowWasCreatedBySameUser(self):
     flow_id = self._CreateFlowWithRobotId()
     router = self._CreateRouter(
         list_flow_results=rr.RobotRouterListFlowResultsParams(enabled=True))
@@ -370,21 +381,19 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.ListFlowLogs(None, token=self.token)
 
-  def testListFlowLogsRaisesIfFlowWasNotCreatedBySameRouter(self):
-    flow_urn = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=file_finder.FileFinder.__name__,
-        token=self.token)
+  def testListFlowLogsRaisesIfFlowWasNotCreatedBySameUser(self):
+    flow_id = flow_test_lib.StartFlow(
+        file_finder.FileFinder, self.client_id, creator=self.another_username)
 
     router = self._CreateRouter(
         list_flow_logs=rr.RobotRouterListFlowLogsParams(enabled=True))
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.ListFlowLogs(
           api_flow.ApiListFlowLogsArgs(
-              client_id=self.client_id, flow_id=flow_urn.Basename()),
+              client_id=self.client_id, flow_id=flow_id),
           token=self.token)
 
-  def testListFlowLogsWorksIfFlowWasCreatedBySameRouter(self):
+  def testListFlowLogsWorksIfFlowWasCreatedBySameUser(self):
     flow_id = self._CreateFlowWithRobotId()
     router = self._CreateRouter(
         list_flow_logs=rr.RobotRouterListFlowLogsParams(enabled=True))
@@ -397,20 +406,18 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.GetFlowFilesArchive(None, token=self.token)
 
-  def testFlowFilesArchiveRaisesIfFlowWasNotCreatedBySameRouter(self):
-    flow_urn = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=file_finder.FileFinder.__name__,
-        token=self.token)
+  def testFlowFilesArchiveRaisesIfFlowWasNotCreatedBySameUser(self):
+    flow_id = flow_test_lib.StartFlow(
+        file_finder.FileFinder, self.client_id, creator=self.another_username)
 
     router = self._CreateRouter()
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.GetFlowFilesArchive(
           api_flow.ApiGetFlowFilesArchiveArgs(
-              client_id=self.client_id, flow_id=flow_urn.Basename()),
+              client_id=self.client_id, flow_id=flow_id),
           token=self.token)
 
-  def testGetFlowFilesArchiveWorksIfFlowWasCreatedBySameRouter(self):
+  def testGetFlowFilesArchiveWorksIfFlowWasCreatedBySameUser(self):
     flow_id = self._CreateFlowWithRobotId()
     router = self._CreateRouter(
         get_flow_files_archive=rr.RobotRouterGetFlowFilesArchiveParams(
@@ -438,7 +445,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
       self):
     router = self._CreateRouter(
         artifact_collector_flow=rr.RobotRouterArtifactCollectorFlowParams(
-            artifact_collector_flow_name=AnotherArtifactCollector.__name__),
+            artifact_collector_flow_name=AnotherArtifactCollector.__name__),  # pylint: disable=undefined-variable
         get_flow_files_archive=rr.RobotRouterGetFlowFilesArchiveParams(
             enabled=True,
             skip_glob_checks_for_artifact_collector=True,
@@ -454,7 +461,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
     self.assertEqual(handler.path_globs_whitelist, ["foo/*", "bar/*"])
 
     flow_id = self._CreateFlowWithRobotId(
-        flow_name=AnotherArtifactCollector.__name__,
+        flow_name=AnotherArtifactCollector.__name__,  # pylint: disable=undefined-variable
         flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
             artifact_list=["Foo"]))
     handler = router.GetFlowFilesArchive(

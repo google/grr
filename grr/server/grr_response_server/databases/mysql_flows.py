@@ -1177,3 +1177,25 @@ class MySQLDBFlowMixin(object):
   @mysql_utils.WithTransaction()
   def CountFlowLogEntries(self, client_id, flow_id, cursor=None):
     """Returns number of flow log entries of a given flow."""
+
+  def WriteFlowOutputPluginLogEntries(self, entries):
+    """Writes flow output plugin log entries for a given flow."""
+    raise NotImplementedError()
+
+  def ReadFlowOutputPluginLogEntries(self,
+                                     client_id,
+                                     flow_id,
+                                     output_plugin_id,
+                                     offset,
+                                     count,
+                                     with_type=None):
+    """Reads flow output plugin log entries."""
+    raise NotImplementedError()
+
+  def CountFlowOutputPluginLogEntries(self,
+                                      client_id,
+                                      flow_id,
+                                      output_plugin_id,
+                                      with_type=None):
+    """Returns number of flow output plugin log entries of a given flow."""
+    raise NotImplementedError()

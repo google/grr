@@ -693,7 +693,7 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
     results = data_store.REL_DB.ReadHuntResults(
         str(args.hunt_id),
         args.offset,
-        args.count,
+        args.count or db.MAX_COUNT,
         with_substring=args.filter or None)
 
     total_count = data_store.REL_DB.CountHuntResults(str(args.hunt_id))
@@ -740,7 +740,7 @@ class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
     flows = data_store.REL_DB.ReadHuntFlows(
         str(args.hunt_id),
         args.offset,
-        args.count,
+        args.count or db.MAX_COUNT,
         filter_condition=db.HuntFlowsCondition.CRASHED_FLOWS_ONLY)
     total_count = data_store.REL_DB.CountHuntFlows(
         str(args.hunt_id),
@@ -876,6 +876,7 @@ class ApiListHuntOutputPluginLogsHandlerBase(
 
   __abstract = True  # pylint: disable=g-bad-name
 
+  log_entry_type = None
   collection_type = None
   collection_counter = None
 
@@ -917,51 +918,38 @@ class ApiListHuntOutputPluginLogsHandlerBase(
       if args.count:
         logs = logs[:args.count]
 
+    for l in logs:
+      l.batch_index = 0
+      if l.status == l.Status.SUCCESS:
+        l.summary = "Processed %d replies." % l.batch_size
+      else:
+        l.summary = "Error while processing %d replies: %s" % (l.batch_size,
+                                                               l.summary)
+      l.batch_size = 0
+      l.plugin_descriptor = None
+
     return self.result_type(total_count=total_count, items=logs)
 
-  # TODO: this likely won't scale. reimplement with
-  # a dedicated DB API.
   def _HandleRelational(self, args, token=None):
     h = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
 
-    output_plugin_index = None
-    used_names = collections.Counter()
-    for (index, desc) in enumerate(h.output_plugins):
-      plugin_id = "%s_%d" % (desc.plugin_name, used_names[desc.plugin_name])
-      used_names[desc.plugin_name] += 1
+    index = api_flow.GetOutputPluginIndex(h.output_plugins, args.plugin_id)
+    output_plugin_id = "%d" % index
 
-      if plugin_id == args.plugin_id:
-        output_plugin_index = index
-
-    if output_plugin_index is None:
-      raise ValueError("Invalid plugin_id: %s" % args.plugin_id)
-
-    total_count = h.output_plugins_states[output_plugin_index].plugin_state[
-        self.__class__.collection_counter]
-
-    flows = data_store.REL_DB.ReadHuntFlows(
+    logs = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
         str(args.hunt_id),
-        offset=0,
-        count=db.MAX_COUNT,
-        filter_condition=db.HuntFlowsCondition.FLOWS_WITH_RESULTS_ONLY)
+        output_plugin_id,
+        args.offset,
+        args.count or db.MAX_COUNT,
+        with_type=self.__class__.log_entry_type)
+    total_count = data_store.REL_DB.CountHuntOutputPluginLogEntries(
+        str(args.hunt_id),
+        output_plugin_id,
+        with_type=self.__class__.log_entry_type)
 
-    all_items = []
-    for f in flows:
-      if not f.output_plugins_states:
-        continue
-
-      all_items.extend(
-          f.output_plugins_states[output_plugin_index].plugin_state[
-              self.__class__.collection_type])
-
-      if (args.count and len(all_items) >= (args.offset + args.count)):
-        break
-
-    items = all_items[args.offset:]
-    if args.count:
-      items = items[:args.count]
-
-    return self.result_type(total_count=total_count, items=items)
+    return self.result_type(
+        total_count=total_count,
+        items=[l.ToOutputPluginBatchProcessingStatus() for l in logs])
 
   def Handle(self, args, token=None):
     if data_store.RelationalDBReadEnabled("hunts"):
@@ -1060,7 +1048,7 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
     results = data_store.REL_DB.ReadHuntLogEntries(
         str(args.hunt_id),
         args.offset,
-        args.count,
+        args.count or db.MAX_COUNT,
         with_substring=args.filter or None)
 
     total_count = data_store.REL_DB.CountHuntLogEntries(str(args.hunt_id))
@@ -1132,7 +1120,7 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
       flows = data_store.REL_DB.ReadHuntFlows(
           str(args.hunt_id),
           args.offset,
-          args.count,
+          args.count or db.MAX_COUNT,
           filter_condition=db.HuntFlowsCondition.FAILED_FLOWS_ONLY)
 
     return ApiListHuntErrorsResult(
@@ -1678,7 +1666,10 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
     total_count = data_store.REL_DB.CountHuntFlows(
         hunt_id, filter_condition=filter_condition)
     hunt_flows = data_store.REL_DB.ReadHuntFlows(
-        hunt_id, args.offset, args.count, filter_condition=filter_condition)
+        hunt_id,
+        args.offset,
+        args.count or db.MAX_COUNT,
+        filter_condition=filter_condition)
     results = [
         ApiHuntClient(client_id=hf.client_id, flow_id=hf.flow_id)
         for hf in hunt_flows

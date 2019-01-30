@@ -2,15 +2,18 @@
 """API handlers for dealing with flows."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
+import collections
 import itertools
 import re
-
 
 from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
+
+from typing import Iterable
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -20,10 +23,12 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import flow_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import data_store_utils
 from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -31,18 +36,23 @@ from grr_response_server import instant_output_plugin
 from grr_response_server import notification
 from grr_response_server import output_plugin
 from grr_response_server import queue_manager
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import archive_generator
 from grr_response_server.gui.api_plugins import client
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
 
 class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a flow is not found."""
+
+
+class OutputPluginNotFoundError(api_call_handler_base.ResourceNotFoundError):
+  """Raised when an output plugin is not found."""
 
 
 class ApiFlowId(rdfvalue.RDFString):
@@ -420,9 +430,17 @@ class ApiFlowResult(rdf_structs.RDFProtoStruct):
     return rdfvalue.RDFValue.classes[self.payload_type]
 
   def InitFromRdfValue(self, value):
-    self.payload_type = value.__class__.__name__
+    self.payload_type = compatibility.GetName(value.__class__)
     self.payload = value
     self.timestamp = value.age
+
+    return self
+
+  def InitFromFlowResult(self, result):
+    p = result.payload
+    self.payload_type = compatibility.GetName(p.__class__)
+    self.payload = p
+    self.timestamp = result.timestamp
 
     return self
 
@@ -610,7 +628,7 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
           db.MAX_COUNT)
       total_count = data_store.REL_DB.CountFlowResults(
           str(args.client_id), str(args.flow_id))
-      items = [r.payload for r in results]
+      wrapped_items = [ApiFlowResult().InitFromFlowResult(r) for r in results]
     else:
       flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
       output_collection = flow.GRRFlow.ResultCollectionForFID(flow_urn)
@@ -619,7 +637,8 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
       items = api_call_handler_utils.FilterCollection(
           output_collection, args.offset, args.count, args.filter)
 
-    wrapped_items = [ApiFlowResult().InitFromRdfValue(item) for item in items]
+      wrapped_items = [ApiFlowResult().InitFromRdfValue(item) for item in items]
+
     return ApiListFlowResultsResult(
         items=wrapped_items, total_count=total_count)
 
@@ -774,17 +793,16 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     if self.path_globs_whitelist is None:
       return None
 
-    client_obj = aff4.FACTORY.Open(
-        client_id.ToClientURN(), aff4_type=aff4_grr.VFSGRRClient, token=token)
+    kb = data_store_utils.GetClientKnowledgeBase(client_id, token=token)
 
     blacklist_regexes = []
     for expression in self.path_globs_blacklist:
-      for pattern in expression.Interpolate(client=client_obj):
+      for pattern in expression.Interpolate(knowledge_base=kb):
         blacklist_regexes.append(rdf_paths.GlobExpression(pattern).AsRegEx())
 
     whitelist_regexes = []
     for expression in self.path_globs_whitelist:
-      for pattern in expression.Interpolate(client=client_obj):
+      for pattern in expression.Interpolate(knowledge_base=kb):
         whitelist_regexes.append(rdf_paths.GlobExpression(pattern).AsRegEx())
 
     def Predicate(client_path):
@@ -839,7 +857,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         prefix=target_file_prefix,
         description=description,
         archive_format=archive_format,
-        predicate=self._BuildPredicate(args.client_id, token=token),
+        predicate=self._BuildPredicate(unicode(args.client_id), token=token),
         client_id=args.client_id.ToClientURN())
     content_generator = self._WrapContentGenerator(
         generator, flow_results, args, token=token)
@@ -909,61 +927,120 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
     return ApiListFlowOutputPluginsResult(items=result)
 
 
+def GetOutputPluginIndex(
+    plugin_descriptors,
+    plugin_id):
+  """Gets an output plugin index for a plugin with a given id.
+
+  Historically output plugins descriptors were stored in dicts-like
+  structures with unique identifiers as keys. In REL_DB-based implementation,
+  however, both plugin descriptors and their states are stored in flat
+  lists (see Flow definition in flows.proto).
+
+  The ids were formed as "<plugin name>_<plugin index>" where plugin index
+  was incremented for every plugin with a same name. For example, if we had
+  EmailOutputPlugin and 2 BigQueryOutputPlugins, their ids would be:
+  EmailOutputPlugin_0, BigQueryOutputPlugin_0, BigQueryOutputPlugin_1.
+
+  To preserve backwards API compatibility, we emulate the old behavior by
+  identifying plugins with same plugin ids as before..
+
+  Args:
+    plugin_descriptors: An iterable of OutputPluginDescriptor objects.
+    plugin_id: Plugin id to search for.
+
+  Returns:
+    An index of a plugin in plugin_descriptors iterable corresponding to a
+    given plugin_id.
+
+  Raises:
+    OutputPluginNotFoundError: if no plugin corresponding to a given plugin_id
+    was found.
+  """
+
+  used_names = collections.Counter()
+  for (index, desc) in enumerate(plugin_descriptors):
+    cur_plugin_id = "%s_%d" % (desc.plugin_name, used_names[desc.plugin_name])
+    used_names[desc.plugin_name] += 1
+
+    if cur_plugin_id == plugin_id:
+      return index
+
+  raise OutputPluginNotFoundError("Can't find output plugin %s" % plugin_id)
+
+
 class ApiListFlowOutputPluginLogsHandlerBase(
     api_call_handler_base.ApiCallHandler):
   """Base class used to define log and error messages handlers."""
 
   __abstract = True  # pylint: disable=g-bad-name
 
+  # TODO(user): remove attribute_name when AFF4 is gone.
   attribute_name = None
+  log_entry_type = None
+
+  def _HandleLegacy(self, args, token=None):
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
+    flow_obj = aff4.FACTORY.Open(
+        flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
+
+    output_plugins_states = flow_obj.GetRunner().context.output_plugins_states
+    index = GetOutputPluginIndex(
+        [s.plugin_descriptor for s in output_plugins_states], args.plugin_id)
+    found_state = output_plugins_states[index]
+
+    stop = None
+    if args.count:
+      stop = args.offset + args.count
+
+    logs_collection = found_state.plugin_state.get(self.attribute_name, [])
+    sliced_collection = logs_collection[args.offset:stop]
+
+    for l in sliced_collection:
+      l.batch_index = 0
+      if l.status == l.Status.SUCCESS:
+        l.summary = "Processed %d replies." % l.batch_size
+      else:
+        l.summary = "Error while processing %d replies: %s" % (l.batch_size,
+                                                               l.summary)
+      l.batch_size = 0
+      l.plugin_descriptor = None
+
+    return self.result_type(
+        total_count=len(logs_collection), items=sliced_collection)
+
+  def _HandleRelational(self, args, token=None):
+    flow_obj = data_store.REL_DB.ReadFlowObject(
+        str(args.client_id), str(args.flow_id))
+
+    index = GetOutputPluginIndex(flow_obj.output_plugins, args.plugin_id)
+    output_plugin_id = "%d" % index
+
+    logs = data_store.REL_DB.ReadFlowOutputPluginLogEntries(
+        str(args.client_id),
+        str(args.flow_id),
+        output_plugin_id,
+        args.offset,
+        args.count or db.MAX_COUNT,
+        with_type=self.__class__.log_entry_type)
+    total_count = data_store.REL_DB.CountFlowOutputPluginLogEntries(
+        str(args.client_id),
+        str(args.flow_id),
+        output_plugin_id,
+        with_type=self.__class__.log_entry_type)
+
+    return self.result_type(
+        total_count=total_count,
+        items=[l.ToOutputPluginBatchProcessingStatus() for l in logs])
 
   def Handle(self, args, token=None):
     if not self.attribute_name:
       raise ValueError("attribute_name can't be None")
 
     if data_store.RelationalDBFlowsEnabled():
-      flow_obj = data_store.REL_DB.ReadFlowObject(
-          str(args.client_id), str(args.flow_id))
-      output_plugins_states = flow_obj.output_plugins_states
+      return self._HandleRelational(args)
     else:
-      flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
-      flow_obj = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
-
-      output_plugins_states = flow_obj.GetRunner().context.output_plugins_states
-
-    # Flow output plugins don't use collections to store status/error
-    # information. Instead, it's stored in plugin's state. Nevertheless,
-    # we emulate collections API here. Having similar API interface allows
-    # one to reuse the code when handling hunts and flows output plugins.
-    # Good example is the UI code.
-    type_indices = {}
-    found_state = None
-
-    for output_plugin_state in output_plugins_states:
-      plugin_descriptor = output_plugin_state.plugin_descriptor
-      plugin_state = output_plugin_state.plugin_state
-      type_index = type_indices.setdefault(plugin_descriptor.plugin_name, 0)
-      type_indices[plugin_descriptor.plugin_name] += 1
-
-      if args.plugin_id == "%s_%d" % (plugin_descriptor.plugin_name,
-                                      type_index):
-        found_state = plugin_state
-        break
-
-    if not found_state:
-      raise RuntimeError(
-          "Flow %s doesn't have output plugin %s" % (flow_urn, args.plugin_id))
-
-    stop = None
-    if args.count:
-      stop = args.offset + args.count
-
-    logs_collection = found_state.get(self.attribute_name, [])
-    sliced_collection = logs_collection[args.offset:stop]
-
-    return self.result_type(
-        total_count=len(logs_collection), items=sliced_collection)
+      return self._HandleLegacy(args, token=token)
 
 
 class ApiListFlowOutputPluginLogsArgs(rdf_structs.RDFProtoStruct):
@@ -985,7 +1062,10 @@ class ApiListFlowOutputPluginLogsHandler(
     ApiListFlowOutputPluginLogsHandlerBase):
   """Renders flow's output plugin's logs."""
 
+  # TODO(user): remove "attribute_name" as soon as AFF4 is gone.
   attribute_name = "logs"
+  log_entry_type = rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG
+
   args_type = ApiListFlowOutputPluginLogsArgs
   result_type = ApiListFlowOutputPluginLogsResult
 
@@ -1009,7 +1089,10 @@ class ApiListFlowOutputPluginErrorsHandler(
     ApiListFlowOutputPluginLogsHandlerBase):
   """Renders flow's output plugin's errors."""
 
+  # TODO(user): remove "attribute_name" as soon as AFF4 is gone.
   attribute_name = "errors"
+  log_entry_type = rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR
+
   args_type = ApiListFlowOutputPluginErrorsArgs
   result_type = ApiListFlowOutputPluginErrorsResult
 

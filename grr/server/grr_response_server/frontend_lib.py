@@ -511,23 +511,24 @@ class FrontEndServer(object):
       data_store.REL_DB.WriteClientMetadata(
           client_id, first_seen=now, fleetspeak_enabled=True, last_ping=now)
 
-    # TODO(fleetspeak-team,grr-team): If aff4 isn't reliable enough, we can
-    # catch exceptions from it and forward them to Fleetspeak by failing its
-    # gRPC call. Fleetspeak will then retry with a random, perhaps healthier,
-    # instance of the GRR frontend.
-    with aff4.FACTORY.Create(
-        client_urn,
-        aff4_type=aff4_grr.VFSGRRClient,
-        mode="rw",
-        token=self.token) as client:
+    if data_store.AFF4Enabled():
+      # TODO(fleetspeak-team,grr-team): If aff4 isn't reliable enough, we can
+      # catch exceptions from it and forward them to Fleetspeak by failing its
+      # gRPC call. Fleetspeak will then retry with a random, perhaps healthier,
+      # instance of the GRR frontend.
+      with aff4.FACTORY.Create(
+          client_urn,
+          aff4_type=aff4_grr.VFSGRRClient,
+          mode="rw",
+          token=self.token) as client:
 
-      client.Set(client.Schema.FLEETSPEAK_ENABLED, rdfvalue.RDFBool(True))
+        client.Set(client.Schema.FLEETSPEAK_ENABLED, rdfvalue.RDFBool(True))
 
-      index = client_index.CreateClientIndex(token=self.token)
-      index.AddClient(client)
-      if data_store.RelationalDBWriteEnabled():
-        index = client_index.ClientIndex()
-        index.AddClient(data_migration.ConvertVFSGRRClient(client))
+        index = client_index.CreateClientIndex(token=self.token)
+        index.AddClient(client)
+        if data_store.RelationalDBWriteEnabled():
+          index = client_index.ClientIndex()
+          index.AddClient(data_migration.ConvertVFSGRRClient(client))
 
     # Publish the client enrollment message.
     events.Events.PublishEvent("ClientEnrollment", client_urn, token=self.token)

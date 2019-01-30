@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Test standard RDFValues."""
 
 from __future__ import absolute_import
@@ -32,13 +33,10 @@ class URITests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(sample.query, "q=hi")
     self.assertEqual(sample.fragment, "anchor1")
 
-    url = "http://google.com/index?q=hi#anchor1"
-    self.assertEqual(sample.SerializeToString(), url)
-
-  def testParseFromString(self):
+  def testHumanReadable(self):
     sample = rdf_standard.URI()
     url = "http://google.com:443/search?query=hi#anchor2"
-    sample.ParseFromString(url)
+    sample.ParseFromHumanReadable(url)
 
     self.assertEqual(sample.transport, "http")
     self.assertEqual(sample.host, "google.com:443")
@@ -46,7 +44,21 @@ class URITests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(sample.query, "query=hi")
     self.assertEqual(sample.fragment, "anchor2")
 
-    self.assertEqual(sample.SerializeToString(), url)
+    self.assertEqual(sample.SerializeToHumanReadable(), url)
+
+  def testByteString(self):
+    raw_uri = "http://gógiel.pl:1337/znajdź?frazę=🦋#nagłówek"
+
+    uri = rdf_standard.URI()
+    uri.ParseFromString(raw_uri.encode("utf-8"))
+
+    self.assertEqual(uri.transport, "http")
+    self.assertEqual(uri.host, "gógiel.pl:1337")
+    self.assertEqual(uri.path, "/znajdź")
+    self.assertEqual(uri.query, "frazę=🦋")
+    self.assertEqual(uri.fragment, "nagłówek")
+
+    self.assertEqual(uri.FromSerializedString(uri.SerializeToString()), uri)
 
 
 def main(argv):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -169,7 +169,7 @@ class DatabaseTestUsersMixin(object):
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
-        expiration_time=rdfvalue.RDFDatetime(42))
+        expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
     approval_id = d.WriteApprovalRequest(approval_request)
     self.assertTrue(approval_id)
@@ -196,7 +196,7 @@ class DatabaseTestUsersMixin(object):
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
-        expiration_time=rdfvalue.RDFDatetime(42),
+        expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42),
         notified_users=["user1", "user2", "user3"],
         email_cc_addresses=["a@b.com", "c@d.com"],
         grants=[
@@ -228,7 +228,7 @@ class DatabaseTestUsersMixin(object):
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
-        expiration_time=rdfvalue.RDFDatetime(42))
+        expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
     approval_id = d.WriteApprovalRequest(approval_request)
 
     read_request = d.ReadApprovalRequest("requestor", approval_id)
@@ -252,7 +252,7 @@ class DatabaseTestUsersMixin(object):
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
-        expiration_time=rdfvalue.RDFDatetime(42))
+        expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
     approval_id = d.WriteApprovalRequest(approval_request)
 
     for _ in range(3):
@@ -680,7 +680,7 @@ class DatabaseTestUsersMixin(object):
         notification_type=rdf_objects.UserNotification.Type
         .TYPE_CLIENT_INTERROGATED,
         state=rdf_objects.UserNotification.State.STATE_PENDING,
-        timestamp=rdfvalue.RDFDatetime(42),
+        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42),
         message="blah")
     d.WriteUserNotification(n)
 
@@ -699,7 +699,7 @@ class DatabaseTestUsersMixin(object):
             notification_type=rdf_objects.UserNotification.Type
             .TYPE_CLIENT_INTERROGATED,
             state=rdf_objects.UserNotification.State.STATE_PENDING,
-            timestamp=rdfvalue.RDFDatetime(42 + i),
+            timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42 + i),
             message="blah%d" % i) for i in range(10)
     ]
     for n in ns:
@@ -730,9 +730,8 @@ class DatabaseTestUsersMixin(object):
     n.timestamp = ns[0].timestamp
     self.assertEqual(ns[0], n)
 
-  def _SetupUserNotificationTimerangeTest(self):
+  def _SetupUserNotificationTimerangeTest(self, username="test"):
     d = self.db
-    username = "test"
     d.WriteGRRUser(username)
 
     ts = []
@@ -883,3 +882,65 @@ class DatabaseTestUsersMixin(object):
                      rdf_objects.UserNotification.State.STATE_NOT_PENDING)
     self.assertEqual(ns[1].state,
                      rdf_objects.UserNotification.State.STATE_PENDING)
+
+  def testDeleteUserDeletesApprovalRequests(self):
+    d = self.db
+    d.WriteGRRUser("requestor")
+    d.WriteGRRUser("grantor")
+
+    client_id = "C.0000000050000001"
+    approval_request = rdf_objects.ApprovalRequest(
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType
+        .APPROVAL_TYPE_CLIENT,
+        subject_id=client_id,
+        requestor_username="requestor",
+        reason="some test reason",
+        expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42),
+        grants=[
+            rdf_objects.ApprovalGrant(grantor_username="grantor"),
+        ])
+
+    approval_id = d.WriteApprovalRequest(approval_request)
+    self.assertTrue(approval_id)
+    d.ReadApprovalRequest("requestor", approval_id)
+
+    d.DeleteGRRUser("requestor")
+
+    with self.assertRaises(db.UnknownApprovalRequestError):
+      d.ReadApprovalRequest("requestor", approval_id)
+
+  def testDeleteUserDeletesApprovalGrantsForGrantor(self):
+    d = self.db
+    d.WriteGRRUser("requestor")
+    d.WriteGRRUser("grantor")
+    d.WriteGRRUser("grantor2")
+
+    client_id = "C.0000000050000001"
+    approval_request = rdf_objects.ApprovalRequest(
+        approval_type=rdf_objects.ApprovalRequest.ApprovalType
+        .APPROVAL_TYPE_CLIENT,
+        subject_id=client_id,
+        requestor_username="requestor",
+        reason="some test reason",
+        expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42),
+        notified_users=["user1", "user2", "user3"],
+        email_cc_addresses=["a@b.com", "c@d.com"],
+        grants=[
+            rdf_objects.ApprovalGrant(grantor_username="grantor"),
+            rdf_objects.ApprovalGrant(grantor_username="grantor2"),
+        ])
+
+    approval_id = d.WriteApprovalRequest(approval_request)
+    d.DeleteGRRUser("grantor")
+    result = d.ReadApprovalRequest("requestor", approval_id)
+    self.assertLen(result.grants, 1)
+    self.assertEqual(result.grants[0].grantor_username, "grantor2")
+
+  def testDeleteUserDeletesNotifications(self):
+    d = self.db
+    username = "test"
+    self._SetupUserNotificationTimerangeTest(username)
+    self.assertNotEmpty(
+        d.ReadUserNotifications(username, timerange=(None, None)))
+    d.DeleteGRRUser(username)
+    self.assertEmpty(d.ReadUserNotifications(username, timerange=(None, None)))

@@ -1501,7 +1501,8 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
       flow_id = flow.StartFlow(
           client_id=str(args.client_id),
           flow_cls=transfer.MultiGetFile,
-          flow_args=flow_args)
+          flow_args=flow_args,
+          creator=token.username)
     else:
       flow_id = flow.StartAFF4Flow(
           client_id=str(args.client_id),

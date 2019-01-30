@@ -209,13 +209,13 @@ _BLOBS_READ_BATCH_SIZE = 200
 
 
 def AddFilesWithUnknownHashes(
-    client_path_blob_ids
+    client_path_blob_refs
 ):
-  """Adds new files consisting of given blob ids.
+  """Adds new files consisting of given blob references.
 
   Args:
-    client_path_blob_ids: A dictionary mapping `db.ClientPath` instances to
-      lists of blob ids.
+    client_path_blob_refs: A dictionary mapping `db.ClientPath` instances to
+      lists of blob references.
 
   Returns:
     A dictionary mapping `db.ClientPath` to hash ids of the file.
@@ -223,61 +223,87 @@ def AddFilesWithUnknownHashes(
   Raises:
     BlobNotFoundError: If one of the referenced blobs cannot be found.
   """
-  all_client_path_blob_ids = list()
-  for client_path, blob_ids in iteritems(client_path_blob_ids):
-    for blob_id in blob_ids:
-      all_client_path_blob_ids.append((client_path, blob_id))
+  hash_id_blob_refs = dict()
+  client_path_hash_id = dict()
+  metadatas = dict()
+
+  all_client_path_blob_refs = list()
+  for client_path, blob_refs in iteritems(client_path_blob_refs):
+    # In the special case where there is only one blob, we don't need to go to
+    # the data store to read said blob and rehash it, we have all that
+    # information already available. For empty files without blobs, we can just
+    # hash the empty string instead.
+    if len(blob_refs) <= 1:
+      if blob_refs:
+        hash_id = rdf_objects.SHA256HashID.FromBytes(
+            blob_refs[0].blob_id.AsBytes())
+      else:
+        hash_id = rdf_objects.SHA256HashID.FromData(b"")
+
+      client_path_hash_id[client_path] = hash_id
+      hash_id_blob_refs[hash_id] = blob_refs
+      metadatas[hash_id] = FileMetadata(
+          client_path=client_path, blob_refs=blob_refs)
+    else:
+      for blob_ref in blob_refs:
+        all_client_path_blob_refs.append((client_path, blob_ref))
 
   client_path_offset = collections.defaultdict(lambda: 0)
   client_path_sha256 = collections.defaultdict(hashlib.sha256)
-  client_path_blob_refs = collections.defaultdict(list)
+  verified_client_path_blob_refs = collections.defaultdict(list)
 
-  client_path_blob_id_batches = collection.Batch(
-      items=all_client_path_blob_ids, size=_BLOBS_READ_BATCH_SIZE)
+  client_path_blob_ref_batches = collection.Batch(
+      items=all_client_path_blob_refs, size=_BLOBS_READ_BATCH_SIZE)
 
-  for client_path_blob_id_batch in client_path_blob_id_batches:
-    blob_id_batch = set(blob_id for _, blob_id in client_path_blob_id_batch)
+  for client_path_blob_ref_batch in client_path_blob_ref_batches:
+    blob_id_batch = set(
+        blob_ref.blob_id for _, blob_ref in client_path_blob_ref_batch)
     blobs = data_store.BLOBS.ReadBlobs(blob_id_batch)
 
-    for client_path, blob_id in client_path_blob_id_batch:
-      blob = blobs[blob_id]
+    for client_path, blob_ref in client_path_blob_ref_batch:
+      blob = blobs[blob_ref.blob_id]
       if blob is None:
-        message = "Could not find one of referenced blobs: {}".format(blob_id)
+        message = "Could not find one of referenced blobs: {}".format(
+            blob_ref.blob_id)
         raise BlobNotFoundError(message)
 
       offset = client_path_offset[client_path]
-      blob_ref = rdf_objects.BlobReference(
-          offset=offset, size=len(blob), blob_id=blob_id)
+      if blob_ref.size != len(blob):
+        raise ValueError(
+            "Got conflicting size information for blob %s: %d vs %d." %
+            (blob_ref.blob_id, blob_ref.size, len(blob)))
+      if blob_ref.offset != offset:
+        raise ValueError(
+            "Got conflicting offset information for blob %s: %d vs %d." %
+            (blob_ref.blob_id, blob_ref.offset, offset))
 
-      client_path_blob_refs[client_path].append(blob_ref)
+      verified_client_path_blob_refs[client_path].append(blob_ref)
       client_path_offset[client_path] = offset + len(blob)
       client_path_sha256[client_path].update(blob)
 
-  client_path_hash_id = dict()
-  hash_id_blob_refs = dict()
-  for client_path in iterkeys(client_path_blob_ids):
+  for client_path in iterkeys(client_path_sha256):
     sha256 = client_path_sha256[client_path].digest()
     hash_id = rdf_objects.SHA256HashID.FromBytes(sha256)
 
     client_path_hash_id[client_path] = hash_id
-    hash_id_blob_refs[hash_id] = client_path_blob_refs[client_path]
+    hash_id_blob_refs[hash_id] = verified_client_path_blob_refs[client_path]
 
   data_store.REL_DB.WriteHashBlobReferences(hash_id_blob_refs)
 
-  metadatas = dict()
-  for client_path in iterkeys(client_path_blob_ids):
+  for client_path in iterkeys(verified_client_path_blob_refs):
     metadatas[client_path_hash_id[client_path]] = FileMetadata(
-        client_path=client_path, blob_refs=client_path_blob_refs[client_path])
+        client_path=client_path,
+        blob_refs=verified_client_path_blob_refs[client_path])
   EXTERNAL_FILE_STORE.AddFiles(metadatas)
 
   return client_path_hash_id
 
 
-def AddFileWithUnknownHash(client_path, blob_ids):
+def AddFileWithUnknownHash(client_path, blob_refs):
   """Add a new file consisting of given blob IDs."""
   precondition.AssertType(client_path, db.ClientPath)
-  precondition.AssertIterableType(blob_ids, rdf_objects.BlobID)
-  return AddFilesWithUnknownHashes({client_path: blob_ids})[client_path]
+  precondition.AssertIterableType(blob_refs, rdf_objects.BlobReference)
+  return AddFilesWithUnknownHashes({client_path: blob_refs})[client_path]
 
 
 def CheckHashes(hash_ids):

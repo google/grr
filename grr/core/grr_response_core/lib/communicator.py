@@ -269,6 +269,7 @@ class ReceivedCipher(Cipher):
 class Communicator(with_metaclass(abc.ABCMeta, object)):
   """A class responsible for encoding and decoding comms."""
   server_name = None
+  common_name = None
 
   def __init__(self, certificate=None, private_key=None):
     """Creates a communicator.
@@ -560,7 +561,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
 
     # Check for replay attacks. We expect the server to return the same
     # timestamp nonce we sent.
-    if packed_message_list.timestamp != self.timestamp:
+    if packed_message_list.timestamp != self.timestamp:  # pytype: disable=attribute-error
       result = rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     if not cipher.cipher_metadata:

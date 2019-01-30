@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import platform
 import tempfile
 import unittest
@@ -31,20 +32,21 @@ class WindowsOsslsigncodeCodeSignerTest(test_lib.GRRBaseTest):
 
     # Simulate osslsign writing the signed file
     outname = "%s.signed" % intemp.name
-    open(outname, "wb").write("content")
+    with io.open(outname, "wb") as filedesc:
+      filedesc.write(b"content")
 
     with mock.patch.object(pexpect, "spawn"):
       with mock.patch.object(signing.subprocess, "check_call"):
         with mock.patch.object(
             tempfile, "NamedTemporaryFile", return_value=intemp):
-          output = self.winsign.SignBuffer("asdflkjlaksjdf")
+          output = self.winsign.SignBuffer(b"asdflkjlaksjdf")
 
-    self.assertEqual(output, "content")
+    self.assertEqual(output, b"content")
 
     with mock.patch.object(
         pexpect, "spawn", side_effect=pexpect.ExceptionPexpect("blah")):
       with self.assertRaises(pexpect.ExceptionPexpect):
-        output = self.winsign.SignBuffer("asdflkjlaksjdf")
+        output = self.winsign.SignBuffer(b"asdflkjlaksjdf")
 
 
 def main(argv):

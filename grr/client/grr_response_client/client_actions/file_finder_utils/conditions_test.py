@@ -9,14 +9,15 @@ import subprocess
 import unittest
 
 from absl.testing import absltest
+
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib.util import filesystem
 from grr_response_core.lib.util import temp
-from grr.test_lib import client_test_lib
+from grr.test_lib import filesystem_test_lib
 from grr.test_lib import test_lib
 
 
@@ -125,7 +126,7 @@ class ConditionTestMixin(object):
 class MetadataConditionTestMixin(ConditionTestMixin):
 
   def Stat(self):
-    return utils.Stat(self.temp_filepath, follow_symlink=False)
+    return filesystem.Stat(self.temp_filepath, follow_symlink=False)
 
   def Touch(self, mode, date):
     self.assertIn(mode, ["-m", "-a"])
@@ -369,10 +370,10 @@ class ExtFlagsConditionTest(MetadataConditionTestMixin, absltest.TestCase):
     self.assertTrue(condition.Check(self.Stat()))
 
   def _Chattr(self, attrs):
-    client_test_lib.Chattr(self.temp_filepath, attrs=attrs)
+    filesystem_test_lib.Chattr(self.temp_filepath, attrs=attrs)
 
   def _Chflags(self, flgs):
-    client_test_lib.Chflags(self.temp_filepath, flags=flgs)
+    filesystem_test_lib.Chflags(self.temp_filepath, flags=flgs)
 
 
 # TODO(hanuszczak): Write tests for the metadata change condition.

@@ -9,7 +9,6 @@ import calendar
 import datetime
 
 
-from binplist import binplist
 from future.utils import iteritems
 
 from grr_response_core.lib import lexer
@@ -142,11 +141,6 @@ def PlistValueToPlainValue(plist):
     return ret_value
   elif isinstance(plist, list):
     return [PlistValueToPlainValue(value) for value in plist]
-  elif isinstance(plist, binplist.RawValue):
-    return plist.value
-  elif (isinstance(plist, binplist.CorruptReference) or
-        isinstance(plist, binplist.UnknownObject)):
-    return None
   elif isinstance(plist, datetime.datetime):
     return (calendar.timegm(plist.utctimetuple()) * 1000000) + plist.microsecond
   return plist

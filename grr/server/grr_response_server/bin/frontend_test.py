@@ -126,10 +126,18 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     ])
 
     for r in results:
-      aff4_obj = aff4.FACTORY.Open(
-          r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
       data = open(r.stat_entry.pathspec.path, "rb").read()
-      self.assertEqual(aff4_obj.Read(100), data[:100])
+
+      if data_store.AFF4Enabled():
+        aff4_obj = aff4.FACTORY.Open(
+            r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
+        self.assertEqual(aff4_obj.Read(100), data[:100])
+
+        if not data_store.RelationalDBReadEnabled(category="filestore"):
+          hash_obj = data_store_utils.GetFileHashEntry(aff4_obj)
+          self.assertEqual(hash_obj.sha1, hashlib.sha1(data).digest())
+          self.assertEqual(hash_obj.sha256, hashlib.sha256(data).digest())
+          self.assertEqual(hash_obj.md5, hashlib.md5(data).digest())
 
       if data_store.RelationalDBReadEnabled(category="filestore"):
         fd = file_store.OpenFile(
@@ -138,11 +146,6 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         self.assertEqual(fd.read(100), data[:100])
 
         self.assertEqual(fd.hash_id.AsBytes(), hashlib.sha256(data).digest())
-      else:
-        hash_obj = data_store_utils.GetFileHashEntry(aff4_obj)
-        self.assertEqual(hash_obj.sha1, hashlib.sha1(data).hexdigest())
-        self.assertEqual(hash_obj.sha256, hashlib.sha256(data).hexdigest())
-        self.assertEqual(hash_obj.md5, hashlib.md5(data).hexdigest())
 
   def testClientFileFinderUploadLimit(self):
     paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
@@ -173,13 +176,14 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         "parser_test/InstallHistory.plist"
     ])
 
-    for r in results:
-      aff4_obj = aff4.FACTORY.Open(
-          r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
-      data = aff4_obj.read()
-      self.assertLessEqual(len(data), 300)
-      self.assertEqual(data,
-                       open(r.stat_entry.pathspec.path, "rb").read(len(data)))
+    if data_store.AFF4Enabled():
+      for r in results:
+        aff4_obj = aff4.FACTORY.Open(
+            r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
+        data = aff4_obj.read()
+        self.assertLessEqual(len(data), 300)
+        self.assertEqual(data,
+                         open(r.stat_entry.pathspec.path, "rb").read(len(data)))
 
   def testClientFileFinderUploadSkip(self):
     paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
@@ -206,12 +210,13 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     ]
     self.assertCountEqual(relpaths, ["History.plist", "test.plist"])
 
-    for r in uploaded:
-      aff4_obj = aff4.FACTORY.Open(
-          r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
-      self.assertEqual(
-          aff4_obj.Read(100),
-          open(r.stat_entry.pathspec.path, "rb").read(100))
+    if data_store.AFF4Enabled():
+      for r in uploaded:
+        aff4_obj = aff4.FACTORY.Open(
+            r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
+        self.assertEqual(
+            aff4_obj.Read(100),
+            open(r.stat_entry.pathspec.path, "rb").read(100))
 
   def testClientFileFinderFilestoreIntegration(self):
     paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
@@ -239,35 +244,38 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       ])
 
       for r in results:
-        aff4_obj = aff4.FACTORY.Open(
-            r.stat_entry.pathspec.AFF4Path(client_id), token=self.token)
+        if data_store.AFF4Enabled():
+          aff4_obj = aff4.FACTORY.Open(
+              r.stat_entry.pathspec.AFF4Path(client_id), token=self.token)
 
-        # When files are uploaded to the server they are stored as VFSBlobImage.
-        self.assertIsInstance(aff4_obj, aff4_grr.VFSBlobImage)
-        # There is a STAT entry.
-        self.assertTrue(aff4_obj.Get(aff4_obj.Schema.STAT))
+          # When files are uploaded to the server they are stored as
+          # VFSBlobImage.
+          self.assertIsInstance(aff4_obj, aff4_grr.VFSBlobImage)
+          # There is a STAT entry.
+          self.assertTrue(aff4_obj.Get(aff4_obj.Schema.STAT))
 
-        if not data_store.RelationalDBReadEnabled("filestore"):
-          # Make sure the HashFileStore has references to this file for
-          # all hashes.
-          hash_entry = data_store_utils.GetFileHashEntry(aff4_obj)
-          fs = filestore.HashFileStore
-          md5_refs = list(fs.GetReferencesMD5(hash_entry.md5, token=self.token))
-          self.assertIn(aff4_obj.urn, md5_refs)
-          sha1_refs = list(
-              fs.GetReferencesSHA1(hash_entry.sha1, token=self.token))
-          self.assertIn(aff4_obj.urn, sha1_refs)
-          sha256_refs = list(
-              fs.GetReferencesSHA256(hash_entry.sha256, token=self.token))
-          self.assertIn(aff4_obj.urn, sha256_refs)
+          if not data_store.RelationalDBReadEnabled("filestore"):
+            # Make sure the HashFileStore has references to this file for
+            # all hashes.
+            hash_entry = data_store_utils.GetFileHashEntry(aff4_obj)
+            fs = filestore.HashFileStore
+            md5_refs = list(
+                fs.GetReferencesMD5(hash_entry.md5, token=self.token))
+            self.assertIn(aff4_obj.urn, md5_refs)
+            sha1_refs = list(
+                fs.GetReferencesSHA1(hash_entry.sha1, token=self.token))
+            self.assertIn(aff4_obj.urn, sha1_refs)
+            sha256_refs = list(
+                fs.GetReferencesSHA256(hash_entry.sha256, token=self.token))
+            self.assertIn(aff4_obj.urn, sha256_refs)
 
-          # Open the file inside the file store.
-          urn, _ = fs(None, token=self.token).CheckHashes([hash_entry]).next()
-          filestore_fd = aff4.FACTORY.Open(urn, token=self.token)
-          # This is a VFSBlobImage too.
-          self.assertIsInstance(filestore_fd, aff4_grr.VFSBlobImage)
-          # No STAT object attached.
-          self.assertFalse(filestore_fd.Get(filestore_fd.Schema.STAT))
+            # Open the file inside the file store.
+            urn, _ = fs(None, token=self.token).CheckHashes([hash_entry]).next()
+            filestore_fd = aff4.FACTORY.Open(urn, token=self.token)
+            # This is a VFSBlobImage too.
+            self.assertIsInstance(filestore_fd, aff4_grr.VFSBlobImage)
+            # No STAT object attached.
+            self.assertFalse(filestore_fd.Get(filestore_fd.Schema.STAT))
 
 
 def main(args):

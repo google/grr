@@ -180,13 +180,18 @@ class GetFileMixin(object):
           # Adding files to filestore requires reading data from RELDB,
           # thus protecting this code with a filestore-read-enabled check.
           if data_store.RelationalDBReadEnabled("filestore"):
-            blob_ids = [
-                rdf_objects.BlobID.FromBytes(data)
-                for data, _ in self.state.blobs
-            ]
+            blob_refs = []
+            offset = 0
+            for data, size in self.state.blobs:
+              blob_refs.append(
+                  rdf_objects.BlobReference(
+                      offset=offset,
+                      size=size,
+                      blob_id=rdf_objects.BlobID.FromBytes(data)))
+              offset += size
 
             client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
-            hash_id = file_store.AddFileWithUnknownHash(client_path, blob_ids)
+            hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
 
             path_info.hash_entry.sha256 = hash_id.AsBytes()
 
@@ -840,15 +845,21 @@ class MultiGetFileLogic(object):
           # Adding files to filestore requires reading data from RELDB,
           # thus protecting this code with a filestore-read-enabled check.
           if data_store.RelationalDBReadEnabled("filestore"):
-            blob_ids = []
+            blob_refs = []
+            offset = 0
             for index in sorted(blob_dict):
-              digest, _ = blob_dict[index]
-              blob_ids.append(rdf_objects.BlobID.FromBytes(digest))
+              digest, size = blob_dict[index]
+              blob_refs.append(
+                  rdf_objects.BlobReference(
+                      offset=offset,
+                      size=size,
+                      blob_id=rdf_objects.BlobID.FromBytes(digest)))
+              offset += size
 
             hash_obj = file_tracker["hash_obj"]
 
             client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
-            hash_id = file_store.AddFileWithUnknownHash(client_path, blob_ids)
+            hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
             # If the hash that we've calculated matches what we got from the
             # client, then simply store the full hash entry.
             # Otherwise store just the hash that we've calculated.

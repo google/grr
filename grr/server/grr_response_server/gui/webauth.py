@@ -78,7 +78,7 @@ class IAPWebAuthManager(BaseWebAuthManager):
     """Wrapping function."""
     if self.iap_header in request.headers:
       jwt = request.headers.get(self.iap_header)
-      user_id, user_email, error_str = validate_iap.ValidateIapJwtFromComputeEngine(
+      _, user_email, error_str = validate_iap.ValidateIapJwtFromComputeEngine(
           jwt, self.cloud_project_id, self.backend_service_id)
     else:
       return werkzeug_wrappers.Response("Unauthorized", status=401)

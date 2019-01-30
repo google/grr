@@ -39,25 +39,23 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
   flow_processing_req_func = "_WriteFlowProcessingRequests"
 
+
   def CreateDatabase(self):
-    # pylint: disable=unreachable
+
     user = _GetEnvironOrSkip("MYSQL_TEST_USER")
     host = _GetEnvironOrSkip("MYSQL_TEST_HOST")
     port = _GetEnvironOrSkip("MYSQL_TEST_PORT")
-    passwd = _GetEnvironOrSkip("MYSQL_TEST_PASS")
-    dbname = "".join(
+    password = _GetEnvironOrSkip("MYSQL_TEST_PASS")
+    database = "".join(
         random.choice(string.ascii_uppercase + string.digits)
         for _ in range(10))
 
-    mysql.CreateDatabase(
-        host=host, port=port, user=user, passwd=passwd, db=dbname)
-    logging.info("Created test database: %s", dbname)
-
     conn = mysql.MysqlDB(
-        host=host, port=port, user=user, passwd=passwd, db=dbname)
+        host=host, port=port, user=user, password=password, database=database)
+    logging.info("Created test database: %s", database)
 
     def _Drop(cursor):
-      cursor.execute("DROP DATABASE {}".format(dbname))
+      cursor.execute("DROP DATABASE {}".format(database))
 
     def Fin():
       conn._RunInTransaction(_Drop)
@@ -86,11 +84,11 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
             MySQLdb.OperationalError(
                 1637, "Too many active concurrent transactions")))
 
-  def AddUser(self, connection, user, passwd):
+  def AddUser(self, connection, user, password):
     cursor = connection.cursor()
     cursor.execute(
         "INSERT INTO grr_users (username, username_hash, password) "
-        "VALUES (%s, %s, %s)", (user, mysql_utils.Hash(user), bytes(passwd)))
+        "VALUES (%s, %s, %s)", (user, mysql_utils.Hash(user), bytes(password)))
     cursor.close()
 
   def ListUsers(self, connection):
@@ -336,33 +334,6 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testReadPathInfoTimestampStatAndHashEntry(self):
     pass
 
-  def testReadingNonExistentBlobReturnsNone(self):
-    pass
-
-  def testSingleBlobCanBeWrittenAndThenRead(self):
-    pass
-
-  def testMultipleBlobsCanBeWrittenAndThenRead(self):
-    pass
-
-  def testWriting80MbOfBlobsWithSingleCallWorks(self):
-    pass
-
-  def testCheckBlobsExistCorrectlyReportsPresentAndMissingBlobs(self):
-    pass
-
-  def testHashBlobReferenceCanBeWrittenAndReadBack(self):
-    pass
-
-  def testReportsNonExistingHashesAsNone(self):
-    pass
-
-  def testCorrectlyHandlesRequestWithOneExistingAndOneMissingHash(self):
-    pass
-
-  def testMultipleHashBlobReferencesCanBeWrittenAndReadBack(self):
-    pass
-
   def testReadPathInfoOlder(self):
     pass
 
@@ -554,6 +525,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   # TODO(user): implement hunts support for MySQL
+  def testReadFlowForProcessingRaisesIfParentHuntIsStoppedOrCompleted(self):
+    pass
+
   def testWritingAndReadingHuntObjectWorks(self):
     pass
 
@@ -668,43 +642,49 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testCountHuntFlowsAppliesFilterConditionCorrectly(self):
     pass
 
-  def testReadSignedBinaryReferences(self):
+  # Flow/hunt output plugin tests.
+  def testFlowOutputPluginLogEntriesCanBeWrittenAndThenRead(self):
     pass
 
-  def testUpdateSignedBinaryReferences(self):
+  def testFlowOutputPluginLogEntryWith1MbMessageCanBeWrittenAndThenRead(self):
     pass
 
-  def testUnknownSignedBinary(self):
+  def testFlowOutputPluginLogEntriesCanBeReadWithTypeFilter(self):
     pass
 
-  def testReadIDsForAllSignedBinaries(self):
+  def testReadFlowOutputPluginLogEntriesCorrectlyAppliesOffsetCounter(self):
     pass
 
-  def testDeleteSignedBinaryReferences(self):
+  def testReadFlowOutputPluginLogEntriesAppliesOffsetCounterWithType(self):
     pass
 
-  def testReadAllClientGraphSeries(self):
+  def testFlowOutputPluginLogEntriesCanBeCountedPerPlugin(self):
     pass
 
-  def testReadAllClientGraphSeries_NonExistentLabel(self):
+  def testCountFlowOutputPluginLogEntriesRespectsWithTypeFilter(self):
     pass
 
-  def testReadAllClientGraphSeries_MissingType(self):
+  def testReadHuntOutputPluginLogEntriesReturnsEntryFromSingleHuntFlow(self):
     pass
 
-  def testReadAllClientGraphSeries_InTimeRange(self):
+  def testReadHuntOutputPluginLogEntriesReturnsEntryFromMultipleHuntFlows(self):
     pass
 
-  def testOverwriteClientGraphSeries(self):
+  def testReadHuntOutputPluginLogEntriesCorrectlyAppliesOffsetAndCountFilters(
+      self):
     pass
 
-  def testReadMostRecentClientGraphSeries(self):
+  def testReadHuntOutputPluginLogEntriesCorrectlyAppliesWithTypeFilter(self):
     pass
 
-  def testMostRecentGraphSeries_NonExistentLabel(self):
+  def testReadHuntOutputPluginLogEntriesCorrectlyAppliesCombinationOfFilters(
+      self):
     pass
 
-  def testReadMostRecentClientGraphSeries_MissingType(self):
+  def testCountHuntOutputPluginLogEntriesReturnsCorrectCount(self):
+    pass
+
+  def testCountHuntOutputPluginLogEntriesRespectsWithTypeFilter(self):
     pass
 
 

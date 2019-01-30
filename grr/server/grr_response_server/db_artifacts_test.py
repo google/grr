@@ -49,14 +49,14 @@ class DatabaseTestArtifactsMixin(object):
       self.db.WriteArtifact(rdf_artifacts.Artifact(name=""))
 
   def testWriteAndReadArtifactWithLongName(self):
-    name = "a" * 1024
+    name = "x" + "🧙" * (db.MAX_ARTIFACT_NAME_LENGTH - 2) + "x"
     self.db.WriteArtifact(rdf_artifacts.Artifact(name=name))
     self.assertEqual(self.db.ReadArtifact(name).name, name)
 
-  def testWriteAndReadArtifactWithUnicodeName(self):
-    name = "🍻foo🍻"
-    self.db.WriteArtifact(rdf_artifacts.Artifact(name=name))
-    self.assertEqual(self.db.ReadArtifact(name).name, name)
+  def testWriteArtifactRaisesWithTooLongName(self):
+    name = "a" * (db.MAX_ARTIFACT_NAME_LENGTH + 1)
+    with self.assertRaises(ValueError):
+      self.db.WriteArtifact(rdf_artifacts.Artifact(name=name))
 
   def testWriteArtifactWithSources(self):
     file_source = rdf_artifacts.ArtifactSource(

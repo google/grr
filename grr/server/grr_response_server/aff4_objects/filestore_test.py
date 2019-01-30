@@ -22,7 +22,6 @@ from grr_response_server.aff4_objects import filestore_test_lib
 from grr_response_server.flows.general import file_finder
 from grr.test_lib import action_mocks
 from grr.test_lib import aff4_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
@@ -47,7 +46,6 @@ class FakeStore(object):
     ACTIVE = "unused"
 
 
-@db_test_lib.DualDBTest
 class FileStoreTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for file store functionality."""
 

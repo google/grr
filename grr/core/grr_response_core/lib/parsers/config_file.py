@@ -23,6 +23,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
@@ -610,9 +611,9 @@ class MtabParser(parser.FileParser):
       if not entry:
         continue
       result = rdf_client_fs.Filesystem()
-      result.device = entry[0].decode("string_escape")
-      result.mount_point = entry[1].decode("string_escape")
-      result.type = entry[2].decode("string_escape")
+      result.device = compatibility.UnescapeString(entry[0])
+      result.mount_point = compatibility.UnescapeString(entry[1])
+      result.type = compatibility.UnescapeString(entry[2])
       options = KeyValueParser(term=",").ParseToOrderedDict(entry[3])
       # Keys without values get assigned [] by default. Because these keys are
       # actually true, if declared, change any [] values to True.
@@ -743,7 +744,7 @@ class PackageSourceParser(parser.FileParser):
 
     for url_to_parse in uris_to_parse:
       url = rdf_standard.URI()
-      url.ParseFromString(url_to_parse)
+      url.ParseFromHumanReadable(url_to_parse)
 
       # if no transport then url_to_parse wasn't actually a valid URL
       # either host or path also have to exist for this to be a valid URL

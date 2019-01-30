@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """This modules contains tests for VFS API handlers."""
 from __future__ import absolute_import
 from __future__ import division
@@ -612,13 +612,17 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testHandlerThrowsExceptionOnArbitraryFlowId(self):
     # Create a mock flow.
-    flow_urn = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=discovery.Interrogate.__name__,
-        token=self.token)
+    if data_store.RelationalDBFlowsEnabled():
+      flow_id = flow.StartFlow(
+          client_id=self.client_id.Basename(), flow_cls=discovery.Interrogate)
+    else:
+      flow_id = flow.StartAFF4Flow(
+          client_id=self.client_id,
+          flow_name=discovery.Interrogate.__name__,
+          token=self.token).Basename()
 
     args = vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
-        client_id=self.client_id, operation_id=flow_urn.Basename())
+        client_id=self.client_id, operation_id=flow_id)
 
     # Our mock flow is not a RecursiveListFlow, so an error should be raised.
     with self.assertRaises(vfs_plugin.VfsRefreshOperationNotFoundError):
@@ -673,6 +677,7 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
       flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
                                                   result.operation_id)
       self.assertEqual(flow_obj.flow_class_name, transfer.MultiGetFile.__name__)
+      self.assertEqual(flow_obj.creator, self.token.username)
     else:
       # Check returned operation_id to references a MultiGetFile flow.
       flow_urn = self.client_id.Add("flows").Add(result.operation_id)
@@ -719,13 +724,17 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
 
   def testHandlerRaisesOnArbitraryFlowId(self):
     # Create a mock flow.
-    flow_urn = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name=discovery.Interrogate.__name__,
-        token=self.token)
+    if data_store.RelationalDBFlowsEnabled():
+      flow_id = flow.StartFlow(
+          client_id=self.client_id.Basename(), flow_cls=discovery.Interrogate)
+    else:
+      flow_id = flow.StartAFF4Flow(
+          client_id=self.client_id,
+          flow_name=discovery.Interrogate.__name__,
+          token=self.token).Basename()
 
     args = vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
-        client_id=self.client_id, operation_id=flow_urn.Basename())
+        client_id=self.client_id, operation_id=flow_id)
 
     # Our mock flow is not a MultiGetFile flow, so an error should be raised.
     with self.assertRaises(vfs_plugin.VfsFileContentUpdateNotFoundError):
@@ -775,12 +784,13 @@ class VfsTimelineTestMixin(object):
   def SetupFileMetadata(self, client_urn, vfs_path, stat_entry, hash_entry):
     file_urn = client_urn.Add(vfs_path)
 
-    with aff4.FACTORY.Create(
-        file_urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
-      if stat_entry is not None:
-        fd.Set(fd.Schema.STAT, stat_entry)
-      if hash_entry is not None:
-        fd.Set(fd.Schema.HASH, hash_entry)
+    if data_store.AFF4Enabled():
+      with aff4.FACTORY.Create(
+          file_urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
+        if stat_entry is not None:
+          fd.Set(fd.Schema.STAT, stat_entry)
+        if hash_entry is not None:
+          fd.Set(fd.Schema.HASH, hash_entry)
 
     if data_store.RelationalDBWriteEnabled():
       client_id = client_urn.Basename()

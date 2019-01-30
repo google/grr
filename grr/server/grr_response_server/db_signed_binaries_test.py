@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests for signed-binary DB functionality."""
 from __future__ import absolute_import
 from __future__ import division
@@ -61,3 +62,15 @@ class DatabaseTestSignedBinariesMixin(object):
     self.assertEmpty(self.db.ReadIDsForAllSignedBinaries())
     # Trying to delete again shouldn't raise.
     self.db.DeleteSignedBinaryReferences(_test_id1)
+
+  def testWriteAndReadLongUnicodePath(self):
+    test_id = rdf_objects.SignedBinaryID(
+        binary_type=rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
+        path="linux/" + "🚀" * 1000 + "/hello")
+
+    self.db.WriteSignedBinaryReferences(test_id, _test_references1)
+    stored_hash_id, stored_timestamp = self.db.ReadSignedBinaryReferences(
+        test_id)
+    self.assertEqual(stored_hash_id, _test_references1)
+    self.assertGreater(stored_timestamp.AsMicrosecondsSinceEpoch(), 0)
+    self.assertEqual(self.db.ReadIDsForAllSignedBinaries(), [test_id])

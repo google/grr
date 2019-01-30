@@ -2,8 +2,10 @@
 """Implementation of various cryptographic types."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
+import binascii
 import hashlib
 import logging
 import os
@@ -68,7 +70,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     if self._value is None and initializer is not None:
       if isinstance(initializer, x509.Certificate):
         self._value = initializer
-      elif isinstance(initializer, string_types):
+      elif isinstance(initializer, bytes):
         self.ParseFromString(initializer)
       else:
         raise rdfvalue.InitializeError(
@@ -607,11 +609,12 @@ class EncryptionKey(rdfvalue.RDFBytes):
     return "%s (%s)" % (self.__class__.__name__, digest)
 
   def AsHexDigest(self):
-    return self._value.encode("hex")
+    return binascii.hexlify(self._value)
 
   @classmethod
   def FromHex(cls, hex_string):
-    return cls(hex_string.decode("hex"))
+    precondition.AssertType(hex_string, Text)
+    return cls(binascii.unhexlify(hex_string))
 
   def SerializeToString(self):
     return self._value

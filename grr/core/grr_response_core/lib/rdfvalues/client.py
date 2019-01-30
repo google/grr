@@ -6,6 +6,7 @@ client.
 """
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import hashlib
@@ -32,6 +33,7 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
@@ -50,6 +52,13 @@ except ImportError:
   pep425tags = None
 
 FS_ENCODING = sys.getfilesystemencoding() or sys.getdefaultencoding()
+
+
+def _DecodeArgument(arg):
+  if compatibility.PY2:
+    return arg.decode(FS_ENCODING)
+  else:
+    return arg
 
 
 class ClientURN(rdfvalue.RDFURN):
@@ -370,9 +379,7 @@ class Process(rdf_structs.RDFProtoStruct):
           pass
 
       try:
-        response.cmdline = [
-            arg.decode(FS_ENCODING) for arg in psutil_process.cmdline()
-        ]
+        response.cmdline = list(map(_DecodeArgument, psutil_process.cmdline()))
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 

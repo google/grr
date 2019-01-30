@@ -78,7 +78,7 @@ SearchBoxController.prototype.submitQuery = function() {
  * @private
  */
 SearchBoxController.prototype.isHuntId_ = function(input) {
-  var hunt_regex = /^[A-Z0-9]+:[A-F0-9]{6,12}$/i;
+  var hunt_regex = /^([A-Z0-9]+:)?[A-F0-9]{6,12}$/i;
 
   if (!hunt_regex.test(input)) {
     return false;

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests for the flow database api."""
 from __future__ import absolute_import
 from __future__ import division
@@ -20,6 +21,7 @@ from grr_response_core.lib.util import compatibility
 from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
@@ -818,6 +820,36 @@ class DatabaseTestFlowMixin(object):
         client_id, flow_id, request_id=1, num_responses=3, task_id=msg.task_id)
 
     self.assertFalse(self.db.ReadClientMessages(client_id))
+
+  def testReadFlowForProcessingRaisesIfParentHuntIsStoppedOrCompleted(self):
+    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj.hunt_state = hunt_obj.HuntState.STOPPED
+    self.db.WriteHuntObject(hunt_obj)
+
+    client_id, flow_id = self._SetupClientAndFlow(
+        parent_hunt_id=hunt_obj.hunt_id)
+    processing_time = rdfvalue.Duration("60s")
+
+    with self.assertRaises(db.ParentHuntIsNotRunningError):
+      self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
+
+    def UpdateToCompleted(h):
+      h.hunt_state = h.HuntState.COMPLETED
+      return h
+
+    self.db.UpdateHuntObject(hunt_obj.hunt_id, UpdateToCompleted)
+
+    with self.assertRaises(db.ParentHuntIsNotRunningError):
+      self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
+
+    def UpdateToStarted(h):
+      h.hunt_state = h.HuntState.STARTED
+      return h
+
+    self.db.UpdateHuntObject(hunt_obj.hunt_id, UpdateToStarted)
+
+    # Should work again.
+    self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
 
   def testReadFlowForProcessingThatIsAlreadyBeingProcessed(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -1634,3 +1666,170 @@ class DatabaseTestFlowMixin(object):
           rdf_flow_objects.FlowLogEntry(
               client_id=client_id, flow_id=flow_id, message="test")
       ])
+
+  def _WriteFlowOutputPluginLogEntries(self, client_id, flow_id,
+                                       output_plugin_id):
+    entries = []
+    for i in range(10):
+      message = "blah_🚀_%d" % i
+      enum = rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType
+      if i % 3 == 0:
+        log_entry_type = enum.ERROR
+      else:
+        log_entry_type = enum.LOG
+
+      entry = rdf_flow_objects.FlowOutputPluginLogEntry(
+          client_id=client_id,
+          flow_id=flow_id,
+          output_plugin_id=output_plugin_id,
+          message=message,
+          log_entry_type=log_entry_type)
+      entries.append(entry)
+
+      self.db.WriteFlowOutputPluginLogEntries([entry])
+
+    return entries
+
+  def testFlowOutputPluginLogEntriesCanBeWrittenAndThenRead(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    output_plugin_id = "1"
+
+    written_entries = self._WriteFlowOutputPluginLogEntries(
+        client_id, flow_id, output_plugin_id)
+    read_entries = self.db.ReadFlowOutputPluginLogEntries(
+        client_id, flow_id, output_plugin_id, 0, 100)
+
+    self.assertEqual(len(written_entries), len(read_entries))
+    self.assertEqual([e.message for e in written_entries],
+                     [e.message for e in read_entries])
+
+  def testFlowOutputPluginLogEntryWith1MbMessageCanBeWrittenAndThenRead(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    output_plugin_id = "1"
+
+    entry = rdf_flow_objects.FlowOutputPluginLogEntry(
+        client_id=client_id,
+        flow_id=flow_id,
+        output_plugin_id=output_plugin_id,
+        message="x" * 1024 * 1024,
+        log_entry_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType
+        .LOG)
+
+    self.db.WriteFlowOutputPluginLogEntries([entry])
+    read_entries = self.db.ReadFlowOutputPluginLogEntries(
+        client_id, flow_id, output_plugin_id, 0, 100)
+
+    self.assertLen(read_entries, 1)
+    self.assertEqual(read_entries[0].message, entry.message)
+
+  def testFlowOutputPluginLogEntriesCanBeReadWithTypeFilter(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    output_plugin_id = "1"
+
+    self._WriteFlowOutputPluginLogEntries(client_id, flow_id, output_plugin_id)
+
+    read_entries = self.db.ReadFlowOutputPluginLogEntries(
+        client_id,
+        flow_id,
+        output_plugin_id,
+        0,
+        100,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
+    self.assertEqual(len(read_entries), 4)
+
+    read_entries = self.db.ReadFlowOutputPluginLogEntries(
+        client_id,
+        flow_id,
+        output_plugin_id,
+        0,
+        100,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+    self.assertEqual(len(read_entries), 6)
+
+  def testReadFlowOutputPluginLogEntriesCorrectlyAppliesOffsetCounter(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    output_plugin_id = "1"
+
+    entries = self._WriteFlowOutputPluginLogEntries(client_id, flow_id,
+                                                    output_plugin_id)
+
+    for l in range(1, 11):
+      for i in range(10):
+        results = self.db.ReadFlowOutputPluginLogEntries(
+            client_id, flow_id, output_plugin_id, i, l)
+        expected = entries[i:i + l]
+
+        result_messages = [x.message for x in results]
+        expected_messages = [x.message for x in expected]
+        self.assertEqual(
+            result_messages, expected_messages,
+            "Results differ from expected (from %d, size %d): %s vs %s" %
+            (i, l, result_messages, expected_messages))
+
+  def testReadFlowOutputPluginLogEntriesAppliesOffsetCounterWithType(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    output_plugin_id = "1"
+
+    entries = self._WriteFlowOutputPluginLogEntries(client_id, flow_id,
+                                                    output_plugin_id)
+
+    for l in range(1, 11):
+      for i in range(10):
+        for with_type in [
+            rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG,
+            rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR
+        ]:
+          results = self.db.ReadFlowOutputPluginLogEntries(
+              client_id, flow_id, output_plugin_id, i, l, with_type=with_type)
+          expected = [e for e in entries if e.log_entry_type == with_type
+                     ][i:i + l]
+
+          result_messages = [x.message for x in results]
+          expected_messages = [x.message for x in expected]
+          self.assertEqual(
+              result_messages, expected_messages,
+              "Results differ from expected (from %d, size %d): %s vs %s" %
+              (i, l, result_messages, expected_messages))
+
+  def testFlowOutputPluginLogEntriesCanBeCountedPerPlugin(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    output_plugin_id_1 = "1"
+    self._WriteFlowOutputPluginLogEntries(client_id, flow_id,
+                                          output_plugin_id_1)
+
+    output_plugin_id_2 = "2"
+    self._WriteFlowOutputPluginLogEntries(client_id, flow_id,
+                                          output_plugin_id_2)
+
+    self.assertEqual(
+        self.db.CountFlowOutputPluginLogEntries(client_id, flow_id,
+                                                output_plugin_id_1), 10)
+    self.assertEqual(
+        self.db.CountFlowOutputPluginLogEntries(client_id, flow_id,
+                                                output_plugin_id_2), 10)
+
+  def testCountFlowOutputPluginLogEntriesRespectsWithTypeFilter(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    output_plugin_id = "1"
+    self._WriteFlowOutputPluginLogEntries(client_id, flow_id, output_plugin_id)
+
+    self.assertEqual(
+        self.db.CountFlowOutputPluginLogEntries(
+            client_id,
+            flow_id,
+            output_plugin_id,
+            with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG
+        ),
+        6,
+    )
+    self.assertEqual(
+        self.db.CountFlowOutputPluginLogEntries(
+            client_id,
+            flow_id,
+            output_plugin_id,
+            with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType
+            .ERROR),
+        4,
+    )

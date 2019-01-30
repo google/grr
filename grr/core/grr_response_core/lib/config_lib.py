@@ -330,6 +330,12 @@ class GRRConfigParser(with_metaclass(registry.MetaclassRegistry, object)):
   # Set to True by the parsers if the file exists.
   parsed = None
 
+  def SaveData(self, raw_data):
+    raise NotImplementedError()
+
+  def SaveDataToFD(self, raw_data, fd):
+    raise NotImplementedError()
+
   def RawData(self):
     """Convert the file to a more suitable data structure.
 

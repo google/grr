@@ -32,19 +32,23 @@ from grr_response_server import flow_base
 
 def GetKnowledgeBase(rdf_client_obj, allow_uninitialized=False):
   """Returns a knowledgebase from an rdf client object."""
-  kb = rdf_client_obj.knowledge_base
   if not allow_uninitialized:
-    if not kb:
+    if rdf_client_obj is None:
+      raise artifact_utils.KnowledgeBaseUninitializedError(
+          "No client snapshot given.")
+    if rdf_client_obj.knowledge_base is None:
       raise artifact_utils.KnowledgeBaseUninitializedError(
           "KnowledgeBase empty for %s." % rdf_client_obj.client_id)
+    kb = rdf_client_obj.knowledge_base
     if not kb.os:
       raise artifact_utils.KnowledgeBaseAttributesMissingError(
           "KnowledgeBase missing OS for %s. Knowledgebase content: %s" %
           (rdf_client_obj.client_id, kb))
-  if not kb:
+  if rdf_client_obj is None or rdf_client_obj.knowledge_base is None:
     return rdf_client.KnowledgeBase()
 
   version = rdf_client_obj.os_version.split(".")
+  kb = rdf_client_obj.knowledge_base
   try:
     kb.os_major_version = int(version[0])
     if len(version) >= 1:
@@ -383,11 +387,24 @@ class KnowledgeBaseInitializationFlowMixin(object):
       # Always create a new KB to override any old values but keep os and
       # version so we know which artifacts we can run.
       self.state.knowledge_base = rdf_client.KnowledgeBase()
-      kb = data_store.REL_DB.ReadClientSnapshot(self.client_id).knowledge_base
-      if kb:
-        self.state.knowledge_base.os = kb.os
-        self.state.knowledge_base.os_minor_version = kb.os_major_version
-        self.state.knowledge_base.os_minor_version = kb.os_minor_version
+      snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+      if not snapshot or not snapshot.knowledge_base:
+        return
+
+      kb = snapshot.knowledge_base
+      state_kb = self.state.knowledge_base
+      state_kb.os = kb.os
+      state_kb.os_major_version = kb.os_major_version
+      state_kb.os_minor_version = kb.os_minor_version
+
+      if not state_kb.os_major_version and snapshot.os_version:
+        version = snapshot.os_version.split(".")
+        try:
+          state_kb.os_major_version = int(version[0])
+          if len(version) >= 1:
+            state_kb.os_minor_version = int(version[1])
+        except ValueError:
+          pass
 
 
 def ApplyParsersToResponses(parser_factory, responses, flow_obj):

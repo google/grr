@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Test the GUI host information."""
 from __future__ import absolute_import
 from __future__ import division
@@ -25,11 +25,13 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
   """Test the host information interface."""
 
   def _WriteClientSnapshot(self, timestamp, version, hostname, memory):
-    with test_lib.FakeTime(timestamp):
-      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
-        fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString(version))
-        fd.Set(fd.Schema.HOSTNAME(hostname))
-        fd.Set(fd.Schema.MEMORY_SIZE(memory))
+    if data_store.AFF4Enabled():
+      with test_lib.FakeTime(timestamp):
+        with aff4.FACTORY.Open(
+            self.client_id, mode="rw", token=self.token) as fd:
+          fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString(version))
+          fd.Set(fd.Schema.HOSTNAME(hostname))
+          fd.Set(fd.Schema.MEMORY_SIZE(memory))
 
     if data_store.RelationalDBReadEnabled():
       snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
@@ -142,9 +144,8 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
   ])
 
   def testSidebarWarningIsNotShownIfClientHasNoLabels(self):
-    with test_lib.ConfigOverrider({
-        "AdminUI.client_warnings": self.WARNINGS_OPTION
-    }):
+    with test_lib.ConfigOverrider(
+        {"AdminUI.client_warnings": self.WARNINGS_OPTION}):
       self.Open("/#/clients/" + self.client_id)
 
       self.WaitUntil(self.IsElementPresent,
@@ -155,9 +156,8 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
   def testSidebarWarningIsNotShownIfClientHasNonMatchingLabels(self):
     self.AddClientLabel(self.client_id, self.token.username, u"another")
 
-    with test_lib.ConfigOverrider({
-        "AdminUI.client_warnings": self.WARNINGS_OPTION
-    }):
+    with test_lib.ConfigOverrider(
+        {"AdminUI.client_warnings": self.WARNINGS_OPTION}):
       self.Open("/#/clients/" + self.client_id)
 
       self.WaitUntil(self.IsElementPresent,
@@ -168,9 +168,8 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
   def testSidebarWarningIsShownIfClientMatchesLabels(self):
     self.AddClientLabel(self.client_id, self.token.username, u"blah")
 
-    with test_lib.ConfigOverrider({
-        "AdminUI.client_warnings": self.WARNINGS_OPTION
-    }):
+    with test_lib.ConfigOverrider(
+        {"AdminUI.client_warnings": self.WARNINGS_OPTION}):
       self.Open("/#/clients/" + self.client_id)
 
       self.WaitUntil(

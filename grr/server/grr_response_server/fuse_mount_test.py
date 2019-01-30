@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Tests for grr.tools.fuse_mount.py."""
 from __future__ import absolute_import
 from __future__ import division

@@ -51,6 +51,7 @@ class HuntRunnerError(Exception):
 
 def StartHunt(args=None, runner_args=None, token=None, **kwargs):
   """This class method creates new hunts."""
+
   # If no token is specified, raise.
   if not token:
     raise access_control.UnauthorizedAccess("A token must be specified.")

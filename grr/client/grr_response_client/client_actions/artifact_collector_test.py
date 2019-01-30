@@ -30,6 +30,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
+from grr.test_lib import filesystem_test_lib
 from grr.test_lib import osx_launchd_testdata
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -62,8 +63,8 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testCommandArtifact(self, registry):
     """Test the basic ExecuteCommand action."""
-
-    client_test_lib.Command("/usr/bin/dpkg", args=["--list"], system="Linux")
+    filesystem_test_lib.Command(
+        "/usr/bin/dpkg", args=["--list"], system="Linux")
 
     registry.AddFileSource(self.test_artifacts_file)
     artifact = registry.GetArtifact("TestCmdArtifact")
@@ -308,7 +309,8 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
   def testMultipleArtifacts(self, registry):
     """Test collecting multiple artifacts."""
 
-    client_test_lib.Command("/usr/bin/dpkg", args=["--list"], system="Linux")
+    filesystem_test_lib.Command(
+        "/usr/bin/dpkg", args=["--list"], system="Linux")
 
     registry.AddFileSource(self.test_artifacts_file)
     artifact = registry.GetArtifact("TestCmdArtifact")
@@ -332,7 +334,8 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
   def testFilterRequestedArtifactResults(self, registry):
     """Test that only artifacts requested by the user are sent to the server."""
 
-    client_test_lib.Command("/usr/bin/dpkg", args=["--list"], system="Linux")
+    filesystem_test_lib.Command(
+        "/usr/bin/dpkg", args=["--list"], system="Linux")
 
     registry.AddFileSource(self.test_artifacts_file)
     artifact = registry.GetArtifact("TestCmdArtifact")
@@ -592,7 +595,7 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
     """Test the actual client action with parsers."""
     parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("Cmd", TestEchoCmdParser)
 
-    client_test_lib.Command("/bin/echo", args=["1"])
+    filesystem_test_lib.Command("/bin/echo", args=["1"])
 
     source = rdf_artifact.ArtifactSource(
         type=rdf_artifact.ArtifactSource.SourceType.COMMAND,

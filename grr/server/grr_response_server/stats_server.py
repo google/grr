@@ -78,7 +78,8 @@ class StatsServerHandler(http_server.BaseHTTPRequestHandler):
   """Default stats server implementation."""
 
   def do_GET(self):  # pylint: disable=g-bad-name
-    if self.path == "/prometheus_metrics":
+    # Per Prometheus docs: /metrics is the default path for scraping.
+    if self.path == "/metrics":
       # TODO: This code is copied from
       # prometheus_client.MetricsHandler. Because MetricsHandler is an old-style
       # class and dispatching to different BaseHTTPRequestHandlers is

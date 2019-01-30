@@ -64,7 +64,9 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
   def setUp(self):
     super(ApprovalByLabelE2ETest, self).setUp()
 
-    self.SetUpLegacy()
+    if data_store.AFF4Enabled():
+      self.SetUpLegacy()
+
     if data_store.RelationalDBReadEnabled():
       self.SetUpRelationalDB()
 

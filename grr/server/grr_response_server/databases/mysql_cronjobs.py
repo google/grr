@@ -39,7 +39,7 @@ class MySQLDBCronJobMixin(object):
      last_run_time, current_run_id, state, leased_until, leased_by) = row
 
     job = rdf_cronjobs.CronJob.FromSerializedString(job)
-    job.current_run_id = current_run_id
+    job.current_run_id = mysql_utils.IntToCronJobRunID(current_run_id)
     job.enabled = enabled
     job.forced_run_requested = forced_run_requested
     job.last_run_status = last_run_status
@@ -115,7 +115,7 @@ class MySQLDBCronJobMixin(object):
       args.append(mysql_utils.RDFDatetimeToMysqlString(last_run_time))
     if current_run_id != db.Database.unchanged:
       updates.append("current_run_id=%s")
-      args.append(current_run_id)
+      args.append(mysql_utils.CronJobRunIDToInt(current_run_id))
     if state != db.Database.unchanged:
       updates.append("state=%s")
       args.append(state.SerializeToString())
@@ -210,7 +210,7 @@ class MySQLDBCronJobMixin(object):
     try:
       cursor.execute(query, [
           run_object.cron_job_id,
-          run_object.run_id,
+          mysql_utils.CronJobRunIDToInt(run_object.run_id),
           write_time_str,
           run_object.SerializeToString(),
       ])
@@ -237,7 +237,8 @@ class MySQLDBCronJobMixin(object):
     """Reads a single cron job run from the db."""
     query = ("SELECT run, write_time FROM cron_job_runs "
              "WHERE job_id = %s AND run_id = %s")
-    num_runs = cursor.execute(query, [job_id, run_id])
+    num_runs = cursor.execute(
+        query, [job_id, mysql_utils.CronJobRunIDToInt(run_id)])
     if num_runs == 0:
       raise db.UnknownCronJobRunError(
           "Run with job id %s and run id %s not found." % (job_id, run_id))

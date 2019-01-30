@@ -21,6 +21,7 @@ from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import grr_collections
+from grr_response_server import hunt
 from grr_response_server import queue_manager
 from grr_response_server.flows.general import transfer
 from grr_response_server.hunts import implementation
@@ -38,20 +39,42 @@ class RunHunt(cronjobs.CronJobBase):
   """A cron job that starts a hunt."""
 
   def Run(self):
-    action = self.job.args.hunt_cron_action
-    token = access_control.ACLToken(username="Cron")
+    if data_store.RelationalDBReadEnabled("hunts"):
+      hra = self.job.args.hunt_cron_action.hunt_runner_args
+      anbpcl = hra.avg_network_bytes_per_client_limit
+      hunt.CreateAndStartHunt(
+          self.job.args.hunt_cron_action.flow_name,
+          self.job.args.hunt_cron_action.flow_args,
+          "Cron",
+          avg_cpu_seconds_per_client_limit=hra.avg_cpu_seconds_per_client_limit,
+          avg_network_bytes_per_client_limit=anbpcl,
+          avg_results_per_client_limit=hra.avg_results_per_client_limit,
+          client_limit=hra.client_limit,
+          client_rate=hra.client_rate,
+          client_rule_set=hra.client_rule_set,
+          crash_limit=hra.crash_limit,
+          description=hra.description,
+          expiry_time=hra.expiry_time,
+          original_object=hra.original_object,
+          output_plugins=hra.output_plugins,
+          per_client_cpu_limit=hra.per_client_cpu_limit,
+          per_client_network_bytes_limit=hra.per_client_network_limit_bytes,
+      )
+    else:
+      action = self.job.args.hunt_cron_action
+      token = access_control.ACLToken(username="Cron")
 
-    hunt_args = rdf_hunts.GenericHuntArgs(
-        flow_args=action.flow_args,
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=action.flow_name))
-    with implementation.StartHunt(
-        hunt_name=GenericHunt.__name__,
-        args=hunt_args,
-        runner_args=action.hunt_runner_args,
-        token=token) as hunt:
+      hunt_args = rdf_hunts.GenericHuntArgs(
+          flow_args=action.flow_args,
+          flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+              flow_name=action.flow_name))
+      with implementation.StartHunt(
+          hunt_name=GenericHunt.__name__,
+          args=hunt_args,
+          runner_args=action.hunt_runner_args,
+          token=token) as hunt_obj:
 
-      hunt.Run()
+        hunt_obj.Run()
 
 
 class CreateGenericHuntFlow(flow.GRRFlow):
@@ -71,12 +94,12 @@ class CreateGenericHuntFlow(flow.GRRFlow):
     with implementation.StartHunt(
         runner_args=self.args.hunt_runner_args,
         args=self.args.hunt_args,
-        token=self.token) as hunt:
+        token=self.token) as hunt_obj:
 
       # Nothing really to do here - hunts are always created in the paused
       # state.
       self.Log("User %s created a new %s hunt (%s)", self.token.username,
-               hunt.args.flow_runner_args.flow_name, hunt.urn)
+               hunt_obj.args.flow_runner_args.flow_name, hunt_obj.urn)
 
 
 class CreateAndRunGenericHuntFlow(flow.GRRFlow):
@@ -93,12 +116,12 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
     with implementation.StartHunt(
         runner_args=self.args.hunt_runner_args,
         args=self.args.hunt_args,
-        token=self.token) as hunt:
+        token=self.token) as hunt_obj:
 
-      hunt.Run()
+      hunt_obj.Run()
 
       self.Log("User %s created a new %s hunt (%s)", self.token.username,
-               hunt.args.flow_runner_args.flow_name, hunt.urn)
+               hunt_obj.args.flow_runner_args.flow_name, hunt_obj.urn)
 
 
 class SampleHuntArgs(rdf_structs.RDFProtoStruct):

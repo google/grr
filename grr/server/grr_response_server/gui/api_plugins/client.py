@@ -772,15 +772,30 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     audit_events = []
 
     try:
-      index = client_index.CreateClientIndex(token=token)
-      client_objs = aff4.FACTORY.MultiOpen(
-          [cid.ToClientURN() for cid in args.client_ids],
-          aff4_type=aff4_grr.VFSGRRClient,
-          mode="rw",
-          token=token)
-      for client_obj in client_objs:
-        if data_store.RelationalDBWriteEnabled():
-          cid = client_obj.urn.Basename()
+      for api_client_id in args.client_ids:
+        audit_events.append(
+            rdf_events.AuditEvent(
+                user=token.username,
+                action="CLIENT_ADD_LABEL",
+                flow_name="handler.ApiAddClientsLabelsHandler",
+                client=api_client_id.ToClientURN(),
+                description=audit_description))
+
+      if data_store.AFF4Enabled():
+        index = client_index.CreateClientIndex(token=token)
+        client_objs = aff4.FACTORY.MultiOpen(
+            [cid.ToClientURN() for cid in args.client_ids],
+            aff4_type=aff4_grr.VFSGRRClient,
+            mode="rw",
+            token=token)
+        for client_obj in client_objs:
+          client_obj.AddLabels(args.labels)
+          index.AddClient(client_obj)
+          client_obj.Close()
+
+      if data_store.RelationalDBWriteEnabled():
+        for api_client_id in args.client_ids:
+          cid = unicode(api_client_id)
           try:
             data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
             idx = client_index.ClientIndex()
@@ -789,17 +804,6 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
             # TODO(amoser): Remove after data migration.
             pass
 
-        client_obj.AddLabels(args.labels)
-        index.AddClient(client_obj)
-        client_obj.Close()
-
-        audit_events.append(
-            rdf_events.AuditEvent(
-                user=token.username,
-                action="CLIENT_ADD_LABEL",
-                flow_name="handler.ApiAddClientsLabelsHandler",
-                client=client_obj.urn,
-                description=audit_description))
     finally:
       events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
                                           token=token)

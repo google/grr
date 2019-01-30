@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Contains tests for archive_generator."""
 from __future__ import absolute_import
 from __future__ import division
@@ -69,8 +69,10 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
       blob_id = rdf_objects.BlobID.FromBytes(digest)
       data_store.BLOBS.WriteBlobs({blob_id: content})
+      blob_ref = rdf_objects.BlobReference(
+          offset=0, size=len(content), blob_id=blob_id)
       hash_id = file_store.AddFileWithUnknownHash(
-          db.ClientPath.FromPathInfo(client_id, path_info), [blob_id])
+          db.ClientPath.FromPathInfo(client_id, path_info), [blob_ref])
       path_info.hash_entry.sha256 = hash_id.AsBytes()
 
       data_store.REL_DB.WritePathInfos(client_id, [path_info])

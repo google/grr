@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Test the hunt_view interface."""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,7 +12,6 @@ from grr_response_core.lib import flags
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
@@ -131,20 +130,20 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       self.WaitUntil(self.IsTextPresent, "Flow Information")
       self.WaitUntil(self.IsTextPresent, self.base_path)
 
+  # There can be no "broken" hunts in REL_DB implementation. Hunt object is
+  # there or not there. REL_DB validator ensures that the object has a
+  # correct type when it's written to the database.
+  @db_test_lib.LegacyDataStoreOnly
   def testHuntOverviewShowsBrokenHunt(self):
     hunt_urn = self.CreateSampleHunt()
     broken_hunt_urn = self.CreateSampleHunt()
 
     # Break the hunt.
-    if data_store.RelationalDBReadEnabled("hunts"):
-      hunt_obj = rdf_hunt_objects.Hunt(hunt_id=broken_hunt_urn.Basename())
-      data_store.REL_DB.WriteHuntObject(hunt_obj)
-    else:
-      broken_hunt = aff4.FACTORY.Open(broken_hunt_urn, token=self.token)
-      data_store.DB.DeleteAttributes(
-          broken_hunt_urn,
-          [broken_hunt.Schema.HUNT_ARGS, broken_hunt.Schema.HUNT_RUNNER_ARGS])
-      data_store.DB.Flush()
+    broken_hunt = aff4.FACTORY.Open(broken_hunt_urn, token=self.token)
+    data_store.DB.DeleteAttributes(
+        broken_hunt_urn,
+        [broken_hunt.Schema.HUNT_ARGS, broken_hunt.Schema.HUNT_RUNNER_ARGS])
+    data_store.DB.Flush()
 
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/#/hunts")

@@ -44,6 +44,7 @@ from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib
+from grr.test_lib import filesystem_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -803,7 +804,8 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
   def testClientArtifactCollector(self):
     """Test artifact collector flow with a single artifact."""
 
-    client_test_lib.Command("/usr/bin/dpkg", args=["--list"], system="Linux")
+    filesystem_test_lib.Command(
+        "/usr/bin/dpkg", args=["--list"], system="Linux")
 
     artifact_list = ["TestCmdArtifact"]
 
@@ -821,7 +823,8 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
   def testClientArtifactCollectorWithMultipleArtifacts(self):
     """Test artifact collector flow with a single artifact."""
 
-    client_test_lib.Command("/usr/bin/dpkg", args=["--list"], system="Linux")
+    filesystem_test_lib.Command(
+        "/usr/bin/dpkg", args=["--list"], system="Linux")
 
     artifact_list = ["TestCmdArtifact", "TestOSAgnostic"]
 
@@ -1013,7 +1016,7 @@ sources:
   def testCmdArtifactWithParser(self):
     """Test a command artifact and parsing the response."""
 
-    client_test_lib.Command("/bin/echo", args=["1"])
+    filesystem_test_lib.Command("/bin/echo", args=["1"])
 
     parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("TestCmd", TestCmdParser)
     try:
@@ -1081,8 +1084,7 @@ sources:
 
   def testAggregatedArtifact(self):
     """Test we can collect an ARTIFACT_GROUP."""
-
-    client_test_lib.Command("/bin/echo", args=["1"])
+    filesystem_test_lib.Command("/bin/echo", args=["1"])
 
     artifact_list = ["TestArtifactGroup"]
 

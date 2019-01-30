@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Test RDFStruct implementations."""
 
 from __future__ import absolute_import
@@ -8,7 +8,8 @@ from __future__ import unicode_literals
 
 import random
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.builtins import str
 
 from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
@@ -19,6 +20,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_core.lib.util import compatibility
 from grr.test_lib import test_lib
 
 # pylint: mode=test
@@ -223,14 +225,28 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     serialized = test_pb.SerializeToString()
     self.assertEqual(DynamicTypeTest.FromSerializedString(serialized), test_pb)
 
+    # TODO: In Python 2 unicode string representation has an extra
+    # 'u' prefix and there is nothing we can do about that. Once support for
+    # Python 2 is dropped, this can be removed.
+    if compatibility.PY2:
+      test_struct_class_repr = "u'TestStruct'"
+    else:
+      test_struct_class_repr = "'TestStruct'"
+
+    expected_emitted_proto = """\
+message DynamicTypeTest {{
+
+  // A string value
+  optional string type = 1 [default = {test_struct}];
+
+  // A dynamic value based on another field.
+  optional bytes dynamic = 2;
+  optional User nested = 3;
+}}
+""".format(test_struct=test_struct_class_repr)
+
     # Test proto definition.
-    self.assertEqual(
-        DynamicTypeTest.EmitProto(), "message DynamicTypeTest {\n\n  "
-        "// A string value\n  optional string type = 1 "
-        "[default = u'TestStruct'];\n\n  "
-        "// A dynamic value based on another field.\n  "
-        "optional bytes dynamic = 2;\n  "
-        "optional User nested = 3;\n}\n")
+    self.assertEqual(DynamicTypeTest.EmitProto(), expected_emitted_proto)
 
   def testAnyValueWithoutTypeCallback(self):
     test_pb = AnyValueWithoutTypeFunctionTest()
@@ -426,7 +442,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     # Out of range values are permitted and preserved through serialization.
     tested.type = 4
     self.assertEqual(tested.type, 4)
-    serialized_type = bytes(tested.type)
+    serialized_type = str(tested.type).encode("utf-8")
     tested.type = 1
     tested.type = serialized_type
     self.assertEqual(tested.type, 4)
@@ -447,7 +463,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     # When we serialize the modified proto we should get the new field
     # serialized. If the cache is not properly invalidated, we will return the
     # old result instead.
-    self.assertIn("booo", path.SerializeToString())
+    self.assertIn(b"booo", path.SerializeToString())
 
   def testLateBinding(self):
     # The LateBindingTest protobuf is not fully defined.

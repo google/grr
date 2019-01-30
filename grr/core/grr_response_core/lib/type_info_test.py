@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Tests for grr.lib.type_info."""
 

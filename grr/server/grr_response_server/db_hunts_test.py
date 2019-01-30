@@ -788,3 +788,135 @@ class DatabaseTestHuntMixin(object):
           result, len(expected), "Result count does not match for "
           "(filter_condition=%d): %d vs %d" % (filter_condition, len(expected),
                                                result))
+
+  def testReadHuntOutputPluginLogEntriesReturnsEntryFromSingleHuntFlow(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    output_plugin_id = "1"
+    client_id, flow_id = self._SetupHuntClientAndFlow(
+        client_id="C.12345678901234aa", hunt_id=hunt_obj.hunt_id)
+    self.db.WriteFlowOutputPluginLogEntries([
+        rdf_flow_objects.FlowOutputPluginLogEntry(
+            client_id=client_id,
+            flow_id=flow_id,
+            output_plugin_id=output_plugin_id,
+            hunt_id=hunt_obj.hunt_id,
+            message="blah")
+    ])
+
+    hunt_op_log_entries = self.db.ReadHuntOutputPluginLogEntries(
+        hunt_obj.hunt_id, output_plugin_id, 0, 10)
+    self.assertLen(hunt_op_log_entries, 1)
+    self.assertIsInstance(hunt_op_log_entries[0],
+                          rdf_flow_objects.FlowOutputPluginLogEntry)
+    self.assertEqual(hunt_op_log_entries[0].hunt_id, hunt_obj.hunt_id)
+    self.assertEqual(hunt_op_log_entries[0].client_id, client_id)
+    self.assertEqual(hunt_op_log_entries[0].flow_id, flow_id)
+    self.assertEqual(hunt_op_log_entries[0].message, "blah")
+
+  def _WriteHuntOutputPluginLogEntries(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    output_plugin_id = "1"
+    for i in range(10):
+      client_id, flow_id = self._SetupHuntClientAndFlow(
+          client_id="C.12345678901234a%d" % i, hunt_id=hunt_obj.hunt_id)
+      enum = rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType
+      if i % 3 == 0:
+        log_entry_type = enum.ERROR
+      else:
+        log_entry_type = enum.LOG
+      self.db.WriteFlowOutputPluginLogEntries([
+          rdf_flow_objects.FlowOutputPluginLogEntry(
+              client_id=client_id,
+              flow_id=flow_id,
+              hunt_id=hunt_obj.hunt_id,
+              output_plugin_id=output_plugin_id,
+              log_entry_type=log_entry_type,
+              message="blah%d" % i)
+      ])
+
+    return hunt_obj
+
+  def testReadHuntOutputPluginLogEntriesReturnsEntryFromMultipleHuntFlows(self):
+    hunt_obj = self._WriteHuntOutputPluginLogEntries()
+
+    hunt_op_log_entries = self.db.ReadHuntOutputPluginLogEntries(
+        hunt_obj.hunt_id, "1", 0, 100)
+    self.assertLen(hunt_op_log_entries, 10)
+    # Make sure messages are returned in timestamps-ascending order.
+    for i, e in enumerate(hunt_op_log_entries):
+      self.assertEqual(e.message, "blah%d" % i)
+
+  def testReadHuntOutputPluginLogEntriesCorrectlyAppliesOffsetAndCountFilters(
+      self):
+    hunt_obj = self._WriteHuntOutputPluginLogEntries()
+
+    for i in range(10):
+      hunt_op_log_entries = self.db.ReadHuntOutputPluginLogEntries(
+          hunt_obj.hunt_id, "1", i, 1)
+      self.assertLen(hunt_op_log_entries, 1)
+      self.assertEqual(hunt_op_log_entries[0].message, "blah%d" % i)
+
+  def testReadHuntOutputPluginLogEntriesCorrectlyAppliesWithTypeFilter(self):
+    hunt_obj = self._WriteHuntOutputPluginLogEntries()
+
+    hunt_op_log_entries = self.db.ReadHuntOutputPluginLogEntries(
+        hunt_obj.hunt_id,
+        "1",
+        0,
+        100,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.UNSET)
+    self.assertEmpty(hunt_op_log_entries)
+
+    hunt_op_log_entries = self.db.ReadHuntOutputPluginLogEntries(
+        hunt_obj.hunt_id,
+        "1",
+        0,
+        100,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
+    self.assertLen(hunt_op_log_entries, 4)
+
+    hunt_op_log_entries = self.db.ReadHuntOutputPluginLogEntries(
+        hunt_obj.hunt_id,
+        "1",
+        0,
+        100,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+    self.assertLen(hunt_op_log_entries, 6)
+
+  def testReadHuntOutputPluginLogEntriesCorrectlyAppliesCombinationOfFilters(
+      self):
+    hunt_obj = self._WriteHuntOutputPluginLogEntries()
+
+    hunt_log_entries = self.db.ReadHuntOutputPluginLogEntries(
+        hunt_obj.hunt_id,
+        "1",
+        0,
+        1,
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+    self.assertLen(hunt_log_entries, 1)
+    self.assertEqual(hunt_log_entries[0].message, "blah1")
+
+  def testCountHuntOutputPluginLogEntriesReturnsCorrectCount(self):
+    hunt_obj = self._WriteHuntOutputPluginLogEntries()
+
+    num_entries = self.db.CountHuntOutputPluginLogEntries(hunt_obj.hunt_id, "1")
+    self.assertEqual(num_entries, 10)
+
+  def testCountHuntOutputPluginLogEntriesRespectsWithTypeFilter(self):
+    hunt_obj = self._WriteHuntOutputPluginLogEntries()
+
+    num_entries = self.db.CountHuntOutputPluginLogEntries(
+        hunt_obj.hunt_id,
+        "1",
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+    self.assertEqual(num_entries, 6)
+
+    num_entries = self.db.CountHuntOutputPluginLogEntries(
+        hunt_obj.hunt_id,
+        "1",
+        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
+    self.assertEqual(num_entries, 4)

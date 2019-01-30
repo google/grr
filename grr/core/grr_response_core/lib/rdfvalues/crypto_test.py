@@ -1,16 +1,16 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Crypto rdfvalue tests."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import binascii
 import hashlib
 import os
 
-from future.builtins import chr
-from future.builtins import range
+from future.builtins import bytes
 from future.builtins import str
 from future.utils import iterkeys
 
@@ -36,7 +36,7 @@ class SignedBlobTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def GenerateSample(self, number=0):
     result = self.rdfvalue_class()
-    result.Sign(b"Sample %s" % number, self.private_key)
+    result.Sign(("Sample %s" % number).encode("ascii"), self.private_key)
 
     return result
 
@@ -213,11 +213,12 @@ class CryptoUtilTest(CryptoTestBase):
       for partition in partitions:
         cipher = rdf_crypto.AES128CBCCipher(key, iv)
         streaming_cbc = rdf_crypto.StreamingCBCEncryptor(cipher)
-        it = iter(plaintext)
+        offset = 0
         out = []
         for n in partition:
-          next_partition = b"".join([it.next() for _ in range(n)])
+          next_partition = plaintext[offset:offset + n]
           out.append(streaming_cbc.Update(next_partition))
+          offset += n
         out.append(streaming_cbc.Finalize())
 
         self.assertEqual(cipher.Decrypt(b"".join(out)), plaintext)
@@ -296,9 +297,6 @@ class SymmetricCipherTest(rdf_test_base.RDFValueTestMixin,
 
 class RSATest(CryptoTestBase):
 
-  def _Tamper(self, string):
-    return string[:-1] + chr(ord(string[-1]) ^ 1).encode("latin-1")
-
   def testPassPhraseEncryption(self):
     passphrase = b"testtest"
     key = rdf_crypto.RSAPrivateKey.GenerateKey()
@@ -342,8 +340,8 @@ class RSATest(CryptoTestBase):
     public_key.Verify(message, signature)
 
     # Make sure it does.
-    broken_signature = self._Tamper(signature)
-    broken_message = self._Tamper(message)
+    broken_signature = _Tamper(signature)
+    broken_message = _Tamper(message)
 
     self.assertRaises(rdf_crypto.VerificationError, public_key.Verify, message,
                       broken_signature)
@@ -365,7 +363,7 @@ class RSATest(CryptoTestBase):
     self.assertEqual(plaintext, message)
 
     self.assertRaises(rdf_crypto.CipherError, private_key.Decrypt,
-                      self._Tamper(ciphertext))
+                      _Tamper(ciphertext))
 
   def testPSSPadding(self):
     private_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=2048)
@@ -405,9 +403,6 @@ class RSATest(CryptoTestBase):
 
 class HMACTest(CryptoTestBase):
 
-  def _Tamper(self, string):
-    return string[:-1] + chr(ord(string[-1]) ^ 1).encode("latin-1")
-
   def testHMAC(self):
     """A basic test for the HMAC class."""
     key = rdf_crypto.EncryptionKey.GenerateKey()
@@ -421,7 +416,7 @@ class HMACTest(CryptoTestBase):
     self.assertRaises(rdf_crypto.VerificationError, h.Verify, broken_message,
                       signature)
 
-    broken_signature = self._Tamper(signature)
+    broken_signature = _Tamper(signature)
     self.assertRaises(rdf_crypto.VerificationError, h.Verify, b"Hello World!",
                       broken_signature)
 
@@ -439,7 +434,7 @@ class HMACTest(CryptoTestBase):
 
   def testM2CryptoCompatibility(self):
     message = b"HMAC by M2Crypto!"
-    signature = "99cae3ec7b41ceb6e6619f2f85368cb3ae118b70".decode("hex")
+    signature = binascii.unhexlify("99cae3ec7b41ceb6e6619f2f85368cb3ae118b70")
     key = rdf_crypto.EncryptionKey.FromHex("94bd4e0ecc8397a8b2cdbc4b127ee7b0")
     h = rdf_crypto.HMAC(key)
 
@@ -514,6 +509,14 @@ class PasswordTest(CryptoTestBase):
     self.assertFalse(read_sample.CheckPassword(b"bar"))
     self.assertTrue(sample.CheckPassword(b"foo"))
     self.assertTrue(read_sample.CheckPassword(b"foo"))
+
+
+def _Tamper(string):
+  # TODO: We convert to `bytes` (from the `future` package) to
+  # have the Python 3 behaviour. Once support for Python 2 is dropped, this
+  # line can be safely removed
+  string = bytes(string)
+  return string[:-1] + bytes([string[-1] ^ 1])
 
 
 def main(argv):

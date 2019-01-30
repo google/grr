@@ -26,7 +26,6 @@ from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import flow_responses
 from grr_response_server import notification as notification_lib
-from grr_response_server import output_plugin as output_plugin_lib
 from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -55,6 +54,8 @@ def _TerminateFlow(rdf_flow, reason=None):
       processing_on=None,
       processing_since=None,
       processing_deadline=None)
+  data_store.REL_DB.DeleteAllFlowRequestsAndResponses(rdf_flow.client_id,
+                                                      rdf_flow.flow_id)
 
 
 def TerminateFlow(client_id, flow_id, reason=None):
@@ -682,7 +683,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
   def _ProcessRepliesWithFlowOutputPlugins(self, replies):
     """Processes replies with output plugins."""
     created_output_plugins = []
-    for output_plugin_state in self.rdf_flow.output_plugins_states:
+    for index, output_plugin_state in enumerate(
+        self.rdf_flow.output_plugins_states):
       plugin_descriptor = output_plugin_state.plugin_descriptor
       output_plugin_cls = plugin_descriptor.GetPluginClass()
       output_plugin = output_plugin_cls(
@@ -699,11 +701,16 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
         output_plugin.Flush(output_plugin_state.plugin_state)
         output_plugin.UpdateState(output_plugin_state.plugin_state)
 
-        log_item = output_plugin_lib.OutputPluginBatchProcessingStatus(
-            plugin_descriptor=plugin_descriptor,
-            status="SUCCESS",
-            batch_size=len(replies))
-        output_plugin_state.Log(log_item)
+        data_store.REL_DB.WriteFlowOutputPluginLogEntries([
+            rdf_flow_objects.FlowOutputPluginLogEntry(
+                client_id=self.rdf_flow.client_id,
+                flow_id=self.rdf_flow.flow_id,
+                hunt_id=self.rdf_flow.parent_hunt_id,
+                output_plugin_id="%d" % index,
+                log_entry_type=rdf_flow_objects.FlowOutputPluginLogEntry
+                .LogEntryType.LOG,
+                message="Processed %d replies." % len(replies))
+        ])
 
         self.Log("Plugin %s successfully processed %d flow replies.",
                  plugin_descriptor, len(replies))
@@ -712,12 +719,17 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       except Exception as e:  # pylint: disable=broad-except
         created_output_plugins.append(None)
 
-        error = output_plugin_lib.OutputPluginBatchProcessingStatus(
-            plugin_descriptor=plugin_descriptor,
-            status="ERROR",
-            summary=utils.SmartUnicode(e),
-            batch_size=len(replies))
-        output_plugin_state.Error(error)
+        data_store.REL_DB.WriteFlowOutputPluginLogEntries([
+            rdf_flow_objects.FlowOutputPluginLogEntry(
+                client_id=self.rdf_flow.client_id,
+                flow_id=self.rdf_flow.flow_id,
+                hunt_id=self.rdf_flow.parent_hunt_id,
+                output_plugin_id="%d" % index,
+                log_entry_type=rdf_flow_objects.FlowOutputPluginLogEntry
+                .LogEntryType.ERROR,
+                message="Error while processing %d replies: %s" % (len(replies),
+                                                                   str(e)))
+        ])
 
         self.Log("Plugin %s failed to process %d replies due to: %s",
                  plugin_descriptor, len(replies), e)

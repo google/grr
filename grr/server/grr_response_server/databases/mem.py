@@ -99,6 +99,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.flow_results = {}
     # Maps (client_id, flow_id) to [FlowLogEntry].
     self.flow_log_entries = {}
+    self.flow_output_plugin_log_entries = {}
     self.flow_handler_target = None
     self.flow_handler_thread = None
     self.flow_handler_stop = True

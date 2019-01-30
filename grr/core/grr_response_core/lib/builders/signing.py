@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import io
@@ -11,6 +12,8 @@ import os
 import platform
 import subprocess
 import tempfile
+
+from grr_response_core.lib.util import precondition
 
 # pexpect cannot be installed on windows, and this code is only designed to run
 # on linux anyway
@@ -90,11 +93,13 @@ class WindowsOsslsigncodeCodeSigner(CodeSigner):
     Returns:
       signed data
     """
+    precondition.AssertType(in_buffer, bytes)
     with tempfile.NamedTemporaryFile() as temp_in:
       temp_in.write(in_buffer)
       temp_in.seek(0)
       outfile = self.SignFile(temp_in.name)
-      return open(outfile, "rb").read()
+      with io.open(outfile, "rb") as filedesc:
+        return filedesc.read()
 
   def SignFile(self, in_filename, out_filename=None):
     """Sign a file using osslsigncode.

@@ -5,9 +5,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import range  # pylint: disable=redefined-builtin
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.builtins import zip
 
+import mock
+
+from grr_response_server.databases import mysql_blobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -59,6 +62,24 @@ class DatabaseTestBlobsMixin(object):
 
     result = d.ReadBlobs(blob_ids)
     self.assertEqual(result, dict(zip(blob_ids, blob_data)))
+
+  @mock.patch.object(mysql_blobs, "BLOB_CHUNK_SIZE", 1)
+  def testLargeBlobsAreReassembledInCorrectOrder(self):
+    d = self.db
+    blob_data = b"0123456789"
+    blob_id = rdf_objects.BlobID(b"00234567" * 4)
+    d.WriteBlobs({blob_id: blob_data})
+    result = d.ReadBlobs([blob_id])
+    self.assertEqual({blob_id: blob_data}, result)
+
+  @mock.patch.object(mysql_blobs, "BLOB_CHUNK_SIZE", 3)
+  def testNotEvenlyDivisibleBlobsAreReassembledCorrectly(self):
+    d = self.db
+    blob_data = b"0123456789"
+    blob_id = rdf_objects.BlobID(b"00234567" * 4)
+    d.WriteBlobs({blob_id: blob_data})
+    result = d.ReadBlobs([blob_id])
+    self.assertEqual({blob_id: blob_data}, result)
 
   def testCheckBlobsExistCorrectlyReportsPresentAndMissingBlobs(self):
     d = self.db

@@ -21,7 +21,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
-from grr.test_lib import client_test_lib
+from grr.test_lib import filesystem_test_lib
 from grr.test_lib import test_lib
 
 
@@ -121,8 +121,10 @@ class GetExtAttrsText(absltest.TestCase):
 
   def testMany(self):
     with temp.AutoTempFilePath() as temp_filepath:
-      client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
-      client_test_lib.SetExtAttr(temp_filepath, name="user.quux", value="norf")
+      filesystem_test_lib.SetExtAttr(
+          temp_filepath, name="user.foo", value="bar")
+      filesystem_test_lib.SetExtAttr(
+          temp_filepath, name="user.quux", value="norf")
 
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 
@@ -140,7 +142,8 @@ class GetExtAttrsText(absltest.TestCase):
   @mock.patch("xattr.listxattr", return_value=["user.foo", "user.bar"])
   def testAttrChangeAfterListing(self, listxattr):
     with temp.AutoTempFilePath() as temp_filepath:
-      client_test_lib.SetExtAttr(temp_filepath, name="user.bar", value="baz")
+      filesystem_test_lib.SetExtAttr(
+          temp_filepath, name="user.bar", value="baz")
 
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 

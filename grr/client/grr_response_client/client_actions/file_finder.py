@@ -13,9 +13,9 @@ from grr_response_client import vfs
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_client.client_actions.file_finder_utils import subactions
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import filesystem
 
 
 class _SkipFileException(Exception):
@@ -47,7 +47,7 @@ def FileFinderOSFromClient(args):
   Yields:
     `rdf_paths.PathSpec` instances.
   """
-  stat_cache = utils.StatCache()
+  stat_cache = filesystem.StatCache()
 
   opts = args.action.stat
 
@@ -57,7 +57,8 @@ def FileFinderOSFromClient(args):
         result = list(content_condition.Search(path))
         if not result:
           raise _SkipFileException()
-      stat = stat_cache.Get(path, follow_symlink=opts.resolve_links)
+      # TODO: `opts.resolve_links` has type `RDFBool`, not `bool`.
+      stat = stat_cache.Get(path, follow_symlink=bool(opts.resolve_links))
       stat_entry = client_utils.StatEntryFromStatPathSpec(
           stat, ext_attrs=opts.collect_ext_attrs)
       yield stat_entry
@@ -72,7 +73,7 @@ class FileFinderOS(actions.ActionPlugin):
   out_rdfvalues = [rdf_file_finder.FileFinderResult]
 
   def Run(self, args):
-    self.stat_cache = utils.StatCache()
+    self.stat_cache = filesystem.StatCache()
 
     action = self._ParseAction(args)
     for path in GetExpandedPaths(args):

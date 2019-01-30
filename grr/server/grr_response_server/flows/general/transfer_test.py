@@ -619,7 +619,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
       d = hashlib.sha1()
       d.update(expected_data)
-      self.assertEqual(hash_obj.sha1, d.hexdigest())
+      self.assertEqual(hash_obj.sha1, d.digest())
 
   @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles")
   def testExternalFileStoreSubmissionIsTriggeredWhenFileIsSentToFileStore(

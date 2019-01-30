@@ -78,7 +78,7 @@ class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
       handler = stats_server.StatsServerHandler(mock.MagicMock(),
                                                 mock.MagicMock(),
                                                 mock.MagicMock())
-      handler.path = "/prometheus_metrics"
+      handler.path = "/metrics"
       handler.headers = {}
       handler.wfile = io.BytesIO()
 

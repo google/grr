@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 """Filesystem related client rdfvalues."""
-
 from __future__ import absolute_import
 from __future__ import division
 
+from __future__ import unicode_literals
+
 import stat
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.utils import python_2_unicode_compatible
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -106,11 +108,12 @@ class Volumes(rdf_protodict.RDFValueArray):
   rdf_type = Volume
 
 
+@python_2_unicode_compatible
 class StatMode(rdfvalue.RDFInteger):
   """The mode of a file."""
   data_store_type = "unsigned_integer"
 
-  def __unicode__(self):
+  def __str__(self):
     """Pretty print the file mode."""
     type_char = "-"
 
@@ -156,9 +159,6 @@ class StatMode(rdfvalue.RDFInteger):
         bits[8] = "T"
 
     return type_char + "".join(bits)
-
-  def __str__(self):
-    return utils.SmartStr(self.__unicode__())
 
 
 class StatExtFlagsOsx(rdfvalue.RDFInteger):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """These are basic tests for the data store abstraction.
 
 Implementations should be able to pass these tests to be conformant.

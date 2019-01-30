@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests for client-reports DB functionality."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,10 +8,11 @@ from __future__ import unicode_literals
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import time_utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_server import db
 from grr.test_lib import test_lib
 
 # Client label used by tests in this file.
-_TEST_LABEL = "test-label"
+_TEST_LABEL = "test-🚀-label"
 
 
 def _CreateGRRVersionGraphSeries(num_graph_series):
@@ -139,5 +141,18 @@ class DatabaseTestClientReportsMixin(object):
         self.db.ReadMostRecentClientGraphSeries(
             _TEST_LABEL, rdf_stats.ClientGraphSeries.ReportType.OS_TYPE))
 
+  def testWriteAndReadLongLabel(self):
+    label = "🚀" * db.MAX_LABEL_LENGTH
+    graph_series = _CreateGRRVersionGraphSeries(1)[0]
+    self.db.WriteClientGraphSeries(graph_series, label)
+    self.assertIsNotNone(
+        self.db.ReadMostRecentClientGraphSeries(
+            label, rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION))
+
+  def testWriteTooLongLabelRaises(self):
+    label = "a" * (db.MAX_LABEL_LENGTH + 1)
+    graph_series = _CreateGRRVersionGraphSeries(1)[0]
+    with self.assertRaises(ValueError):
+      self.db.WriteClientGraphSeries(graph_series, label)
 
 # pytype: enable=attribute-error

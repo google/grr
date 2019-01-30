@@ -84,7 +84,7 @@ class MySQLDBUsersMixin(object):
         vals=mysql_utils.NamedPlaceholders(values))
 
     updates = ", ".join("{0} = VALUES({0})".format(col) for col in values)
-    query += "ON DUPLICATE KEY UPDATE " + updates
+    query += " ON DUPLICATE KEY UPDATE " + updates
 
     cursor.execute(query, values)
 
@@ -135,7 +135,7 @@ class MySQLDBUsersMixin(object):
 
   @mysql_utils.WithTransaction()
   def DeleteGRRUser(self, username, cursor=None):
-    """Deletes the user with the given username."""
+    """Deletes the user and all related metadata with the given username."""
     cursor.execute("DELETE FROM grr_users WHERE username_hash = %s",
                    (mysql_utils.Hash(username),))
 

@@ -570,8 +570,6 @@ class ApiListHuntOutputPluginLogsHandlerTest(
 
     self.assertEqual(result.total_count, 5)
     self.assertLen(result.items, 5)
-    for item in result.items:
-      self.assertEqual("foo", item.plugin_descriptor.plugin_args.filename_regex)
 
   def testReturnsLogsWhenMultiplePlugins(self):
     hunt_urn = self.RunHuntWithOutputPlugins(self.output_plugins)
@@ -583,8 +581,6 @@ class ApiListHuntOutputPluginLogsHandlerTest(
 
     self.assertEqual(result.total_count, 5)
     self.assertLen(result.items, 5)
-    for item in result.items:
-      self.assertEqual("bar", item.plugin_descriptor.plugin_args.filename_regex)
 
   def testSlicesLogsWhenJustOnePlugin(self):
     hunt_urn = self.RunHuntWithOutputPlugins([self.output_plugins[0]])

@@ -36,12 +36,13 @@ class ApiGetClientApprovalHandlerRegressionTest(
       self.CreateAdminUser(u"approver")
 
       clients = self.SetupClients(2)
-      for client_id in clients:
-        # Delete the certificate as it's being regenerated every time the
-        # client is created.
-        with aff4.FACTORY.Open(
-            client_id, mode="rw", token=self.token) as grr_client:
-          grr_client.DeleteAttribute(grr_client.Schema.CERT)
+      if data_store.AFF4Enabled():
+        for client_id in clients:
+          # Delete the certificate as it's being regenerated every time the
+          # client is created.
+          with aff4.FACTORY.Open(
+              client_id, mode="rw", token=self.token) as grr_client:
+            grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestClientApproval(
@@ -93,11 +94,12 @@ class ApiGrantClientApprovalHandlerRegressionTest(
       self.CreateAdminUser(u"requestor")
 
       client_id = self.SetupClient(0)
-      # Delete the certificate as it's being regenerated every time the
-      # client is created.
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as grr_client:
-        grr_client.DeleteAttribute(grr_client.Schema.CERT)
+      if data_store.AFF4Enabled():
+        # Delete the certificate as it's being regenerated every time the
+        # client is created.
+        with aff4.FACTORY.Open(
+            client_id, mode="rw", token=self.token) as grr_client:
+          grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestClientApproval(
@@ -129,11 +131,12 @@ class ApiCreateClientApprovalHandlerRegressionTest(
 
       client_id = self.SetupClient(0)
 
-      # Delete the certificate as it's being regenerated every time the
-      # client is created.
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as grr_client:
-        grr_client.DeleteAttribute(grr_client.Schema.CERT)
+      if data_store.AFF4Enabled():
+        # Delete the certificate as it's being regenerated every time the
+        # client is created.
+        with aff4.FACTORY.Open(
+            client_id, mode="rw", token=self.token) as grr_client:
+          grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     def ReplaceApprovalId():
       approvals = self.ListClientApprovals()
@@ -163,12 +166,13 @@ class ApiListClientApprovalsHandlerRegressionTest(
       self.CreateAdminUser(u"approver")
 
       clients = self.SetupClients(2)
-      for client_id in clients:
-        # Delete the certificate as it's being regenerated every time the
-        # client is created.
-        with aff4.FACTORY.Open(
-            client_id, mode="rw", token=self.token) as grr_client:
-          grr_client.DeleteAttribute(grr_client.Schema.CERT)
+      if data_store.AFF4Enabled():
+        for client_id in clients:
+          # Delete the certificate as it's being regenerated every time the
+          # client is created.
+          with aff4.FACTORY.Open(
+              client_id, mode="rw", token=self.token) as grr_client:
+            grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestClientApproval(
@@ -551,12 +555,13 @@ class ApiGetOwnGrrUserHandlerRegresstionTest(
 
   def Run(self):
     user_urn = aff4.ROOT_URN.Add("users").Add(self.token.username)
-    with test_lib.FakeTime(42):
-      with aff4.FACTORY.Create(
-          user_urn, aff4_type=aff4_users.GRRUser, mode="w",
-          token=self.token) as user_fd:
-        user_fd.Set(user_fd.Schema.GUI_SETTINGS,
-                    aff4_users.GUISettings(mode="ADVANCED", canary_mode=True))
+    if data_store.AFF4Enabled():
+      with test_lib.FakeTime(42):
+        with aff4.FACTORY.Create(
+            user_urn, aff4_type=aff4_users.GRRUser, mode="w",
+            token=self.token) as user_fd:
+          user_fd.Set(user_fd.Schema.GUI_SETTINGS,
+                      aff4_users.GUISettings(mode="ADVANCED", canary_mode=True))
 
     # Setup relational DB.
     data_store.REL_DB.WriteGRRUser(
@@ -565,8 +570,9 @@ class ApiGetOwnGrrUserHandlerRegresstionTest(
     self.Check("GetGrrUser")
 
     # Make user an admin and do yet another request.
-    with aff4.FACTORY.Open(user_urn, mode="rw", token=self.token) as user_fd:
-      user_fd.SetLabel("admin", owner="GRR")
+    if data_store.AFF4Enabled():
+      with aff4.FACTORY.Open(user_urn, mode="rw", token=self.token) as user_fd:
+        user_fd.SetLabel("admin", owner="GRR")
     data_store.REL_DB.WriteGRRUser(
         username=self.token.username,
         user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)

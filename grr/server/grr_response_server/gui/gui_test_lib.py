@@ -120,12 +120,13 @@ def CreateFileVersion(client_id, path, content=b"", timestamp=None, token=None):
 def CreateFolder(client_id, path, timestamp, token=None):
   """Creates a VFS folder."""
   with test_lib.FakeTime(timestamp):
-    with aff4.FACTORY.Create(
-        client_id.Add(path),
-        aff4_type=aff4_standard.VFSDirectory,
-        mode="w",
-        token=token) as _:
-      pass
+    if data_store.AFF4Enabled():
+      with aff4.FACTORY.Create(
+          client_id.Add(path),
+          aff4_type=aff4_standard.VFSDirectory,
+          mode="w",
+          token=token):
+        pass
 
     if data_store.RelationalDBWriteEnabled():
       path_type, components = rdf_objects.ParseCategorizedPath(path)

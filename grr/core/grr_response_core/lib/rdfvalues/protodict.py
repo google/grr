@@ -309,6 +309,9 @@ class Dict(rdf_structs.RDFProtoStruct):
     for x in itervalues(self._values):
       yield x.k.GetValue()
 
+  # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
+  __hash__ = rdf_structs.RDFProtoStruct.__hash__
+
   def __eq__(self, other):
     if isinstance(other, dict):
       return self.ToDict() == other

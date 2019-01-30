@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Basic rdfvalue tests."""
 from __future__ import absolute_import
 from __future__ import division
@@ -23,7 +23,7 @@ class RDFBytesTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFBytes
 
   def GenerateSample(self, number=0):
-    return rdfvalue.RDFBytes(b"\x00hello%s\x01" % number)
+    return rdfvalue.RDFBytes(b"\x00hello%s\x01" % str(number).encode("ascii"))
 
 
 class RDFStringTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -419,7 +419,7 @@ class HashDigestTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   def GenerateSample(self, number=0):
     return rdfvalue.HashDigest(b"\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
                                b"\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
-                               b"\xaf\xeeH\xbb%s" % number)
+                               b"\xaf\xeeH\xbb%s" % str(number).encode("ascii"))
 
   def testEqNeq(self):
     binary_digest = (b"\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
@@ -428,10 +428,10 @@ class HashDigestTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     sample = rdfvalue.HashDigest(binary_digest)
     hex_digest = ("ca978112ca1bbdcafac231b39a23dc4da786eff81"
                   "47c4e72b9807785afee48bb")
-    self.assertEqual(sample, hex_digest)
-    self.assertEqual(sample, binary_digest)
-    self.assertNotEqual(sample, "\xaa\xbb")
-    self.assertNotEqual(sample, "deadbeef")
+    self.assertEqual(str(sample), hex_digest)
+    self.assertEqual(sample.SerializeToString(), binary_digest)
+    self.assertNotEqual(sample.SerializeToString(), b"\xaa\xbb")
+    self.assertNotEqual(str(sample), "deadbeef")
 
 
 def main(argv):

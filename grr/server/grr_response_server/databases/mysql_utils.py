@@ -34,6 +34,20 @@ def IntToFlowID(flow_id):
   return "%08X" % flow_id
 
 
+def CronJobRunIDToInt(cron_job_run_id):
+  if cron_job_run_id is None:
+    return None
+  else:
+    return int(cron_job_run_id, 16)
+
+
+def IntToCronJobRunID(cron_job_run_id):
+  if cron_job_run_id is None:
+    return None
+  else:
+    return "%08X" % cron_job_run_id
+
+
 def StringToRDFProto(proto_type, value):
   return value if value is None else proto_type.FromSerializedString(value)
 
@@ -109,13 +123,14 @@ def Columns(iterable):
 
   Examples:
     >>> Columns({"password": "foo", "name": "bar"})
-    u'(name, password)'
+    u'(`name`, `password`)'
 
   Args:
     iterable: The iterable of strings to be used as column names.
   Returns: A string containing a tuple of sorted comma-separated column names.
   """
-  return "({})".format(", ".join(sorted(iterable)))
+  columns = sorted(iterable)
+  return "({})".format(", ".join("`{}`".format(col) for col in columns))
 
 
 # The MySQL driver accepts and returns Python datetime objects.

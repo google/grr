@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Test protodict implementation.
 
 An Dict is a generic dictionary implementation which has keys of type
@@ -96,7 +96,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
     # Initialize through a serialized form.
     serialized = sample.SerializeToString()
-    self.assertIsInstance(serialized, str)
+    self.assertIsInstance(serialized, bytes)
 
     sample = rdf_protodict.Dict.FromSerializedString(serialized)
     self.CheckTestDict(test_dict, sample)

@@ -11,6 +11,7 @@ import zipfile
 from grr_response_core.lib import flags
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.gui import api_e2e_test_lib
 from grr_response_server.output_plugins import csv_plugin
@@ -57,11 +58,16 @@ class ApiClientLibHuntTest(
 
   def testDeleteHunt(self):
     hunt_urn = self.StartHunt(paused=True)
+    hunt_id = hunt_urn.Basename()
 
-    self.api.Hunt(hunt_urn.Basename()).Delete()
+    self.api.Hunt(hunt_id).Delete()
 
-    obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
-    self.assertEqual(obj.__class__, aff4.AFF4Volume)
+    if data_store.RelationalDBReadEnabled("hunts"):
+      with self.assertRaises(db.UnknownHuntError):
+        data_store.REL_DB.ReadHuntObject(hunt_id)
+    else:
+      obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
+      self.assertEqual(obj.__class__, aff4.AFF4Volume)
 
   def testStartHunt(self):
     hunt_urn = self.StartHunt(paused=True)

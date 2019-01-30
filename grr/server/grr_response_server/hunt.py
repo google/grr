@@ -4,8 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import sys
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_server import access_control
@@ -138,6 +136,20 @@ def CompleteHuntIfExpirationTimeReached(hunt_obj):
   return hunt_obj
 
 
+def CreateAndStartHunt(flow_name, flow_args, creator, **kwargs):
+  """Creates and starts a new hunt."""
+
+  hunt_args = rdf_hunt_objects.HuntArguments(
+      hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
+      standard=rdf_hunt_objects.HuntArgumentsStandard(
+          flow_name=flow_name, flow_args=flow_args))
+
+  hunt_obj = rdf_hunt_objects.Hunt(creator=creator, args=hunt_args, **kwargs)
+  data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+  StartHunt(hunt_obj.hunt_id)
+
+
 def StartHunt(hunt_id):
   """Starts a hunt with a given id."""
 
@@ -223,7 +235,7 @@ def StopHunt(hunt_id, reason=None):
   hunt_obj = data_store.REL_DB.UpdateHuntObject(hunt_id, UpdateFn)
   data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
 
-  flows = data_store.REL_DB.ReadHuntFlows(hunt_obj.hunt_id, 0, sys.maxsize)
+  flows = data_store.REL_DB.ReadHuntFlows(hunt_obj.hunt_id, 0, db.MAX_COUNT)
   data_store.REL_DB.UpdateFlows(
       [(f.client_id, f.flow_id) for f in flows],
       pending_termination=rdf_flow_objects.PendingFlowTermination(
@@ -273,10 +285,7 @@ def StartHuntFlowOnClient(client_id, hunt_id):
   # foreman scheduling a client on an (already) paused hunt. Making sure
   # we don't lose clients in such a race by accepting clients for paused
   # hunts.
-  if hunt_obj.hunt_state not in [
-      rdf_hunt_objects.Hunt.HuntState.STARTED,
-      rdf_hunt_objects.Hunt.HuntState.PAUSED
-  ]:
+  if not rdf_hunt_objects.IsHuntSuitableForFlowProcessing(hunt_obj.hunt_state):
     return
 
   if hunt_obj.args.hunt_type == hunt_obj.args.HuntType.STANDARD:
@@ -314,39 +323,3 @@ def StartHuntFlowOnClient(client_id, hunt_id):
   else:
     raise UnknownHuntTypeError("Can't determine hunt type when starting "
                                "hunt %s on client %s." % (client_id, hunt_id))
-
-
-def GetHuntOutputPluginLogs(hunt_id, offset, count):
-  """Gets hunt's output plugins logs."""
-
-  # TODO(user): this is a simplistic implementation that may return
-  # more results than requested. Refactor and improve.
-  flows = data_store.REL_DB.ReadHuntFlows(
-      hunt_id,
-      offset,
-      count,
-      filter_condition=db.HuntFlowsCondition.FLOWS_WITH_RESULTS_ONLY)
-  logs = []
-  for f in flows:
-    for op_state in f.output_plugins_states:
-      logs.extend(op_state.plugin_state["logs"])
-
-  return logs
-
-
-def GetHuntOutputPluginErrors(hunt_id, offset, count):
-  """Gets hunt's output plugins errors."""
-
-  # TODO(user): this is a simplistic implementation that may return
-  # more results than requested. Refactor and improve.
-  flows = data_store.REL_DB.ReadHuntFlows(
-      hunt_id,
-      offset,
-      count,
-      filter_condition=db.HuntFlowsCondition.FLOWS_WITH_RESULTS_ONLY)
-  errors = []
-  for f in flows:
-    for op_state in f.output_plugins_states:
-      errors.extend(op_state.plugin_state["errors"])
-
-  return errors

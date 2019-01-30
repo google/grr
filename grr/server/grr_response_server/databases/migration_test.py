@@ -10,6 +10,7 @@ import mock
 
 from grr_response_core import config
 from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import db
@@ -43,7 +44,8 @@ class ArtifactMigrationTest(absltest.TestCase):
     super(ArtifactMigrationTest, self).tearDown()
 
   @mock.patch.object(data_store, "RelationalDBReadEnabled", return_value=False)
-  def testMigratesAllArtifactsWithoutReadFromRelDB(self, unused_data_store):
+  @mock.patch.object(migration, "_IsCustom", return_value=True)
+  def testMigratesAllArtifactsWithoutReadFromRelDB(self, *unused_mocks):
     self.assertEmpty(data_store.REL_DB.ReadAllArtifacts())
     _SetUpArtifacts()
     self.assertEmpty(data_store.REL_DB.ReadAllArtifacts())
@@ -51,18 +53,19 @@ class ArtifactMigrationTest(absltest.TestCase):
     self.assertLen(data_store.REL_DB.ReadAllArtifacts(), 29)
 
   @mock.patch.object(data_store, "RelationalDBReadEnabled", return_value=True)
-  def testMigratesAllArtifactsWithReadFromRelDB(self, unused_data_store):
+  @mock.patch.object(migration, "_IsCustom", return_value=True)
+  def testMigratesAllArtifactsWithReadFromRelDB(self, *unused_mocks):
     self.assertEmpty(data_store.REL_DB.ReadAllArtifacts())
     _SetUpArtifacts()
     self.assertEmpty(data_store.REL_DB.ReadAllArtifacts())
     migration.MigrateArtifacts()
     self.assertLen(data_store.REL_DB.ReadAllArtifacts(), 29)
 
-  def testMigrationWithOverwriteDoesNotThrow(self):
-    _SetUpArtifacts()
+  def testDeletesExistingArtifactsInRelDB(self):
+    data_store.REL_DB.WriteArtifact(rdf_artifacts.Artifact(name="old"))
+    self.assertLen(data_store.REL_DB.ReadAllArtifacts(), 1)
     migration.MigrateArtifacts()
-    migration.MigrateArtifacts(overwrite=True)
-    self.assertLen(data_store.REL_DB.ReadAllArtifacts(), 29)
+    self.assertEmpty(data_store.REL_DB.ReadAllArtifacts())
 
 
 def main(args):

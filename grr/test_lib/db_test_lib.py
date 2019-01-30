@@ -28,13 +28,8 @@ class RelationalDBEnabledMixin(object):
     # db only.
     # self._aff4_disabler.start()
 
-    # NOTE: this is a temporary (until the next REL_DB hunts CL) solution to
-    # allow for an easy CL split of REL_DB logic.
-    def ReadEnabledStub(category=None):
-      return category != "hunts"
-
     self._rel_db_read_enabled_patch = mock.patch.object(
-        data_store, "RelationalDBReadEnabled", side_effect=ReadEnabledStub)
+        data_store, "RelationalDBReadEnabled", return_value=True)
     self._rel_db_read_enabled_patch.start()
 
     self._rel_db_write_enabled_patch = mock.patch.object(
@@ -80,6 +75,7 @@ class StableRelationalDBEnabledMixin(object):
         "Database.useForReads.cronjobs": True,
         "Database.useForReads.filestore": True,
         "Database.useForReads.foreman": True,
+        "Database.useForReads.hunts": False,
         "Database.useForReads.message_handlers": True,
         "Database.useForReads.signed_binaries": True,
         "Database.useForReads.stats": False,

@@ -297,11 +297,12 @@ class CleanInactiveClientsFlowTest(flow_test_lib.FlowTestsBaseclass):
     super(CleanInactiveClientsFlowTest, self).setUp()
     self.client_regex = re.compile(self.CLIENT_URN_PATTERN)
     self.client_urns = self.SetupClients(self.NUM_CLIENT)
-    for i in range(len(self.client_urns)):
-      with test_lib.FakeTime(40 + 60 * i):
-        with aff4.FACTORY.Open(
-            self.client_urns[i], mode="rw", token=self.token) as client:
-          client.Set(client.Schema.LAST(rdfvalue.RDFDatetime.Now()))
+    if data_store.AFF4Enabled():
+      for i in range(len(self.client_urns)):
+        with test_lib.FakeTime(40 + 60 * i):
+          with aff4.FACTORY.Open(
+              self.client_urns[i], mode="rw", token=self.token) as client:
+            client.Set(client.Schema.LAST(rdfvalue.RDFDatetime.Now()))
 
   def _RunCleanup(self):
     self.cleaner_flow = flow.StartAFF4Flow(

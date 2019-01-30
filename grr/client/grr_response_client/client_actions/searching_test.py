@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Test client vfs."""
 from __future__ import absolute_import
 from __future__ import division
@@ -22,6 +22,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
 from grr.test_lib import benchmark_test_lib
 from grr.test_lib import client_test_lib
+from grr.test_lib import filesystem_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -468,13 +469,16 @@ class FindExtAttrsTest(client_test_lib.EmptyActionTest):
   def testExtAttrsCollection(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       foo_filepath = temp.TempFilePath(dir=temp_dirpath)
-      client_test_lib.SetExtAttr(foo_filepath, name="user.quux", value="foo")
+      filesystem_test_lib.SetExtAttr(
+          foo_filepath, name="user.quux", value="foo")
 
       bar_filepath = temp.TempFilePath(dir=temp_dirpath)
-      client_test_lib.SetExtAttr(bar_filepath, name="user.quux", value="bar")
+      filesystem_test_lib.SetExtAttr(
+          bar_filepath, name="user.quux", value="bar")
 
       baz_filepath = temp.TempFilePath(dir=temp_dirpath)
-      client_test_lib.SetExtAttr(baz_filepath, name="user.quux", value="baz")
+      filesystem_test_lib.SetExtAttr(
+          baz_filepath, name="user.quux", value="baz")
 
       request = rdf_client_fs.FindSpec(
           pathspec=rdf_paths.PathSpec(

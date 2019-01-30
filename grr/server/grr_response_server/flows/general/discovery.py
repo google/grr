@@ -185,6 +185,13 @@ class InterrogateMixin(object):
       self.state.os = response.system
 
       if data_store.RelationalDBWriteEnabled():
+        existing_client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+        if existing_client is None:
+          # This is the first time we interrogate this client. In that case, we
+          # need to store basic information about this client right away so
+          # follow up flows work properly.
+          data_store.REL_DB.WriteClientSnapshot(self.state.client)
+
         try:
           # Update the client index
           client_index.ClientIndex().AddClient(client)
@@ -292,14 +299,6 @@ class InterrogateMixin(object):
       kb.fqdn = self.state.fqdn
 
     self.state.client.knowledge_base = kb
-
-    if data_store.RelationalDBReadEnabled():
-      existing_client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-      if existing_client is None:
-        # This is the first time we interrogate this client. In that case, we
-        # need to store basic information about this client right away so follow
-        # up flows work properly.
-        data_store.REL_DB.WriteClientSnapshot(self.state.client)
 
     self.CallFlow(
         collectors.ArtifactCollectorFlow.__name__,

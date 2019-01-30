@@ -2296,3 +2296,20 @@ message Flow {
       type: "RDFDatetime",
     }];
 }
+
+message FlowOutputPluginLogEntry {
+  enum LogEntryType {
+    UNSET = 0;
+    LOG = 1;
+    ERROR = 2;
+  }
+  optional string flow_id = 1;
+  optional string client_id = 2;
+  optional string hunt_id = 3;
+  optional string output_plugin_id = 4;
+  optional LogEntryType log_entry_type = 5;
+  optional uint64 timestamp = 6 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional string message = 7;
+}

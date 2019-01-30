@@ -60,7 +60,23 @@ class InMemoryDBUsersMixin(object):
 
   @utils.Synchronized
   def DeleteGRRUser(self, username):
-    """Deletes the user with the given username."""
+    """Deletes the user and all related metadata with the given username."""
+    try:
+      del self.approvals_by_username[username]
+    except KeyError:
+      pass  # No approvals to delete for this user.
+
+    for approvals in itervalues(self.approvals_by_username):
+      for approval in itervalues(approvals):
+        grants = [g for g in approval.grants if g.grantor_username != username]
+        if len(grants) != len(approval.grants):
+          approval.grants = grants
+
+    try:
+      del self.notifications_by_username[username]
+    except KeyError:
+      pass  # No notifications to delete for this user.
+
     try:
       del self.users[username]
     except KeyError:

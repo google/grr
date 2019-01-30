@@ -452,7 +452,10 @@ def StartFlow(client_id=None,
     # The flow does not need to actually remain running.
     if not flow_obj.outstanding_requests:
       flow_obj.RunStateMethod("End")
-      flow_obj.MarkDone()
+      # Additional check for the correct state in case the End method raised and
+      # terminated the flow.
+      if flow_obj.IsRunning():
+        flow_obj.MarkDone()
   else:
     flow_obj.CallState("Start", start_time=start_at)
 

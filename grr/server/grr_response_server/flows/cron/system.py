@@ -614,13 +614,14 @@ class PurgeClientStats(aff4_cronjobs.SystemCronFlow):
               end=end.AsMicrosecondsSinceEpoch())
       self.HeartBeat()
 
-    total_deleted_count = 0
-    for deleted_count in data_store.REL_DB.DeleteOldClientStats(
-        yield_after_count=_STATS_DELETION_BATCH_SIZE, retention_time=end):
-      self.HeartBeat()
-      total_deleted_count += deleted_count
-    self.Log("Deleted %d ClientStats that expired before %s",
-             total_deleted_count, end)
+    if data_store.RelationalDBWriteEnabled():
+      total_deleted_count = 0
+      for deleted_count in data_store.REL_DB.DeleteOldClientStats(
+          yield_after_count=_STATS_DELETION_BATCH_SIZE, retention_time=end):
+        self.HeartBeat()
+        total_deleted_count += deleted_count
+      self.Log("Deleted %d ClientStats that expired before %s",
+               total_deleted_count, end)
 
 
 class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
@@ -631,16 +632,17 @@ class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
 
   def Run(self):
     end = rdfvalue.RDFDatetime.Now() - db.CLIENT_STATS_RETENTION
-    client_urns = export_utils.GetAllClients(token=self.token)
 
-    for batch in collection.Batch(client_urns, 10000):
-      with data_store.DB.GetMutationPool() as mutation_pool:
-        for client_urn in batch:
-          mutation_pool.DeleteAttributes(
-              client_urn.Add("stats"), [u"aff4:stats"],
-              start=0,
-              end=end.AsMicrosecondsSinceEpoch())
-      self.HeartBeat()
+    if data_store.AFF4Enabled():
+      client_urns = export_utils.GetAllClients(token=self.token)
+      for batch in collection.Batch(client_urns, 10000):
+        with data_store.DB.GetMutationPool() as mutation_pool:
+          for client_urn in batch:
+            mutation_pool.DeleteAttributes(
+                client_urn.Add("stats"), [u"aff4:stats"],
+                start=0,
+                end=end.AsMicrosecondsSinceEpoch())
+        self.HeartBeat()
 
     if data_store.RelationalDBWriteEnabled():
       total_deleted_count = 0

@@ -38,8 +38,8 @@ class MySQLDBEventMixin(object):
     where = ""
 
     if username is not None:
-      conditions.append("username_hash = %s")
-      values.append(mysql_utils.Hash(username))
+      conditions.append("username = %s")
+      values.append(username)
 
     if router_method_names:
       placeholders = ["%s"] * len(router_method_names)
@@ -70,8 +70,8 @@ class MySQLDBEventMixin(object):
   def WriteAPIAuditEntry(self, entry, cursor=None):
     """Writes an audit entry to the database."""
     args = {
-        "username_hash":
-            mysql_utils.Hash(entry.username),
+        "username":
+            entry.username,
         "router_method_name":
             entry.router_method_name,
         "details":

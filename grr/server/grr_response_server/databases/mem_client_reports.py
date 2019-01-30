@@ -29,16 +29,11 @@ class InMemoryDBClientReportsMixin(object):
   """
 
   @utils.Synchronized
-  def WriteClientGraphSeries(self,
-                             graph_series,
+  def WriteClientGraphSeries(self, graph_series,
                              client_label,
-                             timestamp = None):
+                             timestamp):
     """See db.Database."""
-    if timestamp is None:
-      timestamp = rdfvalue.RDFDatetime.Now()
-    else:
-      timestamp = timestamp.Copy()
-    series_key = (client_label, graph_series.report_type, timestamp)
+    series_key = (client_label, graph_series.report_type, timestamp.Copy())
     self.client_graph_series[series_key] = graph_series.Copy()
 
   @utils.Synchronized

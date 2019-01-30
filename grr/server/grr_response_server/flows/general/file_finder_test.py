@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Tests for the FileFinder flow."""
 from __future__ import absolute_import
 from __future__ import division
@@ -40,8 +40,8 @@ from grr_response_server.flows.general import audit as _
 from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
-from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib
+from grr.test_lib import filesystem_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -314,7 +314,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   def testFileFinderStatExtFlags(self):
     with temp.AutoTempFilePath() as temp_filepath:
-      client_test_lib.Chattr(temp_filepath, attrs=["+d"])
+      filesystem_test_lib.Chattr(temp_filepath, attrs=["+d"])
 
       action = rdf_file_finder.FileFinderAction.Stat()
       results = self.RunFlow(action=action, paths=[temp_filepath])
@@ -326,8 +326,10 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   def testFileFinderStatExtAttrs(self):
     with temp.AutoTempFilePath() as temp_filepath:
-      client_test_lib.SetExtAttr(temp_filepath, name=b"user.bar", value=b"quux")
-      client_test_lib.SetExtAttr(temp_filepath, name=b"user.baz", value=b"norf")
+      filesystem_test_lib.SetExtAttr(
+          temp_filepath, name=b"user.bar", value=b"quux")
+      filesystem_test_lib.SetExtAttr(
+          temp_filepath, name=b"user.baz", value=b"norf")
 
       action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self.RunFlow(action=action, paths=[temp_filepath])
@@ -568,7 +570,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     d = hashlib.sha1()
     d.update(expected_data)
-    expected_hash = d.hexdigest()
+    expected_hash = d.digest()
 
     hash_action = rdf_file_finder.FileFinderAction.Hash(
         max_size=expected_size, oversized_file_policy="HASH_TRUNCATED")
@@ -614,7 +616,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     d = hashlib.sha1()
     d.update(expected_data)
-    expected_hash = d.hexdigest()
+    expected_hash = d.digest()
 
     if data_store.RelationalDBReadEnabled("vfs"):
       data = self._ReadTestFile(["test_img.dd"],
@@ -880,6 +882,15 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(base_urn.Add("no_ads.txt"), token=self.token)
     self.assertEqual(fd.read(100), "This file has no ads")
 
+  def testEmptyPathListDoesNothing(self):
+    flow_test_lib.TestFlowHelper(
+        file_finder.FileFinder.__name__,
+        self.client_mock,
+        client_id=self.client_id,
+        paths=[],
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        token=self.token)
+
 
 class RelationalFlowFileFinderTest(db_test_lib.RelationalDBEnabledMixin,
                                    TestFileFinderFlow):
@@ -924,6 +935,87 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         "parser_test/com.google.code.grr.plist",
         "parser_test/InstallHistory.plist"
     ])
+
+  def _VerifyDownloadedFiles(self, results):
+    if data_store.RelationalDBReadEnabled("filestore"):
+      for r in results:
+        original_path = r.stat_entry.pathspec.path
+        fd = file_store.OpenFile(
+            db.ClientPath(
+                self.client_id.Basename(),
+                rdf_objects.PathInfo.PathType.OS,
+                components=original_path.strip("/").split("/")))
+
+        with io.open(original_path, "rb") as orig_fd:
+          self.assertEqual(fd.read(), orig_fd.read())
+
+    else:
+      for r in results:
+        file_urn = r.stat_entry.AFF4Path(self.client_id)
+        fd = aff4.FACTORY.Open(file_urn, token=self.token)
+        data = fd.read()
+        with io.open(r.stat_entry.pathspec.path, "rb") as orig_fd:
+          self.assertEqual(data, orig_fd.read())
+
+  def testFileWithMoreThanOneChunk(self):
+    path = os.path.join(self.base_path, "History.plist")
+    s = os.stat(path).st_size
+    action = rdf_file_finder.FileFinderAction.Download(chunk_size=s // 4)
+
+    flow_id = flow_test_lib.TestFlowHelper(
+        file_finder.ClientFileFinder.__name__,
+        action_mocks.ClientFileFinderClientMock(),
+        client_id=self.client_id,
+        paths=[path],
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        action=action,
+        process_non_regular_files=True,
+        token=self.token)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+
+    self.assertLen(results, 1)
+
+    self._VerifyDownloadedFiles(results)
+
+  def testFileWithExactlyThanOneChunk(self):
+    path = os.path.join(self.base_path, "History.plist")
+    s = os.stat(path).st_size
+    action = rdf_file_finder.FileFinderAction.Download(chunk_size=s * 2)
+
+    flow_id = flow_test_lib.TestFlowHelper(
+        file_finder.ClientFileFinder.__name__,
+        action_mocks.ClientFileFinderClientMock(),
+        client_id=self.client_id,
+        paths=[path],
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        action=action,
+        process_non_regular_files=True,
+        token=self.token)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+
+    self.assertLen(results, 1)
+
+    self._VerifyDownloadedFiles(results)
+
+  def testClientFileFinderDownload(self):
+    paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
+    action = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
+    results, _ = self._RunCFF(paths, action)
+
+    self.assertLen(results, 5)
+    relpaths = [
+        os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
+        for p in results
+    ]
+    self.assertCountEqual(relpaths, [
+        "History.plist", "History.xml.plist", "test.plist",
+        "parser_test/com.google.code.grr.plist",
+        "parser_test/InstallHistory.plist"
+    ])
+
+    self._VerifyDownloadedFiles(results)
 
   def testClientFileFinderPathCasing(self):
     paths = [

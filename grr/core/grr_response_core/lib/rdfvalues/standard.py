@@ -3,16 +3,19 @@
 
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import re
 
 from future.builtins import str
 from future.moves.urllib import parse as urlparse
+from typing import Text
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import precondition
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
 
@@ -100,6 +103,11 @@ class URI(rdf_structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.URI
 
   def ParseFromString(self, value):
+    precondition.AssertType(value, bytes)
+    self.ParseFromHumanReadable(value.decode("utf-8"))
+
+  def ParseFromHumanReadable(self, value):
+    precondition.AssertType(value, Text)
     url = urlparse.urlparse(value)
 
     if url.scheme:
@@ -114,5 +122,8 @@ class URI(rdf_structs.RDFProtoStruct):
       self.fragment = url.fragment
 
   def SerializeToString(self):
-    url = (self.transport, self.host, self.path, self.query, self.fragment)
-    return bytes(urlparse.urlunsplit(url))
+    return self.SerializeToHumanReadable().encode("utf-8")
+
+  def SerializeToHumanReadable(self):
+    parts = (self.transport, self.host, self.path, self.query, self.fragment)
+    return urlparse.urlunsplit(parts)

@@ -11,7 +11,8 @@ import os
 import stat
 
 
-from binplist import binplist
+import biplist
+
 from future.utils import string_types
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -30,7 +31,8 @@ class OSXUsersParser(parser.ArtifactFilesMultiParser):
     _ = knowledge_base
 
     for stat_entry in stat_entries:
-      if stat.S_ISDIR(stat_entry.st_mode):
+      # TODO: `st_mode` has to be an `int`, not `StatMode`.
+      if stat.S_ISDIR(int(stat_entry.st_mode)):
         homedir = stat_entry.pathspec.path
         username = os.path.basename(homedir)
         if username not in self.blacklist:
@@ -48,15 +50,15 @@ class OSXSPHardwareDataTypeParser(parser.CommandParser):
     _ = stderr, time_taken, args, knowledge_base  # Unused
     self.CheckReturn(cmd, return_val)
 
-    plist = binplist.readPlist(io.BytesIO(stdout))
+    plist = biplist.readPlist(io.BytesIO(stdout))
 
     if len(plist) > 1:
       raise parser.ParseError("SPHardwareDataType plist has too many items.")
 
     hardware_list = plist[0]["_items"][0]
-    serial_number = getattr(hardware_list, "serial_number", None)
-    system_product_name = getattr(hardware_list, "machine_model", None)
-    bios_version = getattr(hardware_list, "boot_rom_version", None)
+    serial_number = hardware_list.get("serial_number", None)
+    system_product_name = hardware_list.get("machine_model", None)
+    bios_version = hardware_list.get("boot_rom_version", None)
 
     yield rdf_client.HardwareInfo(
         serial_number=serial_number,
@@ -101,8 +103,8 @@ class OSXLaunchdPlistParser(parser.FileParser):
     plist = {}
 
     try:
-      plist = binplist.readPlist(file_object)
-    except (binplist.FormatError, ValueError, IOError) as e:
+      plist = biplist.readPlist(file_object)
+    except (biplist.InvalidPlistException, ValueError, IOError) as e:
       plist["Label"] = "Could not parse plist: %s" % e
 
     # These are items that can be directly copied
@@ -194,7 +196,7 @@ class OSXInstallHistoryPlistParser(parser.FileParser):
   def Parse(self, statentry, file_object, knowledge_base):
     """Parse the Plist file."""
 
-    plist = binplist.readPlist(file_object)
+    plist = biplist.readPlist(file_object)
 
     if not isinstance(plist, list):
       raise parser.ParseError(

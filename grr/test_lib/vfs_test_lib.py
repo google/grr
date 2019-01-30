@@ -498,7 +498,9 @@ def CreateFile(client_path, content=b"", token=None):
 
   if data_store.RelationalDBWriteEnabled():
     data_store.BLOBS.WriteBlobs({blob_id: content})
-    hash_id = file_store.AddFileWithUnknownHash(client_path, [blob_id])
+    blob_ref = rdf_objects.BlobReference(
+        size=len(content), offset=0, blob_id=blob_id)
+    hash_id = file_store.AddFileWithUnknownHash(client_path, [blob_ref])
 
     path_info = rdf_objects.PathInfo()
     path_info.path_type = client_path.path_type
@@ -509,22 +511,24 @@ def CreateFile(client_path, content=b"", token=None):
 
     data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
 
-  urn = aff4.ROOT_URN.Add(client_path.client_id).Add(client_path.vfs_path)
-  with aff4.FACTORY.Create(urn, aff4_grr.VFSBlobImage, token=token) as filedesc:
-    bio = io.BytesIO()
-    bio.write(content)
-    bio.seek(0)
+  if data_store.AFF4Enabled():
+    urn = aff4.ROOT_URN.Add(client_path.client_id).Add(client_path.vfs_path)
+    with aff4.FACTORY.Create(
+        urn, aff4_grr.VFSBlobImage, token=token) as filedesc:
+      bio = io.BytesIO()
+      bio.write(content)
+      bio.seek(0)
 
-    filedesc.AppendContent(bio)
-    filedesc.Set(filedesc.Schema.STAT, stat_entry)
+      filedesc.AppendContent(bio)
+      filedesc.Set(filedesc.Schema.STAT, stat_entry)
 
-    filedesc.Set(
-        filedesc.Schema.HASH,
-        rdf_crypto.Hash(
-            sha256=rdf_objects.SHA256HashID.FromData(content).AsBytes(),
-            num_bytes=len(content)))
+      filedesc.Set(
+          filedesc.Schema.HASH,
+          rdf_crypto.Hash(
+              sha256=rdf_objects.SHA256HashID.FromData(content).AsBytes(),
+              num_bytes=len(content)))
 
-    filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+      filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
 
 def CreateDirectory(client_path, token=None):
@@ -551,8 +555,9 @@ def CreateDirectory(client_path, token=None):
 
     data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
 
-  urn = aff4.ROOT_URN.Add(client_path.client_id).Add(client_path.vfs_path)
-  with aff4.FACTORY.Create(
-      urn, aff4_standard.VFSDirectory, token=token) as filedesc:
-    filedesc.Set(filedesc.Schema.STAT, stat_entry)
-    filedesc.Set(filedesc.Schema.PATHSPEC, stat_entry.pathspec)
+  if data_store.AFF4Enabled():
+    urn = aff4.ROOT_URN.Add(client_path.client_id).Add(client_path.vfs_path)
+    with aff4.FACTORY.Create(
+        urn, aff4_standard.VFSDirectory, token=token) as filedesc:
+      filedesc.Set(filedesc.Schema.STAT, stat_entry)
+      filedesc.Set(filedesc.Schema.PATHSPEC, stat_entry.pathspec)

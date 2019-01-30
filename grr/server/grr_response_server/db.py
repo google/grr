@@ -49,9 +49,13 @@ CLIENT_STATS_RETENTION = rdfvalue.Duration("31d")
 # Use 254 as max length for usernames to allow email addresses.
 MAX_USERNAME_LENGTH = 254
 
-# Use 95 as max length for labels. This is a trade-off between label length
-# and being able to use labels as part of a composite MySQL key.
-MAX_LABEL_LENGTH = 95
+MAX_LABEL_LENGTH = 100
+
+MAX_ARTIFACT_NAME_LENGTH = 100
+
+MAX_CRON_JOB_ID_LENGTH = 100
+
+MAX_MESSAGE_HANDLER_NAME_LENGTH = 128
 
 # Using sys.maxsize may not work with real database implementations. We need
 # to have a reasonably large number that can be used to read all the records
@@ -261,6 +265,21 @@ class DuplicateMetricValueError(Error):
         "Tried to insert a duplicate StatsStoreEntry in the DB", cause=cause)
 
 
+class ParentHuntIsNotRunningError(Error):
+  """Exception indicating that a hunt-induced flow is not processable."""
+
+  def __init__(self, client_id, flow_id, hunt_id, hunt_state):
+    message = ("Parent hunt %s of the flow with client id '%s' and "
+               "flow id '%s' is not running: %s" % (hunt_id, client_id, flow_id,
+                                                    hunt_state))
+    super(ParentHuntIsNotRunningError, self).__init__(message)
+
+    self.client_id = client_id
+    self.flow_id = flow_id
+    self.hunt_id = hunt_id
+    self.hunt_state = hunt_state
+
+
 # TODO(user): migrate to Python 3 enums as soon as Python 3 is default.
 class HuntFlowsCondition(object):
   """Constants to be used with ReadHuntFlows/CountHuntFlows methods."""
@@ -463,6 +482,19 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       last_foreman: An rdfvalue.Datetime, indicating the last time that the
         client sent a foreman message to the server.
     """
+
+  def DeleteClient(self, client_id):
+    """Deletes a client with all associated metadata.
+
+    This method is a stub. Deletion is not yet supported.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+    """
+    # TODO: Cascaded deletion of data is only implemented in MySQL
+    # yet. When the functionality for deleting clients is required, make sure to
+    # delete all associated metadata (history, stats, flows, messages, ...).
+    raise NotImplementedError("Deletetion of Clients is not yet implemented.")
 
   @abc.abstractmethod
   def MultiReadClientMetadata(self, client_ids):
@@ -924,10 +956,10 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
   @abc.abstractmethod
   def DeleteGRRUser(self, username):
-    """Deletes the user with the given username.
+    """Deletes the user and all related metadata with the given username.
 
     Args:
-      username: Name of a user to insert/update.
+      username: Username identifying the user.
 
     Raises:
       UnknownGRRUserError: if there is no user corresponding to the given name.
@@ -960,8 +992,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Returns:
       rdfvalues.objects.ApprovalRequest object.
     Raises:
-      UnknownApprovalRequest: if there's no corresponding approval request
-                              object.
+      UnknownApprovalRequestError: if there's no corresponding approval request
+          object.
     """
 
   @abc.abstractmethod
@@ -1734,6 +1766,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Raises:
       ValueError: The flow is already marked as being processed.
+      ParentHuntIsNotRunningError: If the flow's parent hunt is stopped or
+      completed.
 
     Returns:
       And rdf_flow_objects.Flow object.
@@ -2014,6 +2048,120 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Returns:
       Number of flow log entries of a given flow.
+    """
+
+  @abc.abstractmethod
+  def WriteFlowOutputPluginLogEntries(self, entries):
+    """Writes flow output plugin log entries for a given flow.
+
+    Args:
+      entries: An iterable of FlowOutputPluginLogEntry values.
+    """
+
+  @abc.abstractmethod
+  def ReadFlowOutputPluginLogEntries(self,
+                                     client_id,
+                                     flow_id,
+                                     output_plugin_id,
+                                     offset,
+                                     count,
+                                     with_type=None):
+    """Reads flow output plugin log entries.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to read log entries for.
+      output_plugin_id: The id of an output plugin with logs to be read.
+      offset: An integer specifying an offset to be used when reading log
+        entries. "offset" is applied after the with_type filter is applied (if
+        specified).
+      count: Number of log entries to read. "count" is applied after the
+        with_type filter is applied (if specified).
+      with_type: (Optional) When specified, should have a
+        FlowOutputPluginLogEntry.LogEntryType value. Output will be limited to
+        entries with a given type.
+
+    Returns:
+      A list of FlowOutputPluginLogEntry values sorted by timestamp in ascending
+      order.
+    """
+
+  @abc.abstractmethod
+  def CountFlowOutputPluginLogEntries(self,
+                                      client_id,
+                                      flow_id,
+                                      output_plugin_id,
+                                      with_type=None):
+    """Returns the number of flow output plugin log entries of a given flow.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to count output plugin log entries for.
+      output_plugin_id: The id of an output plugin with logs to be read. NOTE:
+        REL_DB code uses strings for output plugin ids for consistency (as all
+        other DB ids are strings). At the moment plugin_id in the database is
+        simply a stringified index of the plugin in Flow/Hunt.output_plugins
+        list.
+      with_type: (Optional) When specified, should have a
+        FlowOutputPluginLogEntry.LogEntryType value. Only records of a given
+        type will be counted.
+
+    Returns:
+      Number of output log entries.
+    """
+
+  @abc.abstractmethod
+  def ReadHuntOutputPluginLogEntries(self,
+                                     hunt_id,
+                                     output_plugin_id,
+                                     offset,
+                                     count,
+                                     with_type=None):
+    """Reads hunt output plugin log entries.
+
+    Args:
+      hunt_id: The hunt id of a hunt with the flows to read output plugins log
+        entries from.
+      output_plugin_id: The id of an output plugin with logs to be read. NOTE:
+        REL_DB code uses strings for output plugin ids for consistency (as all
+        other DB ids are strings). At the moment plugin_id in the database is
+        simply a stringified index of the plugin in Flow/Hunt.output_plugins
+        list.
+      offset: An integer specifying an offset to be used when reading log
+        entries. "offset" is applied after the with_type filter is applied (if
+        specified).
+      count: Number of log entries to read. "count" is applied after the
+        with_type filter is applied (if specified).
+      with_type: (Optional) When specified, should have a
+        FlowOutputPluginLogEntry.LogEntryType value. Output will be limited to
+        entries with a given type.
+
+    Returns:
+      A list of FlowOutputPluginLogEntry values sorted by timestamp in ascending
+      order.
+    """
+
+  @abc.abstractmethod
+  def CountHuntOutputPluginLogEntries(self,
+                                      hunt_id,
+                                      output_plugin_id,
+                                      with_type=None):
+    """Returns number of hunt output plugin log entries of a given hunt.
+
+    Args:
+      hunt_id: The hunt id of a hunt with output plugins log entries to be
+        counted.
+      output_plugin_id: The id of an output plugin with logs to be read. NOTE:
+        REL_DB code uses strings for output plugin ids for consistency (as all
+        other DB ids are strings). At the moment plugin_id in the database is
+        simply a stringified index of the plugin in Flow/Hunt.output_plugins
+        list.
+      with_type: (Optional) When specified, should have a
+        FlowOutputPluginLogEntry.LogEntryType value. Only records of a given
+        type will be counted.
+
+    Returns:
+      Number of output plugin log entries.
     """
 
   @abc.abstractmethod
@@ -2342,6 +2490,8 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertType(artifact, rdf_artifacts.Artifact)
     if not artifact.name:
       raise ValueError("Empty artifact name")
+    _ValidateStringLength("Artifact names", artifact.name,
+                          MAX_ARTIFACT_NAME_LENGTH)
 
     return self.delegate.WriteArtifact(artifact)
 
@@ -2832,6 +2982,8 @@ class DatabaseValidationWrapper(Database):
 
   def WriteMessageHandlerRequests(self, requests):
     precondition.AssertIterableType(requests, rdf_objects.MessageHandlerRequest)
+    for request in requests:
+      _ValidateMessageHandlerName(request.handler_name)
     return self.delegate.WriteMessageHandlerRequests(requests)
 
   def DeleteMessageHandlerRequests(self, requests):
@@ -2853,6 +3005,7 @@ class DatabaseValidationWrapper(Database):
 
   def WriteCronJob(self, cronjob):
     precondition.AssertType(cronjob, rdf_cronjobs.CronJob)
+    _ValidateCronJobId(cronjob.cron_job_id)
     return self.delegate.WriteCronJob(cronjob)
 
   def ReadCronJob(self, cronjob_id):
@@ -3198,6 +3351,79 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.CountFlowLogEntries(client_id, flow_id)
 
+  def WriteFlowOutputPluginLogEntries(self, entries):
+    for e in entries:
+      precondition.AssertType(e, rdf_flow_objects.FlowOutputPluginLogEntry)
+
+      _ValidateClientId(e.client_id)
+      _ValidateFlowId(e.flow_id)
+      if e.hunt_id:
+        _ValidateHuntId(e.hunt_id)
+
+    return self.delegate.WriteFlowOutputPluginLogEntries(entries)
+
+  def ReadFlowOutputPluginLogEntries(self,
+                                     client_id,
+                                     flow_id,
+                                     output_plugin_id,
+                                     offset,
+                                     count,
+                                     with_type=None):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    _ValidateOutputPluginId(output_plugin_id)
+    if with_type is not None:
+      _ValidateEnumType(with_type,
+                        rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType)
+
+    return self.delegate.ReadFlowOutputPluginLogEntries(
+        client_id,
+        flow_id,
+        output_plugin_id,
+        offset,
+        count,
+        with_type=with_type)
+
+  def CountFlowOutputPluginLogEntries(self,
+                                      client_id,
+                                      flow_id,
+                                      output_plugin_id,
+                                      with_type=None):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+    _ValidateOutputPluginId(output_plugin_id)
+
+    return self.delegate.CountFlowOutputPluginLogEntries(
+        client_id, flow_id, output_plugin_id, with_type=with_type)
+
+  def ReadHuntOutputPluginLogEntries(self,
+                                     hunt_id,
+                                     output_plugin_id,
+                                     offset,
+                                     count,
+                                     with_type=None):
+    _ValidateHuntId(hunt_id)
+    _ValidateOutputPluginId(output_plugin_id)
+    if with_type is not None:
+      _ValidateEnumType(with_type,
+                        rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType)
+
+    return self.delegate.ReadHuntOutputPluginLogEntries(
+        hunt_id, output_plugin_id, offset, count, with_type=with_type)
+
+  def CountHuntOutputPluginLogEntries(self,
+                                      hunt_id,
+                                      output_plugin_id,
+                                      with_type=None):
+    _ValidateHuntId(hunt_id)
+    _ValidateOutputPluginId(output_plugin_id)
+    if with_type is not None:
+      _ValidateEnumType(with_type,
+                        rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType)
+
+    return self.delegate.CountHuntOutputPluginLogEntries(
+        hunt_id, output_plugin_id, with_type=with_type)
+
   def WriteStatsStoreEntries(self, stats_entries):
     _ValidateStatsStoreEntries(stats_entries)
 
@@ -3329,8 +3555,13 @@ class DatabaseValidationWrapper(Database):
 
   def WriteClientGraphSeries(self, graph_series, client_label, timestamp=None):
     precondition.AssertType(graph_series, rdf_stats.ClientGraphSeries)
-    precondition.AssertType(client_label, Text)
-    precondition.AssertOptionalType(timestamp, rdfvalue.RDFDatetime)
+    _ValidateLabel(client_label)
+
+    if timestamp is None:
+      timestamp = rdfvalue.RDFDatetime.Now()
+    else:
+      precondition.AssertType(timestamp, rdfvalue.RDFDatetime)
+
     if (graph_series.report_type ==
         rdf_stats.ClientGraphSeries.ReportType.UNKNOWN):
       raise ValueError("Report-type for graph series must be set.")
@@ -3339,7 +3570,7 @@ class DatabaseValidationWrapper(Database):
 
   def ReadAllClientGraphSeries(self, client_label, report_type,
                                time_range=None):
-    precondition.AssertType(client_label, Text)
+    _ValidateLabel(client_label)
     if (report_type == rdf_stats.ClientGraphSeries.ReportType.UNKNOWN or
         str(report_type) not in rdf_stats.ClientGraphSeries.ReportType.enum_dict
        ):
@@ -3349,7 +3580,7 @@ class DatabaseValidationWrapper(Database):
         client_label, report_type, time_range=time_range)
 
   def ReadMostRecentClientGraphSeries(self, client_label, report_type):
-    precondition.AssertType(client_label, Text)
+    _ValidateLabel(client_label)
     if (report_type == rdf_stats.ClientGraphSeries.ReportType.UNKNOWN or
         str(report_type) not in rdf_stats.ClientGraphSeries.ReportType.enum_dict
        ):
@@ -3389,12 +3620,17 @@ def _ValidateFlowId(flow_id):
   _ValidateStringId("flow_id", flow_id)
 
 
+def _ValidateOutputPluginId(output_plugin_id):
+  _ValidateStringId("output_plugin_id", output_plugin_id)
+
+
 def _ValidateHuntId(hunt_id):
   _ValidateStringId("hunt_id", hunt_id)
 
 
 def _ValidateCronJobId(cron_job_id):
   _ValidateStringId("cron_job_id", cron_job_id)
+  _ValidateStringLength("cron_job_id", cron_job_id, MAX_CRON_JOB_ID_LENGTH)
 
 
 def _ValidateCronJobRunId(cron_job_run_id):
@@ -3554,3 +3790,8 @@ def _ValidateStatsStoreEntries(stats_entries):
 def _ValidateHuntFlowCondition(value):
   if value < 0 or value > HuntFlowsCondition.MaxValue():
     raise ValueError("Invalid hunt flow condition: %d" % value)
+
+
+def _ValidateMessageHandlerName(name):
+  _ValidateStringLength("MessageHandler names", name,
+                        MAX_MESSAGE_HANDLER_NAME_LENGTH)

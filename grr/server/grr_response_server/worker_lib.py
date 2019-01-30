@@ -23,7 +23,9 @@ from grr_response_core.lib.util import collection
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import handler_registry
 from grr_response_server import master
 from grr_response_server import queue_manager as queue_manager_lib
@@ -415,8 +417,12 @@ class GRRWorker(object):
 
     data_store.REL_DB.AckFlowProcessingRequests([flow_processing_request])
 
-    rdf_flow = data_store.REL_DB.ReadFlowForProcessing(
-        client_id, flow_id, processing_time=rdfvalue.Duration("6h"))
+    try:
+      rdf_flow = data_store.REL_DB.ReadFlowForProcessing(
+          client_id, flow_id, processing_time=rdfvalue.Duration("6h"))
+    except db.ParentHuntIsNotRunningError:
+      flow_base.TerminateFlow(client_id, flow_id, "Parent hunt stopped.")
+      return
 
     flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
     flow_obj = flow_cls(rdf_flow)

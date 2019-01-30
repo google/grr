@@ -176,3 +176,44 @@ class InMemoryDBHuntMixin(object):
     return len(
         self.ReadHuntFlows(
             hunt_id, 0, sys.maxsize, filter_condition=filter_condition))
+
+  @utils.Synchronized
+  def ReadHuntOutputPluginLogEntries(self,
+                                     hunt_id,
+                                     output_plugin_id,
+                                     offset,
+                                     count,
+                                     with_type=None):
+    """Reads hunt output plugin log entries."""
+
+    all_entries = []
+    for flow_obj in self._GetHuntFlows(hunt_id):
+      for entry in self.ReadFlowOutputPluginLogEntries(
+          flow_obj.client_id,
+          flow_obj.flow_id,
+          output_plugin_id,
+          0,
+          sys.maxsize,
+          with_type=with_type):
+        all_entries.append(
+            rdf_flow_objects.FlowOutputPluginLogEntry(
+                hunt_id=hunt_id,
+                client_id=flow_obj.client_id,
+                flow_id=flow_obj.flow_id,
+                output_plugin_id=output_plugin_id,
+                log_entry_type=entry.log_entry_type,
+                timestamp=entry.timestamp,
+                message=entry.message))
+
+    return sorted(all_entries, key=lambda x: x.timestamp)[offset:offset + count]
+
+  @utils.Synchronized
+  def CountHuntOutputPluginLogEntries(self,
+                                      hunt_id,
+                                      output_plugin_id,
+                                      with_type=None):
+    """Counts hunt output plugin log entries."""
+
+    return len(
+        self.ReadHuntOutputPluginLogEntries(
+            hunt_id, output_plugin_id, 0, sys.maxsize, with_type=with_type))

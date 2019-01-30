@@ -24,6 +24,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
 from grr.test_lib import client_test_lib
+from grr.test_lib import filesystem_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 from grr.test_lib import worker_mocks
@@ -490,7 +491,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
   def testStatExtFlags(self):
     with temp.AutoTempFilePath() as temp_filepath:
-      client_test_lib.Chattr(temp_filepath, attrs=["+c"])
+      filesystem_test_lib.Chattr(temp_filepath, attrs=["+c"])
 
       action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self._RunFileFinder([temp_filepath], action)
@@ -502,8 +503,10 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
   def testStatExtAttrs(self):
     with temp.AutoTempFilePath() as temp_filepath:
-      client_test_lib.SetExtAttr(temp_filepath, name=b"user.foo", value=b"norf")
-      client_test_lib.SetExtAttr(temp_filepath, name=b"user.bar", value=b"quux")
+      filesystem_test_lib.SetExtAttr(
+          temp_filepath, name=b"user.foo", value=b"norf")
+      filesystem_test_lib.SetExtAttr(
+          temp_filepath, name=b"user.bar", value=b"quux")
 
       action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self._RunFileFinder([temp_filepath], action)
@@ -526,11 +529,11 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     with temp.AutoTempFilePath() as temp_filepath:
       name_0 = "user.żółć".encode("utf-8")
       value_0 = "jaźń".encode("utf-8")
-      client_test_lib.SetExtAttr(temp_filepath, name=name_0, value=value_0)
+      filesystem_test_lib.SetExtAttr(temp_filepath, name=name_0, value=value_0)
 
       name_1 = "user.rtęć".encode("utf-8")
       value_1 = "kość".encode("utf-8")
-      client_test_lib.SetExtAttr(temp_filepath, name=name_1, value=value_1)
+      filesystem_test_lib.SetExtAttr(temp_filepath, name=name_1, value=value_1)
 
       action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self._RunFileFinder([temp_filepath], action)
@@ -548,7 +551,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       name = b"user.foo"
       value = b"\xDE\xAD\xBE\xEF"
 
-      client_test_lib.SetExtAttr(temp_filepath, name=name, value=value)
+      filesystem_test_lib.SetExtAttr(temp_filepath, name=name, value=value)
 
       action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self._RunFileFinder([temp_filepath], action)
@@ -564,7 +567,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       name = b"user.\xDE\xAD\xBE\xEF"
       value = b"bar"
 
-      client_test_lib.SetExtAttr(temp_filepath, name=name, value=value)
+      filesystem_test_lib.SetExtAttr(temp_filepath, name=name, value=value)
 
       # This should not explode (`xattr` does not handle non-unicode names).
       action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)

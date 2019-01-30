@@ -57,3 +57,19 @@ class MySQLDBHuntMixin(object):
                      hunt_id,
                      filter_condition=db.HuntFlowsCondition.UNSET):
     raise NotImplementedError()
+
+  def ReadHuntOutputPluginLogEntries(self,
+                                     hunt_id,
+                                     output_plugin_id,
+                                     offset,
+                                     count,
+                                     with_type=None):
+    """Reads hunt output plugin log entries."""
+    raise NotImplementedError()
+
+  def CountHuntOutputPluginLogEntries(self,
+                                      hunt_id,
+                                      output_plugin_id,
+                                      with_type=None):
+    """Counts hunt output plugin log entries."""
+    raise NotImplementedError()

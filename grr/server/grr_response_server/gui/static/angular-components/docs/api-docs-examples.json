@@ -15406,18 +15406,13 @@
           {
             "type": "OutputPluginBatchProcessingStatus",
             "value": {
+              "batch_index": {
+                "type": "long",
+                "value": 0
+              },
               "batch_size": {
                 "type": "long",
-                "value": 1
-              },
-              "plugin_descriptor": {
-                "type": "OutputPluginDescriptor",
-                "value": {
-                  "plugin_name": {
-                    "type": "unicode",
-                    "value": "FailingDummyHuntOutputPlugin"
-                  }
-                }
+                "value": 0
               },
               "status": {
                 "type": "EnumNamedValue",
@@ -15425,7 +15420,7 @@
               },
               "summary": {
                 "type": "unicode",
-                "value": "Oh no!"
+                "value": "Error while processing 1 replies: Oh no!"
               }
             }
           }
@@ -15436,12 +15431,10 @@
       "type_stripped_response": {
         "items": [
           {
-            "batch_size": 1,
-            "plugin_descriptor": {
-              "plugin_name": "FailingDummyHuntOutputPlugin"
-            },
+            "batch_index": 0,
+            "batch_size": 0,
             "status": "ERROR",
-            "summary": "Oh no!"
+            "summary": "Error while processing 1 replies: Oh no!"
           }
         ],
         "total_count": 1
@@ -15458,35 +15451,21 @@
           {
             "type": "OutputPluginBatchProcessingStatus",
             "value": {
+              "batch_index": {
+                "type": "long",
+                "value": 0
+              },
               "batch_size": {
                 "type": "long",
-                "value": 1
-              },
-              "plugin_descriptor": {
-                "type": "OutputPluginDescriptor",
-                "value": {
-                  "plugin_args": {
-                    "type": "EmailOutputPluginArgs",
-                    "value": {
-                      "email_address": {
-                        "type": "DomainEmailAddress",
-                        "value": "test@localhost"
-                      },
-                      "emails_limit": {
-                        "type": "long",
-                        "value": 42
-                      }
-                    }
-                  },
-                  "plugin_name": {
-                    "type": "unicode",
-                    "value": "EmailOutputPlugin"
-                  }
-                }
+                "value": 0
               },
               "status": {
                 "type": "EnumNamedValue",
                 "value": "SUCCESS"
+              },
+              "summary": {
+                "type": "unicode",
+                "value": "Processed 1 replies."
               }
             }
           }
@@ -15497,15 +15476,10 @@
       "type_stripped_response": {
         "items": [
           {
-            "batch_size": 1,
-            "plugin_descriptor": {
-              "plugin_args": {
-                "email_address": "test@localhost",
-                "emails_limit": 42
-              },
-              "plugin_name": "EmailOutputPlugin"
-            },
-            "status": "SUCCESS"
+            "batch_index": 0,
+            "batch_size": 0,
+            "status": "SUCCESS",
+            "summary": "Processed 1 replies."
           }
         ],
         "total_count": 1
@@ -17154,18 +17128,13 @@
           {
             "type": "OutputPluginBatchProcessingStatus",
             "value": {
+              "batch_index": {
+                "type": "long",
+                "value": 0
+              },
               "batch_size": {
                 "type": "long",
-                "value": 1
-              },
-              "plugin_descriptor": {
-                "type": "OutputPluginDescriptor",
-                "value": {
-                  "plugin_name": {
-                    "type": "unicode",
-                    "value": "FailingDummyHuntOutputPlugin"
-                  }
-                }
+                "value": 0
               },
               "status": {
                 "type": "EnumNamedValue",
@@ -17173,25 +17142,20 @@
               },
               "summary": {
                 "type": "unicode",
-                "value": "Oh no!"
+                "value": "Error while processing 1 replies: Oh no!"
               }
             }
           },
           {
             "type": "OutputPluginBatchProcessingStatus",
             "value": {
+              "batch_index": {
+                "type": "long",
+                "value": 0
+              },
               "batch_size": {
                 "type": "long",
-                "value": 1
-              },
-              "plugin_descriptor": {
-                "type": "OutputPluginDescriptor",
-                "value": {
-                  "plugin_name": {
-                    "type": "unicode",
-                    "value": "FailingDummyHuntOutputPlugin"
-                  }
-                }
+                "value": 0
               },
               "status": {
                 "type": "EnumNamedValue",
@@ -17199,7 +17163,7 @@
               },
               "summary": {
                 "type": "unicode",
-                "value": "Oh no!"
+                "value": "Error while processing 1 replies: Oh no!"
               }
             }
           }
@@ -17210,20 +17174,16 @@
       "type_stripped_response": {
         "items": [
           {
-            "batch_size": 1,
-            "plugin_descriptor": {
-              "plugin_name": "FailingDummyHuntOutputPlugin"
-            },
+            "batch_index": 0,
+            "batch_size": 0,
             "status": "ERROR",
-            "summary": "Oh no!"
+            "summary": "Error while processing 1 replies: Oh no!"
           },
           {
-            "batch_size": 1,
-            "plugin_descriptor": {
-              "plugin_name": "FailingDummyHuntOutputPlugin"
-            },
+            "batch_index": 0,
+            "batch_size": 0,
             "status": "ERROR",
-            "summary": "Oh no!"
+            "summary": "Error while processing 1 replies: Oh no!"
           }
         ],
         "total_count": 2
@@ -17240,70 +17200,42 @@
           {
             "type": "OutputPluginBatchProcessingStatus",
             "value": {
+              "batch_index": {
+                "type": "long",
+                "value": 0
+              },
               "batch_size": {
                 "type": "long",
-                "value": 1
-              },
-              "plugin_descriptor": {
-                "type": "OutputPluginDescriptor",
-                "value": {
-                  "plugin_args": {
-                    "type": "ListProcessesArgs",
-                    "value": {
-                      "fetch_binaries": {
-                        "type": "RDFBool",
-                        "value": true
-                      },
-                      "filename_regex": {
-                        "type": "RegularExpression",
-                        "value": "blah!"
-                      }
-                    }
-                  },
-                  "plugin_name": {
-                    "type": "unicode",
-                    "value": "DummyHuntTestOutputPlugin"
-                  }
-                }
+                "value": 0
               },
               "status": {
                 "type": "EnumNamedValue",
                 "value": "SUCCESS"
+              },
+              "summary": {
+                "type": "unicode",
+                "value": "Processed 1 replies."
               }
             }
           },
           {
             "type": "OutputPluginBatchProcessingStatus",
             "value": {
+              "batch_index": {
+                "type": "long",
+                "value": 0
+              },
               "batch_size": {
                 "type": "long",
-                "value": 1
-              },
-              "plugin_descriptor": {
-                "type": "OutputPluginDescriptor",
-                "value": {
-                  "plugin_args": {
-                    "type": "ListProcessesArgs",
-                    "value": {
-                      "fetch_binaries": {
-                        "type": "RDFBool",
-                        "value": true
-                      },
-                      "filename_regex": {
-                        "type": "RegularExpression",
-                        "value": "blah!"
-                      }
-                    }
-                  },
-                  "plugin_name": {
-                    "type": "unicode",
-                    "value": "DummyHuntTestOutputPlugin"
-                  }
-                }
+                "value": 0
               },
               "status": {
                 "type": "EnumNamedValue",
                 "value": "SUCCESS"
+              },
+              "summary": {
+                "type": "unicode",
+                "value": "Processed 1 replies."
               }
             }
           }
@@ -17314,26 +17246,16 @@
       "type_stripped_response": {
         "items": [
           {
-            "batch_size": 1,
-            "plugin_descriptor": {
-              "plugin_args": {
-                "fetch_binaries": true,
-                "filename_regex": "blah!"
-              },
-              "plugin_name": "DummyHuntTestOutputPlugin"
-            },
-            "status": "SUCCESS"
+            "batch_index": 0,
+            "batch_size": 0,
+            "status": "SUCCESS",
+            "summary": "Processed 1 replies."
           },
           {
-            "batch_size": 1,
-            "plugin_descriptor": {
-              "plugin_args": {
-                "fetch_binaries": true,
-                "filename_regex": "blah!"
-              },
-              "plugin_name": "DummyHuntTestOutputPlugin"
-            },
-            "status": "SUCCESS"
+            "batch_index": 0,
+            "batch_size": 0,
+            "status": "SUCCESS",
+            "summary": "Processed 1 replies."
           }
         ],
         "total_count": 2

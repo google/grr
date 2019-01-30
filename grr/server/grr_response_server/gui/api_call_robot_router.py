@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -13,6 +15,7 @@ from grr_response_proto import api_call_router_pb2
 from grr_response_server import access_control
 
 from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import throttle
 from grr_response_server.flows.general import collectors
@@ -106,19 +109,26 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     if not args.flow.name:
       raise RuntimeError("Flow name is not specified.")
 
-    # Note that runner_args are dropped. From all the arguments We use only
-    # the flow name and the arguments.
-    flow_id = flow.StartAFF4Flow(
-        client_id=args.client_id.ToClientURN(),
-        flow_name=args.flow.name,
-        token=token,
-        args=self.override_flow_args or args.flow.args)
+    if data_store.RelationalDBFlowsEnabled():
+      delegate = api_flow.ApiCreateFlowHandler()
+      # Note that runner_args are dropped. From all the arguments We use only
+      # the flow name and the arguments.
+      delegate_args = api_flow.ApiCreateFlowArgs(client_id=args.client_id)
+      delegate_args.flow.name = args.flow.name
+      delegate_args.flow.args = self.override_flow_args or args.flow.args
+      return delegate.Handle(delegate_args, token=token)
+    else:
+      flow_id = flow.StartAFF4Flow(
+          client_id=args.client_id.ToClientURN(),
+          flow_name=args.flow.name,
+          token=token,
+          args=self.override_flow_args or args.flow.args)
 
-    with aff4.FACTORY.Open(
-        flow_id, aff4_type=flow.GRRFlow, mode="rw", token=token) as fd:
-      fd.AddLabel(LABEL_NAME_PREFIX + self.robot_id)
-      return api_flow.ApiFlow().InitFromAff4Object(
-          fd, flow_id=flow_id.Basename())
+      with aff4.FACTORY.Open(
+          flow_id, aff4_type=flow.GRRFlow, mode="rw", token=token) as fd:
+        fd.AddLabel(LABEL_NAME_PREFIX + self.robot_id)
+        return api_flow.ApiFlow().InitFromAff4Object(
+            fd, flow_id=flow_id.Basename())
 
 
 class ApiRobotReturnDuplicateFlowHandler(api_call_handler_base.ApiCallHandler):
@@ -227,16 +237,27 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
         dup_interval=acparams.min_interval_between_duplicate_flows)
 
   def _CheckFlowRobotId(self, client_id, flow_id, token=None):
-    flow_urn = flow_id.ResolveClientFlowURN(client_id, token=token)
-    fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
+    # We don't use robot ids in REL_DB, but simply check that flow's creator is
+    # equal to the user making the request.
+    # TODO(user): get rid of robot id logic as soon as AFF4 is gone.
+    if data_store.RelationalDBFlowsEnabled():
+      flow_obj = data_store.REL_DB.ReadFlowObject(str(client_id), str(flow_id))
+      if flow_obj.creator != token.username:
+        raise access_control.UnauthorizedAccess(
+            "Flow %s (client %s) has to be created "
+            "by the user making the request." % (flow_id, client_id))
+      return flow_obj.flow_class_name
+    else:
+      flow_urn = flow_id.ResolveClientFlowURN(client_id, token=token)
+      fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
 
-    needed_label_name = LABEL_NAME_PREFIX + self.params.robot_id
-    if needed_label_name not in fd.GetLabelsNames():
-      raise access_control.UnauthorizedAccess(
-          "Flow %s (client %s) does not have a proper robot id label set." %
-          (flow_id, client_id))
+      needed_label_name = LABEL_NAME_PREFIX + self.params.robot_id
+      if needed_label_name not in fd.GetLabelsNames():
+        raise access_control.UnauthorizedAccess(
+            "Flow %s (client %s) does not have a proper robot id label set." %
+            (flow_id, client_id))
 
-    return fd
+      return fd.Name()
 
   def _FixFileFinderArgs(self, source_args):
     ffparams = self.params.file_finder_flow
@@ -325,12 +346,13 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       raise access_control.UnauthorizedAccess(
           "GetFlowFilesArchive is not allowed by the configuration.")
 
-    fd = self._CheckFlowRobotId(args.client_id, args.flow_id, token=token)
+    flow_name = self._CheckFlowRobotId(
+        args.client_id, args.flow_id, token=token)
 
     options = self.params.get_flow_files_archive
 
     if (options.skip_glob_checks_for_artifact_collector and
-        fd.Name() == self.artifact_collector_flow_name):
+        flow_name == self.artifact_collector_flow_name):
       return api_flow.ApiGetFlowFilesArchiveHandler()
     else:
       return api_flow.ApiGetFlowFilesArchiveHandler(

@@ -57,7 +57,6 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
     self.RequestAndGrantClientApproval(client_id)
 
-    client_obj = aff4.FACTORY.Open(client_id, token=self.token)
     return client_id
 
   def testReasonIsShown(self):
@@ -71,14 +70,14 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
     self.WaitUntil(self.IsElementPresent, "css=img[src$='online.png']")
 
   def testOneDayClientStatus(self):
-    client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
-                                  rdfvalue.Duration("1h"))
+    client_id = self.CreateClient(
+        last_ping=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1h"))
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='online-1d.png']")
 
   def testOfflineClientStatus(self):
-    client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
-                                  rdfvalue.Duration("1d"))
+    client_id = self.CreateClient(
+        last_ping=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d"))
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='offline.png']")
 
@@ -94,8 +93,8 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
         "img[src$='online.png']" % client_id.Basename())
 
   def testOneDayClientStatusInClientSearch(self):
-    client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
-                                  rdfvalue.Duration("1h"))
+    client_id = self.CreateClient(
+        last_ping=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1h"))
 
     self.Open("/")
     self.Type("client_query", client_id.Basename())
@@ -106,8 +105,8 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
         "img[src$='online-1d.png']" % client_id.Basename())
 
   def testOfflineClientStatusInClientSearch(self):
-    client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
-                                  rdfvalue.Duration("1d"))
+    client_id = self.CreateClient(
+        last_ping=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d"))
 
     self.Open("/")
     self.Type("client_query", client_id.Basename())

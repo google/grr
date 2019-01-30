@@ -57,7 +57,11 @@ class CleanHunts(aff4_cronjobs.SystemCronFlow, CleanHuntsMixin):
   lifetime = rdfvalue.Duration("1d")
 
   def Start(self):
-    self.CleanAff4Hunts()
+    if data_store.AFF4Enabled():
+      self.CleanAff4Hunts()
+    else:
+      # TODO(amoser): Support relational db here.
+      pass
 
 
 class CleanHuntsCronJob(cronjobs.SystemCronJobBase, CleanHuntsMixin):
@@ -119,8 +123,11 @@ class CleanInactiveClientsMixin(object):
   """Logic for the cron jobs that clean up old client data."""
 
   def CleanClients(self):
-    # TODO(amoser): Support relational db here.
-    self.CleanAff4Clients()
+    if data_store.AFF4Enabled():
+      self.CleanAff4Clients()
+    else:
+      # TODO(amoser): Support relational db here.
+      pass
 
   def CleanAff4Clients(self):
     """Cleans up old client data from aff4."""

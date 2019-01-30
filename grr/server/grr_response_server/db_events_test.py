@@ -115,3 +115,11 @@ class DatabaseEventsTestMixin(object):
     entries = self.db.ReadAPIAuditEntries(
         min_timestamp=timestamps[1], max_timestamp=timestamps[1])
     self.assertEqual([e.response_code for e in entries], ["ERROR"])
+
+  def testDeleteUsersRetainsApiAuditEntries(self):
+    entry = self._MakeEntry(username="foo")
+    self.db.WriteAPIAuditEntry(entry)
+    self.db.DeleteGRRUser("foo")
+    entries = self.db.ReadAPIAuditEntries(username="foo")
+    self.assertLen(entries, 1)
+    self.assertEqual(entries[0].username, "foo")

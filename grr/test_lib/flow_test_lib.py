@@ -587,11 +587,22 @@ def StartAndRunFlow(flow_cls,
     check_flow_errors: If True, raise on errors during flow execution.
     **kwargs: Arbitrary args that will be passed to flow.StartFlow().
 
+  Raises:
+    RuntimeError: check_flow_errors was true and the flow raised an error in
+    Start().
+
   Returns:
     The session id of the flow that was run.
   """
   with TestWorker(token=True) as worker:
     flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kwargs)
+
+    if check_flow_errors:
+      rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      if rdf_flow.flow_state == rdf_flow.FlowState.ERROR:
+        raise RuntimeError(
+            "Flow %s on %s raised an error in state %s (error message: %s)" %
+            (flow_id, client_id, rdf_flow.flow_state, rdf_flow.error_message))
 
     RunFlow(
         client_id,

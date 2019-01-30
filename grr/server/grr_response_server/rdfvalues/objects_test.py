@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -93,8 +93,8 @@ class ObjectTest(absltest.TestCase):
 
   def testClientAddresses(self):
     client = MakeClient()
-    self.assertEqual(
-        sorted(client.GetIPAddresses()), ["8.8.8.8", "fe80:102:300::"])
+    self.assertCountEqual(client.GetIPAddresses(),
+                          ["8.8.8.8", "fe80:102:300::"])
     self.assertEqual(client.GetMacAddresses(), ["010203040102030401020304"])
 
   def testClientSummary(self):
@@ -103,8 +103,7 @@ class ObjectTest(absltest.TestCase):
     self.assertEqual(summary.system_info.fqdn, "test123.examples.com")
     self.assertEqual(summary.cloud_instance_id,
                      "us-central1-a/myproject/1771384456894610289")
-    self.assertEqual(
-        sorted([u.username for u in summary.users]), ["fred", "joe"])
+    self.assertCountEqual([u.username for u in summary.users], ["fred", "joe"])
 
   def testClientSummaryTimestamp(self):
     client = MakeClient()

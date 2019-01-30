@@ -60,7 +60,7 @@ _MYSQL_MAX_RETRIES = 2
 _MYSQL_RETRY_WAIT_SECS = 2
 
 # Python hacks or executables larger than this limit will not be uploaded.
-_MAX_SIGNED_BINARY_BYTES = 30 << 20  # 30 MiB
+_MAX_SIGNED_BINARY_BYTES = 100 << 20  # 100 MiB
 
 # Batch size to use when fetching multiple items from the GRR API.
 _GRR_API_PAGE_SIZE = 1000

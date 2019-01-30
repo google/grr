@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import socket
 
 from absl.testing import absltest
+from future.builtins import int
 from future.builtins import str
 import psutil
 
@@ -85,14 +86,14 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     proto.ParseFromString(fast_proto.SerializeToString())
 
     # Old implementation should just see the last_logon field as an integer.
+    self.assertIsInstance(proto.last_logon, int)
     self.assertEqual(proto.last_logon, datetime.AsMicrosecondsSinceEpoch())
-    self.assertEqual(type(proto.last_logon), long)
 
     # fast protobufs interoperate with old serialized formats.
     serialized_data = proto.SerializeToString()
     fast_proto = rdf_client.User.FromSerializedString(serialized_data)
+    self.assertIsInstance(fast_proto.last_logon, rdfvalue.RDFDatetime)
     self.assertEqual(fast_proto.last_logon, datetime.AsMicrosecondsSinceEpoch())
-    self.assertEqual(type(fast_proto.last_logon), rdfvalue.RDFDatetime)
 
   def testPrettyPrintMode(self):
 

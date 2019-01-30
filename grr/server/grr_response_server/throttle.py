@@ -55,6 +55,9 @@ class FlowThrottler(object):
     Yields: flow_objects.Flow objects
     """
     if data_store.RelationalDBFlowsEnabled():
+      if isinstance(client_id, rdfvalue.RDFURN):
+        client_id = client_id.Basename()
+
       flow_list = data_store.REL_DB.ReadAllFlowObjects(
           client_id=client_id,
           min_create_time=min_create_time,

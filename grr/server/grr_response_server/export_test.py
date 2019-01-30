@@ -252,9 +252,18 @@ class ExportTest(ExportTestBase):
         pathspec=pathspec)
 
     urn = pathspec.AFF4Path(self.client_id)
-    fd = aff4.FACTORY.Open(urn, token=self.token)
 
-    stat = fd.Get(fd.Schema.STAT)
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      path_info = data_store.REL_DB.ReadPathInfo(
+          self.client_id.Basename(),
+          rdf_objects.PathInfo.PathType.TSK,
+          components=tuple(pathspec.CollapsePath().lstrip("/").split("/")))
+      stat = path_info.stat_entry
+    else:
+      fd = aff4.FACTORY.Open(urn, token=self.token)
+
+      stat = fd.Get(fd.Schema.STAT)
+
     self.assertTrue(stat)
 
     converter = export.StatEntryToExportedFileConverter()
@@ -498,6 +507,9 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[1].ctime, 0)
 
   def testRDFURNConverterWithURNPointingToFile(self):
+    if data_store.RelationalDBReadEnabled(category="vfs"):
+      self.skipTest("This converter is used with AFF4 only.")
+
     urn = self.client_id.Add("fs/os/some/path")
 
     stat_entry = rdf_client_fs.StatEntry()
@@ -511,11 +523,6 @@ class ExportTest(ExportTestBase):
 
     with aff4.FACTORY.Create(urn, aff4_grr.VFSFile, token=self.token) as fd:
       fd.Set(fd.Schema.STAT(stat_entry))
-
-    if data_store.RelationalDBWriteEnabled():
-      path_info = rdf_objects.PathInfo.OS(
-          components=["some", "path"], stat_entry=stat_entry)
-      data_store.REL_DB.WritePathInfos(self.client_id.Basename(), [path_info])
 
     converter = export.RDFURNConverter()
     results = list(converter.Convert(self.metadata, urn, token=self.token))

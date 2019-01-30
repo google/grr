@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Test the vfs refreshing functionality."""
 from __future__ import absolute_import
 from __future__ import division
@@ -69,8 +69,6 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     # otherwise) and finish the flow.
     client_id = rdf_client.ClientURN("C.0000000000000001")
 
-    fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
-
     # Make sure that the flow has started (when button is clicked, the HTTP
     # API request is sent asynchronously).
     def MultiGetFileStarted():
@@ -80,6 +78,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
                 client_id=client_id.Basename())
         ]
       else:
+        fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
         return transfer.MultiGetFile.__name__ in list(
             x.__class__.__name__ for x in fd.OpenChildren())
 

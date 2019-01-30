@@ -54,12 +54,12 @@ class ApiGetFlowHandlerRegressionTest(
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
       client_id = self.SetupClient(0).Basename()
-
-      # Delete the certificates as it's being regenerated every time the
-      # client is created.
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as client_obj:
-        client_obj.DeleteAttribute(client_obj.Schema.CERT)
+      if data_store.AFF4Enabled():
+        # Delete the certificates as it's being regenerated every time the
+        # client is created.
+        with aff4.FACTORY.Open(
+            client_id, mode="rw", token=self.token) as client_obj:
+          client_obj.DeleteAttribute(client_obj.Schema.CERT)
 
       flow_id = api_regression_test_lib.StartFlow(
           client_id, discovery.Interrogate, token=self.token)
@@ -253,17 +253,12 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
 
   def Run(self):
     client_id = self.SetupClient(0)
-    with test_lib.FakeTime(42):
-      flow_urn = flow.StartAFF4Flow(
-          flow_name=processes.ListProcesses.__name__,
-          client_id=client_id,
-          token=self.token)
+    flow_urn = "F:ABCDEF"
 
     self.Check(
         "GetFlowResultsExportCommand",
         args=flow_plugin.ApiGetFlowResultsExportCommandArgs(
-            client_id=client_id.Basename(), flow_id=flow_urn.Basename()),
-        replace={flow_urn.Basename()[2:]: "ABCDEF"})
+            client_id=client_id.Basename(), flow_id=flow_urn))
 
 
 class ApiListFlowOutputPluginsHandlerRegressionTest(

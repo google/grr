@@ -116,7 +116,7 @@ class IEParser(object):
     fmt += "{0}s".format(record_size - struct.calcsize(fmt))
     dat = struct.unpack(fmt, self.input_dat[offset:offset + record_size])
     header, blocks, mtime, ctime, ftime, _, url = dat
-    url = url.split(b"\x00")[0]
+    url = url.split(b"\x00")[0].decode("utf-8")
     if mtime:
       mtime = mtime // 10 - WIN_UNIX_DIFF_MSECS
     if ctime:
@@ -146,9 +146,9 @@ class IEParser(object):
     coffset = offset
     while coffset < filesize:
       etype = struct.unpack("4s", self.input_dat[coffset:coffset + 4])[0]
-      if etype == "REDR":
+      if etype == b"REDR":
         pass
-      elif etype in ["URL "]:
+      elif etype in [b"URL "]:
         # Found a valid record
         reclen = get4(coffset + 4) * self.BLOCK_SIZE
         yield self._GetRecord(coffset, reclen)

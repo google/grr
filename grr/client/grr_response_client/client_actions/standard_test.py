@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Test client standard actions."""
 from __future__ import absolute_import
 from __future__ import division
@@ -24,6 +24,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import temp
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
+from grr.test_lib import filesystem_test_lib
 from grr.test_lib import test_lib
 
 
@@ -280,7 +281,8 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
 
   def testStatExtAttrsEnabled(self):
     with temp.AutoTempFilePath() as temp_filepath:
-      client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
+      filesystem_test_lib.SetExtAttr(
+          temp_filepath, name="user.foo", value="bar")
 
       pathspec = rdf_paths.PathSpec(
           path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -296,7 +298,8 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
 
   def testStatExtAttrsDisabled(self):
     with temp.AutoTempFilePath() as temp_filepath:
-      client_test_lib.SetExtAttr(temp_filepath, name="user.foo", value="bar")
+      filesystem_test_lib.SetExtAttr(
+          temp_filepath, name="user.foo", value="bar")
 
       pathspec = rdf_paths.PathSpec(
           path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)

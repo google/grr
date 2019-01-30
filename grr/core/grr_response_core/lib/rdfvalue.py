@@ -139,7 +139,7 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
 
   def Copy(self):
     """Make a new copy of this RDFValue."""
-    res = self.__class__()
+    res = self.__class__()  # pytype: disable=not-instantiable
     res.ParseFromString(self.SerializeToString())
     return res
 
@@ -284,6 +284,9 @@ class RDFBytes(RDFPrimitive):
   def __str__(self):
     return self._value.encode("hex")
 
+  def __hash__(self):
+    return hash(self._value)
+
   def __lt__(self, other):
     if isinstance(other, self.__class__):
       return self._value < other._value  # pylint: disable=protected-access
@@ -349,6 +352,9 @@ class RDFString(RDFPrimitive):
   def __str__(self):
     return self._value
 
+  def __hash__(self):
+    return hash(self._value)
+
   def __getitem__(self, item):
     return self._value.__getitem__(item)
 
@@ -411,6 +417,7 @@ class RDFString(RDFPrimitive):
 # TODO(hanuszczak): This class should provide custom method for parsing from
 # human readable strings (and arguably should not derive from `RDFBytes` at
 # all).
+@python_2_unicode_compatible
 class HashDigest(RDFBytes):
   """Binary hash digest with hex string representation."""
 
@@ -420,16 +427,23 @@ class HashDigest(RDFBytes):
     return binascii.hexlify(self._value).decode("ascii")
 
   def __str__(self):
-    return binascii.hexlify(self._value)
+    return self.HexDigest()
 
-  # TODO(hanuszczak): This is a terrible equality definition (it does not even
-  # appear to be symmetric).
+  def __hash__(self):
+    return hash(self._value)
+
+  # TODO(hanuszczak): This is a terrible equality definition.
   def __eq__(self, other):
-    return (self._value == utils.SmartStr(other) or
-            binascii.hexlify(self._value) == other)
+    if isinstance(other, HashDigest):
+      return self._value == other._value  # pylint: disable=protected-access
+    if isinstance(other, bytes):
+      return self._value == other
+    if isinstance(other, Text):
+      return str(self) == other
+    return NotImplemented
 
   def __ne__(self, other):
-    return not self.__eq__(other)
+    return not self == other
 
 
 @functools.total_ordering
@@ -794,8 +808,10 @@ class Duration(RDFInteger):
     super(Duration, self).__init__(None, age)
     if isinstance(initializer, Duration):
       self._value = initializer._value  # pylint: disable=protected-access
-    elif isinstance(initializer, string_types):
+    elif isinstance(initializer, Text):
       self.ParseFromHumanReadable(initializer)
+    elif isinstance(initializer, bytes):
+      self.ParseFromString(initializer)
     elif isinstance(initializer, (int, float)):
       self._value = initializer
     elif isinstance(initializer, RDFInteger):
@@ -814,10 +830,11 @@ class Duration(RDFInteger):
     self.ParseFromString(value)
 
   def ParseFromString(self, string):
-    self.ParseFromHumanReadable(string)
+    precondition.AssertType(string, bytes)
+    self.ParseFromHumanReadable(string.decode("utf-8"))
 
   def SerializeToString(self):
-    return bytes(self)
+    return str(self).encode("utf-8")
 
   @property
   def seconds(self):
@@ -897,6 +914,8 @@ class Duration(RDFInteger):
     Args:
       timestring: The string to parse.
     """
+    precondition.AssertType(timestring, Text)
+
     if not timestring:
       return
 
@@ -1250,7 +1269,7 @@ class SessionID(RDFURN):
           self.ValidateID(initializer.Basename())
         except ValueError as e:
           raise InitializeError(
-              "Invalid URN for SessionID: %s, %s" % (initializer, e.message))
+              "Invalid URN for SessionID: %s, %s" % (initializer, e))
 
     super(SessionID, self).__init__(initializer=initializer, age=age)
 

@@ -77,11 +77,11 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
     """Issue the find request."""
     super(FileFinderMixin, self).Start()
 
+    self.state.files_found = 0
+
     if not self.args.paths:
       # Nothing to do.
       return
-
-    self.state.files_found = 0
 
     # Do not access `conditions`, if it has never been set before. Otherwise,
     # the field is replaced with the default value `[]`, which breaks equality
@@ -442,7 +442,7 @@ class ClientFileFinderMixin(object):
 
   def _WriteFilesContentRel(self, responses):
     """Writes file contents of multiple files to the relational database."""
-    client_path_blob_ids = dict()
+    client_path_blob_refs = dict()
     client_path_path_info = dict()
 
     for response in responses:
@@ -452,16 +452,24 @@ class ClientFileFinderMixin(object):
       chunks = sorted(chunks, key=lambda _: _.offset)
 
       client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
-      blob_ids = [rdf_objects.BlobID.FromBytes(c.digest) for c in chunks]
+      blob_refs = []
+      for c in chunks:
+        blob_refs.append(
+            rdf_objects.BlobReference(
+                offset=c.offset,
+                size=c.length,
+                blob_id=rdf_objects.BlobID.FromBytes(c.digest)))
 
-      client_path_blob_ids[client_path] = blob_ids
       client_path_path_info[client_path] = path_info
+      client_path_blob_refs[client_path] = blob_refs
 
-    if data_store.RelationalDBReadEnabled("filestore"):
+    if (data_store.RelationalDBReadEnabled("filestore") and
+        client_path_blob_refs):
       client_path_hash_id = file_store.AddFilesWithUnknownHashes(
-          client_path_blob_ids)
+          client_path_blob_refs)
       for client_path, hash_id in iteritems(client_path_hash_id):
-        client_path_path_info[client_path].hash_entry.sha256 = hash_id.AsBytes()
+        path_info = client_path_path_info[client_path]
+        path_info.hash_entry.sha256 = hash_id.AsBytes()
 
     path_infos = list(itervalues(client_path_path_info))
     data_store.REL_DB.WritePathInfos(self.client_id, path_infos)

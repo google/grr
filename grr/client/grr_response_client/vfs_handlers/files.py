@@ -15,6 +15,7 @@ from grr_response_client import client_utils
 from grr_response_client import vfs
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import filesystem
 
 # File handles are cached here. They expire after a couple minutes so
 # we don't keep files locked on the client.
@@ -194,7 +195,7 @@ class File(vfs.VFSHandler):
 
   def _GetDevice(self, path):
     try:
-      return utils.Stat(path).GetDevice()
+      return filesystem.Stat(path).GetDevice()
     except (IOError, OSError) as error:
       logging.error("Failed to obtain device for '%s' (%s)", path, error)
       return None

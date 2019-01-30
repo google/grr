@@ -1,17 +1,19 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """Tests for grr.parsers.windows_registry_parser."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
+
 from grr_response_core.lib import flags
-from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import windows_registry_parser
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import compatibility
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -77,13 +79,19 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(result.display_name, u"中国日报")
         self.assertEqual(result.service_dll, "blah.dll")
         names.append(result.display_name)
-      elif utils.SmartStr(result.registry_key).endswith("AcpiPmi"):
+      elif str(result.registry_key).endswith("AcpiPmi"):
         self.assertEqual(result.name, "AcpiPmi")
         self.assertEqual(result.startup_type, 3)
-        self.assertEqual(result.display_name, "[u'AcpiPmi']")
+        # TODO: String representation in Python 2 represents
+        # unicode strings with "u" prefix and there is nothing we can do about
+        # that.
+        if compatibility.PY2:
+          self.assertEqual(result.display_name, "[u'AcpiPmi']")
+        else:
+          self.assertEqual(result.display_name, "['AcpiPmi']")
         self.assertEqual(result.registry_key, "%s/AcpiPmi" % hklm_set01)
         names.append(result.display_name)
-      elif utils.SmartStr(result.registry_key).endswith("ACPI"):
+      elif str(result.registry_key).endswith("ACPI"):
         self.assertEqual(result.name, "ACPI")
         self.assertEqual(result.service_type, 1)
         self.assertEqual(result.startup_type, 0)
@@ -94,8 +102,13 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(result.driver_package_id,
                          "acpi.inf_amd64_neutral_99aaaaabcccccccc")
         names.append(result.display_name)
-    self.assertCountEqual(names,
-                          [u"中国日报", "[u'AcpiPmi']", "Microsoft ACPI Driver"])
+    # TODO: See TODO comment above.
+    if compatibility.PY2:
+      self.assertCountEqual(names,
+                            [u"中国日报", "[u'AcpiPmi']", "Microsoft ACPI Driver"])
+    else:
+      self.assertCountEqual(names,
+                            [u"中国日报", "['AcpiPmi']", "Microsoft ACPI Driver"])
 
   def testWinUserSpecialDirs(self):
     reg_str = rdf_client_fs.StatEntry.RegistryType.REG_SZ
@@ -115,7 +128,7 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
                r"\CurrentVersion\SystemRoot")
     stat = self._MakeRegStat(sysroot, r"C:\Windows", None)
     parser = windows_registry_parser.WinSystemDriveParser()
-    self.assertEqual(r"C:", parser.Parse(stat, None).next())
+    self.assertEqual(r"C:", next(parser.Parse(stat, None)))
 
 
 def main(argv):

@@ -1,17 +1,21 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Simple parsers for Linux Release files."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import collections
-import itertools
 import re
+
+from future.builtins import zip
+from typing import Text
 
 from grr_response_core.lib import parser
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import precondition
 
 ParsedRelease = collections.namedtuple('ParsedRelease', 'release, major, minor')
 WeightedReleaseFile = collections.namedtuple('WeightedReleaseFile',
@@ -27,6 +31,7 @@ class ReleaseParseHandler(object):
     Args:
       contents: file contents that are to be parsed.
     """
+    precondition.AssertOptionalType(contents, Text)
     self.contents = contents
 
   def Parse(self):
@@ -102,6 +107,7 @@ class ReleaseFileParseHandler(ReleaseParseHandler):
 
     self.name = name
 
+  # TODO(hanuszczak): But... why? ¯\_(ツ)_/¯
   def __call__(self, contents):
     """Small hack to let instances act as if they are bare classes."""
     self.contents = contents
@@ -154,7 +160,7 @@ class LinuxReleaseParser(parser.FileMultiParser):
 
   def _Combine(self, stats, file_objects):
     result = {}
-    for stat, file_object in itertools.izip(stats, file_objects):
+    for stat, file_object in zip(stats, file_objects):
       path = stat.pathspec.path
       file_object.seek(0)
       contents = utils.ReadFileBytesAsUnicode(file_object)

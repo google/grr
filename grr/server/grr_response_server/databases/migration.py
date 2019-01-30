@@ -15,7 +15,7 @@ from grr_response_server import db
 from grr_response_server import server_startup
 
 
-def _MigrateArtifact(artifact, overwrite):
+def _MigrateArtifact(artifact):
   """Migrate one Artifact from AFF4 to REL_DB."""
   name = Text(artifact.name)
 
@@ -24,28 +24,37 @@ def _MigrateArtifact(artifact, overwrite):
     data_store.REL_DB.WriteArtifact(artifact)
     logging.info("  Wrote %s", name)
   except db.DuplicatedArtifactError:
-    if overwrite:
-      data_store.REL_DB.DeleteArtifact(name)
-      data_store.REL_DB.WriteArtifact(artifact)
-      logging.info("  Overwrote %s", name)
-    else:
-      logging.info("  Skipped %s, because artifact already exists.", name)
+    logging.info("  Skipped %s, because artifact already exists.", name)
 
 
-def MigrateArtifacts(overwrite=False):
-  """Migrates Artifacts from AFF4 to REL_DB.
+def _IsCustom(artifact):
+  return artifact.loaded_from.startswith("datastore:")
 
-  Args:
-    overwrite: If True, existing artifacts with identical names will be
-      overwritten, otherwise skipped.
-  """
+
+def MigrateArtifacts():
+  """Migrates Artifacts from AFF4 to REL_DB."""
+
+  # First, delete all existing artifacts in REL_DB.
+  artifacts = data_store.REL_DB.ReadAllArtifacts()
+  if artifacts:
+    logging.info("Deleting %d artifacts from REL_DB.", len(artifacts))
+    for artifact in data_store.REL_DB.ReadAllArtifacts():
+      data_store.REL_DB.DeleteArtifact(Text(artifact.name))
+  else:
+    logging.info("No artifacts found in REL_DB.")
 
   artifacts = artifact_registry.REGISTRY.GetArtifacts(
       reload_datastore_artifacts=True)
-  logging.info("Migrating %s artifacts.", len(artifacts))
+
+  logging.info("Found %d artifacts in AFF4.", len(artifacts))
+
+  # Only migrate user-created artifacts.
+  artifacts = list(filter(_IsCustom, artifacts))
+
+  logging.info("Migrating %d user-created artifacts.", len(artifacts))
 
   for artifact in artifacts:
-    _MigrateArtifact(artifact, overwrite)
+    _MigrateArtifact(artifact)
 
 
 def main(argv):

@@ -36,6 +36,7 @@ class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     api_auth_manager.APIACLInit.InitApiAuthManager()
     self.token.username = "api_test_robot_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
+    self.CreateUser(self.token.username)
 
     self.port = ApiE2ETest.server_port
     self.endpoint = "http://localhost:%s" % self.port
@@ -88,9 +89,8 @@ class RootApiE2ETest(ApiE2ETest):
   def setUp(self):
     super(RootApiE2ETest, self).setUp()
 
-    self.root_api_config_overrider = test_lib.ConfigOverrider({
-        "API.DefaultRouter": RootApiBinaryManagementTestRouter.__name__
-    })
+    self.root_api_config_overrider = test_lib.ConfigOverrider(
+        {"API.DefaultRouter": RootApiBinaryManagementTestRouter.__name__})
     self.root_api_config_overrider.Start()
 
     # Force creation of new APIAuthorizationManager, so that configuration
