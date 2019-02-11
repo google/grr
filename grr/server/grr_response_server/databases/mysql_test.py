@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import contextlib
 import logging
 import os
 import random
@@ -15,11 +16,13 @@ from builtins import range  # pylint: disable=redefined-builtin
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 
 from grr_response_core.lib import flags
+from grr_response_server import blob_store_test_mixin
 from grr_response_server import db_test_mixin
 from grr_response_server.databases import mysql
 from grr_response_server.databases import mysql_utils
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
+
 
 
 def _GetEnvironOrSkip(key):
@@ -29,16 +32,7 @@ def _GetEnvironOrSkip(key):
   return value
 
 
-class TestMysqlDB(stats_test_lib.StatsTestMixin,
-                  db_test_mixin.DatabaseTestMixin, absltest.TestCase):
-  """Test the mysql.MysqlDB class.
-
-  Most of the tests in this suite are general blackbox tests of the db.Database
-  interface brought in by the db_test.DatabaseTestMixin.
-  """
-
-  flow_processing_req_func = "_WriteFlowProcessingRequests"
-
+class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseProvider):
 
   def CreateDatabase(self):
 
@@ -63,6 +57,24 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
     return conn, Fin
     # pylint: enable=unreachable
+
+  def CreateBlobStore(self):
+    # Optimization: Since BlobStore and Database share the underlying MysqlDB
+    # instance, there is no need to actually setup and destroy the BlobStore.
+    # DatabaseTestMixin's setUp and tearDown do this implicitly for every test.
+    return self.db.delegate, None
+
+
+class TestMysqlDB(stats_test_lib.StatsTestMixin,
+                  db_test_mixin.DatabaseTestMixin, MySQLDatabaseProviderMixin,
+                  blob_store_test_mixin.BlobStoreTestMixin, absltest.TestCase):
+  """Test the mysql.MysqlDB class.
+
+  Most of the tests in this suite are general blackbox tests of the db.Database
+  interface brought in by the db_test.DatabaseTestMixin.
+  """
+
+  flow_processing_req_func = "_WriteFlowProcessingRequests"
 
   def testIsRetryable(self):
     self.assertFalse(mysql._IsRetryable(Exception("Some general error.")))
@@ -494,36 +506,6 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       self):
     pass
 
-  def testWriteStatsStoreEntriesValidation(self):
-    pass
-
-  def testDuplicateStatsEntryWrite_SingleDimensional(self):
-    pass
-
-  def testDuplicateStatsEntryWrite_MultiDimensional(self):
-    pass
-
-  def testReadAllStatsEntries_UnknownPrefix(self):
-    pass
-
-  def testReadAllStatsEntries_UnknownMetric(self):
-    pass
-
-  def testReadAllStatsEntries_PrefixMatch(self):
-    pass
-
-  def testReadStatsEntriesLimitMaxResults(self):
-    pass
-
-  def testReadStatsEntriesLimitTimeRange(self):
-    pass
-
-  def testDeleteStatsEntries_HighLimit(self):
-    pass
-
-  def testDeleteStatsEntries_LowLimit(self):
-    pass
-
   # TODO(user): implement hunts support for MySQL
   def testReadFlowForProcessingRaisesIfParentHuntIsStoppedOrCompleted(self):
     pass
@@ -549,6 +531,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testUpdateHuntObjectPropagatesExceptions(self):
     pass
 
+  def testUpdateHuntObjectIncrementsCountersWithoutOverridingThem(self):
+    pass
+
   def testDeletingHuntObjectWorks(self):
     pass
 
@@ -556,6 +541,27 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testReadAllHuntObjectsReturnsAllWrittenObjects(self):
+    pass
+
+  def testWritingAndReadingHuntOutputPluginsStatesWorks(self):
+    pass
+
+  def testReadingHuntOutputPluginsReturnsThemInOrderOfWriting(self):
+    pass
+
+  def testWritingHuntOutputStatesForZeroPlugins(self):
+    pass
+
+  def testWritingHuntOutputStatesForUnknownHuntRaises(self):
+    pass
+
+  def testReadingHuntOutputStatesForUnknownHuntRaises(self):
+    pass
+
+  def testUpdatingHuntOutputStateForUnknownHuntRaises(self):
+    pass
+
+  def testUpdatingHuntOutputStateWorksCorrectly(self):
     pass
 
   def testReadHuntLogEntriesReturnsEntryFromSingleHuntFlow(self):
@@ -685,6 +691,24 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testCountHuntOutputPluginLogEntriesRespectsWithTypeFilter(self):
+    pass
+
+  def testFlowStateUpdateUsingUpdateFlow(self):
+    pass
+
+  def testFlowStateUpdateUsingReturnProcessedFlow(self):
+    pass
+
+  def testReadHuntFlowsIgnoresSubflows(self):
+    pass
+
+  def testCountHuntFlowsIgnoresSubflows(self):
+    pass
+
+  def testReadHuntLogEntriesIgnoresNestedFlows(self):
+    pass
+
+  def testReadHuntCountersCorrectlyAggregatesResultsAmongDifferentFlows(self):
     pass
 
 

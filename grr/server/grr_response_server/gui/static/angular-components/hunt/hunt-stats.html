@@ -10,7 +10,9 @@
 
   <dt>Clients Histogram</dt>
   <dd class="histogram">
-    <div class="user-cpu-histogram"></div>
+    <grr-comparison-chart typed-data="controller.userCpuStats"
+                          preserve-order="true">
+    </grr-comparison-chart>
   </dd>
 </dl>
 
@@ -24,7 +26,9 @@
 
   <dt>Clients Histogram</dt>
   <dd class="histogram">
-    <div class="system-cpu-histogram"></div>
+    <grr-comparison-chart typed-data="controller.systemCpuStats">
+                          preserve-order="true">
+    </grr-comparison-chart>
   </dd>
 </dl>
 
@@ -38,7 +42,9 @@
 
   <dt>Clients Histogram</dt>
   <dd class="histogram">
-    <div class="network-bytes-histogram"></div>
+    <grr-comparison-chart typed-data="controller.networkBytesStats">
+                          preserve-order="true">
+    </grr-comparison-chart>
   </dd>
 </dl>
 

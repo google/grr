@@ -164,6 +164,15 @@ class FlowCreationTest(BasicFlowTest):
     with self.assertRaises(type_info.UnknownArg):
       flow.StartFlow(client_id=self.client_id, flow_cls=CallStateFlow, foobar=1)
 
+  def testDuplicateIDsAreNotAllowed(self):
+    flow_id = flow.StartFlow(
+        flow_cls=CallClientParentFlow, client_id=self.client_id)
+    with self.assertRaises(flow.CanNotStartFlowWithExistingIdError):
+      flow.StartFlow(
+          flow_cls=CallClientParentFlow,
+          parent_hunt_id=flow_id,
+          client_id=self.client_id)
+
   def testPendingFlowTermination(self):
     client_mock = ClientMock()
 

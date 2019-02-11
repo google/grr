@@ -839,15 +839,22 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     audit_events = []
 
     try:
-      index = client_index.CreateClientIndex(token=token)
-      client_objs = aff4.FACTORY.MultiOpen(
-          [cid.ToClientURN() for cid in args.client_ids],
-          aff4_type=aff4_grr.VFSGRRClient,
-          mode="rw",
-          token=token)
-      for client_obj in client_objs:
-        if data_store.RelationalDBWriteEnabled():
-          cid = client_obj.urn.Basename()
+      if data_store.AFF4Enabled():
+        index = client_index.CreateClientIndex(token=token)
+        client_objs = aff4.FACTORY.MultiOpen(
+            [cid.ToClientURN() for cid in args.client_ids],
+            aff4_type=aff4_grr.VFSGRRClient,
+            mode="rw",
+            token=token)
+        for client_obj in client_objs:
+          index.RemoveClientLabels(client_obj)
+          self.RemoveClientLabels(client_obj, args.labels)
+          index.AddClient(client_obj)
+          client_obj.Close()
+
+      if data_store.RelationalDBWriteEnabled():
+        for client_id in args.client_ids:
+          cid = unicode(client_id)
           data_store.REL_DB.RemoveClientLabels(cid, token.username, args.labels)
           labels_to_remove = set(args.labels)
           existing_labels = data_store.REL_DB.ReadClientLabels(cid)
@@ -857,17 +864,13 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
             idx = client_index.ClientIndex()
             idx.RemoveClientLabels(cid, labels_to_remove)
 
-        index.RemoveClientLabels(client_obj)
-        self.RemoveClientLabels(client_obj, args.labels)
-        index.AddClient(client_obj)
-        client_obj.Close()
-
+      for client_id in args.client_ids:
         audit_events.append(
             rdf_events.AuditEvent(
                 user=token.username,
                 action="CLIENT_REMOVE_LABEL",
                 flow_name="handler.ApiRemoveClientsLabelsHandler",
-                client=client_obj.urn,
+                client=client_id.ToClientURN(),
                 description=audit_description))
     finally:
       events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},

@@ -68,6 +68,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         self.IsVisible, "css=*[name=AddClientsLabelsDialog]:"
         "contains('%s')" % self.client_ids[6])
 
+  @db_test_lib.LegacyDataStoreOnly
   def testAddClientsLabelsDialogShowsErrorWhenAddingLabelWithComma(self):
     self.Open("/#/search?q=.")
 

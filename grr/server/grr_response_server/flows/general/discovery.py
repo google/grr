@@ -10,6 +10,7 @@ from future.utils import iteritems
 from grr_response_core import config
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -34,6 +35,7 @@ from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard
 from grr_response_server.flows.general import collectors
+from grr_response_server.rdfvalues import aff4 as rdf_aff4
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -179,6 +181,7 @@ class InterrogateMixin(object):
       client.os_version = response.version
       client.kernel = response.kernel
       client.arch = response.machine
+      client.knowledge_base.os = response.system
       # Store these for later, there might be more accurate data
       # coming in from the artifact collector.
       self.state.fqdn = response.fqdn
@@ -459,6 +462,16 @@ class InterrogateMixin(object):
       # TODO(user): Remove condition once we are confident in FS labeling.
       if label != fleetspeak_connector.unknown_label or not response.labels:
         response.labels = [label]
+
+    sanitized_labels = []
+    for label in response.labels:
+      try:
+        rdf_aff4.AFF4ObjectLabel(name=label)
+        sanitized_labels.append(label)
+      except type_info.TypeValueError:
+        self.Log("Got invalid label: %s", label)
+
+    response.labels = sanitized_labels
 
     if data_store.AFF4Enabled():
       # AFF4 client.

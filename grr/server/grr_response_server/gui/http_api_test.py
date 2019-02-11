@@ -156,7 +156,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(RouterMatcherTest, self).setUp()
     self.config_overrider = test_lib.ConfigOverrider({
-        "API.DefaultRouter": TestHttpApiRouter.__name__
+        "API.DefaultRouter": TestHttpApiRouter.__name__,
     })
     self.config_overrider.Start()
     # Make sure ApiAuthManager is initialized with this configuration setting.
@@ -181,8 +181,8 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
         self._CreateRequest("GET", "/test_sample/some/path"))
     _ = router
     _ = method_metadata
-    self.assertEqual(
-        router_args, api_test_lib.SampleGetHandlerArgs(path="some/path"))
+    self.assertEqual(router_args,
+                     api_test_lib.SampleGetHandlerArgs(path="some/path"))
 
   def testRaisesIfNoHandlerMatchesUrl(self):
     self.assertRaises(http_api.ApiCallRouterNotFoundError,
@@ -225,18 +225,15 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
   def setUp(self):
     super(HttpRequestHandlerTest, self).setUp()
 
-    self.config_overrider = test_lib.ConfigOverrider({
-        "API.DefaultRouter": TestHttpApiRouter.__name__
+    config_overrider = test_lib.ConfigOverrider({
+        "API.DefaultRouter": TestHttpApiRouter.__name__,
     })
-    self.config_overrider.Start()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
     self.request_handler = http_api.HttpRequestHandler()
-
-  def tearDown(self):
-    super(HttpRequestHandlerTest, self).tearDown()
-    self.config_overrider.Stop()
 
   def testBuildToken(self):
     request = self._CreateRequest("POST", "/test_sample/some/path")
@@ -305,9 +302,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
   def testQueryParamsArePassedIntoHandlerArgs(self):
     response = self._RenderResponse(
         self._CreateRequest(
-            "GET", "/test_sample/some/path", query_parameters={
-                "foo": "bar"
-            }))
+            "GET", "/test_sample/some/path", query_parameters={"foo": "bar"}))
     self.assertEqual(
         self._GetResponseContent(response), {
             "method": "GET",
@@ -320,9 +315,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
         self._CreateRequest(
             "GET",
             "/test_sample/some/path",
-            query_parameters={
-                "path": "foobar"
-            }))
+            query_parameters={"path": "foobar"}))
     self.assertEqual(
         self._GetResponseContent(response), {
             "method": "GET",

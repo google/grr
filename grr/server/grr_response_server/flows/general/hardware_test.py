@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
+
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
 from grr_response_core.lib import flags
@@ -234,7 +236,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
           client_id=client_id,
           token=self.token)
 
-    self.assertEqual(err.exception.message, "No ACPI table to dump.")
+    self.assertEqual(str(err.exception), "No ACPI table to dump.")
 
 
 def main(argv):

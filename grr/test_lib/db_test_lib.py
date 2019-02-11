@@ -11,6 +11,8 @@ import mock
 
 from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
+from grr_response_server import db_test_mixin
+from grr_response_server.databases import mysql_test
 from grr.test_lib import test_lib
 
 
@@ -20,45 +22,35 @@ class RelationalDBEnabledMixin(object):
   def setUp(self):  # pylint: disable=invalid-name
     """The setUp method."""
 
-    self._aff4_disabler = mock.patch.object(
+    aff4_disabler = mock.patch.object(
         data_store, "AFF4Enabled", return_value=False)
+    aff4_disabler.start()
+    self.addCleanup(aff4_disabler.stop)
 
-    # TODO(amoser): This does not work yet. We need to clean up lots of flows
-    # that still use AFF4 but also we need to make hunts work on the relational
-    # db only.
-    # self._aff4_disabler.start()
-
-    self._rel_db_read_enabled_patch = mock.patch.object(
+    rel_db_read_enabled_patch = mock.patch.object(
         data_store, "RelationalDBReadEnabled", return_value=True)
-    self._rel_db_read_enabled_patch.start()
+    rel_db_read_enabled_patch.start()
+    self.addCleanup(rel_db_read_enabled_patch.stop)
 
-    self._rel_db_write_enabled_patch = mock.patch.object(
+    rel_db_write_enabled_patch = mock.patch.object(
         data_store, "RelationalDBWriteEnabled", return_value=True)
-    self._rel_db_write_enabled_patch.start()
+    rel_db_write_enabled_patch.start()
+    self.addCleanup(rel_db_write_enabled_patch.stop)
 
-    self._rel_db_flows_enabled_patch = mock.patch.object(
+    rel_db_flows_enabled_patch = mock.patch.object(
         data_store, "RelationalDBFlowsEnabled", return_value=True)
-    self._rel_db_flows_enabled_patch.start()
+    rel_db_flows_enabled_patch.start()
+    self.addCleanup(rel_db_flows_enabled_patch.stop)
 
     # grr_response_server/foreman.py uses this configuration option
     # directly, so it has to be explicitly overridden.
-    self._config_overrider = test_lib.ConfigOverrider({
+    config_overrider = test_lib.ConfigOverrider({
         "Database.useForReads": True,
     })
-    self._config_overrider.Start()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
     super(RelationalDBEnabledMixin, self).setUp()
-
-  def tearDown(self):  # pylint: disable=invalid-name
-    """Cleans up the patchers."""
-    super(RelationalDBEnabledMixin, self).tearDown()
-
-    # TODO(amoser): Enable this, see comment above.
-    # self._aff4_disabler.stop()
-    self._config_overrider.Stop()
-    self._rel_db_flows_enabled_patch.stop()
-    self._rel_db_read_enabled_patch.stop()
-    self._rel_db_write_enabled_patch.stop()
 
 
 class StableRelationalDBEnabledMixin(object):
@@ -66,31 +58,27 @@ class StableRelationalDBEnabledMixin(object):
 
   def setUp(self):  # pylint: disable=invalid-name
     """The setUp method."""
-    self._config_overrider = test_lib.ConfigOverrider({
+    config_overrider = test_lib.ConfigOverrider({
+        "Database.aff4_enabled": True,
         "Database.useForReads": True,
-        "Database.useForReads.artifacts": False,
-        "Database.useForReads.audit": False,
+        "Database.useForReads.artifacts": True,
+        "Database.useForReads.audit": True,
         "Database.useForReads.client_messages": True,
-        "Database.useForReads.client_reports": False,
+        "Database.useForReads.client_reports": True,
+        "Database.useForReads.client_stats": False,
         "Database.useForReads.cronjobs": True,
         "Database.useForReads.filestore": True,
         "Database.useForReads.foreman": True,
         "Database.useForReads.hunts": False,
         "Database.useForReads.message_handlers": True,
         "Database.useForReads.signed_binaries": True,
-        "Database.useForReads.stats": False,
         "Database.useForReads.vfs": True,
         "Database.useRelationalFlows": True,
     })
-    self._config_overrider.Start()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
     super(StableRelationalDBEnabledMixin, self).setUp()
-
-  def tearDown(self):  # pylint: disable=invalid-name
-    """Cleans up the patchers."""
-    super(StableRelationalDBEnabledMixin, self).tearDown()
-
-    self._config_overrider.Stop()
 
 
 def DualDBTest(cls):
@@ -113,6 +101,30 @@ def DualDBTest(cls):
   setattr(module, db_test_cls_name, db_test_cls)
 
   return cls
+
+
+def TestDatabases(mysql=True):
+  """Decorator that creates additional RELDB-enabled test classes."""
+
+  def _TestDatabasesDecorator(cls):
+    """Decorator that creates additional RELDB-enabled test classes."""
+    module = sys.modules[cls.__module__]
+    cls_name = compatibility.GetName(cls)
+    DualDBTest(cls)
+
+    if mysql:
+      db_test_cls_name = "{}_MySQLEnabled".format(cls_name)
+      db_test_cls = compatibility.MakeType(
+          name=db_test_cls_name,
+          base_classes=(RelationalDBEnabledMixin,
+                        db_test_mixin.GlobalDatabaseTestMixin,
+                        mysql_test.MySQLDatabaseProviderMixin, cls),
+          namespace={})
+      setattr(module, db_test_cls_name, db_test_cls)
+
+    return cls
+
+  return _TestDatabasesDecorator
 
 
 def LegacyDataStoreOnly(f):

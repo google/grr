@@ -78,6 +78,6 @@ class SQLiteFile(object):
       results = self._cursor.execute(sql_query).fetchall()
 
     except sqlite.Error as error_string:
-      logging.warn("SQLite error %s", error_string)
+      logging.warning("SQLite error %s", error_string)
 
     return results

@@ -18,6 +18,7 @@ from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import network
 from grr_response_client.client_actions import operating_system
+from grr_response_client.client_actions import osquery
 from grr_response_client.client_actions import plist
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard

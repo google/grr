@@ -74,13 +74,13 @@ class RawConnector(connector.Connector):
       handler = method(rdf_args, token=self._token)
       return handler.Handle(rdf_args, token=self._token)
     except access_control.UnauthorizedAccess as e:
-      raise errors.AccessForbiddenError(e.message)
+      raise errors.AccessForbiddenError(e)
     except api_call_handler_base.ResourceNotFoundError as e:
-      raise errors.ResourceNotFoundError(e.message)
+      raise errors.ResourceNotFoundError(e)
     except NotImplementedError as e:
-      raise errors.ApiNotImplementedError(e.message)
+      raise errors.ApiNotImplementedError(e)
     except Exception as e:  # pylint: disable=broad-except
-      raise errors.UnknownError(e.message)
+      raise errors.UnknownError(e)
 
   @property
   def page_size(self):

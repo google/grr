@@ -11,15 +11,18 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
 from grr_response_server import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
 class InMemoryDBHuntMixin(object):
   """Hunts-related DB methods implementation."""
 
   def _GetHuntFlows(self, hunt_id):
-    return sorted(
-        [f for f in self.flows.values() if f.parent_hunt_id == hunt_id],
-        key=lambda f: f.client_id)
+    top_level_flows = [
+        f for f in self.flows.values()
+        if f.parent_hunt_id == hunt_id and not f.parent_flow_id
+    ]
+    return sorted(top_level_flows, key=lambda f: f.client_id)
 
   @utils.Synchronized
   def WriteHuntObject(self, hunt_obj):
@@ -29,14 +32,65 @@ class InMemoryDBHuntMixin(object):
     self.hunts[(hunt_obj.hunt_id)] = clone
 
   @utils.Synchronized
-  def UpdateHuntObject(self, hunt_id, update_fn):
+  def UpdateHuntObject(self, hunt_id, **kwargs):
     """Updates the hunt object by applying the update function."""
     hunt_obj = self.ReadHuntObject(hunt_id)
-    updated_hunt_obj = update_fn(hunt_obj)
-    if updated_hunt_obj is None:
-      raise ValueError("update_fn can't return None")
-    self.WriteHuntObject(updated_hunt_obj)
-    return updated_hunt_obj
+
+    delta_suffix = "_delta"
+
+    for k, v in kwargs.items():
+      if v is None:
+        continue
+
+      if k.endswith(delta_suffix):
+        key = k[:-len(delta_suffix)]
+        current_value = getattr(hunt_obj, key)
+        setattr(hunt_obj, key, current_value + v)
+      else:
+        setattr(hunt_obj, k, v)
+
+    self.WriteHuntObject(hunt_obj)
+
+  @utils.Synchronized
+  def ReadHuntOutputPluginsStates(self, hunt_id):
+    if hunt_id not in self.hunts:
+      raise db.UnknownHuntError(hunt_id)
+
+    serialized_states = self.hunt_output_plugins_states.get(hunt_id, [])
+    return [
+        rdf_flow_runner.OutputPluginState.FromSerializedString(s)
+        for s in serialized_states
+    ]
+
+  @utils.Synchronized
+  def WriteHuntOutputPluginsStates(self, hunt_id, states):
+
+    if hunt_id not in self.hunts:
+      raise db.UnknownHuntError(hunt_id)
+
+    self.hunt_output_plugins_states[hunt_id] = [
+        s.SerializeToString() for s in states
+    ]
+
+  @utils.Synchronized
+  def UpdateHuntOutputPluginState(self, hunt_id, state_index, update_fn):
+    """Updates hunt output plugin state for a given output plugin."""
+
+    if hunt_id not in self.hunts:
+      raise db.UnknownHuntError(hunt_id)
+
+    try:
+      state = rdf_flow_runner.OutputPluginState.FromSerializedString(
+          self.hunt_output_plugins_states[hunt_id][state_index])
+    except KeyError:
+      raise db.UnknownHuntOutputPluginError(hunt_id, state_index)
+
+    state.plugin_state = update_fn(state.plugin_state)
+
+    self.hunt_output_plugins_states[hunt_id][
+        state_index] = state.SerializeToString()
+
+    return state.plugin_state
 
   @utils.Synchronized
   def DeleteHuntObject(self, hunt_id):
@@ -154,9 +208,6 @@ class InMemoryDBHuntMixin(object):
       filter_fn = lambda f: f.flow_state == f.FlowState.RUNNING
     elif filter_condition == db.HuntFlowsCondition.CRASHED_FLOWS_ONLY:
       filter_fn = lambda f: f.HasField("client_crash_info")
-    elif filter_condition == db.HuntFlowsCondition.FLOWS_WITH_RESULTS_ONLY:
-      filter_fn = (lambda f: self.ReadFlowResults(f.client_id, f.flow_id, 0, sys
-                                                  .maxsize))
     else:
       raise ValueError("Invalid filter condition: %d" % filter_condition)
 
@@ -176,6 +227,39 @@ class InMemoryDBHuntMixin(object):
     return len(
         self.ReadHuntFlows(
             hunt_id, 0, sys.maxsize, filter_condition=filter_condition))
+
+  @utils.Synchronized
+  def ReadHuntCounters(self, hunt_id):
+    """Reads hunt counters."""
+    num_clients = self.CountHuntFlows(hunt_id)
+    num_successful_clients = self.CountHuntFlows(
+        hunt_id, filter_condition=db.HuntFlowsCondition.SUCCEEDED_FLOWS_ONLY)
+    num_failed_clients = self.CountHuntFlows(
+        hunt_id, filter_condition=db.HuntFlowsCondition.FAILED_FLOWS_ONLY)
+    num_clients_with_results = len(
+        set(r[0].client_id
+            for r in self.flow_results.values()
+            if r and r[0].hunt_id == hunt_id))
+    num_crashed_clients = self.CountHuntFlows(
+        hunt_id, filter_condition=db.HuntFlowsCondition.CRASHED_FLOWS_ONLY)
+    num_results = self.CountHuntResults(hunt_id)
+
+    total_cpu_seconds = 0
+    total_network_bytes_sent = 0
+    for f in self.ReadHuntFlows(hunt_id, 0, sys.maxsize):
+      total_cpu_seconds += (
+          f.cpu_time_used.user_cpu_time + f.cpu_time_used.system_cpu_time)
+      total_network_bytes_sent += f.network_bytes_sent
+
+    return db.HuntCounters(
+        num_clients=num_clients,
+        num_successful_clients=num_successful_clients,
+        num_failed_clients=num_failed_clients,
+        num_clients_with_results=num_clients_with_results,
+        num_crashed_clients=num_crashed_clients,
+        num_results=num_results,
+        total_cpu_seconds=total_cpu_seconds,
+        total_network_bytes_sent=total_network_bytes_sent)
 
   @utils.Synchronized
   def ReadHuntOutputPluginLogEntries(self,

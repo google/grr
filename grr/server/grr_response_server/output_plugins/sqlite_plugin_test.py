@@ -94,10 +94,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     # We use an in-memory db for testing generated SQL scripts.
     self.db_connection = sqlite3.connect(":memory:")
     self.db_cursor = self.db_connection.cursor()
-
-  def tearDown(self):
-    super(SqliteInstantOutputPluginTest, self).tearDown()
-    self.db_connection.close()
+    self.addCleanup(self.db_connection.close)
 
   def ProcessValuesToZip(self, values_by_cls):
     fd_path = self.ProcessValues(values_by_cls)

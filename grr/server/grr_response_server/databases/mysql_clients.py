@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
-import itertools
 
 
 from future.utils import iterkeys
@@ -21,6 +20,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.util import collection
 from grr_response_server import db
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -406,15 +406,36 @@ class MySQLDBClientMixin(object):
     return ret
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadAllClientIDs(self, min_last_ping=None, cursor=None):
+  def ReadClientLastPings(self,
+                          min_last_ping=None,
+                          max_last_ping=None,
+                          fleetspeak_enabled=None,
+                          cursor=None):
     """Reads client ids for all clients in the database."""
-    query = "SELECT client_id FROM clients "
+    query = "SELECT client_id, last_ping FROM clients "
     query_values = []
+    where_filters = []
     if min_last_ping is not None:
-      query += "WHERE last_ping >= %s"
+      where_filters.append("last_ping >= %s ")
       query_values.append(mysql_utils.RDFDatetimeToMysqlString(min_last_ping))
+    if max_last_ping is not None:
+      where_filters.append("(last_ping IS NULL OR last_ping <= %s)")
+      query_values.append(mysql_utils.RDFDatetimeToMysqlString(max_last_ping))
+    if fleetspeak_enabled is not None:
+      if fleetspeak_enabled:
+        where_filters.append("fleetspeak_enabled IS TRUE")
+      else:
+        where_filters.append(
+            "(fleetspeak_enabled IS NULL OR fleetspeak_enabled IS FALSE)")
+
+    if where_filters:
+      query += "WHERE " + "AND ".join(where_filters)
     cursor.execute(query, query_values)
-    return [mysql_utils.IntToClientID(res[0]) for res in cursor.fetchall()]
+    last_pings = {}
+    for int_client_id, last_ping in cursor.fetchall():
+      client_id = mysql_utils.IntToClientID(int_client_id)
+      last_pings[client_id] = mysql_utils.MysqlToRDFDatetime(last_ping)
+    return last_pings
 
   @mysql_utils.WithTransaction()
   def AddClientKeywords(self, client_id, keywords, cursor=None):
@@ -423,7 +444,7 @@ class MySQLDBClientMixin(object):
     now = datetime.datetime.utcnow()
     keywords = set(keywords)
     args = [(cid, mysql_utils.Hash(kw), kw, now) for kw in keywords]
-    args = list(itertools.chain.from_iterable(args))  # Flatten.
+    args = list(collection.Flatten(args))
 
     query = """
         INSERT INTO client_keywords
@@ -473,7 +494,7 @@ class MySQLDBClientMixin(object):
     cid = mysql_utils.ClientIDToInt(client_id)
     labels = set(labels)
     args = [(cid, mysql_utils.Hash(owner), owner, label) for label in labels]
-    args = list(itertools.chain.from_iterable(args))  # Flatten.
+    args = list(collection.Flatten(args))
 
     query = """
           INSERT IGNORE INTO client_labels

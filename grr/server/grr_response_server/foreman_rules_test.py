@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Test for the foreman client rule classes."""
 from __future__ import absolute_import
 from __future__ import division
@@ -19,6 +20,14 @@ from grr.test_lib import test_lib
 class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
                                test_lib.GRRBaseTest):
   rdfvalue_class = foreman_rules.ForemanClientRuleSet
+
+  def CheckRDFValue(self, value, sample):
+    # TODO: Accessing a repeated field changes the structs value.
+    # Until this major deficiency in RDFValues is fixed, access `rules` to
+    # prevent failure due to [] != None. Side effects... (ノಠ益ಠ)ノ彡┻━┻
+    value.rules  # pylint: disable=pointless-statement
+    sample.rules  # pylint: disable=pointless-statement
+    super(ForemanClientRuleSetTest, self).CheckRDFValue(value, sample)
 
   def GenerateSample(self, number=0):
     ret = foreman_rules.ForemanClientRuleSet()

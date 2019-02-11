@@ -2065,10 +2065,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     super(DataStoreBenchmarks, self).setUp()
     self.tp = threadpool.ThreadPool.Factory("test_pool", 50)
     self.tp.Start()
-
-  def tearDown(self):
-    super(DataStoreBenchmarks, self).tearDown()
-    self.tp.Stop()
+    self.addCleanup(self.tp.Stop)
 
   def GenerateFiles(self, client_id, n, directory="dir/dir"):
     res = []

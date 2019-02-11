@@ -30,16 +30,13 @@ class ApiCallRouterWithApprovalChecksE2ETest(
   def setUp(self):
     super(ApiCallRouterWithApprovalChecksE2ETest, self).setUp()
 
-    self.config_overrider = test_lib.ConfigOverrider({
+    config_overrider = test_lib.ConfigOverrider({
         "API.DefaultRouter": api_router.ApiCallRouterWithApprovalChecks.__name__
     })
-    self.config_overrider.Start()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
     self.ClearCache()
-
-  def tearDown(self):
-    super(ApiCallRouterWithApprovalChecksE2ETest, self).tearDown()
-    self.config_overrider.Stop()
 
   def ClearCache(self):
     api_router.ApiCallRouterWithApprovalChecks.ClearCache()

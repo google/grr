@@ -99,12 +99,9 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
   def setUp(self):
     super(FleetspeakGRRFEServerTest, self).setUp()
     fake_conn = _FakeGRPCServiceClient(FS_SERVICE_NAME)
-    self._conn_overrider = fleetspeak_test_lib.ConnectionOverrider(fake_conn)
-    self._conn_overrider.Start()
-
-  def tearDown(self):
-    super(FleetspeakGRRFEServerTest, self).tearDown()
-    self._conn_overrider.Stop()
+    conn_overrider = fleetspeak_test_lib.ConnectionOverrider(fake_conn)
+    conn_overrider.Start()
+    self.addCleanup(conn_overrider.Stop)
 
   @db_test_lib.LegacyDataStoreOnly
   def testReceiveMessages_Legacy(self):
@@ -166,7 +163,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     for stored_message, want_message in itertools.izip(stored_messages,
                                                        want_messages):
       stored_message.timestamp = None
-      self.assertRDFValuesEqual(stored_message, want_message)
+      self.assertEqual(stored_message, want_message)
 
   def testReceiveMessages_Relational(self):
     if not data_store.RelationalDBFlowsEnabled():
@@ -277,7 +274,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     for stored_message, want_message in itertools.izip(stored_messages,
                                                        want_messages):
       stored_message.timestamp = None
-      self.assertRDFValuesEqual(stored_message, want_message)
+      self.assertEqual(stored_message, want_message)
 
   def testReceiveMessageList_Relational(self):
     if not data_store.RelationalDBFlowsEnabled():

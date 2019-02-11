@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import os
 
+from future.builtins import str
 from future.utils import itervalues
 
 from grr_response_core.lib import artifact_utils
@@ -188,7 +189,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
       source.attributes["names"] = ["TestAggregationArtifactDeps"]
       with self.assertRaises(RuntimeError) as e:
         deps = ar.GetArtifactDependencies(art_obj, recursive=True)
-      self.assertIn("artifact recursion depth", e.exception.message)
+      self.assertIn("artifact recursion depth", str(e.exception))
     finally:
       source.attributes["names"] = backup  # Restore old source.
 
@@ -248,6 +249,30 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
     paths = artifact_utils.InterpolateKbAttributes(r"%%users.temp%%\abcd", kb)
     self.assertCountEqual(paths,
                           ["C:\\Users\\jason\\AppData\\Local\\Temp\\abcd"])
+
+  def testMultipleUserInterpolations(self):
+    kb = rdf_client.KnowledgeBase()
+    kb.users.Append(rdf_client.User(username="joe", uid=1, sid="sid1"))
+    kb.users.Append(rdf_client.User(username="jim", uid=2, sid="sid2"))
+    kb.Set("environ_allusersprofile", "c:\\programdata")
+
+    paths = artifact_utils.InterpolateKbAttributes(
+        "%%environ_allusersprofile%%\\%%users.sid%%\\%%users.username%%", kb)
+    self.assertCountEqual(
+        paths, ["c:\\programdata\\sid1\\joe", "c:\\programdata\\sid2\\jim"])
+
+    # Only one user has a temp dir set. If we request all usernames and temp
+    # dirs, we should only get one entry.
+    kb.users.Append(
+        rdf_client.User(
+            username="jason",
+            uid=1,
+            temp="C:\\Users\\jason\\AppData\\Local\\Temp"))
+
+    paths = artifact_utils.InterpolateKbAttributes(
+        "%%users.temp%%\\%%users.username%%.txt", kb)
+    self.assertCountEqual(paths,
+                          ["C:\\Users\\jason\\AppData\\Local\\Temp\\jason.txt"])
 
 
 class ArtifactParserTest(test_lib.GRRBaseTest):

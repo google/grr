@@ -87,7 +87,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
     for interface in self.interfaces:
       if (interface.mac_address and
           interface.mac_address != b"\x00" * len(interface.mac_address)):
-        result.add(interface.mac_address.human_readable_address)
+        result.add(Text(interface.mac_address.human_readable_address))
     return sorted(result)
 
   def GetIPAddresses(self):
@@ -98,7 +98,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
     for interface in self.interfaces:
       for address in interface.addresses:
         if address.human_readable_address not in filtered_ips:
-          result.append(address.human_readable_address)
+          result.append(Text(address.human_readable_address))
     return sorted(result)
 
   def GetSummary(self):
@@ -171,7 +171,8 @@ class ClientFullInfo(rdf_structs.RDFProtoStruct):
   ]
 
   def GetLabelsNames(self, owner=None):
-    return set(l.name for l in self.labels if not owner or l.owner == owner)
+    return set(
+        Text(l.name) for l in self.labels if not owner or l.owner == owner)
 
 
 class GRRUser(rdf_structs.RDFProtoStruct):

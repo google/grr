@@ -8,7 +8,6 @@ import logging
 import threading
 
 
-import requests
 from werkzeug import serving
 
 from grr_response_core import config
@@ -19,12 +18,12 @@ from grr_response_server.gui import wsgiapp
 class ServerThread(threading.Thread):
   """A class to run the wsgi server in another thread."""
 
-  keep_running = True
   daemon = True
 
   def __init__(self, port, **kwargs):
     super(ServerThread, self).__init__(**kwargs)
     self.ready_to_serve = threading.Event()
+    self.done_serving = threading.Event()
     self.port = port
 
   def StartAndWaitUntilServing(self):
@@ -33,15 +32,10 @@ class ServerThread(threading.Thread):
       raise RuntimeError("Server thread did not initialize properly.")
 
   def Stop(self):
-    # The Werkzeug server is pretty bad at shutting down. The only way to make
-    # this work without the danger of blocking forever is to switch the
-    # shutdown_signal flag and send one more request.
-    self.server.shutdown_signal = True
-    try:
-      requests.get("http://localhost:%d" % self.port, timeout=0.3)
-    except (requests.exceptions.ConnectionError,
-            requests.exceptions.ReadTimeout):
-      pass
+    self.server.shutdown()
+
+    if not self.done_serving.wait(60):
+      raise RuntimeError("Server thread did not shut down properly.")
 
   def run(self):
     """Run the WSGI server in a thread."""
@@ -71,5 +65,6 @@ class ServerThread(threading.Thread):
     # We want to notify other threads that we are now ready to serve right
     # before we enter the serving loop.
     self.ready_to_serve.set()
-    while self.keep_running:
-      self.server.handle_request()
+    self.server.serve_forever()
+
+    self.done_serving.set()

@@ -12,16 +12,19 @@ from grr_response_core.lib import flags
 
 from grr_response_server import access_control
 from grr_response_server import aff4
+from grr_response_server import data_store
 
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_labels_restricted_call_router as api_router
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
-from grr.test_lib import acl_test_lib
 
+from grr.test_lib import acl_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class CheckClientLabelsTest(test_lib.GRRBaseTest):
   """Tests for CheckClientLabels function."""
 
@@ -33,9 +36,17 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
     self.labels_whitelist = ["foo"]
     self.labels_owners_whitelist = ["GRR"]
 
+  def _AddLabel(self, name, owner=None):
+    if data_store.RelationalDBReadEnabled():
+      data_store.REL_DB.AddClientLabels(self.client_urn.Basename(), owner,
+                                        [name])
+    else:
+      with aff4.FACTORY.Open(
+          self.client_urn, mode="rw", token=self.token) as fd:
+        fd.AddLabel(name, owner=owner)
+
   def testDoesNotRaiseWhenLabelMatches(self):
-    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
-      fd.AddLabel("foo", owner="GRR")
+    self._AddLabel("foo", owner="GRR")
 
     api_router.CheckClientLabels(
         self.client_id,
@@ -44,11 +55,10 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
         token=self.token)
 
   def testDoesNotRaiseWhenLabelMatchesAmongManyLabels(self):
-    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
-      fd.AddLabel("bar", owner="GRR")
-      fd.AddLabel("foo", owner="GRR")
-      fd.AddLabel("zig", owner="GRR")
-      fd.AddLabel("zag", owner="GRR")
+    self._AddLabel("bar", owner="GRR")
+    self._AddLabel("foo", owner="GRR")
+    self._AddLabel("zig", owner="GRR")
+    self._AddLabel("zag", owner="GRR")
 
     api_router.CheckClientLabels(
         self.client_id,
@@ -57,8 +67,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
         token=self.token)
 
   def testRaisesWhenLabelDoesNotMatch(self):
-    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
-      fd.AddLabel("bar", owner="GRR")
+    self._AddLabel("bar", owner="GRR")
 
     with self.assertRaises(access_control.UnauthorizedAccess):
       api_router.CheckClientLabels(
@@ -68,11 +77,10 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
           token=self.token)
 
   def testRaisesWhenLabelDoesNotMatchAmongManyLabels(self):
-    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
-      fd.AddLabel("foo1", owner="GRR")
-      fd.AddLabel("2foo", owner="GRR")
-      fd.AddLabel("1foo2", owner="GRR")
-      fd.AddLabel("bar", owner="GRR")
+    self._AddLabel("foo1", owner="GRR")
+    self._AddLabel("2foo", owner="GRR")
+    self._AddLabel("1foo2", owner="GRR")
+    self._AddLabel("bar", owner="GRR")
 
     with self.assertRaises(access_control.UnauthorizedAccess):
       api_router.CheckClientLabels(
@@ -82,8 +90,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
           token=self.token)
 
   def testRaisesIfOwnerDoesNotMatch(self):
-    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
-      fd.AddLabel("foo", owner="GRRother")
+    self._AddLabel("foo", owner="GRRother")
 
     with self.assertRaises(access_control.UnauthorizedAccess):
       api_router.CheckClientLabels(
@@ -93,6 +100,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
           token=self.token)
 
 
+@db_test_lib.DualDBTest
 class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
                                         acl_test_lib.AclTestMixin):
   """Tests for an ApiLabelsRestrictedCallRouter."""
@@ -152,8 +160,13 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     super(ApiLabelsRestrictedCallRouterTest, self).setUp()
 
     self.client_urn = self.SetupClient(0)
-    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
-      fd.AddLabel("foo", owner="GRR")
+    if data_store.RelationalDBReadEnabled():
+      data_store.REL_DB.AddClientLabels(self.client_urn.Basename(), "GRR",
+                                        ["foo"])
+    else:
+      with aff4.FACTORY.Open(
+          self.client_urn, mode="rw", token=self.token) as fd:
+        fd.AddLabel("foo", owner="GRR")
     self.client_id = self.client_urn.Basename()
 
     self.hunt_id = "H:123456"
@@ -233,10 +246,6 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     self.CheckMethod(c.GetHuntFilesArchive, hunt_id=self.hunt_id)
     self.CheckMethod(c.GetHuntFile, hunt_id=self.hunt_id)
 
-    # Stats metrics methods.
-    self.CheckMethod(c.ListStatsStoreMetricsMetadata)
-    self.CheckMethod(c.GetStatsStoreMetric)
-
     # Approvals methods.
     self.CheckMethod(c.CreateClientApproval, client_id=self.client_id)
     self.CheckMethod(c.GetClientApproval, client_id=self.client_id)
@@ -276,9 +285,11 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     result = self.RunChecks(router)
     for method_name, (status, _) in iteritems(result):
       if method_name in method_names:
-        self.assertTrue(status, "%s is permitted" % method_name)
+        self.assertTrue(status,
+                        "%s must be permitted, but it's not" % method_name)
       else:
-        self.assertFalse(status, "%s is not permitted" % method_name)
+        self.assertFalse(status,
+                         "%s mut not be permitted, but it is" % method_name)
 
   def testReturnsCustomHandlerForSearchClients(self):
     router = api_router.ApiLabelsRestrictedCallRouter()

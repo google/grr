@@ -334,10 +334,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     parser = linux_file_parser.LinuxSystemGroupParser()
     rdfs = parser.ParseMultiple(stats, files, None)
     results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
-
-    self.assertLen(results, len(expected))
-    for expect, result in zip(expected, results):
-      self.assertRDFValuesEqual(expect, result)
+    self.assertEqual(expected, results)
 
   def testSystemAccountAnomaly(self):
     passwd = [

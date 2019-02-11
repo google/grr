@@ -71,8 +71,9 @@ class GRRChipsecTest(client_test_lib.EmptyActionTest):
         "chipsec.hal": self.chipsec_mock.hal,
     }
 
-    self.chipsec_patch = mock.patch.dict(sys.modules, mock_modules)
-    self.chipsec_patch.start()
+    chipsec_patch = mock.patch.dict(sys.modules, mock_modules)
+    chipsec_patch.start()
+    self.addCleanup(chipsec_patch.stop)
 
     # Import the ClientAction to test with the Chipsec mock in place.
     # pylint: disable=g-import-not-at-top, unused-variable
@@ -83,9 +84,6 @@ class GRRChipsecTest(client_test_lib.EmptyActionTest):
     self.grr_chipsec_module = grr_chipsec
     self.grr_chipsec_module.chipset = self.chipsec_mock.chipset
     self.grr_chipsec_module.logger = self.chipsec_mock.logger
-
-  def tearDown(self):
-    self.chipsec_patch.stop()
 
 
 class TestChipsecDumpFlashImage(GRRChipsecTest):

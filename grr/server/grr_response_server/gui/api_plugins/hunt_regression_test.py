@@ -5,7 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import pdb
-
+import unittest
 
 from builtins import range  # pylint: disable=redefined-builtin
 
@@ -160,21 +160,13 @@ class ApiGetHuntHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest,
 
   def Run(self):
     with test_lib.FakeTime(42):
+      # TODO(user): make hunt stats non-zero when AFF4 is gone to
+      # improve test coverage.
       if data_store.RelationalDBReadEnabled("hunts"):
         hunt_id = self.CreateHunt(description="the hunt")
-        hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-        hunt_obj.client_resources_stats.user_cpu_stats.sum = 5000
-        hunt_obj.client_resources_stats.network_bytes_sent_stats.sum = 1000000
-        data_store.REL_DB.WriteHuntObject(hunt_obj)
-
       else:
         with self.CreateHunt(description="the hunt") as hunt_obj:
           hunt_urn = hunt_obj.urn
-
-          hunt_stats = hunt_obj.context.usage_stats
-          hunt_stats.user_cpu_stats.sum = 5000
-          hunt_stats.network_bytes_sent_stats.sum = 1000000
-
           hunt_id = hunt_urn.Basename()
 
     self.Check(
@@ -196,21 +188,15 @@ class ApiGetHuntHandlerHuntCopyRegressionTest(
         hunt_reference=rdf_objects.HuntReference(hunt_id="H:332211"))
 
     if data_store.RelationalDBReadEnabled("hunts"):
+      # TODO(user): make hunt stats non-zero when AFF4 is gone to
+      # improve test coverage.
       with test_lib.FakeTime(42):
         hunt_id = self.CreateHunt(description="the hunt", original_object=ref)
-        hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-        hunt_obj.client_resources_stats.user_cpu_stats.sum = 5000
-        hunt_obj.client_resources_stats.network_bytes_sent_stats.sum = 1000000
-        data_store.REL_DB.WriteHuntObject(hunt_obj)
     else:
       with test_lib.FakeTime(42):
         with self.CreateHunt(
             description="the hunt", original_object=ref) as hunt_obj:
           hunt_id = hunt_obj.urn.Basename()
-
-          hunt_stats = hunt_obj.context.usage_stats
-          hunt_stats.user_cpu_stats.sum = 5000
-          hunt_stats.network_bytes_sent_stats.sum = 1000000
 
     self.Check(
         "GetHunt",
@@ -232,21 +218,15 @@ class ApiGetHuntHandlerFlowCopyRegressionTest(
             flow_id="F:332211", client_id="C.1111111111111111"))
 
     if data_store.RelationalDBReadEnabled("hunts"):
+      # TODO(user): make hunt stats non-zero when AFF4 is gone to
+      # improve test coverage.
       with test_lib.FakeTime(42):
         hunt_id = self.CreateHunt(description="the hunt", original_object=ref)
-        hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-        hunt_obj.client_resources_stats.user_cpu_stats.sum = 5000
-        hunt_obj.client_resources_stats.network_bytes_sent_stats.sum = 1000000
-        data_store.REL_DB.WriteHuntObject(hunt_obj)
     else:
       with test_lib.FakeTime(42):
         with self.CreateHunt(
             description="the hunt", original_object=ref) as hunt_obj:
           hunt_id = hunt_obj.urn.Basename()
-
-          hunt_stats = hunt_obj.context.usage_stats
-          hunt_stats.user_cpu_stats.sum = 5000
-          hunt_stats.network_bytes_sent_stats.sum = 1000000
 
     self.Check(
         "GetHunt",
@@ -662,6 +642,10 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
         replace={hunt_id: "H:123456"})
 
 
+# TODO(user): remove skipping directive as soon as REL_DB has
+# proper support for client resources stats.
+@unittest.skip("Temporarily skipping until REL_DB client resources "
+               "support is there.")
 class ApiGetHuntStatsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin):

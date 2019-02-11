@@ -156,6 +156,9 @@ class LinuxReleaseParser(parser.FileMultiParser):
       # Debian-based.
       WeightedReleaseFile(20, '/etc/debian_version',
                           ReleaseFileParseHandler('Debian')),
+      # TODO(user): These weights are pointless - we can remove
+      # them while preserving functionality. ReleaseFileParseHandler should
+      # be deleted and replaced with a function.
   )
 
   def _Combine(self, stats, file_objects):
@@ -191,8 +194,21 @@ class LinuxReleaseParser(parser.FileMultiParser):
             'os_major_version': result.major,
             'os_minor_version': result.minor
         })
-        break
-    else:
-      # No successful parse.
-      yield rdf_anomaly.Anomaly(
-          type='PARSER_ANOMALY', symptom='Unable to determine distribution.')
+        return
+
+    # Amazon AMIs place release info in /etc/system-release.
+    # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-ami-basics.html
+    system_release = found_files.get('/etc/system-release', None)
+    if system_release and 'Amazon Linux' in system_release:
+      match_object = ReleaseFileParseHandler.RH_RE.search(system_release)
+      if match_object and match_object.lastindex > 1:
+        yield rdf_protodict.Dict({
+            'os_release': 'AmazonLinuxAMI',
+            'os_major_version': int(match_object.group(1)),
+            'os_minor_version': int(match_object.group(2))
+        })
+        return
+
+    # No successful parse.
+    yield rdf_anomaly.Anomaly(
+        type='PARSER_ANOMALY', symptom='Unable to determine distribution.')

@@ -209,13 +209,16 @@ _BLOBS_READ_BATCH_SIZE = 200
 
 
 def AddFilesWithUnknownHashes(
-    client_path_blob_refs
+    client_path_blob_refs,
+    use_external_stores = True
 ):
   """Adds new files consisting of given blob references.
 
   Args:
     client_path_blob_refs: A dictionary mapping `db.ClientPath` instances to
       lists of blob references.
+    use_external_stores: A flag indicating if the files should also be added to
+      external file stores.
 
   Returns:
     A dictionary mapping `db.ClientPath` to hash ids of the file.
@@ -290,20 +293,24 @@ def AddFilesWithUnknownHashes(
 
   data_store.REL_DB.WriteHashBlobReferences(hash_id_blob_refs)
 
-  for client_path in iterkeys(verified_client_path_blob_refs):
-    metadatas[client_path_hash_id[client_path]] = FileMetadata(
-        client_path=client_path,
-        blob_refs=verified_client_path_blob_refs[client_path])
-  EXTERNAL_FILE_STORE.AddFiles(metadatas)
+  if use_external_stores:
+    for client_path in iterkeys(verified_client_path_blob_refs):
+      metadatas[client_path_hash_id[client_path]] = FileMetadata(
+          client_path=client_path,
+          blob_refs=verified_client_path_blob_refs[client_path])
+
+    EXTERNAL_FILE_STORE.AddFiles(metadatas)
 
   return client_path_hash_id
 
 
-def AddFileWithUnknownHash(client_path, blob_refs):
+def AddFileWithUnknownHash(client_path, blob_refs, use_external_stores=True):
   """Add a new file consisting of given blob IDs."""
   precondition.AssertType(client_path, db.ClientPath)
   precondition.AssertIterableType(blob_refs, rdf_objects.BlobReference)
-  return AddFilesWithUnknownHashes({client_path: blob_refs})[client_path]
+  return AddFilesWithUnknownHashes(
+      {client_path: blob_refs},
+      use_external_stores=use_external_stores)[client_path]
 
 
 def CheckHashes(hash_ids):

@@ -189,7 +189,7 @@ class CopyToSystemDir(installer.Installer):
             # The currently installed GRR process may stick around for a few
             # seconds after the service is terminated (keeping the contents of
             # the installation directory locked).
-            logging.warn(
+            logging.warning(
                 "Encountered permission-denied error while trying to empty out "
                 "'%s'. Retrying...", install_path)
             time.sleep(3)

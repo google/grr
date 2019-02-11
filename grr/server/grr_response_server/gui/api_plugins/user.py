@@ -545,8 +545,12 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
       if not approval_subject_obj:
         approval_subject_obj = data_store.REL_DB.ReadHuntObject(
             db_obj.subject_id)
-      self.subject = api_hunt.ApiHunt().InitFromHuntObject(
-          approval_subject_obj, with_full_summary=True)
+        approval_subject_counters = data_store.REL_DB.ReadHuntCounters(
+            db_obj.subject_id)
+        self.subject = api_hunt.ApiHunt().InitFromHuntObject(
+            approval_subject_obj,
+            hunt_counters=approval_subject_counters,
+            with_full_summary=True)
       original_object = approval_subject_obj.original_object
     else:
       subject_urn = rdfvalue.RDFURN("hunts").Add(db_obj.subject_id)
@@ -573,8 +577,12 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
       if data_store.RelationalDBReadEnabled("hunts"):
         original_hunt = data_store.REL_DB.ReadHuntObject(
             original_object.hunt_reference.hunt_id)
+        original_hunt_counters = data_store.REL_DB.ReadHuntCounters(
+            original_object.hunt_reference.hunt_id)
         self.copied_from_hunt = api_hunt.ApiHunt().InitFromHuntObject(
-            original_hunt, with_full_summary=True)
+            original_hunt,
+            hunt_counters=original_hunt_counters,
+            with_full_summary=True)
       else:
         urn = original_object.hunt_reference.ToHuntURN()
         original_hunt = aff4.FACTORY.Open(urn, aff4_type=implementation.GRRHunt)

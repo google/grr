@@ -125,13 +125,11 @@ def StartServerComponent(name, import_main_fn, args):
     multiprocessing.Process instance corresponding to a started process.
   """
   print("Starting %s component" % name)
-  # process = multiprocessing.Process(
-  #    name=name, target=_RunServerComponent, args=(name, import_main_fn, args))
-  # process.daemon = True
-  # process.start()
-  _RunServerComponent(name, import_main_fn, args)
-  # return process
-  return multiprocessing.Process(name="DEBUG", target=lambda: None, args=())
+  process = multiprocessing.Process(
+      name=name, target=_RunServerComponent, args=(name, import_main_fn, args))
+  process.daemon = True
+  process.start()
+  return process
 
 
 def _RunClient(config_path):

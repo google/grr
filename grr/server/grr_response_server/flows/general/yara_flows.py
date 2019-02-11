@@ -141,6 +141,7 @@ class YaraDumpProcessMemoryMixin(object):
         transfer.MultiGetFile.__name__,
         pathspecs=dump_files_to_get,
         file_size=1024 * 1024 * 1024,
+        use_external_stores=False,
         next_state="DeleteFiles")
 
   def DeleteFiles(self, responses):

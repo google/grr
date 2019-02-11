@@ -118,8 +118,8 @@ class ArtifactRegistrySources(object):
         if filename.endswith(".json") or filename.endswith(".yaml"):
           yield os.path.join(dirpath, filename)
     except (IOError, OSError) as error:
-      logging.warn("problem with accessing artifact directory '%s': %s",
-                   dirpath, error)
+      logging.warning("problem with accessing artifact directory '%s': %s",
+                      dirpath, error)
 
 
 class ArtifactRegistry(object):
@@ -166,7 +166,7 @@ class ArtifactRegistry(object):
           # TODO(hanuszczak): String matching on exception message is rarely
           # a good idea. Instead this should be refectored to some exception
           # class and then handled separately.
-          if "system artifact" in e.message:
+          if "system artifact" in str(e):
             to_delete.append(artifact_value.name)
           else:
             raise

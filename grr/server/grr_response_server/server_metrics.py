@@ -92,6 +92,7 @@ def GetMetadata():
           "well_known_flow_requests", fields=[("flow", str)]),
       stats_utils.CreateCounterMetadata(
           "well_known_flow_errors", fields=[("flow", str)]),
+      stats_utils.CreateEventMetadata("fleetspeak_last_ping_latency_millis"),
 
       # Hunt-related metrics.
       stats_utils.CreateCounterMetadata(

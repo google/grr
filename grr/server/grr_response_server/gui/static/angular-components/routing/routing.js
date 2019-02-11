@@ -139,11 +139,6 @@ exports.routingModule
             },
             title: 'Stats'
           })
-          .state('serverLoad', {
-            url: '/server-load',
-            template: '<grr-server-load />',
-            title: 'Server Load'
-          })
 
           //
           // Configuration states.

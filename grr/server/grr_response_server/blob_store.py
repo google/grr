@@ -2,11 +2,13 @@
 """The blob store abstraction."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import abc
 
 from future.utils import with_metaclass
+from typing import Dict, Iterable, List, Optional
 
 from grr_response_core.lib.util import precondition
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -21,7 +23,8 @@ REGISTRY = {}
 class BlobStore(with_metaclass(abc.ABCMeta, object)):
   """The blob store base class."""
 
-  def WriteBlobsWithUnknownHashes(self, blobs_data):
+  def WriteBlobsWithUnknownHashes(
+      self, blobs_data):
     """Calculates hash ids and writes contents of given data blobs.
 
     Args:
@@ -70,7 +73,8 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     return self.CheckBlobsExist([blob_id])[blob_id]
 
   @abc.abstractmethod
-  def WriteBlobs(self, blob_id_data_map):
+  def WriteBlobs(self,
+                 blob_id_data_map):
     """Creates or overwrites blobs.
 
     Args:
@@ -80,7 +84,8 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadBlobs(self, blob_ids):
+  def ReadBlobs(self, blob_ids
+               ):
     """Reads blobs.
 
     Args:
@@ -93,7 +98,8 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def CheckBlobsExist(self, blob_ids):
+  def CheckBlobsExist(self, blob_ids
+                     ):
     """Checks if blobs for the given identifiers already exist.
 
     Args:
@@ -112,16 +118,34 @@ class BlobStoreValidationWrapper(BlobStore):
     super(BlobStoreValidationWrapper, self).__init__()
     self.delegate = delegate
 
-  def WriteBlobs(self, blob_id_data_map):
+  def WriteBlobsWithUnknownHashes(
+      self, blobs_data):
+    precondition.AssertIterableType(blobs_data, bytes)
+    return self.delegate.WriteBlobsWithUnknownHashes(blobs_data)
+
+  def WriteBlobWithUnknownHash(self, blob_data):
+    precondition.AssertType(blob_data, bytes)
+    return self.delegate.WriteBlobWithUnknownHash(blob_data)
+
+  def ReadBlob(self, blob_id):
+    precondition.AssertType(blob_id, rdf_objects.BlobID)
+    return self.delegate.ReadBlob(blob_id)
+
+  def CheckBlobExists(self, blob_id):
+    precondition.AssertType(blob_id, rdf_objects.BlobID)
+    return self.delegate.CheckBlobExists(blob_id)
+
+  def WriteBlobs(self,
+                 blob_id_data_map):
     precondition.AssertDictType(blob_id_data_map, rdf_objects.BlobID, bytes)
-    self.delegate.WriteBlobs(blob_id_data_map)
+    return self.delegate.WriteBlobs(blob_id_data_map)
 
-  def ReadBlobs(self, blob_ids):
+  def ReadBlobs(self, blob_ids
+               ):
     precondition.AssertIterableType(blob_ids, rdf_objects.BlobID)
-
     return self.delegate.ReadBlobs(blob_ids)
 
-  def CheckBlobsExist(self, blob_ids):
+  def CheckBlobsExist(self, blob_ids
+                     ):
     precondition.AssertIterableType(blob_ids, rdf_objects.BlobID)
-
     return self.delegate.CheckBlobsExist(blob_ids)

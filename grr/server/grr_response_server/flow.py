@@ -66,6 +66,7 @@ from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
+from grr_response_server import db
 from grr_response_server import events
 from grr_response_server import flow_responses
 from grr_response_server import flow_runner
@@ -81,6 +82,22 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 class FlowResultCollection(sequential_collection.GrrMessageCollection):
   """Sequential FlowResultCollection."""
+
+
+class Error(Exception):
+  """Base class for this package's exceptions."""
+
+
+class CanNotStartFlowWithExistingIdError(Error):
+  """Raises by StartFlow when trying to start a flow with an exising id."""
+
+  def __init__(self, client_id, flow_id):
+    message = (
+        "Flow %s already exists on the client %s." % (client_id, flow_id))
+    super(CanNotStartFlowWithExistingIdError, self).__init__(message)
+
+    self.client_id = client_id
+    self.flow_id = flow_id
 
 
 class FlowError(Exception):
@@ -175,12 +192,11 @@ def GetOutputPluginStates(output_plugins, source=None, token=None):
   for plugin_descriptor in output_plugins:
     plugin_class = plugin_descriptor.GetPluginClass()
     try:
-      plugin, plugin_state = plugin_class.CreatePluginAndDefaultState(
+      _, plugin_state = plugin_class.CreatePluginAndDefaultState(
           source_urn=source, args=plugin_descriptor.plugin_args, token=token)
     except Exception as e:  # pylint: disable=broad-except
-      logging.warning("Plugin %s failed to initialize (%s), ignoring it.",
-                      plugin, e)
-      continue
+      raise ValueError(
+          "Plugin %s failed to initialize (%s)" % (plugin_class, e))
 
     # TODO(amoser): Those do not need to be inside the state, they
     # could be part of the plugin descriptor.
@@ -404,6 +420,14 @@ def StartFlow(client_id=None,
       rdf_flow.flow_id = rdf_flow.flow_id[2:]
   else:
     rdf_flow.flow_id = RandomFlowId()
+
+  # For better performance, only do conflicting IDs check for top-level flows.
+  if not parent_flow_obj:
+    try:
+      data_store.REL_DB.ReadFlowObject(client_id, rdf_flow.flow_id)
+      raise CanNotStartFlowWithExistingIdError(client_id, rdf_flow.flow_id)
+    except db.UnknownFlowError:
+      pass
 
   if parent_flow_obj:  # A flow is a nested flow.
     parent_rdf_flow = parent_flow_obj.rdf_flow
@@ -938,6 +962,10 @@ class GRRFlow(FlowBase):
     Returns:
       The collection containing the results for the flow identified by the id.
     """
+    # TODO: Disallow/remove URNs after migration.
+    if not isinstance(flow_id, rdfvalue.RDFURN):
+      flow_id = rdfvalue.RDFURN(flow_id)
+
     return sequential_collection.GeneralIndexedCollection(
         flow_id.Add(RESULTS_SUFFIX))
 

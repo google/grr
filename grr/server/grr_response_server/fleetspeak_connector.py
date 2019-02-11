@@ -30,7 +30,7 @@ def Init(service_client=None):
     fleetspeak_server = config.CONFIG["Server.fleetspeak_server"] or None
 
     if fleetspeak_message_listen_address is None and fleetspeak_server is None:
-      logging.warn(
+      logging.warning(
           "Missing config options `Server.fleetspeak_message_listen_address', "
           "`Server.fleetspeak_server', at least one of which is required to "
           "initialize a connection to Fleetspeak; Not using Fleetspeak.")

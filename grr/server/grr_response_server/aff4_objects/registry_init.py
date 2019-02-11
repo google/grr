@@ -13,6 +13,5 @@ from grr_response_server.aff4_objects import filestore
 from grr_response_server.aff4_objects import security
 from grr_response_server.aff4_objects import standard
 from grr_response_server.aff4_objects import stats
-from grr_response_server.aff4_objects import stats_store
 from grr_response_server.aff4_objects import user_managers
 from grr_response_server.aff4_objects import users

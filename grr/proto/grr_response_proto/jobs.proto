@@ -1993,41 +1993,6 @@ message Distribution {
     }];
 }
 
-message StatsStoreFieldValue {
-  optional MetricFieldDefinition.FieldType field_type = 1;
-
-  optional string str_value = 2;
-  optional int64 int_value = 3;
-}
-
-message StatsStoreValue {
-  optional MetricMetadata.ValueType value_type = 1;
-
-  optional string str_value = 2;
-  optional int64 int_value = 3;
-  optional float float_value = 4;
-  optional Distribution distribution_value = 5;
-
-  repeated StatsStoreFieldValue fields_values = 6;
-}
-
-// Represents a single entry/row in the rel-db table for storing
-// server metrics.
-message StatsStoreEntry {
-  optional string process_id = 1 [(sem_type) = {
-    description: "Stats identifier for the monitored process, e.g 'frontend_2'."
-  }];
-  optional string metric_name = 2
-      [(sem_type) = { description: "Name of the metric." }];
-  optional StatsStoreValue metric_value = 3 [(sem_type) = {
-    description: "Value of the metric at a given point in time."
-  }];
-  optional uint64 timestamp = 4 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "Timestamp for when the metric value was observed.",
-  }];
-}
-
 message AFF4ObjectLabel {
   optional string name = 1;
   optional string owner = 2 [(sem_type) = {

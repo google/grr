@@ -172,7 +172,7 @@ class ProcessHuntResultCollectionsCronJob(object):
         metadata_obj.Set(
             metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
     except aff4.LockError:
-      logging.warn(
+      logging.warning(
           "ProcessHuntResultCollectionsCronFlow: "
           "Could not get lock on hunt metadata %s.", metadata_urn)
       return 0

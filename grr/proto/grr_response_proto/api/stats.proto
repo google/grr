@@ -155,69 +155,6 @@ message ApiReportTickSpecifier {
 // Method arguments and results.
 //
 
-message ApiListStatsStoreMetricsMetadataArgs {
-  enum Component {
-    WORKER = 0;
-    FRONTEND = 1;
-    ADMIN_UI = 2;
-  }
-  optional Component component = 1;
-}
-
-message ApiListStatsStoreMetricsMetadataResult {
-  repeated MetricMetadata items = 1;
-}
-
-
-// Next field number: 8
-message ApiGetStatsStoreMetricArgs {
-  enum Component {
-    WORKER = 0;
-    FRONTEND = 1;
-    ADMIN_UI = 2;
-  }
-  optional Component component = 1;
-  optional string metric_name = 2;
-
-  optional uint64 start = 3 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Fetch metrics data starting from this timestamp. If "
-      "not set, will default to 1 hour ago."
-    }];
-  optional uint64 end = 4 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Fetch metrics data from the interval ending with "
-      "this timestamp. If not set, will default to the current time."
-    }];
-
-  optional uint64 rate = 7 [(sem_type) = {
-      type: "Duration",
-      description: "If set, metric's rate over given window will be returned "
-      "instead of plain values."
-    }];
-
-  enum DistributionHandlingMode {
-    DH_SUM = 0 [(description) = "Sum of all values recorded in a distribution "
-             "will be fetched."];
-    DH_COUNT = 1 [(description) = "Number of all values recorded in a distribution "
-               "will be fetched."];
-  };
-  optional DistributionHandlingMode distribution_handling_mode = 5 [(sem_type) = {
-      description: "Determines which values to fetch when dealing with distributions."
-    }];
-
-  enum AggregationMode {
-    AGG_SUM = 0 [(description) = "Values will be summed."];
-    AGG_MEAN = 1 [(description) = "Mean value will be calculated."];
-    AGG_NONE = 2 [(description) = "No aggregation will be performed."];
-  };
-  optional AggregationMode aggregation_mode = 6 [(sem_type) = {
-      description: "Aggregation method. As metrics are usually collected across "
-        "multiple processes, most of the time they have to be aggregated."
-    }];
-}
-
-
 message ApiGetReportArgs {
   optional string name = 1 [(sem_type) = {
       description: "Identifier in the report hierarchy. Also the name of the "

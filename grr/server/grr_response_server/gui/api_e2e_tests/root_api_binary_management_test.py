@@ -13,9 +13,11 @@ from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_proto.api import config_pb2
 from grr_response_server.gui import api_e2e_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class RootApiBinaryManagementTest(api_e2e_test_lib.RootApiE2ETest):
   """E2E test for root API user management calls."""
 

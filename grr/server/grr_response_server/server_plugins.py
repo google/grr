@@ -25,7 +25,6 @@ from grr_response_server import master
 from grr_response_server import output_plugin
 from grr_response_server import output_plugins
 from grr_response_server import stats_server
-from grr_response_server import stats_store
 from grr_response_server.aff4_objects import registry_init
 from grr_response_server.blob_stores import registry_init
 from grr_response_server.data_stores import registry_init

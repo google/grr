@@ -6,12 +6,10 @@ from __future__ import unicode_literals
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import random
 from grr_response_proto import hunts_pb2
 from grr_response_server import foreman_rules
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
@@ -70,10 +68,8 @@ class Hunt(rdf_structs.RDFProtoStruct):
       HuntArguments,
       foreman_rules.ForemanClientRuleSet,
       rdfvalue.RDFDatetime,
-      rdf_flow_runner.OutputPluginState,
       rdf_hunts.FlowLikeObjectReference,
       rdf_output_plugin.OutputPluginDescriptor,
-      rdf_stats.ClientResourcesStats,
   ]
 
   def __init__(self, *args, **kwargs):

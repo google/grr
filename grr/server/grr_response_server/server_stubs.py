@@ -24,6 +24,7 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -423,3 +424,10 @@ class YaraProcessDump(ClientActionStub):
 
   in_rdfvalue = rdf_yara.YaraProcessDumpArgs
   out_rdfvalues = [rdf_yara.YaraProcessDumpResponse]
+
+
+class Osquery(ClientActionStub):
+  """A stub class for the osquery action plugin."""
+
+  in_rdfvalue = rdf_osquery.OsqueryArgs
+  out_rdfvalues = [rdf_osquery.OsqueryResult]

@@ -81,8 +81,8 @@ class ArtifactRegistrySourcesTest(absltest.TestCase):
       self.assertNotIn(baz_path, files)
       self.assertNotIn(thud_path, files)
 
-  @mock.patch("logging.warn")
-  def testGetAllFilesErrors(self, warn):
+  @mock.patch("logging.warning")
+  def testGetAllFilesErrors(self, warning):
     with temp.AutoTempDirPath() as foo_dirpath,\
          temp.AutoTempDirPath() as bar_dirpath:
       self.assertTrue(self.sources.AddDir(foo_dirpath))
@@ -94,8 +94,8 @@ class ArtifactRegistrySourcesTest(absltest.TestCase):
       files = list(self.sources.GetAllFiles())
       self.assertFalse(files)
 
-      self.assertTrue(warn.called)
-      self.assertEqual(warn.call_count, 3)
+      self.assertTrue(warning.called)
+      self.assertEqual(warning.call_count, 3)
 
 
 class ArtifactTest(absltest.TestCase):

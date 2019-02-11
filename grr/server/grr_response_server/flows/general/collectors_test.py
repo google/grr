@@ -61,8 +61,9 @@ class ArtifactCollectorsTestMixin(object):
     """Make sure things are initialized."""
     super(ArtifactCollectorsTestMixin, self).setUp()
 
-    self._patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
-    self._patcher.start()
+    patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
+    patcher.start()
+    self.addCleanup(patcher.stop)
 
     artifact_registry.REGISTRY.ClearSources()
     artifact_registry.REGISTRY.ClearRegistry()
@@ -75,10 +76,6 @@ class ArtifactCollectorsTestMixin(object):
     self.fakeartifact2 = artifact_registry.REGISTRY.GetArtifact("FakeArtifact2")
 
     self.output_count = 0
-
-  def tearDown(self):
-    self._patcher.stop()
-    super(ArtifactCollectorsTestMixin, self).tearDown()
 
 
 @db_test_lib.DualDBTest
@@ -757,25 +754,43 @@ class TestFileParser(parser.FileParser):
     yield rdf_protodict.AttributedDict(**cfg)
 
 
+def InitGRRWithTestArtifacts(self):
+  artifact_registry.REGISTRY.ClearSources()
+  artifact_registry.REGISTRY.ClearRegistry()
+
+  test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
+                                     "artifacts", "test_artifacts.json")
+  artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
+
+  self.addCleanup(artifact_registry.REGISTRY.AddDefaultSources)
+  self.addCleanup(artifact_registry.REGISTRY.ClearRegistry)
+  self.addCleanup(artifact_registry.REGISTRY.ClearSources)
+
+
+def InitGRRWithTestSources(self, artifacts_data):
+  artifact_registry.REGISTRY.ClearSources()
+  artifact_registry.REGISTRY.ClearRegistry()
+
+  artifacts_temp_dir = temp.TempDirPath()
+  with open(os.path.join(artifacts_temp_dir, "test_artifacts.yaml"), "w") as fd:
+    fd.write(artifacts_data)
+
+  artifact_registry.REGISTRY.AddDirSources([artifacts_temp_dir])
+  self.addCleanup(lambda: shutil.rmtree(artifacts_temp_dir))
+  self.addCleanup(artifact_registry.REGISTRY.AddDefaultSources)
+  self.addCleanup(artifact_registry.REGISTRY.ClearRegistry)
+  self.addCleanup(artifact_registry.REGISTRY.ClearSources)
+
+
 @db_test_lib.DualDBTest
 class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the client side artifact collection test artifacts."""
 
   def setUp(self):
     super(ClientArtifactCollectorFlowTest, self).setUp()
-    self.cleanup = None
-    InitGRRWithTestArtifacts()
+    InitGRRWithTestArtifacts(self)
 
     self.client_id = self.SetupClient(0)
-
-  def tearDown(self):
-    super(ClientArtifactCollectorFlowTest, self).tearDown()
-    if self.cleanup:
-      self.cleanup()
-
-    artifact_registry.REGISTRY.ClearSources()
-    artifact_registry.REGISTRY.ClearRegistry()
-    artifact_registry.REGISTRY.AddDefaultSources()
 
   def _RunFlow(self, flow_cls, action, artifact_list, apply_parsers):
     session_id = flow_test_lib.TestFlowHelper(
@@ -847,7 +862,8 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     artifact_list = ["LinuxMountCmd"]
 
-    self.cleanup = InitGRRWithTestSources("""
+    InitGRRWithTestSources(
+        self, """
 name: LinuxMountCmd
 doc: Linux output of mount.
 sources:
@@ -886,7 +902,8 @@ supported_os: [Linux]
 
     artifact_list = ["TestRegistryKey"]
 
-    self.cleanup = InitGRRWithTestSources(r"""
+    InitGRRWithTestSources(
+        self, r"""
 name: TestRegistryKey
 doc: A sample registry key artifact.
 sources:
@@ -930,7 +947,8 @@ sources:
 
     artifact_list = ["TestRegistryKey"]
 
-    self.cleanup = InitGRRWithTestSources(r"""
+    InitGRRWithTestSources(
+        self, r"""
 name: TestRegistryKey
 doc: A sample registry key artifact.
 sources:
@@ -973,7 +991,8 @@ sources:
 
     artifact_list = ["TestRegistryKey"]
 
-    self.cleanup = InitGRRWithTestSources(r"""
+    InitGRRWithTestSources(
+        self, r"""
 name: TestRegistryKey
 doc: A sample registry key artifact.
 sources:
@@ -1166,51 +1185,14 @@ sources:
     self.assertEqual(artifact_response.pathspec.path, expected.pathspec.path)
 
 
-def InitGRRWithTestArtifacts():
-  artifact_registry.REGISTRY.ClearSources()
-  artifact_registry.REGISTRY.ClearRegistry()
-
-  test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                     "artifacts", "test_artifacts.json")
-  artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
-
-
-def InitGRRWithTestSources(artifacts_data):
-  artifact_registry.REGISTRY.ClearSources()
-  artifact_registry.REGISTRY.ClearRegistry()
-
-  artifacts_temp_dir = temp.TempDirPath()
-  with open(os.path.join(artifacts_temp_dir, "test_artifacts.yaml"), "w") as fd:
-    fd.write(artifacts_data)
-
-  artifact_registry.REGISTRY.AddDirSources([artifacts_temp_dir])
-
-  def CleanUp():
-    shutil.rmtree(artifacts_temp_dir)
-
-  return CleanUp
-
-
 class ArtifactArrangerTest(test_lib.GRRBaseTest):
   """Test the ArtifactArranger gets and sorts all required artifact."""
-
-  def setUp(self):
-    super(ArtifactArrangerTest, self).setUp()
-    self.cleanup = None
-
-  def tearDown(self):
-    super(ArtifactArrangerTest, self).tearDown()
-    if self.cleanup:
-      self.cleanup()
-
-    artifact_registry.REGISTRY.ClearSources()
-    artifact_registry.REGISTRY.ClearRegistry()
-    artifact_registry.REGISTRY.AddDefaultSources()
 
   def testArtifactWithoutDependency(self):
     """Test that artifact list without dependencies does not change."""
 
-    self.cleanup = InitGRRWithTestSources("""
+    InitGRRWithTestSources(
+        self, """
 name: Artifact0
 doc: An artifact without dependencies.
 sources:
@@ -1229,7 +1211,8 @@ supported_os: [Linux]
   def testArtifactWithBasicDependency(self):
     """Test that an artifact providing the dependency is added to the list."""
 
-    self.cleanup = InitGRRWithTestSources("""
+    InitGRRWithTestSources(
+        self, """
 name: Artifact0
 doc: An artifact without dependencies.
 supported_os: [Linux]
@@ -1254,7 +1237,8 @@ supported_os: [Linux]
   def testArtifactWithDependencyChain(self):
     """Test an artifact that depends on artifacts with more dependencies."""
 
-    self.cleanup = InitGRRWithTestSources("""
+    InitGRRWithTestSources(
+        self, """
 name: Artifact0
 doc: An artifact without dependencies.
 sources:

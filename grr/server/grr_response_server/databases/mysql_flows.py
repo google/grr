@@ -142,17 +142,19 @@ class MySQLDBFlowMixin(object):
   def ReadClientMessages(self, client_id, cursor=None):
     """Reads all client messages available for a given client_id."""
 
-    query = ("SELECT message, leased_until, leased_by FROM client_messages "
+    query = ("SELECT message, leased_until, leased_by, leased_count "
+             "FROM client_messages "
              "WHERE client_id = %s")
 
     cursor.execute(query, [mysql_utils.ClientIDToInt(client_id)])
 
     ret = []
-    for msg, leased_until, leased_by in cursor.fetchall():
+    for msg, leased_until, leased_by, leased_count in cursor.fetchall():
       message = rdf_flows.GrrMessage.FromSerializedString(msg)
       if leased_until:
         message.leased_by = leased_by
         message.leased_until = mysql_utils.MysqlToRDFDatetime(leased_until)
+      message.ttl = db.Database.CLIENT_MESSAGES_TTL - leased_count
       ret.append(message)
 
     return sorted(ret, key=lambda msg: msg.task_id)
@@ -210,6 +212,7 @@ class MySQLDBFlowMixin(object):
       message = rdf_flows.GrrMessage.FromSerializedString(msg)
       message.leased_by = proc_id_str
       message.leased_until = expiry
+      message.ttl = db.Database.CLIENT_MESSAGES_TTL - leased_count
       # > comparison since this check happens after the lease.
       if leased_count > db.Database.CLIENT_MESSAGES_TTL:
         expired.append((client_id, message.task_id))

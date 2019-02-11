@@ -104,7 +104,7 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
       grr_message = rdf_flows.GrrMessage(session_id="W:test")
 
       log.Write(grr_message)
-      self.assertRDFValuesEqual(grr_message, log.Get())
+      self.assertEqual(grr_message, log.Get())
       log.Clear()
 
       self.assertIsNone(log.Get())

@@ -168,24 +168,13 @@ config_lib.DEFINE_string(
     "Needs full html: <img src=\"https://imgur.com/path/to/cat.jpg\">.")
 
 config_lib.DEFINE_string(
-    "StatsStore.process_id",
-    default="",
-    help="Id used to identify stats data of the current "
-    "process. This should be different for different GRR "
-    "processes. I.e. if you have 4 workers, for every "
-    "worker the subject should be different. For example: "
-    "worker_1, worker_2, worker_3, worker_4.")
+    "StatsStore.process_id", default="", help="Unused, Deprecated.")
 
 config_lib.DEFINE_integer(
-    "StatsStore.write_interval",
-    default=60,
-    help="Time in seconds between the dumps of stats "
-    "data into the stats store.")
+    "StatsStore.write_interval", default=60, help="Unused, Deprecated")
 
 config_lib.DEFINE_integer(
-    "StatsStore.stats_ttl_hours",
-    default=72,
-    help="Number of hours to keep server stats in the data-store.")
+    "StatsStore.stats_ttl_hours", default=72, help="Unused, Deprecated.")
 
 config_lib.DEFINE_bool(
     "AdminUI.allow_hunt_results_delete",
@@ -296,4 +285,18 @@ config_lib.DEFINE_string(
     "Server.fleetspeak_unknown_label", "fleetspeak-unknown",
     "The primary GRR label to use for FS clients which do not match any entry "
     "of fleetspeak_label_map.")
+
+config_lib.DEFINE_semantic_value(
+    rdfvalue.Duration,
+    "Server.fleetspeak_last_ping_threshold",
+    default="2h",
+    help="Age above which to consider last-ping timestamps for Fleetspeak "
+    "clients as stale, and in need of updating (by querying Fleetspeak "
+    "servers).")
+
+config_lib.DEFINE_integer(
+    "Server.fleetspeak_list_clients_batch_size",
+    default=20000,
+    help="Maximum number of client ids to place in a single Fleetspeak "
+    "ListClients() API request.")
 

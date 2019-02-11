@@ -195,6 +195,122 @@ class DatabaseTestClientsMixin(object):
     self.assertCountEqual(client_ids,
                           ["C.0000000000000003", "C.0000000000000004"])
 
+  def testReadClientLastPings_NoFilter(self):
+    client_ids = self._WriteClientLastPingData()
+    (client_id1, client_id2, client_id3, client_id4, client_id5, client_id6,
+     client_id7, client_id8, client_id9, client_id10) = client_ids
+
+    self.assertDictEqual(
+        self.db.ReadClientLastPings(), {
+            client_id1: None,
+            client_id2: None,
+            client_id3: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
+            client_id4: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
+            client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+            client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+            client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+            client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+            client_id9: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
+            client_id10: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
+        })
+
+  def testReadClientLastPings_AllFiltersFleetspeak(self):
+    client_ids = self._WriteClientLastPingData()
+    client_id6 = client_ids[5]
+    client_id8 = client_ids[7]
+
+    actual_data = self.db.ReadClientLastPings(
+        min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        max_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+        fleetspeak_enabled=True)
+    expected_data = {
+        client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+    }
+    self.assertDictEqual(actual_data, expected_data)
+
+  def testReadClientLastPings_AllFiltersNoFleetspeak(self):
+    client_ids = self._WriteClientLastPingData()
+    client_id5 = client_ids[4]
+    client_id7 = client_ids[6]
+
+    actual_data = self.db.ReadClientLastPings(
+        min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        max_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+        fleetspeak_enabled=False)
+    expected_data = {
+        client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+    }
+    self.assertDictEqual(actual_data, expected_data)
+
+  def testReadClientLastPings_MinPingFleetspeakFilters(self):
+    client_ids = self._WriteClientLastPingData()
+    client_id5 = client_ids[4]
+    client_id7 = client_ids[6]
+    client_id9 = client_ids[8]
+
+    actual_data = self.db.ReadClientLastPings(
+        min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        fleetspeak_enabled=False)
+    expected_data = {
+        client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+        client_id9: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
+    }
+    self.assertDictEqual(actual_data, expected_data)
+
+  def testReadClientLastPings_MaxPingFleetspeakFilters(self):
+    client_ids = self._WriteClientLastPingData()
+    client_id2 = client_ids[1]
+    client_id4 = client_ids[3]
+    client_id6 = client_ids[5]
+
+    actual_data = self.db.ReadClientLastPings(
+        max_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        fleetspeak_enabled=True)
+    expected_data = {
+        client_id2: None,
+        client_id4: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
+        client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+    }
+    self.assertDictEqual(actual_data, expected_data)
+
+  def _WriteClientLastPingData(self):
+    """Writes test data for ReadClientLastPings() tests."""
+    client_ids = tuple("C.00000000000000%02d" % i for i in range(1, 11))
+    (client_id1, client_id2, client_id3, client_id4, client_id5, client_id6,
+     client_id7, client_id8, client_id9, client_id10) = client_ids
+
+    self.db.WriteClientMetadata(client_id1, fleetspeak_enabled=False)
+    self.db.WriteClientMetadata(client_id2, fleetspeak_enabled=True)
+    self.db.WriteClientMetadata(
+        client_id3, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2))
+    self.db.WriteClientMetadata(
+        client_id4,
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
+        fleetspeak_enabled=True)
+    self.db.WriteClientMetadata(
+        client_id5, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
+    self.db.WriteClientMetadata(
+        client_id6,
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        fleetspeak_enabled=True)
+    self.db.WriteClientMetadata(
+        client_id7, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4))
+    self.db.WriteClientMetadata(
+        client_id8,
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+        fleetspeak_enabled=True)
+    self.db.WriteClientMetadata(
+        client_id9, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5))
+    self.db.WriteClientMetadata(
+        client_id10,
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
+        fleetspeak_enabled=True)
+
+    return client_ids
+
   def _SetUpReadClientSnapshotHistoryTest(self):
     d = self.db
 

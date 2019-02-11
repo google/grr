@@ -96,12 +96,9 @@ class TestCryptoTypeInfos(CryptoTestBase):
 
   def setUp(self):
     super(TestCryptoTypeInfos, self).setUp()
-    self.config_stubber = test_lib.PreserveConfig()
-    self.config_stubber.Start()
-
-  def tearDown(self):
-    super(TestCryptoTypeInfos, self).tearDown()
-    self.config_stubber.Stop()
+    config_stubber = test_lib.PreserveConfig()
+    config_stubber.Start()
+    self.addCleanup(config_stubber.Stop)
 
   def testInvalidX509Certificates(self):
     """Deliberately try to parse an invalid certificate."""

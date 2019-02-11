@@ -48,7 +48,9 @@ ComparisonChartController.prototype.initComparisonChart_ = function(
     }
   });
 
-  this.values.sort((a, b) => b['value'] - a['value']);
+  if (!this.scope_['preserveOrder']) {
+    this.values.sort((a, b) => b['value'] - a['value']);
+  }
   angular.forEach(this.values, (v) => {
     v['percent'] = Math.round(v['value'] / maxValue * 100);
   });
@@ -62,9 +64,7 @@ ComparisonChartController.prototype.initComparisonChart_ = function(
  */
 exports.ComparisonChartDirective = function() {
   return {
-    scope: {
-      typedData: "="
-    },
+    scope: {typedData: '=', preserveOrder: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/stats/comparison-chart.html',
     controller: ComparisonChartController,

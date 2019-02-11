@@ -75,13 +75,10 @@ class APIAuthorizationManagerTest(test_lib.GRRBaseTest):
     # exercise the functionality. Each test will supply its own ACL data. We
     # also have to set up a default API router that will be used when none of
     # the rules matches.
-    self.config_overrider = test_lib.ConfigOverrider(
+    config_overrider = test_lib.ConfigOverrider(
         {"ACL.group_access_manager_class": DummyGroupAccessManager.__name__})
-    self.config_overrider.Start()
-
-  def tearDown(self):
-    super(APIAuthorizationManagerTest, self).tearDown()
-    self.config_overrider.Stop()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
   def testMatchesIfOneOfUsersIsMatching(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(

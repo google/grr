@@ -41,16 +41,13 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
     """Add test artifacts to existing registry."""
     super(TestArtifactCollectorsRealArtifacts, self).setUp()
 
-    self._patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
-    self._patcher.start()
+    patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
+    patcher.start()
+    self.addCleanup(patcher.stop)
 
     test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
-
-  def tearDown(self):
-    self._patcher.stop()
-    super(TestArtifactCollectorsRealArtifacts, self).tearDown()
 
   def _CheckDriveAndRoot(self):
     client_id = self.SetupClient(0, system="Windows", os_version="6.2")

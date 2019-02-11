@@ -112,7 +112,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     for stored_message, message in zip(stored_messages, messages):
       # We don't care about the last queueing time.
       stored_message.timestamp = None
-      self.assertRDFValuesEqual(stored_message, message)
+      self.assertEqual(stored_message, message)
 
   def testReceiveMessagesWithStatus(self):
     """Receiving a sequence of messages with a status."""
@@ -159,7 +159,7 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     for stored_message, message in zip(stored_messages, messages):
       # We don't care about the last queueing time.
       stored_message.timestamp = None
-      self.assertRDFValuesEqual(stored_message, message)
+      self.assertEqual(stored_message, message)
 
   def testReceiveUnsolicitedClientMessage(self):
     client_id = test_lib.TEST_CLIENT_ID
@@ -490,8 +490,8 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
 
   def testReceiveMessages(self):
     """Tests receiving messages."""
-    client_id = u"C.1234567890123456"
-    flow_id = u"12345678"
+    client_id = "C.1234567890123456"
+    flow_id = "12345678"
     data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
 
     rdf_flow = rdf_flow_objects.Flow(
@@ -524,7 +524,7 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
 
   def testOldStyleHuntIDsDontError(self):
     """Tests receiving messages with old style hunt ids."""
-    client_id = u"C.1234567890123456"
+    client_id = "C.1234567890123456"
     hunt_id = "aff4:/hunts/H:3479C8EA/C.917bf16e123bf731/H:5E69190A/H:A21A1AA2"
     messages = [
         rdf_flows.GrrMessage(
@@ -567,6 +567,7 @@ def MakeResponse(code=500, data=""):
   return response
 
 
+@db_test_lib.DualDBTest
 class ClientCommsTest(test_lib.GRRBaseTest):
   """Test the communicator."""
 
@@ -595,19 +596,27 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self._SetupCommunicator()
 
   def _SetupCommunicator(self):
-    self.server_communicator = frontend_lib.ServerCommunicator(
-        certificate=self.server_certificate,
-        private_key=self.server_private_key,
-        token=self.token)
+    if data_store.AFF4Enabled():
+      self.server_communicator = frontend_lib.ServerCommunicator(
+          certificate=self.server_certificate,
+          private_key=self.server_private_key,
+          token=self.token)
+    else:
+      self.server_communicator = frontend_lib.RelationalServerCommunicator(
+          certificate=self.server_certificate,
+          private_key=self.server_private_key)
 
   def tearDown(self):
     super(ClientCommsTest, self).tearDown()
     self.config_stubber.Stop()
 
   def _LabelClient(self, client_id, label):
-    with aff4.FACTORY.Open(
-        client_id, mode="rw", token=self.token) as client_object:
-      client_object.AddLabel(label)
+    if data_store.AFF4Enabled():
+      with aff4.FACTORY.Open(
+          client_id, mode="rw", token=self.token) as client_object:
+        client_object.AddLabel(label)
+    else:
+      data_store.REL_DB.AddClientLabels(client_id, "Test", [label])
 
   def ClientServerCommunicate(self, timestamp=None):
     """Tests the end to end encrypted communicators."""
@@ -646,13 +655,19 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def _MakeClientRecord(self):
     """Make a client in the data store."""
-    client_cert = self.ClientCertFromPrivateKey(self.client_private_key)
-    self.client_id = client_cert.GetCN()
-    new_client = aff4.FACTORY.Create(
-        self.client_id, aff4_grr.VFSGRRClient, token=self.token)
-    new_client.Set(new_client.Schema.CERT, client_cert)
-    new_client.Close()
-    return new_client
+    if data_store.AFF4Enabled():
+      client_cert = self.ClientCertFromPrivateKey(self.client_private_key)
+      self.client_id = client_cert.GetCN()
+      new_client = aff4.FACTORY.Create(
+          self.client_id, aff4_grr.VFSGRRClient, token=self.token)
+      new_client.Set(new_client.Schema.CERT, client_cert)
+      new_client.Close()
+      return new_client
+    else:
+      client_cert = self.ClientCertFromPrivateKey(self.client_private_key)
+      self.client_id = client_cert.GetCN()[len("aff4:/"):]
+      data_store.REL_DB.WriteClientMetadata(
+          self.client_id, fleetspeak_enabled=False, certificate=client_cert)
 
   def testKnownClient(self):
     """Test that messages from known clients are authenticated."""
@@ -666,6 +681,12 @@ class ClientCommsTest(test_lib.GRRBaseTest):
                        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
   def testClientPingAndClockIsUpdated(self):
+    if data_store.AFF4Enabled():
+      self._testClientPingAndClockIsUpdatedAFF4()
+    else:
+      self._testClientPingAndClockIsUpdatedRelational()
+
+  def _testClientPingAndClockIsUpdatedAFF4(self):
     """Check PING and CLOCK are updated, simulate bad client clock."""
     self._MakeClientRecord()
     now = rdfvalue.RDFDatetime.Now()
@@ -686,20 +707,43 @@ class ClientCommsTest(test_lib.GRRBaseTest):
       self.assertEqual(now, client_obj.Get(client_obj.Schema.PING))
       self.assertEqual(client_now, client_obj.Get(client_obj.Schema.CLOCK))
 
+  def _testClientPingAndClockIsUpdatedRelational(self):
+    """Check PING and CLOCK are updated."""
+    self._MakeClientRecord()
+
+    now = rdfvalue.RDFDatetime.Now()
+    client_now = now - 20
+    with test_lib.FakeTime(now):
+      self.ClientServerCommunicate(timestamp=client_now)
+
+    metadata = data_store.REL_DB.ReadClientMetadata(self.client_id)
+
+    self.assertEqual(now, metadata.ping)
+    self.assertEqual(client_now, metadata.clock)
+
+    now += 60
+    client_now += 40
+    with test_lib.FakeTime(now):
+      self.ClientServerCommunicate(timestamp=client_now)
+
+    metadata = data_store.REL_DB.ReadClientMetadata(self.client_id)
+    self.assertEqual(now, metadata.ping)
+    self.assertEqual(client_now, metadata.clock)
+
   def testClientPingStatsUpdated(self):
     """Check client ping stats are updated."""
     self._MakeClientRecord()
     current_pings = stats_collector_instance.Get().GetMetricValue(
-        "client_pings_by_label", fields=[u"testlabel"])
+        "client_pings_by_label", fields=["testlabel"])
 
-    self._LabelClient(self.client_id, u"testlabel")
+    self._LabelClient(self.client_id, "testlabel")
 
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now):
       self.ClientServerCommunicate(timestamp=now)
 
     new_pings = stats_collector_instance.Get().GetMetricValue(
-        "client_pings_by_label", fields=[u"testlabel"])
+        "client_pings_by_label", fields=["testlabel"])
     self.assertEqual(new_pings, current_pings + 1)
 
   def testServerReplayAttack(self):
@@ -789,7 +833,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
             # original message - so we clear them before comparison.
             message.auth_state = None
             message.source = None
-            self.assertRDFValuesEqual(message, message_list.job[i])
+            self.assertEqual(message, message_list.job[i])
           else:
             logging.debug("Message %s: Authstate: %s", i, message.auth_state)
 
@@ -827,10 +871,14 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertNotEqual(server_certificate, self.server_certificate)
     self.assertNotEqual(server_private_key, self.server_private_key)
 
-    self.server_communicator = frontend_lib.ServerCommunicator(
-        certificate=server_certificate,
-        private_key=server_private_key,
-        token=self.token)
+    if data_store.AFF4Enabled():
+      self.server_communicator = frontend_lib.ServerCommunicator(
+          certificate=server_certificate,
+          private_key=server_private_key,
+          token=self.token)
+    else:
+      self.server_communicator = frontend_lib.RelationalServerCommunicator(
+          certificate=server_certificate, private_key=server_private_key)
 
     # Clients can't connect at this point since they use the outdated
     # session key.
@@ -842,9 +890,11 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.client_communicator.LoadServerCertificate(
         server_certificate=server_certificate,
         ca_certificate=config.CONFIG["CA.certificate"])
+
     self.assertLen(list(self.ClientServerCommunicate()), 10)
 
 
+@db_test_lib.DualDBTest
 class HTTPClientTests(test_lib.GRRBaseTest):
   """Test the http communicator."""
 
@@ -881,32 +931,50 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         session_id="aff4:/W:session", name="Echo", response_id=2)
 
   def _MakeClient(self):
-    self.client_certificate = self.ClientCertFromPrivateKey(
-        config.CONFIG["Client.private_key"])
-    self.client_cn = self.client_certificate.GetCN()
+    if data_store.AFF4Enabled():
+      self.client_certificate = self.ClientCertFromPrivateKey(
+          config.CONFIG["Client.private_key"])
+      self.client_cn = self.client_certificate.GetCN()
 
-    self.client = aff4.FACTORY.Create(
-        self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
-    self.client.Set(self.client.Schema.CERT(self.client_certificate.AsPEM()))
-    self.client.Flush()
+      self.client = aff4.FACTORY.Create(
+          self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
+      self.client.Set(self.client.Schema.CERT(self.client_certificate.AsPEM()))
+      self.client.Flush()
+    else:
+      self.client_certificate = self.ClientCertFromPrivateKey(
+          config.CONFIG["Client.private_key"])
+      self.client_cn = self.client_certificate.GetCN()
+      self.client_id = self.client_cn[len("aff4:/"):]
+
+      data_store.REL_DB.WriteClientMetadata(
+          self.client_id,
+          certificate=self.client_certificate,
+          fleetspeak_enabled=False)
 
   def _ClearClient(self):
-    self.server_communicator.client_cache.Flush()
+    if data_store.AFF4Enabled():
+      self.server_communicator.client_cache.Flush()
 
-    # Assume we do not know the client yet by clearing its certificate.
-    self.client = aff4.FACTORY.Create(
-        self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
-    self.client.DeleteAttribute(self.client.Schema.CERT)
-    self.client.Flush()
+      # Assume we do not know the client yet by clearing its certificate.
+      self.client = aff4.FACTORY.Create(
+          self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
+      self.client.DeleteAttribute(self.client.Schema.CERT)
+      self.client.Flush()
+    else:
+      del data_store.REL_DB.delegate.metadatas[self.client_id]
 
   def CreateNewServerCommunicator(self):
     self._MakeClient()
-    self.server_communicator = frontend_lib.ServerCommunicator(
-        certificate=self.server_certificate,
-        private_key=self.server_private_key,
-        token=self.token)
-
-    self.server_communicator.client_cache.Put(self.client_cn, self.client)
+    if data_store.AFF4Enabled():
+      self.server_communicator = frontend_lib.ServerCommunicator(
+          certificate=self.server_certificate,
+          private_key=self.server_private_key,
+          token=self.token)
+      self.server_communicator.client_cache.Put(self.client_cn, self.client)
+    else:
+      self.server_communicator = frontend_lib.RelationalServerCommunicator(
+          certificate=self.server_certificate,
+          private_key=self.server_private_key)
 
   def tearDown(self):
     self.requests_stubber.Stop()
@@ -1068,9 +1136,17 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Now we manually run the enroll well known flow with the enrollment
     # request. This will start a new flow for enrolling the client, sign the
     # cert and add it to the data store.
-    flow_obj = ca_enroller.Enroler(
-        ca_enroller.Enroler.well_known_session_id, mode="rw", token=self.token)
-    flow_obj.ProcessMessage(enrolment_messages[0])
+    if data_store.AFF4Enabled():
+      flow_obj = ca_enroller.Enroler(
+          ca_enroller.Enroler.well_known_session_id,
+          mode="rw",
+          token=self.token)
+      flow_obj.ProcessMessage(enrolment_messages[0])
+    else:
+      handler = ca_enroller.EnrolmentHandler()
+      req = rdf_objects.MessageHandlerRequest(
+          client_id=self.client_id, request=enrolment_messages[0].payload)
+      handler.ProcessMessages([req])
 
     # The next client communication should be enrolled now.
     status = self.client_communicator.RunOnce()
@@ -1078,9 +1154,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.assertEqual(status.code, 200)
 
     # There should be a cert for the client right now.
-    self.client = aff4.FACTORY.Create(
-        self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
-    self.assertTrue(self.client.Get(self.client.Schema.CERT))
+    if data_store.AFF4Enabled():
+      client = aff4.FACTORY.Create(
+          self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
+      self.assertTrue(client.Get(client.Schema.CERT))
+    else:
+      md = data_store.REL_DB.ReadClientMetadata(self.client_id)
+      self.assertTrue(md.certificate)
 
     # Now communicate with the server once again.
     self.SendToServer()
@@ -1399,71 +1479,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       client_obj.Run()
 
       self.assertEqual(client_obj.http_manager.consecutive_connection_errors, 9)
-
-
-class RelationalClientCommsTest(ClientCommsTest):
-
-  def _MakeClientRecord(self):
-    """Make a client in the data store."""
-    client_cert = self.ClientCertFromPrivateKey(self.client_private_key)
-    self.client_id = client_cert.GetCN()[len("aff4:/"):]
-    data_store.REL_DB.WriteClientMetadata(
-        self.client_id, fleetspeak_enabled=False, certificate=client_cert)
-
-  def _SetupCommunicator(self):
-    self.server_communicator = frontend_lib.RelationalServerCommunicator(
-        certificate=self.server_certificate,
-        private_key=self.server_private_key)
-
-  def _LabelClient(self, client_id, label):
-    data_store.REL_DB.AddClientLabels(client_id, u"Test", [label])
-
-  def testClientPingAndClockIsUpdated(self):
-    """Check PING and CLOCK are updated."""
-
-    self._MakeClientRecord()
-
-    now = rdfvalue.RDFDatetime.Now()
-    client_now = now - 20
-    with test_lib.FakeTime(now):
-      self.ClientServerCommunicate(timestamp=client_now)
-
-    metadata = data_store.REL_DB.ReadClientMetadata(self.client_id)
-
-    self.assertEqual(now, metadata.ping)
-    self.assertEqual(client_now, metadata.clock)
-
-    now += 60
-    client_now += 40
-    with test_lib.FakeTime(now):
-      self.ClientServerCommunicate(timestamp=client_now)
-
-    metadata = data_store.REL_DB.ReadClientMetadata(self.client_id)
-    self.assertEqual(now, metadata.ping)
-    self.assertEqual(client_now, metadata.clock)
-
-
-class RelationalHTTPClientTests(HTTPClientTests):
-
-  def _MakeClient(self):
-    self.client_certificate = self.ClientCertFromPrivateKey(
-        config.CONFIG["Client.private_key"])
-    self.client_cn = self.client_certificate.GetCN()
-    self.client_id = self.client_cn[len("aff4:/"):]
-
-    data_store.REL_DB.WriteClientMetadata(
-        self.client_id,
-        certificate=self.client_certificate,
-        fleetspeak_enabled=False)
-
-  def CreateNewServerCommunicator(self):
-    self._MakeClient()
-    self.server_communicator = frontend_lib.RelationalServerCommunicator(
-        certificate=self.server_certificate,
-        private_key=self.server_private_key)
-
-  def _ClearClient(self):
-    del data_store.REL_DB.delegate.metadatas[self.client_id]
 
 
 def main(args):

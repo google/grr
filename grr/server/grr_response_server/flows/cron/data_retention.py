@@ -61,16 +61,21 @@ class CleanHunts(aff4_cronjobs.SystemCronFlow, CleanHuntsMixin):
       self.CleanAff4Hunts()
     else:
       # TODO(amoser): Support relational db here.
-      pass
+      self.Log("Relational database not supported.")
 
 
 class CleanHuntsCronJob(cronjobs.SystemCronJobBase, CleanHuntsMixin):
+  """Cleaner that deletes old hunts."""
 
   frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("1d")
 
   def Run(self):
-    self.CleanAff4Hunts()
+    if data_store.AFF4Enabled():
+      self.CleanAff4Hunts()
+    else:
+      # TODO(amoser): Support relational db here.
+      self.Log("Relational database not supported.")
 
 
 class CleanCronJobs(aff4_cronjobs.SystemCronFlow):
@@ -127,7 +132,7 @@ class CleanInactiveClientsMixin(object):
       self.CleanAff4Clients()
     else:
       # TODO(amoser): Support relational db here.
-      pass
+      self.Log("Relational database not supported.")
 
   def CleanAff4Clients(self):
     """Cleans up old client data from aff4."""

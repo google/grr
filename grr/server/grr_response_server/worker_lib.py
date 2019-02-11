@@ -297,8 +297,8 @@ class GRRWorker(object):
     """Processes messages for a given flow."""
     session_id = notification.session_id
     if not isinstance(flow_obj, flow.FlowBase):
-      logging.warn("%s is not a proper flow object (got %s)", session_id,
-                   type(flow_obj))
+      logging.warning("%s is not a proper flow object (got %s)", session_id,
+                      type(flow_obj))
 
       stats_collector_instance.Get().IncrementCounter(
           "worker_bad_flow_objects", fields=[str(type(flow_obj))])

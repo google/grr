@@ -906,26 +906,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # Stats metrics methods.
   # =====================
   #
-  @Category("Other")
-  @ArgsType(api_stats.ApiListStatsStoreMetricsMetadataArgs)
-  @ResultType(api_stats.ApiListStatsStoreMetricsMetadataResult)
-  @Http("GET", "/api/stats/store/<component>/metadata")
-  @NoAuditLogRequired()
-  def ListStatsStoreMetricsMetadata(self, args, token=None):
-    """List metadata of available stats metrics."""
-
-    raise NotImplementedError()
-
-  @Category("Other")
-  @Http("GET", "/api/stats/store/<component>/metrics/<metric_name>")
-  @ArgsType(api_stats.ApiGetStatsStoreMetricArgs)
-  @ResultType(api_stats.ApiStatsStoreMetric)
-  @NoAuditLogRequired()
-  def GetStatsStoreMetric(self, args, token=None):
-    """Get data corresponding to a given stats metric."""
-
-    raise NotImplementedError()
-
   # TODO(user,user): Change the naming convention from stats to reports
   # throughout the codebase.
   @Category("Other")

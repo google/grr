@@ -118,8 +118,7 @@ SemanticValueFormController.prototype.camelCaseToDashDelimited = function(
  * Compiles a template for a given single value.
  *
  * @param {Object} value Value to compile the template for.
- * @return {function(!angular.Scope, function(Object,
- *     !angular.Scope=)=):Object} Compiled template.
+ * @return {!angular.$q.Promise} Promise for compiled template.
  * @private
  */
 SemanticValueFormController.prototype

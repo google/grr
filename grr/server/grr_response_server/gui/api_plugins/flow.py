@@ -23,6 +23,7 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import flow_pb2
 from grr_response_server import access_control
@@ -1149,7 +1150,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         aff4.FACTORY.RecursiveMultiListChildren(
             [fd.urn for fd in root_children]))
     nested_children = aff4.FACTORY.MultiOpen(
-        set(itertools.chain.from_iterable(itervalues(nested_children_urns))),
+        set(collection.Flatten(itervalues(nested_children_urns))),
         aff4_type=flow.GRRFlow,
         token=token)
     nested_children_map = dict((x.urn, x) for x in nested_children)

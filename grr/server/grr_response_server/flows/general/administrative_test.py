@@ -90,15 +90,9 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
 
     test_tmp = os.environ.get("TEST_TMPDIR")
     if test_tmp:
-      self.tempdir_overrider = test_lib.ConfigOverrider({})
-      self.tempdir_overrider.Start()
-
-  def tearDown(self):
-    super(TestAdministrativeFlows, self).tearDown()
-    try:
-      self.tempdir_overrider.Stop()
-    except AttributeError:
-      pass
+      tempdir_overrider = test_lib.ConfigOverrider({})
+      tempdir_overrider.Start()
+      self.addCleanup(tempdir_overrider.Stop)
 
   def testUpdateConfig(self):
     """Ensure we can retrieve and update the config."""

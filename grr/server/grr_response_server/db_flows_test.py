@@ -49,7 +49,10 @@ class DatabaseTestFlowMixin(object):
   def testClientMessageStorage(self):
 
     client_id = self.InitializeClient()
-    msg = rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
+    msg = rdf_flows.GrrMessage(
+        queue=client_id,
+        ttl=db.Database.CLIENT_MESSAGES_TTL,
+        generate_task_id=True)
 
     self.db.WriteClientMessages([msg])
 
@@ -76,13 +79,16 @@ class DatabaseTestFlowMixin(object):
 
   def testClientMessageUpdate(self):
     client_id = self.InitializeClient()
-    msg = rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
+    msg = rdf_flows.GrrMessage(
+        queue=client_id,
+        ttl=db.Database.CLIENT_MESSAGES_TTL,
+        generate_task_id=True)
 
-    ttl = msg.ttl
-    self.assertGreater(ttl, 5)
+    cpu_limit = msg.cpu_limit
+    self.assertGreater(cpu_limit, 1000)
 
     for _ in range(5):
-      msg.ttl -= 1
+      msg.cpu_limit -= 100
       self.db.WriteClientMessages([msg])
       read_msgs = self.db.ReadClientMessages(client_id)
       self.assertLen(read_msgs, 1)
@@ -181,16 +187,31 @@ class DatabaseTestFlowMixin(object):
         for _ in range(10)
     ]
     self.db.WriteClientMessages(messages)
+    msgs = self.db.ReadClientMessages(client_id)
+    self.assertLen(msgs, 10)
+
+    for message in msgs:
+      self.assertEqual(message.ttl, db.Database.CLIENT_MESSAGES_TTL)
 
     now = rdfvalue.RDFDatetime.Now()
     lease_time = rdfvalue.Duration("60s")
 
-    for _ in range(db.Database.CLIENT_MESSAGES_TTL):
+    for i in range(db.Database.CLIENT_MESSAGES_TTL):
       now += rdfvalue.Duration("120s")
       with test_lib.FakeTime(now):
         leased = self.db.LeaseClientMessages(
             client_id, lease_time=lease_time, limit=10)
         self.assertLen(leased, 10)
+
+        # Check that the ttl is read.
+        for message in leased:
+          self.assertEqual(message.ttl, db.Database.CLIENT_MESSAGES_TTL - i - 1)
+
+        msgs = self.db.ReadClientMessages(client_id)
+        self.assertLen(msgs, 10)
+
+        for message in msgs:
+          self.assertEqual(message.ttl, db.Database.CLIENT_MESSAGES_TTL - i - 1)
 
     now += rdfvalue.Duration("120s")
     with test_lib.FakeTime(now):
@@ -833,20 +854,14 @@ class DatabaseTestFlowMixin(object):
     with self.assertRaises(db.ParentHuntIsNotRunningError):
       self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
 
-    def UpdateToCompleted(h):
-      h.hunt_state = h.HuntState.COMPLETED
-      return h
-
-    self.db.UpdateHuntObject(hunt_obj.hunt_id, UpdateToCompleted)
+    self.db.UpdateHuntObject(
+        hunt_obj.hunt_id, hunt_state=rdf_hunt_objects.Hunt.HuntState.COMPLETED)
 
     with self.assertRaises(db.ParentHuntIsNotRunningError):
       self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
 
-    def UpdateToStarted(h):
-      h.hunt_state = h.HuntState.STARTED
-      return h
-
-    self.db.UpdateHuntObject(hunt_obj.hunt_id, UpdateToStarted)
+    self.db.UpdateHuntObject(
+        hunt_obj.hunt_id, hunt_state=rdf_hunt_objects.Hunt.HuntState.STARTED)
 
     # Should work again.
     self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)

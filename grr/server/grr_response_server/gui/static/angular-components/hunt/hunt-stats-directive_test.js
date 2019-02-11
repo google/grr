@@ -2,7 +2,7 @@ goog.module('grrUi.hunt.huntStatsDirectiveTest');
 goog.setTestOnly();
 
 const {huntModule} = goog.require('grrUi.hunt.hunt');
-const {testsModule} = goog.require('grrUi.tests');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('hunt stats directive', () => {
@@ -15,6 +15,8 @@ describe('hunt stats directive', () => {
   beforeEach(module('/static/angular-components/hunt/hunt-stats.html'));
   beforeEach(module(huntModule.name));
   beforeEach(module(testsModule.name));
+
+  stubDirective('grrComparisonChart');
 
   beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
@@ -80,25 +82,20 @@ describe('hunt stats directive', () => {
       },
     };
 
-    // Mock $.plot.
-    $.plot = jasmine.createSpy('$.plot spy')
-                 .and.callFake((element, series, options) => {
-                   expect(element.hasClass('user-cpu-histogram')).toBeTruthy();
-                   expect(series[0].data.length).toEqual(2);
-                   expect(series[0].data[0]).toEqual([0, 10.55]);
-                   expect(series[0].data[1]).toEqual([1, 5.55]);
-                   expect(options.xaxis.ticks).toEqual([
-                     [0.5, '16.6'], [1.5, '32768.6']
-                   ]);
-                 });
-
     const deferred = $q.defer();
     deferred.resolve({ data: statsResponse });
     spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
-    render('H:12345678');
-    expect(grrApiService.get).toHaveBeenCalledWith('/hunts/H:12345678/stats');
-    expect($.plot).toHaveBeenCalled();
+    const element = render('H:12345678');
+    const directive = element.find('grr-comparison-chart:nth(0)');
+    const directiveTypedData =
+        directive.scope().$eval(directive.attr('typed-data'));
+    expect(directiveTypedData['value']).toEqual({
+      data: [
+        {value: {label: {value: '< 16.6s'}, x: {value: 10.55}}},
+        {value: {label: {value: '< 32768.6s'}, x: {value: 5.55}}},
+      ]
+    });
   });
 
   it('shows system cpu usage histogram', () => {
@@ -148,26 +145,20 @@ describe('hunt stats directive', () => {
       },
     };
 
-    // Mock $.plot.
-    $.plot =
-        jasmine.createSpy('$.plot spy')
-            .and.callFake((element, series, options) => {
-              expect(element.hasClass('system-cpu-histogram')).toBeTruthy();
-              expect(series[0].data.length).toEqual(2);
-              expect(series[0].data[0]).toEqual([0, 10.55]);
-              expect(series[0].data[1]).toEqual([1, 5.55]);
-              expect(options.xaxis.ticks).toEqual([
-                [0.5, '16.6'], [1.5, '32768.6']
-              ]);
-            });
-
     const deferred = $q.defer();
     deferred.resolve({ data: statsResponse });
     spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
-    render('H:12345678');
-    expect(grrApiService.get).toHaveBeenCalledWith('/hunts/H:12345678/stats');
-    expect($.plot).toHaveBeenCalled();
+    const element = render('H:12345678');
+    const directive = element.find('grr-comparison-chart:nth(1)');
+    const directiveTypedData =
+        directive.scope().$eval(directive.attr('typed-data'));
+    expect(directiveTypedData['value']).toEqual({
+      data: [
+        {value: {label: {value: '< 16.6s'}, x: {value: 10.55}}},
+        {value: {label: {value: '< 32768.6s'}, x: {value: 5.55}}},
+      ]
+    });
   });
 
   it('shows network bytes histogram with correct values and xaxis labels',
@@ -218,27 +209,20 @@ describe('hunt stats directive', () => {
          },
        };
 
-       // Mock $.plot.
-       $.plot = jasmine.createSpy('$.plot spy')
-                    .and.callFake((element, series, options) => {
-                      expect(element.hasClass('network-bytes-histogram'))
-                          .toBeTruthy();
-                      expect(series[0].data.length).toEqual(2);
-                      expect(series[0].data[0]).toEqual([0, 10]);
-                      expect(series[0].data[1]).toEqual([1, 5]);
-                      expect(options.xaxis.ticks).toEqual([
-                        [0.5, '16B'], [1.5, '32K']
-                      ]);
-                    });
-
        const deferred = $q.defer();
        deferred.resolve({data: statsResponse});
        spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
-       render('H:12345678');
-       expect(grrApiService.get)
-           .toHaveBeenCalledWith('/hunts/H:12345678/stats');
-       expect($.plot).toHaveBeenCalled();
+       const element = render('H:12345678');
+       const directive = element.find('grr-comparison-chart:nth(2)');
+       const directiveTypedData =
+           directive.scope().$eval(directive.attr('typed-data'));
+       expect(directiveTypedData['value']).toEqual({
+         data: [
+           {value: {label: {value: '< 16 B'}, x: {value: 10}}},
+           {value: {label: {value: '< 32 KiB'}, x: {value: 5}}},
+         ]
+       });
      });
 });
 

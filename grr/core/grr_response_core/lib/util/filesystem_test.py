@@ -179,10 +179,7 @@ class StatCacheTest(absltest.TestCase):
   def setUp(self):
     super(StatCacheTest, self).setUp()
     self.temp_dir = temp.TempDirPath()
-
-  def tearDown(self):
-    super(StatCacheTest, self).tearDown()
-    shutil.rmtree(self.temp_dir)
+    self.addCleanup(shutil.rmtree, self.temp_dir)
 
   def Path(self, *args):
     return os.path.join(self.temp_dir, *args)

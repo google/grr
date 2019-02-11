@@ -63,9 +63,6 @@ config_lib.DEFINE_bool(
     "Database.useForReads.filestore", False,
     "Use relational database for reading files from filestore.")
 
-config_lib.DEFINE_bool("Database.useForReads.stats", False,
-                       "Read server metrics from the relational database.")
-
 config_lib.DEFINE_bool("Database.useForReads.signed_binaries", False,
                        "Read signed binary data from the relational database.")
 

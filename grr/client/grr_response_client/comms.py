@@ -804,7 +804,7 @@ class GRRClientWorker(threading.Thread):
           self.HandleMessage(message)
           # Catch any errors and keep going here
         except Exception as e:  # pylint: disable=broad-except
-          logging.warn("%s", e)
+          logging.warning("%s", e)
           self.SendReply(
               rdf_flows.GrrStatus(
                   status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
@@ -1252,7 +1252,7 @@ class GRRHTTPClient(object):
         self.RunOnce()
       except Exception:  # pylint: disable=broad-except
         # Catch everything, yes, this is terrible but necessary
-        logging.warn("Uncaught exception caught: %s", traceback.format_exc())
+        logging.warning("Uncaught exception caught: %s", traceback.format_exc())
         if flags.FLAGS.debug:
           pdb.post_mortem()
 

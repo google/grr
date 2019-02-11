@@ -21,8 +21,6 @@ def _FieldsToKey(fields):
   return tuple(fields) if fields else ()
 
 
-# TODO:
-# pytype: disable=ignored-abstractmethod
 class _Metric(with_metaclass(abc.ABCMeta, object)):
   """Base class for all the metric objects used by the DefaultStatsCollector.
 
@@ -68,9 +66,6 @@ class _Metric(with_metaclass(abc.ABCMeta, object)):
   def ListFieldsValues(self):
     """Returns a list of tuples of all field values used with the metric."""
     return list(self._metric_values) if self._field_defs else []
-
-# TODO:
-# pytype: enable=ignored-abstractmethod
 
 
 class _CounterMetric(_Metric):

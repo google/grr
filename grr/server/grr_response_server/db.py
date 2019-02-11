@@ -13,14 +13,16 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
+import collections
 import re
 
-
+from future.builtins import int
 from future.builtins import str
 from future.utils import iteritems
+from future.utils import iterkeys
 from future.utils import itervalues
 from future.utils import with_metaclass
-from typing import Generator, List, Optional, Text
+from typing import Generator, List, Optional, Text, Iterable, Dict
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import time_utils
@@ -36,11 +38,10 @@ from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
-from grr_response_core.stats import stats_collector_instance
 from grr_response_server import foreman_rules
-from grr_response_server import stats_values
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -229,6 +230,17 @@ class UnknownHuntError(NotFoundError):
     self.hunt_id = hunt_id
 
 
+class UnknownHuntOutputPluginStateError(NotFoundError):
+
+  def __init__(self, hunt_id, state_index):
+    message = ("Hunt output plugin state for hunt '%s' with index %d does not "
+               "exist") % (hunt_id, state_index)
+    super(UnknownHuntOutputPluginStateError, self).__init__(message)
+
+    self.hunt_id = hunt_id
+    self.state_index = state_index
+
+
 class AtLeastOneUnknownFlowError(NotFoundError):
 
   def __init__(self, flow_keys, cause=None):
@@ -251,20 +263,6 @@ class UnknownFlowRequestError(NotFoundError):
     self.request_id = request_id
 
 
-class DuplicateMetricValueError(Error):
-  """Exception raised if an attempt is made to write duplicate metric values."""
-
-  def __init__(self, cause=None):
-    """Constructor.
-
-    Args:
-      cause: A lower-level Exception raised by the database driver, which might
-        have more details about the error.
-    """
-    super(DuplicateMetricValueError, self).__init__(
-        "Tried to insert a duplicate StatsStoreEntry in the DB", cause=cause)
-
-
 class ParentHuntIsNotRunningError(Error):
   """Exception indicating that a hunt-induced flow is not processable."""
 
@@ -280,6 +278,18 @@ class ParentHuntIsNotRunningError(Error):
     self.hunt_state = hunt_state
 
 
+class HuntOutputPluginsStatesAreNotInitializedError(Error):
+  """Exception indicating that hunt output plugin states weren't initialized."""
+
+  def __init__(self, hunt_obj):
+    message = ("Hunt %r has output plugins but no output plugins states. "
+               "Make sure it was created with hunt.CreateHunt and not "
+               "simply written to the database." % hunt_obj)
+    super(HuntOutputPluginsStatesAreNotInitializedError, self).__init__(message)
+
+    self.hunt_obj = hunt_obj
+
+
 # TODO(user): migrate to Python 3 enums as soon as Python 3 is default.
 class HuntFlowsCondition(object):
   """Constants to be used with ReadHuntFlows/CountHuntFlows methods."""
@@ -290,11 +300,22 @@ class HuntFlowsCondition(object):
   COMPLETED_FLOWS_ONLY = 3
   FLOWS_IN_PROGRESS_ONLY = 4
   CRASHED_FLOWS_ONLY = 5
-  FLOWS_WITH_RESULTS_ONLY = 6
 
   @classmethod
   def MaxValue(cls):
-    return cls.FLOWS_WITH_RESULTS_ONLY
+    return cls.CRASHED_FLOWS_ONLY
+
+
+HuntCounters = collections.namedtuple("HuntCounters", [
+    "num_clients",
+    "num_successful_clients",
+    "num_failed_clients",
+    "num_clients_with_results",
+    "num_crashed_clients",
+    "num_results",
+    "total_cpu_seconds",
+    "total_network_bytes_sent",
+])
 
 
 class ClientPath(object):
@@ -602,7 +623,6 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     except KeyError:
       raise UnknownClientError(client_id)
 
-  @abc.abstractmethod
   def ReadAllClientIDs(self, min_last_ping=None):
     """Reads client ids for all clients in the database.
 
@@ -612,6 +632,26 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Returns:
       A list of client ids.
+    """
+    return list(iterkeys(self.ReadClientLastPings(min_last_ping=min_last_ping)))
+
+  @abc.abstractmethod
+  def ReadClientLastPings(self,
+                          min_last_ping=None,
+                          max_last_ping=None,
+                          fleetspeak_enabled=None):
+    """Reads last-ping timestamps for clients in the DB.
+
+    Args:
+      min_last_ping: The minimum timestamp to fetch from the DB.
+      max_last_ping: The maximum timestamp to fetch from the DB.
+      fleetspeak_enabled: If set to True, only return data for
+        Fleetspeak-enabled clients. If set to False, only return ids for
+        non-Fleetspeak-enabled clients. If not set, return ids for both
+        Fleetspeak-enabled and non-Fleetspeak-enabled clients.
+
+    Returns:
+      A dict mapping client ids to their last-ping timestamps.
     """
 
   @abc.abstractmethod
@@ -725,7 +765,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def AddClientKeywords(self, client_id, keywords):
+  def AddClientKeywords(self, client_id,
+                        keywords):
     """Associates the provided keywords with the client.
 
     Args:
@@ -737,7 +778,10 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ListClientsForKeywords(self, keywords, start_time=None):
+  def ListClientsForKeywords(self,
+                             keywords,
+                             start_time = None
+                            ):
     """Lists the clients associated with keywords.
 
     Args:
@@ -760,7 +804,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def AddClientLabels(self, client_id, owner, labels):
+  def AddClientLabels(self, client_id, owner,
+                      labels):
     """Attaches a user label to a client.
 
     Args:
@@ -770,7 +815,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def MultiReadClientLabels(self, client_ids):
+  def MultiReadClientLabels(self, client_ids
+                           ):
     """Reads the user labels for a list of clients.
 
     Args:
@@ -795,7 +841,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     return self.MultiReadClientLabels([client_id])[client_id]
 
   @abc.abstractmethod
-  def RemoveClientLabels(self, client_id, owner, labels):
+  def RemoveClientLabels(self, client_id, owner,
+                         labels):
     """Removes a list of user labels from a given client.
 
     Args:
@@ -1616,43 +1663,6 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       None will be used as a value instead of a list.
     """
 
-  @abc.abstractmethod
-  def WriteBlobs(self, blob_id_data_map):
-    """Writes given blobs.
-
-    Args:
-      blob_id_data_map: A map of blob_id -> blob_data. Each blob_id should be a
-        rdf_objects.BlobID blob hash uniquely idenitify the blob. blob_data
-        should be expressed in bytes.
-    """
-
-  @abc.abstractmethod
-  def ReadBlobs(self, blob_ids):
-    """Reads given blobs.
-
-    Args:
-      blob_ids: An iterable with blob hashes expressed as rdf_objects.BlobID
-        objects.
-
-    Returns:
-      A map of {blob_id: blob_data} where blob_data is blob bytes previously
-      written with WriteBlobs. If blob_data for particular blob is not found,
-      blob_data is expressed as None.
-    """
-
-  @abc.abstractmethod
-  def CheckBlobsExist(self, blob_ids):
-    """Checks if given blobs exist.
-
-    Args:
-      blob_ids: An iterable with blob hashes expressed as rdf_objects.BlobID
-        objects.
-
-    Returns:
-      A map of {blob_id: status} where status is a boolean (True if blob exists,
-      False if it doesn't).
-    """
-
   # If we send a message unsuccessfully to a client five times, we just give up
   # and remove the message to avoid endless repetition of some broken action.
   CLIENT_MESSAGES_TTL = 5
@@ -2165,46 +2175,6 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def WriteStatsStoreEntries(self, stats_entries):
-    """Writes an Iterable of StatsStoreEntries to the database."""
-
-  @abc.abstractmethod
-  def ReadStatsStoreEntries(self,
-                            process_id_prefix,
-                            metric_name,
-                            time_range=None,
-                            max_results=0):
-    """Reads StatsStoreEntries matching given criteria from the DB.
-
-    Args:
-      process_id_prefix: String prefix used to filter process ids whose data
-        should be included in the results.
-      metric_name: Name of the stats metric for which to return past values.
-      time_range: An optional tuple containing two RDFDateTime objects that
-        represent the range of timestamps to filter for (if provided, only
-        StatsStoreEntries in the range will be included).
-      max_results: If > 0, indicates the maximum number of results to return.
-
-    Returns:
-      A sequence of StatsStoreEntries matching all the provided criteria.
-    """
-
-  @abc.abstractmethod
-  def DeleteStatsStoreEntriesOlderThan(self, cutoff, limit):
-    """Deletes StatsStoreEntries in the DB older than a given timestamp.
-
-    Args:
-      cutoff: An RDFDateTime representing the maximum age of entries that would
-        remain after deleting all older entries.
-      limit: The maximum number of entries to delete. Must be > 0.
-
-    Returns:
-      The number of stats-store entries that were deleted. If the number is
-      equal to the limit provided, it means that there are more entries
-      to delete (or that there were exactly 'limit' stale entries in the DB).
-    """
-
-  @abc.abstractmethod
   def WriteHuntObject(self, hunt_obj):
     """Writes a hunt object to the database.
 
@@ -2213,20 +2183,77 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def UpdateHuntObject(self, hunt_id, update_fn):
+  def UpdateHuntObject(self,
+                       hunt_id,
+                       expiry_time=None,
+                       client_rate=None,
+                       client_limit=None,
+                       hunt_state=None,
+                       hunt_state_comment=None,
+                       start_time=None):
     """Updates the hunt object by applying the update function.
 
-    Updates are done by applying the update function. They're guaranteed to
-    be atomic.
+    Each keyword argument when set to None, means that that corresponding value
+    shouldn't be updated.
 
     Args:
       hunt_id: Id of the hunt to be updated.
-      update_fn: A function accepting a single rdf_hunt_objects.Hunt argument
-        and returning a modified rdf_hunt_objects.Hunt object.
+      expiry_time: RDFDatetime, hunt expiry time.
+      client_rate: Number correpsonding to hunt's client rate.
+      client_limit: Number corresponding hunt's client limit.
+      hunt_state: New Hunt.HuntState value.
+      hunt_state_comment: String correpsonding to a hunt state comment.
+      start_time: RDFDatetime corresponding to a start time of the hunt.
+    """
+
+  @abc.abstractmethod
+  def ReadHuntOutputPluginsStates(self, hunt_id):
+    """Reads all hunt output plugins states of a given hunt.
+
+    Args:
+      hunt_id: Id of the hunt.
 
     Returns:
-      An updated rdf_hunt_objects.Hunt object (result of the update_fn function
-      call).
+      An iterable of rdf_flow_runner.OutputPluginState objects.
+
+    Raises:
+      UnknownHuntError: if a hunt with a given hunt id does not exit.
+    """
+
+  @abc.abstractmethod
+  def WriteHuntOutputPluginsStates(self, hunt_id, states):
+    """Writes hunt output plugin states for a given hunt.
+
+    Args:
+      hunt_id: Id of the hunt.
+      states: An iterable with rdf_flow_runner.OutputPluginState objects.
+
+    Raises:
+      UnknownHuntError: if a hunt with a given hunt id does not exit.
+    """
+    pass
+
+  @abc.abstractmethod
+  def UpdateHuntOutputPluginState(self, hunt_id, state_index, update_fn):
+    """Updates hunt output plugin state for a given output plugin.
+
+    Args:
+      hunt_id: Id of the hunt to be updated.
+      state_index: Index of a state in ReadHuntOutputPluginsStates-returned
+        list.
+      update_fn: A function accepting a (descriptor, state) arguments, where
+        descriptor is OutputPluginDescriptor and state is an AttributedDict. The
+        function is expected to return a modified state (it's ok to modify it
+        in-place).
+
+    Returns:
+      An updated AttributedDict object corresponding to an update plugin state
+      (result of the update_fn function call).
+
+    Raises:
+      UnknownHuntError: if a hunt with a given hunt id does not exit.
+      UnknownHuntOutputPluginStateError: if a state with a given index does
+          not exist.
     """
 
   @abc.abstractmethod
@@ -2396,6 +2423,17 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def ReadHuntCounters(self, hunt_id):
+    """Reads hunt counters.
+
+    Args:
+      hunt_id: The id of the hunt to read counters for.
+
+    Returns:
+      HuntCounters object.
+    """
+
+  @abc.abstractmethod
   def WriteSignedBinaryReferences(self, binary_id, references):
     """Writes blob references for a signed binary to the DB.
 
@@ -2546,8 +2584,17 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.MultiReadClientFullInfo(
         client_ids, min_last_ping=min_last_ping)
 
-  def ReadAllClientIDs(self, min_last_ping=None):
-    return self.delegate.ReadAllClientIDs(min_last_ping=min_last_ping)
+  def ReadClientLastPings(self,
+                          min_last_ping=None,
+                          max_last_ping=None,
+                          fleetspeak_enabled=None):
+    precondition.AssertOptionalType(min_last_ping, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(max_last_ping, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(fleetspeak_enabled, bool)
+    return self.delegate.ReadClientLastPings(
+        min_last_ping=min_last_ping,
+        max_last_ping=max_last_ping,
+        fleetspeak_enabled=fleetspeak_enabled)
 
   def WriteClientSnapshotHistory(self, clients):
     if not clients:
@@ -2610,30 +2657,38 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.ReadClientCrashInfoHistory(client_id)
 
-  def AddClientKeywords(self, client_id, keywords):
+  def AddClientKeywords(self, client_id,
+                        keywords):
     _ValidateClientId(client_id)
+    precondition.AssertIterableType(keywords, Text)
 
     return self.delegate.AddClientKeywords(client_id, keywords)
 
-  def ListClientsForKeywords(self, keywords, start_time=None):
+  def ListClientsForKeywords(self,
+                             keywords,
+                             start_time = None
+                            ):
+    precondition.AssertIterableType(keywords, Text)
     keywords = set(keywords)
-    keyword_mapping = {utils.SmartStr(kw): kw for kw in keywords}
-
-    if len(keyword_mapping) != len(keywords):
-      raise ValueError("Multiple keywords map to the same string "
-                       "representation.")
 
     if start_time:
       _ValidateTimestamp(start_time)
 
-    return self.delegate.ListClientsForKeywords(keywords, start_time=start_time)
+    result = self.delegate.ListClientsForKeywords(
+        keywords, start_time=start_time)
+    precondition.AssertDictType(result, Text, List)
+    for value in itervalues(result):
+      precondition.AssertIterableType(value, Text)
+    return result
 
   def RemoveClientKeyword(self, client_id, keyword):
     _ValidateClientId(client_id)
+    precondition.AssertType(keyword, Text)
 
     return self.delegate.RemoveClientKeyword(client_id, keyword)
 
-  def AddClientLabels(self, client_id, owner, labels):
+  def AddClientLabels(self, client_id, owner,
+                      labels):
     _ValidateClientId(client_id)
     _ValidateUsername(owner)
     for label in labels:
@@ -2641,11 +2696,17 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.AddClientLabels(client_id, owner, labels)
 
-  def MultiReadClientLabels(self, client_ids):
+  def MultiReadClientLabels(self, client_ids
+                           ):
     _ValidateClientIds(client_ids)
-    return self.delegate.MultiReadClientLabels(client_ids)
+    result = self.delegate.MultiReadClientLabels(client_ids)
+    precondition.AssertDictType(result, Text, List)
+    for value in itervalues(result):
+      precondition.AssertIterableType(value, rdf_objects.ClientLabel)
+    return result
 
-  def RemoveClientLabels(self, client_id, owner, labels):
+  def RemoveClientLabels(self, client_id, owner,
+                         labels):
     _ValidateClientId(client_id)
     for label in labels:
       _ValidateLabel(label)
@@ -2653,7 +2714,9 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.RemoveClientLabels(client_id, owner, labels)
 
   def ReadAllClientLabels(self):
-    return self.delegate.ReadAllClientLabels()
+    result = self.delegate.ReadAllClientLabels()
+    precondition.AssertIterableType(result, rdf_objects.ClientLabel)
+    return result
 
   def WriteClientStats(self, client_id,
                        stats):
@@ -3089,25 +3152,6 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertIterableType(hashes, rdf_objects.SHA256HashID)
     return self.delegate.ReadHashBlobReferences(hashes)
 
-  def WriteBlobs(self, blob_id_data_map):
-    for bid, data in iteritems(blob_id_data_map):
-      _ValidateBlobID(bid)
-      _ValidateBytes(data)
-
-    return self.delegate.WriteBlobs(blob_id_data_map)
-
-  def ReadBlobs(self, blob_ids):
-    for bid in blob_ids:
-      _ValidateBlobID(bid)
-
-    return self.delegate.ReadBlobs(blob_ids)
-
-  def CheckBlobsExist(self, blob_ids):
-    for bid in blob_ids:
-      _ValidateBlobID(bid)
-
-    return self.delegate.CheckBlobsExist(blob_ids)
-
   def WriteClientMessages(self, messages):
     for message in messages:
       precondition.AssertType(message, rdf_flows.GrrMessage)
@@ -3424,44 +3468,57 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.CountHuntOutputPluginLogEntries(
         hunt_id, output_plugin_id, with_type=with_type)
 
-  def WriteStatsStoreEntries(self, stats_entries):
-    _ValidateStatsStoreEntries(stats_entries)
-
-    self.delegate.WriteStatsStoreEntries(stats_entries)
-
-  def ReadStatsStoreEntries(self,
-                            process_id_prefix,
-                            metric_name,
-                            time_range=None,
-                            max_results=0):
-    precondition.AssertType(process_id_prefix, Text)
-    precondition.AssertType(metric_name, Text)
-    if time_range is not None:
-      # Both start- and end-timestamps must be provided if a time_range is
-      # given.
-      _ValidateClosedTimeRange(time_range)
-
-    return self.delegate.ReadStatsStoreEntries(
-        process_id_prefix,
-        metric_name,
-        time_range=time_range,
-        max_results=max_results)
-
-  def DeleteStatsStoreEntriesOlderThan(self, cutoff, limit):
-    _ValidateTimestamp(cutoff)
-    if limit <= 0:
-      raise ValueError("Limit must be > 0.")
-
-    return self.delegate.DeleteStatsStoreEntriesOlderThan(cutoff, limit)
-
   def WriteHuntObject(self, hunt_obj):
     precondition.AssertType(hunt_obj, rdf_hunt_objects.Hunt)
+
     self.delegate.WriteHuntObject(hunt_obj)
 
-  def UpdateHuntObject(self, hunt_id, update_fn):
+  def UpdateHuntObject(self,
+                       hunt_id,
+                       expiry_time=None,
+                       client_rate=None,
+                       client_limit=None,
+                       hunt_state=None,
+                       hunt_state_comment=None,
+                       start_time=None):
     """Updates the hunt object by applying the update function."""
     _ValidateHuntId(hunt_id)
-    return self.delegate.UpdateHuntObject(hunt_id, update_fn)
+    precondition.AssertOptionalType(expiry_time, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(client_rate, (float, int))
+    precondition.AssertOptionalType(client_limit, int)
+    if hunt_state is not None:
+      _ValidateEnumType(hunt_state, rdf_hunt_objects.Hunt.HuntState)
+    precondition.AssertOptionalType(hunt_state_comment, str)
+    precondition.AssertOptionalType(start_time, rdfvalue.RDFDatetime)
+
+    return self.delegate.UpdateHuntObject(
+        hunt_id,
+        expiry_time=expiry_time,
+        client_rate=client_rate,
+        client_limit=client_limit,
+        hunt_state=hunt_state,
+        hunt_state_comment=hunt_state_comment,
+        start_time=start_time)
+
+  def ReadHuntOutputPluginsStates(self, hunt_id):
+    _ValidateHuntId(hunt_id)
+    return self.delegate.ReadHuntOutputPluginsStates(hunt_id)
+
+  def WriteHuntOutputPluginsStates(self, hunt_id, states):
+
+    if not states:
+      return
+
+    _ValidateHuntId(hunt_id)
+    precondition.AssertIterableType(states, rdf_flow_runner.OutputPluginState)
+    self.delegate.WriteHuntOutputPluginsStates(hunt_id, states)
+
+  def UpdateHuntOutputPluginState(self, hunt_id, state_index, update_fn):
+    _ValidateHuntId(hunt_id)
+    precondition.AssertType(state_index, int)
+
+    return self.delegate.UpdateHuntOutputPluginState(hunt_id, state_index,
+                                                     update_fn)
 
   def DeleteHuntObject(self, hunt_id):
     _ValidateHuntId(hunt_id)
@@ -3533,6 +3590,10 @@ class DatabaseValidationWrapper(Database):
     _ValidateHuntFlowCondition(filter_condition)
     return self.delegate.CountHuntFlows(
         hunt_id, filter_condition=filter_condition)
+
+  def ReadHuntCounters(self, hunt_id):
+    _ValidateHuntId(hunt_id)
+    return self.delegate.ReadHuntCounters(hunt_id)
 
   def WriteSignedBinaryReferences(self, binary_id, references):
     precondition.AssertType(binary_id, rdf_objects.SignedBinaryID)
@@ -3762,34 +3823,9 @@ def _ValidateSHA256HashID(sha256_hash_id):
   precondition.AssertType(sha256_hash_id, rdf_objects.SHA256HashID)
 
 
-def _ValidateStatsStoreEntries(stats_entries):
-  """Validates an Iterable of StatsStoreEntries."""
-  for stats_entry in stats_entries:
-    precondition.AssertType(stats_entry, stats_values.StatsStoreEntry)
-    if not stats_entry.process_id:
-      raise ValueError("StatsStoreEntry must have a process_id set.")
-    if not stats_entry.metric_name:
-      raise ValueError("StatsStoreEntry must have a metric_name set.")
-    if not stats_entry.metric_value:
-      raise ValueError("StatsStoreEntry must have a metric_value set.")
-    if not stats_entry.timestamp:
-      raise ValueError("StatsStoreEntry must have a timestamp set.")
-
-    metric_metadata = stats_collector_instance.Get().GetMetricMetadata(
-        stats_entry.metric_name)
-    num_field_values = len(stats_entry.metric_value.fields_values)
-    expected_num_field_values = len(metric_metadata.fields_defs)
-    if num_field_values != expected_num_field_values:
-      raise ValueError(
-          "Value for metric %s had %d field values, yet the metric was "
-          "defined to have %d fields." % (stats_entry.metric_name,
-                                          num_field_values,
-                                          expected_num_field_values))
-
-
 def _ValidateHuntFlowCondition(value):
   if value < 0 or value > HuntFlowsCondition.MaxValue():
-    raise ValueError("Invalid hunt flow condition: %d" % value)
+    raise ValueError("Invalid hunt flow condition: %r" % value)
 
 
 def _ValidateMessageHandlerName(name):

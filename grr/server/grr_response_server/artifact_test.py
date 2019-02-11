@@ -10,6 +10,8 @@ import logging
 import os
 import subprocess
 
+from future.builtins import str
+
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_core import config
@@ -150,12 +152,9 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
         standard.TransferBuffer,
     )
 
-    self._artifact_patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
-    self._artifact_patcher.start()
-
-  def tearDown(self):
-    self._artifact_patcher.stop()
-    super(ArtifactTest, self).tearDown()
+    patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
+    patcher.start()
+    self.addCleanup(patcher.stop)
 
   def LoadTestArtifacts(self):
     """Add the test artifacts in on top of whatever is in the registry."""
@@ -449,7 +448,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
                                             client_id=client_id,
                                             split_output_by_artifact=True,
                                             error_on_no_results=True)
-      if "collector returned 0 responses" not in context.exception.message:
+      if "collector returned 0 responses" not in str(context.exception):
         raise RuntimeError("0 responses should have been returned")
 
 
@@ -638,13 +637,13 @@ class GrrKbWindowsTest(GrrKbTest):
     with self.assertRaises(RuntimeError) as context:
       self._RunKBIFlow(["NoProvides"])
 
-    self.assertIn("does not have a provide", context.exception.message)
+    self.assertIn("does not have a provide", str(context.exception))
 
   def testKnowledgeBaseMultipleProvidesNoDict(self):
     with self.assertRaises(RuntimeError) as context:
       self._RunKBIFlow(["TooManyProvides"])
 
-    self.assertIn("multiple provides clauses", context.exception.message)
+    self.assertIn("multiple provides clauses", str(context.exception))
 
 
 @db_test_lib.DualDBTest

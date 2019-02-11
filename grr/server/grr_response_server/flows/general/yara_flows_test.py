@@ -8,6 +8,7 @@ import functools
 import string
 
 from builtins import range  # pylint: disable=redefined-builtin
+import mock
 import psutil
 import yara
 
@@ -484,20 +485,24 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
     procs = [p for p in self.procs if p.pid in [102, 103]]
 
-    with utils.MultiStubber(
-        (psutil, "process_iter", lambda: procs),
-        (psutil, "Process", functools.partial(self.process, procs)),
-        (client_utils, "OpenProcessForMemoryAccess",
-         lambda pid: FakeMemoryProcess(pid=pid))):
-      session_id = flow_test_lib.TestFlowHelper(
-          yara_flows.YaraProcessScan.__name__,
-          client_mock,
-          yara_signature=test_yara_signature,
-          client_id=self.client_id,
-          token=self.token,
-          include_errors_in_results=True,
-          include_misses_in_results=True,
-          dump_process_on_match=True)
+    with mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles") as efs:
+      with utils.MultiStubber(
+          (psutil, "process_iter", lambda: procs),
+          (psutil, "Process", functools.partial(self.process, procs)),
+          (client_utils, "OpenProcessForMemoryAccess",
+           lambda pid: FakeMemoryProcess(pid=pid))):
+        session_id = flow_test_lib.TestFlowHelper(
+            yara_flows.YaraProcessScan.__name__,
+            client_mock,
+            yara_signature=test_yara_signature,
+            client_id=self.client_id,
+            token=self.token,
+            include_errors_in_results=True,
+            include_misses_in_results=True,
+            dump_process_on_match=True)
+
+    # Process dumps are not pushed to external file stores.
+    self.assertEqual(efs.call_count, 0)
 
     results = flow_test_lib.GetFlowResults(self.client_id.Basename(),
                                            session_id)

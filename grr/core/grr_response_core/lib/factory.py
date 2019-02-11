@@ -2,15 +2,24 @@
 """A module with definition of factory."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 from future.utils import iterkeys
+from typing import Callable
+from typing import Generic
+from typing import Iterator
 from typing import Text
+from typing import Type
+from typing import TypeVar
 
 from grr_response_core.lib.util import precondition
 
 
-class Factory(object):
+T = TypeVar("T")
+
+
+class Factory(Generic[T]):
   """An instance factory class.
 
   This class is an alternative to the metaclass registries and problems that

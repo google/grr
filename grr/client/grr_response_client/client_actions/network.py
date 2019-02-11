@@ -41,7 +41,8 @@ def ListNetworkConnectionsFromClient(args):
         if conn.status:
           res.state = conn.status
       except ValueError:
-        logging.warn("Encountered unknown connection status (%s).", conn.status)
+        logging.warning("Encountered unknown connection status (%s).",
+                        conn.status)
 
       res.local_address.ip, res.local_address.port = conn.laddr
       if conn.raddr:

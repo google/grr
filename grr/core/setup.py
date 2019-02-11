@@ -152,6 +152,7 @@ setup_args = dict(
         "ipaddr==2.2.0",
         "ipaddress==1.0.18",
         "ipython==%s" % ("5.0.0" if sys.version_info < (3, 0) else "7.2.0"),
+        "pexpect==4.6.0",
         "pip>=8.1.1",
         "psutil==5.4.3",
         "python-crontab==2.0.1",

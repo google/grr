@@ -4,10 +4,6 @@
 
 set -ex
 
-# API token for account belonging to username 'grr'.
-# See 'https://ci.appveyor.com/api-token'
-readonly APPVEYOR_TOKEN='3nsovp2rs3o7j272awfv'
-
 function fatal() {
   >&2 echo "Error: ${1}"
   exit 1

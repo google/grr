@@ -902,7 +902,7 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
           aff4_object = fds_dict[urn]
           self._ExportFileContent(aff4_object, result)
         except KeyError:
-          logging.warn("Couldn't open %s for export", urn)
+          logging.warning("Couldn't open %s for export", urn)
       yield result
 
     # Now export the registry keys

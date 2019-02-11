@@ -13,17 +13,22 @@ from builtins import range  # pylint: disable=redefined-builtin
 from grr_api_client import errors as grr_api_errors
 from grr_api_client import utils as grr_api_utils
 from grr_response_core.lib import flags
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.util import compatibility
 from grr_response_server import aff4
-from grr_response_server import flow
+from grr_response_server import data_store
+from grr_response_server import flow_base
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_e2e_test_lib
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
   """Tests flows-related part of GRR Python API client library."""
 
@@ -44,66 +49,82 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
 
   def testListFlowsFromClientRef(self):
     client_urn = self.SetupClient(0)
-    flow_urn = flow.StartAFF4Flow(
-        client_id=client_urn,
-        flow_name=processes.ListProcesses.__name__,
-        token=self.token)
+    flow_id = flow_test_lib.StartFlow(
+        processes.ListProcesses, client_id=client_urn)
 
     flows = list(self.api.Client(client_id=client_urn.Basename()).ListFlows())
 
     self.assertLen(flows, 1)
     self.assertEqual(flows[0].client_id, client_urn.Basename())
-    self.assertEqual(flows[0].flow_id, flow_urn.Basename())
-    self.assertEqual(flows[0].data.urn, flow_urn)
+    self.assertEqual(flows[0].flow_id, flow_id)
+    self.assertEqual(flows[0].data.flow_id, flow_id)
 
   def testListFlowsFromClientObject(self):
     client_urn = self.SetupClient(0)
-    flow_urn = flow.StartAFF4Flow(
-        client_id=client_urn,
-        flow_name=processes.ListProcesses.__name__,
-        token=self.token)
+    flow_id = flow_test_lib.StartFlow(
+        processes.ListProcesses, client_id=client_urn)
 
     client = self.api.Client(client_id=client_urn.Basename()).Get()
     flows = list(client.ListFlows())
 
     self.assertLen(flows, 1)
     self.assertEqual(flows[0].client_id, client_urn.Basename())
-    self.assertEqual(flows[0].flow_id, flow_urn.Basename())
-    self.assertEqual(flows[0].data.urn, flow_urn)
+    self.assertEqual(flows[0].flow_id, flow_id)
+    self.assertEqual(flows[0].data.flow_id, flow_id)
 
   def testCreateFlowFromClientRef(self):
     client_urn = self.SetupClient(0)
     args = processes.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True)
 
-    children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
-    self.assertEmpty(list(children))
+    if data_store.RelationalDBFlowsEnabled():
+      flows = data_store.REL_DB.ReadAllFlowObjects(client_urn.Basename())
+      self.assertEmpty(flows)
+    else:
+      children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
+      self.assertEmpty(list(children))
 
     client_ref = self.api.Client(client_id=client_urn.Basename())
     result_flow = client_ref.CreateFlow(
         name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
 
-    children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
-    self.assertLen(list(children), 1)
-    result_flow_obj = aff4.FACTORY.Open(result_flow.data.urn, token=self.token)
-    self.assertEqual(result_flow_obj.args, args)
+    if data_store.RelationalDBFlowsEnabled():
+      flows = data_store.REL_DB.ReadAllFlowObjects(client_urn.Basename())
+      self.assertLen(flows, 1)
+      self.assertEqual(flows[0].args, args)
+    else:
+      children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
+      self.assertLen(list(children), 1)
+      result_flow_obj = aff4.FACTORY.Open(
+          result_flow.data.urn, token=self.token)
+      self.assertEqual(result_flow_obj.args, args)
 
   def testCreateFlowFromClientObject(self):
     client_urn = self.SetupClient(0)
     args = processes.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True)
 
-    children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
-    self.assertEmpty(list(children))
+    if data_store.RelationalDBFlowsEnabled():
+      flows = data_store.REL_DB.ReadAllFlowObjects(client_urn.Basename())
+      self.assertEmpty(flows)
+    else:
+      children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
+      self.assertEmpty(list(children))
 
     client = self.api.Client(client_id=client_urn.Basename()).Get()
     result_flow = client.CreateFlow(
         name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
 
-    children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
-    self.assertLen(list(children), 1)
-    result_flow_obj = aff4.FACTORY.Open(result_flow.data.urn, token=self.token)
-    self.assertEqual(result_flow_obj.args, args)
+    if data_store.RelationalDBFlowsEnabled():
+      flows = data_store.REL_DB.ReadAllFlowObjects(client_urn.Basename())
+      self.assertLen(flows, 1)
+      self.assertEqual(flows[0].args, args)
+    else:
+      children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
+      self.assertLen(list(children), 1)
+      result_flow_obj = aff4.FACTORY.Open(
+          result_flow.data.urn, token=self.token)
+      self.assertEqual(result_flow_obj.args, args)
 
   def testListResultsForListProcessesFlow(self):
     process = rdf_client.Process(
@@ -115,17 +136,17 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
         RSS_size=42)
 
     client_urn = self.SetupClient(0)
-    client_mock = action_mocks.ListProcessesMock([process])
-
-    flow_urn = flow.StartAFF4Flow(
+    flow_urn = flow_test_lib.TestFlowHelper(
+        compatibility.GetName(processes.ListProcesses),
         client_id=client_urn,
-        flow_name=processes.ListProcesses.__name__,
+        client_mock=action_mocks.ListProcessesMock([process]),
         token=self.token)
-    flow_test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=client_urn, token=self.token)
+    if isinstance(flow_urn, rdfvalue.RDFURN):
+      flow_id = flow_urn.Basename()
+    else:
+      flow_id = flow_urn
 
-    result_flow = self.api.Client(client_id=client_urn.Basename()).Flow(
-        flow_urn.Basename())
+    result_flow = self.api.Client(client_id=client_urn.Basename()).Flow(flow_id)
     results = list(result_flow.ListResults())
 
     self.assertLen(results, 1)
@@ -134,52 +155,58 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
   def testWaitUntilDoneReturnsWhenFlowCompletes(self):
     client_urn = self.SetupClient(0)
 
-    flow_urn = flow.StartAFF4Flow(
-        client_id=client_urn,
-        flow_name=processes.ListProcesses.__name__,
-        token=self.token)
-    result_flow = self.api.Client(client_id=client_urn.Basename()).Flow(
-        flow_urn.Basename()).Get()
+    flow_id = flow_test_lib.StartFlow(
+        processes.ListProcesses, client_id=client_urn)
+    result_flow = self.api.Client(
+        client_id=client_urn.Basename()).Flow(flow_id).Get()
     self.assertEqual(result_flow.data.state, result_flow.data.RUNNING)
 
     def ProcessFlow():
       time.sleep(1)
       client_mock = action_mocks.ListProcessesMock([])
-      flow_test_lib.TestFlowHelper(
-          flow_urn, client_mock, client_id=client_urn, token=self.token)
+      flow_test_lib.FinishAllFlowsOnClient(client_urn, client_mock=client_mock)
 
-    threading.Thread(target=ProcessFlow).start()
-    f = result_flow.WaitUntilDone()
-    self.assertEqual(f.data.state, f.data.TERMINATED)
+    t = threading.Thread(target=ProcessFlow)
+    t.start()
+    try:
+      f = result_flow.WaitUntilDone()
+      self.assertEqual(f.data.state, f.data.TERMINATED)
+    finally:
+      t.join()
 
   def testWaitUntilDoneRaisesWhenFlowFails(self):
     client_urn = self.SetupClient(0)
 
-    flow_urn = flow.StartAFF4Flow(
-        client_id=client_urn,
-        flow_name=processes.ListProcesses.__name__,
-        token=self.token)
-    result_flow = self.api.Client(client_id=client_urn.Basename()).Flow(
-        flow_urn.Basename()).Get()
+    flow_id = flow_test_lib.StartFlow(
+        processes.ListProcesses, client_id=client_urn)
+    result_flow = self.api.Client(
+        client_id=client_urn.Basename()).Flow(flow_id).Get()
 
     def ProcessFlow():
       time.sleep(1)
-      with aff4.FACTORY.Open(flow_urn, mode="rw", token=self.token) as fd:
-        fd.GetRunner().Error("")
+      if data_store.RelationalDBFlowsEnabled():
+        flow_base.TerminateFlow(client_urn.Basename(), flow_id, "")
+      else:
+        with aff4.FACTORY.Open(
+            client_urn.Add("flows").Add(flow_id), mode="rw",
+            token=self.token) as fd:
+          fd.GetRunner().Error("")
 
-    threading.Thread(target=ProcessFlow).start()
-    with self.assertRaises(grr_api_errors.FlowFailedError):
-      result_flow.WaitUntilDone()
+    t = threading.Thread(target=ProcessFlow)
+    t.start()
+    try:
+      with self.assertRaises(grr_api_errors.FlowFailedError):
+        result_flow.WaitUntilDone()
+    finally:
+      t.join()
 
   def testWaitUntilDoneRasiesWhenItTimesOut(self):
     client_urn = self.SetupClient(0)
 
-    flow_urn = flow.StartAFF4Flow(
-        client_id=client_urn,
-        flow_name=processes.ListProcesses.__name__,
-        token=self.token)
-    result_flow = self.api.Client(client_id=client_urn.Basename()).Flow(
-        flow_urn.Basename()).Get()
+    flow_id = flow_test_lib.StartFlow(
+        processes.ListProcesses, client_id=client_urn)
+    result_flow = self.api.Client(
+        client_id=client_urn.Basename()).Flow(flow_id).Get()
 
     with self.assertRaises(grr_api_errors.PollTimeoutError):
       with utils.Stubber(grr_api_utils, "DEFAULT_POLL_TIMEOUT", 1):

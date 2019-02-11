@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import io
+import unittest
 import zipfile
 
 
@@ -246,6 +247,8 @@ class ApiClientLibHuntTest(
     self.assertEmpty(client_stats.start_points)
     self.assertEmpty(client_stats.complete_points)
 
+  # TODO(user): remove when REL_DB hunts stats implementation is back.
+  @unittest.skip("Skip until REL_DB hunts support stats.")
   def testGetStats(self):
     hunt_urn = self.StartHunt()
 

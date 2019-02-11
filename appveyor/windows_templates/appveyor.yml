@@ -5,7 +5,7 @@ branches:
 environment:
   GCS_BUCKET: autobuilds.grr-response.com
   GCS_ENCRYPTION_KEY:
-    secure: glqk3qOU13UWLPTwuGijtRYRgCVMgJAkdk8ekNasAiI=
+    secure: w3NY4lC2qczBJuds3B6yaMtXl8FlKk4SDuXP56YPmWI=
 
 clone_folder: C:\grr_src
 

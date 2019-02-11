@@ -135,6 +135,8 @@ class FlowOutputPluginLogEntry(rdf_structs.RDFProtoStruct):
 
 
 class Flow(rdf_structs.RDFProtoStruct):
+  """Flow DB object."""
+
   protobuf = flows_pb2.Flow
   rdf_deps = [
       "OutputPluginDescriptor",  # TODO(user): dependency loop.
@@ -146,6 +148,16 @@ class Flow(rdf_structs.RDFProtoStruct):
       rdf_protodict.AttributedDict,
       rdfvalue.RDFDatetime,
   ]
+
+  def __init__(self, *args, **kwargs):
+    super(Flow, self).__init__(*args, **kwargs)
+
+    if not self.HasField("cpu_time_used"):
+      self.cpu_time_used.user_cpu_time = 0
+      self.cpu_time_used.system_cpu_time = 0
+
+    if not self.HasField("network_bytes_sent"):
+      self.network_bytes_sent = 0
 
 
 def _ClientIDFromSessionID(session_id):

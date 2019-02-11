@@ -487,14 +487,11 @@ class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
             windows_mock
     }
 
-    self.module_patcher = mock.patch.dict("sys.modules", modules)
-    self.module_patcher.start()
+    module_patcher = mock.patch.dict("sys.modules", modules)
+    module_patcher.start()
+    self.addCleanup(module_patcher.stop)
 
     self.windows = windows_mock.windows
-
-  def tearDown(self):
-    super(WindowsArtifactCollectorTests, self).tearDown()
-    self.module_patcher.stop()
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testWMIArtifact(self, registry):

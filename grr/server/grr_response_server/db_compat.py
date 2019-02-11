@@ -31,12 +31,7 @@ def WriteHuntResults(client_id, hunt_id, responses):
   if not hunt.IsLegacyHunt(hunt_id):
     data_store.REL_DB.WriteFlowResults(responses)
 
-    def UpdateFn(hunt_obj):
-      hunt_obj.num_results += len(responses)
-      return hunt_obj
-
-    hunt_obj = data_store.REL_DB.UpdateHuntObject(hunt_id, UpdateFn)
-    hunt_obj = hunt.StopHuntIfAverageLimitsExceeded(hunt_obj)
+    hunt.StopHuntIfAverageLimitsExceeded(hunt_id)
     return
 
   hunt_id_urn = rdfvalue.RDFURN("hunts").Add(hunt_id)
@@ -79,16 +74,7 @@ def ProcessHuntFlowError(flow_obj,
   """Processes error and status message for a given hunt-induced flow."""
 
   if not hunt.IsLegacyHunt(flow_obj.parent_hunt_id):
-    resources = _FlowStatusToClientResources(flow_obj, status_msg)
-
-    def UpdateFn(hunt_obj):
-      hunt_obj.num_failed_clients += 1
-      hunt_obj.client_resources_stats.RegisterResources(resources)
-      return hunt_obj
-
-    hunt_obj = data_store.REL_DB.UpdateHuntObject(flow_obj.parent_hunt_id,
-                                                  UpdateFn)
-    hunt_obj = hunt.StopHuntIfAverageLimitsExceeded(hunt_obj)
+    hunt.StopHuntIfAverageLimitsExceeded(flow_obj.parent_hunt_id)
     return
 
   hunt_urn = rdfvalue.RDFURN("hunts").Add(flow_obj.parent_hunt_id)
@@ -114,19 +100,7 @@ def ProcessHuntFlowDone(flow_obj, status_msg=None):
   """Notifis hunt about a given hunt-induced flow completion."""
 
   if not hunt.IsLegacyHunt(flow_obj.parent_hunt_id):
-    resources = _FlowStatusToClientResources(flow_obj, status_msg)
-
-    def UpdateFn(hunt_obj):
-      hunt_obj.num_successful_clients += 1
-      if flow_obj.num_replies_sent:
-        hunt_obj.num_clients_with_results += 1
-      hunt_obj.client_resources_stats.RegisterResources(resources)
-
-      return hunt_obj
-
-    hunt_obj = data_store.REL_DB.UpdateHuntObject(flow_obj.parent_hunt_id,
-                                                  UpdateFn)
-    hunt_obj = hunt.StopHuntIfAverageLimitsExceeded(hunt_obj)
+    hunt_obj = hunt.StopHuntIfAverageLimitsExceeded(flow_obj.parent_hunt_id)
     hunt.CompleteHuntIfExpirationTimeReached(hunt_obj)
     return
 
@@ -180,23 +154,7 @@ def ProcessHuntClientCrash(flow_obj, client_crash_info):
   """Processes client crash triggerted by a given hunt-induced flow."""
 
   if not hunt.IsLegacyHunt(flow_obj.parent_hunt_id):
-
-    def UpdateFn(hunt_obj):
-      hunt_obj.num_crashed_clients += 1
-      return hunt_obj
-
-    hunt_obj = data_store.REL_DB.UpdateHuntObject(flow_obj.parent_hunt_id,
-                                                  UpdateFn)
-
-    if (hunt_obj.crash_limit and
-        hunt_obj.num_crashed_clients >= hunt_obj.crash_limit):
-      # Remove our rules from the forman and cancel all the started flows.
-      # Hunt will be hard-stopped and it will be impossible to restart it.
-      reason = ("Hunt %s reached the crashes limit of %d "
-                "and was stopped.") % (hunt_obj.hunt_id, hunt_obj.crash_limit)
-      hunt.StopHunt(hunt_obj.hunt_id, reason=reason)
-
-    hunt_obj = hunt.StopHuntIfAverageLimitsExceeded(hunt_obj)
+    hunt.StopHuntIfCrashLimitExceeded(flow_obj.parent_hunt_id)
     return
 
   hunt_urn = rdfvalue.RDFURN("hunts").Add(flow_obj.parent_hunt_id)

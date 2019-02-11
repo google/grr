@@ -112,7 +112,7 @@ class ApiDeleteGrrUserHandler(api_call_handler_base.ApiCallHandler):
     try:
       data_store.REL_DB.DeleteGRRUser(args.username)
     except db.UnknownGRRUserError as e:
-      raise api_call_handler_base.ResourceNotFoundError(e.message)
+      raise api_call_handler_base.ResourceNotFoundError(e)
 
 
 class ApiModifyGrrUserArgs(rdf_structs.RDFProtoStruct):
@@ -263,4 +263,4 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
       user = data_store.REL_DB.ReadGRRUser(args.username)
       return api_user.ApiGrrUser().InitFromDatabaseObject(user)
     except db.UnknownGRRUserError as e:
-      raise api_call_handler_base.ResourceNotFoundError(e.message)
+      raise api_call_handler_base.ResourceNotFoundError(e)

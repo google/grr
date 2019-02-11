@@ -16,6 +16,9 @@ import time
 import warnings
 
 from builtins import range  # pylint: disable=redefined-builtin
+
+# Note: Please refer to server/setup.py for the MySQLdb version that is used.
+# It is most likely not up-to-date because of our support for older OS.
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
 
@@ -35,7 +38,6 @@ from grr_response_server.databases import mysql_hunts
 from grr_response_server.databases import mysql_paths
 from grr_response_server.databases import mysql_pool
 from grr_response_server.databases import mysql_signed_binaries
-from grr_response_server.databases import mysql_stats
 from grr_response_server.databases import mysql_users
 
 # Maximum size of one SQL statement, including blob and protobuf data.
@@ -48,7 +50,7 @@ _MAX_RETRY_COUNT = 5
 _RETRYABLE_ERRORS = {
     mysql_error_constants.LOCK_WAIT_TIMEOUT,
     mysql_error_constants.LOCK_DEADLOCK,
-    mysql_error_constants.TOO_MANY_CONCURRENT_TRXS,
+    1637,  # TOO_MANY_CONCURRENT_TRXS, unavailable in MySQLdb 1.3.7
 }
 
 # Enforce sensible defaults for MySQL connection and database:
@@ -104,12 +106,12 @@ def _CheckCollation(cursor):
 
   cur_collation_connection = _ReadVariable("collation_connection", cursor)
   if cur_collation_connection != COLLATION:
-    logging.warn("Require MySQL collation_connection of %s, got %s.", COLLATION,
-                 cur_collation_connection)
+    logging.warning("Require MySQL collation_connection of %s, got %s.",
+                    COLLATION, cur_collation_connection)
 
   cur_collation_database = _ReadVariable("collation_database", cursor)
   if cur_collation_database != COLLATION:
-    logging.warn(
+    logging.warning(
         "Require MySQL collation_database of %s, got %s."
         " To create your database, use: %s", COLLATION, cur_collation_database,
         CREATE_DATABASE_QUERY)
@@ -145,7 +147,7 @@ def _SetPacketSizeForFollowingConnections(cursor):
 
   if cur_packet_size < MAX_PACKET_SIZE:
     query = "SET GLOBAL max_allowed_packet={}".format(MAX_PACKET_SIZE)
-    logging.warn(
+    logging.warning(
         "MySQL max_allowed_packet of %d is required, got %d. Overwriting: %s",
         MAX_PACKET_SIZE, cur_packet_size, query)
     cursor.execute(query)
@@ -175,7 +177,7 @@ def _CheckLogFileSize(cursor):
     # size using innodb_log_file_size.
     max_blob_size = innodb_log_file_size / 10
     max_blob_size_mib = max_blob_size / 2**20
-    logging.warn(
+    logging.warning(
         "MySQL innodb_log_file_size of %d is required, got %d. "
         "Storing Blobs bigger than %.4f MiB will fail.", required_size,
         innodb_log_file_size, max_blob_size_mib)
@@ -287,7 +289,7 @@ def _Connect(*args, **kwargs):
 
 # pyformat: disable
 class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
-              mysql_blobs.MySQLDBBlobsMixin,
+              mysql_blobs.MySQLDBBlobsMixin,  # Implements BlobStore.
               mysql_client_reports.MySQLDBClientReportsMixin,
               mysql_clients.MySQLDBClientMixin,
               mysql_cronjobs.MySQLDBCronJobMixin,
@@ -297,15 +299,15 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
               mysql_hunts.MySQLDBHuntMixin,
               mysql_paths.MySQLDBPathMixin,
               mysql_signed_binaries.MySQLDBSignedBinariesMixin,
-              mysql_stats.MySQLDBStatsMixin,
               mysql_users.MySQLDBUsersMixin,
               db_module.Database):
-  """Implements db_module.Database using mysql.
-
   # pyformat: enable
+  """Implements db.Database and blob_store.BlobStore using MySQL."""
 
-  See server/db.py for a full description of the interface.
-  """
+  def ClearTestDB(self):
+    # TODO(user): This is required because GRRBaseTest.setUp() calls it.
+    # Refactor database test to provide their own logic of cleanup in tearDown.
+    pass
 
   def __init__(self, host=None, port=None, user=None, password=None,
                database=None):

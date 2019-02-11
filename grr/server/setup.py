@@ -165,7 +165,7 @@ setup_args = dict(
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "Jinja2==2.9.5",
-        "pexpect==4.0.1",
+        "pexpect==4.6.0",
         "portpicker==1.1.1",
         "prometheus_client==0.5.0",
         "pyjwt==1.7.1",
@@ -175,9 +175,14 @@ setup_args = dict(
     ],
     extras_require={
         # This is an optional component. Install to get MySQL data
-        # store support:
-        # pip install grr-response[mysqldatastore]
-        "mysqldatastore": ["mysqlclient==1.3.12"],
+        # store support: pip install grr-response[mysqldatastore]
+        # When installing from .deb, the python-mysqldb package is used as
+        # dependency instead of this pip dependency. This is because we run into
+        # incompatibilities between the system mysqlclient/mariadbclient and the
+        # Python library otherwise. Thus, this version has to be equal to the
+        # python-mysqldb version of the system we support. This is currently
+        # Ubuntu Xenial, see https://packages.ubuntu.com/xenial/python-mysqldb
+        "mysqldatastore": ["mysqlclient==1.3.7"],
     },
     data_files=data_files)
 

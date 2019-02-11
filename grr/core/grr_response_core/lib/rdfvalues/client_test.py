@@ -68,7 +68,7 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     rdf_direct = rdf_client.User(username="user1", desktop="User Desktop 1")
 
-    self.assertRDFValuesEqual(rdf_from_serialized, rdf_direct)
+    self.assertEqual(rdf_from_serialized, rdf_direct)
 
   def testTimeEncoding(self):
     fast_proto = rdf_client.User(username="user")

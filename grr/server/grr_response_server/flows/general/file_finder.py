@@ -75,7 +75,13 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
 
   def Start(self):
     """Issue the find request."""
-    super(FileFinderMixin, self).Start()
+    download = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
+    if self.args.action.action_type == download:
+      use_external_stores = self.args.action.download.use_external_stores
+    else:
+      use_external_stores = False
+
+    super(FileFinderMixin, self).Start(use_external_stores=use_external_stores)
 
     self.state.files_found = 0
 
@@ -412,6 +418,9 @@ class ClientFileFinderMixin(object):
           files_to_publish.append(
               response.stat_entry.pathspec.AFF4Path(self.client_urn))
 
+    # TODO(amoser): This might be broken. Files that haven't been downloaded are
+    # published here to LegacyFileStore and the use_external_stores flag is
+    # ignored. Not worth fixing anymore, this is going away soon.
     if files_to_publish and not data_store.RelationalDBReadEnabled("filestore"):
       events.Events.PublishMultipleEvents(
           {"LegacyFileStore.AddFileToStore": files_to_publish})
@@ -465,8 +474,9 @@ class ClientFileFinderMixin(object):
 
     if (data_store.RelationalDBReadEnabled("filestore") and
         client_path_blob_refs):
+      use_external_stores = self.args.action.download.use_external_stores
       client_path_hash_id = file_store.AddFilesWithUnknownHashes(
-          client_path_blob_refs)
+          client_path_blob_refs, use_external_stores=use_external_stores)
       for client_path, hash_id in iteritems(client_path_hash_id):
         path_info = client_path_path_info[client_path]
         path_info.hash_entry.sha256 = hash_id.AsBytes()

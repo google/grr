@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
+
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
@@ -11,11 +13,12 @@ from grr_response_proto import api_call_router_pb2
 from grr_response_server import access_control
 
 from grr_response_server import aff4
+from grr_response_server import data_store
 
 from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import user_managers
 
 from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_call_router_without_checks
 
 from grr_response_server.gui.api_plugins import client as api_client
@@ -32,13 +35,18 @@ def CheckClientLabels(client_id,
   labels_whitelist = labels_whitelist or []
   labels_owners_whitelist = labels_owners_whitelist or []
 
-  with aff4.FACTORY.Open(
-      client_id.ToClientURN(), aff4_type=aff4_grr.VFSGRRClient,
-      token=token) as fd:
-    for label in fd.GetLabels():
-      if (label.name in labels_whitelist and
-          label.owner in labels_owners_whitelist):
-        return
+  if data_store.RelationalDBReadEnabled():
+    labels = data_store.REL_DB.ReadClientLabels(str(client_id))
+  else:
+    with aff4.FACTORY.Open(
+        client_id.ToClientURN(), aff4_type=aff4_grr.VFSGRRClient,
+        token=token) as fd:
+      labels = fd.GetLabels()
+
+  for label in labels:
+    if (label.name in labels_whitelist and
+        label.owner in labels_owners_whitelist):
+      return
 
   raise access_control.UnauthorizedAccess(
       "Client %s doesn't have necessary labels." % utils.SmartStr(client_id))
@@ -53,7 +61,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
 
   params_type = ApiLabelsRestrictedCallRouterParams
 
-  def __init__(self, params=None, legacy_manager=None, delegate=None):
+  def __init__(self, params=None, access_checker=None, delegate=None):
     super(ApiLabelsRestrictedCallRouter, self).__init__(params=params)
 
     self.params = params = params or self.__class__.params_type()
@@ -64,9 +72,12 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     self.labels_owners_whitelist = set(params.labels_owners_whitelist or
                                        ["GRR"])
 
-    if not legacy_manager:
-      legacy_manager = user_managers.FullAccessControlManager()
-    self.legacy_manager = legacy_manager
+    if not access_checker:
+      if data_store.RelationalDBReadEnabled():
+        access_checker = api_call_router_with_approval_checks.RelDBChecker()
+      else:
+        access_checker = api_call_router_with_approval_checks.LegacyChecker()
+    self.access_checker = access_checker
 
     if not delegate:
       delegate = api_call_router_without_checks.ApiCallRouterWithoutChecks()
@@ -90,12 +101,11 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
           "User is not allowed to work with flows.")
 
   def CheckIfCanStartClientFlow(self, flow_name, token=None):
-    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(), flow_name)
+    self.access_checker.CheckIfCanStartClientFlow(token.username, flow_name)
 
   def CheckClientApproval(self, client_id, token=None):
     self.CheckClientLabels(client_id, token=token)
-    self.legacy_manager.CheckClientAccess(token.RealUID(),
-                                          client_id.ToClientURN())
+    self.access_checker.CheckClientAccess(token.username, client_id)
 
   # Clients methods.
   # ===============

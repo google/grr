@@ -233,7 +233,7 @@ class DeletionPool(object):
     """Marks multiple urns (and their children) for deletion."""
     all_children_urns = self.RecursiveMultiListChildren(urns)
 
-    urns += list(itertools.chain.from_iterable(itervalues(all_children_urns)))
+    urns.extend(collection.Flatten(itervalues(all_children_urns)))
     self._urns_for_deletion.update(urns)
 
     for obj in self.MultiOpen(urns):

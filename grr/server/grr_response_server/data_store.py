@@ -49,7 +49,6 @@ import time
 
 
 from future.builtins import str
-from future.builtins import zip
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import with_metaclass
@@ -69,7 +68,6 @@ from grr_response_core.stats import stats_utils
 from grr_response_server import access_control
 from grr_response_server import blob_store
 from grr_response_server import db
-from grr_response_server import stats_values
 from grr_response_server.databases import registry_init
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
@@ -82,9 +80,7 @@ flags.DEFINE_bool("list_storage", False, "List all storage subsystems present.")
 DB = None  # type: Optional[DataStore]
 
 # The global relational db handle.
-# TODO: Replace with Database, as soon as pytype
-# correctly recognizes with_metaclass(abc.ABCMeta).
-REL_DB = None  # type: Optional[db.DatabaseValidationWrapper]
+REL_DB = None  # type: Optional[db.Database]
 
 # The global blobstore handle.
 BLOBS = None  # type: Optional[blob_store.BlobStore]
@@ -496,54 +492,6 @@ class MutationPool(object):
       logging.info("TTL exceeded for %d messages on queue %s",
                    len(delete_attrs), subject)
     return tasks
-
-  def StatsWriteMetrics(self, subject, timestamp=None):
-    """Writes stats for the given metrics to the data-store."""
-    to_set = {}
-    metric_metadata = stats_collector_instance.Get().GetAllMetricsMetadata()
-    for name, metadata in iteritems(metric_metadata):
-      if metadata.fields_defs:
-        for fields_values in stats_collector_instance.Get().GetMetricFields(
-            name):
-          value = stats_collector_instance.Get().GetMetricValue(
-              name, fields=fields_values)
-
-          store_value = stats_values.StatsStoreValue()
-          store_fields_values = []
-          for field_def, field_value in zip(metadata.fields_defs,
-                                            fields_values):
-            store_field_value = stats_values.StatsStoreFieldValue()
-            store_field_value.SetValue(field_value, field_def.field_type)
-            store_fields_values.append(store_field_value)
-
-          store_value.fields_values = store_fields_values
-          store_value.SetValue(value, metadata.value_type)
-
-          to_set.setdefault(DataStore.STATS_STORE_PREFIX + name,
-                            []).append(store_value)
-      else:
-        value = stats_collector_instance.Get().GetMetricValue(name)
-        store_value = stats_values.StatsStoreValue()
-        store_value.SetValue(value, metadata.value_type)
-
-        to_set[DataStore.STATS_STORE_PREFIX + name] = [store_value]
-    self.MultiSet(subject, to_set, replace=False, timestamp=timestamp)
-
-  def StatsDeleteStatsInRange(self, subject, timestamp):
-    """Deletes all stats in the given time range."""
-    if timestamp == DataStore.NEWEST_TIMESTAMP:
-      raise ValueError("Can't use NEWEST_TIMESTAMP in DeleteStats.")
-
-    predicates = []
-    for key in stats_collector_instance.Get().GetAllMetricsMetadata():
-      predicates.append(DataStore.STATS_STORE_PREFIX + key)
-
-    start = None
-    end = None
-    if timestamp and timestamp != DataStore.ALL_TIMESTAMPS:
-      start, end = timestamp
-
-    self.DeleteAttributes(subject, predicates, start=start, end=end)
 
   def LabelUpdateLabels(self, subject, new_labels, to_delete):
     new_attributes = {}
@@ -1372,8 +1320,6 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
   QUEUE_TASK_PREDICATE_PREFIX = "task:"
   QUEUE_TASK_PREDICATE_TEMPLATE = QUEUE_TASK_PREDICATE_PREFIX + "%s"
 
-  STATS_STORE_PREFIX = "aff4:stats_store/"
-
   @classmethod
   def CollectionMakeURN(cls, urn, timestamp, suffix=None, subpath="Results"):
     if suffix is None:
@@ -1467,51 +1413,6 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
       all_tasks.append(task)
 
     return all_tasks[:limit]
-
-  def StatsReadDataForProcesses(self,
-                                processes,
-                                metric_name,
-                                timestamp=None,
-                                limit=10000):
-    """Reads historical stats data for multiple processes at once."""
-    multi_query_results = self.MultiResolvePrefix(
-        processes,
-        DataStore.STATS_STORE_PREFIX + (metric_name or ""),
-        timestamp=timestamp,
-        limit=limit)
-
-    results = {}
-    for subject, subject_results in multi_query_results:
-      subject = rdfvalue.RDFURN(subject)
-      subject_results = sorted(subject_results, key=lambda x: x[2])
-
-      part_results = {}
-      for predicate, value_string, timestamp in subject_results:
-        metric_name = predicate[len(DataStore.STATS_STORE_PREFIX):]
-
-        try:
-          metadata = stats_collector_instance.Get().GetMetricMetadata(
-              metric_name)
-        except KeyError:
-          continue
-
-        stored_value = stats_values.StatsStoreValue.FromSerializedString(
-            value_string)
-
-        if metadata.fields_defs:
-          field_values = [v.value for v in stored_value.fields_values]
-          current_dict = part_results.setdefault(metric_name, {})
-          for field_value in field_values[:-1]:
-            current_dict = current_dict.setdefault(field_value, {})
-
-          result_values_list = current_dict.setdefault(field_values[-1], [])
-        else:
-          result_values_list = part_results.setdefault(metric_name, [])
-
-        result_values_list.append((stored_value.value, timestamp))
-
-      results[subject.Basename()] = part_results
-    return results
 
   def LabelFetchAll(self, subject):
     result = []

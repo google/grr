@@ -11,6 +11,7 @@ import time
 
 
 from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import str
 import mock
 
 from grr_response_core.lib import flags
@@ -64,12 +65,10 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     hunt_test_lib.LongRunningDummyHuntOutputPlugin.num_calls = 0
 
     self.old_logging_error = logging.error
-    logging.error = self.AssertNoCollectionCorruption
-
-  def tearDown(self):
-    super(StandardHuntTest, self).tearDown()
-
-    logging.error = self.old_logging_error
+    logging_stubber = mock.patch.object(logging, "error",
+                                        self.AssertNoCollectionCorruption)
+    logging_stubber.start()
+    self.addCleanup(logging_stubber.stop)
 
   def AssertNoCollectionCorruption(self, message, *args, **kwargs):
     self.assertNotIn("Results collection was changed outside of hunt", message)
@@ -489,7 +488,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       self.assertEqual(
           len(e.exceptions_by_hunt[hunt_urn][failing_plugin_descriptor]), 1)
       self.assertEqual(
-          e.exceptions_by_hunt[hunt_urn][failing_plugin_descriptor][0].message,
+          str(e.exceptions_by_hunt[hunt_urn][failing_plugin_descriptor][0]),
           "Oh no!")
 
   @mock.patch.object(

@@ -30,18 +30,15 @@ class ArtifactMigrationTest(absltest.TestCase):
   def setUp(self):
     super(ArtifactMigrationTest, self).setUp()
 
-    self._db_patcher = mock.patch.object(
+    db_patcher = mock.patch.object(
         data_store, "REL_DB", db.DatabaseValidationWrapper(mem.InMemoryDB()))
-    self._db_patcher.start()
+    db_patcher.start()
+    self.addCleanup(db_patcher.stop)
 
-    self._artifact_patcher = mock.patch.object(
-        artifact_registry, "REGISTRY", artifact_registry.ArtifactRegistry())
-    self._artifact_patcher.start()
-
-  def tearDown(self):
-    self._db_patcher.stop()
-    self._artifact_patcher.stop()
-    super(ArtifactMigrationTest, self).tearDown()
+    artifact_patcher = mock.patch.object(artifact_registry, "REGISTRY",
+                                         artifact_registry.ArtifactRegistry())
+    artifact_patcher.start()
+    self.addCleanup(artifact_patcher.stop)
 
   @mock.patch.object(data_store, "RelationalDBReadEnabled", return_value=False)
   @mock.patch.object(migration, "_IsCustom", return_value=True)

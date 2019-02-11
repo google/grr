@@ -262,12 +262,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   # Stats metrics methods.
   # =====================
   #
-  def ListStatsStoreMetricsMetadata(self, args, token=None):
-    return api_stats.ApiListStatsStoreMetricsMetadataHandler()
-
-  def GetStatsStoreMetric(self, args, token=None):
-    return api_stats.ApiGetStatsStoreMetricHandler()
-
   def ListReports(self, args, token=None):
     return api_stats.ApiListReportsHandler()
 

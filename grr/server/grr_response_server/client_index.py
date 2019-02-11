@@ -14,9 +14,12 @@ from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import string_types
 
+from typing import Text
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.util import precondition
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import keyword_index
@@ -53,7 +56,7 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
     # expecting.
     # TODO(user): deprecate this code and make sure that ClientIndex
     # implementation below doesn't rely on such hacks.
-    return utils.SmartStr(utils.SmartUnicode(keyword).lower())
+    return utils.SmartUnicode(keyword).lower()
 
   def _AnalyzeKeywords(self, keywords):
     start_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("180d")
@@ -183,15 +186,18 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
     keywords = [self._NormalizeKeyword(client_id), "."]
 
     def TryAppend(prefix, keyword):
+      precondition.AssertType(prefix, Text)
       if keyword:
-        keyword_string = self._NormalizeKeyword(utils.SmartStr(keyword))
+        keyword_string = self._NormalizeKeyword(Text(keyword))
         keywords.append(keyword_string)
         if prefix:
-          keywords.append(utils.SmartStr(prefix) + b":" + keyword_string)
+          keywords.append(prefix + ":" + keyword_string)
 
     def TryAppendPrefixes(prefix, keyword, delimiter):
+      if keyword is None:
+        return 0
       TryAppend(prefix, keyword)
-      segments = utils.SmartStr(keyword).split(delimiter)
+      segments = keyword.split(delimiter)
       for i in range(1, len(segments)):
         TryAppend(prefix, delimiter.join(segments[0:i]))
       return len(segments)
@@ -344,7 +350,7 @@ class ClientIndex(object):
   START_TIME_PREFIX_LEN = len(START_TIME_PREFIX)
 
   def _NormalizeKeyword(self, keyword):
-    return keyword.lower()
+    return Text(keyword).lower()
 
   def _AnalyzeKeywords(self, keywords):
     """Extracts a start time from a list of keywords if present."""
@@ -433,15 +439,17 @@ class ClientIndex(object):
     keywords = set(["."])
 
     def TryAppend(prefix, keyword):
+      precondition.AssertType(prefix, Text)
+      precondition.AssertType(keyword, Text)
       if keyword:
-        keyword_string = self._NormalizeKeyword(utils.SmartStr(keyword))
+        keyword_string = self._NormalizeKeyword(keyword)
         keywords.add(keyword_string)
         if prefix:
           keywords.add(prefix + ":" + keyword_string)
 
     def TryAppendPrefixes(prefix, keyword, delimiter):
       TryAppend(prefix, keyword)
-      segments = utils.SmartStr(keyword).split(delimiter)
+      segments = keyword.split(delimiter)
       for i in range(1, len(segments)):
         TryAppend(prefix, delimiter.join(segments[0:i]))
       return len(segments)
@@ -449,10 +457,10 @@ class ClientIndex(object):
     def TryAppendIP(ip):
       TryAppend("ip", ip)
       # IP4v?
-      if TryAppendPrefixes("ip", str(ip), ".") == 4:
+      if TryAppendPrefixes("ip", Text(ip), ".") == 4:
         return
       # IP6v?
-      TryAppendPrefixes("ip", str(ip), ":")
+      TryAppendPrefixes("ip", Text(ip), ":")
 
     def TryAppendMac(mac):
       TryAppend("mac", mac)
@@ -492,7 +500,7 @@ class ClientIndex(object):
     client_info = client.startup_info.client_info
     if client_info:
       TryAppend("client", client_info.client_name)
-      TryAppend("client", client_info.client_version)
+      TryAppend("client", Text(client_info.client_version))
       if client_info.labels:
         for label in client_info.labels:
           TryAppend("label", label)
@@ -511,11 +519,12 @@ class ClientIndex(object):
     data_store.REL_DB.AddClientKeywords(client.client_id, keywords)
 
   def AddClientLabels(self, client_id, labels):
+    precondition.AssertIterableType(labels, Text)
     keywords = set()
     for label in labels:
-      keyword_string = self._NormalizeKeyword(utils.SmartStr(label))
+      keyword_string = self._NormalizeKeyword(label)
       keywords.add(keyword_string)
-      keywords.add(b"label:" + keyword_string)
+      keywords.add("label:" + keyword_string)
 
     data_store.REL_DB.AddClientKeywords(client_id, keywords)
 
@@ -537,7 +546,7 @@ class ClientIndex(object):
       labels: A list of labels to remove.
     """
     for label in labels:
-      keyword = self._NormalizeKeyword(utils.SmartStr(label))
+      keyword = self._NormalizeKeyword(label)
       # This might actually delete a keyword with the same name as the label (if
       # there is one).
       data_store.REL_DB.RemoveClientKeyword(client_id, keyword)

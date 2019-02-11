@@ -19,7 +19,7 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
+@db_test_lib.TestDatabases()
 class ApiListArtifactsHandlerTest(flow_test_lib.FlowTestsBaseclass):
   """Test for ApiListArtifactsHandler."""
 
@@ -61,7 +61,7 @@ class ApiListArtifactsHandlerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertTrue(fake_artifact.artifact.supported_os)
 
 
-@db_test_lib.DualDBTest
+@db_test_lib.TestDatabases()
 class ApiUploadArtifactHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
@@ -83,7 +83,7 @@ class ApiUploadArtifactHandlerTest(api_test_lib.ApiCallHandlerTest):
     registry.GetArtifact("TestDrivers")
 
 
-@db_test_lib.DualDBTest
+@db_test_lib.TestDatabases()
 @artifact_test_lib.PatchDefaultArtifactRegistry
 class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
 

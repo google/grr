@@ -373,7 +373,7 @@ class InterrogatedClient(ActionMock):
             client_name=config.CONFIG["Client.name"],
             client_version=int(config.CONFIG["Source.version_numeric"]),
             build_time=config.CONFIG["Client.build_time"],
-            labels=["GRRLabel1", "Label2"],
+            labels=["GRRLabel1", "Label2", "[broken]"],
         )
     ]
 

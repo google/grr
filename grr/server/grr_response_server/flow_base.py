@@ -653,21 +653,28 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(self.rdf_flow.parent_hunt_id)
     self.rdf_flow.output_plugins = hunt_obj.output_plugins
-    self.rdf_flow.output_plugins_states = hunt_obj.output_plugins_states
+    hunt_output_plugins_states = data_store.REL_DB.ReadHuntOutputPluginsStates(
+        self.rdf_flow.parent_hunt_id)
+    self.rdf_flow.output_plugins_states = hunt_output_plugins_states
 
     created_plugins = self._ProcessRepliesWithFlowOutputPlugins(replies)
 
-    def UpdateFn(hunt_to_update):
-      for plugin, state in zip(created_plugins,
-                               hunt_to_update.output_plugins_states):
-        if plugin is None:
-          state.plugin_state["error_count"] += 1
-        else:
-          state.plugin_state["success_count"] += 1
-          plugin.UpdateState(state.plugin_state)
-      return hunt_to_update
+    for index, (plugin, state) in enumerate(
+        zip(created_plugins, hunt_output_plugins_states)):
+      if plugin is None:
+        continue
 
-    data_store.REL_DB.UpdateHuntObject(hunt_obj.hunt_id, UpdateFn)
+      # Only do the REL_DB call if the plugin state has actually changed.
+      s = state.plugin_state.Copy()
+      plugin.UpdateState(s)
+      if s != state.plugin_state:
+
+        def UpdateFn(plugin_state):
+          plugin.UpdateState(plugin_state)  # pylint: disable=cell-var-from-loop
+          return plugin_state
+
+        data_store.REL_DB.UpdateHuntOutputPluginState(hunt_obj.hunt_id, index,
+                                                      UpdateFn)
 
     for plugin_def, created_plugin in zip(hunt_obj.output_plugins,
                                           created_plugins):

@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from future.utils import itervalues
 
 from grr_response_core.lib import utils
+from grr_response_server import blob_store
 
 
 class _BlobRecord(object):
@@ -22,7 +23,7 @@ class _BlobRecord(object):
     return list(itervalues(self._blob_refs))
 
 
-class InMemoryDBBlobsMixin(object):
+class InMemoryDBBlobsMixin(blob_store.BlobStore):
   """InMemoryDB mixin for blobs related functions."""
 
   @utils.Synchronized

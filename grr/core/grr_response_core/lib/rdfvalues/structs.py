@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import base64
+import collections
 import copy
 import struct
 
@@ -1158,7 +1159,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
 
 
 @python_2_unicode_compatible
-class RepeatedFieldHelper(object):
+class RepeatedFieldHelper(collections.Iterable, object):
   """A helper for the RDFProto to handle repeated fields.
 
   This helper is intended to only be constructed from the RDFProto class.
@@ -1302,7 +1303,12 @@ class RepeatedFieldHelper(object):
 
   def Validate(self):
     for x in self:
-      x.Validate()
+      if hasattr(x, "Validate"):
+        x.Validate()
+
+  def __iter__(self):
+    for index in range(len(self.wrapped_list)):
+      yield self[index]
 
 
 class ProtoList(ProtoType):

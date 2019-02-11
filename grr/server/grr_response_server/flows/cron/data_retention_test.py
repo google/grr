@@ -9,6 +9,7 @@ import re
 
 from builtins import range  # pylint: disable=redefined-builtin
 from future.utils import iteritems
+import mock
 
 from grr_response_core import config
 from grr_response_core.lib import flags
@@ -135,7 +136,7 @@ class CleanHuntsFlowTest(flow_test_lib.FlowTestsBaseclass):
 
 
 class CleanHuntsJobTest(db_test_lib.RelationalDBEnabledMixin,
-                        CleanHuntsFlowTest):
+                        test_lib.GRRBaseTest):
   """Test the CleanHunts cron job."""
 
   def _RunCleanup(self):
@@ -146,6 +147,11 @@ class CleanHuntsJobTest(db_test_lib.RelationalDBEnabledMixin,
 
   def _CheckLog(self, msg):
     self.assertIn(msg, self.cleaner_job.run_state.log_message)
+
+  def testDoesNothingWhenAFF4Disabled(self):
+    with mock.patch.object(data_store, "AFF4Enabled", return_value=False):
+      self._RunCleanup()
+      self._CheckLog("not supported")
 
 
 class RetentionTestSystemCronJob(cronjobs.SystemCronFlow):
@@ -297,12 +303,11 @@ class CleanInactiveClientsFlowTest(flow_test_lib.FlowTestsBaseclass):
     super(CleanInactiveClientsFlowTest, self).setUp()
     self.client_regex = re.compile(self.CLIENT_URN_PATTERN)
     self.client_urns = self.SetupClients(self.NUM_CLIENT)
-    if data_store.AFF4Enabled():
-      for i in range(len(self.client_urns)):
-        with test_lib.FakeTime(40 + 60 * i):
-          with aff4.FACTORY.Open(
-              self.client_urns[i], mode="rw", token=self.token) as client:
-            client.Set(client.Schema.LAST(rdfvalue.RDFDatetime.Now()))
+    for i in range(len(self.client_urns)):
+      with test_lib.FakeTime(40 + 60 * i):
+        with aff4.FACTORY.Open(
+            self.client_urns[i], mode="rw", token=self.token) as client:
+          client.Set(client.Schema.LAST(rdfvalue.RDFDatetime.Now()))
 
   def _RunCleanup(self):
     self.cleaner_flow = flow.StartAFF4Flow(
@@ -377,7 +382,7 @@ class CleanInactiveClientsFlowTest(flow_test_lib.FlowTestsBaseclass):
 
 
 class CleanInactiveClientsJobTest(db_test_lib.RelationalDBEnabledMixin,
-                                  CleanInactiveClientsFlowTest):
+                                  test_lib.GRRBaseTest):
 
   def _RunCleanup(self):
     run = rdf_cronjobs.CronJobRun()
@@ -387,6 +392,11 @@ class CleanInactiveClientsJobTest(db_test_lib.RelationalDBEnabledMixin,
 
   def _CheckLog(self, msg):
     self.assertIn(msg, self.cleaner_job.run_state.log_message)
+
+  def testDoesNothingWhenAFF4Disabled(self):
+    with mock.patch.object(data_store, "AFF4Enabled", return_value=False):
+      self._RunCleanup()
+      self._CheckLog("not supported")
 
 
 def main(argv):

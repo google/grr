@@ -277,7 +277,7 @@ class Fingerprinter(object):
     extents = {}
     self.file.seek(0, os.SEEK_SET)
     buf = self.file.read(2)
-    if buf != 'MZ':
+    if buf != b'MZ':
       return None
     self.file.seek(0x3C, os.SEEK_SET)
     buf = self.file.read(4)
@@ -286,7 +286,7 @@ class Fingerprinter(object):
       return None
     self.file.seek(pecoff_sig_offset, os.SEEK_SET)
     buf = self.file.read(4)
-    if buf != 'PE\0\0':
+    if buf != b'PE\0\0':
       return None
     self.file.seek(pecoff_sig_offset + 20, os.SEEK_SET)
     buf = self.file.read(2)

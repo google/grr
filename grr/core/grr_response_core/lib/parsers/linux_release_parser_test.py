@@ -129,6 +129,23 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     self.assertEqual(6, result["os_major_version"])
     self.assertEqual(5, result["os_minor_version"])
 
+  def testEndToEndAmazon(self):
+    parser = linux_release_parser.LinuxReleaseParser()
+    test_data = [
+        ("/etc/system-release",
+         os.path.join(self.parser_test_dir, "amazon-system-release")),
+    ]
+    stat_entries, file_objects = self._CreateTestData(test_data)
+    actual_result = list(parser.ParseMultiple(stat_entries, file_objects, None))
+    expected_result = [
+        rdf_protodict.Dict({
+            "os_release": "AmazonLinuxAMI",
+            "os_major_version": 2018,
+            "os_minor_version": 3,
+        })
+    ]
+    self.assertCountEqual(actual_result, expected_result)
+
   def testAnomaly(self):
     parser = linux_release_parser.LinuxReleaseParser()
 

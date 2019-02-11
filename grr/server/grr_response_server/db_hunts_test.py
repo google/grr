@@ -5,14 +5,19 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
-import threading
+import random
+
+from future.utils import text_type
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.util import compatibility
 from grr_response_server import db
 from grr_response_server import flow
+from grr_response_server.output_plugins import email_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
@@ -73,67 +78,31 @@ class DatabaseTestHuntMixin(object):
 
   def testUpdateHuntObjectRaisesIfHuntDoesNotExist(self):
     with self.assertRaises(db.UnknownHuntError):
-      self.db.UpdateHuntObject(rdf_hunt_objects.RandomHuntId(), lambda h: h)
+      self.db.UpdateHuntObject(
+          rdf_hunt_objects.RandomHuntId(),
+          hunt_state=rdf_hunt_objects.Hunt.HuntState.STARTED)
 
   def testUpdateHuntObjectCorrectlyUpdatesHuntObject(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
     self.db.WriteHuntObject(hunt_obj)
 
-    def UpdateFn(h):
-      h.description = "bar"
-      return h
+    self.db.UpdateHuntObject(
+        hunt_obj.hunt_id,
+        expiry_time=rdfvalue.RDFDatetime(42),
+        client_rate=33,
+        client_limit=48,
+        hunt_state=rdf_hunt_objects.Hunt.HuntState.STOPPED,
+        hunt_state_comment="foo",
+        start_time=rdfvalue.RDFDatetime(43))
 
-    updated_hunt_obj = self.db.UpdateHuntObject(hunt_obj.hunt_id, UpdateFn)
-    self.assertEqual(updated_hunt_obj.description, "bar")
-
-    read_hunt_obj = self.db.ReadHuntObject(hunt_obj.hunt_id)
-    self.assertEqual(read_hunt_obj.description, updated_hunt_obj.description)
-
-  def testUpdateHuntObjectIsAtomic(self):
-    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
-    self.db.WriteHuntObject(hunt_obj)
-
-    num_plugins = 100
-
-    sample_descriptors = []
-    threads = []
-
-    def MakeThread(index):
-      sample_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-          plugin_name="plugin_%d" % index)
-      sample_descriptors.append(sample_descriptor)
-
-      def UpdateFn(h):
-        h.output_plugins.append(sample_descriptor)
-        return h
-
-      def Run():
-        self.db.UpdateHuntObject(hunt_obj.hunt_id, UpdateFn)
-
-      threads.append(threading.Thread(target=Run))
-
-    for i in range(num_plugins):
-      MakeThread(i)
-
-    for t in threads:
-      t.start()
-
-    for t in threads:
-      t.join()
-
-    read_hunt_obj = self.db.ReadHuntObject(hunt_obj.hunt_id)
-    self.assertLen(read_hunt_obj.output_plugins, num_plugins)
-    self.assertCountEqual(read_hunt_obj.output_plugins, sample_descriptors)
-
-  def testUpdateHuntObjectPropagatesExceptions(self):
-    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
-    self.db.WriteHuntObject(hunt_obj)
-
-    def RaisingFn(_):
-      raise RuntimeError()
-
-    with self.assertRaises(RuntimeError):
-      self.db.UpdateHuntObject(hunt_obj.hunt_id, RaisingFn)
+    updated_hunt_obj = self.db.ReadHuntObject(hunt_obj.hunt_id)
+    self.assertEqual(updated_hunt_obj.expiry_time, rdfvalue.RDFDatetime(42))
+    self.assertEqual(updated_hunt_obj.client_rate, 33)
+    self.assertEqual(updated_hunt_obj.client_limit, 48)
+    self.assertEqual(updated_hunt_obj.hunt_state,
+                     rdf_hunt_objects.Hunt.HuntState.STOPPED)
+    self.assertEqual(updated_hunt_obj.hunt_state_comment, "foo")
+    self.assertEqual(updated_hunt_obj.start_time, rdfvalue.RDFDatetime(43))
 
   def testDeletingHuntObjectWorks(self):
     hunt_obj = rdf_hunt_objects.Hunt()
@@ -163,6 +132,102 @@ class DatabaseTestHuntMixin(object):
     self.assertCountEqual(["foo", "bar"],
                           [h.description for h in read_hunt_objs])
 
+  def testWritingAndReadingHuntOutputPluginsStatesWorks(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
+        plugin_name=compatibility.GetName(email_plugin.EmailOutputPlugin),
+        plugin_args=email_plugin.EmailOutputPluginArgs(emails_limit=42))
+    state_1 = rdf_flow_runner.OutputPluginState(
+        plugin_descriptor=plugin_descriptor, plugin_state={})
+
+    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
+        plugin_name=compatibility.GetName(email_plugin.EmailOutputPlugin),
+        plugin_args=email_plugin.EmailOutputPluginArgs(emails_limit=43))
+    state_2 = rdf_flow_runner.OutputPluginState(
+        plugin_descriptor=plugin_descriptor, plugin_state={})
+
+    written_states = [state_1, state_2]
+    self.db.WriteHuntOutputPluginsStates(hunt_obj.hunt_id, written_states)
+
+    read_states = self.db.ReadHuntOutputPluginsStates(hunt_obj.hunt_id)
+    self.assertEqual(read_states, written_states)
+
+  def testReadingHuntOutputPluginsReturnsThemInOrderOfWriting(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    states = []
+    for i in range(100):
+      states.append(
+          rdf_flow_runner.OutputPluginState(
+              plugin_descriptor=rdf_output_plugin.OutputPluginDescriptor(
+                  plugin_name="DummyHuntOutputPlugin_%d" % i),
+              plugin_state={}))
+    random.shuffle(states)
+
+    self.db.WriteHuntOutputPluginsStates(hunt_obj.hunt_id, states)
+
+    read_states = self.db.ReadHuntOutputPluginsStates(hunt_obj.hunt_id)
+    self.assertEqual(read_states, states)
+
+  def testWritingHuntOutputStatesForZeroPlugins(self):
+    # Passing an empty list of states is always a no-op so this should not
+    # raise, even if the hunt does not exist.
+    self.db.WriteHuntOutputPluginsStates(rdf_hunt_objects.RandomHuntId(), [])
+
+  def testWritingHuntOutputStatesForUnknownHuntRaises(self):
+    state = rdf_flow_runner.OutputPluginState(
+        plugin_descriptor=rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name="DummyHuntOutputPlugin1"),
+        plugin_state={})
+
+    with self.assertRaises(db.UnknownHuntError):
+      self.db.WriteHuntOutputPluginsStates(rdf_hunt_objects.RandomHuntId(),
+                                           [state])
+
+  def testReadingHuntOutputStatesForUnknownHuntRaises(self):
+    with self.assertRaises(db.UnknownHuntError):
+      self.db.ReadHuntOutputPluginsStates(rdf_hunt_objects.RandomHuntId())
+
+  def testUpdatingHuntOutputStateForUnknownHuntRaises(self):
+    with self.assertRaises(db.UnknownHuntError):
+      self.db.UpdateHuntOutputPluginState(rdf_hunt_objects.RandomHuntId(),
+                                          0, lambda x: x)
+
+  def testUpdatingHuntOutputStateWorksCorrectly(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    state_1 = rdf_flow_runner.OutputPluginState(
+        plugin_descriptor=rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name="DummyHuntOutputPlugin1"),
+        plugin_state={})
+
+    state_2 = rdf_flow_runner.OutputPluginState(
+        plugin_descriptor=rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name="DummyHuntOutputPlugin2"),
+        plugin_state={})
+
+    self.db.WriteHuntOutputPluginsStates(hunt_obj.hunt_id, [state_1, state_2])
+
+    def Update(s):
+      s["foo"] = "bar"
+      return s
+
+    self.db.UpdateHuntOutputPluginState(hunt_obj.hunt_id, 0, Update)
+
+    states = self.db.ReadHuntOutputPluginsStates(hunt_obj.hunt_id)
+    self.assertEqual(states[0].plugin_state, {"foo": "bar"})
+    self.assertEqual(states[1].plugin_state, {})
+
+    self.db.UpdateHuntOutputPluginState(hunt_obj.hunt_id, 1, Update)
+
+    states = self.db.ReadHuntOutputPluginsStates(hunt_obj.hunt_id)
+    self.assertEqual(states[0].plugin_state, {"foo": "bar"})
+    self.assertEqual(states[1].plugin_state, {"foo": "bar"})
+
   def testReadHuntLogEntriesReturnsEntryFromSingleHuntFlow(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
     self.db.WriteHuntObject(hunt_obj)
@@ -183,6 +248,34 @@ class DatabaseTestHuntMixin(object):
     self.assertEqual(hunt_log_entries[0].hunt_id, hunt_obj.hunt_id)
     self.assertEqual(hunt_log_entries[0].client_id, client_id)
     self.assertEqual(hunt_log_entries[0].flow_id, flow_id)
+    self.assertEqual(hunt_log_entries[0].message, "blah")
+
+  def testReadHuntLogEntriesIgnoresNestedFlows(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_obj.hunt_id)
+    self.db.WriteFlowLogEntries([
+        rdf_flow_objects.FlowLogEntry(
+            client_id=client_id,
+            flow_id=flow_id,
+            hunt_id=hunt_obj.hunt_id,
+            message="blah")
+    ])
+
+    for i in range(10):
+      _, nested_flow_id = self._SetupHuntClientAndFlow(
+          client_id=client_id, parent_flow_id=flow_id, hunt_id=hunt_obj.hunt_id)
+      self.db.WriteFlowLogEntries([
+          rdf_flow_objects.FlowLogEntry(
+              client_id=client_id,
+              flow_id=nested_flow_id,
+              hunt_id=hunt_obj.hunt_id,
+              message="blah_%d" % i)
+      ])
+
+    hunt_log_entries = self.db.ReadHuntLogEntries(hunt_obj.hunt_id, 0, 10)
+    self.assertLen(hunt_log_entries, 1)
     self.assertEqual(hunt_log_entries[0].message, "blah")
 
   def _WriteHuntLogEntries(self):
@@ -670,6 +763,9 @@ class DatabaseTestHuntMixin(object):
     self._WriteHuntResults(results)
 
     counts = self.db.CountHuntResultsByType(hunt_obj.hunt_id)
+    for key in counts:
+      self.assertIsInstance(key, text_type)
+
     self.assertEqual(
         counts, {
             compatibility.GetName(rdf_client.ClientSummary): 5,
@@ -724,7 +820,6 @@ class DatabaseTestHuntMixin(object):
         ],
         db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY: [running_flow_id],
         db.HuntFlowsCondition.CRASHED_FLOWS_ONLY: [crashed_flow_id],
-        db.HuntFlowsCondition.FLOWS_WITH_RESULTS_ONLY: [flow_with_results_id],
     }
 
   def testReadHuntFlowsAppliesFilterConditionCorrectly(self):
@@ -761,6 +856,60 @@ class DatabaseTestHuntMixin(object):
               "(filter_condition=%d, index=%d, count=%d): %s vs %s" %
               (filter_condition, index, count, expected_ids, results_ids))
 
+  def testReadHuntFlowsIgnoresSubflows(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+    hunt_id = hunt_obj.hunt_id
+
+    _, flow_id = self._SetupHuntClientAndFlow(
+        hunt_id=hunt_id, flow_state=rdf_flow_objects.Flow.FlowState.RUNNING)
+
+    # Whatever state the subflow is in, it should be ignored.
+    self._SetupHuntClientAndFlow(
+        hunt_id=hunt_id,
+        parent_flow_id=flow_id,
+        flow_state=rdf_flow_objects.Flow.FlowState.ERROR)
+    self._SetupHuntClientAndFlow(
+        hunt_id=hunt_id,
+        parent_flow_id=flow_id,
+        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED)
+    self._SetupHuntClientAndFlow(
+        hunt_id=hunt_id,
+        parent_flow_id=flow_id,
+        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING)
+
+    for state, expceted_results in [
+        (db.HuntFlowsCondition.COMPLETED_FLOWS_ONLY, 0),
+        (db.HuntFlowsCondition.SUCCEEDED_FLOWS_ONLY, 0),
+        (db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY, 1)
+    ]:
+      results = self.db.ReadHuntFlows(hunt_id, 0, 10, filter_condition=state)
+      self.assertLen(results, expceted_results)
+
+  def testCountHuntFlowsIgnoresSubflows(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+    hunt_id = hunt_obj.hunt_id
+
+    _, flow_id = self._SetupHuntClientAndFlow(
+        hunt_id=hunt_id, flow_state=rdf_flow_objects.Flow.FlowState.RUNNING)
+
+    # Whatever state the subflow is in, it should be ignored.
+    self._SetupHuntClientAndFlow(
+        hunt_id=hunt_id,
+        parent_flow_id=flow_id,
+        flow_state=rdf_flow_objects.Flow.FlowState.ERROR)
+    self._SetupHuntClientAndFlow(
+        hunt_id=hunt_id,
+        parent_flow_id=flow_id,
+        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED)
+    self._SetupHuntClientAndFlow(
+        hunt_id=hunt_id,
+        parent_flow_id=flow_id,
+        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING)
+
+    self.assertEqual(self.db.CountHuntFlows(hunt_id), 1)
+
   def testCountHuntFlowsReturnsEmptyListWhenNoFlows(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
     self.db.WriteHuntObject(hunt_obj)
@@ -788,6 +937,45 @@ class DatabaseTestHuntMixin(object):
           result, len(expected), "Result count does not match for "
           "(filter_condition=%d): %d vs %d" % (filter_condition, len(expected),
                                                result))
+
+  def testReadHuntCountersCorrectlyAggregatesResultsAmongDifferentFlows(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    expectations = self._BuildFilterConditionExpectations(hunt_obj)
+
+    hunt_counters = self.db.ReadHuntCounters(hunt_obj.hunt_id)
+    self.assertEqual(hunt_counters.num_clients,
+                     len(expectations[db.HuntFlowsCondition.UNSET]))
+    self.assertEqual(
+        hunt_counters.num_successful_clients,
+        len(expectations[db.HuntFlowsCondition.SUCCEEDED_FLOWS_ONLY]))
+    self.assertEqual(hunt_counters.num_failed_clients,
+                     len(expectations[db.HuntFlowsCondition.FAILED_FLOWS_ONLY]))
+
+    # _BuildFilterConditionExpectations writes 10 sample results for one client.
+    self.assertEqual(hunt_counters.num_clients_with_results, 1)
+    self.assertEqual(
+        hunt_counters.num_crashed_clients,
+        len(expectations[db.HuntFlowsCondition.CRASHED_FLOWS_ONLY]))
+
+    # _BuildFilterConditionExpectations writes 10 sample results.
+    self.assertEqual(hunt_counters.num_results, 10)
+
+    self.assertEqual(hunt_counters.total_cpu_seconds, 0)
+    self.assertEqual(hunt_counters.total_network_bytes_sent, 0)
+
+    # Check that after adding a flow with resource metrics, total counters
+    # get updated.
+    self._SetupHuntClientAndFlow(
+        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+        cpu_time_used=rdf_client_stats.CpuSeconds(
+            user_cpu_time=4.5, system_cpu_time=10),
+        network_bytes_sent=42,
+        hunt_id=hunt_obj.hunt_id)
+    hunt_counters = self.db.ReadHuntCounters(hunt_obj.hunt_id)
+    self.assertAlmostEqual(hunt_counters.total_cpu_seconds, 14.5)
+    self.assertEqual(hunt_counters.total_network_bytes_sent, 42)
 
   def testReadHuntOutputPluginLogEntriesReturnsEntryFromSingleHuntFlow(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -920,3 +1108,64 @@ class DatabaseTestHuntMixin(object):
         "1",
         with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
     self.assertEqual(num_entries, 4)
+
+  def testFlowStateUpdateUsingUpdateFlow(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+    hunt_id = hunt_obj.hunt_id
+
+    client_id, flow_id = self._SetupHuntClientAndFlow(
+        hunt_id=hunt_id, flow_state=rdf_flow_objects.Flow.FlowState.RUNNING)
+
+    results = self.db.ReadHuntFlows(
+        hunt_id,
+        0,
+        10,
+        filter_condition=db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY)
+    self.assertLen(results, 1)
+
+    results = self.db.ReadHuntFlows(
+        hunt_id,
+        0,
+        10,
+        filter_condition=db.HuntFlowsCondition.COMPLETED_FLOWS_ONLY)
+    self.assertLen(results, 0)
+
+    rdf_flow = self.db.ReadFlowObject(client_id, flow_id)
+    rdf_flow.flow_state = rdf_flow_objects.Flow.FlowState.FINISHED
+    self.db.UpdateFlow(client_id, rdf_flow.flow_id, flow_obj=rdf_flow)
+
+    results = self.db.ReadHuntFlows(
+        hunt_id,
+        0,
+        10,
+        filter_condition=db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY)
+    self.assertLen(results, 0)
+
+    results = self.db.ReadHuntFlows(
+        hunt_id,
+        0,
+        10,
+        filter_condition=db.HuntFlowsCondition.COMPLETED_FLOWS_ONLY)
+    self.assertLen(results, 1)
+
+  def testFlowStateUpdateUsingReturnProcessedFlow(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+    hunt_id = hunt_obj.hunt_id
+
+    client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_id)
+
+    flow_obj = self.db.ReadFlowForProcessing(client_id, flow_id,
+                                             rdfvalue.Duration("1m"))
+    self.assertEqual(flow_obj.flow_state, rdf_flow_objects.Flow.FlowState.UNSET)
+
+    flow_obj.flow_state = rdf_flow_objects.Flow.FlowState.ERROR
+    self.db.ReturnProcessedFlow(flow_obj)
+
+    results = self.db.ReadHuntFlows(
+        hunt_id,
+        0,
+        10,
+        filter_condition=db.HuntFlowsCondition.FAILED_FLOWS_ONLY)
+    self.assertLen(results, 1)

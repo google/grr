@@ -285,8 +285,8 @@ class CheckAccessHelper(object):
           require, require_args, require_kwargs, self.helper_name)
       return True
 
-    logging.warn("Datastore access denied to %s (no matched rules)",
-                 subject_str)
+    logging.warning("Datastore access denied to %s (no matched rules)",
+                    subject_str)
     raise access_control.UnauthorizedAccess(
         "Access to %s rejected: (no matched rules)." % subject, subject=subject)
 
@@ -441,10 +441,6 @@ class FullAccessControlManager(access_control.AccessControlManager):
     h.Allow("aff4:/artifact_store")
     h.Allow("aff4:/artifact_store/*")
 
-    # Allow everyone to read monitoring data from stats store.
-    h.Allow("aff4:/stats_store")
-    h.Allow("aff4:/stats_store/*")
-
     return h
 
   def _CreateQueryAccessHelper(self):
@@ -514,10 +510,6 @@ class FullAccessControlManager(access_control.AccessControlManager):
     # Allow everyone to query the artifact store.
     h.Allow("aff4:/artifact_store")
     h.Allow("aff4:/artifact_store/*")
-
-    # Allow everyone to query monitoring data from stats store.
-    h.Allow("aff4:/stats_store")
-    h.Allow("aff4:/stats_store/*")
 
     # Users are allowed to query the artifact store.
     h.Allow("aff4:/artifact_store")

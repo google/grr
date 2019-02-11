@@ -37,10 +37,6 @@ class ParseError(Error):
   """An error that gets raised due to the parsing of the output failing."""
 
 
-# TODO(hanuszczak): `pytype` does not understand `with_metaclass`.
-# pytype: disable=ignored-abstractmethod
-
-
 class SingleResponseParser(with_metaclass(abc.ABCMeta)):
   """An abstract class for parsers that are able to parse individual replies."""
 
@@ -111,9 +107,6 @@ class MultiFileParser(with_metaclass(abc.ABCMeta)):
     Yields:
       RDF values with parsed data.
     """
-
-
-# pytype: enable=ignored-abstractmethod
 
 
 class Parser(with_metaclass(registry.MetaclassRegistry, object)):

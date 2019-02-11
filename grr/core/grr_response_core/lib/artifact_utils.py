@@ -13,7 +13,6 @@ import itertools
 import logging
 import re
 
-from future.builtins import str
 from future.utils import string_types
 
 from grr_response_core.lib import objectfilter
@@ -72,41 +71,45 @@ def InterpolateKbAttributes(pattern, knowledge_base, ignore_errors=False):
   components = []
   offset = 0
 
+  base_objects = {}
+
   for match in INTERPOLATED_REGEX.finditer(pattern):
-    components.append([pattern[offset:match.start()]])
-    # Expand the attribute into the set of possibilities:
-    alternatives = []
+    components.append(pattern[offset:match.start()])
 
     try:
       if u"." in match.group(1):  # e.g. %%users.username%%
         base_name, attr_name = match.group(1).split(u".", 1)
-        kb_value = knowledge_base.Get(base_name.lower())
-        if not kb_value:
-          raise AttributeError(base_name.lower())
-        elif isinstance(kb_value, string_types):
-          alternatives.append(kb_value)
-        else:
-          # Iterate over repeated fields (e.g. users)
-          sub_attrs = []
-          for value in kb_value:
-            sub_attr = value.Get(attr_name)
-            # Ignore empty results
-            if sub_attr:
-              sub_attrs.append(str(sub_attr))
+        lower_name = base_name.lower()
 
-          # If we got some results we use them. On Windows it is common for
-          # users.temp to be defined for some users, but not all users.
-          if sub_attrs:
-            alternatives.extend(sub_attrs)
-          else:
-            # If there were no results we raise
-            raise AttributeError(match.group(1).lower())
+        # Use the cached list if we have one, otherwise read from the
+        # knowledge_base.
+        if lower_name in base_objects:
+          base_object_list = base_objects[lower_name]
+        else:
+          container = knowledge_base.Get(lower_name)
+          if container is None:
+            raise AttributeError(
+                "Unknown field in interpolation: %s" % base_name)
+
+          base_object_list = list(container)
+          base_objects[lower_name] = base_object_list
+
+        base_object_list = [
+            obj for obj in base_object_list if obj.Get(attr_name)
+        ]
+        if not base_object_list:
+          raise AttributeError(
+              "No values to interpolate for %s.%s" % (base_name, attr_name))
+        base_objects[lower_name] = base_object_list
+
+        components.append(match.group(0))
+
       else:
         kb_value = knowledge_base.Get(match.group(1).lower())
         if not kb_value:
           raise AttributeError(match.group(1).lower())
         elif isinstance(kb_value, string_types):
-          alternatives.append(kb_value)
+          components.append(kb_value)
     except AttributeError as e:
       if ignore_errors:
         logging.info("Failed to interpolate %s with the knowledgebase. %s",
@@ -116,18 +119,42 @@ def InterpolateKbAttributes(pattern, knowledge_base, ignore_errors=False):
         raise KnowledgeBaseInterpolationError(
             "Failed to interpolate %s with the knowledgebase. %s" % (pattern,
                                                                      e))
-
-    components.append(set(alternatives))
     offset = match.end()
 
-  components.append([pattern[offset:]])
+  components.append(pattern[offset:])
 
-  # Now calculate the cartesian products of all these sets to form all strings.
-  for vector in itertools.product(*components):
+  if not base_objects:
+    # Nothing more to interpolate.
     # TODO(hanuszczak): This call should be removed once the signature of this
     # function is fixed.
-    vector = map(utils.SmartUnicode, vector)
-    yield u"".join(vector)
+    yield u"".join(map(utils.SmartUnicode, components))
+    return
+
+  name_to_idx = {}
+  base_object_lists = []
+
+  for index, base_name in enumerate(base_objects):
+    name_to_idx[base_name] = index
+    base_object_lists.append(base_objects[base_name])
+
+    for vector in itertools.product(*base_object_lists):
+      result = []
+
+      for component in components:
+        match = INTERPOLATED_REGEX.match(component)
+        if not match:
+          result.append(component)
+          continue
+
+        base_name, attr_name = match.group(1).split(u".", 1)
+        lower_name = base_name.lower()
+
+        base_obj = vector[name_to_idx[lower_name]]
+        result.append(base_obj.Get(attr_name))
+
+      # TODO(hanuszczak): This call should be removed once the signature of this
+      # function is fixed.
+      yield u"".join(map(utils.SmartUnicode, result))
 
 
 def GetWindowsEnvironmentVariablesMap(knowledge_base):

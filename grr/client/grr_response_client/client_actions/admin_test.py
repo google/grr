@@ -32,12 +32,9 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
   def setUp(self):
     super(ConfigActionTest, self).setUp()
     # These tests change the config so we preserve state.
-    self.config_stubber = test_lib.PreserveConfig()
-    self.config_stubber.Start()
-
-  def tearDown(self):
-    super(ConfigActionTest, self).tearDown()
-    self.config_stubber.Stop()
+    config_stubber = test_lib.PreserveConfig()
+    config_stubber.Start()
+    self.addCleanup(config_stubber.Stop)
 
   def testUpdateConfiguration(self):
     """Test that we can update the config."""

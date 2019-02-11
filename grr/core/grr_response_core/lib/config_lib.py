@@ -376,7 +376,7 @@ class ConfigFileParser(configparser.RawConfigParser, GRRConfigParser):
     self.optionxform = str
 
     if fd:
-      self.parsed = self.readfp(fd)
+      self.parsed = self.read_file(fd)
       self.filename = filename or fd.name
 
     elif filename:
@@ -386,7 +386,7 @@ class ConfigFileParser(configparser.RawConfigParser, GRRConfigParser):
     elif data is not None:
       fd = io.StringIO(data)
       # TODO(hanuszczak): Incorrect typings (`StringIO` is `IO`).
-      self.parsed = self.readfp(fd)  # pytype: disable=wrong-arg-types
+      self.parsed = self.read_file(fd)  # pytype: disable=wrong-arg-types
       self.filename = filename
     else:
       raise Error("Filename not specified.")
@@ -415,7 +415,7 @@ class ConfigFileParser(configparser.RawConfigParser, GRRConfigParser):
         self.SaveDataToFD(raw_data, config_file)
 
     except OSError as e:
-      logging.warn("Unable to write config file %s: %s.", self.filename, e)
+      logging.warning("Unable to write config file %s: %s.", self.filename, e)
 
   def SaveDataToFD(self, raw_data, fd):
     """Merge the raw data with the config file and store it."""
@@ -501,7 +501,7 @@ class YamlParser(GRRConfigParser):
         self.SaveDataToFD(raw_data, config_file)
 
     except OSError as e:
-      logging.warn("Unable to write config file %s: %s.", self.filename, e)
+      logging.warning("Unable to write config file %s: %s.", self.filename, e)
 
   def SaveDataToFD(self, raw_data, fd):
     """Merge the raw data with the config file and store it."""
@@ -819,7 +819,7 @@ class GrrConfigManager(object):
         try:
           b = filename + ".bak"
           os.rename(filename, b)
-          logging.warn("Broken writeback (%s) renamed to: %s", we, b)
+          logging.warning("Broken writeback (%s) renamed to: %s", we, b)
         except Exception as e:  # pylint: disable=broad-except
           logging.error("Unable to rename broken writeback: %s", e)
       raise we
@@ -913,7 +913,7 @@ class GrrConfigManager(object):
   def SetRaw(self, name, value):
     """Set the raw string without verification or escaping."""
     if self.writeback is None:
-      logging.warn("Attempting to modify a read only config object.")
+      logging.warning("Attempting to modify a read only config object.")
     if name in self.constants:
       raise ConstModificationError(
           "Attempting to modify constant value %s" % name)
@@ -938,8 +938,8 @@ class GrrConfigManager(object):
     # If the configuration system has a write back location we use it,
     # otherwise we use the primary configuration object.
     if self.writeback is None:
-      logging.warn("Attempting to modify a read only config object for %s.",
-                   name)
+      logging.warning("Attempting to modify a read only config object for %s.",
+                      name)
     if name in self.constants:
       raise ConstModificationError(
           "Attempting to modify constant value %s" % name)
@@ -1383,7 +1383,7 @@ class GrrConfigManager(object):
         # the one in A,B,C. This warning is for if you have a value in context
         # A,B and one in A,C. The config doesn't know which one to pick so picks
         # one and displays this warning.
-        logging.warn(
+        logging.warning(
             "Ambiguous configuration for key %s: "
             "Contexts of equal length: %s (%s) and %s (%s)", name,
             matches[-1][2], matches[-1][1], matches[-2][2], matches[-2][1])

@@ -25,6 +25,15 @@ class MySQLDBHuntMixin(object):
   def ReadAllHuntObjects(self):
     raise NotImplementedError()
 
+  def ReadHuntOutputPluginsStates(self, hunt_id):
+    raise NotImplementedError()
+
+  def WriteHuntOutputPluginsStates(self, hunt_id, states):
+    raise NotImplementedError()
+
+  def UpdateHuntOutputPluginState(self, hunt_id, state_index, update_fn):
+    raise NotImplementedError()
+
   def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):
     raise NotImplementedError()
 
@@ -56,6 +65,9 @@ class MySQLDBHuntMixin(object):
   def CountHuntFlows(self,
                      hunt_id,
                      filter_condition=db.HuntFlowsCondition.UNSET):
+    raise NotImplementedError()
+
+  def ReadHuntCounters(self, hunt_id):
     raise NotImplementedError()
 
   def ReadHuntOutputPluginLogEntries(self,

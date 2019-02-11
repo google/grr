@@ -70,18 +70,18 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     pathspec.pathtype = 1
     pathspec.Append(path="foo", pathtype=2)
 
-    self.assertRDFValuesEqual(pathspec, reference_pathspec)
+    self.assertEqual(pathspec, reference_pathspec)
 
     # Create a new RDFPathspec from keywords.
     pathspec = rdf_paths.PathSpec(path="/", pathtype=1)
     pathspec.Append(path="foo", pathtype=2)
 
-    self.assertRDFValuesEqual(pathspec, reference_pathspec)
+    self.assertEqual(pathspec, reference_pathspec)
 
     # Check that copies are ok
     pathspec = pathspec.Copy()
 
-    self.assertRDFValuesEqual(pathspec, reference_pathspec)
+    self.assertEqual(pathspec, reference_pathspec)
 
     # Accessors:
     self.assertEqual(pathspec.path, "/")

@@ -81,10 +81,7 @@ class GRRBaseTest(absltest.TestCase):
 
     self.temp_dir = temp.TempDirPath()
     config.CONFIG.SetWriteBack(os.path.join(self.temp_dir, "writeback.yaml"))
-
-    logging.info("Starting test: %s.%s", self.__class__.__name__,
-                 self._testMethodName)
-    self.last_start_time = time.time()
+    self.addCleanup(lambda: shutil.rmtree(self.temp_dir, ignore_errors=True))
 
     data_store.DB.ClearTestDB()
     # Each datastore is wrapped with DatabaseValidationWrapper, so we have
@@ -111,10 +108,12 @@ class GRRBaseTest(absltest.TestCase):
         (email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub),
         (email.utils, "make_msgid", lambda: "<message id stub>"))
     self.mail_stubber.Start()
+    self.addCleanup(self.mail_stubber.Stop)
 
     # We don't want to send actual email in our tests
     self.smtp_patcher = mock.patch("smtplib.SMTP")
     self.mock_smtp = self.smtp_patcher.start()
+    self.addCleanup(self.smtp_patcher.stop)
 
     def DisabledSet(*unused_args, **unused_kw):
       raise NotImplementedError(
@@ -122,11 +121,13 @@ class GRRBaseTest(absltest.TestCase):
 
     self.config_set_disable = utils.Stubber(config.CONFIG, "Set", DisabledSet)
     self.config_set_disable.Start()
+    self.addCleanup(self.config_set_disable.Stop)
 
     if self.use_relational_reads:
       self.relational_read_stubber = utils.Stubber(
           data_store, "RelationalDBReadEnabled", lambda: True)
       self.relational_read_stubber.Start()
+      self.addCleanup(self.relational_read_stubber.Stop)
 
     self._SetupFakeStatsContext()
 
@@ -139,52 +140,6 @@ class GRRBaseTest(absltest.TestCase):
     fake_stats_context = stats_test_utils.FakeStatsContext(fake_stats_collector)
     fake_stats_context.start()
     self.addCleanup(fake_stats_context.stop)
-
-  def tearDown(self):
-    super(GRRBaseTest, self).tearDown()
-
-    self.config_set_disable.Stop()
-    self.smtp_patcher.stop()
-    self.mail_stubber.Stop()
-    if self.use_relational_reads:
-      self.relational_read_stubber.Stop()
-
-    logging.info("Completed test: %s.%s (%.4fs)", self.__class__.__name__,
-                 self._testMethodName,
-                 time.time() - self.last_start_time)
-
-    # This may fail on filesystems which do not support unicode filenames.
-    try:
-      shutil.rmtree(self.temp_dir, True)
-    except UnicodeError:
-      pass
-
-  def _AssertRDFValuesEqual(self, x, y):
-    x_has_lsf = hasattr(x, "ListSetFields")
-    y_has_lsf = hasattr(y, "ListSetFields")
-
-    if x_has_lsf != y_has_lsf:
-      raise AssertionError("%s != %s" % (x, y))
-
-    if not x_has_lsf:
-      if isinstance(x, float):
-        self.assertAlmostEqual(x, y)
-      else:
-        self.assertEqual(x, y)
-      return
-
-    processed = set()
-    for desc, value in x.ListSetFields():
-      processed.add(desc.name)
-      self._AssertRDFValuesEqual(value, y.Get(desc.name))
-
-    for desc, value in y.ListSetFields():
-      if desc.name not in processed:
-        self._AssertRDFValuesEqual(value, x.Get(desc.name))
-
-  def assertRDFValuesEqual(self, x, y):
-    """Check that two RDFStructs are equal."""
-    self._AssertRDFValuesEqual(x, y)
 
   def _SetupClientImpl(self,
                        client_nr,
@@ -470,8 +425,7 @@ class GRRBaseTest(absltest.TestCase):
 
     if labels:
       data_store.REL_DB.AddClientLabels(client_id, u"GRR", labels)
-      client_index.ClientIndex().AddClientLabels(
-          client_id, data_store.REL_DB.ReadClientLabels(client_id))
+      client_index.ClientIndex().AddClientLabels(client_id, labels)
 
     return client
 
@@ -837,11 +791,11 @@ class SuppressLogs(object):
 
   def __enter__(self):
     self.old_error = logging.error
-    self.old_warn = logging.warn
+    self.old_warning = logging.warning
     self.old_info = logging.info
     self.old_debug = logging.debug
     logging.error = lambda *args, **kw: None
-    logging.warn = lambda *args, **kw: None
+    logging.warning = lambda *args, **kw: None
     logging.info = lambda *args, **kw: None
     logging.debug = lambda *args, **kw: None
 
@@ -849,7 +803,7 @@ class SuppressLogs(object):
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     logging.error = self.old_error
-    logging.warn = self.old_warn
+    logging.warning = self.old_warning
     logging.info = self.old_info
     logging.debug = self.old_debug
 

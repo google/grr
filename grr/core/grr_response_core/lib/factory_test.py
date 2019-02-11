@@ -7,8 +7,6 @@ from absl.testing import absltest
 from typing import Text
 
 from grr_response_core.lib import factory
-from grr_response_core.lib import flags
-from grr.test_lib import test_lib
 
 
 class FactoryTest(absltest.TestCase):
@@ -97,4 +95,4 @@ class FactoryTest(absltest.TestCase):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  absltest.main()

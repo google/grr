@@ -46,6 +46,7 @@
 @import '../angular-components/hunt/hunt-overview';
 @import '../angular-components/hunt/new-hunt-wizard/configure-flow-page';
 @import '../angular-components/hunt/new-hunt-wizard/review-page';
+@import '../angular-components/semantic/osquery-table';
 @import '../angular-components/semantic/semantic-diff-annotated-proto';
 @import '../angular-components/semantic/semantic-versioned-proto';
 @import '../angular-components/semantic/stat-entry';
@@ -654,15 +655,6 @@ tr.tree_hidden {
 
 .tab-content {
   margin-top: 1em;
-}
-
-dd.histogram {
-  margin-top: 1em;
-
-  > div {
-    width: 800px;
-    height: 300px;
-  }
 }
 
 .indicator-label {

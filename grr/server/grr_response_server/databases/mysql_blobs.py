@@ -7,8 +7,10 @@ from __future__ import unicode_literals
 from future.utils import iteritems
 
 from grr_response_core.lib.util import precondition
+from grr_response_server import blob_store
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
+
 
 # Maximum size of one blob chunk, affected by MySQL configuration, especially
 # innodb_log_file_size and max_allowed_packet.
@@ -80,10 +82,9 @@ def _PartitionChunks(chunks):
   return partitions
 
 
-class MySQLDBBlobsMixin(object):
+class MySQLDBBlobsMixin(blob_store.BlobStore):
   """MySQLDB mixin for blobs related functions."""
 
-  # TODO: Migrate blob logic from DB to MySQLBlobStore.
   @mysql_utils.WithTransaction()
   def WriteBlobs(self, blob_id_data_map, cursor=None):
     """Writes given blobs."""

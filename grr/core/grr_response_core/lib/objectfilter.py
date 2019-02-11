@@ -129,9 +129,6 @@ class InvalidNumberOfOperands(Error):
   """The number of operands provided to this operator is wrong."""
 
 
-# TODO(user):pytype: Type checker doesn't see the metaclass, apparently
-# because with_metaclass is used.
-# pytype: disable=ignored-abstractmethod
 @python_2_unicode_compatible
 class Filter(with_metaclass(abc.ABCMeta, object)):
   """Base class for every filter."""
@@ -168,9 +165,6 @@ class Filter(with_metaclass(abc.ABCMeta, object)):
   def __str__(self):
     return "%s(%s)" % (self.__class__.__name__, ", ".join(
         [str(arg) for arg in self.args]))
-
-
-# pytype: enable=ignored-abstractmethod
 
 
 class AndFilter(Filter):

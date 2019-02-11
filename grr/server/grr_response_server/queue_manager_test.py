@@ -174,7 +174,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertGreater(stored_task.leased_until, 0)
     stored_task.leased_until = None
 
-    self.assertRDFValuesEqual(stored_task, task)
+    self.assertEqual(stored_task, task)
 
     # Get a lease on the task
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
@@ -434,12 +434,9 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
   def setUp(self):
     super(MultiShardedQueueManagerTest, self).setUp()
 
-    self.config_overrider = test_lib.ConfigOverrider({"Worker.queue_shards": 2})
-    self.config_overrider.Start()
-
-  def tearDown(self):
-    super(MultiShardedQueueManagerTest, self).tearDown()
-    self.config_overrider.Stop()
+    config_overrider = test_lib.ConfigOverrider({"Worker.queue_shards": 2})
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
   def testFirstShardNameIsEqualToTheQueue(self):
     manager = queue_manager.QueueManager(token=self.token)

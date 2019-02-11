@@ -20,12 +20,9 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestStubbedRegistryFinderFlow, self).setUp()
-    self.registry_stubber = vfs_test_lib.RegistryVFSStubber()
-    self.registry_stubber.Start()
-
-  def tearDown(self):
-    super(TestStubbedRegistryFinderFlow, self).tearDown()
-    self.registry_stubber.Stop()
+    registry_stubber = vfs_test_lib.RegistryVFSStubber()
+    registry_stubber.Start()
+    self.addCleanup(registry_stubber.Stop)
 
   def _RunRegistryFinder(self, paths=None):
     client_mock = action_mocks.GlobClientMock()

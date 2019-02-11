@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
+from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import db
@@ -60,27 +61,70 @@ class OnlyStartedOrPausedHuntCanBeStoppedError(Error):
                          (hunt_obj.hunt_id, hunt_obj.hunt_state))
 
 
+class CanStartAtMostOneFlowPerClientError(Error):
+
+  def __init__(self, hunt_id, client_id):
+    super(CanStartAtMostOneFlowPerClientError, self).__init__(
+        "Variable hunt %s has more than 1 flow for a client %s." % (hunt_id,
+                                                                    client_id))
+
+
+class VariableHuntCanNotHaveClientRateError(Error):
+
+  def __init__(self, hunt_id, client_rate):
+
+    super(VariableHuntCanNotHaveClientRateError, self).__init__(
+        "Variable hunt %s has must have client_rate=0, instead it's %.2f." %
+        (hunt_id, client_rate))
+
+
 def IsLegacyHunt(hunt_id):
   return hunt_id.startswith("H:")
 
 
-def StopHuntIfAverageLimitsExceeded(hunt_obj):
+def HuntIDFromURN(hunt_urn):
+  return hunt_urn.Basename().replace("H:", "")
+
+
+def HuntURNFromID(hunt_id):
+  if IsLegacyHunt(hunt_id):
+    raise ValueError("Hunt ID is of a legacy type.")
+  return rdfvalue.RDFURN("aff4:/hunts/H:%s" % hunt_id)
+
+
+def StopHuntIfCrashLimitExceeded(hunt_id):
+  """Stops the hunt if number of crashes exceeds the limit."""
+  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+
+  if hunt_obj.crash_limit:
+    hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
+    if hunt_counters.num_crashed_clients >= hunt_obj.crash_limit:
+      # Remove our rules from the forman and cancel all the started flows.
+      # Hunt will be hard-stopped and it will be impossible to restart it.
+      reason = ("Hunt %s reached the crashes limit of %d "
+                "and was stopped.") % (hunt_obj.hunt_id, hunt_obj.crash_limit)
+      StopHunt(hunt_obj.hunt_id, reason=reason)
+
+  return hunt_obj
+
+
+def StopHuntIfAverageLimitsExceeded(hunt_id):
   """Stops the hunt if average limites are exceeded."""
+  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
 
   # Do nothing if the hunt is already stopped.
   if hunt_obj.hunt_state == rdf_hunt_objects.Hunt.HuntState.STOPPED:
     return hunt_obj
 
-  total_clients = (
-      hunt_obj.num_successful_clients + hunt_obj.num_failed_clients +
-      hunt_obj.num_crashed_clients)
+  hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
 
-  if total_clients < MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS:
+  if hunt_counters.num_clients < MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS:
     return hunt_obj
 
   # Check average per-client results count limit.
   if hunt_obj.avg_results_per_client_limit:
-    avg_results_per_client = (hunt_obj.num_results / total_clients)
+    avg_results_per_client = (
+        hunt_counters.num_results / hunt_counters.num_clients)
     if avg_results_per_client > hunt_obj.avg_results_per_client_limit:
       # Stop the hunt since we get too many results per client.
       reason = ("Hunt %s reached the average results per client "
@@ -91,8 +135,7 @@ def StopHuntIfAverageLimitsExceeded(hunt_obj):
   # Check average per-client CPU seconds limit.
   if hunt_obj.avg_cpu_seconds_per_client_limit:
     avg_cpu_seconds_per_client = (
-        (hunt_obj.client_resources_stats.user_cpu_stats.sum +
-         hunt_obj.client_resources_stats.system_cpu_stats.sum) / total_clients)
+        hunt_counters.total_cpu_seconds / hunt_counters.num_clients)
     if avg_cpu_seconds_per_client > hunt_obj.avg_cpu_seconds_per_client_limit:
       # Stop the hunt since we use too many CPUs per client.
       reason = ("Hunt %s reached the average CPU seconds per client "
@@ -103,8 +146,7 @@ def StopHuntIfAverageLimitsExceeded(hunt_obj):
   # Check average per-client network bytes limit.
   if hunt_obj.avg_network_bytes_per_client_limit:
     avg_network_bytes_per_client = (
-        hunt_obj.client_resources_stats.network_bytes_sent_stats.sum /
-        total_clients)
+        hunt_counters.total_network_bytes_sent / hunt_counters.num_clients)
     if (avg_network_bytes_per_client >
         hunt_obj.avg_network_bytes_per_client_limit):
       # Stop the hunt since we use too many network bytes sent
@@ -127,60 +169,55 @@ def CompleteHuntIfExpirationTimeReached(hunt_obj):
   ] and hunt_obj.expiry_time < rdfvalue.RDFDatetime.Now()):
     StopHunt(hunt_obj.hunt_id, reason="Hunt completed.")
 
-    def UpdateFn(h):
-      h.hunt_state = h.HuntState.COMPLETED
-      return h
-
-    return data_store.REL_DB.UpdateHuntObject(hunt_obj.hunt_id, UpdateFn)
+    data_store.REL_DB.UpdateHuntObject(
+        hunt_obj.hunt_id, hunt_state=hunt_obj.HuntState.COMPLETED)
+    return data_store.REL_DB.ReadHuntObject(hunt_obj.hunt_id)
 
   return hunt_obj
 
 
+def CreateHunt(hunt_obj):
+  """Creates a hunt using a given hunt object."""
+  data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+  if hunt_obj.HasField("output_plugins"):
+    output_plugins_states = flow.GetOutputPluginStates(
+        hunt_obj.output_plugins,
+        source="hunts/%s" % hunt_obj.hunt_id,
+        token=access_control.ACLToken(username=hunt_obj.creator))
+    data_store.REL_DB.WriteHuntOutputPluginsStates(hunt_obj.hunt_id,
+                                                   output_plugins_states)
+
+
 def CreateAndStartHunt(flow_name, flow_args, creator, **kwargs):
   """Creates and starts a new hunt."""
+
+  # This interface takes a time when the hunt expires. However, the legacy hunt
+  # starting interface took an rdfvalue.Duration object which was then added to
+  # the current time to get the expiry. This check exists to make sure we don't
+  # confuse the two.
+  if "expiry_time" in kwargs:
+    precondition.AssertType(kwargs["expiry_time"], rdfvalue.RDFDatetime)
 
   hunt_args = rdf_hunt_objects.HuntArguments(
       hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
       standard=rdf_hunt_objects.HuntArgumentsStandard(
           flow_name=flow_name, flow_args=flow_args))
 
-  hunt_obj = rdf_hunt_objects.Hunt(creator=creator, args=hunt_args, **kwargs)
-  data_store.REL_DB.WriteHuntObject(hunt_obj)
+  hunt_obj = rdf_hunt_objects.Hunt(
+      creator=creator,
+      args=hunt_args,
+      create_time=rdfvalue.RDFDatetime.Now(),
+      **kwargs)
 
+  CreateHunt(hunt_obj)
   StartHunt(hunt_obj.hunt_id)
 
+  return hunt_obj.hunt_id
 
-def StartHunt(hunt_id):
-  """Starts a hunt with a given id."""
 
-  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-  output_plugins_states = None
-  if hunt_obj.output_plugins and not hunt_obj.output_plugins_states:
-    output_plugins_states = flow.GetOutputPluginStates(
-        hunt_obj.output_plugins,
-        source="hunts/%s" % hunt_obj.hunt_id,
-        token=access_control.ACLToken(username=hunt_obj.creator))
-    for ops in output_plugins_states:
-      ops.plugin_state["success_count"] = 0
-      ops.plugin_state["error_count"] = 0
-
-  def UpdateFn(h):
-    """Updates given hunt in a transaction."""
-
-    if h.hunt_state != h.HuntState.PAUSED:
-      raise OnlyPausedHuntCanBeStartedError(h)
-
-    if (output_plugins_states is not None and
-        not hunt_obj.output_plugins_states):
-      h.output_plugins_states = output_plugins_states
-    h.hunt_state = h.HuntState.STARTED
-    h.hunt_state_comment = None
-    h.next_client_due = rdfvalue.RDFDatetime.Now()
-    return h
-
-  hunt_obj = data_store.REL_DB.UpdateHuntObject(hunt_id, UpdateFn)
-  if hunt_obj.hunt_state != hunt_obj.HuntState.STARTED:
-    return
+def _ScheduleGenericHunt(hunt_obj):
+  """Adds foreman rules for a generic hunt."""
 
   foreman_condition = foreman_rules.ForemanCondition(
       creation_time=rdfvalue.RDFDatetime.Now(),
@@ -194,45 +231,92 @@ def StartHunt(hunt_id):
 
   data_store.REL_DB.WriteForemanRule(foreman_condition)
 
+
+def _ScheduleVariableHunt(hunt_obj):
+  """Schedules flows for a variable hunt."""
+  if hunt_obj.client_rate != 0:
+    raise VariableHuntCanNotHaveClientRateError(hunt_obj.hunt_id,
+                                                hunt_obj.client_rate)
+
+  seen_clients = set()
+  for flow_group in hunt_obj.args.variable.flow_groups:
+    for client_id in flow_group.client_ids:
+      if client_id in seen_clients:
+        raise CanStartAtMostOneFlowPerClientError(hunt_obj.hunt_id, client_id)
+      seen_clients.add(client_id)
+
+  now = rdfvalue.RDFDatetime.Now()
+  for flow_group in hunt_obj.args.variable.flow_groups:
+    flow_cls = registry.FlowRegistry.FlowClassByName(flow_group.flow_name)
+    flow_args = flow_group.flow_args if flow_group.HasField(
+        "flow_args") else None
+
+    for client_id in flow_group.client_ids:
+      flow.StartFlow(
+          client_id=client_id,
+          creator=hunt_obj.creator,
+          cpu_limit=hunt_obj.per_client_cpu_limit,
+          network_bytes_limit=hunt_obj.per_client_network_bytes_limit,
+          flow_cls=flow_cls,
+          flow_args=flow_args,
+          # Setting start_at explicitly ensures that flow.StartFlow won't
+          # process flow's Start state right away. Only the flow request
+          # will be scheduled.
+          start_at=now,
+          parent_hunt_id=hunt_obj.hunt_id)
+
+
+def StartHunt(hunt_id):
+  """Starts a hunt with a given id."""
+
+  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+
+  if hunt_obj.hunt_state != hunt_obj.HuntState.PAUSED:
+    raise OnlyPausedHuntCanBeStartedError(hunt_obj)
+
+  data_store.REL_DB.UpdateHuntObject(
+      hunt_id,
+      hunt_state=hunt_obj.HuntState.STARTED,
+      start_time=rdfvalue.RDFDatetime.Now(),
+  )
+  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+
+  if hunt_obj.args.hunt_type == hunt_obj.args.HuntType.STANDARD:
+    _ScheduleGenericHunt(hunt_obj)
+  elif hunt_obj.args.hunt_type == hunt_obj.args.HuntType.VARIABLE:
+    _ScheduleVariableHunt(hunt_obj)
+  else:
+    raise UnknownHuntTypeError("Invalid hunt type for hunt %s: %r" %
+                               (hunt_id, hunt_obj.args.hunt_type))
+
   return hunt_obj
 
 
 def PauseHunt(hunt_id, reason=None):
   """Pauses a hunt with a given id."""
 
-  def UpdateFn(h):
-    if h.hunt_state != h.HuntState.STARTED:
-      raise OnlyStartedHuntCanBePausedError(h)
+  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  if hunt_obj.hunt_state != hunt_obj.HuntState.STARTED:
+    raise OnlyStartedHuntCanBePausedError(hunt_obj)
 
-    h.hunt_state = h.HuntState.PAUSED
-    if reason is not None:
-      h.hunt_state_comment = reason
-    else:
-      h.hunt_state_comment = None
-    return h
+  data_store.REL_DB.UpdateHuntObject(
+      hunt_id, hunt_state=hunt_obj.HuntState.PAUSED, hunt_state_comment=reason)
+  data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
 
-  hunt_obj = data_store.REL_DB.UpdateHuntObject(hunt_id, UpdateFn)
-  if hunt_obj.hunt_state == hunt_obj.HuntState.PAUSED:
-    data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
-
-  return hunt_obj
+  return data_store.REL_DB.ReadHuntObject(hunt_id)
 
 
 def StopHunt(hunt_id, reason=None):
   """Stops a hunt with a given id."""
 
-  def UpdateFn(h):
-    if h.hunt_state not in [h.HuntState.STARTED, h.HuntState.PAUSED]:
-      raise OnlyStartedOrPausedHuntCanBeStoppedError(h)
+  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  if hunt_obj.hunt_state not in [
+      hunt_obj.HuntState.STARTED, hunt_obj.HuntState.PAUSED
+  ]:
+    raise OnlyStartedOrPausedHuntCanBeStoppedError(hunt_obj)
 
-    h.hunt_state = h.HuntState.STOPPED
-    if reason is not None:
-      h.hunt_state_comment = reason
-    return h
-
-  # If the hunt was not started or paused, the exception from UpdateFn is
-  # guaranteed to be propagated by UpdateHuntObject implementation.
-  hunt_obj = data_store.REL_DB.UpdateHuntObject(hunt_id, UpdateFn)
+  data_store.REL_DB.UpdateHuntObject(
+      hunt_id, hunt_state=hunt_obj.HuntState.STOPPED, hunt_state_comment=reason)
   data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
 
   flows = data_store.REL_DB.ReadHuntFlows(hunt_obj.hunt_id, 0, db.MAX_COUNT)
@@ -250,30 +334,22 @@ def StopHunt(hunt_id, reason=None):
             reference_type=rdf_objects.ObjectReference.Type.HUNT,
             hunt=rdf_objects.HuntReference(hunt_id=hunt_obj.hunt_id)))
 
-  return hunt_obj
+  return data_store.REL_DB.ReadHuntObject(hunt_id)
 
 
 def UpdateHunt(hunt_id, client_limit=None, client_rate=None, expiry_time=None):
   """Updates a hunt (it must be paused to be updated)."""
 
-  def UpdateFn(hunt_obj):
-    """Update callback used by UpdateHuntObject."""
+  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  if hunt_obj.hunt_state != hunt_obj.HuntState.PAUSED:
+    raise OnlyPausedHuntCanBeModifiedError(hunt_obj)
 
-    if hunt_obj.hunt_state != hunt_obj.HuntState.PAUSED:
-      raise OnlyPausedHuntCanBeModifiedError(hunt_obj)
-
-    if client_limit is not None:
-      hunt_obj.client_limit = client_limit
-
-    if client_rate is not None:
-      hunt_obj.client_rate = client_rate
-
-    if expiry_time is not None:
-      hunt_obj.expiry_time = expiry_time
-
-    return hunt_obj
-
-  return data_store.REL_DB.UpdateHuntObject(hunt_id, UpdateFn)
+  data_store.REL_DB.UpdateHuntObject(
+      hunt_id,
+      client_limit=client_limit,
+      client_rate=client_rate,
+      expiry_time=expiry_time)
+  return data_store.REL_DB.ReadHuntObject(hunt_id)
 
 
 def StartHuntFlowOnClient(client_id, hunt_id):
@@ -291,17 +367,8 @@ def StartHuntFlowOnClient(client_id, hunt_id):
   if hunt_obj.args.hunt_type == hunt_obj.args.HuntType.STANDARD:
     hunt_args = hunt_obj.args.standard
 
-    def UpdateFn(h):
-      # h.num_clients > 0 check ensures that first client will be scheduled
-      # immediately and not 60.0 / h.client_rate seconds after the hunt is
-      # started.
-      if h.client_rate > 0 and h.num_clients > 0:
-        h.next_client_due = h.next_client_due + 60.0 / h.client_rate
-      h.num_clients += 1
-      return h
-
-    hunt_obj = data_store.REL_DB.UpdateHuntObject(hunt_id, UpdateFn)
-    start_at = hunt_obj.next_client_due if hunt_obj.client_rate > 0 else None
+    # TODO(user): remove client_rate support when AFF4 is gone.
+    # In REL_DB always work as if client rate is 0.
 
     flow_cls = registry.FlowRegistry.FlowClassByName(hunt_args.flow_name)
     flow_args = hunt_args.flow_args if hunt_args.HasField("flow_args") else None
@@ -312,11 +379,12 @@ def StartHuntFlowOnClient(client_id, hunt_id):
         network_bytes_limit=hunt_obj.per_client_network_bytes_limit,
         flow_cls=flow_cls,
         flow_args=flow_args,
-        start_at=start_at,
         parent_hunt_id=hunt_id)
 
-    if hunt_obj.client_limit and hunt_obj.num_clients >= hunt_obj.client_limit:
-      PauseHunt(hunt_obj.hunt_id)
+    if hunt_obj.client_limit:
+      hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_obj.hunt_id)
+      if hunt_counters.num_clients >= hunt_obj.client_limit:
+        PauseHunt(hunt_obj.hunt_id)
 
   elif hunt_obj.args.hunt_type == hunt_obj.args.HuntType.VARIABLE:
     raise NotImplementedError()

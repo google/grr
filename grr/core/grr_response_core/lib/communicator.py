@@ -263,9 +263,6 @@ class ReceivedCipher(Cipher):
       return True
 
 
-# TODO(user):pytype Communicator inherits abc.ABCMeta, but type checker
-# can't infer this, apparently because with_metaclass is used.
-# pytype: disable=ignored-abstractmethod
 class Communicator(with_metaclass(abc.ABCMeta, object)):
   """A class responsible for encoding and decoding comms."""
   server_name = None
@@ -570,6 +567,3 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
           source=packed_message_list.source)
 
     return result
-
-
-# pytype: enable=ignored-abstractmethod

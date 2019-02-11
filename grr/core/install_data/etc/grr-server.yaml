@@ -241,6 +241,9 @@ Platform:Windows:
 Worker Context:
   Cron.active: True
 
+  Cron.disabled_cron_jobs:
+    - UpdateFSLastPingTimestamps
+
   Logging.filename: "%(Logging.path)/grr-worker.log"
 
 # For Test Context, see test_data/grr_test.yaml in the grr-response-test

@@ -24,7 +24,6 @@ from grr_response_server.databases import mem_foreman_rules
 from grr_response_server.databases import mem_hunts
 from grr_response_server.databases import mem_paths
 from grr_response_server.databases import mem_signed_binaries
-from grr_response_server.databases import mem_stats
 from grr_response_server.databases import mem_users
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -41,7 +40,6 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
                  mem_hunts.InMemoryDBHuntMixin,
                  mem_paths.InMemoryDBPathMixin,
                  mem_signed_binaries.InMemoryDBSignedBinariesMixin,
-                 mem_stats.InMemoryDBStatsMixin,
                  mem_users.InMemoryDBUsersMixin,
                  db.Database):
   """An in memory database implementation used for testing."""
@@ -103,9 +101,10 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.flow_handler_target = None
     self.flow_handler_thread = None
     self.flow_handler_stop = True
-    self.stats_store_entries = {}
+    self.flow_handler_num_being_processed = 0
     self.api_audit_entries = []
     self.hunts = {}
+    self.hunt_output_plugins_states = {}
     self.signed_binary_references = {}
     self.client_graph_series = {}
 

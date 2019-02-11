@@ -576,16 +576,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # Stats metrics methods.
   # =====================
   #
-  def ListStatsStoreMetricsMetadata(self, args, token=None):
-    # Everybody can list stats store metrics metadata.
-
-    return self.delegate.ListStatsStoreMetricsMetadata(args, token=token)
-
-  def GetStatsStoreMetric(self, args, token=None):
-    # Everybody can get a metric.
-
-    return self.delegate.GetStatsStoreMetric(args, token=token)
-
   def ListReports(self, args, token=None):
     # Everybody can list the reports.
 

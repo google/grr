@@ -59,17 +59,14 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
             mock.MagicMock()
     }
 
-    self.module_patcher = mock.patch.dict("sys.modules", modules)
-    self.module_patcher.start()
+    module_patcher = mock.patch.dict("sys.modules", modules)
+    module_patcher.start()
+    self.addCleanup(module_patcher.stop)
 
     # pylint: disable= g-import-not-at-top
     from grr_response_client.client_actions.windows import windows
     # pylint: enable=g-import-not-at-top
     self.windows = windows
-
-  def tearDown(self):
-    super(WindowsActionTests, self).tearDown()
-    self.module_patcher.stop()
 
   @unittest.skipIf(
       platform.system() == "Darwin",

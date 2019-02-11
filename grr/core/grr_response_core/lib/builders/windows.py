@@ -121,9 +121,10 @@ class WindowsClientBuilder(build.ClientBuilder):
     if vs_arch is None or env_script is None or not os.path.exists(env_script):
       # Visual Studio is not installed. We just use pre-built binaries in that
       # case.
-      logging.warn("Visual Studio does not appear to be installed, "
-                   "Falling back to prebuilt GRRNanny binaries."
-                   "If you want to build it you must have VS 2012 installed.")
+      logging.warning(
+          "Visual Studio does not appear to be installed, "
+          "Falling back to prebuilt GRRNanny binaries."
+          "If you want to build it you must have VS 2012 installed.")
 
       binaries_dir = config.CONFIG.Get(
           "ClientBuilder.nanny_prebuilt_binaries", context=self.context)

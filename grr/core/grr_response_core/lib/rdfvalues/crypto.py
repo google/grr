@@ -567,7 +567,7 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
     """
 
     if signing_key.KeyLen() < 2048:
-      logging.warn("signing key is too short.")
+      logging.warning("signing key is too short.")
 
     self.signature = signing_key.Sign(data)
     self.signature_type = self.SignatureType.RSA_PKCS1v15

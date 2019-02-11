@@ -10,19 +10,27 @@ import logging
 
 from builtins import zip  # pylint: disable=redefined-builtin
 from future.utils import iteritems
+from future.utils import iterkeys
 from future.utils import itervalues
+
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import compatibility
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import aff4
 from grr_response_server import client_report_utils
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import db
 from grr_response_server import export_utils
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
+from grr_response_server import hunt
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.aff4_objects import stats as aff4_stats
@@ -543,22 +551,37 @@ class InterrogationHuntMixin(object):
 
   def StartInterrogationHunt(self):
     """Starts an interrogation hunt on all available clients."""
-    with hunts_implementation.StartHunt(
-        hunt_name=hunts_standard.GenericHunt.__name__,
-        client_limit=0,
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=flows_discovery.Interrogate.__name__),
-        flow_args=flows_discovery.InterrogateArgs(lightweight=False),
-        output_plugins=self.GetOutputPlugins(),
-        token=self.token) as hunt:
+    flow_name = compatibility.GetName(flows_discovery.Interrogate)
+    flow_args = flows_discovery.InterrogateArgs(lightweight=False)
+    description = "Interrogate run by cron to keep host info fresh."
 
-      runner = hunt.GetRunner()
-      runner.runner_args.crash_limit = 500
-      runner.runner_args.client_rate = 50
-      runner.runner_args.expiry_time = "1w"
-      runner.runner_args.description = ("Interrogate run by cron to keep host"
-                                        "info fresh.")
-      runner.Start()
+    if data_store.RelationalDBReadEnabled("hunts"):
+      hunt_id = hunt.CreateAndStartHunt(
+          flow_name,
+          flow_args,
+          self.token.username,
+          client_limit=0,
+          client_rate=50,
+          crash_limit=500,
+          description=description,
+          expiry_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1w"),
+          output_plugins=self.GetOutputPlugins())
+      self.Log("Started hunt %s.", hunt_id)
+    else:
+      with hunts_implementation.StartHunt(
+          hunt_name=hunts_standard.GenericHunt.__name__,
+          client_limit=0,
+          flow_runner_args=rdf_flow_runner.FlowRunnerArgs(flow_name=flow_name),
+          flow_args=flow_args,
+          output_plugins=self.GetOutputPlugins(),
+          crash_limit=500,
+          client_rate=50,
+          expiry_time=rdfvalue.Duration("1w"),
+          description=description,
+          token=self.token) as hunt_obj:
+
+        hunt_obj.GetRunner().Start()
+        self.Log("Started hunt %s.", hunt_obj.urn)
 
 
 class InterrogateClientsCronFlow(aff4_cronjobs.SystemCronFlow,
@@ -654,42 +677,45 @@ class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
                  total_deleted_count, end)
 
 
-class PurgeServerStatsCronJob(cronjobs.SystemCronJobBase):
-  """Cronjob that deletes old stats entries from the relational DB."""
+class UpdateFSLastPingTimestamps(cronjobs.SystemCronJobBase):
+  """Cronjob that updates last-ping timestamps for Fleetspeak clients."""
 
-  frequency = rdfvalue.Duration("3h")
-  lifetime = rdfvalue.Duration("2h")
+  frequency = rdfvalue.Duration("6h")
+  lifetime = rdfvalue.Duration("5h")
 
   def Run(self):
-    # Old stats in the legacy datastore get deleted after every write.
-    if not data_store.RelationalDBReadEnabled(category="stats"):
+    if not fleetspeak_connector.CONN or not fleetspeak_connector.CONN.outgoing:
+      # Nothing to do if Fleetspeak is not enabled.
+      self.Log("Fleetspeak has not been initialized. Will do nothing.")
       return
-    stats_ttl = (
-        rdfvalue.Duration("1h") * config.CONFIG["StatsStore.stats_ttl_hours"])
-    cutoff = rdfvalue.RDFDatetime.Now() - stats_ttl
-    total_entries_deleted = 0
-    last_checkpoint = None
-    while True:
-      num_entries_deleted = data_store.REL_DB.DeleteStatsStoreEntriesOlderThan(
-          cutoff, _STATS_DELETION_BATCH_SIZE)
-      total_entries_deleted += num_entries_deleted
 
-      if num_entries_deleted < _STATS_DELETION_BATCH_SIZE:
-        # Delete remaining stats-entries and exit.
-        num_entries_deleted = (
-            data_store.REL_DB.DeleteStatsStoreEntriesOlderThan(
-                cutoff, _STATS_DELETION_BATCH_SIZE))
-        if num_entries_deleted > 0:
-          total_entries_deleted += num_entries_deleted
-          self.Log("Deleted %d stats entries.", total_entries_deleted)
-        return
+    if not data_store.RelationalDBWriteEnabled():
+      raise NotImplementedError(
+          "Cronjob does not support the legacy datastore.")
 
-      if last_checkpoint is None:
-        time_since_last_checkpoint = rdfvalue.Duration(0)
-      else:
-        time_since_last_checkpoint = (
-            rdfvalue.RDFDatetime.Now() - last_checkpoint)
-      if time_since_last_checkpoint >= _stats_checkpoint_period:
-        self.Log("Deleted %d stats entries.", total_entries_deleted)
-        last_checkpoint = rdfvalue.RDFDatetime.Now()
-      self.HeartBeat()  # Terminate cron-run if lifetime has been exceeded.
+    age_threshold = config.CONFIG["Server.fleetspeak_last_ping_threshold"]
+    max_last_ping = rdfvalue.RDFDatetime.Now() - age_threshold
+    last_pings = data_store.REL_DB.ReadClientLastPings(
+        max_last_ping=max_last_ping, fleetspeak_enabled=True)
+
+    num_clients_updated = 0
+    batch_size = config.CONFIG["Server.fleetspeak_list_clients_batch_size"]
+    for client_ids in collection.Batch(iterkeys(last_pings), batch_size):
+      fs_ids = [fleetspeak_utils.GRRIDToFleetspeakID(i) for i in client_ids]
+      request_start = rdfvalue.RDFDatetime.Now()
+      fs_result = fleetspeak_connector.CONN.outgoing.ListClients(
+          admin_pb2.ListClientsRequest(client_ids=fs_ids))
+      latency = rdfvalue.RDFDatetime.Now() - request_start
+      logging.info("Fleetspeak ListClients() took %s.", latency)
+      stats_collector_instance.Get().RecordEvent(
+          "fleetspeak_last_ping_latency_millis", latency.milliseconds)
+
+      for fs_client in fs_result.clients:
+        grr_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_client.client_id)
+        new_last_ping = fleetspeak_utils.TSToRDFDatetime(
+            fs_client.last_contact_time)
+        if last_pings[grr_id] is None or last_pings[grr_id] < new_last_ping:
+          data_store.REL_DB.WriteClientMetadata(grr_id, last_ping=new_last_ping)
+          num_clients_updated += 1
+
+      self.Log("Updated timestamps for %d clients.", num_clients_updated)

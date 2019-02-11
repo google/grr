@@ -12,15 +12,17 @@ import zipfile
 
 
 from grr_response_core.lib import flags
-from grr_response_core.lib import rdfvalue
 from grr_response_proto.api import vfs_pb2
-from grr_response_server import aff4
+from grr_response_server import db
 from grr_response_server.gui import api_e2e_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
+@db_test_lib.DualDBTest
 class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
   """Tests VFS operations part of GRR Python API client library."""
 
@@ -63,8 +65,9 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
     self.assertEqual(out.getvalue(), "Hello world")
 
   def testGetBlobUnicode(self):
-    aff4.FACTORY.Copy("aff4:/C.1000000000000000/fs/tsk/c/bin/bash",
-                      "aff4:/C.1000000000000000/fs/tsk/c/bin/中国新闻网新闻中")
+    vfs_test_lib.CreateFile(
+        db.ClientPath.TSK("C.1000000000000000", ["c", "bin", "中国新闻网新闻中"]),
+        b"Hello world")
 
     out = io.BytesIO()
     self.api.Client(client_id=self.client_urn.Basename()).File(
@@ -100,19 +103,18 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
   def testRefreshWaitUntilDone(self):
     f = self.api.Client(
         client_id=self.client_urn.Basename()).File("fs/os/c/Downloads")
-    operation = f.Refresh()
-    self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
-    def ProcessOperation():
-      time.sleep(1)
-      # We assume that the operation id is the URN of a flow.
-      flow_test_lib.TestFlowHelper(
-          rdfvalue.RDFURN(operation.operation_id),
-          client_id=self.client_urn,
-          token=self.token)
+    with flow_test_lib.TestWorker(token=self.token):
+      operation = f.Refresh()
+      self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
-    threading.Thread(target=ProcessOperation).start()
-    result_f = operation.WaitUntilDone().target_file
+      def ProcessOperation():
+        time.sleep(1)
+        flow_test_lib.FinishAllFlowsOnClient(self.client_urn.Basename())
+
+      threading.Thread(target=ProcessOperation).start()
+      result_f = operation.WaitUntilDone().target_file
+
     self.assertEqual(f.path, result_f.path)
     self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
 
@@ -125,25 +127,24 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
   def testCollectWaitUntilDone(self):
     f = self.api.Client(
         client_id=self.client_urn.Basename()).File("fs/os/c/Downloads/a.txt")
-    operation = f.Collect()
-    self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
-    def ProcessOperation():
-      time.sleep(1)
-      # We assume that the operation id is the URN of a flow.
-      flow_test_lib.TestFlowHelper(
-          rdfvalue.RDFURN(operation.operation_id),
-          client_id=self.client_urn,
-          token=self.token)
+    with flow_test_lib.TestWorker(token=self.token):
+      operation = f.Collect()
+      self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
-    threading.Thread(target=ProcessOperation).start()
-    result_f = operation.WaitUntilDone().target_file
+      def ProcessOperation():
+        time.sleep(1)
+        flow_test_lib.FinishAllFlowsOnClient(self.client_urn.Basename())
+
+      threading.Thread(target=ProcessOperation).start()
+      result_f = operation.WaitUntilDone().target_file
+
     self.assertEqual(f.path, result_f.path)
     self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
 
   def testGetTimeline(self):
     timeline = self.api.Client(
-        client_id=self.client_urn.Basename()).File("fs").GetTimeline()
+        client_id=self.client_urn.Basename()).File("fs/os").GetTimeline()
     self.assertTrue(timeline)
     for item in timeline:
       self.assertIsInstance(item, vfs_pb2.ApiVfsTimelineItem)
@@ -151,7 +152,7 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
   def testGetTimelineAsCsv(self):
     out = io.BytesIO()
     self.api.Client(client_id=self.client_urn.Basename()).File(
-        "fs").GetTimelineAsCsv().WriteToStream(out)
+        "fs/os").GetTimelineAsCsv().WriteToStream(out)
     self.assertTrue(out.getvalue())
 
 

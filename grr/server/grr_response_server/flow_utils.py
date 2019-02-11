@@ -119,7 +119,8 @@ def WaitForFlow(flow_urn,
 
       # Stop if the flow is done or has timed out.
       if time.time() - start_time > timeout:
-        logging.warn("Timed out after waiting %ss for %s!", timeout, flow_obj)
+        logging.warning("Timed out after waiting %ss for %s!", timeout,
+                        flow_obj)
         raise IOError("Timed out trying to access client! Is it connected?")
       if not flow_obj.GetRunner().IsRunning():
         break
@@ -197,7 +198,7 @@ def InterpolatePath(path, knowledge_base, users=None, path_args=None, depth=0):
     try:
       path = path.format(**sys_formatters)
     except KeyError:
-      logging.warn("Failed path interpolation on %s", path)
+      logging.warning("Failed path interpolation on %s", path)
       return ""
     if "{" in path and depth < 10:
       path = InterpolatePath(

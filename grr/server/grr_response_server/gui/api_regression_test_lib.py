@@ -144,10 +144,11 @@ class ApiRegressionTest(
     self.checks = []
 
     p = psutil.Process(os.getpid())
-    self.syscalls_stubber = utils.MultiStubber(
+    syscalls_stubber = utils.MultiStubber(
         (socket, "gethostname", lambda: "test.host"),
         (os, "getpid", lambda: 42), (psutil, "Process", lambda _=None: p))
-    self.syscalls_stubber.Start()
+    syscalls_stubber.Start()
+    self.addCleanup(syscalls_stubber.Stop)
 
     self.token.username = "api_test_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
@@ -155,7 +156,7 @@ class ApiRegressionTest(
     # Force creation of new APIAuthorizationManager.
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
-    self.config_overrider = test_lib.ConfigOverrider({
+    config_overrider = test_lib.ConfigOverrider({
         # For regression tests we want to use a fixed version number instead of
         # current one. Otherwise regression data would have to be re-generated
         # each time GRR version is increased.
@@ -166,15 +167,8 @@ class ApiRegressionTest(
         "Source.version_string": "1.2.3.4",
         "Source.version_numeric": 1234,
     })
-    self.config_overrider.Start()
-
-  # TODO(user): gpylint claims "Use of super on an old style class", but
-  # this class is obviously not an old-style class.
-  def tearDown(self):  # pylint: disable=invalid-name
-    """Tear down test method."""
-    super(ApiRegressionTest, self).tearDown()
-    self.config_overrider.Start()
-    self.syscalls_stubber.Stop()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
   def _Replace(self, content, replace=None):
     """Applies replace function to a given content."""

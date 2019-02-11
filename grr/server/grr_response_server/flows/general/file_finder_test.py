@@ -12,6 +12,7 @@ import io
 import os
 
 from future.utils import itervalues
+import mock
 
 from grr_response_client import vfs
 from grr_response_core.lib import flags
@@ -21,6 +22,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -897,6 +899,61 @@ class RelationalFlowFileFinderTest(db_test_lib.RelationalDBEnabledMixin,
 
   flow_base_cls = flow_base.FlowBase
 
+  def testUseExternalStores(self):
+    if not data_store.RelationalDBReadEnabled("filestore"):
+      self.skipTest("Test uses relational filestore.")
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
+      path = os.path.join(tempdir, "foo")
+      with io.open(path, "w") as fd:
+        fd.write("some content")
+
+      paths = [path]
+      action = rdf_file_finder.FileFinderAction(
+          action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
+
+      action.download.use_external_stores = False
+
+      with mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles") as efs:
+        flow_id = flow_test_lib.TestFlowHelper(
+            compatibility.GetName(file_finder.FileFinder),
+            self.client_mock,
+            client_id=self.client_id,
+            paths=paths,
+            pathtype=rdf_paths.PathSpec.PathType.OS,
+            action=action,
+            process_non_regular_files=True,
+            token=self.token)
+
+      results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+
+      self.assertLen(results, 1)
+
+      self.assertEqual(efs.call_count, 0)
+
+      # Change the file or the file finder will see that it was downloaded
+      # already and skip it.
+      with io.open(path, "w") as fd:
+        fd.write("some other content")
+
+      action.download.use_external_stores = True
+
+      with mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles") as efs:
+        flow_id = flow_test_lib.TestFlowHelper(
+            compatibility.GetName(file_finder.FileFinder),
+            self.client_mock,
+            client_id=self.client_id,
+            paths=paths,
+            pathtype=rdf_paths.PathSpec.PathType.OS,
+            action=action,
+            process_non_regular_files=True,
+            token=self.token)
+
+      results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+      self.assertLen(results, 1)
+
+      self.assertEqual(efs.call_count, 1)
+
 
 @db_test_lib.DualDBTest
 class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
@@ -935,6 +992,50 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         "parser_test/com.google.code.grr.plist",
         "parser_test/InstallHistory.plist"
     ])
+
+  def testUseExternalStores(self):
+    if not data_store.RelationalDBReadEnabled("filestore"):
+      self.skipTest("Test uses relational filestore.")
+
+    paths = [os.path.join(self.base_path, "test.plist")]
+    action = rdf_file_finder.FileFinderAction(
+        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
+
+    action.download.use_external_stores = False
+
+    with mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles") as efs:
+      flow_id = flow_test_lib.TestFlowHelper(
+          compatibility.GetName(file_finder.ClientFileFinder),
+          action_mocks.ClientFileFinderClientMock(),
+          client_id=self.client_id,
+          paths=paths,
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          action=action,
+          process_non_regular_files=True,
+          token=self.token)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(results, 1)
+
+    self.assertEqual(efs.call_count, 0)
+
+    action.download.use_external_stores = True
+
+    with mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles") as efs:
+      flow_id = flow_test_lib.TestFlowHelper(
+          compatibility.GetName(file_finder.ClientFileFinder),
+          action_mocks.ClientFileFinderClientMock(),
+          client_id=self.client_id,
+          paths=paths,
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          action=action,
+          process_non_regular_files=True,
+          token=self.token)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(results, 1)
+
+    self.assertEqual(efs.call_count, 1)
 
   def _VerifyDownloadedFiles(self, results):
     if data_store.RelationalDBReadEnabled("filestore"):

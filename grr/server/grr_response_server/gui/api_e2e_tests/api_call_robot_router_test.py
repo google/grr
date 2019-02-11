@@ -53,9 +53,10 @@ users:
     with open(router_config_file, "wb") as fd:
       fd.write(router_config)
 
-    self.config_overrider = test_lib.ConfigOverrider(
+    config_overrider = test_lib.ConfigOverrider(
         {"API.RouterACLConfigFile": router_config_file})
-    self.config_overrider.Start()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.
@@ -64,10 +65,6 @@ users:
   def setUp(self):
     super(ApiCallRobotRouterE2ETest, self).setUp()
     self.client_id = self.SetupClient(0)
-
-  def tearDown(self):
-    super(ApiCallRobotRouterE2ETest, self).tearDown()
-    self.config_overrider.Stop()
 
   def testCreatingArbitraryFlowDoesNotWork(self):
     self.InitRouterConfig(

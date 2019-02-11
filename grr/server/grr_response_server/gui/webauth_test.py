@@ -83,11 +83,12 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(FirebaseWebAuthManagerTest, self).setUp()
 
-    self.config_overrider = test_lib.ConfigOverrider({
+    config_overrider = test_lib.ConfigOverrider({
         "AdminUI.firebase_auth_domain": "foo-bar.firebaseapp.com",
         "API.DefaultRouter": "DisabledApiCallRouter"
     })
-    self.config_overrider.Start()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
     self.manager = webauth.FirebaseWebAuthManager()
     self.success_response = werkzeug_wrappers.Response("foobar")
@@ -101,10 +102,6 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     self.checked_request = request
 
     return self.success_response
-
-  def tearDown(self):
-    super(FirebaseWebAuthManagerTest, self).tearDown()
-    self.config_overrider.Stop()
 
   def testPassesThroughHomepageWhenAuthorizationHeaderIsMissing(self):
     environ = werkzeug_test.EnvironBuilder().get_environ()

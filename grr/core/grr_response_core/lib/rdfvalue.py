@@ -84,10 +84,6 @@ class RDFValueMetaclass(registry.MetaclassRegistry):
       callback(target=cls, **kwargs)
 
 
-# TODO(user):pytype RDFValueMetaclass inherits MetaclassRegistry that
-# inherits abc.ABCMeta, but type checker can't infer this, apparently because
-# with_metaclass is used.
-# pytype: disable=ignored-abstractmethod
 @python_2_unicode_compatible
 class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   """Baseclass for values.
@@ -246,9 +242,6 @@ class RDFPrimitive(RDFValue):
     Args:
       string: An `unicode` value to initialize the object from.
     """
-
-
-# pytype: enable=ignored-abstractmethod
 
 
 @python_2_unicode_compatible
@@ -825,6 +818,10 @@ class Duration(RDFInteger):
   @classmethod
   def FromSeconds(cls, seconds):
     return cls(seconds)
+
+  @classmethod
+  def FromMicroseconds(cls, microseconds):
+    return cls(microseconds * 1e-6)
 
   def Validate(self, value, **_):
     self.ParseFromString(value)

@@ -859,7 +859,10 @@ class MultiGetFileLogic(object):
             hash_obj = file_tracker["hash_obj"]
 
             client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
-            hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
+            hash_id = file_store.AddFileWithUnknownHash(
+                client_path,
+                blob_refs,
+                use_external_stores=self.state.use_external_stores)
             # If the hash that we've calculated matches what we got from the
             # client, then simply store the full hash entry.
             # Otherwise store just the hash that we've calculated.
@@ -870,7 +873,8 @@ class MultiGetFileLogic(object):
 
           data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-        if not data_store.RelationalDBReadEnabled("filestore"):
+        if (not data_store.RelationalDBReadEnabled("filestore") and
+            self.state.use_external_stores):
           # Publish the new file event to cause the file to be added to the
           # filestore.
           events.Events.PublishEvent(

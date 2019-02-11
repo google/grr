@@ -194,7 +194,7 @@ class RDFValueTestMixin(object):
     self.assertIsInstance(sample, self.rdfvalue_class)
     self.assertIsInstance(value, self.rdfvalue_class)
 
-    self.assertRDFValuesEqual(value, sample)
+    self.assertEqual(value, sample)
 
   def testComparisons(self):
     """Checks that object comparisons work."""

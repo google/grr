@@ -34,9 +34,10 @@ class MultiRepackTest(absltest.TestCase):
   def setUp(self):
     super(MultiRepackTest, self).setUp()
     self.pool_obj = mock.MagicMock()
-    self.pool_patcher = mock.patch.object(
+    pool_patcher = mock.patch.object(
         multiprocessing, "Pool", return_value=self.pool_obj)
-    self.mock_pool = self.pool_patcher.start()
+    self.mock_pool = pool_patcher.start()
+    self.addCleanup(pool_patcher.stop)
 
     config_dir = temp.TempDirPath()
     self.label1_config = os.path.join(config_dir, "label1.yaml")
@@ -55,10 +56,6 @@ class MultiRepackTest(absltest.TestCase):
     open(self.xar_template, mode="wb").write("darwin")
 
     self.output_dir = temp.TempDirPath()
-
-  def tearDown(self):
-    super(MultiRepackTest, self).tearDown()
-    self.pool_patcher.stop()
 
   def testMultipleRepackingNoSigning(self):
     client_build.MultiTemplateRepacker().RepackTemplates(

@@ -13,23 +13,20 @@ from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_core.lib.util import compatibility
-from grr_response_core.stats import stats_collector_instance
-from grr_response_core.stats import stats_test_utils
-from grr_response_core.stats import stats_utils
 from grr_response_server import aff4
 from grr_response_server import client_report_utils
-from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import db
-from grr_response_server import prometheus_stats_collector
-from grr_response_server import stats_store
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.cron import system
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 
 class SystemCronTestMixin(object):
@@ -287,75 +284,97 @@ class SystemCronJobTest(SystemCronTestMixin, test_lib.GRRBaseTest):
 
     self._CheckLastAccessStats()
 
-  def testPurgeServerStats(self):
-    if not data_store.RelationalDBReadEnabled():
-      self.skipTest("Test is only for the relational DB. Skipping...")
-    fake_stats_collector = prometheus_stats_collector.PrometheusStatsCollector([
-        stats_utils.CreateCounterMetadata("fake_counter"),
-    ])
-    timestamp0 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)
-    timestamp1 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)
-    timestamp2 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600)
-    timestamp3 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4800)
-    config_overrides = {
-        "Database.useForReads.stats": True,
-        "StatsStore.stats_ttl_hours": 1
-    }
-    zero_duration = rdfvalue.Duration(0)
-    # Backslash continuation is explicitly allowed by Google's style guide for
-    # nested context manager expressions spanning 3 or more lines.
-    # pylint: disable=g-backslash-continuation
-    with test_lib.ConfigOverrider(config_overrides), \
-         stats_test_utils.FakeStatsContext(fake_stats_collector), \
-         mock.patch.object(system, "_STATS_DELETION_BATCH_SIZE", 1), \
-         mock.patch.object(system, "_stats_checkpoint_period", zero_duration):
-      with test_lib.FakeTime(rdfvalue.RDFDatetime(timestamp0)):
-        stats_store._WriteStats(process_id="fake_process_id")
-      with test_lib.FakeTime(rdfvalue.RDFDatetime(timestamp1)):
-        stats_collector_instance.Get().IncrementCounter("fake_counter")
-        stats_store._WriteStats(process_id="fake_process_id")
-        expected_results = {
-            "fake_process_id": {
-                "fake_counter": [(0, timestamp0), (1, timestamp1)]
-            }
-        }
-        self.assertDictEqual(
-            stats_store.ReadStats("f", "fake_counter"), expected_results)
-      with test_lib.FakeTime(timestamp2):
-        stats_store._WriteStats(process_id="fake_process_id")
-        expected_results = {
-            "fake_process_id": {
-                "fake_counter": [(0, timestamp0), (1, timestamp1),
-                                 (1, timestamp2)]
-            }
-        }
-        self.assertDictEqual(
-            stats_store.ReadStats("f", "fake_counter"), expected_results)
-      with test_lib.FakeTime(timestamp3):
-        cron_name = compatibility.GetName(system.PurgeServerStatsCronJob)
-        cronjobs.ScheduleSystemCronJobs(names=[cron_name])
-        job_data = data_store.REL_DB.ReadCronJobs([cron_name])[0]
-        cron_run = rdf_cronjobs.CronJobRun(cron_job_id=cron_name)
-        cron_run.GenerateRunId()
-        cron_run.started_at = rdfvalue.RDFDatetime.Now()
-        cron = system.PurgeServerStatsCronJob(cron_run, job_data)
-        cron.Run()
-        # timestamp0 and timestamp1 are older than 1h, so they should get
-        # deleted.
-        expected_results = {
-            "fake_process_id": {
-                "fake_counter": [(1, timestamp2)]
-            }
-        }
-        self.assertDictEqual(
-            stats_store.ReadStats("f", "fake_counter"), expected_results)
-        self.assertEqual("Deleted 2 stats entries.\nDeleted 1 stats entries.",
-                         cron.run_state.log_message)
-
   def _RunPurgeClientStats(self):
     run = rdf_cronjobs.CronJobRun()
     job = rdf_cronjobs.CronJob()
     system.PurgeClientStatsCronJob(run, job).Run()
+
+
+@db_test_lib.DualDBTest
+class UpdateFSLastPingTimestampsTest(test_lib.GRRBaseTest):
+
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  def testCronJob(self, fs_conn_mock):
+    if not data_store.RelationalDBReadEnabled():
+      self.skipTest("Test is only for the relational DB. Skipping...")
+
+    client_id1 = "C.0000000000000001"
+    client_id2 = "C.0000000000000002"
+    client_id3 = "C.0000000000000003"
+    client_id4 = "C.0000000000000004"
+    client_id5 = "C.0000000000000005"
+    client_id6 = "C.0000000000000006"
+    client_id7 = "C.0000000000000007"
+
+    data_store.REL_DB.WriteClientMetadata(client_id1, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id2, fleetspeak_enabled=True)
+    data_store.REL_DB.WriteClientMetadata(
+        client_id3,
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        fleetspeak_enabled=True)
+    data_store.REL_DB.WriteClientMetadata(
+        client_id4,
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(41),
+        fleetspeak_enabled=True)
+    data_store.REL_DB.WriteClientMetadata(
+        client_id5,
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
+        fleetspeak_enabled=True)
+    data_store.REL_DB.WriteClientMetadata(
+        client_id6,
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(61),
+        fleetspeak_enabled=True)
+    data_store.REL_DB.WriteClientMetadata(
+        client_id7,
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(68),
+        fleetspeak_enabled=True)
+
+    fs_enabled_ids = [
+        client_id2, client_id3, client_id4, client_id5, client_id6, client_id7
+    ]
+    fs_clients = {}
+    for i, client_id in enumerate(fs_enabled_ids):
+      client_number = i + 2
+      fs_client_id = fleetspeak_utils.GRRIDToFleetspeakID(client_id)
+      fs_client = admin_pb2.Client(client_id=fs_client_id)
+      fs_client.last_contact_time.FromSeconds(client_number * 10)
+      fs_clients[fs_client_id] = fs_client
+
+    def FakeListClients(list_request):
+      clients = []
+      for fs_client_id in list_request.client_ids:
+        clients.append(fs_clients[fs_client_id])
+      return admin_pb2.ListClientsResponse(clients=clients)
+
+    fs_conn_mock.outgoing.ListClients = FakeListClients
+
+    cron_run = rdf_cronjobs.CronJobRun()
+    job_data = rdf_cronjobs.CronJob()
+    cron = system.UpdateFSLastPingTimestamps(cron_run, job_data)
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)):
+      with test_lib.ConfigOverrider({
+          "Server.fleetspeak_last_ping_threshold": "35s",
+          "Server.fleetspeak_list_clients_batch_size": 2,
+      }):
+        cron.Run()
+
+    actual_timestamps = data_store.REL_DB.ReadClientLastPings()
+    expected_timestamps = {
+        # Skipped because not a Fleetspeak client.
+        client_id1: None,
+        client_id2: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(20),
+        client_id3: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(30),
+        # Skipped because FS timestamp is old.
+        client_id4: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(41),
+        client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(50),
+        # Skipped because FS timestamp is old.
+        client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(61),
+        # Skipped because existing GRR timestamp is too recent.
+        client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(68),
+    }
+    self.assertEqual(actual_timestamps, expected_timestamps)
+    self.assertMultiLineEqual(cron._log_messages.popleft(),
+                              "Updated timestamps for 3 clients.")
 
 
 def main(argv):

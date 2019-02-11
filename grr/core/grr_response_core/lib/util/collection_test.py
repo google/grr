@@ -9,6 +9,34 @@ from future.builtins import range
 from grr_response_core.lib.util import collection
 
 
+class FlattenTest(absltest.TestCase):
+
+  def testList(self):
+    flattened = collection.Flatten([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    self.assertListEqual(list(flattened), [1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+  def testTuple(self):
+    flattened = collection.Flatten(((4, 8, 15), (16, 23, 42)))
+    self.assertListEqual(list(flattened), [4, 8, 15, 16, 23, 42])
+
+  def testGenerator(self):
+
+    def Foo():
+      yield "foo"
+      yield "bar"
+
+    def Quux():
+      yield "baz"
+      yield "quux"
+
+    def Norf():
+      yield Foo()
+      yield Quux()
+
+    flattened = collection.Flatten(Norf())
+    self.assertListEqual(list(flattened), ["foo", "bar", "baz", "quux"])
+
+
 class TrimTest(absltest.TestCase):
 
   def testEmpty(self):

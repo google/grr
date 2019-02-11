@@ -81,7 +81,8 @@ def _LogInvalidRunLevels(states, valid):
     if state not in valid:
       invalid.add(state)
   if invalid:
-    logging.warn("Invalid init runlevel(s) encountered: %s", ", ".join(invalid))
+    logging.warning("Invalid init runlevel(s) encountered: %s",
+                    ", ".join(invalid))
 
 
 def GetRunlevelsLSB(states):

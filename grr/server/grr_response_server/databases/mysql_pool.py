@@ -101,7 +101,7 @@ class _ConnectionProxy(object):
 
   def __del__(self):
     if self.con:
-      logging.warn("Connection deleted without closing.")
+      logging.warning("Connection deleted without closing.")
       self.close()
 
   def close(self):

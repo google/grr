@@ -39,13 +39,10 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
                       **unused_kwargs):
       self.messages_sent.append(message)
 
-    self.email_stubber = utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail",
-                                       SendEmailStub)
-    self.email_stubber.Start()
-
-  def tearDown(self):
-    super(TestEmailLinks, self).tearDown()
-    self.email_stubber.Stop()
+    email_stubber = utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail",
+                                  SendEmailStub)
+    email_stubber.Start()
+    self.addCleanup(email_stubber.Stop)
 
   def _ExtractLinkFromMessage(self, message):
     m = re.search(r"href='(.+?)'", message, re.MULTILINE)

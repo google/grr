@@ -1,0 +1,46 @@
+syntax = "proto2";
+
+
+// https://github.com/facebook/osquery/blob/5188ce5288abe0e323b8e8bd364f452134a62d00/include/osquery/tables.h#L134
+enum OsqueryType {
+  UNKNOWN = 0;
+  TEXT = 1;
+  INTEGER = 2;
+  BIGINT = 3;
+  UNSIGNED_BIGINT = 4;
+  DOUBLE = 5;
+  BLOB = 6;
+}
+
+// Next field id: 2.
+message OsqueryArgs {
+  repeated string queries = 1;
+}
+
+// Next field id: 3.
+message OsqueryColumn {
+  optional string name = 1;
+  optional OsqueryType type = 2;
+}
+
+// Next field id: 2.
+message OsqueryHeader {
+  repeated OsqueryColumn columns = 1;
+}
+
+// Next field id: 2.
+message OsqueryRow {
+  repeated string values = 1;
+}
+
+// Next field id: 4.
+message OsqueryTable {
+  optional string query = 1;
+  optional OsqueryHeader header = 2;
+  repeated OsqueryRow rows = 3;
+}
+
+// Next field id: 2.
+message OsqueryResult {
+  repeated OsqueryTable tables = 1;
+}

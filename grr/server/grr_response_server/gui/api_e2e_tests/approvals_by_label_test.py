@@ -72,29 +72,25 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
 
     cls = (api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
     cls.ClearCache()
-    self.approver = test_lib.ConfigOverrider({
+    approver = test_lib.ConfigOverrider({
         "API.DefaultRouter":
             cls.__name__,
         "ACL.approvers_config_file":
             os.path.join(self.base_path, "approvers.yaml")
     })
-    self.approver.Start()
+    approver.Start()
+    self.addCleanup(approver.Stop)
 
     # Get a fresh approval manager object and reload with test approvers.
-    self.approval_manager_stubber = utils.Stubber(
+    approval_manager_stubber = utils.Stubber(
         client_approval_auth, "CLIENT_APPROVAL_AUTH_MGR",
         client_approval_auth.ClientApprovalAuthorizationManager())
-    self.approval_manager_stubber.Start()
+    approval_manager_stubber.Start()
+    self.addCleanup(approval_manager_stubber.Stop)
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.
     api_auth_manager.APIACLInit.InitApiAuthManager()
-
-  def tearDown(self):
-    super(ApprovalByLabelE2ETest, self).tearDown()
-
-    self.approval_manager_stubber.Stop()
-    self.approver.Stop()
 
   def testClientNoLabels(self):
     self.TouchFile(rdf_client.ClientURN(self.client_nolabel_id), "fs/os/foo")

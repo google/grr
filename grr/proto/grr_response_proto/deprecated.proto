@@ -245,3 +245,97 @@ message AnalyzeClientMemoryArgs {
       label: ADVANCED,
     }, default="1.6.0"];
 }
+
+message ApiListStatsStoreMetricsMetadataArgs {
+  enum Component {
+    WORKER = 0;
+    FRONTEND = 1;
+    ADMIN_UI = 2;
+  }
+  optional Component component = 1;
+}
+
+message ApiListStatsStoreMetricsMetadataResult {
+  repeated MetricMetadata items = 1;
+}
+
+message ApiGetStatsStoreMetricArgs {
+  enum Component {
+    WORKER = 0;
+    FRONTEND = 1;
+    ADMIN_UI = 2;
+  }
+  optional Component component = 1;
+  optional string metric_name = 2;
+
+  optional uint64 start = 3 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Fetch metrics data starting from this timestamp. If "
+                 "not set, will default to 1 hour ago."
+  }];
+  optional uint64 end = 4 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Fetch metrics data from the interval ending with "
+                 "this timestamp. If not set, will default to the current time."
+  }];
+
+  optional uint64 rate = 7 [(sem_type) = {
+    type: "Duration",
+    description: "If set, metric's rate over given window will be returned "
+                 "instead of plain values."
+  }];
+
+  enum DistributionHandlingMode {
+    DH_SUM = 0 [(description) = "Sum of all values recorded in a distribution "
+                                "will be fetched."];
+    DH_COUNT = 1
+        [(description) = "Number of all values recorded in a distribution "
+                         "will be fetched."];
+  };
+  optional DistributionHandlingMode distribution_handling_mode = 5 [(sem_type) = {
+    description: "Determines which values to fetch when dealing with distributions."
+  }];
+
+  enum AggregationMode {
+    AGG_SUM = 0 [(description) = "Values will be summed."];
+    AGG_MEAN = 1 [(description) = "Mean value will be calculated."];
+    AGG_NONE = 2 [(description) = "No aggregation will be performed."];
+  };
+  optional AggregationMode aggregation_mode = 6 [(sem_type) = {
+    description: "Aggregation method. As metrics are usually collected across "
+                 "multiple processes, most of the time they have to be aggregated."
+  }];
+}
+
+message StatsStoreFieldValue {
+  optional MetricFieldDefinition.FieldType field_type = 1;
+
+  optional string str_value = 2;
+  optional int64 int_value = 3;
+}
+
+message StatsStoreValue {
+  optional MetricMetadata.ValueType value_type = 1;
+
+  optional string str_value = 2;
+  optional int64 int_value = 3;
+  optional float float_value = 4;
+  optional Distribution distribution_value = 5;
+
+  repeated StatsStoreFieldValue fields_values = 6;
+}
+
+message StatsStoreEntry {
+  optional string process_id = 1 [(sem_type) = {
+    description: "Stats identifier for the monitored process, e.g 'frontend_2'."
+  }];
+  optional string metric_name = 2
+      [(sem_type) = { description: "Name of the metric." }];
+  optional StatsStoreValue metric_value = 3 [(sem_type) = {
+    description: "Value of the metric at a given point in time."
+  }];
+  optional uint64 timestamp = 4 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Timestamp for when the metric value was observed.",
+  }];
+}

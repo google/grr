@@ -42,14 +42,11 @@ class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.endpoint = "http://localhost:%s" % self.port
     self.api = grr_api.InitHttp(api_endpoint=self.endpoint)
 
-    self.poll_stubber = utils.MultiStubber(
+    poll_stubber = utils.MultiStubber(
         (grr_api_utils, "DEFAULT_POLL_INTERVAL", 0.1),
         (grr_api_utils, "DEFAULT_POLL_TIMEOUT", 10))
-    self.poll_stubber.Start()
-
-  def tearDown(self):
-    super(ApiE2ETest, self).tearDown()
-    self.poll_stubber.Stop()
+    poll_stubber.Start()
+    self.addCleanup(poll_stubber.Stop)
 
   _api_set_up_lock = threading.RLock()
   _api_set_up_done = False
@@ -75,6 +72,7 @@ class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def tearDownClass(cls):
     super(ApiE2ETest, cls).tearDownClass()
     ApiE2ETest.trd.Stop()
+    ApiE2ETest._api_set_up_done = False
 
 
 class RootApiBinaryManagementTestRouter(

@@ -1,7 +1,7 @@
 goog.module('grrUi.hunt.huntStatsDirective');
 goog.module.declareLegacyNamespace();
 
-const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
+const {ApiService} = goog.require('grrUi.core.apiService');
 
 
 /**
@@ -9,18 +9,12 @@ const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angular.jQuery} $element
  * @param {!ApiService} grrApiService
  * @ngInject
  */
-const HuntStatsController = function(
-    $scope, $element, grrApiService) {
-
+const HuntStatsController = function($scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
-
-  /** @private {!angular.jQuery} */
-  this.element_ = $element;
 
   /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
@@ -40,10 +34,82 @@ const HuntStatsController = function(
   /** @export {number} */
   this.totalClientCount;
 
-  $scope.$watch('huntId', this.onHuntIdChange_.bind(this));
+  this.scope_.$watch('huntId', x => this.onHuntIdChange_(x));
 };
 
 
+/**
+ * Formats seconds to properly display them as histogram labels.
+ *
+ * @param {number} value The number of seconds.
+ * @return {string} A string corresponding to a histogram label.
+ * @private
+ */
+function formatSeconds(value) {
+  return '< ' + value.toFixed(1) + 's';
+}
+
+/**
+ * Formats byte values to properly display them as histogram labels.
+ *
+ * @param {number} value The number of bytes.
+ * @return {string} A string corresponding to a histogram label.
+ * @private
+ */
+function formatBytes(value) {
+  // TODO(user): Once we have the bytesFilter implemented, we can use it
+  // here.
+  if (value < 1024) {
+    return `< ${value} B`;
+  } else {
+    return `< ${Math.round(value / 1024)} KiB`;
+  }
+}
+
+
+/**
+ * Convert histogram values returned by the API call to the format expected
+ * by grr-comparison-chart directive.
+ *
+ * @param {!Object} data Source histogram data returned by
+ *     /hunts/<hunt id>/stats API call.
+ * @param {function(number):string} labelFormatFn Function to format histogram
+ *     labels.
+ * @return {!Object} Data structure suitable for grr-comparison-chart input.
+ * @private
+ */
+HuntStatsController.prototype.convertHistogramToComparisonChart_ = function(
+    data, labelFormatFn) {
+  const series = [];
+  let mean = undefined;
+  let stdev = undefined;
+
+  if (data !== undefined) {
+    for (const bin of data['value']['histogram']['value']['bins']) {
+      let num = 0;
+      if (bin['value']['num'] !== undefined) {
+        num = bin['value']['num']['value'];
+      }
+
+      series.push({
+        value: {
+          label:
+              {value: labelFormatFn(bin['value']['range_max_value']['value'])},
+          x: {value: num}
+        }
+      });
+    }
+
+    if (data['value']['num']) {
+      mean = data['value']['sum']['value'] / data['value']['num']['value'];
+      stdev = Math.sqrt(
+          data['value']['sum_sq']['value'] / data['value']['num']['value'] -
+          Math.pow(mean, 2));
+    }
+  }
+
+  return {mean, stdev, value: {data: series}};
+};
 
 /**
  * Handles huntId attribute changes.
@@ -55,126 +121,20 @@ HuntStatsController.prototype.onHuntIdChange_ = function(huntId) {
     return;
   }
 
-  var url = '/hunts/' + huntId + '/stats';
-  this.grrApiService_.get(url).then(function success(response) {
+  var url = `/hunts/${huntId}/stats`;
+  this.grrApiService_.get(url).then((response) => {
     this.stats = response.data['stats'];
 
-    var strippedStats = stripTypeInfo(this.stats);
-    this.userCpuStats = this.parseStats_(strippedStats['user_cpu_stats'], null);
-    this.systemCpuStats = this.parseStats_(strippedStats['system_cpu_stats'], null);
-    this.networkBytesStats = this.parseStats_(strippedStats['network_bytes_sent_stats'], this.formatBytes_);
+    this.userCpuStats = this.convertHistogramToComparisonChart_(
+        this.stats['value']['user_cpu_stats'], formatSeconds);
+    this.systemCpuStats = this.convertHistogramToComparisonChart_(
+        this.stats['value']['system_cpu_stats'], formatSeconds);
+    this.networkBytesStats = this.convertHistogramToComparisonChart_(
+        this.stats['value']['network_bytes_sent_stats'], formatBytes);
 
-    if (strippedStats['user_cpu_stats']) {
-      this.totalClientCount = strippedStats['user_cpu_stats']['num'];
-    }
-
-    this.drawHistograms_();
-  }.bind(this));
-};
-
-/**
- * Formats byte values to properly display them on the x-axis of histogram.
- * @param {number} value The number of bytes.
- * @return {string} A string representation of the number of bytes.
- * @private
- */
-HuntStatsController.prototype.formatBytes_ = function(value) {
-  // TODO(user): Once we have the bytesFilter implemented, we can use it here.
-  if (value < 1024) {
-    return value + 'B';
-  } else {
-    return Math.round(value / 1024) + 'K';
-  }
-};
-
-/**
- * Parses the running stats to a format better suited for displaying.
- * @param {!Object} stats A stat element.
- * @param {?function(number) : string} xAxisFormatter An optional formatter for x-axis labels.
- * @return {Object} An object holding properties for displaying.
- * @private
- */
-HuntStatsController.prototype.parseStats_ = function(stats, xAxisFormatter){
-  if (!stats) {
-    return null;
-  }
-
-  var mean = 0;
-  if (stats['num']) {
-    mean = stats['sum'] / stats['num'];
-  }
-
-  var stdev = 0;
-  if (stats['num']) {
-    stdev = Math.sqrt(stats['sum_sq'] / stats['num'] - Math.pow(mean, 2));
-  }
-
-  var histogramData = [];
-  var histogramTicks = [];
-  angular.forEach(stats['histogram']['bins'], function(item, index) {
-    var value = item['num'] || 0;
-    histogramData.push([index, value]);
-
-    var range = item['range_max_value'];
-    var xValue = range % 1 != 0 ? range.toFixed(1) : range;
-    if (xAxisFormatter) {
-      xValue = xAxisFormatter(xValue);
-    }
-    histogramTicks.push([index + 0.5, xValue]); // +0.5 to center align the tick label.
-  });
-
-  return {
-    mean: mean,
-    stdev: stdev,
-    histogram: {
-      data: histogramData,
-      ticks: histogramTicks
-    }
-  };
-};
-
-/**
- * Redraws the histograms.
- * @private
- */
-HuntStatsController.prototype.drawHistograms_ = function() {
-  if (this.userCpuStats) {
-    var userCpuGraphElement = this.element_.find('.user-cpu-histogram');
-    this.drawSingleHistogram_(userCpuGraphElement, this.userCpuStats.histogram);
-  }
-
-  if (this.systemCpuStats) {
-    var systemCpuGraphElement = this.element_.find('.system-cpu-histogram');
-    this.drawSingleHistogram_(systemCpuGraphElement, this.systemCpuStats.histogram);
-  }
-
-  if (this.networkBytesStats) {
-    var networkBytesGraphElement = this.element_.find('.network-bytes-histogram');
-    this.drawSingleHistogram_(networkBytesGraphElement, this.networkBytesStats.histogram);
-  }
-};
-
-/**
- * Redraw a specific histogram.
- * @param {!jQuery} element The container element.
- * @param {!Object} histogram Contains the data for the histogram.
- * @private
- */
-HuntStatsController.prototype.drawSingleHistogram_ = function(element, histogram) {
-  $.plot(element, [{
-    data: histogram['data'],
-    bars: {
-      show: true,
-      lineWidth: 1
-    }
-  }], {
-    xaxis: {
-      tickLength: 0,
-      ticks: histogram['ticks']
-    },
-    yaxis: {
-      minTickSize: 1,
-      tickDecimals: 0
+    if (this.stats['value']['user_cpu_stats']) {
+      this.totalClientCount =
+          this.stats['value']['user_cpu_stats']['num']['value'];
     }
   });
 };

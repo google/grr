@@ -416,6 +416,7 @@ class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.client_id = self.SetupClient(0)
     self.handler = client_plugin.ApiInterrogateClientHandler()
 
+  @db_test_lib.LegacyDataStoreOnly  # TODO: Migrate test.
   def testInterrogateFlowIsStarted(self):
     flows_fd = aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
     flows_urns = list(flows_fd.ListChildren())
@@ -455,13 +456,10 @@ class ApiGetClientVersionTimesTestRelational(ApiGetClientVersionTimesTestMixin,
   def setUp(self):
     super(ApiGetClientVersionTimesTestRelational, self).setUp()
 
-    self.enable_relational_db = test_lib.ConfigOverrider(
+    enable_relational_db = test_lib.ConfigOverrider(
         {"Database.useForReads": True})
-    self.enable_relational_db.Start()
-
-  def tearDown(self):
-    super(ApiGetClientVersionTimesTestRelational, self).tearDown()
-    self.enable_relational_db.Stop()
+    enable_relational_db.Start()
+    self.addCleanup(enable_relational_db.Stop)
 
   def _SetUpClient(self):
     for time in [42, 45, 100]:
@@ -582,7 +580,7 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
       self.assertIsNone(ipaddr_obj)
 
 
-@db_test_lib.DualDBTest
+@db_test_lib.TestDatabases()
 class ApiSearchClientsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):

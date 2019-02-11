@@ -19,13 +19,10 @@ class HuntsWithRapidHuntingDisabledTest(gui_test_lib.GRRSeleniumHuntTest):
 
   def setUp(self):
     super(HuntsWithRapidHuntingDisabledTest, self).setUp()
-    self._config_overrider = test_lib.ConfigOverrider(
+    config_overrider = test_lib.ConfigOverrider(
         {"AdminUI.rapid_hunts_enabled": False})
-    self._config_overrider.Start()
-
-  def tearDown(self):
-    super(HuntsWithRapidHuntingDisabledTest, self).tearDown()
-    self._config_overrider.Stop()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
   def testNewHuntWizardDoesNotSetClientRateOrMentionRapidHunts(self):
     self.Open("/#/hunts")
@@ -97,13 +94,10 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
 
   def setUp(self):
     super(HuntsWithRapidHuntingEnabledTest, self).setUp()
-    self._config_overrider = test_lib.ConfigOverrider(
+    config_overrider = test_lib.ConfigOverrider(
         {"AdminUI.rapid_hunts_enabled": True})
-    self._config_overrider.Start()
-
-  def tearDown(self):
-    super(HuntsWithRapidHuntingEnabledTest, self).tearDown()
-    self._config_overrider.Stop()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
   def testClientRateSetTo0WhenFlowIsEligible(self):
     self.Open("/#/hunts")

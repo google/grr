@@ -544,7 +544,7 @@ class BlobsMigrator(object):
         bid = rdf_objects.BlobID.FromBlobData(content_bytes)
         blobs[bid] = content_bytes
 
-    data_store.REL_DB.WriteBlobs(blobs)
+    data_store.BLOBS.WriteBlobs(blobs)
 
     with self._lock:
       self._migrated_count += len(batch)

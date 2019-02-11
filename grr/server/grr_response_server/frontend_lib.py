@@ -220,6 +220,9 @@ class RelationalServerCommunicator(communicator.Communicator):
       raise communicator.UnknownClientCertError("Cert not found")
 
     cert = md.certificate
+    if cert is None:
+      raise communicator.UnknownClientCertError("Cert not found")
+
     if rdfvalue.RDFURN(cert.GetCN()) != rdfvalue.RDFURN(common_name):
       logging.error("Stored cert mismatch for %s", common_name)
       raise communicator.UnknownClientCertError("Stored cert mismatch")

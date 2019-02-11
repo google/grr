@@ -24,6 +24,14 @@ from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
+class Error(Exception):
+  """Base class for exceptions triggered in this package."""
+
+
+class TimeOutWhileWaitingForFlowsToBeProcessedError(Error):
+  """Raised by WaitUntilNoFlowsToProcess when waiting longer than time limit."""
+
+
 class InMemoryDBFlowMixin(object):
   """InMemoryDB mixin for flow handling."""
 
@@ -62,7 +70,6 @@ class InMemoryDBFlowMixin(object):
       if r.request_id in flow_dict:
         del flow_dict[r.request_id]
 
-  @utils.Synchronized
   def RegisterMessageHandler(self, handler, lease_time, limit=1000):
     """Leases a number of message handler requests up to the indicated limit."""
     self.UnregisterMessageHandler()
@@ -75,7 +82,6 @@ class InMemoryDBFlowMixin(object):
     self.handler_thread.daemon = True
     self.handler_thread.start()
 
-  @utils.Synchronized
   def UnregisterMessageHandler(self, timeout=None):
     """Unregisters any registered message handler."""
     if self.handler_thread:
@@ -129,8 +135,10 @@ class InMemoryDBFlowMixin(object):
           continue
         msg = orig_msg.Copy()
         current_lease = self.client_message_leases.get(msg.task_id)
+        msg.ttl = db.Database.CLIENT_MESSAGES_TTL
         if current_lease:
-          msg.leased_until, msg.leased_by, _ = current_lease
+          msg.leased_until, msg.leased_by, lease_count = current_lease
+          msg.ttl -= lease_count
         res.append(msg)
 
     return res
@@ -179,16 +187,16 @@ class InMemoryDBFlowMixin(object):
         if not existing_lease or existing_lease[0] < now:
           if existing_lease:
             lease_count = existing_lease[-1] + 1
-            # >= comparison since this check happens before the lease.
-            if lease_count >= db.Database.CLIENT_MESSAGES_TTL:
+            if lease_count > db.Database.CLIENT_MESSAGES_TTL:
               self._DeleteClientMessage(client_id, msg.task_id)
               continue
-            leases[msg.task_id] = (expiration_time, process_id_str, lease_count)
           else:
-            leases[msg.task_id] = (expiration_time, process_id_str, 0)
+            lease_count = 1
 
+          leases[msg.task_id] = (expiration_time, process_id_str, lease_count)
           msg.leased_until = expiration_time
           msg.leased_by = process_id_str
+          msg.ttl = db.Database.CLIENT_MESSAGES_TTL - lease_count
           leased_messages.append(msg)
           if len(leased_messages) >= limit:
             break
@@ -604,7 +612,6 @@ class InMemoryDBFlowMixin(object):
     self.flow_handler_thread.daemon = True
     self.flow_handler_thread.start()
 
-  @utils.Synchronized
   def UnregisterFlowProcessingHandler(self, timeout=None):
     """Unregisters any registered flow processing handler."""
     self.flow_handler_target = None
@@ -616,18 +623,60 @@ class InMemoryDBFlowMixin(object):
         raise RuntimeError("Flow processing handler did not join in time.")
       self.flow_handler_thread = None
 
+  @utils.Synchronized
+  def _GetFlowRequestsReadyForProcessing(self):
+    now = rdfvalue.RDFDatetime.Now()
+    todo = []
+    for r in list(itervalues(self.flow_processing_requests)):
+      if r.delivery_time is None or r.delivery_time <= now:
+        todo.append(r)
+
+    return todo
+
+  def WaitUntilNoFlowsToProcess(self, timeout=None):
+    """Waits until flow processing thread is done processing flows.
+
+    Args:
+      timeout: If specified, is a max number of seconds to spend waiting.
+
+    Raises:
+      TimeOutWhileWaitingForFlowsToBeProcessedError: if timeout is reached.
+    """
+    t = self.flow_handler_thread
+    if not t:
+      return
+
+    start_time = time.time()
+    while True:
+      with self.lock:
+        # If the thread is dead, or there are no requests
+        # to be processed/being processed, we stop waiting
+        # and return from the function.
+        if (not t.isAlive() or
+            (not self._GetFlowRequestsReadyForProcessing() and
+             not self.flow_handler_num_being_processed)):
+          return
+
+      time.sleep(0.2)
+
+      if timeout and time.time() - start_time > timeout:
+        raise TimeOutWhileWaitingForFlowsToBeProcessedError(
+            "Flow processing didn't finish in time.")
+
   def _HandleFlowProcessingRequestLoop(self, handler):
     """Handler thread for the FlowProcessingRequest queue."""
     while not self.flow_handler_stop:
-      now = rdfvalue.RDFDatetime.Now()
-      todo = []
-      for r in list(itervalues(self.flow_processing_requests)):
-        if r.delivery_time is None or r.delivery_time <= now:
-          todo.append(r)
-          del self.flow_processing_requests[(r.client_id, r.flow_id)]
+      with self.lock:
+        todo = self._GetFlowRequestsReadyForProcessing()
+        for request in todo:
+          self.flow_handler_num_being_processed += 1
+          del self.flow_processing_requests[(request.client_id,
+                                             request.flow_id)]
 
       for request in todo:
         handler(request)
+        with self.lock:
+          self.flow_handler_num_being_processed -= 1
 
       time.sleep(0.2)
 

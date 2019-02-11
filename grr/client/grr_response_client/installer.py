@@ -66,7 +66,7 @@ def RunInstaller():
   config.CONFIG.AddContext(contexts.INSTALLER_CONTEXT,
                            "Context applied when we run the client installer.")
 
-  logging.warn("Starting installation procedure for GRR client.")
+  logging.warning("Starting installation procedure for GRR client.")
   try:
     Installer().Init()
   except Exception as e:  # pylint: disable=broad-except

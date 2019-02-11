@@ -19,6 +19,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
@@ -184,6 +185,11 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
 
     # Run the clients and worker until nothing changes any more.
     while iteration_limit is None or num_iterations < iteration_limit:
+      worker_processed = []
+      if data_store.RelationalDBFlowsEnabled():
+        data_store.REL_DB.delegate.WaitUntilNoFlowsToProcess(timeout=10)
+        worker_processed = rel_db_worker.ResetProcessedFlows()
+
       client_processed = 0
 
       for client_mock in client_mocks:
@@ -195,7 +201,6 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
         total_flows.add(flow_run)
         flows_run.append(flow_run)
 
-      worker_processed = rel_db_worker.ResetProcessedFlows()
       flows_run.extend(worker_processed)
 
       num_iterations += 1
@@ -296,7 +301,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
           client_rate=client_rate,
           args=hunt_args,
           **kwargs)
-      data_store.REL_DB.WriteHuntObject(hunt_obj)
+      hunt.CreateHunt(hunt_obj)
 
       return hunt_obj.hunt_id
 
@@ -382,6 +387,15 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       self.AssignTasksToClients(client_ids=client_ids, worker=test_worker)
       return TestHuntHelperWithMultipleMocks(client_mocks, False, self.token)
 
+  def _EnsureClientHasHunt(self, client_id, hunt_id):
+    try:
+      data_store.REL_DB.ReadFlowObject(client_id, hunt_id)
+    except db.UnknownFlowError:
+      flow_test_lib.StartFlow(
+          transfer.GetFile, client_id=client_id, parent_hunt_id=hunt_id)
+
+    return hunt_id
+
   def AddResultsToHunt(self, hunt_id, client_id, values):
     if isinstance(client_id, rdfvalue.RDFURN):
       client_id = client_id.Basename()
@@ -390,8 +404,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       hunt_id = hunt_id.Basename()
 
     if data_store.RelationalDBReadEnabled("hunts"):
-      flow_id = flow_test_lib.StartFlow(
-          transfer.GetFile, client_id=client_id, parent_hunt_id=hunt_id)
+      flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
       for value in values:
         data_store.REL_DB.WriteFlowResults([
@@ -419,8 +432,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       hunt_id = hunt_id.Basename()
 
     if data_store.RelationalDBReadEnabled("hunts"):
-      flow_id = flow_test_lib.StartFlow(
-          transfer.GetFile, client_id=client_id, parent_hunt_id=hunt_id)
+      flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
       data_store.REL_DB.WriteFlowLogEntries([
           rdf_flow_objects.FlowLogEntry(
@@ -450,8 +462,8 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       hunt_id = hunt_id.Basename()
 
     if data_store.RelationalDBReadEnabled("hunts"):
-      flow_id = flow_test_lib.StartFlow(
-          transfer.GetFile, client_id=client_id, parent_hunt_id=hunt_id)
+      flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
+
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
       flow_obj.flow_state = flow_obj.FlowState.ERROR
       flow_obj.error_message = message

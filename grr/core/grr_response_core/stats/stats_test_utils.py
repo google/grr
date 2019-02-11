@@ -16,7 +16,6 @@ from future.utils import with_metaclass
 import mock
 
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_core.stats import stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_utils
 
@@ -29,8 +28,6 @@ def FakeStatsContext(fake_stats_collector):
                            fake_stats_collector)
 
 
-# TODO:
-# pytype: disable=ignored-abstractmethod
 class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
   """Stats collection tests.
 
@@ -55,9 +52,6 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
   @abc.abstractmethod
   def _CreateStatsCollector(self, metadata_list):
     """Creates a new stats collector with the given metadata."""
-    # Return a mock stats collector to satisfy type-checking (pytype).
-    # TODO
-    return mock.Mock(spec_set=stats_collector.StatsCollector)
 
   def _Sleep(self, n):
     """Simulates sleeping for a given number of seconds."""
@@ -498,7 +492,3 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
       Func4(1.1)
       m = collector.GetMetricValue(event_metric_name)
       self.assertEqual(m.bins_heights, {-_INF: 0, 0: 1, 1: 1, 2: 0})
-
-
-# TODO:
-# pytype: enable=ignored-abstractmethod

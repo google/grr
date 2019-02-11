@@ -340,8 +340,8 @@ class QueueManager(object):
               list(itervalues(self.client_messages_to_delete)))
       else:
         messages_by_queue = collection.Group(
-            list(itervalues(self.client_messages_to_delete)),
-            lambda request: request.queue)
+            list(itervalues(
+                self.client_messages_to_delete)), lambda request: request.queue)
         for queue, messages in iteritems(messages_by_queue):
           self.Delete(queue, messages, mutation_pool=mutation_pool)
 
@@ -510,7 +510,7 @@ class QueueManager(object):
             notification.last_status > existing.last_status):
           # Multiple notifications with the same timestamp should not happen.
           # We can still do the correct thing and use the latest one.
-          logging.warn(
+          logging.warning(
               "Notifications with equal first_queued fields detected: %s %s",
               notification, existing)
           notifications_by_session_id[notification.session_id] = notification
@@ -621,7 +621,9 @@ class QueueManager(object):
     """
     if data_store.RelationalDBReadEnabled(category="client_messages"):
       return data_store.REL_DB.LeaseClientMessages(
-          queue.Split()[0], lease_time=rdfvalue.Duration("%ds" % lease_seconds))
+          queue.Split()[0],
+          lease_time=rdfvalue.Duration("%ds" % lease_seconds),
+          limit=limit)
     with self.data_store.GetMutationPool() as mutation_pool:
       return mutation_pool.QueueQueryAndOwn(queue, lease_seconds, limit,
                                             self.frozen_timestamp)

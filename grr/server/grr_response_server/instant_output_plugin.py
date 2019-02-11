@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import functools
-import itertools
 import re
 
 
@@ -262,7 +261,7 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
     next_types = set()
     processed_types = set()
     while True:
-      converted_responses = itertools.chain.from_iterable(
+      converted_responses = collection.Flatten(
           self._GenerateConvertedValues(converter, values_generator_fn())
           for converter in converters)
 

@@ -11,6 +11,7 @@ import shutil
 import tempfile
 
 from absl import flags
+from absl import logging
 from typing import Optional
 from typing import Text
 
@@ -29,7 +30,15 @@ def _TempRootPath():
       FLAGS.get_flag_value("test_tmpdir", default=None))
 
   if not os.path.exists(test_tmpdir):
-    os.makedirs(test_tmpdir)
+    # TODO: We add a try-catch block to avoid rare race condition.
+    # In Python 3 the exception being thrown is way more specific
+    # (`FileExistsError`) but in Python 2 `OSError` is the best we can do. Once
+    # support for Python 2 is dropped we can switch to catching that and remove
+    # the conditional (EAFP).
+    try:
+      os.makedirs(test_tmpdir)
+    except OSError as err:
+      logging.error(err)
 
   # TODO(hanuszczak): Investigate whether this check still makes sense.
   if platform.system() == "Windows":

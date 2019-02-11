@@ -11,6 +11,27 @@ T = TypeVar("T")
 K = TypeVar("K")
 
 
+def Flatten(iterator):
+  """Flattens given two-level iterator into one.
+
+  Examples:
+    >>> list(Flatten([[1, 2, 3], [4, 5, 6]]))
+    [1, 2, 3, 4, 5, 6]
+
+    >>> list([range(3), range(5), range(3)])
+    [0, 1, 2, 0, 1, 2, 3, 4, 0, 1, 2]
+
+  Args:
+    iterator: An iterator of iterators to flatten.
+
+  Yields:
+    Items yielded by the given iterators.
+  """
+  for items in iterator:
+    for item in items:
+      yield item
+
+
 def Trim(lst, limit):
   """Trims a given list so that it is not longer than given limit.
 

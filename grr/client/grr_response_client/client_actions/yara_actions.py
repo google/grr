@@ -8,6 +8,8 @@ import os
 import re
 import time
 
+from future.builtins import str
+
 import psutil
 import yara
 
@@ -122,7 +124,7 @@ class YaraProcessScan(actions.ActionPlugin):
       except yara.Error as e:
         # Yara internal error 30 is too many hits (obviously...). We
         # need to report this as a hit, not an error.
-        if e.message == "internal error: 30":
+        if "internal error: 30" in str(e):
           return matches
         raise
 

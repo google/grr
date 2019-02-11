@@ -1049,13 +1049,10 @@ class DecodersTestMixin(object):
     super(DecodersTestMixin, self).setUp()
     self.client_id = self.SetupClient(0)
 
-    self.decoders_patcher = mock.patch.object(
+    decoders_patcher = mock.patch.object(
         decoders, "FACTORY", factory.Factory(decoders.AbstractDecoder))
-    self.decoders_patcher.start()
-
-  def tearDown(self):
-    super(DecodersTestMixin, self).tearDown()
-    self.decoders_patcher.stop()
+    decoders_patcher.start()
+    self.addCleanup(decoders_patcher.stop)
 
   def Touch(self, vfs_path, content=b""):
     path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)

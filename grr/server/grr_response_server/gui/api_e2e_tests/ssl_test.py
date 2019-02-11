@@ -63,30 +63,24 @@ class ApiSslServerTestBase(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     with open(self.cert_path, "wb") as f:
       f.write(cert.public_bytes(serialization.Encoding.PEM))
 
-    self.config_overrider = test_lib.ConfigOverrider({
+    config_overrider = test_lib.ConfigOverrider({
         "AdminUI.enable_ssl": True,
         "AdminUI.ssl_key_file": key_path,
         "AdminUI.ssl_cert_file": self.cert_path,
     })
-    self.config_overrider.Start()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
     self.port = portpicker.pick_unused_port()
-    self.thread = wsgiapp_testlib.ServerThread(
-        self.port, name="ApiSslServerTest")
-    self.thread.StartAndWaitUntilServing()
+    thread = wsgiapp_testlib.ServerThread(self.port, name="ApiSslServerTest")
+    thread.StartAndWaitUntilServing()
+    self.addCleanup(thread.Stop)
 
     api_auth_manager.APIACLInit.InitApiAuthManager()
     self.token.username = "api_test_robot_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
     self.endpoint = "https://localhost:%s" % self.port
-
-  def tearDown(self):
-    super(ApiSslServerTestBase, self).tearDown()
-
-    self.config_overrider.Stop()
-    self.thread.keep_running = False
-    self.thread.Stop()
 
 
 class ApiSslE2ETestMixin(object):
@@ -207,11 +201,8 @@ class ApiSslProxyTest(ApiSslServerTestBase):
           self.fail("Can't initialize proxy server.")
 
     threading.Thread(target=self.proxy_server.serve_forever).start()
-
-  def tearDown(self):
-    super(ApiSslProxyTest, self).tearDown()
-    self.proxy_server.shutdown()
-    self.proxy_server.server_close()
+    self.addCleanup(self.proxy_server.server_close)
+    self.addCleanup(self.proxy_server.shutdown)
 
   def testProxyConnection(self):
     client_urn = self.SetupClient(0)

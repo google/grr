@@ -47,6 +47,7 @@ from grr_response_server.gui.api_plugins import output_plugin as api_output_plug
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -217,11 +218,15 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
 
     return self
 
-  def InitFromHuntObject(self, hunt_obj, with_full_summary=False):
+  def InitFromHuntObject(self,
+                         hunt_obj,
+                         hunt_counters=None,
+                         with_full_summary=False):
     """Initialize API hunt object from a database hunt object.
 
     Args:
       hunt_obj: rdf_hunt_objects.Hunt to read the data from.
+      hunt_counters: Optional db.HuntCounters object with counters information.
       with_full_summary: if True, hunt_runner_args, completion counts and a few
         other fields will be filled in. The way to think about it is that with
         with_full_summary==True ApiHunt will have the data to render "Hunt
@@ -248,27 +253,42 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     self.creator = hunt_obj.creator
     self.description = hunt_obj.description
     self.is_robot = hunt_obj.creator in ["GRRWorker", "Cron"]
-    self.results_count = hunt_obj.num_results
-    self.clients_with_results_count = hunt_obj.num_clients_with_results
-    self.clients_queued_count = (
-        hunt_obj.num_clients - hunt_obj.num_successful_clients -
-        hunt_obj.num_failed_clients - hunt_obj.num_crashed_clients)
+    if hunt_counters is not None:
+      self.results_count = hunt_counters.num_results
+      self.clients_with_results_count = hunt_counters.num_clients_with_results
+      self.clients_queued_count = (
+          hunt_counters.num_clients - hunt_counters.num_successful_clients -
+          hunt_counters.num_failed_clients - hunt_counters.num_crashed_clients)
+      # TODO(user): remove this hack when AFF4 is gone. For regression tests
+      # compatibility only.
+      self.total_cpu_usage = hunt_counters.total_cpu_seconds or 0
+      self.total_net_usage = hunt_counters.total_network_bytes_sent
+
+      if with_full_summary:
+        self.all_clients_count = hunt_counters.num_clients
+        self.completed_clients_count = (
+            hunt_counters.num_successful_clients +
+            hunt_counters.num_failed_clients)
+        self.remaining_clients_count = (
+            self.all_clients_count - self.completed_clients_count)
+    else:
+      self.results_count = 0
+      self.clients_with_results_count = 0
+      self.clients_queued_count = 0
+      self.total_cpu_usage = 0
+      self.total_net_usage = 0
+
+      if with_full_summary:
+        self.all_clients_count = 0
+        self.completed_clients_count = 0
+        self.remaining_clients_count = 0
+
     if hunt_obj.original_object.object_type != "UNKNOWN":
       ref = ApiFlowLikeObjectReference()
       self.original_object = ref.FromFlowLikeObjectReference(
           hunt_obj.original_object)
 
-    crs = hunt_obj.client_resources_stats
-    self.total_cpu_usage = (crs.user_cpu_stats.sum + crs.system_cpu_stats.sum)
-    self.total_net_usage = crs.network_bytes_sent_stats.sum
-
     if with_full_summary:
-      self.all_clients_count = hunt_obj.num_clients
-      self.completed_clients_count = (
-          hunt_obj.num_successful_clients + hunt_obj.num_failed_clients)
-      self.remaining_clients_count = (
-          self.all_clients_count - self.completed_clients_count)
-
       hra = self.hunt_runner_args = rdf_hunts.HuntRunnerArgs(
           hunt_name=self.name,
           description=hunt_obj.description,
@@ -645,9 +665,12 @@ class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
 
   def _HandleRelational(self, args, token=None):
     try:
-      hunt_obj = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
+      hunt_id = str(args.hunt_id)
+      hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+      hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
 
-      return ApiHunt().InitFromHuntObject(hunt_obj, with_full_summary=True)
+      return ApiHunt().InitFromHuntObject(
+          hunt_obj, hunt_counters=hunt_counters, with_full_summary=True)
     except db.UnknownHuntError:
       raise HuntNotFoundError(
           "Hunt with id %s could not be found" % args.hunt_id)
@@ -834,11 +857,9 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
     return ApiListHuntOutputPluginsResult(items=result, total_count=len(result))
 
   def _HandleRelational(self, args, token=None):
-    h = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
-
     used_names = collections.Counter()
     result = []
-    for s in h.output_plugins_states:
+    for s in data_store.REL_DB.ReadHuntOutputPluginsStates(str(args.hunt_id)):
       name = s.plugin_descriptor.plugin_name
       plugin_id = "%s_%d" % (name, used_names[name])
       used_names[name] += 1
@@ -933,6 +954,10 @@ class ApiListHuntOutputPluginLogsHandlerBase(
   def _HandleRelational(self, args, token=None):
     h = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
 
+    if self.__class__.log_entry_type is None:
+      raise ValueError(
+          "log_entry_type has to be overridden and set to a meaningful value.")
+
     index = api_flow.GetOutputPluginIndex(h.output_plugins, args.plugin_id)
     output_plugin_id = "%d" % index
 
@@ -979,6 +1004,8 @@ class ApiListHuntOutputPluginLogsHandler(
   args_type = ApiListHuntOutputPluginLogsArgs
   result_type = ApiListHuntOutputPluginLogsResult
 
+  log_entry_type = rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG
+
   collection_type = "logs"
   collection_counter = "success_count"
 
@@ -1006,6 +1033,8 @@ class ApiListHuntOutputPluginErrorsHandler(
 
   args_type = ApiListHuntOutputPluginErrorsArgs
   result_type = ApiListHuntOutputPluginErrorsResult
+
+  log_entry_type = rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR
 
   collection_type = "errors"
   collection_counter = "error_count"
@@ -1602,8 +1631,11 @@ class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
     return ApiGetHuntStatsResult(stats=stats)
 
   def _HandleRelational(self, args, token=None):
-    h = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
-    return ApiGetHuntStatsResult(stats=h.client_resources_stats)
+    # TODO(user): implement proper hunt client resources starts support
+    # for REL_DB hunts.
+    # h = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
+    del args, token
+    return ApiGetHuntStatsResult(stats=rdf_stats.ClientResourcesStats())
 
   def Handle(self, args, token=None):
     if data_store.RelationalDBReadEnabled("hunts"):
@@ -1717,20 +1749,24 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetHuntContextResult
 
   def _HandleRelational(self, args, token=None):
-    h = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
+    hunt_id = str(args.hunt_id)
+    h = data_store.REL_DB.ReadHuntObject(hunt_id)
+    h_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
     context = rdf_hunts.HuntContext(
         session_id=rdfvalue.RDFURN("hunts").Add(h.hunt_id),
         create_time=h.create_time,
         creator=h.creator,
         expires=h.expiry_time,
-        network_bytes_sent=h.client_resources_stats.network_bytes_sent_stats
-        .sum,
-        next_client_due=h.next_client_due,
+        network_bytes_sent=h_counters.total_network_bytes_sent,
+        next_client_due=h.start_time,
         start_time=h.start_time,
-        usage_stats=h.client_resources_stats,
-        clients_with_results_count=h.num_clients_with_results,
-        results_count=h.num_results,
-        completed_clients_count=h.num_successful_clients + h.num_failed_clients)
+        # TODO(user): implement proper hunt client resources starts support
+        # for REL_DB hunts.
+        # usage_stats=h.client_resources_stats,
+        clients_with_results_count=h_counters.num_clients_with_results,
+        results_count=h_counters.num_results,
+        completed_clients_count=h_counters.num_successful_clients +
+        h_counters.num_failed_clients)
     return ApiGetHuntContextResult(
         context=context, state=api_call_handler_utils.ApiDataObject())
 
@@ -1862,7 +1898,7 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
     if hra.HasField("original_object"):
       hunt_obj.original_object = hra.original_object
 
-    data_store.REL_DB.WriteHuntObject(hunt_obj)
+    hunt.CreateHunt(hunt_obj)
 
     return ApiHunt().InitFromHuntObject(hunt_obj, with_full_summary=True)
 
@@ -1965,30 +2001,30 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
         has_change = True
         break
 
-    if has_change:
-
-      def UpdateFn(h):
-        """Update function for UpdateHuntObject DB call."""
-        if h.hunt_state != h.HuntState.PAUSED:
+    try:
+      hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+      if has_change:
+        kw_args = {}
+        if hunt_obj.hunt_state != hunt_obj.HuntState.PAUSED:
           raise HuntNotModifiableError(
               "Hunt's client limit/client rate/expiry time attributes "
               "can only be changed if hunt's current state is "
               "PAUSED")
 
         if args.HasField("client_limit"):
-          h.client_limit = args.client_limit
+          kw_args["client_limit"] = args.client_limit
 
         if args.HasField("client_rate"):
-          h.client_rate = args.client_rate
+          kw_args["client_rate"] = args.client_rate
 
         if args.HasField("expires"):
-          h.expiry_time = args.expires
+          kw_args["expiry_time"] = args.expires
 
-        return h
-
-      hunt_obj = data_store.REL_DB.UpdateHuntObject(hunt_id, UpdateFn)
-    else:
-      hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+        data_store.REL_DB.UpdateHuntObject(hunt_id, **kw_args)
+        hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+    except db.UnknownHuntError:
+      raise HuntNotFoundError(
+          "Hunt with id %s could not be found" % args.hunt_id)
 
     if args.HasField("state"):
       if args.state == ApiHunt.State.STARTED:
@@ -2010,7 +2046,9 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
         raise InvalidHuntStateError(
             "Hunt's state can only be updated to STARTED or STOPPED")
 
-    return ApiHunt().InitFromHuntObject(hunt_obj, with_full_summary=True)
+    hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_obj.hunt_id)
+    return ApiHunt().InitFromHuntObject(
+        hunt_obj, hunt_counters=hunt_counters, with_full_summary=True)
 
   def Handle(self, args, token=None):
     if data_store.RelationalDBReadEnabled("hunts"):

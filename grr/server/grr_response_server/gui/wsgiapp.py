@@ -355,5 +355,6 @@ class GuiPluginsInit(registry.InitHook):
     # pylint: enable=unused-variable,g-import-not-at-top
 
     if config.CONFIG.Get("AdminUI.django_secret_key", None):
-      logging.warn("The AdminUI.django_secret_key option has been deprecated, "
-                   "please use AdminUI.csrf_secret_key instead.")
+      logging.warning(
+          "The AdminUI.django_secret_key option has been deprecated, "
+          "please use AdminUI.csrf_secret_key instead.")

@@ -8,8 +8,10 @@ from __future__ import unicode_literals
 import abc
 
 from future.utils import with_metaclass
+import mock
 
 from grr_response_server import blob_store
+from grr_response_server.databases import mysql_blobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -21,20 +23,17 @@ class BlobStoreTestMixin(with_metaclass(abc.ABCMeta)):
     """Create a test blob store.
 
     Returns:
-      A pair (blob_store, cleanup), where blob_store is an instance of
+      A tuple (blob_store, cleanup), where blob_store is an instance of
       blob_store.BlobStore to be tested  and cleanup is a function which
       destroys blob_store, releasing any resources held by it.
     """
 
   def setUp(self):
     super(BlobStoreTestMixin, self).setUp()
-    bs, self.cleanup = self.CreateBlobStore()
+    bs, cleanup = self.CreateBlobStore()
+    if cleanup is not None:
+      self.addCleanup(cleanup)
     self.blob_store = blob_store.BlobStoreValidationWrapper(bs)
-
-  def tearDown(self):
-    if self.cleanup:
-      self.cleanup()
-    super(BlobStoreTestMixin, self).tearDown()
 
   def testReadingNonExistentBlobReturnsNone(self):
     blob_id = rdf_objects.BlobID(b"01234567" * 4)
@@ -80,3 +79,19 @@ class BlobStoreTestMixin(with_metaclass(abc.ABCMeta)):
     other_blob_id = rdf_objects.BlobID(b"abcdefgh" * 4)
     result = self.blob_store.CheckBlobsExist([blob_id, other_blob_id])
     self.assertEqual(result, {blob_id: True, other_blob_id: False})
+
+  @mock.patch.object(mysql_blobs, "BLOB_CHUNK_SIZE", 1)
+  def testLargeBlobsAreReassembledInCorrectOrder(self):
+    blob_data = b"0123456789"
+    blob_id = rdf_objects.BlobID(b"00234567" * 4)
+    self.blob_store.WriteBlobs({blob_id: blob_data})
+    result = self.blob_store.ReadBlobs([blob_id])
+    self.assertEqual({blob_id: blob_data}, result)
+
+  @mock.patch.object(mysql_blobs, "BLOB_CHUNK_SIZE", 3)
+  def testNotEvenlyDivisibleBlobsAreReassembledCorrectly(self):
+    blob_data = b"0123456789"
+    blob_id = rdf_objects.BlobID(b"00234567" * 4)
+    self.blob_store.WriteBlobs({blob_id: blob_data})
+    result = self.blob_store.ReadBlobs([blob_id])
+    self.assertEqual({blob_id: blob_data}, result)

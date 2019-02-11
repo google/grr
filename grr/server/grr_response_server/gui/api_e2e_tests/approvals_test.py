@@ -24,20 +24,17 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
   def setUp(self):
     super(ApiClientLibApprovalsTest, self).setUp()
 
-    cls = (api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
+    cls = api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks
     cls.ClearCache()
 
-    self.config_overrider = test_lib.ConfigOverrider(
+    config_overrider = test_lib.ConfigOverrider(
         {"API.DefaultRouter": cls.__name__})
-    self.config_overrider.Start()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.
     api_auth_manager.APIACLInit.InitApiAuthManager()
-
-  def tearDown(self):
-    super(ApiClientLibApprovalsTest, self).tearDown()
-    self.config_overrider.Stop()
 
   def testCreateClientApproval(self):
     client_id = self.SetupClient(0)

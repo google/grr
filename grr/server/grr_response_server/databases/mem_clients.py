@@ -146,13 +146,25 @@ class InMemoryDBClientMixin(object):
     return res
 
   @utils.Synchronized
-  def ReadAllClientIDs(self, min_last_ping=None):
-    client_ids = []
+  def ReadClientLastPings(self,
+                          min_last_ping=None,
+                          max_last_ping=None,
+                          fleetspeak_enabled=None):
+    """Reads last-ping timestamps for clients in the DB."""
+    last_pings = {}
     for client_id, metadata in iteritems(self.metadatas):
       last_ping = metadata.get("ping", rdfvalue.RDFDatetime(0))
-      if min_last_ping is None or last_ping >= min_last_ping:
-        client_ids.append(client_id)
-    return client_ids
+      is_fleetspeak_client = metadata.get("fleetspeak_enabled", False)
+      if min_last_ping is not None and last_ping < min_last_ping:
+        continue
+      elif max_last_ping is not None and last_ping > max_last_ping:
+        continue
+      elif (fleetspeak_enabled is not None and
+            is_fleetspeak_client != fleetspeak_enabled):
+        continue
+      else:
+        last_pings[client_id] = metadata.get("ping", None)
+    return last_pings
 
   @utils.Synchronized
   def WriteClientSnapshotHistory(self, clients):
@@ -198,26 +210,19 @@ class InMemoryDBClientMixin(object):
     if client_id not in self.metadatas:
       raise db.UnknownClientError(client_id)
 
-    keywords = [utils.SmartStr(k) for k in keywords]
-    for k in keywords:
-      self.keywords.setdefault(k, {})
-      self.keywords[k][client_id] = rdfvalue.RDFDatetime.Now()
+    for kw in keywords:
+      self.keywords.setdefault(kw, {})
+      self.keywords[kw][client_id] = rdfvalue.RDFDatetime.Now()
 
   @utils.Synchronized
   def ListClientsForKeywords(self, keywords, start_time=None):
     """Lists the clients associated with keywords."""
-    keywords = set(keywords)
-    keyword_mapping = {utils.SmartStr(kw): kw for kw in keywords}
-
-    res = {}
-    for k in keyword_mapping:
-      res.setdefault(keyword_mapping[k], [])
-      for client_id, timestamp in iteritems(self.keywords.get(k, {})):
-        if start_time is not None:
-          rdf_ts = timestamp
-          if rdf_ts < start_time:
-            continue
-        res[keyword_mapping[k]].append(client_id)
+    res = {kw: [] for kw in keywords}
+    for kw in keywords:
+      for client_id, timestamp in iteritems(self.keywords.get(kw, {})):
+        if start_time is not None and timestamp < start_time:
+          continue
+        res[kw].append(client_id)
     return res
 
   @utils.Synchronized

@@ -205,6 +205,20 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   rdfvalue_class = TestStruct
 
+  def CheckRDFValue(self, value, sample):
+    # Verify that floats are almost equal, since serialization and conversion
+    # of floats is not stable.
+    self.assertAlmostEqual(value.float, sample.float)
+
+    # Verify that all other fields are exactly equal.
+    value_copy = value.Copy()
+    value_copy.float = None
+
+    sample_copy = sample.Copy()
+    sample_copy.float = None
+
+    super(RDFStructsTest, self).CheckRDFValue(value_copy, sample_copy)
+
   def GenerateSample(self, number=1):
     return self.rdfvalue_class(
         int=number,

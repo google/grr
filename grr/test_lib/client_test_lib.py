@@ -89,16 +89,13 @@ class OSSpecificClientTests(EmptyActionTest):
 
   def setUp(self):
     super(OSSpecificClientTests, self).setUp()
-    self.action_reg_stubber = utils.Stubber(actions.ActionPlugin, "classes", {})
-    self.action_reg_stubber.Start()
-    self.binary_command_stubber = utils.Stubber(standard.ExecuteBinaryCommand,
-                                                "classes", {})
-    self.binary_command_stubber.Start()
-
-  def tearDown(self):
-    super(OSSpecificClientTests, self).tearDown()
-    self.action_reg_stubber.Stop()
-    self.binary_command_stubber.Stop()
+    action_reg_stubber = utils.Stubber(actions.ActionPlugin, "classes", {})
+    action_reg_stubber.Start()
+    self.addCleanup(action_reg_stubber.Stop)
+    binary_command_stubber = utils.Stubber(standard.ExecuteBinaryCommand,
+                                           "classes", {})
+    binary_command_stubber.Start()
+    self.addCleanup(binary_command_stubber.Stop)
 
 
 # pylint: disable=g-bad-name

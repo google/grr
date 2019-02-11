@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+
 from grr_response_server import blob_store
 from grr_response_server import data_store
 
@@ -11,11 +12,30 @@ from grr_response_server import data_store
 class DbBlobStore(blob_store.BlobStore):
   """A REL_DB-based blob store implementation."""
 
+  # TODO(user): REL_DB can be None, because initialization is happening at some
+  # early but nondeterministic time. Once REL_DB is guaranteed to be not None,
+  # perform type checking that REL_DB.delegate is a BlobStore..
+  @property
+  def delegate(self):
+    return data_store.REL_DB.delegate
+
   def WriteBlobs(self, blob_id_data_map):
-    data_store.REL_DB.WriteBlobs(blob_id_data_map)
+    return self.delegate.WriteBlobs(blob_id_data_map)
 
   def ReadBlobs(self, blob_ids):
-    return data_store.REL_DB.ReadBlobs(blob_ids)
+    return self.delegate.ReadBlobs(blob_ids)
+
+  def ReadBlob(self, blob_id):
+    return self.delegate.ReadBlob(blob_id)
 
   def CheckBlobsExist(self, blob_ids):
-    return data_store.REL_DB.CheckBlobsExist(blob_ids)
+    return self.delegate.CheckBlobsExist(blob_ids)
+
+  def CheckBlobExists(self, blob_id):
+    return self.delegate.CheckBlobExists(blob_id)
+
+  def WriteBlobsWithUnknownHashes(self, blobs_data):
+    return self.delegate.WriteBlobsWithUnknownHashes(blobs_data)
+
+  def WriteBlobWithUnknownHash(self, blob_data):
+    return self.delegate.WriteBlobWithUnknownHash(blob_data)

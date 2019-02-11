@@ -706,7 +706,7 @@ class CheckRegistry(object):
         chk = cls.checks[check_id]
         yield chk.Parse(conditions, host_data)
       except ProcessingError as e:
-        logging.warn("Check ID %s raised: %s", check_id, e)
+        logging.warning("Check ID %s raised: %s", check_id, e)
 
 
 def CheckHost(host_data,

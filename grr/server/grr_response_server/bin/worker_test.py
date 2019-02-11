@@ -207,25 +207,18 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     super(GrrWorkerTest, self).setUp()
     self.client_id = test_lib.TEST_CLIENT_ID
     WorkerStuckableTestFlow.Reset()
-    self.patch_get_notifications = mock.patch.object(
-        queue_manager, "QueueManager", ShardedQueueManager)
-    self.patch_get_notifications.start()
-
-    self.worker = None
+    patch_get_notifications = mock.patch.object(queue_manager, "QueueManager",
+                                                ShardedQueueManager)
+    patch_get_notifications.start()
+    self.addCleanup(patch_get_notifications.stop)
 
     # Clear the results global
     del RESULTS[:]
 
   def _TestWorker(self):
-    self.worker = worker_lib.GRRWorker(token=self.token)
-    return self.worker
-
-  def tearDown(self):
-    self.patch_get_notifications.stop()
-    if self.worker is not None:
-      self.worker.Shutdown()
-
-    super(GrrWorkerTest, self).tearDown()
+    worker = worker_lib.GRRWorker(token=self.token)
+    self.addCleanup(worker.Shutdown)
+    return worker
 
   def testProcessMessages(self):
     """Test processing of several inbound messages."""

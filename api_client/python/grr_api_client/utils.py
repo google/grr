@@ -179,7 +179,7 @@ def TypeUrlToMessage(type_url):
   try:
     return symbol_database.Default().GetSymbol(full_name)()
   except KeyError as e:
-    raise ProtobufTypeNotFound(e.message)
+    raise ProtobufTypeNotFound(str(e))
 
 
 def CopyProto(proto):
@@ -201,7 +201,7 @@ def UnpackAny(proto_any):
   try:
     proto = TypeUrlToMessage(proto_any.type_url)
   except ProtobufTypeNotFound as e:
-    return UnknownProtobuf(e.message, proto_any)
+    return UnknownProtobuf(str(e), proto_any)
 
   proto_any.Unpack(proto)
   return proto

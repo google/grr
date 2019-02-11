@@ -246,3 +246,6 @@ config_lib.DEFINE_string(
     "%(Client.name)_fleetspeak_service_config.txt",
     "File-name for the Fleetspeak service config generated "
     "when repacking templates.")
+
+config_lib.DEFINE_string(
+    "Osquery.path", default="", help="A path to the osquery executable")

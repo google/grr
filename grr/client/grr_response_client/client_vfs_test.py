@@ -551,9 +551,7 @@ class VFSMultiOpenTest(absltest.TestCase):
 
   def setUp(self):
     self._VFS_OVERRIDER.Start()
-
-  def tearDown(self):
-    self._VFS_OVERRIDER.Stop()
+    self.addCleanup(self._VFS_OVERRIDER.Stop)
 
   def testMultipleFiles(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:

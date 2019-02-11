@@ -151,7 +151,7 @@ def SeleniumAction(f):
       try:
         return f(*args, **kwargs)
       except exceptions.WebDriverException as e:
-        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
+        logging.warning("Selenium raised %s", utils.SmartUnicode(e))
 
         cur_attempt += 1
         if cur_attempt == num_attempts:
@@ -342,7 +342,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       # The element might not exist yet and selenium could raise here. (Also
       # Selenium raises Exception not StandardError).
       except Exception as e:  # pylint: disable=broad-except
-        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
+        logging.warning("Selenium raised %s", utils.SmartUnicode(e))
 
       self.CheckBrowserErrors()
       time.sleep(self.sleep_time)
@@ -592,7 +592,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       # The element might not exist yet and selenium could raise here. (Also
       # Selenium raises Exception not StandardError).
       except Exception as e:  # pylint: disable=broad-except
-        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
+        logging.warning("Selenium raised %s", utils.SmartUnicode(e))
 
       time.sleep(self.sleep_time)
 
@@ -614,7 +614,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         raise
       # The element might not exist yet and selenium could raise here.
       except Exception as e:  # pylint: disable=broad-except
-        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
+        logging.warning("Selenium raised %s", utils.SmartUnicode(e))
 
       time.sleep(self.sleep_time)
 
@@ -644,8 +644,9 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
           token=self.token) as user_fd:
         user_fd.Set(user_fd.Schema.GUI_SETTINGS(mode="ADVANCED"))
 
-    self._artifact_patcher = ar_test_lib.PatchDatastoreOnlyArtifactRegistry()
-    self._artifact_patcher.start()
+    artifact_patcher = ar_test_lib.PatchDatastoreOnlyArtifactRegistry()
+    artifact_patcher.start()
+    self.addCleanup(artifact_patcher.stop)
 
     self.InstallACLChecks()
 
@@ -662,7 +663,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         raise RuntimeError("can't set Page.setDownloadBehavior: %s" % result)
 
   def tearDown(self):
-    self._artifact_patcher.stop()
     self.CheckBrowserErrors()
     super(GRRSeleniumTest, self).tearDown()
 
