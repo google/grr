@@ -2,6 +2,7 @@
 """Administrative flows for managing the clients state."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import logging
@@ -9,7 +10,9 @@ import shlex
 import threading
 import time
 
+
 import jinja2
+from typing import Text
 
 from grr_response_core import config
 from grr_response_core.lib import queues
@@ -40,6 +43,7 @@ from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.general import discovery
 from grr_response_server.hunts import implementation
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
 
 def ExtractHuntId(flow_session_id):
@@ -164,6 +168,23 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
 
       crash_details.crash_type = "Client Crash"
 
+      if nanny_msg:
+        termination_msg = "Client crashed, " + nanny_msg
+      else:
+        termination_msg = "Client crashed."
+
+      # Terminate the flow.
+      if data_store.RelationalDBFlowsEnabled():
+        flow_id = session_id.Basename()
+        flow_base.TerminateFlow(
+            client_id,
+            flow_id,
+            reason=termination_msg,
+            flow_state=rdf_flow_objects.Flow.FlowState.CRASHED)
+      else:
+        flow.GRRFlow.TerminateAFF4Flow(
+            session_id, reason=termination_msg, token=token)
+
       WriteAllCrashDetails(
           client_id, crash_details, flow_session_id=session_id, token=token)
 
@@ -190,11 +211,6 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
       if email:
         to_send.append(email)
 
-      if nanny_msg:
-        termination_msg = "Client crashed, " + nanny_msg
-      else:
-        termination_msg = "Client crashed."
-
       for email_address in to_send:
         if crash_details.nanny_status:
           nanny_msg = "Nanny status: %s" % crash_details.nanny_status
@@ -213,14 +229,6 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
             "Client %s reported a crash." % client_id,
             utils.SmartStr(body),
             is_html=True)
-
-        # Now terminate the flow.
-        if data_store.RelationalDBFlowsEnabled():
-          flow_id = session_id.Basename()
-          flow_base.TerminateFlow(client_id, flow_id, reason=termination_msg)
-        else:
-          flow.GRRFlow.TerminateAFF4Flow(
-              session_id, reason=termination_msg, token=token)
 
 
 class GetClientStatsProcessResponseMixin(object):
@@ -983,13 +991,15 @@ class LaunchBinaryMixin(object):
       offset += len(current_blob.data)
       current_blob = next_blob
 
-  def _TruncateResult(self, data):
+  def _SanitizeOutput(self, data):
     if len(data) > 2000:
-      result = data[:2000] + "... [truncated]"
+      result = data[:2000] + "... [truncated]".encode("utf-8")
     else:
       result = data
 
-    return result
+    # Output can contain arbitrary bytes. Since the goal is to produce readable
+    # logs, we simply ignore weird characters.
+    return result.decode("utf-8", "ignore")
 
   def End(self, responses):
     if not responses.success:
@@ -997,7 +1007,7 @@ class LaunchBinaryMixin(object):
 
     response = responses.First()
     if response:
-      self.Log("Stdout: %s" % self._TruncateResult(response.stdout))
-      self.Log("Stderr: %s" % self._TruncateResult(response.stderr))
+      self.Log("Stdout: %s", self._SanitizeOutput(response.stdout))
+      self.Log("Stderr: %s", self._SanitizeOutput(response.stderr))
 
       self.SendReply(response)

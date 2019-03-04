@@ -8,7 +8,8 @@ import threading
 import time
 
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_e2e_test_lib
@@ -109,4 +110,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -5,12 +5,14 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import posix
+import shutil
 import tempfile
+
+
+from absl import app
 
 from grr_response_client.client_actions import tempfiles
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
@@ -28,17 +30,19 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
     # so we create a new one.
     self.client_tempdir = tempfile.mkdtemp(
         dir=config.CONFIG.Get("Client.tempdir_roots")[0])
-    self.tempdir_overrider = test_lib.ConfigOverrider({
+
+    tempdir_overrider = test_lib.ConfigOverrider({
         "Client.tempdir_roots": [os.path.dirname(self.client_tempdir)],
         "Client.grr_tempdir": os.path.basename(self.client_tempdir)
     })
-    self.tempdir_overrider.Start()
+    tempdir_overrider.Start()
+    self.addCleanup(tempdir_overrider.Stop)
 
-  def tearDown(self):
-    super(GRRTempFileTestFilename, self).tearDown()
-    # The actual GRR temp dir.
-    os.rmdir(tempfiles.GetDefaultGRRTempDirectory())
-    self.tempdir_overrider.Stop()
+    # Remove the actual GRR temp dir.
+    def cleanup():
+      shutil.rmtree(tempfiles.GetDefaultGRRTempDirectory())
+
+    self.addCleanup(cleanup)
 
   def testCreateAndDelete(self):
     fd = tempfiles.CreateGRRTempFile(filename="process.42.exe", mode="wb")
@@ -63,7 +67,7 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
       stat_list = list(stat_info)
       # Adjust the UID.
       stat_list[4] += 1
-      return posix.stat_result(stat_list)
+      return os.stat_result(stat_list)
 
     # Place a malicious file in the temp dir. This needs to be deleted
     # before we can use the temp dir.
@@ -92,11 +96,12 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
     self.tempfile = utils.JoinPath(self.temp_dir, "delete_test", filename)
     self.dirname = os.path.dirname(self.tempfile)
     os.makedirs(self.dirname)
-    self.tempdir_overrider = test_lib.ConfigOverrider({
+    tempdir_overrider = test_lib.ConfigOverrider({
         "Client.tempdir_roots": [os.path.dirname(self.dirname)],
         "Client.grr_tempdir": os.path.basename(self.dirname)
     })
-    self.tempdir_overrider.Start()
+    tempdir_overrider.Start()
+    self.addCleanup(tempdir_overrider.Stop)
 
     self.not_tempfile = os.path.join(self.temp_dir, "notatempfile")
     open(self.not_tempfile, "wb").write("something")
@@ -109,10 +114,6 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
 
     self.pathspec = rdf_paths.PathSpec(
         path=self.dirname, pathtype=rdf_paths.PathSpec.PathType.OS)
-
-  def tearDown(self):
-    super(DeleteGRRTempFiles, self).tearDown()
-    self.tempdir_overrider.Stop()
 
   def _SetUpTempDirStructure(self, grr_tempdir="grr_temp"):
     temproot1 = utils.JoinPath(self.temp_dir, "del_test1")
@@ -232,4 +233,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

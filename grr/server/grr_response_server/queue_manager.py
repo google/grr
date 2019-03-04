@@ -8,7 +8,7 @@ import collections
 import logging
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 from future.utils import iteritems
 from future.utils import itervalues
 

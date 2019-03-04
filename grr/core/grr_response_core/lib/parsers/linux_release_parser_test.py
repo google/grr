@@ -10,7 +10,8 @@ import io
 import os
 
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib.parsers import linux_release_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -146,6 +147,40 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     ]
     self.assertCountEqual(actual_result, expected_result)
 
+  def testEndToEndCoreOS(self):
+    parser = linux_release_parser.LinuxReleaseParser()
+    test_data = [
+        ("/etc/os-release",
+         os.path.join(self.parser_test_dir, "coreos-os-release")),
+    ]
+    stat_entries, file_objects = self._CreateTestData(test_data)
+    actual_result = list(parser.ParseMultiple(stat_entries, file_objects, None))
+    expected_result = [
+        rdf_protodict.Dict({
+            "os_release": "Container Linux by CoreOS",
+            "os_major_version": 2023,
+            "os_minor_version": 4,
+        })
+    ]
+    self.assertCountEqual(actual_result, expected_result)
+
+  def testEndToEndGoogleCOS(self):
+    parser = linux_release_parser.LinuxReleaseParser()
+    test_data = [
+        ("/etc/os-release",
+         os.path.join(self.parser_test_dir, "google-cos-os-release")),
+    ]
+    stat_entries, file_objects = self._CreateTestData(test_data)
+    actual_result = list(parser.ParseMultiple(stat_entries, file_objects, None))
+    expected_result = [
+        rdf_protodict.Dict({
+            "os_release": "Container-Optimized OS",
+            "os_major_version": 69,
+            "os_minor_version": 0,
+        })
+    ]
+    self.assertCountEqual(actual_result, expected_result)
+
   def testAnomaly(self):
     parser = linux_release_parser.LinuxReleaseParser()
 
@@ -162,4 +197,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

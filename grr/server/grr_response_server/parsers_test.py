@@ -7,8 +7,9 @@ from __future__ import unicode_literals
 
 import os
 
+from absl import app
+
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import parser as lib_parser
 from grr_response_core.lib import rdfvalue
 from grr.test_lib import artifact_test_lib
@@ -50,4 +51,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -16,6 +16,7 @@ from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import network
 from grr_response_client.client_actions import operating_system
 from grr_response_client.client_actions import standard
+from grr_response_client.client_actions import vfs_file_finder
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
@@ -200,7 +201,7 @@ class ArtifactCollector(actions.ActionPlugin):
         action=file_finder_action,
         follow_links=True,
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
-    action = file_finder.RegistryKeyFromClient
+    action = vfs_file_finder.RegistryKeyFromClient
 
     yield action, request
 

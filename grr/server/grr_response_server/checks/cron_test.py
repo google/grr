@@ -6,9 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import zip
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_server.check_lib import checks
@@ -230,4 +230,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

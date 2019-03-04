@@ -5,10 +5,10 @@ from __future__ import unicode_literals
 
 import logging
 
+from absl import app
 from absl.testing import absltest
 import mock
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_server import db
 from grr_response_server import db_utils
@@ -95,4 +95,4 @@ _one_second_timestamp = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

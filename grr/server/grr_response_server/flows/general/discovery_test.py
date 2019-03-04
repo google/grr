@@ -9,11 +9,11 @@ import platform
 import socket
 
 
+from absl import app
 import mock
 
 from grr_response_client.client_actions import admin
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -347,7 +347,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
                                    vfs_test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
-              "LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"
+              "LinuxWtmp", "NetgroupConfiguration", "LinuxReleaseInfo"
           ],
           "Artifacts.netgroup_filter_regexes": [r"^login$"]
       }):
@@ -399,7 +399,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     with vfs_test_lib.FakeTestDataVFSOverrider():
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
-              "LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"
+              "LinuxWtmp", "NetgroupConfiguration", "LinuxReleaseInfo"
           ],
           "Artifacts.netgroup_filter_regexes": [r"^login$"]
       }):
@@ -550,4 +550,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -7,8 +7,9 @@ from __future__ import unicode_literals
 
 import itertools
 import random
+import time
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 from future.utils import iteritems
 import mock
 import queue
@@ -338,8 +339,8 @@ class DatabaseTestFlowMixin(object):
             flow_id="0000001B",
             create_time=now - rdfvalue.Duration("1h")))
 
-    flows = self.db.ReadAllFlowObjects(
-        min_create_time=now - rdfvalue.Duration("1h"))
+    flows = self.db.ReadAllFlowObjects(min_create_time=now -
+                                       rdfvalue.Duration("1h"))
     self.assertEqual([f.flow_id for f in flows], ["0000001B"])
 
   def testReadAllFlowObjectsWithMaxCreateTime(self):
@@ -358,8 +359,8 @@ class DatabaseTestFlowMixin(object):
             flow_id="0000001B",
             create_time=now - rdfvalue.Duration("1h")))
 
-    flows = self.db.ReadAllFlowObjects(
-        max_create_time=now - rdfvalue.Duration("2h"))
+    flows = self.db.ReadAllFlowObjects(max_create_time=now -
+                                       rdfvalue.Duration("2h"))
     self.assertEqual([f.flow_id for f in flows], ["0000001A"])
 
   def testReadAllFlowObjectsWithClientID(self):
@@ -441,6 +442,39 @@ class DatabaseTestFlowMixin(object):
     with self.assertRaises(db.UnknownFlowError):
       self.db.UpdateFlow(
           u"C.1234567890AAAAAA", flow_id, client_crash_info=crash_info)
+
+  def testFlowStateUpdate(self):
+    _, flow_id = self._SetupClientAndFlow()
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    # Check that just updating flow_state works fine.
+    self.db.UpdateFlow(
+        client_id, flow_id, flow_state=rdf_flow_objects.Flow.FlowState.CRASHED)
+    read_flow = self.db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(read_flow.flow_state,
+                     rdf_flow_objects.Flow.FlowState.CRASHED)
+
+    # TODO(user): remove an option to update the flow by updating flow_obj.
+    # It makes the DB API unnecessary complicated.
+    # Check that changing flow_state through flow_obj works too.
+    read_flow.flow_state = rdf_flow_objects.Flow.FlowState.RUNNING
+    self.db.UpdateFlow(client_id, flow_id, flow_obj=read_flow)
+
+    read_flow_2 = self.db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(read_flow_2.flow_state,
+                     rdf_flow_objects.Flow.FlowState.RUNNING)
+
+  def testUpdatingFlowObjAndFlowStateInSingleUpdateRaises(self):
+    _, flow_id = self._SetupClientAndFlow()
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    read_flow = self.db.ReadFlowObject(client_id, flow_id)
+    with self.assertRaises(db.ConflictingUpdateFlowArgumentsError):
+      self.db.UpdateFlow(
+          client_id,
+          flow_id,
+          flow_obj=read_flow,
+          flow_state=rdf_flow_objects.Flow.FlowState.CRASHED)
 
   def testCrashInfoUpdate(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -587,6 +621,32 @@ class DatabaseTestFlowMixin(object):
     requests_triggered = self._WriteRequestForProcessing(client_id, flow_id, 3)
     # This one is.
     self.assertEqual(requests_triggered, 1)
+
+  def testFlowRequestsWithStartTimeAreCorrectlyDelayed(self):
+    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=3)
+
+    req_func = mock.Mock()
+    self.db.RegisterFlowProcessingHandler(req_func)
+    self.addCleanup(self.db.UnregisterFlowProcessingHandler)
+
+    cur_time = rdfvalue.RDFDatetime.Now()
+    request = rdf_flow_objects.FlowRequest(
+        flow_id=flow_id,
+        client_id=client_id,
+        request_id=3,
+        start_time=cur_time + rdfvalue.Duration("2s"),
+        needs_processing=True)
+
+    self.db.WriteFlowRequests([request])
+    self.assertEqual(req_func.call_count, 0)
+
+    while req_func.call_count == 0:
+      time.sleep(0.1)
+      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.Duration("10s"):
+        self.fail("Flow request was not processed in time.")
+
+    self.assertGreaterEqual(rdfvalue.RDFDatetime.Now() - cur_time,
+                            rdfvalue.Duration("2s"))
 
   def testDeleteFlowRequests(self):
     client_id, flow_id = self._SetupClientAndFlow()

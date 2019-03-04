@@ -8,7 +8,7 @@ import bisect
 import logging
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import zip
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues

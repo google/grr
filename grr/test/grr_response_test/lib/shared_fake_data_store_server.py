@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from absl import app
+
 # Importing worker main entry point to make sure shared fake data store server
 # knows about all the RDFValue types that worker knows about.
 # pylint: disable=unused-import,g-bad-import-order
@@ -13,7 +15,6 @@ from grr_response_server.bin import worker
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import flags
 from grr_response_test.lib import shared_fake_data_store
 
 
@@ -28,4 +29,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

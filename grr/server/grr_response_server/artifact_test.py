@@ -10,12 +10,12 @@ import logging
 import os
 import subprocess
 
+from absl import app
 from future.builtins import str
 
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -497,21 +497,16 @@ class GrrKbWindowsTest(GrrKbTest):
     super(GrrKbWindowsTest, self).setUp()
     self.SetupClient(0, system="Windows", os_version="6.2", arch="AMD64")
 
-    self.os_overrider = vfs_test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler)
-    self.reg_overrider = vfs_test_lib.VFSOverrider(
+    os_overrider = vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                             vfs_test_lib.FakeFullVFSHandler)
+    os_overrider.Start()
+    self.addCleanup(os_overrider.Stop)
+
+    reg_overrider = vfs_test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.REGISTRY,
         vfs_test_lib.FakeRegistryVFSHandler)
-    self.os_overrider.Start()
-    self.reg_overrider.Start()
-
-  def tearDown(self):
-    super(GrrKbWindowsTest, self).tearDown()
-    try:
-      self.os_overrider.Stop()
-      self.reg_overrider.Stop()
-    except AttributeError:
-      pass
+    reg_overrider.Start()
+    self.addCleanup(reg_overrider.Stop)
 
   @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalWindows(self):
@@ -659,7 +654,7 @@ class GrrKbLinuxTest(GrrKbTest):
     with test_lib.ConfigOverrider({
         "Artifacts.knowledge_base": [
             "LinuxWtmp", "NetgroupConfiguration", "LinuxPasswdHomedirs",
-            "LinuxRelease"
+            "LinuxReleaseInfo"
         ],
         "Artifacts.netgroup_filter_regexes": ["^login$"],
         "Artifacts.netgroup_user_blacklist": ["isaac"]
@@ -683,7 +678,7 @@ class GrrKbLinuxTest(GrrKbTest):
     with vfs_test_lib.FakeTestDataVFSOverrider():
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
-              "LinuxWtmp", "LinuxPasswdHomedirs", "LinuxRelease"
+              "LinuxWtmp", "LinuxPasswdHomedirs", "LinuxReleaseInfo"
           ],
           "Artifacts.knowledge_base_additions": [],
           "Artifacts.knowledge_base_skip": []
@@ -712,7 +707,7 @@ class GrrKbLinuxTest(GrrKbTest):
     with test_lib.ConfigOverrider({
         "Artifacts.knowledge_base": [
             "NetgroupConfiguration", "NssCacheLinuxPasswdHomedirs",
-            "LinuxRelease"
+            "LinuxReleaseInfo"
         ],
         "Artifacts.netgroup_filter_regexes": ["^doesntexist$"]
     }):
@@ -754,4 +749,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

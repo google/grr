@@ -11,11 +11,11 @@ import string
 import threading
 import unittest
 
+from absl import app
 from absl.testing import absltest
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 
-from grr_response_core.lib import flags
 from grr_response_server import blob_store_test_mixin
 from grr_response_server import db_test_mixin
 from grr_response_server.databases import mysql
@@ -708,9 +708,15 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testReadHuntLogEntriesIgnoresNestedFlows(self):
     pass
 
+  def testCountHuntLogEntriesIgnoresNestedFlows(self):
+    pass
+
   def testReadHuntCountersCorrectlyAggregatesResultsAmongDifferentFlows(self):
+    pass
+
+  def testFlowRequestsWithStartTimeAreCorrectlyDelayed(self):
     pass
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

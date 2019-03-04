@@ -7,7 +7,8 @@ from __future__ import unicode_literals
 import functools
 import string
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 import mock
 import psutil
 import yara
@@ -16,7 +17,6 @@ from grr_response_client import client_utils
 from grr_response_client import process_error
 from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions import yara_actions
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import rdf_yara
@@ -531,4 +531,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

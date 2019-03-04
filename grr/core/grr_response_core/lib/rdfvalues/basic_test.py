@@ -9,9 +9,9 @@ import datetime
 from datetime import datetime
 import time
 
+from absl import app
 from future.builtins import str
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
@@ -440,4 +440,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

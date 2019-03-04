@@ -4,7 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_server.gui import api_regression_test_lib
 
 from grr_response_server.gui.api_plugins import reflection as reflection_plugin
@@ -31,4 +32,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

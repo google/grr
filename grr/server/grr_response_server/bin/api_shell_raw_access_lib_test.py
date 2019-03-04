@@ -6,8 +6,9 @@ from __future__ import unicode_literals
 import io
 
 
+from absl import app
+
 from grr_api_client import errors
-from grr_response_core.lib import flags
 from grr_response_proto.api import client_pb2
 from grr_response_proto.api import vfs_pb2
 from grr_response_proto.api.root import user_management_pb2
@@ -67,4 +68,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

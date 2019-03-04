@@ -2,6 +2,8 @@
 """Implementation of path expansion mechanism for client-side file-finder."""
 from __future__ import absolute_import
 from __future__ import division
+
+from __future__ import print_function
 from __future__ import unicode_literals
 
 import abc
@@ -12,7 +14,7 @@ import platform
 import re
 
 from future.utils import with_metaclass
-from typing import Text
+from typing import Iterator, Optional, Text
 
 from grr_response_client import vfs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -28,7 +30,7 @@ class PathOpts(object):
   Args:
     follow_links: Whether glob expansion mechanism should follow symlinks.
     recursion_blacklist: List of folders that the glob expansion should not
-                         recur to.
+      recur to.
     pathtype: The pathtype to use.
   """
 
@@ -39,6 +41,11 @@ class PathOpts(object):
     self.follow_links = follow_links
     self.recursion_blacklist = set(recursion_blacklist or [])
     self.pathtype = pathtype or rdf_paths.PathSpec.PathType.OS
+
+  def __repr__(self):
+    raw = "PathOpts(follow_links={}, recursion_blacklist={!r}, pathtype={})"
+    return raw.format(
+        bool(self.follow_links), self.recursion_blacklist, self.pathtype)
 
 
 class PathComponent(with_metaclass(abc.ABCMeta, object)):
@@ -56,7 +63,7 @@ class RecursiveComponent(PathComponent):
   """A class representing recursive path components.
 
   A recursive component (specified as `**`) matches any directory tree up to
-  some specified depth (3 by default).
+  some specified depth (3 by default). ** does not match the current directory.
 
   Attributes:
     max_depth: Maximum depth of the recursion for directory discovery.
@@ -87,12 +94,27 @@ class RecursiveComponent(PathComponent):
         yield childpath
 
   def _Recurse(self, path, depth):
-    if not os.path.isdir(path):
-      return
-    if not self.opts.follow_links and os.path.islink(path):
-      return
+    if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:
+      if not os.path.isdir(path) or (not self.opts.follow_links and
+                                     os.path.islink(path)):
+        return
+    elif self.opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+      pathspec = rdf_paths.PathSpec(
+          path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+      try:
+        if not vfs.VFSOpen(pathspec).IsDirectory():
+          return
+      except IOError:
+        return  # Skip inaccessible Registry parts (e.g. HKLM\SAM\SAM) silently.
+    else:
+      raise AssertionError("Invalid pathtype {}".format(self.opts.pathtype))
+
     for childpath in self._Generate(path, depth + 1):
       yield childpath
+
+  def __repr__(self):
+    return "RecursiveComponent(max_depth={}, opts={!r})".format(
+        self.max_depth, self.opts)
 
 
 class GlobComponent(PathComponent):
@@ -103,20 +125,47 @@ class GlobComponent(PathComponent):
 
   Note that regular names (such as `foo`) are special case of a glob components
   that contain no wildcards and match only themselves.
-
-  Attributes:
-    glob: A string with potential glob elements (e.g. `foo*`).
   """
 
-  def __init__(self, glob, opts=None):
+  def __init__(self, glob, opts = None):
+    """Instantiates a new GlobComponent from a given path glob.
+
+    Args:
+      glob: A string with potential glob elements (e.g. `foo*`).
+      opts: An optional PathOpts instance.
+    """
     super(GlobComponent, self).__init__()
+    self._glob = glob
     self.regex = re.compile(fnmatch.translate(glob), re.I)
     self.opts = opts or PathOpts()
 
+  def _GenerateLiteralMatch(self, dirpath):
+    if PATH_GLOB_REGEX.search(self._glob) is not None:
+      return None
+
+    new_path = os.path.join(dirpath, self._glob)
+    pathspec = rdf_paths.PathSpec(path=new_path, pathtype=self.opts.pathtype)
+    try:
+      fd = vfs.VFSOpen(pathspec)
+      return os.path.basename(fd.path)
+    except IOError:
+      return None  # Indicate "File not found" by returning None.
+
   def Generate(self, dirpath):
+    # TODO: The TSK implementation for VFS currently cannot list
+    # the root path of mounted disks. To make VfsFileFinder work with TSK,
+    # we try the literal match to allow VfsFileFinder to traverse into disk
+    # images.
+    literal_match = self._GenerateLiteralMatch(dirpath)
+    if literal_match is not None:
+      yield os.path.join(dirpath, literal_match)
+
     for item in _ListDir(dirpath, self.opts.pathtype):
-      if self.regex.match(item):
+      if self.regex.match(item) and item != literal_match:
         yield os.path.join(dirpath, item)
+
+  def __repr__(self):
+    return "GlobComponent(glob={!r} opts={!r})".format(self._glob, self.opts)
 
 
 class CurrentComponent(PathComponent):
@@ -146,6 +195,8 @@ class ParentComponent(PathComponent):
 PATH_PARAM_REGEX = re.compile("%%(?P<name>[^%]+?)%%")
 PATH_GROUP_REGEX = re.compile("{(?P<alts>[^}]+,[^}]+)}")
 PATH_RECURSION_REGEX = re.compile(r"\*\*(?P<max_depth>\d*)")
+# Match strings with patterns that would be translated by fnmatch.translate().
+PATH_GLOB_REGEX = re.compile(r"\*|\?|\[.+\]")
 
 
 def ParsePathItem(item, opts=None):
@@ -169,7 +220,7 @@ def ParsePathItem(item, opts=None):
     return ParentComponent()
 
   recursion = PATH_RECURSION_REGEX.search(item)
-  if not recursion:
+  if recursion is None:
     return GlobComponent(item, opts)
 
   start, end = recursion.span()
@@ -184,7 +235,8 @@ def ParsePathItem(item, opts=None):
   return RecursiveComponent(max_depth=max_depth, opts=opts)
 
 
-def ParsePath(path, opts=None):
+def ParsePath(path,
+              opts = None):
   """Parses given path into a stream of `PathComponent` instances.
 
   Args:
@@ -200,7 +252,13 @@ def ParsePath(path, opts=None):
   precondition.AssertType(path, Text)
 
   rcount = 0
-  for item in path.split(os.path.sep):
+
+  # Split the path at all forward slashes and if running under Windows, also
+  # backward slashes. This allows ParsePath to handle native paths and also
+  # normalized VFS paths like /HKEY_LOCAL_MACHINE/SAM.
+  normalized_path = path.replace(os.path.sep, "/")
+
+  for item in normalized_path.split("/"):
     component = ParsePathItem(item, opts=opts)
     if isinstance(component, RecursiveComponent):
       rcount += 1
@@ -254,7 +312,7 @@ def ExpandGroups(path):
     yield "".join(prod)
 
 
-def ExpandGlobs(path, opts=None):
+def ExpandGlobs(path, opts = None):
   """Performs glob expansion on a given path.
 
   Path can contain regular glob elements (such as `**`, `*`, `?`, `[a-z]`). For
@@ -275,13 +333,30 @@ def ExpandGlobs(path, opts=None):
   if not path:
     raise ValueError("Path is empty")
 
-  drive, tail = os.path.splitdrive(path)
-  if ((platform.system() == "Windows" and not drive) or
-      not (tail and tail[0] == os.path.sep)):
+  if not _IsAbsolutePath(path, opts):
     raise ValueError("Path '%s' is not absolute" % path)
-  root_dir = os.path.join(drive, os.path.sep).upper()
-  components = list(ParsePath(tail[1:], opts=opts))
+
+  if opts is not None and opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+    # Handle HKLM\Foo and /HKLM/Foo identically.
+    root_dir, tail = path.replace("\\", "/").lstrip("/").split("/", 1)
+    components = list(ParsePath(tail, opts=opts))
+  else:
+    drive, tail = os.path.splitdrive(path)
+    root_dir = os.path.join(drive, os.path.sep).upper()
+    components = list(ParsePath(tail[1:], opts=opts))
+
   return _ExpandComponents(root_dir, components)
+
+
+def _IsAbsolutePath(path, opts = None):
+  if opts and opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+    return path.startswith("/HKEY_") or path.startswith("HKEY_")
+
+  drive, tail = os.path.splitdrive(path)
+  if platform.system() == "Windows":
+    return bool(drive)
+
+  return bool(tail) and tail[0] == os.path.sep
 
 
 def _ExpandComponents(basepath, components, index=0):
@@ -307,19 +382,18 @@ def _ListDir(dirpath, pathtype):
   Raises:
     ValueError: in case of unsupported path types.
   """
-  pathspec = rdf_paths.PathSpec(path=dirpath)
-  if pathtype == rdf_paths.PathSpec.PathType.OS:
-    pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
-  elif pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
-    pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
-  else:
-    raise ValueError("Unsupported pathtype: ", pathtype)
-
+  pathspec = rdf_paths.PathSpec(path=dirpath, pathtype=pathtype)
   childpaths = []
   try:
     file_obj = vfs.VFSOpen(pathspec)
     for path in file_obj.ListNames():
-      childpaths.append(path)
+      # For Windows registry, ignore the empty string which corresponds to the
+      # default value in the current key. Otherwise, globbing a key will yield
+      # the key itself, because joining the name of the default value u"" with
+      # a key name yields the key name again.
+      if pathtype != rdf_paths.PathSpec.PathType.REGISTRY or path:
+        childpaths.append(path)
   except IOError:
     pass
+
   return childpaths

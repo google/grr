@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from grr_response_core.lib import flags
+from absl import app
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import access_control
@@ -453,4 +453,4 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

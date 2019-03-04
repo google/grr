@@ -1,11 +1,15 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """A module with utility functions for working with collections."""
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import unicode_literals
 
-from typing import Callable, Dict, Iterable, Iterator, List, TypeVar
+import itertools
+from future.utils import iteritems
+
+from typing import Callable, Dict, Iterable, Iterator, List, Tuple, TypeVar
 
 T = TypeVar("T")
 K = TypeVar("K")
@@ -119,3 +123,54 @@ def StartsWith(this, that):
 
     if this_value != that_value:
       return False
+
+
+def Unzip(iterable):
+  """Unzips specified iterable of pairs to pair of two iterables.
+
+  This function is an inversion of the standard `zip` function and the following
+  hold:
+
+    * ∀ l, r. l, r == unzip(zip(l, r))
+    * ∀ p. p == zip(unzip(p))
+
+  Examples:
+    >>> Unzip([("foo", 1), ("bar", 2), ("baz", 3)])
+    (["foo", "bar", "baz"], [1, 2, 3])
+
+  Args:
+    iterable: An iterable of pairs to unzip.
+
+  Returns:
+    A pair of iterables after unzipping.
+  """
+  lefts = []
+  rights = []
+
+  for left, right in iterable:
+    lefts.append(left)
+    rights.append(right)
+
+  return lefts, rights
+
+
+def DictProduct(dictionary):
+  """Computes a cartesian product of dict with iterable values.
+
+  This utility function, accepts a dictionary with iterable values, computes
+  cartesian products of these values and yields dictionaries of expanded values.
+
+  Examples:
+    >>> list(DictProduct({"a": [1, 2], "b": [3, 4]}))
+    [{"a": 1, "b": 3}, {"a": 1, "b": 4}, {"a": 2, "b": 3}, {"a": 2, "b": 4}]
+
+  Args:
+    dictionary: A dictionary with iterable values.
+
+  Yields:
+    Dictionaries with values being a result of cartesian product of values of
+    the input dictionary.
+  """
+  keys, values = Unzip(iteritems(dictionary))
+  for product_values in itertools.product(*values):
+    yield dict(zip(keys, product_values))

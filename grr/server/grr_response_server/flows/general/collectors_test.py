@@ -12,7 +12,8 @@ import os
 import shutil
 
 
-from builtins import filter  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import filter
 import mock
 import psutil
 
@@ -20,7 +21,6 @@ from grr_response_client.client_actions import artifact_collector
 from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import factory
-from grr_response_core.lib import flags
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
@@ -338,7 +338,6 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
       self.fakeartifact.sources.append(coll1)
       results = self._RunClientActionArtifact(client_id, client_mock,
                                               ["FakeArtifact"])
-      self.assertLen(results, 0)
       self.assertEmpty(results)
 
   def testRegistryValueArtifact(self):
@@ -1289,4 +1288,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -30,12 +30,12 @@ class StatTest(absltest.TestCase):
       with io.open(temp_filepath, "wb") as fd:
         fd.write(b"foobarbaz")
 
-      stat = filesystem.Stat(temp_filepath, follow_symlink=False)
+      stat = filesystem.Stat.FromPath(temp_filepath, follow_symlink=False)
       self.assertEqual(stat.GetSize(), 9)
 
   def testGetPath(self):
     with temp.AutoTempFilePath() as temp_filepath:
-      stat = filesystem.Stat(temp_filepath, follow_symlink=False)
+      stat = filesystem.Stat.FromPath(temp_filepath, follow_symlink=False)
       self.assertEqual(stat.GetPath(), temp_filepath)
 
   @unittest.skipIf(platform.system() == "Windows", "requires Unix-like system")
@@ -47,13 +47,13 @@ class StatTest(absltest.TestCase):
       self._Touch(temp_filepath, "-a", adate)
       self._Touch(temp_filepath, "-m", mdate)
 
-      stat = filesystem.Stat(temp_filepath, follow_symlink=False)
+      stat = filesystem.Stat.FromPath(temp_filepath, follow_symlink=False)
       self.assertEqual(stat.GetAccessTime(), self._EpochMillis(adate))
       self.assertEqual(stat.GetModificationTime(), self._EpochMillis(mdate))
 
   def testDirectory(self):
     with temp.AutoTempDirPath() as temp_dirpath:
-      stat = filesystem.Stat(temp_dirpath, follow_symlink=False)
+      stat = filesystem.Stat.FromPath(temp_dirpath, follow_symlink=False)
       self.assertTrue(stat.IsDirectory())
       self.assertFalse(stat.IsRegular())
       self.assertFalse(stat.IsSocket())
@@ -61,7 +61,7 @@ class StatTest(absltest.TestCase):
 
   def testRegular(self):
     with temp.AutoTempFilePath() as temp_filepath:
-      stat = filesystem.Stat(temp_filepath, follow_symlink=False)
+      stat = filesystem.Stat.FromPath(temp_filepath, follow_symlink=False)
       self.assertFalse(stat.IsDirectory())
       self.assertTrue(stat.IsRegular())
       self.assertFalse(stat.IsSocket())
@@ -76,7 +76,7 @@ class StatTest(absltest.TestCase):
       try:
         sock.bind(temp_socketpath)
 
-        stat = filesystem.Stat(temp_socketpath, follow_symlink=False)
+        stat = filesystem.Stat.FromPath(temp_socketpath, follow_symlink=False)
         self.assertFalse(stat.IsDirectory())
         self.assertFalse(stat.IsRegular())
         self.assertTrue(stat.IsSocket())
@@ -94,13 +94,13 @@ class StatTest(absltest.TestCase):
       temp_linkpath = os.path.join(temp_dirpath, "foo")
       os.symlink(temp_filepath, temp_linkpath)
 
-      stat = filesystem.Stat(temp_linkpath, follow_symlink=False)
+      stat = filesystem.Stat.FromPath(temp_linkpath, follow_symlink=False)
       self.assertFalse(stat.IsDirectory())
       self.assertFalse(stat.IsRegular())
       self.assertFalse(stat.IsSocket())
       self.assertTrue(stat.IsSymlink())
 
-      stat = filesystem.Stat(temp_linkpath, follow_symlink=True)
+      stat = filesystem.Stat.FromPath(temp_linkpath, follow_symlink=True)
       self.assertFalse(stat.IsDirectory())
       self.assertTrue(stat.IsRegular())
       self.assertFalse(stat.IsSocket())
@@ -116,7 +116,7 @@ class StatTest(absltest.TestCase):
     with temp.AutoTempFilePath() as temp_filepath:
       filesystem_test_lib.Chattr(temp_filepath, attrs=["+c", "+d"])
 
-      stat = filesystem.Stat(temp_filepath, follow_symlink=False)
+      stat = filesystem.Stat.FromPath(temp_filepath, follow_symlink=False)
       self.assertTrue(stat.IsRegular())
       self.assertTrue(stat.GetLinuxFlags() & self.FS_COMPR_FL)
       self.assertTrue(stat.GetLinuxFlags() & self.FS_NODUMP_FL)
@@ -132,7 +132,7 @@ class StatTest(absltest.TestCase):
     with temp.AutoTempFilePath() as temp_filepath:
       filesystem_test_lib.Chflags(temp_filepath, flags=["nodump", "hidden"])
 
-      stat = filesystem.Stat(temp_filepath, follow_symlink=False)
+      stat = filesystem.Stat.FromPath(temp_filepath, follow_symlink=False)
       self.assertTrue(stat.IsRegular())
       self.assertTrue(stat.GetOsxFlags() & self.UF_NODUMP)
       self.assertTrue(stat.GetOsxFlags() & self.UF_HIDDEN)
@@ -145,7 +145,7 @@ class StatTest(absltest.TestCase):
       temp_linkpath = os.path.join(temp_dirpath, "foo")
       os.symlink(temp_filepath, temp_linkpath)
 
-      stat = filesystem.Stat(temp_linkpath, follow_symlink=False)
+      stat = filesystem.Stat.FromPath(temp_linkpath, follow_symlink=False)
       self.assertTrue(stat.IsSymlink())
       self.assertEqual(stat.GetLinuxFlags(), 0)
       self.assertEqual(stat.GetOsxFlags(), 0)
@@ -158,7 +158,7 @@ class StatTest(absltest.TestCase):
       try:
         sock.bind(temp_socketpath)
 
-        stat = filesystem.Stat(temp_socketpath, follow_symlink=False)
+        stat = filesystem.Stat.FromPath(temp_socketpath, follow_symlink=False)
         self.assertTrue(stat.IsSocket())
         self.assertEqual(stat.GetLinuxFlags(), 0)
         self.assertEqual(stat.GetOsxFlags(), 0)
@@ -197,32 +197,32 @@ class StatCacheTest(absltest.TestCase):
     with MockStat() as stat_mock:
       foo_stat = stat_cache.Get(self.Path("foo"))
       self.assertEqual(foo_stat.GetSize(), 3)
-      self.assertTrue(stat_mock.called)
+      self.assertTrue(stat_mock.FromPath.called)
 
     with MockStat() as stat_mock:
       bar_stat = stat_cache.Get(self.Path("bar"))
       self.assertEqual(bar_stat.GetSize(), 6)
-      self.assertTrue(stat_mock.called)
+      self.assertTrue(stat_mock.FromPath.called)
 
     with MockStat() as stat_mock:
       other_foo_stat = stat_cache.Get(self.Path("foo"))
       self.assertEqual(other_foo_stat.GetSize(), 3)
-      self.assertFalse(stat_mock.called)
+      self.assertFalse(stat_mock.FromPath.called)
 
     with MockStat() as stat_mock:
       other_bar_stat = stat_cache.Get(self.Path("bar"))
       self.assertEqual(other_bar_stat.GetSize(), 6)
-      self.assertFalse(stat_mock.called)
+      self.assertFalse(stat_mock.FromPath.called)
 
     with MockStat() as stat_mock:
       baz_stat = stat_cache.Get(self.Path("baz"))
       self.assertEqual(baz_stat.GetSize(), 9)
-      self.assertTrue(stat_mock.called)
+      self.assertTrue(stat_mock.FromPath.called)
 
     with MockStat() as stat_mock:
       other_baz_stat = stat_cache.Get(self.Path("baz"))
       self.assertEqual(other_baz_stat.GetSize(), 9)
-      self.assertFalse(stat_mock.called)
+      self.assertFalse(stat_mock.FromPath.called)
 
   def testFollowSymlink(self):
     with io.open(self.Path("foo"), "wb") as fd:
@@ -234,13 +234,13 @@ class StatCacheTest(absltest.TestCase):
     with MockStat() as stat_mock:
       bar_stat = stat_cache.Get(self.Path("bar"), follow_symlink=False)
       self.assertTrue(bar_stat.IsSymlink())
-      self.assertTrue(stat_mock.called)
+      self.assertTrue(stat_mock.FromPath.called)
 
     with MockStat() as stat_mock:
       foo_stat = stat_cache.Get(self.Path("bar"), follow_symlink=True)
       self.assertFalse(foo_stat.IsSymlink())
       self.assertEqual(foo_stat.GetSize(), 6)
-      self.assertTrue(stat_mock.called)
+      self.assertTrue(stat_mock.FromPath.called)
 
   def testSmartSymlinkCache(self):
     with open(self.Path("foo"), "wb") as fd:
@@ -251,12 +251,12 @@ class StatCacheTest(absltest.TestCase):
     with MockStat() as stat_mock:
       foo_stat = stat_cache.Get(self.Path("foo"), follow_symlink=False)
       self.assertEqual(foo_stat.GetSize(), 5)
-      self.assertTrue(stat_mock.called)
+      self.assertTrue(stat_mock.FromPath.called)
 
     with MockStat() as stat_mock:
       other_foo_stat = stat_cache.Get(self.Path("foo"), follow_symlink=True)
       self.assertEqual(other_foo_stat.GetSize(), 5)
-      self.assertFalse(stat_mock.called)
+      self.assertFalse(stat_mock.FromPath.called)
 
 
 def MockStat():

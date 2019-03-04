@@ -10,11 +10,13 @@ import collections
 import threading
 
 import prometheus_client
+import six
 from typing import Dict, Text
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import precondition
 from grr_response_core.stats import stats_collector
 from grr_response_core.stats import stats_utils
 
@@ -187,6 +189,11 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
 
   @utils.Synchronized
   def RecordEvent(self, metric_name, value, fields=None):
+    # TODO(user): decouple validation from implementation.
+    # Use validation wrapper approach in StatsCollector (similar to
+    # how it's done in REL_DB).
+    precondition.AssertType(value, six.integer_types + (float,))
+
     metric = self._metrics[metric_name]
     histogram = metric.ForFields(fields)  # type: prometheus_client.Histogram
     histogram.observe(value)

@@ -2,9 +2,10 @@
 """Program that generates golden regression data."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 
-from grr_response_core.lib import flags
+from absl import app
 
 from grr_response_server.gui import api_regression_test_lib
 
@@ -31,8 +32,8 @@ def main(argv):
 
 def DistEntry():
   """The main entry point for packages."""
-  flags.StartMain(main)
+  app.run(main)
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -3,10 +3,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from absl import app
 from absl.testing import absltest
 import mock
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.util import temp
@@ -275,4 +275,4 @@ class ArtifactSourceTest(absltest.TestCase):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

@@ -24,8 +24,8 @@ import subprocess
 import sys
 import time
 
-import _winreg
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.moves import winreg
 import pywintypes
 import win32process
 import win32service
@@ -120,8 +120,8 @@ def OpenRegkey(key_path):
   # Note that this function will create the specified registry key,
   # along with all its ancestors if they do not exist.
   hive_name, subpath = key_path.split("\\", 1)
-  hive = getattr(_winreg, hive_name)
-  return _winreg.CreateKey(hive, subpath)
+  hive = getattr(winreg, hive_name)
+  return winreg.CreateKey(hive, subpath)
 
 
 class CheckForWow64(installer.Installer):
@@ -155,7 +155,7 @@ class CopyToSystemDir(installer.Installer):
     key_path = config.CONFIG["Client.fleetspeak_unsigned_services_regkey"]
     regkey = OpenRegkey(key_path)
     try:
-      _winreg.DeleteValue(regkey, config.CONFIG["Client.name"])
+      winreg.DeleteValue(regkey, config.CONFIG["Client.name"])
       logging.info("Deleted value '%s' of key '%s'.",
                    config.CONFIG["Client.name"], key_path)
     except OSError as e:
@@ -269,8 +269,8 @@ class WindowsInstaller(installer.Installer):
     fleetspeak_unsigned_config_path = os.path.join(
         config.CONFIG["Client.install_path"],
         config.CONFIG["Client.fleetspeak_unsigned_config_fname"])
-    _winreg.SetValueEx(regkey, config.CONFIG["Client.name"], 0, _winreg.REG_SZ,
-                       fleetspeak_unsigned_config_path)
+    winreg.SetValueEx(regkey, config.CONFIG["Client.name"], 0, winreg.REG_SZ,
+                      fleetspeak_unsigned_config_path)
 
     fs_service = config.CONFIG["Client.fleetspeak_service_name"]
     StopService(service_name=fs_service)

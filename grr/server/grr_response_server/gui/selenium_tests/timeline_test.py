@@ -6,9 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 import mock
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -266,4 +266,4 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

@@ -59,6 +59,8 @@ class IAPWebAuthManager(BaseWebAuthManager):
   delegated to IAP.
   """
 
+  IAP_HEADER = "x-goog-iap-jwt-assertion"
+
   def __init__(self, *args, **kwargs):
     super(IAPWebAuthManager, self).__init__(*args, **kwargs)
 
@@ -72,28 +74,22 @@ class IAPWebAuthManager(BaseWebAuthManager):
     self.cloud_project_id = config.CONFIG["AdminUI.google_cloud_project_id"]
     self.backend_service_id = config.CONFIG[
         "AdminUI.google_cloud_backend_service_id"]
-    self.iap_header = "x-goog-iap-jwt-assertion"
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     """Wrapping function."""
-    if self.iap_header in request.headers:
-      jwt = request.headers.get(self.iap_header)
-      _, user_email, error_str = validate_iap.ValidateIapJwtFromComputeEngine(
+    if self.IAP_HEADER not in request.headers:
+      return werkzeug_wrappers.Response("Unauthorized", status=401)
+
+    jwt = request.headers.get(self.IAP_HEADER)
+    try:
+      request.user, _ = validate_iap.ValidateIapJwtFromComputeEngine(
           jwt, self.cloud_project_id, self.backend_service_id)
-    else:
-      return werkzeug_wrappers.Response("Unauthorized", status=401)
-
-    if error_str:
-      # Log error
-      logging.error("IAPWebAuthManager failed with: %s", error_str)
-
-      # Return failure if IAP is not decoded correctly
-      return werkzeug_wrappers.Response("Unauthorized", status=401)
-    else:
-      # Generate a new user if not created, else authenticate current
-      request.user = user_email
-
       return func(request, *args, **kwargs)
+
+    except validate_iap.IAPValidationFailedError as e:
+      # Return failure if IAP is not decoded correctly.
+      logging.error("IAPWebAuthManager failed with: %s", e)
+      return werkzeug_wrappers.Response("Unauthorized", status=401)
 
 
 class BasicWebAuthManager(BaseWebAuthManager):

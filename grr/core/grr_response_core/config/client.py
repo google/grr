@@ -247,5 +247,14 @@ config_lib.DEFINE_string(
     "File-name for the Fleetspeak service config generated "
     "when repacking templates.")
 
+# osquery options.
+
 config_lib.DEFINE_string(
-    "Osquery.path", default="", help="A path to the osquery executable")
+    "Osquery.path", default="", help="A path to the osquery executable.")
+
+config_lib.DEFINE_integer(
+    "Osquery.max_chunk_size",
+    default=1024 * 1024,  # 1 MiB.
+    help=("A size (in bytes) of maximum response size. Queries for which the "
+          "output exceedes the specified limit are going to be divided into "
+          "multiple responses."))

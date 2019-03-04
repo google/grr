@@ -11,13 +11,13 @@ import threading
 import time
 
 
+from absl import app
 from future.builtins import range
 from future.utils import iteritems
 import ipaddr
 import portpicker
 import requests
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -283,4 +283,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

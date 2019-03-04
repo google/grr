@@ -9,12 +9,12 @@ import functools
 import os
 
 
-from builtins import range  # pylint: disable=redefined-builtin
-from builtins import zip  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
+from future.builtins import zip
 
 from grr_response_client import vfs
 from grr_response_client.client_actions import searching
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -156,13 +156,10 @@ class FindTest(client_test_lib.EmptyActionTest):
     super(FindTest, self).setUp()
 
     # Install the mock
-    self.vfs_overrider = vfs_test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.OS, MockVFSHandlerFind)
-    self.vfs_overrider.Start()
-
-  def tearDown(self):
-    super(FindTest, self).tearDown()
-    self.vfs_overrider.Stop()
+    vfs_overrider = vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                              MockVFSHandlerFind)
+    vfs_overrider.Start()
+    self.addCleanup(vfs_overrider.Stop)
 
   def testFindAction(self):
     """Test the find action."""
@@ -512,14 +509,11 @@ class GrepTest(client_test_lib.EmptyActionTest):
     super(GrepTest, self).setUp()
 
     # Install the mock
-    self.vfs_overrider = vfs_test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.OS, MockVFSHandlerFind)
-    self.vfs_overrider.Start()
+    vfs_overrider = vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                              MockVFSHandlerFind)
+    vfs_overrider.Start()
+    self.addCleanup(vfs_overrider.Stop)
     self.filename = "/mock2/directory1/grepfile.txt"
-
-  def tearDown(self):
-    super(GrepTest, self).tearDown()
-    self.vfs_overrider.Stop()
 
   def testGrep(self):
     # Use the real file system.
@@ -795,4 +789,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

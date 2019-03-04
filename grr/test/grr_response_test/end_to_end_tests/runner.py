@@ -2,6 +2,7 @@
 """Helper for running end-to-end tests."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import collections
 import getpass

@@ -7,10 +7,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 from absl.testing import absltest
 from future.builtins import str
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr.test_lib import test_lib
 
@@ -203,10 +203,16 @@ class DurationTest(absltest.TestCase):
     self.assertEqual(duration.milliseconds, 3600 * 1000)
     self.assertEqual(duration.microseconds, 3600 * 1000 * 1000)
 
+  def testFromHours(self):
+    self.assertEqual(rdfvalue.Duration.FromHours(3).seconds, 3 * 3600)
+
+  def testFromDays(self):
+    self.assertEqual(rdfvalue.Duration.FromDays(5).seconds, 5 * 24 * 3600)
+
 
 def main(argv):
   test_lib.main(argv)
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -158,7 +158,7 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
                      "%r: %s" % (e, e), traceback.format_exc())
 
-      if flags.FLAGS.debug:
+      if flags.FLAGS.pdb_post_mortem:
         self.DisableNanny()
         pdb.post_mortem()
 

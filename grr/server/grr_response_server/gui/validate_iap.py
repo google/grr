@@ -34,6 +34,10 @@ class KeyNotFoundError(Error):
   pass
 
 
+class IAPValidationFailedError(Error):
+  pass
+
+
 def ValidateIapJwtFromComputeEngine(iap_jwt, cloud_project_number,
                                     backend_service_id):
   """Validates an IAP JWT for your (Compute|Container) Engine service.
@@ -48,9 +52,12 @@ def ValidateIapJwtFromComputeEngine(iap_jwt, cloud_project_number,
         for details on how to get this value.
 
   Returns:
-    A tuple of (user_id, user_email, error_str).
+    A tuple of (user_id, user_email).
+
+  Raises:
+    IAPValidationFailedError: if the validation has failed.
   """
-  expected_audience = '/projects/{}/global/backendServices/{}'.format(
+  expected_audience = "/projects/{}/global/backendServices/{}".format(
       cloud_project_number, backend_service_id)
   return ValidateIapJwt(iap_jwt, expected_audience)
 
@@ -59,16 +66,16 @@ def ValidateIapJwt(iap_jwt, expected_audience):
   """Validates an IAP JWT."""
 
   try:
-    key_id = jwt.get_unverified_header(iap_jwt).get('kid')
+    key_id = jwt.get_unverified_header(iap_jwt).get("kid")
     if not key_id:
-      return (None, None, '**ERROR: no key ID**')
+      raise IAPValidationFailedError("No key ID")
     key = GetIapKey(key_id)
     decoded_jwt = jwt.decode(
-        iap_jwt, key, algorithms=['ES256'], audience=expected_audience)
-    return (decoded_jwt['sub'], decoded_jwt['email'], '')
+        iap_jwt, key, algorithms=["ES256"], audience=expected_audience)
+    return (decoded_jwt["sub"], decoded_jwt["email"])
   except (jwt.exceptions.InvalidTokenError,
           requests.exceptions.RequestException) as e:
-    return (None, None, '**ERROR: JWT validation error {}**'.format(e))
+    raise IAPValidationFailedError(e)
 
 
 def GetIapKey(key_id):
@@ -87,18 +94,16 @@ def GetIapKey(key_id):
     KeysCanNotBeFetchedError: if the key file can't be fetched.
   """
   global _KEY_CACHE
-  key_cache = _KEY_CACHE
-  key = key_cache.get(key_id)
+  key = _KEY_CACHE.get(key_id)
   if not key:
     # Re-fetch the key file.
-    resp = requests.get('https://www.gstatic.com/iap/verify/public_key')
+    resp = requests.get("https://www.gstatic.com/iap/verify/public_key")
     if resp.status_code != 200:
       raise KeysCanNotBeFetchedError(
-          'Unable to fetch IAP keys: {} / {} / {}'.format(
+          "Unable to fetch IAP keys: {} / {} / {}".format(
               resp.status_code, resp.headers, resp.text))
-    key_cache = resp.json()
-    _KEY_CACHE = key_cache
-    key = key_cache.get(key_id)
+    _KEY_CACHE = resp.json()
+    key = _KEY_CACHE.get(key_id)
     if not key:
-      raise KeyNotFoundError('Key {!r} not found'.format(key_id))
+      raise KeyNotFoundError("Key {!r} not found".format(key_id))
   return key

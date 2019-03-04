@@ -12,8 +12,9 @@ import shutil
 import stat
 
 
+from absl import app
 from absl.testing import absltest
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 import mock
 import psutil
 
@@ -23,7 +24,6 @@ from grr_response_client import client_plugins
 
 from grr_response_client import vfs
 from grr_response_client.vfs_handlers import files
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -603,4 +603,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

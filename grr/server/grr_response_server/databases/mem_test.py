@@ -3,8 +3,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from absl import app
 from absl.testing import absltest
-from grr_response_core.lib import flags
+
 from grr_response_server import blob_store_test_mixin
 
 from grr_response_server import db_test_mixin
@@ -27,4 +28,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

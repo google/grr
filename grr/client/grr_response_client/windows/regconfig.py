@@ -13,8 +13,8 @@ from __future__ import unicode_literals
 
 import collections
 import logging
-import _winreg
 
+from future.moves import winreg
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
 from typing import Text
@@ -31,7 +31,6 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
   in a single key.
   """
   name = "reg"
-  root_key = None
 
   def __init__(self, filename=None):
     """We interpret the name as a key name."""
@@ -40,15 +39,22 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
     self.filename = url.path.replace("/", "\\")
     self.hive = url.netloc
     self.path = self.filename.lstrip("\\")
+    self._root_key = None
 
     try:
-      # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-      self.root_key = _winreg.CreateKeyEx(
-          getattr(_winreg, self.hive), self.path, 0, _winreg.KEY_ALL_ACCESS)
-      self.parsed = self.path
+      # Access the key during __init__ to set `self.parsed`, which might be
+      # expected by callers. Do not fail instantly though on error.
+      self._AccessRootKey()
     except OSError as e:
       logging.debug("Unable to open config registry key: %s", e)
-      return
+
+  def _AccessRootKey(self):
+    if self._root_key is None:
+      # Don't use winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
+      self._root_key = winreg.CreateKeyEx(
+          getattr(winreg, self.hive), self.path, 0, winreg.KEY_ALL_ACCESS)
+      self.parsed = self.path
+    return self._root_key
 
   def RawData(self):
     """Yields the valus in each section."""
@@ -57,9 +63,9 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
     i = 0
     while True:
       try:
-        name, value, value_type = _winreg.EnumValue(self.root_key, i)
+        name, value, value_type = winreg.EnumValue(self._AccessRootKey(), i)
         # Only support strings here.
-        if value_type == _winreg.REG_SZ:
+        if value_type == winreg.REG_SZ:
           precondition.AssertType(value, Text)
           result[name] = value
       except OSError:
@@ -75,9 +81,9 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
     # Ensure intermediate directories exist.
     try:
       for key, value in iteritems(raw_data):
-        _winreg.SetValueEx(self.root_key, key, 0, _winreg.REG_SZ,
-                           utils.SmartStr(value))
+        winreg.SetValueEx(self._AccessRootKey(), key, 0, winreg.REG_SZ,
+                          utils.SmartStr(value))
 
     finally:
       # Make sure changes hit the disk.
-      _winreg.FlushKey(self.root_key)
+      winreg.FlushKey(self._AccessRootKey())

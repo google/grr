@@ -7,8 +7,9 @@ from __future__ import unicode_literals
 
 import re
 
+from absl import app
+
 from grr_response_client.client_actions import searching
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -26,14 +27,11 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestFindFlow, self).setUp()
-    self.vfs_overrider = vfs_test_lib.VFSOverrider(
+    vfs_overrider = vfs_test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.OS, vfs_test_lib.ClientVFSHandlerFixture)
-    self.vfs_overrider.Start()
+    vfs_overrider.Start()
+    self.addCleanup(vfs_overrider.Stop)
     self.client_id = self.SetupClient(0)
-
-  def tearDown(self):
-    super(TestFindFlow, self).tearDown()
-    self.vfs_overrider.Stop()
 
   def testInvalidFindSpec(self):
     """Test that its impossible to produce an invalid findspec."""
@@ -171,4 +169,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -7,9 +7,10 @@ from __future__ import unicode_literals
 import io
 
 
+from absl import app
+
 from grr_api_client import errors as grr_api_errors
 from grr_response_core import config as config
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_proto.api import config_pb2
 from grr_response_server.gui import api_e2e_test_lib
@@ -89,4 +90,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

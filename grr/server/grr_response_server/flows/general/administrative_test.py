@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests for administrative flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -10,16 +11,18 @@ import sys
 import time
 
 
-from builtins import range  # pylint: disable=redefined-builtin
-from builtins import zip  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
+from future.builtins import zip
+import mock
 import psutil
 
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -189,7 +192,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
       self.assertIn(client_id.Basename(), email_message["title"])
       rel_flow_obj = data_store.REL_DB.ReadFlowObject(client_id.Basename(),
                                                       flow_id)
-      self.assertEqual(rel_flow_obj.flow_state, rel_flow_obj.FlowState.ERROR)
+      self.assertEqual(rel_flow_obj.flow_state, rel_flow_obj.FlowState.CRASHED)
 
       # Make sure client object is updated with the last crash.
       crash = data_store.REL_DB.ReadClientCrashInfo(client_id.Basename())
@@ -573,6 +576,33 @@ sys.test_code_ran_here = True
       self.assertStartsWith(client_test_lib.Popen.running_args[0],
                             config.CONFIG["Client.tempdir_roots"][0])
 
+  def testExecuteBinaryWeirdOutput(self):
+    binary_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add("foo.exe")
+    maintenance_utils.UploadSignedConfigBlob(
+        b"foobarbaz", aff4_path=binary_path, token=self.token)
+
+    client_id = self.SetupClient(0)
+
+    def Run(self, args):
+      del args  # Unused.
+
+      stdout = "żółć %s gęślą {} jaźń # ⛷".encode("utf-8")
+      stderr = b"\x00\xff\x00\xff\x00"
+
+      response = rdf_client_action.ExecuteBinaryResponse(
+          stdout=stdout, stderr=stderr, exit_status=0, time_used=0)
+      self.SendReply(response)
+
+    with mock.patch.object(standard.ExecuteBinaryCommand, "Run", new=Run):
+      # Should not fail.
+      flow_test_lib.TestFlowHelper(
+          administrative.LaunchBinary.__name__,
+          action_mocks.ActionMock(standard.ExecuteBinaryCommand),
+          binary=binary_path,
+          client_id=client_id,
+          command_line="--bar --baz",
+          token=self.token)
+
   def testUpdateClient(self):
     client_mock = action_mocks.UpdateAgentClientMock()
     fake_installer = b"FakeGRRDebInstaller" * 20
@@ -838,4 +868,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -9,10 +9,11 @@ import logging
 import pdb
 import time
 
-from builtins import chr  # pylint: disable=redefined-builtin
-from builtins import map  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
-from builtins import zip  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import chr
+from future.builtins import map
+from future.builtins import range
+from future.builtins import zip
 import mock
 import requests
 
@@ -29,6 +30,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -488,13 +490,10 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
                                 frontend_test_lib.FrontEndServerTest):
   """Tests the GRRFEServer with relational flows enabled."""
 
-  def testReceiveMessages(self):
-    """Tests receiving messages."""
-    client_id = "C.1234567890123456"
-    flow_id = "12345678"
-    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
-
+  def _FlowSetup(self, client_id, flow_id):
     rdf_flow = rdf_flow_objects.Flow(
+        flow_class_name=compatibility.GetName(
+            administrative.OnlineNotification),
         client_id=client_id,
         flow_id=flow_id,
         create_time=rdfvalue.RDFDatetime.Now())
@@ -504,6 +503,15 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
         client_id=client_id, flow_id=flow_id, request_id=1)
 
     data_store.REL_DB.WriteFlowRequests([req])
+
+    return rdf_flow, req
+
+  def testReceiveMessages(self):
+    """Tests receiving messages."""
+    client_id = "C.1234567890123456"
+    flow_id = "12345678"
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+    _, req = self._FlowSetup(client_id, flow_id)
 
     session_id = "%s/%s" % (client_id, flow_id)
     messages = [
@@ -521,6 +529,35 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(received, 1)
     self.assertEqual(received[0][0], req)
     self.assertLen(received[0][1], 9)
+
+  def testCrashReport(self):
+    client_id = "C.1234567890123456"
+    flow_id = "12345678"
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+    self._FlowSetup(client_id, flow_id)
+
+    # Make sure the event handler is present.
+    self.assertTrue(administrative.ClientCrashHandler)
+
+    session_id = "%s/%s" % (client_id, flow_id)
+    status = rdf_flows.GrrStatus(
+        status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED)
+    messages = [
+        rdf_flows.GrrMessage(
+            source=client_id,
+            request_id=1,
+            response_id=1,
+            session_id=session_id,
+            payload=status,
+            auth_state="AUTHENTICATED",
+            type=rdf_flows.GrrMessage.Type.STATUS)
+    ]
+
+    ReceiveMessages(client_id, messages)
+
+    crash_details_rel = data_store.REL_DB.ReadClientCrashInfo(client_id)
+    self.assertTrue(crash_details_rel)
+    self.assertEqual(crash_details_rel.session_id, session_id)
 
   def testOldStyleHuntIDsDontError(self):
     """Tests receiving messages with old style hunt ids."""
@@ -576,8 +613,9 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     super(ClientCommsTest, self).setUp()
 
     # These tests change the config so we preserve state.
-    self.config_stubber = test_lib.PreserveConfig()
-    self.config_stubber.Start()
+    config_stubber = test_lib.PreserveConfig()
+    config_stubber.Start()
+    self.addCleanup(config_stubber.Stop)
 
     self.client_private_key = config.CONFIG["Client.private_key"]
 
@@ -605,10 +643,6 @@ class ClientCommsTest(test_lib.GRRBaseTest):
       self.server_communicator = frontend_lib.RelationalServerCommunicator(
           certificate=self.server_certificate,
           private_key=self.server_private_key)
-
-  def tearDown(self):
-    super(ClientCommsTest, self).tearDown()
-    self.config_stubber.Stop()
 
   def _LabelClient(self, client_id, label):
     if data_store.AFF4Enabled():
@@ -903,8 +937,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     super(HTTPClientTests, self).setUp()
 
     # These tests change the config so we preserve state.
-    self.config_stubber = test_lib.PreserveConfig()
-    self.config_stubber.Start()
+    config_stubber = test_lib.PreserveConfig()
+    config_stubber.Start()
+    self.addCleanup(config_stubber.Stop)
 
     self.server_serial_number = 0
 
@@ -917,10 +952,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # And cache it in the server
     self.CreateNewServerCommunicator()
 
-    self.requests_stubber = utils.Stubber(requests, "request", self.UrlMock)
-    self.requests_stubber.Start()
-    self.sleep_stubber = utils.Stubber(time, "sleep", lambda x: None)
-    self.sleep_stubber.Start()
+    requests_stubber = utils.Stubber(requests, "request", self.UrlMock)
+    requests_stubber.Start()
+    self.addCleanup(requests_stubber.Stop)
+
+    sleep_stubber = utils.Stubber(time, "sleep", lambda x: None)
+    sleep_stubber.Start()
+    self.addCleanup(sleep_stubber.Stop)
 
     self.messages = []
 
@@ -975,12 +1013,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.server_communicator = frontend_lib.RelationalServerCommunicator(
           certificate=self.server_certificate,
           private_key=self.server_private_key)
-
-  def tearDown(self):
-    self.requests_stubber.Stop()
-    self.config_stubber.Stop()
-    self.sleep_stubber.Stop()
-    super(HTTPClientTests, self).tearDown()
 
   def CreateClientCommunicator(self):
     self.client_communicator = comms.GRRHTTPClient(
@@ -1045,7 +1077,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       logging.info("Exception in mock urllib.request.Open: %s.", e)
       self.last_urlmock_error = e
 
-      if flags.FLAGS.debug:
+      if flags.FLAGS.pdb_post_mortem:
         pdb.post_mortem()
 
       raise MakeHTTPException(500)
@@ -1486,4 +1518,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

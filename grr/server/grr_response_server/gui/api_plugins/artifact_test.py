@@ -7,8 +7,9 @@ from __future__ import unicode_literals
 import io
 import os
 
+from absl import app
+
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_server import artifact
 from grr_response_server.gui import api_test_lib
@@ -132,4 +133,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

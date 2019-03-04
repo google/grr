@@ -4,11 +4,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from absl import app
 from future.builtins import str
 
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -245,4 +245,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

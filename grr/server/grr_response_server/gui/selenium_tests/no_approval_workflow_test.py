@@ -6,8 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from grr_response_core.lib import flags
+from absl import app
 
+from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import gui_test_lib
 
 from grr.test_lib import db_test_lib
@@ -21,7 +22,10 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestWorkflowWithoutApprovals, self).setUp()
     self.client_id = self.SetupClient(0).Basename()
-    self.UninstallACLChecks()
+
+  def InstallACLChecks(self):
+    # This class purposefully does not install ACL checks.
+    api_auth_manager.APIACLInit.InitApiAuthManager()
 
   def testHostInformationDoesNotAskForApproval(self):
     self.Open("/#/clients/%s" % self.client_id)
@@ -74,4 +78,4 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

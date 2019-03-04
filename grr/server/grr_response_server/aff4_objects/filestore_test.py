@@ -9,7 +9,8 @@ import io
 import os
 import time
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -487,4 +488,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

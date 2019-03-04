@@ -410,9 +410,9 @@ class RegistryFake(FakeRegistryVFSHandler):
 
 
 class FakeWinreg(object):
-  """A class to replace the _winreg module.
+  """A class to replace the winreg module.
 
-  _winreg is only available on Windows so we use this class in tests instead.
+  winreg is only available on Windows so we use this class in tests instead.
   """
 
   REG_NONE = 0
@@ -444,6 +444,7 @@ class RegistryVFSStubber(object):
 
     modules = {
         "_winreg": FakeWinreg(),
+        "winreg": FakeWinreg(),
         "ctypes": mock.MagicMock(),
         "ctypes.wintypes": mock.MagicMock(),
     }

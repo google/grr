@@ -11,10 +11,10 @@ import socket
 import struct
 
 
+from absl import app
 from future.builtins import bytes
 import mock
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr.test_lib import client_test_lib
 from grr.test_lib import osx_launchd_testdata
@@ -314,4 +314,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

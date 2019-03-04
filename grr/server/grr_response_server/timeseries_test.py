@@ -4,9 +4,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 
-from grr_response_core.lib import flags
 from grr_response_server import timeseries
 from grr.test_lib import test_lib
 
@@ -128,4 +128,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

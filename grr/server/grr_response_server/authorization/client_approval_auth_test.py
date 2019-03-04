@@ -5,7 +5,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import access_control
@@ -141,4 +142,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

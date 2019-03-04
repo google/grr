@@ -123,6 +123,7 @@ class InMemoryDBHuntMixin(object):
           0,
           sys.maxsize,
           with_substring=with_substring):
+
         all_entries.append(
             rdf_flow_objects.FlowLogEntry(
                 hunt_id=hunt_id,
@@ -207,7 +208,7 @@ class InMemoryDBHuntMixin(object):
     elif filter_condition == db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY:
       filter_fn = lambda f: f.flow_state == f.FlowState.RUNNING
     elif filter_condition == db.HuntFlowsCondition.CRASHED_FLOWS_ONLY:
-      filter_fn = lambda f: f.HasField("client_crash_info")
+      filter_fn = lambda f: f.flow_state == f.FlowState.CRASHED
     else:
       raise ValueError("Invalid filter condition: %d" % filter_condition)
 

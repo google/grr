@@ -589,7 +589,7 @@ class FrontEndServer(object):
             # A client crashed while performing an action, fire an event.
             crash_details = rdf_client.ClientCrash(
                 client_id=client_id,
-                session_id=msg.source,
+                session_id=msg.session_id,
                 backtrace=stat.backtrace,
                 crash_message=stat.error_message,
                 nanny_status=stat.nanny_status,

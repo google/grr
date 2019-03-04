@@ -294,6 +294,7 @@ class InMemoryDBFlowMixin(object):
                  client_id,
                  flow_id,
                  flow_obj=db.Database.unchanged,
+                 flow_state=db.Database.unchanged,
                  client_crash_info=db.Database.unchanged,
                  pending_termination=db.Database.unchanged,
                  processing_on=db.Database.unchanged,
@@ -310,6 +311,8 @@ class InMemoryDBFlowMixin(object):
       self.flows[(client_id, flow_id)] = flow_obj
       flow = flow_obj
 
+    if flow_state != db.Database.unchanged:
+      flow.flow_state = flow_state
     if client_crash_info != db.Database.unchanged:
       flow.client_crash_info = client_crash_info
     if pending_termination != db.Database.unchanged:

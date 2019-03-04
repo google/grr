@@ -2262,6 +2262,7 @@ message Flow {
     RUNNING = 1;
     FINISHED = 2;
     ERROR = 3;
+    CRASHED = 4;
   };
   optional FlowState flow_state = 21;
   optional uint64 response_count = 22;

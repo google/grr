@@ -296,7 +296,7 @@ config_lib.DEFINE_semantic_value(
 
 config_lib.DEFINE_integer(
     "Server.fleetspeak_list_clients_batch_size",
-    default=20000,
+    default=5000,
     help="Maximum number of client ids to place in a single Fleetspeak "
     "ListClients() API request.")
 

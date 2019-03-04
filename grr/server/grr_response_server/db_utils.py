@@ -36,13 +36,13 @@ def CallLoggedAndAccounted(f):
       stats_collector_instance.Get().IncrementCounter(
           "db_request_errors", fields=[f.__name__, "grr"])
       logging.debug("DB request %s GRR ERROR: %s", f.__name__,
-                    utils.SmartStr(e))
+                    utils.SmartUnicode(e))
       raise
     except Exception as e:
       stats_collector_instance.Get().IncrementCounter(
           "db_request_errors", fields=[f.__name__, "db"])
       logging.debug("DB request %s INTERNAL DB ERROR : %s", f.__name__,
-                    utils.SmartStr(e))
+                    utils.SmartUnicode(e))
       raise
 
   return Decorator

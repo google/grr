@@ -2,6 +2,7 @@
 """End to end tests for GRR administrative flows."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 from grr_response_test.end_to_end_tests import test_base
 
@@ -18,10 +19,10 @@ class TestGetClientStats(test_base.EndToEndTest):
     self.assertTrue(results)
 
     cstats = results[0].payload
-    self.assertGreater(len(cstats.cpu_samples), 0)
+    self.assertNotEmpty(cstats.cpu_samples)
     if self.platform != test_base.EndToEndTest.Platform.DARWIN:
       # No io counters on mac.
-      self.assertGreater(len(cstats.io_samples), 0)
+      self.assertNotEmpty(cstats.io_samples)
 
     self.assertGreater(cstats.RSS_size, 0)
     self.assertGreater(cstats.VMS_size, 0)

@@ -6,9 +6,9 @@ from __future__ import unicode_literals
 
 import stat
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -116,4 +116,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

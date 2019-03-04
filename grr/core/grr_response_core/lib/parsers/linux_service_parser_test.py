@@ -6,9 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 from future.utils import itervalues
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.parsers import parsers_test_lib
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -141,4 +141,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -9,13 +9,13 @@ import io
 import zipfile
 
 
-from builtins import range  # pylint: disable=redefined-builtin
-from builtins import zip  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
+from future.builtins import zip
 from future.utils import iteritems
 import mock
 
 from grr_response_core.lib import factory
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
@@ -1217,4 +1217,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -15,6 +15,7 @@ import threading
 import time
 import traceback
 
+from absl import app
 import portpicker
 import psutil
 import requests
@@ -107,8 +108,22 @@ def _RunServerComponent(name, import_main_fn, args):
 
   main_fn = import_main_fn()
 
+  # Result of the invocation of a main function is passed to the `sys.exit`. In
+  # most cases, these functions simply return `None` and this is usually fine as
+  # the program is going to exit with return code of 0. However, things change
+  # for subprocesses: if a subprocess exits with `None` return code of 1 is used
+  # instead. Since server components run as subprocesses, this causes the main
+  # process to fail. To fix this behaviour, we inspect the result and explicitly
+  # translate it to 0 if it is `None` and pass-through any other value.
+  def MainWrapper(*args, **kwargs):
+    result = main_fn(*args, **kwargs)
+    if result is None:
+      return 0
+    else:
+      return result
+
   sys.argv = [name] + args
-  flags.StartMain(main_fn)
+  app.run(MainWrapper)
 
 
 def StartServerComponent(name, import_main_fn, args):
@@ -152,7 +167,7 @@ def _RunClient(config_path):
 
   sys.argv = ["Client", "--config", config_path]
   try:
-    flags.StartMain(client.main)
+    app.run(client.main)
   except Exception as e:  # pylint: disable=broad-except
     print("Client process error: %s" % e)
     traceback.print_exc()
@@ -377,7 +392,6 @@ def main(argv):
   ])
   p.join()
   if p.exitcode != 0:
-    # TODO(hanuszczak): This is just a debug stuff.
     raise RuntimeError("ConfigWriter execution failed: {}".format(p.exitcode))
 
   server_config = config_lib.LoadConfig(config.CONFIG.MakeNewConfig(),
@@ -423,4 +437,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

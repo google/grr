@@ -7,18 +7,19 @@ from __future__ import unicode_literals
 
 import collections
 import os
-import posix
+import platform
 import stat
+import unittest
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 import psutil
 
 from grr_response_client import actions
 from grr_response_client import client_utils
 from grr_response_client.client_actions import standard
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -150,7 +151,11 @@ class ActionTest(client_test_lib.EmptyActionTest):
       self.assertLen(received_messages, 1)
       self.assertEqual(received_messages[0], "Cpu limit exceeded.")
 
+  @unittest.skipIf(platform.system() == "Windows",
+                   "os.statvfs is not available on Windows")
   def testStatFS(self):
+    import posix  # pylint: disable=g-import-not-at-top
+
     f_bsize = 4096
     # Simulate pre-2.6 kernel
     f_frsize = 0
@@ -223,4 +228,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

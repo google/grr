@@ -6,7 +6,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib import parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -228,4 +229,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

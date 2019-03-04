@@ -92,8 +92,8 @@ class CanNotStartFlowWithExistingIdError(Error):
   """Raises by StartFlow when trying to start a flow with an exising id."""
 
   def __init__(self, client_id, flow_id):
-    message = (
-        "Flow %s already exists on the client %s." % (client_id, flow_id))
+    message = ("Flow %s already exists on the client %s." %
+               (client_id, flow_id))
     super(CanNotStartFlowWithExistingIdError, self).__init__(message)
 
     self.client_id = client_id
@@ -455,8 +455,8 @@ def StartFlow(client_id=None,
   if cpu_limit is not None:
     rdf_flow.cpu_limit = cpu_limit
 
-  logging.info(u"Scheduling %s(%s) on %s", rdf_flow.long_flow_id,
-               rdf_flow.flow_class_name, client_id)
+  logging.info(u"Scheduling %s(%s) on %s (%s)", rdf_flow.long_flow_id,
+               rdf_flow.flow_class_name, client_id, start_at or "now")
 
   rdf_flow.current_state = "Start"
 
@@ -802,9 +802,9 @@ class GRRFlow(FlowBase):
     num_results = len(self.ResultCollection())
     notification_lib.Notify(
         self.creator, rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
-        "Flow %s completed with %d %s" % (self.__class__.__name__, num_results,
-                                          num_results == 1 and "result" or
-                                          "results"),
+        "Flow %s completed with %d %s" %
+        (self.__class__.__name__, num_results, num_results == 1 and "result" or
+         "results"),
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.FLOW,
             flow=flow_ref))

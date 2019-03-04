@@ -26,6 +26,13 @@ except ImportError:
 LOGGER = None
 
 
+flags.DEFINE_bool(
+    "verbose",
+    default=False,
+    help="Turn on verbose logging.",
+    allow_override=True)
+
+
 class GrrApplicationLogger(object):
   """The GRR application logger.
 

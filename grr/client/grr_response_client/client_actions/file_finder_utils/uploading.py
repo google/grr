@@ -29,7 +29,7 @@ class TransferStoreUploader(object):
 
     Args:
       action: A parent action that creates the uploader. Used to communicate
-              with the parent flow.
+        with the parent flow.
       chunk_size: A number of (uncompressed) bytes per a chunk.
     """
     chunk_size = chunk_size or self.DEFAULT_CHUNK_SIZE
@@ -44,22 +44,38 @@ class TransferStoreUploader(object):
       filepath: A path to the file to upload.
       offset: An integer offset at which the file upload should start on.
       amount: An upper bound on number of bytes to stream. If it is `None` then
-          the whole file is uploaded.
+        the whole file is uploaded.
 
     Returns:
       A `BlobImageDescriptor` object.
     """
-    chunk_stream = self._streamer.StreamFilePath(
-        filepath, offset=offset, amount=amount)
+    return self._UploadChunkStream(
+        self._streamer.StreamFilePath(filepath, offset=offset, amount=amount))
 
+  def UploadFile(self, fd, offset=0, amount=None):
+    """Uploads chunks of a given file descriptor to the transfer store flow.
+
+    Args:
+      fd: A file descriptor to upload.
+      offset: An integer offset at which the file upload should start on.
+      amount: An upper bound on number of bytes to stream. If it is `None` then
+        the whole file is uploaded.
+
+    Returns:
+      A `BlobImageDescriptor` object.
+    """
+    return self._UploadChunkStream(
+        self._streamer.StreamFile(fd, offset=offset, amount=amount))
+
+  def _UploadChunkStream(self, chunk_stream):
     chunks = []
     for chunk in chunk_stream:
-      chunks.append(self.UploadChunk(chunk))
+      chunks.append(self._UploadChunk(chunk))
 
     return rdf_client_fs.BlobImageDescriptor(
         chunks=chunks, chunk_size=self._streamer.chunk_size)
 
-  def UploadChunk(self, chunk):
+  def _UploadChunk(self, chunk):
     """Uploads a single chunk to the transfer store flow.
 
     Args:

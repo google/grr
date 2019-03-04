@@ -6,6 +6,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import base64
+
+from absl import app
 import mock
 
 from werkzeug import test as werkzeug_test
@@ -13,7 +15,6 @@ from werkzeug import wrappers as werkzeug_wrappers
 
 from google.oauth2 import id_token
 
-from grr_response_core.lib import flags
 from grr_response_server import aff4
 from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.gui import validate_iap
@@ -260,7 +261,7 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
   @mock.patch.object(
       validate_iap,
       "ValidateIapJwtFromComputeEngine",
-      return_value=("temp", "temp", ""))
+      return_value=("temp", "temp"))
   def testSuccessfulKey(self, mock_method):
     """Validate account creation upon successful JWT Authentication."""
 
@@ -326,4 +327,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

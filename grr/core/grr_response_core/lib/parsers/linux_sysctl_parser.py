@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import zip
 from future.utils import iteritems
 
 from grr_response_core.lib import parser

@@ -11,11 +11,11 @@ import hashlib
 import io
 import os
 
+from absl import app
 from future.utils import itervalues
 import mock
 
 from grr_response_client import vfs
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -1226,4 +1226,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -9,7 +9,7 @@ import io
 import os
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import zip
 from future.utils import iteritems
 from future.utils import iterkeys
 import yaml

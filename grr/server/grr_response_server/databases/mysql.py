@@ -15,7 +15,7 @@ import random
 import time
 import warnings
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 
 # Note: Please refer to server/setup.py for the MySQLdb version that is used.
 # It is most likely not up-to-date because of our support for older OS.

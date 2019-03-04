@@ -231,7 +231,7 @@ class GRRWorker(object):
         logging.error("Error processing message %s. %s.", e,
                       traceback.format_exc())
         stats_collector_instance.Get().IncrementCounter("grr_worker_exceptions")
-        if flags.FLAGS.debug:
+        if flags.FLAGS.pdb_post_mortem:
           pdb.post_mortem()
 
       queue_manager.UnfreezeTimestamp()

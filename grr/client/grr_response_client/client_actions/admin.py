@@ -12,10 +12,11 @@ import time
 import traceback
 
 
-from builtins import map  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
 import cryptography
 from cryptography.hazmat.backends import openssl
+from future.builtins import map
+from future.builtins import range
+from future.builtins import str
 from future.utils import iteritems
 import pkg_resources
 import psutil
@@ -232,9 +233,7 @@ class UpdateConfiguration(actions.ActionPlugin):
     except AttributeError:
       pass
 
-    smart_arg = {
-        utils.SmartStr(field): value for field, value in iteritems(arg)
-    }
+    smart_arg = {str(field): value for field, value in iteritems(arg)}
 
     disallowed_fields = [
         field for field in smart_arg

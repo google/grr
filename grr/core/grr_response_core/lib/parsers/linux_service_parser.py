@@ -11,7 +11,7 @@ import re
 import stat
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import zip
 from future.utils import iteritems
 from future.utils import itervalues
 from typing import Text

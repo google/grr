@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 import io
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import aff4

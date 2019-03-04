@@ -2,6 +2,7 @@
 """End to end tests for GRR FileFinder flow."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 from grr_response_proto import jobs_pb2
 from grr_response_test.end_to_end_tests import test_base
@@ -54,7 +55,7 @@ class TestFileFinderTSKWindows(test_base.AbstractFileTransferTest):
 
     f = self.RunFlowAndWait("FileFinder", args=args)
     results = list(f.ListResults())
-    self.assertGreater(len(results), 0)
+    self.assertNotEmpty(results)
 
     ff_result = results[0].payload
     path = self.TSKPathspecToVFSPath(ff_result.stat_entry.pathspec)
@@ -62,6 +63,25 @@ class TestFileFinderTSKWindows(test_base.AbstractFileTransferTest):
     # Run FileFinder again and make sure the path gets updated on VFS.
     with self.WaitForFileRefresh(path):
       self.RunFlowAndWait("FileFinder", args=args)
+
+    self.CheckPEMagic(path)
+
+  def testTSKCollectionClientFileFinder(self):
+    args = self.grr_api.types.CreateFlowArgs("ClientFileFinder")
+    args.paths.append("%%environ_systemroot%%\\System32\\notepad.*")
+    args.action.action_type = args.action.DOWNLOAD
+    args.pathtype = jobs_pb2.PathSpec.TSK
+
+    f = self.RunFlowAndWait("ClientFileFinder", args=args)
+    results = list(f.ListResults())
+    self.assertNotEmpty(results)
+
+    ff_result = results[0].payload
+    path = self.TSKPathspecToVFSPath(ff_result.stat_entry.pathspec)
+
+    # Run FileFinder again and make sure the path gets updated on VFS.
+    with self.WaitForFileRefresh(path):
+      self.RunFlowAndWait("ClientFileFinder", args=args)
 
     self.CheckPEMagic(path)
 
@@ -153,7 +173,7 @@ class TestFileFinderOSHomedir(test_base.AbstractFileTransferTest):
     f = self.RunFlowAndWait(self.flow, args=args)
 
     results = list(f.ListResults())
-    self.assertGreater(len(results), 0)
+    self.assertNotEmpty(results)
 
 
 class TestFileFinderLiteralMatching(test_base.AbstractFileTransferTest):
@@ -176,7 +196,7 @@ class TestFileFinderLiteralMatching(test_base.AbstractFileTransferTest):
     args.paths.append("/bin/ls")
     condition = args.conditions.add()
     condition.condition_type = condition.CONTENTS_LITERAL_MATCH
-    condition.contents_literal_match.literal = keyword
+    condition.contents_literal_match.literal = keyword.encode("utf-8")
     args.action.action_type = args.action.STAT
 
     f = self.RunFlowAndWait(flow, args=args)

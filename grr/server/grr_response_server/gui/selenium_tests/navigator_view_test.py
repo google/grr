@@ -5,7 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from grr_response_core.lib import flags
+from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -250,4 +250,4 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

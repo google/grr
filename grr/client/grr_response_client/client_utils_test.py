@@ -8,14 +8,18 @@ from __future__ import unicode_literals
 import hashlib
 import imp
 import os
+import platform
 import sys
+import unittest
 
+from absl import app
 from absl.testing import absltest
 import mock
 
+from grr_response_client import client_utils
 from grr_response_client import client_utils_common
-from grr_response_client import client_utils_osx
-from grr_response_core.lib import flags
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import filesystem
 from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
@@ -64,6 +68,7 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
     winfile.GetVolumePathName = GetVolumePathName
     sys.modules["win32file"] = winfile
 
+    sys.modules["winreg"] = imp.new_module("winreg")
     sys.modules["_winreg"] = imp.new_module("_winreg")
     sys.modules["ntsecuritycon"] = imp.new_module("ntsecuritycon")
     sys.modules["win32security"] = imp.new_module("win32security")
@@ -114,6 +119,7 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
     self.assertLess(time_used, 1.0)
 
 
+@unittest.skipIf(platform.system() != "Darwin", "Skipping macOS only test.")
 @mock.patch(
     "grr_response_client.client_utils_osx"
     ".platform.mac_ver",
@@ -121,10 +127,12 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
 class OSXVersionTests(test_lib.GRRBaseTest):
 
   def testVersionAsIntArray(self, _):
+    from grr_response_client import client_utils_osx  # pylint: disable=g-import-not-at-top
     osversion = client_utils_osx.OSXVersion()
     self.assertEqual(osversion.VersionAsMajorMinor(), [10, 8])
 
   def testVersionString(self, _):
+    from grr_response_client import client_utils_osx  # pylint: disable=g-import-not-at-top
     osversion = client_utils_osx.OSXVersion()
     self.assertEqual(osversion.VersionString(), "10.8.1")
 
@@ -195,10 +203,18 @@ class MultiHasherTest(absltest.TestCase):
     self.assertTrue(progress.called)
     self.assertEqual(hasher.GetHashObject().num_bytes, 108)
 
+  def testStatResultFromStatEntry(self):
+    stat_obj = os.stat_result([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    fs_stat = filesystem.Stat("/foo", stat_obj)
+    pathspec = rdf_paths.PathSpec(path="/foo", pathtype="OS")
+    stat_entry = client_utils.StatEntryFromStat(
+        fs_stat, pathspec, ext_attrs=False)
+    self.assertEqual(stat_obj, client_utils.StatResultFromStatEntry(stat_entry))
+
 
 def main(argv):
   test_lib.main(argv)
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

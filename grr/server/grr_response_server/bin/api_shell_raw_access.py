@@ -13,6 +13,7 @@ import sys
 from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order
 
+from absl import app
 
 from grr_api_client import api
 from grr_api_client import api_shell_lib
@@ -89,4 +90,4 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

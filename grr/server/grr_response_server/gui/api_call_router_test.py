@@ -5,9 +5,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 from future.utils import itervalues
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.util import compatibility
 from grr_response_server.gui import api_call_router
 from grr.test_lib import test_lib
@@ -96,4 +96,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -7,6 +7,8 @@ from __future__ import unicode_literals
 
 import logging
 import time
+
+from absl import app
 import grpc
 
 
@@ -16,7 +18,6 @@ from grr_response_server import server_plugins
 
 from grr_response_core import config
 from grr_response_core.lib import communicator
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.stats import stats_utils
@@ -25,6 +26,7 @@ from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import frontend_lib
 from grr_response_server import server_startup
+
 
 
 class GRRFSServer(object):
@@ -112,4 +114,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -9,14 +9,13 @@ import os
 import platform
 import unittest
 
+
 from absl.testing import absltest
 import mock
 
 from grr_response_client import client_build
 from grr_response_core.lib import builders
-from grr_response_core.lib import flags
 from grr_response_core.lib.util import temp
-from grr.test_lib import test_lib
 
 
 class ClientBuildTest(absltest.TestCase):
@@ -67,9 +66,5 @@ class MultiRepackTest(absltest.TestCase):
     self.assertEqual(self.pool_obj.apply_async.call_count, 8)
 
 
-def main(argv):
-  test_lib.main(argv)
-
-
 if __name__ == "__main__":
-  flags.StartMain(main)
+  absltest.main()

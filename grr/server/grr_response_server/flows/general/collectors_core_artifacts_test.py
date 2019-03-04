@@ -11,9 +11,10 @@ from __future__ import unicode_literals
 import os
 
 
+from absl import app
+
 from grr_response_client.client_actions import standard
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import windows_registry_parser
 from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
@@ -215,4 +216,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -9,6 +9,7 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
+import binascii
 import hashlib
 import logging
 import platform
@@ -115,11 +116,12 @@ class ClientURN(rdfvalue.RDFURN):
     # prefixed with a 0. This weird format is an artifact from the way
     # M2Crypto handled this, we have to live with it for now.
     n = public_key.GetN()
-    raw_n = ("%x" % n).decode("hex")
+    raw_n = binascii.unhexlify("%x" % n)
 
     mpi_format = struct.pack(">i", len(raw_n) + 1) + b"\x00" + raw_n
 
-    return cls("C.%s" % (hashlib.sha256(mpi_format).digest()[:8].encode("hex")))
+    digest = binascii.hexlify(hashlib.sha256(mpi_format).digest()[:8])
+    return cls("C.{}".format(digest.decode("ascii")))
 
   def Add(self, path, age=None):
     """Add a relative stem to the current value and return a new RDFURN.

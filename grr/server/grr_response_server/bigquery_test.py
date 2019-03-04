@@ -10,11 +10,11 @@ import tempfile
 import time
 
 
+from absl import app
 from googleapiclient import errors
 import mock
 
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_server import bigquery
 from grr.test_lib import test_lib
@@ -86,4 +86,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

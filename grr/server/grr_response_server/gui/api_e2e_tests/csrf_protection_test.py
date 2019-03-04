@@ -7,9 +7,9 @@ from __future__ import unicode_literals
 import json
 
 
+from absl import app
 import requests
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server.gui import api_e2e_test_lib
@@ -280,4 +280,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

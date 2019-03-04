@@ -4,9 +4,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from absl import app
 import mock
 
-from grr_response_core.lib import flags
 from grr_response_server import fleetspeak_utils
 from grr.test_lib import fleetspeak_test_lib
 from grr.test_lib import test_lib
@@ -58,4 +58,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -6,6 +6,9 @@ from __future__ import unicode_literals
 
 import collections
 import sys
+
+
+from absl import app
 import mock
 
 from chipsec.helper import oshelper
@@ -22,7 +25,6 @@ from grr_response_client import vfs
 # grr_response_client.components.chipsec_support.actions.grr_chipsec to
 # explicitly resolve the circular dependency.
 from grr_response_client.components.chipsec_support import actions  # pylint: disable=unused-import
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
@@ -265,4 +267,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

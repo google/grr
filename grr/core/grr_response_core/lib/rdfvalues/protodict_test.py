@@ -17,11 +17,11 @@ from __future__ import unicode_literals
 import collections
 
 
+from absl import app
 from future.builtins import zip
 from future.utils import iteritems
 from typing import Text
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -306,4 +306,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -13,20 +13,18 @@ import shutil
 import stat
 import zlib
 
+from absl import app
 import psutil
 
 from grr_response_client.client_actions import file_finder as client_file_finder
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
 from grr.test_lib import client_test_lib
 from grr.test_lib import filesystem_test_lib
 from grr.test_lib import test_lib
-from grr.test_lib import vfs_test_lib
 from grr.test_lib import worker_mocks
 
 
@@ -871,55 +869,9 @@ class MockTransferStore(object):
     return data
 
 
-class ExpandRegistryPathsTest(client_test_lib.EmptyActionTest):
-
-  def setUp(self):
-    super(ExpandRegistryPathsTest, self).setUp()
-    self.stat_action = rdf_file_finder.FileFinderAction.Stat()
-    self.expected_paths = [
-        "/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session Manager/"
-        "Environment"
-    ]
-
-  def _GlobForPaths(self, paths):
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                                   vfs_test_lib.FakeRegistryVFSHandler):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeFullVFSHandler):
-        request = rdf_file_finder.FileFinderArgs(
-            paths=paths,
-            action=self.stat_action,
-            follow_links=True,
-            pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
-        return list(client_file_finder.GetExpandedPaths(request))
-
-  def testInvalidPath(self):
-    paths = ["/HKEY_LOCAL_MACHINE/Invalid/Path/"]
-    result = self._GlobForPaths(paths)
-    self.assertEqual(result, [])
-
-  def testPathWithoutGlobs(self):
-    result = self._GlobForPaths(self.expected_paths)
-    self.assertEqual(result, self.expected_paths)
-
-  def testBasicGlob(self):
-    paths = [
-        "/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session Manager/*"
-    ]
-    result = self._GlobForPaths(paths)
-    self.assertEqual(result, self.expected_paths)
-
-  def testRecursiveGlob(self):
-    paths = [
-        "/HKEY_LOCAL_MACHINE/SYSTEM/**/Control/Session Manager/Environment"
-    ]
-    result = self._GlobForPaths(paths)
-    self.assertEqual(result, self.expected_paths)
-
-
 def main(argv):
   test_lib.main(argv)
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

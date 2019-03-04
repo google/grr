@@ -7,12 +7,12 @@ from __future__ import unicode_literals
 import re
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 from future.utils import iteritems
 import mock
 
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import aff4
@@ -405,4 +405,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

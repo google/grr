@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 import queue
 
 from grr_response_core.lib import rdfvalue

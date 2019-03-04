@@ -4,7 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_server import data_store
 from grr_response_server import data_store_test
 from grr_response_server.data_stores import mysql_advanced_data_store
@@ -44,4 +45,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

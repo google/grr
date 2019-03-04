@@ -10,8 +10,8 @@ import os
 import re
 import time
 
-import _winreg
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
+from future.moves import winreg
 import ntsecuritycon
 import pywintypes
 import win32api
@@ -149,7 +149,7 @@ def FindProxies():
   proxies = []
   for i in range(0, 100):
     try:
-      sid = _winreg.EnumKey(_winreg.HKEY_USERS, i)
+      sid = winreg.EnumKey(winreg.HKEY_USERS, i)
     except OSError:
       break
 
@@ -158,14 +158,14 @@ def FindProxies():
           sid + "\\Software\\Microsoft\\Windows"
           "\\CurrentVersion\\Internet Settings")
 
-      internet_settings = _winreg.OpenKey(_winreg.HKEY_USERS, subkey)
+      internet_settings = winreg.OpenKey(winreg.HKEY_USERS, subkey)
 
-      proxy_enable = _winreg.QueryValueEx(internet_settings, "ProxyEnable")[0]
+      proxy_enable = winreg.QueryValueEx(internet_settings, "ProxyEnable")[0]
 
       if proxy_enable:
         # Returned as Unicode but problems if not converted to ASCII
         proxy_server = str(
-            _winreg.QueryValueEx(internet_settings, "ProxyServer")[0])
+            winreg.QueryValueEx(internet_settings, "ProxyServer")[0])
         if "=" in proxy_server:
           # Per-protocol settings
           for p in proxy_server.split(";"):
@@ -247,11 +247,11 @@ def _GetServiceKey():
   global _service_key
 
   if _service_key is None:
-    hive = getattr(_winreg, config.CONFIG["Client.config_hive"])
+    hive = getattr(winreg, config.CONFIG["Client.config_hive"])
     path = config.CONFIG["Client.config_key"]
 
-    # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-    _service_key = _winreg.CreateKeyEx(hive, path, 0, _winreg.KEY_ALL_ACCESS)
+    # Don't use winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
+    _service_key = winreg.CreateKeyEx(hive, path, 0, winreg.KEY_ALL_ACCESS)
 
   return _service_key
 
@@ -263,14 +263,14 @@ class NannyController(object):
     """Writes a heartbeat to the registry."""
     service_key = _GetServiceKey()
     try:
-      _winreg.SetValueEx(service_key, "Nanny.heartbeat", 0, _winreg.REG_DWORD,
-                         int(time.time()))
+      winreg.SetValueEx(service_key, "Nanny.heartbeat", 0, winreg.REG_DWORD,
+                        int(time.time()))
     except OSError as e:
       logging.debug("Failed to heartbeat nanny at %s: %s", service_key, e)
 
   def GetNannyStatus(self):
     try:
-      value, _ = _winreg.QueryValueEx(_GetServiceKey(), "Nanny.status")
+      value, _ = winreg.QueryValueEx(_GetServiceKey(), "Nanny.status")
     except OSError:
       return None
 
@@ -278,7 +278,7 @@ class NannyController(object):
 
   def GetNannyMessage(self):
     try:
-      value, _ = _winreg.QueryValueEx(_GetServiceKey(), "Nanny.message")
+      value, _ = winreg.QueryValueEx(_GetServiceKey(), "Nanny.message")
     except OSError:
       return None
 
@@ -287,7 +287,7 @@ class NannyController(object):
   def ClearNannyMessage(self):
     """Wipes the nanny message."""
     try:
-      _winreg.DeleteValue(_GetServiceKey(), "Nanny.message")
+      winreg.DeleteValue(_GetServiceKey(), "Nanny.message")
     except OSError:
       pass
 
@@ -333,21 +333,21 @@ class TransactionLog(object):
     """
     grr_message = grr_message.SerializeToString()
     try:
-      _winreg.SetValueEx(_GetServiceKey(), "Transaction", 0, _winreg.REG_BINARY,
-                         grr_message)
+      winreg.SetValueEx(_GetServiceKey(), "Transaction", 0, winreg.REG_BINARY,
+                        grr_message)
       self._synced = False
     except OSError:
       pass
 
   def Sync(self):
     if not self._synced:
-      _winreg.FlushKey(_GetServiceKey())
+      winreg.FlushKey(_GetServiceKey())
       self._synced = True
 
   def Clear(self):
     """Wipes the transaction log."""
     try:
-      _winreg.DeleteValue(_GetServiceKey(), "Transaction")
+      winreg.DeleteValue(_GetServiceKey(), "Transaction")
       self._synced = False
     except OSError:
       pass
@@ -355,11 +355,11 @@ class TransactionLog(object):
   def Get(self):
     """Return a GrrMessage instance from the transaction log or None."""
     try:
-      value, reg_type = _winreg.QueryValueEx(_GetServiceKey(), "Transaction")
+      value, reg_type = winreg.QueryValueEx(_GetServiceKey(), "Transaction")
     except OSError:
       return
 
-    if reg_type != _winreg.REG_BINARY:
+    if reg_type != winreg.REG_BINARY:
       return
 
     try:

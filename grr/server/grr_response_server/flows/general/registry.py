@@ -8,6 +8,7 @@ from grr_response_core.lib import artifact_utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_core.path_detection import windows as path_detection_windows
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
@@ -38,6 +39,36 @@ class RegistryFinderArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
+def _ConditionsToFileFinderConditions(conditions):
+  """Converts FileFinderSizeConditions to RegistryFinderConditions."""
+  ff_condition_type_cls = rdf_file_finder.FileFinderCondition.Type
+  result = []
+  for c in conditions:
+    if c.condition_type == RegistryFinderCondition.Type.MODIFICATION_TIME:
+      result.append(
+          rdf_file_finder.FileFinderCondition(
+              condition_type=ff_condition_type_cls.MODIFICATION_TIME,
+              modification_time=c.modification_time))
+    elif c.condition_type == RegistryFinderCondition.Type.VALUE_LITERAL_MATCH:
+      result.append(
+          rdf_file_finder.FileFinderCondition(
+              condition_type=ff_condition_type_cls.CONTENTS_LITERAL_MATCH,
+              contents_literal_match=c.value_literal_match))
+    elif c.condition_type == RegistryFinderCondition.Type.VALUE_REGEX_MATCH:
+      result.append(
+          rdf_file_finder.FileFinderCondition(
+              condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
+              contents_regex_match=c.value_regex_match))
+    elif c.condition_type == RegistryFinderCondition.Type.SIZE:
+      result.append(
+          rdf_file_finder.FileFinderCondition(
+              condition_type=ff_condition_type_cls.SIZE, size=c.size))
+    else:
+      raise ValueError("Unknown condition type: %s" % c.condition_type)
+
+  return result
+
+
 @flow_base.DualDBFlow
 class RegistryFinderMixin(object):
   """This flow looks for registry items matching given criteria."""
@@ -46,35 +77,6 @@ class RegistryFinderMixin(object):
   category = "/Registry/"
   args_type = RegistryFinderArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
-
-  def ConditionsToFileFinderConditions(self, conditions):
-    """Converts FileFinderSizeConditions to RegistryFinderConditions."""
-    ff_condition_type_cls = rdf_file_finder.FileFinderCondition.Type
-    result = []
-    for c in conditions:
-      if c.condition_type == RegistryFinderCondition.Type.MODIFICATION_TIME:
-        result.append(
-            rdf_file_finder.FileFinderCondition(
-                condition_type=ff_condition_type_cls.MODIFICATION_TIME,
-                modification_time=c.modification_time))
-      elif c.condition_type == RegistryFinderCondition.Type.VALUE_LITERAL_MATCH:
-        result.append(
-            rdf_file_finder.FileFinderCondition(
-                condition_type=ff_condition_type_cls.CONTENTS_LITERAL_MATCH,
-                contents_literal_match=c.value_literal_match))
-      elif c.condition_type == RegistryFinderCondition.Type.VALUE_REGEX_MATCH:
-        result.append(
-            rdf_file_finder.FileFinderCondition(
-                condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
-                contents_regex_match=c.value_regex_match))
-      elif c.condition_type == RegistryFinderCondition.Type.SIZE:
-        result.append(
-            rdf_file_finder.FileFinderCondition(
-                condition_type=ff_condition_type_cls.SIZE, size=c.size))
-      else:
-        raise ValueError("Unknown condition type: %s" % c.condition_type)
-
-    return result
 
   @classmethod
   def GetDefaultArgs(cls, username=None):
@@ -86,10 +88,42 @@ class RegistryFinderMixin(object):
 
   def Start(self):
     self.CallFlow(
-        file_finder.FileFinder.__name__,
+        compatibility.GetName(file_finder.FileFinder),
         paths=self.args.keys_paths,
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-        conditions=self.ConditionsToFileFinderConditions(self.args.conditions),
+        conditions=_ConditionsToFileFinderConditions(self.args.conditions),
+        action=rdf_file_finder.FileFinderAction.Stat(),
+        next_state="Done")
+
+  def Done(self, responses):
+    if not responses.success:
+      raise flow.FlowError("Registry search failed %s" % responses.status)
+
+    for response in responses:
+      self.SendReply(response)
+
+
+@flow_base.DualDBFlow
+class ClientRegistryFinderMixin(object):
+  """This flow looks for registry items matching given criteria."""
+
+  friendly_name = "Client Side Registry Finder"
+  category = "/Registry/"
+  args_type = RegistryFinderArgs
+  behaviours = flow.GRRFlow.behaviours + "DEBUG"
+
+  @classmethod
+  def GetDefaultArgs(cls, username=None):
+    del username
+    return cls.args_type(
+        keys_paths=["HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/*"])
+
+  def Start(self):
+    self.CallFlow(
+        compatibility.GetName(file_finder.ClientFileFinder),
+        paths=self.args.keys_paths,
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+        conditions=_ConditionsToFileFinderConditions(self.args.conditions),
         action=rdf_file_finder.FileFinderAction.Stat(),
         next_state="Done")
 

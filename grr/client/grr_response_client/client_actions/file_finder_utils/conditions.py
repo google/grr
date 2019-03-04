@@ -2,17 +2,21 @@
 """Implementation of condition mechanism for client-side file-finder."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import abc
-import collections
 
 
 from future.utils import with_metaclass
+from typing import Iterator
+from typing import NamedTuple
+from typing import Optional
 
 from grr_response_client import streaming
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.util import precondition
 
 
 class MetadataCondition(with_metaclass(abc.ABCMeta, object)):
@@ -139,11 +143,11 @@ class ContentCondition(with_metaclass(abc.ABCMeta, object)):
   """An abstract class representing conditions on the file contents."""
 
   @abc.abstractmethod
-  def Search(self, path):
+  def Search(self, fd):
     """Searches specified file for particular content.
 
     Args:
-      path: A path to the file that is going to be searched.
+      fd: A file descriptor of the file that needs to be searched.
 
     Yields:
       `BufferReference` objects pointing to file parts with matching content.
@@ -175,11 +179,12 @@ class ContentCondition(with_metaclass(abc.ABCMeta, object)):
   OVERLAP_SIZE = 1024 * 1024
   CHUNK_SIZE = 10 * 1024 * 1024
 
-  def Scan(self, path, matcher):
+  def Scan(self, fd,
+           matcher):
     """Scans given file searching for occurrences of given pattern.
 
     Args:
-      path: A path to the file that needs to be searched.
+      fd: A file descriptor of the file that needs to be searched.
       matcher: A matcher object specifying a pattern to search for.
 
     Yields:
@@ -190,7 +195,7 @@ class ContentCondition(with_metaclass(abc.ABCMeta, object)):
 
     offset = self.params.start_offset
     amount = self.params.length
-    for chunk in streamer.StreamFilePath(path, offset=offset, amount=amount):
+    for chunk in streamer.StreamFile(fd, offset=offset, amount=amount):
       for span in chunk.Scan(matcher):
         ctx_begin = max(span.begin - self.params.bytes_before, 0)
         ctx_end = min(span.end + self.params.bytes_after, len(chunk.data))
@@ -212,9 +217,9 @@ class LiteralMatchCondition(ContentCondition):
     super(LiteralMatchCondition, self).__init__()
     self.params = params.contents_literal_match
 
-  def Search(self, path):
+  def Search(self, fd):
     matcher = LiteralMatcher(self.params.literal.AsBytes())
-    for match in self.Scan(path, matcher):
+    for match in self.Scan(fd, matcher):
       yield match
 
 
@@ -225,16 +230,16 @@ class RegexMatchCondition(ContentCondition):
     super(RegexMatchCondition, self).__init__()
     self.params = params.contents_regex_match
 
-  def Search(self, path):
+  def Search(self, fd):
     matcher = RegexMatcher(self.params.regex)
-    for match in self.Scan(path, matcher):
+    for match in self.Scan(fd, matcher):
       yield match
 
 
 class Matcher(with_metaclass(abc.ABCMeta, object)):
   """An abstract class for objects able to lookup byte strings."""
 
-  Span = collections.namedtuple("Span", ["begin", "end"])  # pylint: disable=invalid-name
+  Span = NamedTuple("Span", [("begin", int), ("end", int)])  # pylint: disable=invalid-name
 
   @abc.abstractmethod
   def Match(self, data, position):
@@ -265,6 +270,9 @@ class RegexMatcher(Matcher):
     self.regex = regex
 
   def Match(self, data, position):
+    precondition.AssertType(data, bytes)
+    precondition.AssertType(position, int)
+
     match = self.regex.Search(data[position:])
     if not match:
       return None
@@ -285,6 +293,9 @@ class LiteralMatcher(Matcher):
     self.literal = literal
 
   def Match(self, data, position):
+    precondition.AssertType(data, bytes)
+    precondition.AssertType(position, int)
+
     offset = data.find(self.literal, position)
     if offset == -1:
       return None

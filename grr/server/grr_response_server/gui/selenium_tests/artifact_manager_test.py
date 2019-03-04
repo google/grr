@@ -9,8 +9,9 @@ import io
 import os
 
 
+from absl import app
+
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server.gui import gui_test_lib
@@ -161,4 +162,4 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

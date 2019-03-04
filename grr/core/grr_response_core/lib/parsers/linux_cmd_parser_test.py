@@ -8,8 +8,9 @@ from __future__ import unicode_literals
 import os
 
 
+from absl import app
 from absl.testing import absltest
-from grr_response_core.lib import flags
+
 from grr_response_core.lib.parsers import linux_cmd_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -238,4 +239,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

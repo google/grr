@@ -9,7 +9,7 @@ import abc
 import random
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 from future.utils import with_metaclass
 import mock
 

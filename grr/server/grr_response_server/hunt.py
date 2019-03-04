@@ -6,15 +6,14 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
+from grr_response_core.lib.util import cache
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server import foreman_rules
 from grr_response_server import notification
 from grr_response_server.aff4_objects import users as aff4_users
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -65,8 +64,8 @@ class CanStartAtMostOneFlowPerClientError(Error):
 
   def __init__(self, hunt_id, client_id):
     super(CanStartAtMostOneFlowPerClientError, self).__init__(
-        "Variable hunt %s has more than 1 flow for a client %s." % (hunt_id,
-                                                                    client_id))
+        "Variable hunt %s has more than 1 flow for a client %s." %
+        (hunt_id, client_id))
 
 
 class VariableHuntCanNotHaveClientRateError(Error):
@@ -108,7 +107,11 @@ def StopHuntIfCrashLimitExceeded(hunt_id):
   return hunt_obj
 
 
-def StopHuntIfAverageLimitsExceeded(hunt_id):
+_TIME_BETWEEN_STOP_CHECKS = rdfvalue.Duration("5s")
+
+
+@cache.WithLimitedCallFrequency(_TIME_BETWEEN_STOP_CHECKS)
+def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
   """Stops the hunt if average limites are exceeded."""
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
 
@@ -118,6 +121,16 @@ def StopHuntIfAverageLimitsExceeded(hunt_id):
 
   hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
 
+  # Check global hunt network bytes limit first.
+  if (hunt_obj.total_network_bytes_limit and
+      hunt_counters.total_network_bytes_sent >
+      hunt_obj.total_network_bytes_limit):
+    reason = ("Hunt %s reached the total network bytes sent limit of %d and "
+              "was stopped.") % (hunt_obj.hunt_id,
+                                 hunt_obj.total_network_bytes_limit)
+    return StopHunt(hunt_obj.hunt_id, reason=reason)
+
+  # Check that we have enough clients to apply average limits.
   if hunt_counters.num_clients < MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS:
     return hunt_obj
 
@@ -270,6 +283,7 @@ def StartHunt(hunt_id):
   """Starts a hunt with a given id."""
 
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  num_hunt_clients = data_store.REL_DB.CountHuntFlows(hunt_id)
 
   if hunt_obj.hunt_state != hunt_obj.HuntState.PAUSED:
     raise OnlyPausedHuntCanBeStartedError(hunt_obj)
@@ -278,6 +292,7 @@ def StartHunt(hunt_id):
       hunt_id,
       hunt_state=hunt_obj.HuntState.STARTED,
       start_time=rdfvalue.RDFDatetime.Now(),
+      num_clients_at_start_time=num_hunt_clients,
   )
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
 
@@ -319,12 +334,6 @@ def StopHunt(hunt_id, reason=None):
       hunt_id, hunt_state=hunt_obj.HuntState.STOPPED, hunt_state_comment=reason)
   data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
 
-  flows = data_store.REL_DB.ReadHuntFlows(hunt_obj.hunt_id, 0, db.MAX_COUNT)
-  data_store.REL_DB.UpdateFlows(
-      [(f.client_id, f.flow_id) for f in flows],
-      pending_termination=rdf_flow_objects.PendingFlowTermination(
-          reason="Parent hunt stopped."))
-
   if (reason is not None and
       hunt_obj.creator not in aff4_users.GRRUser.SYSTEM_USERS):
     notification.Notify(
@@ -352,6 +361,14 @@ def UpdateHunt(hunt_id, client_limit=None, client_rate=None, expiry_time=None):
   return data_store.REL_DB.ReadHuntObject(hunt_id)
 
 
+_TIME_BETWEEN_PAUSE_CHECKS = rdfvalue.Duration("5s")
+
+
+@cache.WithLimitedCallFrequency(_TIME_BETWEEN_PAUSE_CHECKS)
+def _GetNumClients(hunt_id):
+  return data_store.REL_DB.CountHuntFlows(hunt_id)
+
+
 def StartHuntFlowOnClient(client_id, hunt_id):
   """Starts a flow corresponding to a given hunt on a given client."""
 
@@ -367,6 +384,22 @@ def StartHuntFlowOnClient(client_id, hunt_id):
   if hunt_obj.args.hunt_type == hunt_obj.args.HuntType.STANDARD:
     hunt_args = hunt_obj.args.standard
 
+    if hunt_obj.client_rate > 0:
+      # Given that we use caching in _GetNumClients and hunt_obj may be updated
+      # in another process, we have to account for cases where num_clients_diff
+      # may go below 0.
+      num_clients_diff = max(
+          0,
+          _GetNumClients(hunt_obj.hunt_id) - hunt_obj.num_clients_at_start_time)
+      next_client_due_msecs = int(
+          num_clients_diff / hunt_obj.client_rate * 60e6)
+
+      start_at = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          hunt_obj.start_time.AsMicrosecondsSinceEpoch() +
+          next_client_due_msecs)
+    else:
+      start_at = None
+
     # TODO(user): remove client_rate support when AFF4 is gone.
     # In REL_DB always work as if client rate is 0.
 
@@ -379,12 +412,12 @@ def StartHuntFlowOnClient(client_id, hunt_id):
         network_bytes_limit=hunt_obj.per_client_network_bytes_limit,
         flow_cls=flow_cls,
         flow_args=flow_args,
+        start_at=start_at,
         parent_hunt_id=hunt_id)
 
     if hunt_obj.client_limit:
-      hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_obj.hunt_id)
-      if hunt_counters.num_clients >= hunt_obj.client_limit:
-        PauseHunt(hunt_obj.hunt_id)
+      if _GetNumClients(hunt_obj.hunt_id) >= hunt_obj.client_limit:
+        PauseHunt(hunt_id)
 
   elif hunt_obj.args.hunt_type == hunt_obj.args.HuntType.VARIABLE:
     raise NotImplementedError()

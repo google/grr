@@ -24,9 +24,7 @@ from typing import Union
 
 from grr_response_core.lib.util import precondition
 
-
 T = TypeVar("T")
-
 
 # TODO(hanuszczak): According to pytype, `sys.version_info` is a tuple of two
 # elements which is not true.
@@ -115,7 +113,8 @@ def SetName(obj, name):
     obj: A type or function object to set the name for.
     name: A name to set.
   """
-  precondition.AssertType(obj, (type, types.FunctionType))
+  # Not doing type assertion on obj, since it may be a mock object used
+  # in tests.
   precondition.AssertType(name, str)
 
   if PY2:

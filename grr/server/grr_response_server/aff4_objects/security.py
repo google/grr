@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 import email
 
 
-from builtins import filter  # pylint: disable=redefined-builtin
+from future.builtins import filter
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue

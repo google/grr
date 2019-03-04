@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 from future.utils import iteritems
 
 from grr_response_client import actions
@@ -12,7 +13,6 @@ from grr_response_client import actions
 from grr_response_client.client_actions import registry_init
 # pylint: enable=unused-import
 
-from grr_response_core.lib import flags
 from grr_response_server import server_stubs
 from grr.test_lib import test_lib
 
@@ -52,4 +52,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

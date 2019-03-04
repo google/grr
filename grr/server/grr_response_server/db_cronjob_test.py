@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import random
@@ -92,13 +92,21 @@ class DatabaseTestCronJobMixin(object):
       self.db.UpdateCronJob("Does not exist", current_run_id="12345678")
 
   def testCronJobDeletion(self):
-    job = self._CreateCronJob()
-    self.db.WriteCronJob(job)
-
-    self.db.ReadCronJob(job.cron_job_id)
-    self.db.DeleteCronJob(job.cron_job_id)
+    job_id = "job0"
+    self.db.WriteCronJob(rdf_cronjobs.CronJob(cron_job_id=job_id))
+    job_run0 = rdf_cronjobs.CronJobRun(cron_job_id=job_id, run_id="a")
+    job_run1 = rdf_cronjobs.CronJobRun(cron_job_id=job_id, run_id="b")
+    self.db.WriteCronJobRun(job_run0)
+    self.db.WriteCronJobRun(job_run1)
+    self.assertLen(self.db.ReadCronJobRuns(job_id), 2)
+    self.db.DeleteCronJob(job_id)
     with self.assertRaises(db.UnknownCronJobError):
-      self.db.ReadCronJob(job.cron_job_id)
+      self.db.ReadCronJob(job_id)
+    self.assertEmpty(self.db.ReadCronJobRuns(job_id))
+
+  def testCronJobDeletion_UnknownJob(self):
+    with self.assertRaises(db.UnknownCronJobError):
+      self.db.DeleteCronJob("non-existent-id")
 
   def testCronJobEnabling(self):
     job = self._CreateCronJob()

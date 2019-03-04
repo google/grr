@@ -9,13 +9,13 @@ import datetime
 import os
 
 
+from absl import app
 from typing import Text
 
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions.linux import linux
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -235,19 +235,15 @@ class GRRFuseTest(GRRFuseTestBase):
     self.client_mock = flow_test_lib.MockClient(
         self.client_id, self.action_mock, token=self.token)
 
-    self.update_stubber = utils.Stubber(self.grr_fuse,
-                                        "_RunAndWaitForVFSFileUpdate",
-                                        self._RunAndWaitForVFSFileUpdate)
-    self.update_stubber.Start()
+    update_stubber = utils.Stubber(self.grr_fuse, "_RunAndWaitForVFSFileUpdate",
+                                   self._RunAndWaitForVFSFileUpdate)
+    update_stubber.Start()
+    self.addCleanup(update_stubber.Stop)
 
-    self.start_flow_stubber = utils.Stubber(flow_utils, "StartFlowAndWait",
-                                            self.StartFlowAndWait)
-    self.start_flow_stubber.Start()
-
-  def tearDown(self):
-    super(GRRFuseTest, self).tearDown()
-    self.update_stubber.Stop()
-    self.start_flow_stubber.Stop()
+    start_flow_stubber = utils.Stubber(flow_utils, "StartFlowAndWait",
+                                       self.StartFlowAndWait)
+    start_flow_stubber.Start()
+    self.addCleanup(start_flow_stubber.Stop)
 
   def _RunAndWaitForVFSFileUpdate(self, path):
     flow_test_lib.TestFlowHelper(
@@ -470,4 +466,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -5,6 +5,8 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
+import collections
+
 
 from future.utils import iteritems
 from future.utils import itervalues
@@ -82,24 +84,24 @@ class InMemoryDBClientMixin(object):
     return res
 
   @utils.Synchronized
-  def WriteClientSnapshot(self, client):
+  def WriteClientSnapshot(self, snapshot):
     """Writes new client snapshot."""
-    client_id = client.client_id
+    client_id = snapshot.client_id
 
     if client_id not in self.metadatas:
       raise db.UnknownClientError(client_id)
 
-    startup_info = client.startup_info
-    client.startup_info = None
+    startup_info = snapshot.startup_info
+    snapshot.startup_info = None
 
     ts = rdfvalue.RDFDatetime.Now()
     history = self.clients.setdefault(client_id, {})
-    history[ts] = client.SerializeToString()
+    history[ts] = snapshot.SerializeToString()
 
     history = self.startup_history.setdefault(client_id, {})
     history[ts] = startup_info.SerializeToString()
 
-    client.startup_info = startup_info
+    snapshot.startup_info = startup_info
 
   @utils.Synchronized
   def MultiReadClientSnapshot(self, client_ids):
@@ -392,3 +394,50 @@ class InMemoryDBClientMixin(object):
 
     if deleted_count > 0 or not yielded:
       yield deleted_count
+
+  @utils.Synchronized
+  def CountClientVersionStringsByLabel(self, day_buckets):
+    """Computes client-activity stats for all GRR versions in the DB."""
+
+    def ExtractVersion(client_info):
+      return client_info.last_snapshot.GetGRRVersionString()
+
+    return self._CountClientStatisticByLabel(day_buckets, ExtractVersion)
+
+  @utils.Synchronized
+  def CountClientPlatformsByLabel(self, day_buckets):
+    """Computes client-activity stats for all client platforms in the DB."""
+
+    def ExtractPlatform(client_info):
+      return client_info.last_snapshot.knowledge_base.os
+
+    return self._CountClientStatisticByLabel(day_buckets, ExtractPlatform)
+
+  @utils.Synchronized
+  def CountClientPlatformReleasesByLabel(self, day_buckets):
+    """Computes client-activity stats for OS-release strings in the DB."""
+    return self._CountClientStatisticByLabel(
+        day_buckets, lambda client_info: client_info.last_snapshot.Uname())
+
+  def _CountClientStatisticByLabel(self, day_buckets, extract_statistic_fn):
+    """Returns client-activity metrics for a particular statistic.
+
+    Args:
+      day_buckets: A set of n-day-active buckets.
+      extract_statistic_fn: A function that extracts the statistic's value from
+        a ClientFullInfo object.
+    """
+    counts = collections.defaultdict(int)
+    now = rdfvalue.RDFDatetime.Now()
+    for info in self.IterateAllClientsFullInfo(batch_size=db.MAX_COUNT):
+      if not info.metadata.ping:
+        continue
+      statistic_value = extract_statistic_fn(info)
+      for client_label in info.GetLabelsNames(owner="GRR"):
+        for day_bucket in day_buckets:
+          time_boundary = now - rdfvalue.Duration.FromDays(day_bucket)
+          if info.metadata.ping > time_boundary:
+            # Count the client if it has been active in the last 'day_bucket'
+            # days.
+            counts[(statistic_value, client_label, day_bucket)] += 1
+    return dict(counts)

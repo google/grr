@@ -2,9 +2,11 @@
 """Client utilities."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import logging
+import os
 import sys
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -48,7 +50,7 @@ def StatEntryFromPath(path, pathspec, ext_attrs=True):
     `StatEntry` object.
   """
   try:
-    stat = filesystem.Stat(path)
+    stat = filesystem.Stat.FromPath(path)
   except (IOError, OSError) as error:
     logging.error("Failed to obtain stat for '%s': %s", pathspec, error)
     return rdf_client_fs.StatEntry(pathspec=pathspec)
@@ -56,7 +58,9 @@ def StatEntryFromPath(path, pathspec, ext_attrs=True):
   return StatEntryFromStat(stat, pathspec, ext_attrs=ext_attrs)
 
 
-def StatEntryFromStat(stat, pathspec, ext_attrs=True):
+def StatEntryFromStat(stat,
+                      pathspec,
+                      ext_attrs = True):
   """Build a stat entry object from a given stat object.
 
   Args:
@@ -92,7 +96,8 @@ def StatEntryFromStat(stat, pathspec, ext_attrs=True):
   return result
 
 
-def StatEntryFromStatPathSpec(stat, ext_attrs):
+def StatEntryFromStatPathSpec(stat,
+                              ext_attrs):
   pathspec = rdf_paths.PathSpec(
       pathtype=rdf_paths.PathSpec.PathType.OS,
       path=LocalPathToCanonicalPath(stat.GetPath()),
@@ -100,6 +105,28 @@ def StatEntryFromStatPathSpec(stat, ext_attrs):
   return StatEntryFromStat(stat, pathspec, ext_attrs=ext_attrs)
 
 
+def StatResultFromStatEntry(
+    stat_entry):
+  """Returns a `os.stat_result` with most information from `StatEntry`.
+
+  This is a lossy conversion, only the 10 first stat_result fields are
+  populated, because the os.stat_result constructor is inflexible.
+
+  Args:
+    stat_entry: An instance of rdf_client_fs.StatEntry.
+
+  Returns:
+    An instance of `os.stat_result` with basic fields populated.
+  """
+  values = []
+  for attr in _STAT_ATTRS[:10]:
+    values.append(stat_entry.Get(attr))
+  return os.stat_result(values)
+
+
+# It is important that the first 10 names are in the order that the stat_result
+# constructor accepts. Only this way, a stat_result can be created from a
+# StatEntry. See https://docs.python.org/3/library/os.html#os.stat_result
 _STAT_ATTRS = [
     "st_mode",
     "st_ino",

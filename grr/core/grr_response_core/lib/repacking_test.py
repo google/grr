@@ -10,10 +10,11 @@ import os
 import shutil
 import zipfile
 
+from absl import app
+
 from grr_response_core import config
 from grr_response_core.lib import build
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import flags
 from grr_response_core.lib import package
 from grr_response_core.lib import repacking
 from grr_response_core.lib import utils
@@ -80,4 +81,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

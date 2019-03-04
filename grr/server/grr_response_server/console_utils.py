@@ -16,8 +16,8 @@ import os
 import time
 
 
-from builtins import input  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import input
+from future.builtins import range
 from future.utils import iteritems
 from future.utils import string_types
 

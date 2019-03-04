@@ -9,13 +9,13 @@ import stat
 import unittest
 
 
+from absl import app
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import string_types
 import mock
 
 from grr_response_client import vfs
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import client_test_lib
@@ -30,6 +30,8 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
     self.win32com = mock.MagicMock()
     self.win32com.client = mock.MagicMock()
     modules = {
+        "winreg":
+            mock.MagicMock(),
         "_winreg":
             mock.MagicMock(),
         "pythoncom":
@@ -138,12 +140,9 @@ class RegistryVFSTests(client_test_lib.EmptyActionTest):
 
   def setUp(self):
     super(RegistryVFSTests, self).setUp()
-    self.registry_stubber = vfs_test_lib.RegistryVFSStubber()
-    self.registry_stubber.Start()
-
-  def tearDown(self):
-    super(RegistryVFSTests, self).tearDown()
-    self.registry_stubber.Stop()
+    registry_stubber = vfs_test_lib.RegistryVFSStubber()
+    registry_stubber.Start()
+    self.addCleanup(registry_stubber.Stop)
 
   def testRegistryListing(self):
 
@@ -170,4 +169,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

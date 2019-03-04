@@ -472,7 +472,7 @@ class Segfault(actions.ActionPlugin):
 
   def Run(self, unused_args):
     """Does the segfaulting."""
-    if flags.FLAGS.debug:
+    if flags.FLAGS.pdb_post_mortem:
       logging.warning("Segfault action requested :(")
       print(ctypes.cast(1, ctypes.POINTER(ctypes.c_void_p)).contents)
     else:

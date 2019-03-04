@@ -5,7 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 
 # Need to import client to add the flags.
 from grr_response_client import actions
@@ -14,7 +15,6 @@ from grr_response_client import actions
 # pylint: disable=unused-import
 from grr_response_client.client_actions import registry_init
 # pylint: enable=unused-import
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -152,4 +152,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

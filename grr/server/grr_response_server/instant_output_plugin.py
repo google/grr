@@ -8,7 +8,7 @@ import functools
 import re
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from future.builtins import zip
 from future.utils import itervalues
 from future.utils import with_metaclass
 

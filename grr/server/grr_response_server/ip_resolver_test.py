@@ -5,9 +5,9 @@ from __future__ import unicode_literals
 
 import socket
 
+from absl import app
 import ipaddress
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_server import ip_resolver
 from grr.test_lib import test_lib
@@ -45,4 +45,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

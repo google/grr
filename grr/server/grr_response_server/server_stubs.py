@@ -388,6 +388,14 @@ class FileFinderOS(ClientActionStub):
   out_rdfvalues = [rdf_file_finder.FileFinderResult]
 
 
+# from file_finder.py
+class VfsFileFinder(ClientActionStub):
+  """The client file finder implementation using the VFS file api."""
+
+  in_rdfvalue = rdf_file_finder.FileFinderArgs
+  out_rdfvalues = [rdf_file_finder.FileFinderResult]
+
+
 # from file_fingerprint.py
 class FingerprintFile(ClientActionStub):
   """Apply a set of fingerprinting methods to a file."""

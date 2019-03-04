@@ -6,13 +6,13 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 from future.builtins import range
 from future.utils import iteritems
 from future.utils import iterkeys
 
 import ipaddress
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
@@ -409,7 +409,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
         len(index.LookupClients([".", "start_date:2014-10-21"])), 0)
 
     # Ignore the keyword if the date is not readable.
-    self.assertLen(index.LookupClients([".", "start_date:XXX"]), 0)
+    self.assertEmpty(index.LookupClients([".", "start_date:XXX"]))
 
   def testRemoveLabels(self):
     client_id = next(iterkeys(self._SetupClients(1)))
@@ -453,4 +453,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

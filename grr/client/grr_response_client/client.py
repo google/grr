@@ -2,12 +2,15 @@
 """This is the GRR client."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
 import pdb
+import sys
 
 
+from absl import app
 from future.utils import iterkeys
 
 # pylint: disable=unused-import
@@ -33,8 +36,36 @@ flags.DEFINE_bool(
     "If True break into a pdb shell before executing any client"
     " action.")
 
+flags.DEFINE_integer(
+    "remote_debugging_port", 0,
+    "If set to a non-zero port, pydevd is started to allow remote debugging "
+    "(e.g. using PyCharm).")
+
+
+def _start_remote_debugging(port):
+  """Sets up remote debugging using pydevd, connecting to localhost:`port`."""
+  try:
+    print("Connecting to remote debugger on localhost:{}.".format(port))
+    import pydevd  # pylint: disable=g-import-not-at-top
+    pydevd.settrace(
+        "localhost",
+        port=port,
+        stdoutToServer=True,
+        stderrToServer=True,
+        suspend=flags.FLAGS.break_on_start)
+  except ImportError:
+    print(
+        "pydevd is required for remote debugging. Please follow the PyCharm"
+        "manual or run `pip install pydevd-pycharm` to install.",
+        file=sys.stderr)
+
 
 def main(unused_args):
+  if flags.FLAGS.remote_debugging_port:
+    _start_remote_debugging(flags.FLAGS.remote_debugging_port)
+  elif flags.FLAGS.break_on_start:
+    pdb.set_trace()
+
   # Allow per platform configuration.
   config.CONFIG.AddContext(contexts.CLIENT_CONTEXT,
                            "Context applied when we run the client process.")
@@ -64,11 +95,8 @@ def main(unused_args):
     logging.info("No private key found, starting enrollment.")
     client.InitiateEnrolment()
 
-  if flags.FLAGS.break_on_start:
-    pdb.set_trace()
-  else:
-    client.Run()
+  client.Run()
 
 
 if __name__ == "__main__":
-  flags.StartMain(main, requires_root=True)
+  app.run(main)

@@ -7,12 +7,12 @@ from __future__ import unicode_literals
 import time
 
 
+from absl import app
 from future.builtins import range
 from future.builtins import str
 
 from grr_response_client.client_actions import standard
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
@@ -1089,4 +1089,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -8,7 +8,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -26,18 +27,16 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(ArtifactFilesDownloaderFlowTest, self).setUp()
 
-    self.stubbers = []
-
     self.collector_replies = []
 
     def ArtifactCollectorStub(this):
       for r in self.collector_replies:
         this.SendReply(r)
 
-    stubber = utils.Stubber(collectors.ArtifactCollectorFlowMixin, "Start",
-                            ArtifactCollectorStub)
-    stubber.Start()
-    self.stubbers.append(stubber)
+    start_stubber = utils.Stubber(collectors.ArtifactCollectorFlowMixin,
+                                  "Start", ArtifactCollectorStub)
+    start_stubber.Start()
+    self.addCleanup(start_stubber.Stop)
 
     self.start_file_fetch_args = []
     self.received_files = []
@@ -52,16 +51,10 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
       for r in self.failed_files:
         this.FileFetchFailed(pathspec, "StatFile", request_data=request_data)
 
-    stubber = utils.Stubber(transfer.MultiGetFileLogic, "StartFileFetch",
-                            StartFileFetch)
-    stubber.Start()
-    self.stubbers.append(stubber)
-
-  def tearDown(self):
-    super(ArtifactFilesDownloaderFlowTest, self).tearDown()
-
-    for stubber in self.stubbers:
-      stubber.Stop()
+    sff_stubber = utils.Stubber(transfer.MultiGetFileLogic, "StartFileFetch",
+                                StartFileFetch)
+    sff_stubber.Start()
+    self.addCleanup(sff_stubber.Stop)
 
   def RunFlow(self, client_id, artifact_list=None, use_tsk=False):
     if artifact_list is None:
@@ -169,4 +162,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

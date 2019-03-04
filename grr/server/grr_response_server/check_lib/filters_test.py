@@ -7,10 +7,10 @@ from __future__ import unicode_literals
 import collections
 
 
+from absl import app
 from future.utils import iteritems
 from future.utils import itervalues
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -463,4 +463,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

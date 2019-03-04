@@ -8,10 +8,10 @@ from __future__ import unicode_literals
 import json
 
 
+from absl import app
 from future.moves.urllib import parse as urlparse
 import mock
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
@@ -155,18 +155,16 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(RouterMatcherTest, self).setUp()
-    self.config_overrider = test_lib.ConfigOverrider({
+    config_overrider = test_lib.ConfigOverrider({
         "API.DefaultRouter": TestHttpApiRouter.__name__,
     })
-    self.config_overrider.Start()
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
+
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
     self.router_matcher = http_api.RouterMatcher()
-
-  def tearDown(self):
-    super(RouterMatcherTest, self).tearDown()
-    self.config_overrider.Stop()
 
   def testReturnsMethodMetadataMatchingUrlAndMethod(self):
     router, method_metadata, router_args = self.router_matcher.MatchRouter(
@@ -438,4 +436,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

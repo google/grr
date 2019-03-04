@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 
 import os
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server import flow
@@ -254,4 +255,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -13,8 +13,8 @@ import pwd
 import time
 
 
-from builtins import bytes  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import bytes
+from future.builtins import range
 from future.utils import iteritems
 
 from grr_response_client import actions

@@ -3,10 +3,11 @@ goog.module.declareLegacyNamespace();
 
 const {buildTimeseriesGraph} = goog.require('grrUi.stats.graphUtils');
 
-/** @typedef {{
- *             label:string,
- *             requestPath:string,
- *             requestOptions:Object
+/**
+ * @typedef {{
+ *             label: string,
+ *             requestPath: string,
+ *             requestOptions: !Object
  *           }}
  */
 let TimeserieDescriptor;
@@ -35,26 +36,28 @@ const TimeseriesGraphController = function(
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @export {Array.<number>} */
+  /** @export {!Array.<number>} */
   this.timeRange = [NaN, NaN];
 
-  /** @export {Array.<TimeserieDescriptor>} */
+  /** @export {!Array.<!TimeserieDescriptor>} */
   this.seriesDescriptors = [];
 
-  /** @export {!Object.<string, Object>} */
+  /** @export {!Object.<string, !Object>} */
   this.fetchedSeries = {};
 
   /** @export {boolean} */
   this.inProgress = false;
 
+  /** @export {boolean} */
+  this.isEmpty = false;
+
   this.scope_.$watch('startTime', this.onStartTimeChange_.bind(this));
   this.scope_.$watch('endTime', this.onEndTimeChange_.bind(this));
-  this.scope_.$watch('controller.timeRange',
-                     this.onConfigurationChange_.bind(this),
-                     true);
-  this.scope_.$watch('controller.seriesDescriptors',
-                     this.onConfigurationChange_.bind(this),
-                     true);
+  this.scope_.$watch(
+      'controller.timeRange', this.onConfigurationChange_.bind(this), true);
+  this.scope_.$watch(
+      'controller.seriesDescriptors', this.onConfigurationChange_.bind(this),
+      true);
 };
 
 
@@ -86,17 +89,17 @@ TimeseriesGraphController.prototype.onEndTimeChange_ = function(newValue) {
 /**
  * Converts timeserie of values to timeserie of deltas (in-place).
  *
- * @param {Array.<Array<number>>} points
+ * @param {!Array.<!Array<number>>} points
  * @private
  */
 TimeseriesGraphController.prototype.computeDelta_ = function(points) {
-  if (points.length < 2) {
+  if (!points || points.length < 2) {
     return;
   }
 
-  var prevPointValue = points.shift()[1];
+  let prevPointValue = points.shift()[1];
   for (var i = 0; i < points.length; ++i) {
-    var pointValue = points[i][1];
+    const pointValue = points[i][1];
     points[i][1] = points[i][1] - prevPointValue;
     prevPointValue = pointValue;
   }
@@ -114,22 +117,20 @@ TimeseriesGraphController.prototype.computeDelta_ = function(points) {
  */
 TimeseriesGraphController.prototype.onConfigurationChange_ = function() {
   this.inProgress = true;
+  this.isEmpty = false;
   this.fetchedSeries = {};
 
-  angular.forEach(this.seriesDescriptors, function(descriptor) {
-    var options = {
-      start: this.timeRange[0],
-      end: this.timeRange[1]
-    };
+  angular.forEach(this.seriesDescriptors, (descriptor) => {
+    const options = {start: this.timeRange[0], end: this.timeRange[1]};
     angular.extend(options, descriptor.requestOptions || {});
 
-    var prevTimeRange = this.timeRange.slice();
-    this.grrApiService_.get(descriptor.requestPath, options).then(
-        function(response) {
+    const prevTimeRange = this.timeRange.slice();
+    this.grrApiService_.get(descriptor.requestPath, options)
+        .then((response) => {
           // Check that these data actually correspond to the
           // request we've sent.
           if (angular.equals(prevTimeRange, this.timeRange)) {
-            var serie = response['data']['data_points'] || [];
+            const serie = response['data']['data_points'] || [];
 
             if (this.scope_['computeDelta']) {
               this.computeDelta_(serie['data_points']);
@@ -138,8 +139,8 @@ TimeseriesGraphController.prototype.onConfigurationChange_ = function() {
             this.fetchedSeries[descriptor.label] = serie;
             this.buildGraphIfNeeded_();
           }
-        }.bind(this));
-  }.bind(this));
+        });
+  });
 };
 
 
@@ -161,22 +162,29 @@ TimeseriesGraphController.prototype.addSerieDescriptor = function(descriptor) {
  * @private
  */
 TimeseriesGraphController.prototype.buildGraphIfNeeded_ = function() {
-  if (Object.keys(this.fetchedSeries).length == this.seriesDescriptors.length) {
+  if (Object.keys(this.fetchedSeries).length ===
+      this.seriesDescriptors.length) {
+    this.isEmpty =
+        Object.values(this.fetchedSeries).every(series => series.length === 0);
     this.inProgress = false;
 
+    if (this.isEmpty) {
+      return;
+    }
+
     // Wait until timeseries-graph appears and draw the graph.
-    var intervalPromise = this.interval_(function() {
+    const intervalPromise = this.interval_(() => {
       const graphElement = $(this.element_).find('.timeseries-graph');
-      const graphLegendElement = $(this.element_).find('.timeseries-graph-legend');
+      const graphLegendElement =
+          $(this.element_).find('.timeseries-graph-legend');
 
-      if (graphElement &&
-          graphElement.width() > 0 &&
+      if (graphElement && graphElement.width() > 0 &&
           graphElement.height() > 0) {
-
-        buildTimeseriesGraph(graphElement, graphLegendElement, this.fetchedSeries);
+        buildTimeseriesGraph(
+            graphElement, graphLegendElement, this.fetchedSeries);
         this.interval_.cancel(intervalPromise);
       }
-    }.bind(this), 500, 10);
+    }, 500, 10);
   }
 };
 
@@ -187,17 +195,12 @@ TimeseriesGraphController.prototype.buildGraphIfNeeded_ = function() {
  * configured by nested directives that register timeseries (see
  * grr-server-load-graph-serie, for example).
  *
- * @return {angular.Directive} Directive definition object.
+ * @return {!angular.Directive} Directive definition object.
  * @export
  */
 exports.TimeseriesGraphDirective = function() {
   return {
-    scope: {
-      title: '@',
-      computeDelta: '@',
-      startTime: '=',
-      endTime: '='
-    },
+    scope: {title: '@', computeDelta: '@', startTime: '=', endTime: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/stats/timeseries-graph.html',
     transclude: true,

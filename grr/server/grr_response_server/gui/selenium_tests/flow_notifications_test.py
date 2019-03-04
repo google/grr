@@ -7,9 +7,9 @@ from __future__ import unicode_literals
 import os
 
 
-from grr_response_core.lib import flags
-from grr_response_core.lib import utils
+from absl import app
 
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import data_store
 from grr_response_server.flows.general import transfer as flows_transfer
@@ -125,4 +125,4 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

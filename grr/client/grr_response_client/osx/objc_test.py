@@ -9,10 +9,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import ctypes
+
+from absl import app
 import mock
 
 from grr_response_client.osx import objc
-from grr_response_core.lib import flags
 from grr.test_lib import test_lib
 
 
@@ -62,4 +63,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

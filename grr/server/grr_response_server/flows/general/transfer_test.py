@@ -9,12 +9,12 @@ import os
 import platform
 import unittest
 
+from absl import app
 from future.builtins import range
 from future.utils import iterkeys
 import mock
 
 from grr_response_core.lib import constants
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -646,7 +646,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(
         args[0][hash_id].client_path,
         db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec))
-    self.assertGreater(len(args[0][hash_id].blob_refs), 0)
+    self.assertNotEmpty(args[0][hash_id].blob_refs)
     for blob_ref in args[0][hash_id].blob_refs:
       self.assertIsInstance(blob_ref, rdf_objects.BlobReference)
 
@@ -657,4 +657,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

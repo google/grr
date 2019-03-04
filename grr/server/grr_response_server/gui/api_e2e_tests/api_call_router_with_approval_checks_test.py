@@ -5,9 +5,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
+
 from grr_api_client import errors as grr_api_errors
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_server import data_store
 from grr_response_server.aff4_objects import user_managers
@@ -210,4 +211,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

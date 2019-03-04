@@ -12,7 +12,9 @@ import SocketServer
 import ssl
 from wsgiref import simple_server
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from absl import flags
+from future.builtins import range
 import ipaddr
 
 from grr_response_core import config
@@ -24,7 +26,6 @@ from grr_response_server.gui import local
 from grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr_response_core.lib import flags
 from grr_response_server import server_startup
 from grr_response_server.gui import wsgiapp
 
@@ -104,4 +105,4 @@ def main(_):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

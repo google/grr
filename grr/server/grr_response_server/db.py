@@ -58,6 +58,10 @@ MAX_CRON_JOB_ID_LENGTH = 100
 
 MAX_MESSAGE_HANDLER_NAME_LENGTH = 128
 
+_MAX_GRR_VERSION_LENGTH = 100
+_MAX_CLIENT_PLATFORM_LENGTH = 100
+_MAX_CLIENT_PLATFORM_RELEASE_LENGTH = 200
+
 # Using sys.maxsize may not work with real database implementations. We need
 # to have a reasonably large number that can be used to read all the records
 # using a particular DB API call.
@@ -244,8 +248,9 @@ class UnknownHuntOutputPluginStateError(NotFoundError):
 class AtLeastOneUnknownFlowError(NotFoundError):
 
   def __init__(self, flow_keys, cause=None):
-    message = ("At least one flow with client id/flow_id in '%s' does not exist"
-               % (flow_keys))
+    message = (
+        "At least one flow with client id/flow_id in '%s' does not exist" %
+        (flow_keys))
     super(AtLeastOneUnknownFlowError, self).__init__(message, cause=cause)
 
     self.flow_keys = flow_keys
@@ -268,8 +273,8 @@ class ParentHuntIsNotRunningError(Error):
 
   def __init__(self, client_id, flow_id, hunt_id, hunt_state):
     message = ("Parent hunt %s of the flow with client id '%s' and "
-               "flow id '%s' is not running: %s" % (hunt_id, client_id, flow_id,
-                                                    hunt_state))
+               "flow id '%s' is not running: %s" %
+               (hunt_id, client_id, flow_id, hunt_state))
     super(ParentHuntIsNotRunningError, self).__init__(message)
 
     self.client_id = client_id
@@ -288,6 +293,22 @@ class HuntOutputPluginsStatesAreNotInitializedError(Error):
     super(HuntOutputPluginsStatesAreNotInitializedError, self).__init__(message)
 
     self.hunt_obj = hunt_obj
+
+
+class ConflictingUpdateFlowArgumentsError(Error):
+  """Raised when UpdateFlow is called with conflicting parameter."""
+
+  def __init__(self, client_id, flow_id, param_name):
+    super(ConflictingUpdateFlowArgumentsError, self).__init__(
+        "Conflicting parameter when updating flow "
+        "%s (client %s). Can't call UpdateFlow with "
+        "flow_obj and %s passed together." % (flow_id, client_id, param_name))
+    self.client_id = client_id
+    self.flow_id = flow_id
+
+
+class StringTooLongError(ValueError):
+  """Validation error raised if a string is too long."""
 
 
 # TODO(user): migrate to Python 3 enums as soon as Python 3 is default.
@@ -919,6 +940,66 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def CountClientVersionStringsByLabel(self, day_buckets):
+    """Computes client-activity stats for all GRR versions in the DB.
+
+    Stats are aggregated across the given time buckets, e.g. if the buckets
+    are {1, 7, 30}, stats will be calculated for 1-day-active, 7-day-active
+    and 30-day-active clients (according to clients' last-ping timestamps).
+
+    Args:
+      day_buckets: A set of integers, where each represents an n-day-active
+        bucket.
+
+    Returns:
+      A dict that maps 3-tuples to integer counts. Each tuple represents
+      dimensions by which clients in the DB were counted, which, in order, are:
+        - A GRR version string, e.g 'GRR windows amd64 3214'.
+        - A client label.
+        - An element of the 'day_buckets' set provided to the function.
+    """
+
+  @abc.abstractmethod
+  def CountClientPlatformsByLabel(self, day_buckets):
+    """Computes client-activity stats for all client platforms in the DB.
+
+    Stats are aggregated across the given time buckets, e.g. if the buckets
+    are {1, 7, 30}, stats will be calculated for 1-day-active, 7-day-active
+    and 30-day-active clients (according to clients' last-ping timestamps).
+
+    Args:
+      day_buckets: A set of integers, where each represents an n-day-active
+        bucket.
+
+    Returns:
+      A dict that maps 3-tuples to integer counts. Each tuple represents
+      dimensions by which clients in the DB were counted, which, in order, are:
+        - A client platform, e.g. Linux.
+        - A client label.
+        - An element of the 'day_buckets' set provided to the function.
+    """
+
+  @abc.abstractmethod
+  def CountClientPlatformReleasesByLabel(self, day_buckets):
+    """Computes client-activity stats for client OS-release strings in the DB.
+
+    Stats are aggregated across the given time buckets, e.g. if the buckets
+    are {1, 7, 30}, stats will be calculated for 1-day-active, 7-day-active
+    and 30-day-active clients (according to clients' last-ping timestamps).
+
+    Args:
+      day_buckets: A set of integers, where each represents an n-day-active
+        bucket.
+
+    Returns:
+      A dict that maps 3-tuples to integer counts. Each tuple represents
+      dimensions by which clients in the DB were counted, which, in order, are:
+        - An OS-release string, e.g 'Linux-CentOS Linux-7.6.1810'.
+        - A client label.
+        - An element of the 'day_buckets' set provided to the function.
+    """
+
+  @abc.abstractmethod
   def WriteForemanRule(self, rule):
     """Writes a foreman rule to the database.
 
@@ -1517,7 +1598,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
   @abc.abstractmethod
   def DeleteCronJob(self, cronjob_id):
-    """Deletes a cronjob.
+    """Deletes a cronjob along with all its runs.
 
     Args:
       cronjob_id: The id of the cron job to delete.
@@ -1805,6 +1886,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
                  client_id,
                  flow_id,
                  flow_obj=unchanged,
+                 flow_state=unchanged,
                  client_crash_info=unchanged,
                  pending_termination=unchanged,
                  processing_on=unchanged,
@@ -1816,6 +1898,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       client_id: The client id on which this flow is running.
       flow_id: The id of the flow to update.
       flow_obj: An updated rdf_flow_objects.Flow object.
+      flow_state: An update rdf_flow_objects.Flow.FlowState value.
       client_crash_info: A rdf_client.ClientCrash object to store with the flow.
       pending_termination: An rdf_flow_objects.PendingFlowTermination object.
         Indicates that this flow is scheduled for termination.
@@ -2190,7 +2273,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
                        client_limit=None,
                        hunt_state=None,
                        hunt_state_comment=None,
-                       start_time=None):
+                       start_time=None,
+                       num_clients_at_start_time=None):
     """Updates the hunt object by applying the update function.
 
     Each keyword argument when set to None, means that that corresponding value
@@ -2204,6 +2288,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       hunt_state: New Hunt.HuntState value.
       hunt_state_comment: String correpsonding to a hunt state comment.
       start_time: RDFDatetime corresponding to a start time of the hunt.
+      num_clients_at_start_time: Integer corresponding to a number of clients at
+        start time.
     """
 
   @abc.abstractmethod
@@ -2571,9 +2657,15 @@ class DatabaseValidationWrapper(Database):
     _ValidateClientIds(client_ids)
     return self.delegate.MultiReadClientMetadata(client_ids)
 
-  def WriteClientSnapshot(self, client):
-    precondition.AssertType(client, rdf_objects.ClientSnapshot)
-    return self.delegate.WriteClientSnapshot(client)
+  def WriteClientSnapshot(self, snapshot):
+    precondition.AssertType(snapshot, rdf_objects.ClientSnapshot)
+    _ValidateStringLength("GRR Version", snapshot.GetGRRVersionString(),
+                          _MAX_GRR_VERSION_LENGTH)
+    _ValidateStringLength("Platform", snapshot.knowledge_base.os,
+                          _MAX_CLIENT_PLATFORM_LENGTH)
+    _ValidateStringLength("Platform Release", snapshot.Uname(),
+                          _MAX_CLIENT_PLATFORM_RELEASE_LENGTH)
+    return self.delegate.WriteClientSnapshot(snapshot)
 
   def MultiReadClientSnapshot(self, client_ids):
     _ValidateClientIds(client_ids)
@@ -2776,6 +2868,18 @@ class DatabaseValidationWrapper(Database):
       raise ValueError("Foreman rule has no hunt_id: %s" % rule)
 
     return self.delegate.WriteForemanRule(rule)
+
+  def CountClientVersionStringsByLabel(self, day_buckets):
+    _ValidateClientActivityBuckets(day_buckets)
+    return self.delegate.CountClientVersionStringsByLabel(day_buckets)
+
+  def CountClientPlatformsByLabel(self, day_buckets):
+    _ValidateClientActivityBuckets(day_buckets)
+    return self.delegate.CountClientPlatformsByLabel(day_buckets)
+
+  def CountClientPlatformReleasesByLabel(self, day_buckets):
+    _ValidateClientActivityBuckets(day_buckets)
+    return self.delegate.CountClientPlatformReleasesByLabel(day_buckets)
 
   def RemoveForemanRule(self, hunt_id):
     _ValidateHuntId(hunt_id)
@@ -3219,6 +3323,7 @@ class DatabaseValidationWrapper(Database):
                  client_id,
                  flow_id,
                  flow_obj=Database.unchanged,
+                 flow_state=Database.unchanged,
                  client_crash_info=Database.unchanged,
                  pending_termination=Database.unchanged,
                  processing_on=Database.unchanged,
@@ -3228,6 +3333,13 @@ class DatabaseValidationWrapper(Database):
     _ValidateFlowId(flow_id)
     if flow_obj != Database.unchanged:
       precondition.AssertType(flow_obj, rdf_flow_objects.Flow)
+
+      if flow_state != Database.unchanged:
+        raise ConflictingUpdateFlowArgumentsError(client_id, flow_id,
+                                                  "flow_state")
+
+    if flow_state != Database.unchanged:
+      _ValidateEnumType(flow_state, rdf_flow_objects.Flow.FlowState)
     if client_crash_info != Database.unchanged:
       precondition.AssertType(client_crash_info, rdf_client.ClientCrash)
     if pending_termination != Database.unchanged:
@@ -3243,6 +3355,7 @@ class DatabaseValidationWrapper(Database):
         client_id,
         flow_id,
         flow_obj=flow_obj,
+        flow_state=flow_state,
         client_crash_info=client_crash_info,
         pending_termination=pending_termination,
         processing_on=processing_on,
@@ -3480,7 +3593,8 @@ class DatabaseValidationWrapper(Database):
                        client_limit=None,
                        hunt_state=None,
                        hunt_state_comment=None,
-                       start_time=None):
+                       start_time=None,
+                       num_clients_at_start_time=None):
     """Updates the hunt object by applying the update function."""
     _ValidateHuntId(hunt_id)
     precondition.AssertOptionalType(expiry_time, rdfvalue.RDFDatetime)
@@ -3490,6 +3604,7 @@ class DatabaseValidationWrapper(Database):
       _ValidateEnumType(hunt_state, rdf_hunt_objects.Hunt.HuntState)
     precondition.AssertOptionalType(hunt_state_comment, str)
     precondition.AssertOptionalType(start_time, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(num_clients_at_start_time, int)
 
     return self.delegate.UpdateHuntObject(
         hunt_id,
@@ -3498,7 +3613,8 @@ class DatabaseValidationWrapper(Database):
         client_limit=client_limit,
         hunt_state=hunt_state,
         hunt_state_comment=hunt_state_comment,
-        start_time=start_time)
+        start_time=start_time,
+        num_clients_at_start_time=num_clients_at_start_time)
 
   def ReadHuntOutputPluginsStates(self, hunt_id):
     _ValidateHuntId(hunt_id)
@@ -3714,8 +3830,9 @@ def _ValidateApprovalType(approval_type):
 
 def _ValidateStringLength(name, string, max_length):
   if len(string) > max_length:
-    raise ValueError("{} can have at most {} characters, got {}.".format(
-        name, max_length, len(string)))
+    raise StringTooLongError(
+        "{} can have at most {} characters, got {}.".format(
+            name, max_length, len(string)))
 
 
 def _ValidateUsername(username):
@@ -3831,3 +3948,10 @@ def _ValidateHuntFlowCondition(value):
 def _ValidateMessageHandlerName(name):
   _ValidateStringLength("MessageHandler names", name,
                         MAX_MESSAGE_HANDLER_NAME_LENGTH)
+
+
+def _ValidateClientActivityBuckets(buckets):
+  precondition.AssertType(buckets, (set, frozenset))
+  precondition.AssertIterableType(buckets, int)
+  if not buckets:
+    raise ValueError("At least one bucket must be provided.")

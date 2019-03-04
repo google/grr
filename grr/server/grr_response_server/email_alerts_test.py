@@ -5,9 +5,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 import mock
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_server import email_alerts
 from grr.test_lib import test_lib
@@ -109,8 +109,8 @@ class SendEmailTests(test_lib.GRRBaseTest):
             "CC: testcc@%s,testcc2@%s" % (testdomain, testdomain) in message)
         self.assertTrue("Message-ID: %s" % email_msg_id)
 
-      # Multiple address types, two cc, no default domain
-      with test_lib.ConfigOverrider({"Logging.domain": None}):
+      # Multiple address types, two cc
+      with test_lib.ConfigOverrider({"Logging.domain": "localhost"}):
         to_address = [
             "testto@localhost", "hij",
             rdf_standard.DomainEmailAddress("klm@localhost")
@@ -134,4 +134,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

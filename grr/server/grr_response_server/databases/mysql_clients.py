@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """The MySQL database methods for client handling."""
 from __future__ import absolute_import
 from __future__ import division
@@ -105,34 +106,48 @@ class MySQLDBClientMixin(object):
     return ret
 
   @mysql_utils.WithTransaction()
-  def WriteClientSnapshot(self, client, cursor=None):
+  def WriteClientSnapshot(self, snapshot, cursor=None):
     """Write new client snapshot."""
-    startup_info = client.startup_info
-    client.startup_info = None
-
     insert_history_query = (
         "INSERT INTO client_snapshot_history(client_id, timestamp, "
         "client_snapshot) VALUES (%s, %s, %s)")
     insert_startup_query = (
         "INSERT INTO client_startup_history(client_id, timestamp, "
         "startup_info) VALUES(%s, %s, %s)")
-    update_query = ("UPDATE clients SET last_client_timestamp=%s, "
-                    "last_startup_timestamp=%s "
-                    "WHERE client_id = %s")
 
-    int_id = mysql_utils.ClientIDToInt(client.client_id)
-    timestamp = datetime.datetime.utcnow()
+    client_platform = snapshot.knowledge_base.os
+    current_timestamp = datetime.datetime.utcnow()
+    client_info = {
+        "last_client_timestamp": current_timestamp,
+        "last_startup_timestamp": current_timestamp,
+        "last_version_string": snapshot.GetGRRVersionString(),
+        "last_platform_release": snapshot.Uname(),
+    }
+    if client_platform:
+      client_info["last_platform"] = client_platform
 
+    update_clauses = ["{0} = %({0})s".format(k) for k in iterkeys(client_info)]
+    update_query = (
+        "UPDATE clients SET {} WHERE client_id = %(client_id)s".format(
+            ", ".join(update_clauses)))
+
+    int_client_id = mysql_utils.ClientIDToInt(snapshot.client_id)
+    client_info["client_id"] = int_client_id
+
+    startup_info = snapshot.startup_info
+    snapshot.startup_info = None
     try:
-      cursor.execute(insert_history_query,
-                     (int_id, timestamp, client.SerializeToString()))
-      cursor.execute(insert_startup_query,
-                     (int_id, timestamp, startup_info.SerializeToString()))
-      cursor.execute(update_query, (timestamp, timestamp, int_id))
+      cursor.execute(
+          insert_history_query,
+          (int_client_id, current_timestamp, snapshot.SerializeToString()))
+      cursor.execute(
+          insert_startup_query,
+          (int_client_id, current_timestamp, startup_info.SerializeToString()))
+      cursor.execute(update_query, client_info)
     except MySQLdb.IntegrityError as e:
-      raise db.UnknownClientError(client.client_id, cause=e)
+      raise db.UnknownClientError(snapshot.client_id, cause=e)
     finally:
-      client.startup_info = startup_info
+      snapshot.startup_info = startup_info
 
   @mysql_utils.WithTransaction(readonly=True)
   def MultiReadClientSnapshot(self, client_ids, cursor=None):
@@ -682,3 +697,72 @@ class MySQLDBClientMixin(object):
         "DELETE FROM client_stats WHERE timestamp < %s LIMIT %s",
         [mysql_utils.RDFDatetimeToMysqlString(retention_time), limit])
     return cursor.rowcount
+
+  @mysql_utils.WithTransaction(readonly=True)
+  def CountClientVersionStringsByLabel(self, day_buckets, cursor):
+    """Computes client-activity stats for all GRR versions in the DB."""
+    return self._CountClientStatisticByLabel("last_version_string", day_buckets,
+                                             cursor)
+
+  @mysql_utils.WithTransaction(readonly=True)
+  def CountClientPlatformsByLabel(self, day_buckets, cursor):
+    """Computes client-activity stats for all client platforms in the DB."""
+    return self._CountClientStatisticByLabel("last_platform", day_buckets,
+                                             cursor)
+
+  @mysql_utils.WithTransaction(readonly=True)
+  def CountClientPlatformReleasesByLabel(self, day_buckets, cursor):
+    """Computes client-activity stats for OS-release strings in the DB."""
+    return self._CountClientStatisticByLabel("last_platform_release",
+                                             day_buckets, cursor)
+
+  def _CountClientStatisticByLabel(self, statistic, day_buckets, cursor):
+    """Returns client-activity metrics for a given statistic.
+
+    Args:
+      statistic: The name of the statistic, which should also be a column in the
+        'clients' table.
+      day_buckets: A set of n-day-active buckets.
+      cursor: MySQL cursor for executing queries.
+    """
+    day_buckets = sorted(day_buckets)
+    sum_clauses = []
+    ping_cast_clauses = []
+    timestamp_buckets = []
+    now = rdfvalue.RDFDatetime.Now()
+
+    for day_bucket in day_buckets:
+      column_name = "days_active_{}".format(day_bucket)
+      sum_clauses.append(
+          "CAST(SUM({0}) AS UNSIGNED) AS {0}".format(column_name))
+      ping_cast_clauses.append(
+          "CAST(c.last_ping > %s AS UNSIGNED) AS {}".format(column_name))
+      timestamp_bucket = now - rdfvalue.Duration.FromDays(day_bucket)
+      timestamp_buckets.append(
+          mysql_utils.RDFDatetimeToMysqlString(timestamp_bucket))
+
+    query = """
+    SELECT j.{statistic}, j.label, {sum_clauses}
+    FROM (
+      SELECT c.{statistic} AS {statistic}, l.label AS label, {ping_cast_clauses}
+      FROM clients c
+      LEFT JOIN client_labels l USING(client_id)
+      WHERE c.last_ping IS NOT NULL AND l.owner_username = 'GRR'
+    ) AS j
+    GROUP BY j.{statistic}, j.label
+    """.format(
+        statistic=statistic,
+        sum_clauses=", ".join(sum_clauses),
+        ping_cast_clauses=", ".join(ping_cast_clauses))
+
+    cursor.execute(query, timestamp_buckets)
+
+    counts = {}
+    for response_row in cursor.fetchall():
+      statistic_value, client_label = response_row[:2]
+      for i, num_actives in enumerate(response_row[2:]):
+        if num_actives <= 0:
+          continue
+        stats_key = (statistic_value, client_label, day_buckets[i])
+        counts[stats_key] = num_actives
+    return counts

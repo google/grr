@@ -9,11 +9,10 @@ import os
 import zipfile
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
-
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import data_store
 from grr_response_server.flows.general import file_finder
@@ -259,4 +258,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

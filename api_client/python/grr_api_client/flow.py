@@ -22,6 +22,9 @@ class FlowResult(object):
   def payload(self):
     return utils.UnpackAny(self.data.payload)
 
+  def __repr__(self):
+    return "<FlowResult payload={!r}>".format(self.payload)
+
 
 class FlowLog(object):
   """Wrapper class for flow logs."""

@@ -2,6 +2,7 @@
 """End to end tests for GRR fingerprint-related flows."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 from grr_response_test.end_to_end_tests import test_base
 
@@ -22,7 +23,7 @@ class TestFingerprintFileOSLinux(test_base.EndToEndTest):
       f = self.RunFlowAndWait("FingerprintFile", args=args)
 
     results = list(f.ListResults())
-    self.assertGreater(len(results), 0)
+    self.assertNotEmpty(results)
 
     fingerprint_result = results[0].payload
     self.assertLen(fingerprint_result.hash_entry.md5, 16)

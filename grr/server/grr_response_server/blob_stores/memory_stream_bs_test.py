@@ -5,7 +5,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_server import blob_store_test_mixin
 from grr_response_server.blob_stores import memory_stream_bs
 from grr.test_lib import test_lib
@@ -19,4 +20,4 @@ class MemoryStreamBlobStoreTest(blob_store_test_mixin.BlobStoreTestMixin,
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

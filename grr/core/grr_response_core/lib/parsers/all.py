@@ -172,7 +172,7 @@ def Register():
   parsers.MULTI_FILE_PARSER_FACTORY.Register(
       "LinuxPam", linux_pam_parser.PAMParser)
   parsers.MULTI_FILE_PARSER_FACTORY.Register(
-      "LinuxRelease", linux_release_parser.LinuxReleaseParser)
+      "LinuxReleaseInfo", linux_release_parser.LinuxReleaseParser)
   parsers.MULTI_FILE_PARSER_FACTORY.Register(
       "PciDevicesInfo", linux_file_parser.PCIDevicesInfoParser)
   parsers.MULTI_FILE_PARSER_FACTORY.Register(

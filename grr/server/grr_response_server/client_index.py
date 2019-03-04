@@ -8,8 +8,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import map  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import map
+from future.builtins import range
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import string_types

@@ -366,17 +366,16 @@ class ClientFileFinderMixin(object):
     """Issue the find request."""
     super(ClientFileFinderMixin, self).Start()
 
-    if self.args.pathtype != "OS":
-      raise ValueError("Only supported pathtype is OS.")
+    if self.args.pathtype == rdf_paths.PathSpec.PathType.OS:
+      stub = server_stubs.FileFinderOS
+    else:
+      stub = server_stubs.VfsFileFinder
 
     interpolated_args = self.args.Copy()
     interpolated_args.paths = list(
         self._InterpolatePaths(interpolated_args.paths))
 
-    self.CallClient(
-        server_stubs.FileFinderOS,
-        request=interpolated_args,
-        next_state="StoreResults")
+    self.CallClient(stub, request=interpolated_args, next_state="StoreResults")
 
   def _InterpolatePaths(self, globs):
 

@@ -5,9 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 from future.utils import iterkeys
-
-from grr_response_core.lib import flags
 
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -505,4 +504,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

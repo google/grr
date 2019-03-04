@@ -87,6 +87,9 @@ setup_args = dict(
     install_requires=[
         "absl-py==0.6.1",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
+        # TODO: This is a backport of Python 3.2+ API, should be
+        # removed once support for Python 2 is dropped.
+        "subprocess32==3.5.3",
         # TODO: 3.4 has a bug that prevents it from being installed
         # on macOS and CentOS [1]. On the other hand, 3.2.1 does not work with
         # Python 3. The issue is already resolved but there has been no release

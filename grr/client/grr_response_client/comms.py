@@ -83,7 +83,7 @@ import time
 import traceback
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 import psutil
 import queue
 import requests
@@ -814,7 +814,7 @@ class GRRClientWorker(threading.Thread):
               session_id=message.session_id,
               task_id=message.task_id,
               message_type=rdf_flows.GrrMessage.Type.STATUS)
-          if flags.FLAGS.debug:
+          if flags.FLAGS.pdb_post_mortem:
             pdb.post_mortem()
 
     except Exception as e:  # pylint: disable=broad-except
@@ -1253,7 +1253,7 @@ class GRRHTTPClient(object):
       except Exception:  # pylint: disable=broad-except
         # Catch everything, yes, this is terrible but necessary
         logging.warning("Uncaught exception caught: %s", traceback.format_exc())
-        if flags.FLAGS.debug:
+        if flags.FLAGS.pdb_post_mortem:
           pdb.post_mortem()
 
       # We suicide if our memory is exceeded, and there is no more work to do

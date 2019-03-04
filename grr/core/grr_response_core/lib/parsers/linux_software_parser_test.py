@@ -10,7 +10,8 @@ import os
 import unittest
 
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib.parsers import linux_software_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.test_lib import test_lib
@@ -49,4 +50,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

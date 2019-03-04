@@ -21,7 +21,7 @@ from future.utils import python_2_unicode_compatible
 from future.utils import string_types
 from future.utils import with_metaclass
 from past.builtins import long
-from typing import cast, Iterator, Text, Type
+from typing import cast, Iterator, Text, Type, TypeVar
 
 # pylint: disable=g-import-not-at-top
 try:
@@ -1159,7 +1159,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
 
 
 @python_2_unicode_compatible
-class RepeatedFieldHelper(collections.Iterable, object):
+class RepeatedFieldHelper(collections.Sequence, object):
   """A helper for the RDFProto to handle repeated fields.
 
   This helper is intended to only be constructed from the RDFProto class.
@@ -1305,10 +1305,6 @@ class RepeatedFieldHelper(collections.Iterable, object):
     for x in self:
       if hasattr(x, "Validate"):
         x.Validate()
-
-  def __iter__(self):
-    for index in range(len(self.wrapped_list)):
-      yield self[index]
 
 
 class ProtoList(ProtoType):
@@ -1638,6 +1634,9 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
         cls.AddDescriptor(field_desc)
 
     cls._class_attributes = set(dir(cls))  # pylint: disable=protected-access
+
+
+T = TypeVar("T")
 
 
 @python_2_unicode_compatible

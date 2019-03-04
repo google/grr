@@ -7,7 +7,8 @@ from __future__ import unicode_literals
 import itertools
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 import mock
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
@@ -15,7 +16,6 @@ from fleetspeak.src.server.grpcservice.client import client as fs_client
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2 as fs_admin_pb2
 
 from grr_response_core.lib import communicator
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -435,4 +435,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

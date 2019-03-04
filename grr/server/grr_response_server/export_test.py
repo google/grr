@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests for export converters."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,9 +8,10 @@ from __future__ import unicode_literals
 import os
 import socket
 
+from absl import app
+from absl.testing import absltest
 from future.builtins import str
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -19,6 +21,7 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import rdf_yara
@@ -1359,6 +1362,81 @@ class DataAgnosticExportConverterTest(ExportTestBase):
     self.assertEqual(converted_value, deserialized)
 
 
+class OsqueryExportConverterTest(absltest.TestCase):
+
+  def setUp(self):
+    super(OsqueryExportConverterTest, self).setUp()
+    self.converter = export.OsqueryExportConverter()
+    self.metadata = export.ExportedMetadata(client_urn="C.48515162342ABCDE")
+
+  def _Convert(self, table):
+    return list(self.converter.Convert(self.metadata, table))
+
+  def testNoRows(self):
+    table = rdf_osquery.OsqueryTable()
+    table.query = "SELECT bar, baz FROM foo;"
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="baz"))
+
+    self.assertEqual(self._Convert(table), [])
+
+  def testSomeRows(self):
+    table = rdf_osquery.OsqueryTable()
+    table.query = "SELECT foo, bar, quux FROM norf;"
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="quux"))
+    table.rows.append(rdf_osquery.OsqueryRow(values=["thud", "🐺", "42"]))
+    table.rows.append(rdf_osquery.OsqueryRow(values=["plugh", "🦊", "108"]))
+    table.rows.append(rdf_osquery.OsqueryRow(values=["blargh", "🦍", "1337"]))
+
+    results = self._Convert(table)
+    self.assertLen(results, 3)
+    self.assertEqual(results[0].metadata, self.metadata)
+    self.assertEqual(results[0].foo, "thud")
+    self.assertEqual(results[0].bar, "🐺")
+    self.assertEqual(results[0].quux, "42")
+    self.assertEqual(results[1].metadata, self.metadata)
+    self.assertEqual(results[1].foo, "plugh")
+    self.assertEqual(results[1].bar, "🦊")
+    self.assertEqual(results[1].quux, "108")
+    self.assertEqual(results[2].metadata, self.metadata)
+    self.assertEqual(results[2].foo, "blargh")
+    self.assertEqual(results[2].bar, "🦍")
+    self.assertEqual(results[2].quux, "1337")
+
+  def testMetadataColumn(self):
+    table = rdf_osquery.OsqueryTable()
+    table.query = "SELECT metadata FROM foo;"
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="metadata"))
+    table.rows.append(rdf_osquery.OsqueryRow(values=["bar"]))
+    table.rows.append(rdf_osquery.OsqueryRow(values=["baz"]))
+
+    results = self._Convert(table)
+    self.assertLen(results, 2)
+    self.assertEqual(results[0].metadata, self.metadata)
+    self.assertEqual(results[0].__metadata__, "bar")
+    self.assertEqual(results[1].metadata, self.metadata)
+    self.assertEqual(results[1].__metadata__, "baz")
+
+  def testQueryMetadata(self):
+    table = rdf_osquery.OsqueryTable()
+    table.query = "   SELECT foo FROM quux;          "
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))
+    table.rows.append(rdf_osquery.OsqueryRow(values=["norf"]))
+    table.rows.append(rdf_osquery.OsqueryRow(values=["thud"]))
+    table.rows.append(rdf_osquery.OsqueryRow(values=["blargh"]))
+
+    results = self._Convert(table)
+    self.assertLen(results, 3)
+    self.assertEqual(results[0].__query__, "SELECT foo FROM quux;")
+    self.assertEqual(results[0].foo, "norf")
+    self.assertEqual(results[1].__query__, "SELECT foo FROM quux;")
+    self.assertEqual(results[1].foo, "thud")
+    self.assertEqual(results[2].__query__, "SELECT foo FROM quux;")
+    self.assertEqual(results[2].foo, "blargh")
+
+
 class GetMetadataLegacyTest(test_lib.GRRBaseTest):
 
   def setUp(self):
@@ -1476,4 +1554,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

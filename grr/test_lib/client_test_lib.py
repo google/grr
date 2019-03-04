@@ -4,7 +4,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import codecs
 import collections
+import os
+import platform
+import subprocess
+import tempfile
 import types
 
 
@@ -273,3 +278,38 @@ class Test(server_stubs.ClientActionStub):
   """A test action which can be used in mocks."""
   in_rdfvalue = rdf_protodict.DataBlob
   out_rdfvalues = [rdf_protodict.DataBlob]
+
+
+def import_to_registry(data):
+  r"""Imports the given data to the Registry.
+
+  Example:
+    Windows Registry Editor Version 5.00
+
+    [HKEY_LOCAL_MACHINE\SOFTWARE\GRR_TEST]
+    "foobar"=dword:0
+    "bar":"baz"
+
+  Args:
+    data: a unicode string of Registry data, following the .REG-format.
+      See https://en.wikipedia.org/wiki/Windows_Registry#.REG_files
+
+  Raises:
+    RuntimeError: if the function is not called under Windows.
+  """
+  if platform.system() != "Windows":
+    raise RuntimeError("import_to_registry can only be called under Windows.")
+
+  # NamedTemporaryFile cannot be used on Win, because the file is locked while
+  # open for writes and deleted as soon as it is closed.
+  filehandle, filename = tempfile.mkstemp(suffix=".reg")
+  try:
+    with os.fdopen(filehandle, "wb") as fd:
+      fd.write(codecs.BOM_UTF16_LE)
+      fd.write(data.encode("utf_16_le"))
+  except:
+    raise
+  else:
+    subprocess.check_call(["REG", "IMPORT", filename])
+  finally:
+    os.unlink(filename)

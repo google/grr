@@ -7,6 +7,8 @@ from __future__ import unicode_literals
 
 import pdb
 
+from absl import app
+
 # pylint: disable=unused-import
 from grr_response_client import client_plugins
 # pylint: enable=unused-import
@@ -47,4 +49,4 @@ def main(unused_args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main, requires_root=True)
+  app.run(main)

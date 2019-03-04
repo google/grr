@@ -5,11 +5,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 from future.builtins import range
 from future.utils import iteritems
 from typing import Text
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -354,4 +354,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

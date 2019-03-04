@@ -33,6 +33,9 @@ from grr_response_core.lib.util import precondition
 from grr_response_proto import objects_pb2
 
 
+_UNKNOWN_GRR_VERSION = "Unknown-GRR-version"
+
+
 class ClientLabel(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ClientLabel
 
@@ -80,6 +83,16 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
     """OS summary string."""
     return "%s-%s-%s" % (self.knowledge_base.os, self.os_release,
                          self.os_version)
+
+  def GetGRRVersionString(self):
+    """Returns the client installation-name and GRR version as a string."""
+    client_info = self.startup_info.client_info
+    client_name = client_info.client_description or client_info.client_name
+    if client_info.client_version > 0:
+      client_version = str(client_info.client_version)
+    else:
+      client_version = _UNKNOWN_GRR_VERSION
+    return " ".join([client_name, client_version])
 
   def GetMacAddresses(self):
     """MAC addresses from all interfaces."""

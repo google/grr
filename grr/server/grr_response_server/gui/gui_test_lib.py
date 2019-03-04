@@ -12,7 +12,7 @@ import threading
 import time
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 from future.moves.urllib import parse as urlparse
 import portpicker
 from selenium import webdriver
@@ -265,25 +265,11 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # Clear the cache of the approvals-based router.
     acrwac.ApiCallRouterWithApprovalChecks.ClearCache()
 
-    if self.config_override:
-      return
-
     name = acrwac.ApiCallRouterWithApprovalChecks.__name__
-    self.config_override = test_lib.ConfigOverrider({"API.DefaultRouter": name})
-    self.config_override.Start()
+    config_overrider = test_lib.ConfigOverrider({"API.DefaultRouter": name})
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
     # Make sure ApiAuthManager is initialized with this configuration setting.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
-
-  def UninstallACLChecks(self):
-    """Deinstall previously installed ACL checks."""
-    if not self.config_override:
-      return
-
-    self.config_override.Stop()
-    self.config_override = None
-
-    # Make sure ApiAuthManager is initialized with update configuration
-    # setting (i.e. without overrides).
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
   def _CheckJavascriptErrors(self):
@@ -624,8 +610,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def setUp(self):
     super(GRRSeleniumTest, self).setUp()
 
-    # Used by InstallACLChecks/UninstallACLChecks
-    self.config_override = None
     # Used by CheckHttpErrors
     self.ignore_http_errors = False
 

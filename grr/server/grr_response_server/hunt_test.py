@@ -9,7 +9,8 @@ import os
 import sys
 import unittest
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -150,7 +151,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
 
     hunt_obj = hunt.StopHunt(hunt_obj.hunt_id)
     rules = data_store.REL_DB.ReadAllForemanRules()
-    self.assertEqual(len(rules), 0)
+    self.assertEmpty(rules)
 
   def testHuntWithInvalidForemanRulesDoesNotStart(self):
     client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
@@ -194,7 +195,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     foreman_obj.AssignTasksToClient(client_id)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
-    self.assertLen(flows, 0)
+    self.assertEmpty(flows)
 
   def testStandardHuntFlowsReportBackToTheHunt(self):
     hunt_id, _ = self._CreateAndRunHunt(
@@ -279,6 +280,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     requests = data_store.REL_DB.ReadFlowProcessingRequests()
     requests.sort(key=lambda r: r.delivery_time)
 
+    self.assertLen(requests, 10)
     for i, (r, client_id) in enumerate(zip(requests, client_ids)):
       self.assertEqual(r.client_id, client_id.Basename())
       time_diff = r.delivery_time - (now + rdfvalue.Duration("1m") * i)
@@ -749,6 +751,51 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
       self._CheckHuntStoppedNotification(
           "reached the average network bytes per client")
 
+  def testHuntIsStoppedIfTotalNetworkUsageIsTooHigh(self):
+    client_ids = self.SetupClients(5)
+
+    hunt_id = self._CreateHunt(
+        client_rule_set=foreman_rules.ForemanClientRuleSet(),
+        client_rate=0,
+        total_network_bytes_limit=5,
+        args=self.GetFileHuntArgs())
+
+    def CheckState(hunt_state, network_bytes_sent):
+      hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+      self.assertEqual(hunt_obj.hunt_state, hunt_state)
+      hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
+      self.assertEqual(hunt_counters.total_network_bytes_sent,
+                       network_bytes_sent)
+
+    self._RunHunt(
+        client_ids[:2],
+        client_mock=hunt_test_lib.SampleHuntMock(network_bytes_sent=2))
+
+    # 4 is lower than the total limit. The hunt should still be running.
+    CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4)
+
+    self._RunHunt(
+        [client_ids[2]],
+        client_mock=hunt_test_lib.SampleHuntMock(network_bytes_sent=1))
+
+    # 5 is equal to the total limit. Total network bytes sent should
+    # go over the limit in order for the hunt to be stopped.
+    CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 5)
+
+    self._RunHunt(
+        [client_ids[3]],
+        client_mock=hunt_test_lib.SampleHuntMock(network_bytes_sent=1))
+
+    # 6 is greater than the total limit. The hunt should be stopped now.
+    CheckState(rdf_hunt_objects.Hunt.HuntState.STOPPED, 6)
+
+    self._RunHunt([client_ids[4]],
+                  client_mock=hunt_test_lib.SampleHuntMock(
+                      network_bytes_sent=2, failrate=-1))
+
+    self._CheckHuntStoppedNotification(
+        "reached the total network bytes sent limit")
+
   def testHuntIsStoppedWhenExpirationTimeIsReached(self):
     client_ids = self.SetupClients(5)
 
@@ -998,4 +1045,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

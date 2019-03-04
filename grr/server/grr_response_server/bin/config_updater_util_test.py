@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import getpass
 import os
 
+from absl import app
 from future import builtins
 
 import mock
@@ -14,7 +15,6 @@ from MySQLdb import connections
 from MySQLdb.constants import CR as mysql_conn_errors
 
 from grr_response_core import config as grr_config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server import aff4
@@ -269,4 +269,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

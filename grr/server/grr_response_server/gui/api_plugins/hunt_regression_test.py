@@ -7,7 +7,8 @@ from __future__ import unicode_literals
 import pdb
 import unittest
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 
 from grr_response_core.lib import flags
 
@@ -632,7 +633,7 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
           try:
             self.ProcessHuntOutputPlugins()
           except process_results.ResultsProcessingError:
-            if flags.FLAGS.debug:
+            if flags.FLAGS.pdb_post_mortem:
               pdb.post_mortem()
 
     self.Check(
@@ -794,4 +795,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

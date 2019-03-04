@@ -10,14 +10,17 @@ import io
 import os
 import unittest
 
+from absl import app
+from future.builtins import range
+
 from grr_response_client.client_actions import osquery as osquery_action
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib.util import temp
 from grr_response_server.flows.general import osquery as osquery_flow
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import osquery_test_lib
 from grr.test_lib import test_lib
 
 
@@ -40,17 +43,14 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     super(OsqueryFlowTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-  def _RunQueries(self, queries):
+  def _RunQuery(self, query):
     session_id = flow_test_lib.TestFlowHelper(
         osquery_flow.OsqueryFlow.__name__,
         action_mocks.ActionMock(osquery_action.Osquery),
         client_id=self.client_id,
         token=self.token,
-        queries=queries)
+        query=query)
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
-
-  def _RunQuery(self, query):
-    return self._RunQueries([query])
 
   def testTime(self):
     date_before = datetime.date.today()
@@ -58,10 +58,8 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     date_after = datetime.date.today()
 
     self.assertLen(results, 1)
-    self.assertLen(results[0].tables, 1)
 
-    table = results[0].tables[0]
-
+    table = results[0].table
     self.assertLen(table.rows, 1)
 
     date_result = datetime.date(
@@ -70,56 +68,135 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         day=int(list(table.Column("day"))[0]))
     self.assertBetween(date_result, date_before, date_after)
 
-  def testFiles(self):
+  def testFile(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
       bar_path = os.path.join(dirpath, "bar")
-      bar_content = b"BAR"
       with io.open(bar_path, "wb") as filedesc:
-        filedesc.write(bar_content)
+        filedesc.write(b"BAR")
 
       baz_path = os.path.join(dirpath, "baz")
-      baz_content = b"BAZ"
       with io.open(baz_path, "wb") as filedesc:
-        filedesc.write(baz_content)
+        filedesc.write(b"BAZ")
 
-      file_query = """
+      results = self._RunQuery("""
         SELECT * FROM file
         WHERE directory = "{}"
         ORDER BY path;
-      """.format(dirpath)
-
-      results = self._RunQueries([
-          file_query,
-          "SELECT md5, sha256 FROM hash WHERE path = \"{}\";".format(bar_path),
-          "SELECT md5, sha256 FROM hash WHERE path = \"{}\";".format(baz_path),
-      ])
+      """.format(dirpath))
 
       self.assertLen(results, 1)
-      self.assertLen(results[0].tables, 3)
 
-      file_table = results[0].tables[0]
-      self.assertEqual(list(file_table.Column("path")), [bar_path, baz_path])
-      self.assertEqual(list(file_table.Column("size")), ["3", "3"])
+      table = results[0].table
+      self.assertEqual(list(table.Column("path")), [bar_path, baz_path])
+      self.assertEqual(list(table.Column("size")), ["3", "3"])
 
-      md5 = lambda data: binascii.hexlify(hashlib.md5(data).digest())
-      sha256 = lambda data: binascii.hexlify(hashlib.sha256(data).digest())
+  def testHash(self):
+    md5 = lambda data: binascii.hexlify(hashlib.md5(data).digest())
+    sha256 = lambda data: binascii.hexlify(hashlib.sha256(data).digest())
 
-      bar_hash_table = results[0].tables[1]
-      self.assertLen(bar_hash_table.rows, 1)
-      self.assertEqual(list(bar_hash_table.Column("md5")), [md5(bar_content)])
-      self.assertEqual(
-          list(bar_hash_table.Column("sha256")), [sha256(bar_content)])
+    with temp.AutoTempFilePath() as filepath:
+      content = b"FOOBARBAZ"
 
-      baz_hash_table = results[0].tables[2]
-      self.assertLen(baz_hash_table.rows, 1)
-      self.assertEqual(list(baz_hash_table.Column("md5")), [md5(baz_content)])
-      self.assertEqual(
-          list(baz_hash_table.Column("sha256")), [sha256(baz_content)])
+      with io.open(filepath, "wb") as filedesc:
+        filedesc.write(content)
+
+      results = self._RunQuery("""
+        SELECT md5, sha256 FROM hash
+        WHERE path = "{}";
+      """.format(filepath))
+
+      self.assertLen(results, 1)
+
+      table = results[0].table
+      self.assertLen(table.rows, 1)
+      self.assertEqual(list(table.Column("md5")), [md5(content)])
+      self.assertEqual(list(table.Column("sha256")), [sha256(content)])
+
+  def testMultipleResults(self):
+    row_count = 100
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+      for i in range(row_count):
+        filepath = os.path.join(dirpath, "{:04}".format(i))
+        with io.open(filepath, "wb") as filedesc:
+          del filedesc  # Unused.
+
+      query = """
+        SELECT filename FROM file
+        WHERE directory = "{}"
+        ORDER BY filename;
+      """.format(dirpath)
+
+      # Size limit is set so that each chunk should contain 2 rows.
+      with test_lib.ConfigOverrider({"Osquery.max_chunk_size": 6}):
+        results = self._RunQuery(query)
+
+      # Since each chunk is expected to have 2 rows, number of chunks should be
+      # equal to twice the amount of rows.
+      self.assertEqual(2 * len(results), row_count)
+
+      for i, result in enumerate(results):
+        table = result.table
+        self.assertEqual(table.query, query)
+
+        self.assertLen(table.header.columns, 1)
+        self.assertEqual(table.header.columns[0].name, "filename")
+
+        self.assertLen(table.rows, 2)
+        self.assertEqual(
+            list(table.Column("filename")), [
+                "{:04}".format(2 * i),
+                "{:04}".format(2 * i + 1),
+            ])
 
   def testFailure(self):
     with self.assertRaises(RuntimeError):
       self._RunQuery("UPDATE time SET day = -1;")
 
 
+@db_test_lib.DualDBTest
+class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
+
+  def setUp(self):
+    super(FakeOsqueryFlowTest, self).setUp()
+    self.client_id = self.SetupClient(0)
+
+  def _RunQuery(self, query):
+    session_id = flow_test_lib.TestFlowHelper(
+        osquery_flow.OsqueryFlow.__name__,
+        action_mocks.ActionMock(osquery_action.Osquery),
+        client_id=self.client_id,
+        token=self.token,
+        query=query)
+    return flow_test_lib.GetFlowResults(self.client_id, session_id)
+
+  def testSuccess(self):
+    output = """
+    [
+      { "foo": "quux", "bar": "norf", "baz": "thud" },
+      { "foo": "blargh", "bar": "plugh", "baz": "ztesch" }
+    ]
+    """
+    with osquery_test_lib.FakeOsqueryiOutput(output):
+      results = self._RunQuery("SELECT foo, bar, baz FROM foobarbaz;")
+
+    self.assertLen(results, 1)
+
+    table = results[0].table
+    self.assertLen(table.header.columns, 3)
+    self.assertEqual(table.header.columns[0].name, "foo")
+    self.assertEqual(table.header.columns[1].name, "bar")
+    self.assertEqual(table.header.columns[2].name, "baz")
+    self.assertEqual(list(table.Column("foo")), ["quux", "blargh"])
+    self.assertEqual(list(table.Column("bar")), ["norf", "plugh"])
+    self.assertEqual(list(table.Column("baz")), ["thud", "ztesch"])
+
+  def testFailure(self):
+    error = "Error: near '*': syntax error"
+    with osquery_test_lib.FakeOsqueryiError(error):
+      with self.assertRaises(RuntimeError):
+        self._RunQuery("SELECT * FROM *;")
+
+
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

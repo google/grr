@@ -458,7 +458,7 @@ def CheckFlowErrors(total_flows, token=None):
       continue
 
     if flow_obj.context.state != rdf_flow_runner.FlowContext.State.TERMINATED:
-      if flags.FLAGS.debug:
+      if flags.FLAGS.pdb_post_mortem:
         pdb.set_trace()
       raise RuntimeError(
           "Flow %s completed in state %s" % (flow_obj.runner_args.flow_name,

@@ -2,6 +2,7 @@
 """End to end tests for GRR filesystem-related flows."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 from grr_response_test.end_to_end_tests import test_base
 
@@ -45,7 +46,7 @@ class TestListDirectoryTSKLinux(test_base.EndToEndTest):
     f = self.RunFlowAndWait("ListDirectory", args=args)
 
     results = list(f.ListResults())
-    self.assertGreater(len(results), 0)
+    self.assertNotEmpty(results)
 
     stat_entry = results[0].payload
 
@@ -99,7 +100,7 @@ class TestFindTSKLinux(test_base.EndToEndTest):
     f = self.RunFlowAndWait("FindFiles", args=args)
 
     results = list(f.ListResults())
-    self.assertGreater(len(results), 0)
+    self.assertNotEmpty(results)
 
     diff_path = None
     for r in results:
@@ -184,7 +185,7 @@ class TestListDirectoryTSKWindows(test_base.EndToEndTest):
     f = self.RunFlowAndWait("ListDirectory", args=args)
 
     results = list(f.ListResults())
-    self.assertGreater(len(results), 0)
+    self.assertNotEmpty(results)
 
     regedit_path = None
     for r in results:

@@ -9,6 +9,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from absl import app
+
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
@@ -22,6 +24,7 @@ from grr_response_server import access_control
 from grr_response_server import fleetspeak_connector
 from grr_response_server import server_startup
 from grr_response_server import worker_lib
+
 
 
 def main(argv):
@@ -40,10 +43,11 @@ def main(argv):
 
   fleetspeak_connector.Init()
 
+
   token = access_control.ACLToken(username="GRRWorker").SetUID()
   worker_obj = worker_lib.GRRWorker(token=token)
   worker_obj.Run()
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

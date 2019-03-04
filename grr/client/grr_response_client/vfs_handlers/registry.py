@@ -9,16 +9,20 @@ import ctypes.wintypes
 import io
 import os
 import stat
-import _winreg
 
-from builtins import filter  # pylint: disable=redefined-builtin
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import filter
+from future.builtins import range
 
 from grr_response_client import vfs
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+
+try:  # future.moves.winreg can't be used because mocking of modules is hard.
+  import winreg  # pylint: disable=g-import-not-at-top
+except ImportError:  # In case of Python 2:
+  import _winreg as winreg  # pylint: disable=g-import-not-at-top
 
 # Difference between 1 Jan 1601 and 1 Jan 1970.
 WIN_UNIX_DIFF_MSECS = 11644473600
@@ -36,7 +40,7 @@ def CanonicalPathToLocalPath(path):
   return path.strip("\\")
 
 
-# _winreg is broken on Python 2.x and doesn't support unicode registry values.
+# winreg is broken on Python 2.x and doesn't support unicode registry values.
 # We provide some replacement functions here.
 
 advapi32 = ctypes.windll.advapi32
@@ -170,7 +174,7 @@ def QueryValueEx(key, value_name):
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
-  return (Reg2Py(buf, tmp_size.value, data_type.value), data_type.value)
+  return _Reg2Py(buf, tmp_size.value, data_type.value), data_type.value
 
 
 def EnumKey(key, index):
@@ -247,18 +251,21 @@ def EnumValue(key, index):
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
-  return (value.value, Reg2Py(data, tmp_data_size.value, data_type.value),
+  return (value.value, _Reg2Py(data, tmp_data_size.value, data_type.value),
           data_type.value)
 
 
-def Reg2Py(data, size, data_type):
-  if data_type == _winreg.REG_DWORD:
+def _Reg2Py(data, size, data_type):
+  """Converts a Windows Registry value to the corresponding Python data type."""
+  if data_type == winreg.REG_DWORD:
     if size == 0:
       return 0
-    return ctypes.cast(data, ctypes.POINTER(ctypes.c_int)).contents.value
-  elif data_type == _winreg.REG_SZ or data_type == _winreg.REG_EXPAND_SZ:
+    # DWORD is an unsigned 32-bit integer, see:
+    # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/262627d8-3418-4627-9218-4ffe110850b2
+    return ctypes.cast(data, ctypes.POINTER(ctypes.c_uint32)).contents.value
+  elif data_type == winreg.REG_SZ or data_type == winreg.REG_EXPAND_SZ:
     return ctypes.wstring_at(data, size // 2).rstrip(u"\x00")
-  elif data_type == _winreg.REG_MULTI_SZ:
+  elif data_type == winreg.REG_MULTI_SZ:
     return ctypes.wstring_at(data, size // 2).rstrip(u"\x00").split(u"\x00")
   else:
     if size == 0:
@@ -274,17 +281,17 @@ class RegistryFile(vfs.VFSHandler):
 
   # Maps the registry types to protobuf enums
   registry_map = {
-      _winreg.REG_NONE: rdf_client_fs.StatEntry.RegistryType.REG_NONE,
-      _winreg.REG_SZ: rdf_client_fs.StatEntry.RegistryType.REG_SZ,
-      _winreg.REG_EXPAND_SZ: rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ,
-      _winreg.REG_BINARY: rdf_client_fs.StatEntry.RegistryType.REG_BINARY,
-      _winreg.REG_DWORD: rdf_client_fs.StatEntry.RegistryType.REG_DWORD,
-      _winreg.REG_DWORD_LITTLE_ENDIAN: (
+      winreg.REG_NONE: rdf_client_fs.StatEntry.RegistryType.REG_NONE,
+      winreg.REG_SZ: rdf_client_fs.StatEntry.RegistryType.REG_SZ,
+      winreg.REG_EXPAND_SZ: rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ,
+      winreg.REG_BINARY: rdf_client_fs.StatEntry.RegistryType.REG_BINARY,
+      winreg.REG_DWORD: rdf_client_fs.StatEntry.RegistryType.REG_DWORD,
+      winreg.REG_DWORD_LITTLE_ENDIAN: (
           rdf_client_fs.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN),
-      _winreg.REG_DWORD_BIG_ENDIAN: (
+      winreg.REG_DWORD_BIG_ENDIAN: (
           rdf_client_fs.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN),
-      _winreg.REG_LINK: rdf_client_fs.StatEntry.RegistryType.REG_LINK,
-      _winreg.REG_MULTI_SZ: rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ,
+      winreg.REG_LINK: rdf_client_fs.StatEntry.RegistryType.REG_LINK,
+      winreg.REG_MULTI_SZ: rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ,
   }
 
   def __init__(self, base_fd, pathspec=None, progress_callback=None):
@@ -292,7 +299,7 @@ class RegistryFile(vfs.VFSHandler):
         base_fd, pathspec=pathspec, progress_callback=progress_callback)
 
     self.value = None
-    self.value_type = _winreg.REG_NONE
+    self.value_type = winreg.REG_NONE
     self.hive = None
     self.hive_name = None
     self.local_path = None
@@ -312,7 +319,7 @@ class RegistryFile(vfs.VFSHandler):
     try:
       # The first component MUST be a hive
       self.hive_name = path_components[0]
-      self.hive = KeyHandle(getattr(_winreg, self.hive_name))
+      self.hive = KeyHandle(getattr(winreg, self.hive_name))
     except AttributeError:
       raise IOError("Unknown hive name %s" % self.hive_name)
     except IndexError:
@@ -329,7 +336,11 @@ class RegistryFile(vfs.VFSHandler):
       with OpenKey(self.hive, key_name) as key:
         self.value, self.value_type = QueryValueEx(key, value_name)
 
-      # We are a value and therefore not a directory.
+      # TODO: Registry-VFS has issues when keys and values of the
+      # same name exist. ListNames() does not work for a key, if a value of the
+      # same name exists. The original assumption was: "We are a value and
+      # therefore not a directory". This is false, since the Registry can have
+      # a key and a value of the same name in the same parent key.
       self.is_directory = False
     except OSError:
       try:
@@ -342,7 +353,7 @@ class RegistryFile(vfs.VFSHandler):
           except OSError:
             # Empty default value
             self.value = ""
-            self.value_type = _winreg.REG_NONE
+            self.value_type = winreg.REG_NONE
 
       except OSError:
         raise IOError("Unable to open key %s" % self.key_name)
@@ -383,12 +394,17 @@ class RegistryFile(vfs.VFSHandler):
 
   def ListNames(self):
     """List the names of all keys and values."""
+
+    # TODO: This check is flawed, because the current definition of
+    # "IsDirectory" is the negation of "is a file". One registry path can
+    # actually refer to a key ("directory"), a value of the same name ("file")
+    # and the default value of the key at the same time.
     if not self.IsDirectory():
       return
 
     # Handle the special case where no hive is specified and just list the hives
     if self.hive is None:
-      for name in dir(_winreg):
+      for name in dir(winreg):
         if name.startswith("HKEY_"):
           yield name
 
@@ -399,10 +415,14 @@ class RegistryFile(vfs.VFSHandler):
         (self.number_of_keys, self.number_of_values,
          self.last_modified) = QueryInfoKey(key)
 
+        found_keys = set()
+
         # First keys
         for i in range(self.number_of_keys):
           try:
-            yield EnumKey(key, i)
+            key_name = EnumKey(key, i)
+            found_keys.add(key_name)
+            yield key_name
           except OSError:
             pass
 
@@ -411,7 +431,11 @@ class RegistryFile(vfs.VFSHandler):
           try:
             name, unused_value, unused_value_type = EnumValue(key, i)
 
-            yield name
+            # A key might contain a sub-key and value of the same name. Do not
+            # yield the same name twice in this case. With only the name,
+            # the caller cannot differentiate between a key and a value anyway.
+            if name not in found_keys:
+              yield name
           except OSError:
             pass
 
@@ -426,7 +450,7 @@ class RegistryFile(vfs.VFSHandler):
       return
 
     if self.hive is None:
-      for name in dir(_winreg):
+      for name in dir(winreg):
         if name.startswith("HKEY_"):
           response = rdf_client_fs.StatEntry(st_mode=stat.S_IFDIR)
           response_pathspec = self.pathspec.Copy()

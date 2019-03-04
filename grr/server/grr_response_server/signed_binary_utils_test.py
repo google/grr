@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 
 import collections
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import signed_binary_utils
@@ -179,4 +180,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

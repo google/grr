@@ -2,20 +2,24 @@
 """This file implements a VFS abstraction on the client."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
+import abc
 import functools
 import os
 
 
-from builtins import filter  # pylint: disable=redefined-builtin
+from future.builtins import filter
 from future.utils import itervalues
 from future.utils import with_metaclass
+from typing import Optional, Callable
 
 from grr_response_client import client_utils
 from grr_response_core import config
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import context
 from grr_response_core.lib.util import precondition
@@ -85,15 +89,17 @@ class VFSHandler(with_metaclass(registry.MetaclassRegistry, object)):
     else:
       raise ValueError("Illegal whence value %s" % whence)
 
+  @abc.abstractmethod
   def Read(self, length):
     """Reads some data from the file."""
     raise NotImplementedError
 
-  def Stat(self, ext_attrs=None):
+  @abc.abstractmethod
+  def Stat(self, ext_attrs = False):
     """Returns a StatEntry about this file."""
-    del ext_attrs  # Unused.
     raise NotImplementedError
 
+  @abc.abstractmethod
   def IsDirectory(self):
     """Returns true if this object can contain other objects."""
     raise NotImplementedError
@@ -231,10 +237,16 @@ class VFSHandler(with_metaclass(registry.MetaclassRegistry, object)):
             base_fd=fd,
             pathspec=new_pathspec,
             progress_callback=progress_callback)
-      except IOError:
+      except IOError as e:
         # Can not open the first component, we must raise here.
         if i <= 1:
-          raise IOError("File not found")
+          raise IOError("File not found: {}".format(component))
+
+        # Do not try to use TSK to open a not-found registry entry, fail
+        # instead. Using TSK would lead to confusing error messages, hiding
+        # the fact that the Registry entry is simply not there.
+        if component.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+          raise IOError("Registry entry not found: {}".format(e))
 
         # Insert the remaining path at the front of the pathspec.
         pathspec.Insert(
@@ -290,7 +302,9 @@ class VFSInit(registry.InitHook):
           path=root, pathtype=base_type, is_virtualroot=True)
 
 
-def VFSOpen(pathspec, progress_callback=None):
+def VFSOpen(
+    pathspec,
+    progress_callback = None):
   """Expands pathspec to return an expanded Path.
 
   A pathspec is a specification of how to access the file by recursively opening
@@ -400,15 +414,15 @@ def VFSOpen(pathspec, progress_callback=None):
     except KeyError:
       raise IOError("VFS handler %d not supported." % component.pathtype)
 
-    try:
-      # Open the component.
-      fd = handler.Open(
-          fd,
-          component,
-          pathspec=working_pathspec,
-          progress_callback=progress_callback)
-    except IOError as e:
-      raise IOError("%s: %s" % (e, pathspec))
+    # Open the component.
+    fd = handler.Open(
+        fd,
+        component,
+        pathspec=working_pathspec,
+        progress_callback=progress_callback)
+
+  if fd is None:
+    raise ValueError("VFSOpen cannot be called with empty PathSpec.")
 
   return fd
 

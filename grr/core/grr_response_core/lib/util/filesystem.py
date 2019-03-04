@@ -30,14 +30,20 @@ class Stat(object):
   and Linux it works only on macOS and raises an error on Linux (and Windows).
   This class handles that and fetches these flags lazily (as it can be costly
   operation on Linux).
-
-  Args:
-    path: A path to the file to perform `stat` on.
-    follow_symlink: True if `stat` of a symlink should be returned instead of a
-      file that it points to. For non-symlinks this setting has no effect.
   """
 
-  def __init__(self, path, follow_symlink = True):
+  @classmethod
+  def FromPath(cls, path, follow_symlink = True):
+    """Returns stat information about the given OS path, calling os.[l]stat.
+
+    Args:
+      path: A path to perform `stat` on.
+      follow_symlink: True if `stat` of a symlink should be returned instead of
+        a file that it points to. For non-symlinks this setting has no effect.
+
+    Returns:
+      Stat instance, with information about the given path.
+    """
     # Note that we do not add type assertion for `path` here. The reason is that
     # many of the existing system calls (e.g. `os.listdir`) return results as
     # bytestrings in Python 2. This is fine because it also means that they also
@@ -46,12 +52,22 @@ class Stat(object):
     # much work for too little benefit.
     precondition.AssertType(follow_symlink, bool)
 
-    self._path = path
-    if not follow_symlink:
-      self._stat = os.lstat(path)
+    if follow_symlink:
+      stat_obj = os.stat(path)
     else:
-      self._stat = os.stat(path)
+      stat_obj = os.lstat(path)
 
+    return cls(path=path, stat_obj=stat_obj)
+
+  def __init__(self, path, stat_obj):
+    """Wrap an existing stat result in a `filesystem.Stat` instance.
+
+    Args:
+      path: the path of `stat_obj`.
+      stat_obj: an instance of os.stat_result with information about `path`.
+    """
+    self._path = path
+    self._stat = stat_obj
     self._flags_linux = None
     self._flags_osx = None
 
@@ -147,7 +163,7 @@ class Stat(object):
     if platform.system() != "Darwin":
       return 0
 
-    return self._stat.st_flags
+    return self._stat.st_flags  # pytype: disable=attribute-error
 
 
 class StatCache(object):
@@ -183,7 +199,7 @@ class StatCache(object):
     try:
       return self._cache[key]
     except KeyError:
-      value = Stat(path, follow_symlink=follow_symlink)
+      value = Stat.FromPath(path, follow_symlink=follow_symlink)
       self._cache[key] = value
 
       # If we are not following symlinks and the file is a not symlink then

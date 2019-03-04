@@ -11,10 +11,10 @@ import operator
 import os
 
 
-from builtins import zip  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import zip
 from future.utils import iteritems
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import parser as lib_parser
 from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -521,4 +521,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

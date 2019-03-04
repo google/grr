@@ -317,6 +317,9 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
         hra.per_client_network_limit_bytes = (
             hunt_obj.per_client_network_bytes_limit)
 
+      if hunt_obj.HasField("total_network_bytes_limit"):
+        hra.network_bytes_limit = hunt_obj.total_network_bytes_limit
+
       self.client_rule_set = hunt_obj.client_rule_set
 
       if (hunt_obj.args.hunt_type ==
@@ -1373,9 +1376,8 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       notification.Notify(
           token.username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
-          "Archive generation failed for hunt %s: %s" % (args.hunt_id,
-                                                         utils.SmartStr(e)),
-          None)
+          "Archive generation failed for hunt %s: %s" %
+          (args.hunt_id, utils.SmartStr(e)), None)
 
       raise
 

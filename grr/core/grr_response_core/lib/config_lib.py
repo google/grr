@@ -63,10 +63,11 @@ flags.DEFINE_bool("disallow_missing_config_definitions", False,
                   "If true, we raise an error on undefined config options.")
 
 flags.DEFINE_multi_string(
-    "p",
     "parameter",
+    default=[],
     help="Global override of config values. "
-    "For example -p DataStore.implementation=MySQLDataStore")
+    "For example -p DataStore.implementation=MySQLDataStore",
+    short_name="p")
 
 
 class Error(Exception):
@@ -411,7 +412,7 @@ class ConfigFileParser(configparser.RawConfigParser, GRRConfigParser):
       # enforce restrictive file permissions on the created file.
       mode = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
       fd = os.open(self.filename, mode, 0o600)
-      with os.fdopen(fd, "wb") as config_file:
+      with os.fdopen(fd, "w") as config_file:
         self.SaveDataToFD(raw_data, config_file)
 
     except OSError as e:

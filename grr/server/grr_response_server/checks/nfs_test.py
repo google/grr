@@ -8,7 +8,8 @@ from __future__ import unicode_literals
 import io
 
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib.parsers import config_file
 from grr_response_server.check_lib import checks_test_lib
 from grr.test_lib import test_lib
@@ -70,4 +71,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

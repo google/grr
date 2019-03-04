@@ -7,10 +7,11 @@ from __future__ import unicode_literals
 
 import collections
 import json
-import subprocess
 
+from future.builtins import map
 from future.utils import iterkeys
 from typing import Any
+from typing import Iterator
 from typing import List
 from typing import Text
 
@@ -18,6 +19,42 @@ from grr_response_client import actions
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.util import precondition
+
+# pylint: disable=g-import-not-at-top
+try:
+  # TODO: `subprocess32` is a backport of Python 3.2+ `subprocess`
+  # API. Once support for older versions of Python is dropped, this import can
+  # be removed.
+  import subprocess32 as subprocess
+except ImportError:
+  import subprocess
+# pylint: enable=g-import-not-at-top
+
+
+class Error(Exception):
+  """A class for all osquery-related exceptions."""
+
+  def __init__(self, message, cause = None):
+    if cause is not None:
+      message = "{message}: {cause}".format(message=message, cause=cause)
+
+    super(Error, self).__init__(message)
+    self.cause = cause
+
+
+class QueryError(Error):
+  """A class of exceptions indicating invalid queries (e.g. syntax errors)."""
+
+  def __init__(self, output, cause = None):
+    message = "invalid query: {}".format(output)
+    super(QueryError, self).__init__(message, cause=cause)
+
+
+class TimeoutError(Error):
+  """A class of exceptions raised when a call to osquery timeouts."""
+
+  def __init__(self, cause = None):
+    super(TimeoutError, self).__init__("osquery timeout", cause=cause)
 
 
 class Osquery(actions.ActionPlugin):
@@ -27,7 +64,8 @@ class Osquery(actions.ActionPlugin):
   out_rdfvalues = [rdf_osquery.OsqueryResult]
 
   def Run(self, args):
-    self.SendReply(self.Process(args))
+    for result in self.Process(args):
+      self.SendReply(result)
 
   # TODO(hanuszczak): This does not need to be a class method. It should be
   # refactored to a separate function and tested as such.
@@ -36,17 +74,68 @@ class Osquery(actions.ActionPlugin):
       raise RuntimeError("The `Osquery` action invoked on a client without "
                          "osquery path specified.")
 
-    result = rdf_osquery.OsqueryResult()
+    if not args.query:
+      raise ValueError("The `Osquery` was invoked with an empty query.")
 
-    # TODO: Currently running n-queries involves spawning n osquery
-    # processes. This should not be required and needs to be optimized in the
-    # future.
-    for query in args.queries:
-      table = ParseTable(Query(query))
-      table.query = query
-      result.tables.append(table)
+    table = ParseTable(Query(args))
+    table.query = args.query
 
+    for chunk in ChunkTable(table, config.CONFIG["Osquery.max_chunk_size"]):
+      yield rdf_osquery.OsqueryResult(table=chunk)
+
+
+def ChunkTable(table,
+               max_chunk_size):
+  """Chunks given table into multiple smaller ones.
+
+  Tables that osquery yields can be arbitrarily large. Because GRR's messages
+  cannot be arbitrarily large, it might happen that the table has to be split
+  into multiple smaller ones.
+
+  Note that that serialized response protos are going to be slightly bigger than
+  the specified limit. For regular values the additional payload should be
+  negligible.
+
+  Args:
+    table: A table to split into multiple smaller ones.
+    max_chunk_size: A maximum size of the returned table in bytes.
+
+  Yields:
+    Tables with the same query and headers as the input table and a subset of
+    rows.
+  """
+
+  def ByteLength(string):
+    return len(string.encode("utf-8"))
+
+  def Chunk():
+    result = rdf_osquery.OsqueryTable()
+    result.query = table.query
+    result.header = table.header
     return result
+
+  chunk = Chunk()
+  chunk_size = 0
+
+  for row in table.rows:
+    row_size = sum(map(ByteLength, row.values))
+
+    if chunk_size + row_size > max_chunk_size:
+      yield chunk
+
+      chunk = Chunk()
+      chunk_size = 0
+
+    chunk.rows.append(row)
+    chunk_size += row_size
+
+  # We want to yield extra chunk in two cases:
+  # * there are some rows that did not cause the chunk to overflow so it has not
+  #   been yielded as part of the loop.
+  # * the initial table has no rows but we still need to yield some table even
+  #   if it is empty.
+  if chunk.rows or not table.rows:
+    yield chunk
 
 
 def ParseTable(table):
@@ -115,25 +204,51 @@ def ParseRow(header,
   return result
 
 
-def Query(query):
+def Query(args):
   """Calls osquery with given query and returns its output.
 
   Args:
-    query: A query to call osquery with.
+    args: A query to call osquery with.
 
   Returns:
     A "parsed JSON" representation of the osquery output.
 
   Raises:
-    RuntimeError: If osquery call fails.
+    QueryError: If the query is incorrect.
+    TimeoutError: If a call to the osquery executable times out.
+    Error: If anything else goes wrong with the subprocess call.
   """
-  proc = subprocess.Popen([config.CONFIG["Osquery.path"], "--json"],
-                          stdin=subprocess.PIPE,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE)
-  out, err = proc.communicate(query.encode("utf-8"))
-  if err:
-    raise RuntimeError("osquery failure: {}".format(err.decode("utf-8")))
+  query = args.query.encode("utf-8")
+  timeout = args.timeout_millis / 1000  # `subprocess.run` uses seconds.
+  # TODO: pytype is not aware of the backport.
+  # pytype: disable=module-attr
+  try:
+    # We use `--S` to enforce shell execution. This is because on Windows there
+    # is only `osqueryd` and `osqueryi` is not available. However, by passing
+    # `--S` we can make `osqueryd` behave like `osqueryi`. Since this flag also
+    # works with `osqueryi`, by passing it we simply expand number of supported
+    # executable types.
+    command = [config.CONFIG["Osquery.path"], "--S", "--json", query]
+    proc = subprocess.run(
+        command,
+        timeout=timeout,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+  # TODO: Since we use a backported API, `SubprocessError` is hard
+  # to work with. Until support for Python 2 is dropped we re-raise with simpler
+  # exception type because we don't really care that much (the exception message
+  # should be detailed enough anyway).
+  except subprocess.TimeoutExpired as error:
+    raise TimeoutError(cause=error)
+  except subprocess.CalledProcessError as error:
+    raise Error("osquery invocation error", cause=error)
+  # pytype: enable=module-attr
+
+  # For syntax errors, osquery does not fail (exits with 0) but prints stuff to
+  # the standard error.
+  if proc.stderr:
+    raise QueryError(proc.stderr.decode("utf-8"))
 
   json_decoder = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
-  return json_decoder.decode(out)
+  return json_decoder.decode(proc.stdout)

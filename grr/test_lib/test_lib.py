@@ -18,8 +18,7 @@ import unittest
 
 
 from absl.testing import absltest
-from builtins import range  # pylint: disable=redefined-builtin
-from future.utils import iteritems
+from future.builtins import range
 from future.utils import itervalues
 import mock
 import pkg_resources
@@ -31,6 +30,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.util import cache
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
 from grr_response_core.stats import stats_collector_instance
@@ -130,6 +130,13 @@ class GRRBaseTest(absltest.TestCase):
       self.addCleanup(self.relational_read_stubber.Stop)
 
     self._SetupFakeStatsContext()
+
+    # Turn off WithLimitedCallFrequency-based caching in tests. Tests that need
+    # to test caching behavior explicitly, should turn it on explicitly.
+    with_limited_call_frequency_stubber = utils.Stubber(
+        cache, "WITH_LIMITED_CALL_FREQUENCY_PASS_THROUGH", True)
+    with_limited_call_frequency_stubber.Start()
+    self.addCleanup(with_limited_call_frequency_stubber.Stop)
 
   def _SetupFakeStatsContext(self):
     """Creates a stats context for running tests based on defined metrics."""
@@ -458,28 +465,26 @@ class ConfigOverrider(object):
 
   def __init__(self, overrides):
     self._overrides = overrides
-    self._saved_values = {}
+    self._old_cache = None
+    self._old_global_override = None
 
   def __enter__(self):
     self.Start()
 
   def Start(self):
-    for k, v in iteritems(self._overrides):
-      self._saved_values[k] = config.CONFIG.GetRaw(k)
-      try:
-        config.CONFIG.SetRaw.old_target(k, v)
-      except AttributeError:
-        config.CONFIG.SetRaw(k, v)
+    self._old_cache = config.CONFIG.cache
+    config.CONFIG.cache = dict()
+
+    self._old_global_override = config.CONFIG.global_override
+    config.CONFIG.global_override = self._old_global_override.copy()
+    config.CONFIG.global_override.update(self._overrides)
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     self.Stop()
 
   def Stop(self):
-    for k, v in iteritems(self._saved_values):
-      try:
-        config.CONFIG.SetRaw.old_target(k, v)
-      except AttributeError:
-        config.CONFIG.SetRaw(k, v)
+    config.CONFIG.cache = self._old_cache
+    config.CONFIG.global_override = self._old_global_override
 
 
 class PreserveConfig(object):

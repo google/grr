@@ -31,7 +31,7 @@ def WriteHuntResults(client_id, hunt_id, responses):
   if not hunt.IsLegacyHunt(hunt_id):
     data_store.REL_DB.WriteFlowResults(responses)
 
-    hunt.StopHuntIfAverageLimitsExceeded(hunt_id)
+    hunt.StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id)
     return
 
   hunt_id_urn = rdfvalue.RDFURN("hunts").Add(hunt_id)
@@ -74,7 +74,7 @@ def ProcessHuntFlowError(flow_obj,
   """Processes error and status message for a given hunt-induced flow."""
 
   if not hunt.IsLegacyHunt(flow_obj.parent_hunt_id):
-    hunt.StopHuntIfAverageLimitsExceeded(flow_obj.parent_hunt_id)
+    hunt.StopHuntIfCPUOrNetworkLimitsExceeded(flow_obj.parent_hunt_id)
     return
 
   hunt_urn = rdfvalue.RDFURN("hunts").Add(flow_obj.parent_hunt_id)
@@ -100,7 +100,8 @@ def ProcessHuntFlowDone(flow_obj, status_msg=None):
   """Notifis hunt about a given hunt-induced flow completion."""
 
   if not hunt.IsLegacyHunt(flow_obj.parent_hunt_id):
-    hunt_obj = hunt.StopHuntIfAverageLimitsExceeded(flow_obj.parent_hunt_id)
+    hunt_obj = hunt.StopHuntIfCPUOrNetworkLimitsExceeded(
+        flow_obj.parent_hunt_id)
     hunt.CompleteHuntIfExpirationTimeReached(hunt_obj)
     return
 

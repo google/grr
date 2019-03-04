@@ -31,7 +31,9 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-def _TerminateFlow(rdf_flow, reason=None):
+def _TerminateFlow(rdf_flow,
+                   reason=None,
+                   flow_state=rdf_flow_objects.Flow.FlowState.ERROR):
   """Does the actual termination."""
   flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
   flow_obj = flow_cls(rdf_flow)
@@ -43,7 +45,7 @@ def _TerminateFlow(rdf_flow, reason=None):
   logging.info("Terminating flow %s on %s, reason: %s", rdf_flow.flow_id,
                rdf_flow.client_id, reason)
 
-  rdf_flow.flow_state = rdf_flow.FlowState.ERROR
+  rdf_flow.flow_state = flow_state
   rdf_flow.error_message = reason
   flow_obj.NotifyCreatorOfError()
 
@@ -58,15 +60,26 @@ def _TerminateFlow(rdf_flow, reason=None):
                                                       rdf_flow.flow_id)
 
 
-def TerminateFlow(client_id, flow_id, reason=None):
-  """Terminates a flow and all of its children."""
+def TerminateFlow(client_id,
+                  flow_id,
+                  reason=None,
+                  flow_state=rdf_flow_objects.Flow.FlowState.ERROR):
+  """Terminates a flow and all of its children.
+
+  Args:
+    client_id: Client ID of a flow to terminate.
+    flow_id: Flow ID of a flow to terminate.
+    reason: String with a termination reason.
+    flow_state: Flow state to be assigned to a flow after termination. Defaults
+      to FlowState.ERROR.
+  """
 
   to_terminate = [data_store.REL_DB.ReadFlowObject(client_id, flow_id)]
 
   while to_terminate:
     next_to_terminate = []
     for rdf_flow in to_terminate:
-      _TerminateFlow(rdf_flow, reason=reason)
+      _TerminateFlow(rdf_flow, reason=reason, flow_state=flow_state)
       next_to_terminate.extend(
           data_store.REL_DB.ReadChildFlowObjects(rdf_flow.client_id,
                                                  rdf_flow.flow_id))
@@ -434,9 +447,9 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
         client_id=self.rdf_flow.client_id, flow_id=self.rdf_flow.flow_id)
     notification_lib.Notify(
         self.creator, rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
-        "Flow %s completed with %d %s" % (self.__class__.__name__, num_results,
-                                          num_results == 1 and "result" or
-                                          "results"),
+        "Flow %s completed with %d %s" %
+        (self.__class__.__name__, num_results, num_results == 1 and "result" or
+         "results"),
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.FLOW,
             flow=flow_ref))
@@ -538,6 +551,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
           self._ProcessRepliesWithHuntOutputPlugins(self.replies_to_process)
         else:
           self._ProcessRepliesWithFlowOutputPlugins(self.replies_to_process)
+
         self.replies_to_process = []
 
     # We don't know here what exceptions can be thrown in the flow but we have
@@ -596,8 +610,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     Returns:
        the number of all outstanding requests.
     """
-    return (
-        self.rdf_flow.next_outbound_id - self.rdf_flow.next_request_to_process)
+    return (self.rdf_flow.next_outbound_id -
+            self.rdf_flow.next_request_to_process)
 
   def GetNextOutboundId(self):
     my_id = self.rdf_flow.next_outbound_id
@@ -734,8 +748,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
                 output_plugin_id="%d" % index,
                 log_entry_type=rdf_flow_objects.FlowOutputPluginLogEntry
                 .LogEntryType.ERROR,
-                message="Error while processing %d replies: %s" % (len(replies),
-                                                                   str(e)))
+                message="Error while processing %d replies: %s" %
+                (len(replies), str(e)))
         ])
 
         self.Log("Plugin %s failed to process %d replies due to: %s",

@@ -6,10 +6,10 @@ from __future__ import unicode_literals
 import functools
 import threading
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 import mock
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
@@ -233,7 +233,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
       cron_manager.RunOnce()
     cron_manager._GetThreadPool().Join()
 
-    self.assertLen(cron_manager.ReadJobRuns("cron_1"), 0)
+    self.assertEmpty(cron_manager.ReadJobRuns("cron_1"))
     self.assertLen(cron_manager.ReadJobRuns("cron_2"), 1)
 
   def testCronJobRunDoesNothingIfCurrentFlowIsRunning(self):
@@ -852,4 +852,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

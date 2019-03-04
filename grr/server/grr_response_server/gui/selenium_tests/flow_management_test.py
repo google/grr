@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 import os
 
 
-from grr_response_core.lib import flags
+from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -652,4 +652,4 @@ class TestRelFlowManagement(db_test_lib.RelationalDBEnabledMixin,
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

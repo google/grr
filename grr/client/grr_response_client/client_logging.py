@@ -13,6 +13,13 @@ from grr_response_core import config
 from grr_response_core.lib import flags
 
 
+flags.DEFINE_bool(
+    "verbose",
+    default=False,
+    help="Turn on verbose logging.",
+    allow_override=True)
+
+
 class PreLoggingMemoryHandler(handlers.BufferingHandler):
   """Handler used before logging subsystem is initialized."""
 

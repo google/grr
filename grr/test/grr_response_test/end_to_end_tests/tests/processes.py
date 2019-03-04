@@ -2,6 +2,7 @@
 """End to end tests for lib.flows.general.processes."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 from grr_response_test.end_to_end_tests import test_base
 

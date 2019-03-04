@@ -5,7 +5,8 @@ from __future__ import unicode_literals
 
 import time
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.stats import stats_collector_instance
@@ -556,4 +557,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

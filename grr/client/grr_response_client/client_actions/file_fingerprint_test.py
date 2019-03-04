@@ -11,10 +11,10 @@ import hashlib
 import os
 
 
+from absl import app
 from future.utils import iteritems
 
 from grr_response_client.client_actions import file_fingerprint
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
@@ -68,4 +68,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

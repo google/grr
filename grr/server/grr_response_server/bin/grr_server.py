@@ -9,6 +9,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 
+from absl import app
+
 from grr_response_core.config import server as config_server
 
 from grr_response_core.lib import flags
@@ -52,4 +54,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

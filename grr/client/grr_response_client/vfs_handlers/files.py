@@ -195,7 +195,7 @@ class File(vfs.VFSHandler):
 
   def _GetDevice(self, path):
     try:
-      return filesystem.Stat(path).GetDevice()
+      return filesystem.Stat.FromPath(path).GetDevice()
     except (IOError, OSError) as error:
       logging.error("Failed to obtain device for '%s' (%s)", path, error)
       return None

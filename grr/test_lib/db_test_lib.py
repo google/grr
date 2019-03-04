@@ -69,7 +69,7 @@ class StableRelationalDBEnabledMixin(object):
         "Database.useForReads.cronjobs": True,
         "Database.useForReads.filestore": True,
         "Database.useForReads.foreman": True,
-        "Database.useForReads.hunts": False,
+        "Database.useForReads.hunts": True,
         "Database.useForReads.message_handlers": True,
         "Database.useForReads.signed_binaries": True,
         "Database.useForReads.vfs": True,

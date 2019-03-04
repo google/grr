@@ -2,6 +2,7 @@
 """End to end tests for transfer flows."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 from grr_response_test.end_to_end_tests import test_base
 
@@ -29,7 +30,7 @@ class TestTransferLinux(test_base.AbstractFileTransferTest):
 
     f = self.RunFlowAndWait("GetFile", args=args)
     results = list(f.ListResults())
-    self.assertGreater(len(results), 0)
+    self.assertNotEmpty(results)
 
     stat_entry = results[0].payload
     path = self.TSKPathspecToVFSPath(stat_entry.pathspec)
@@ -81,7 +82,7 @@ class TestTransferWindows(test_base.AbstractFileTransferTest):
 
     f = self.RunFlowAndWait("GetFile", args=args)
     results = list(f.ListResults())
-    self.assertGreater(len(results), 0)
+    self.assertNotEmpty(results)
 
     stat_entry = results[0].payload
     path = self.TSKPathspecToVFSPath(stat_entry.pathspec)

@@ -8,9 +8,9 @@ from __future__ import unicode_literals
 import io
 
 
+from absl import app
 from future.utils import iterkeys
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -825,4 +825,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

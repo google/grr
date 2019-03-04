@@ -15,7 +15,7 @@ config_lib.DEFINE_list("Artifacts.artifact_dirs", [
 
 config_lib.DEFINE_list(
     "Artifacts.knowledge_base", [
-        "LinuxRelease",
+        "LinuxReleaseInfo",
         "LinuxUserProfiles",
         "MacOSUsers",
         "WindowsCodePage",

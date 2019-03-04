@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import io
 
+from absl import app
 import portpicker
 
 from grr_response_core import config
@@ -65,4 +66,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

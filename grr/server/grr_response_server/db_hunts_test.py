@@ -32,9 +32,11 @@ class DatabaseTestHuntMixin(object):
   def _SetupHuntClientAndFlow(self,
                               client_id=None,
                               hunt_id=None,
+                              flow_id=None,
                               **additional_flow_args):
     client_id = self.InitializeClient(client_id=client_id)
-    flow_id = flow.RandomFlowId()
+    # Top-level hunt-induced flows should have hunt's id.
+    flow_id = flow_id or hunt_id
     self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
 
     rdf_flow = rdf_flow_objects.Flow(
@@ -93,7 +95,8 @@ class DatabaseTestHuntMixin(object):
         client_limit=48,
         hunt_state=rdf_hunt_objects.Hunt.HuntState.STOPPED,
         hunt_state_comment="foo",
-        start_time=rdfvalue.RDFDatetime(43))
+        start_time=rdfvalue.RDFDatetime(43),
+        num_clients_at_start_time=44)
 
     updated_hunt_obj = self.db.ReadHuntObject(hunt_obj.hunt_id)
     self.assertEqual(updated_hunt_obj.expiry_time, rdfvalue.RDFDatetime(42))
@@ -103,6 +106,7 @@ class DatabaseTestHuntMixin(object):
                      rdf_hunt_objects.Hunt.HuntState.STOPPED)
     self.assertEqual(updated_hunt_obj.hunt_state_comment, "foo")
     self.assertEqual(updated_hunt_obj.start_time, rdfvalue.RDFDatetime(43))
+    self.assertEqual(updated_hunt_obj.num_clients_at_start_time, 44)
 
   def testDeletingHuntObjectWorks(self):
     hunt_obj = rdf_hunt_objects.Hunt()
@@ -250,14 +254,12 @@ class DatabaseTestHuntMixin(object):
     self.assertEqual(hunt_log_entries[0].flow_id, flow_id)
     self.assertEqual(hunt_log_entries[0].message, "blah")
 
-  def testReadHuntLogEntriesIgnoresNestedFlows(self):
-    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
-    self.db.WriteHuntObject(hunt_obj)
-
+  def _WriteNestedAndNonNestedLogEntries(self, hunt_obj):
     client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_obj.hunt_id)
     self.db.WriteFlowLogEntries([
         rdf_flow_objects.FlowLogEntry(
             client_id=client_id,
+            # Top-level hunt-induced flows should have hunt's ids.
             flow_id=flow_id,
             hunt_id=hunt_obj.hunt_id,
             message="blah")
@@ -265,7 +267,10 @@ class DatabaseTestHuntMixin(object):
 
     for i in range(10):
       _, nested_flow_id = self._SetupHuntClientAndFlow(
-          client_id=client_id, parent_flow_id=flow_id, hunt_id=hunt_obj.hunt_id)
+          client_id=client_id,
+          parent_flow_id=flow_id,
+          hunt_id=hunt_obj.hunt_id,
+          flow_id=flow.RandomFlowId())
       self.db.WriteFlowLogEntries([
           rdf_flow_objects.FlowLogEntry(
               client_id=client_id,
@@ -274,9 +279,24 @@ class DatabaseTestHuntMixin(object):
               message="blah_%d" % i)
       ])
 
+  def testReadHuntLogEntriesIgnoresNestedFlows(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    self._WriteNestedAndNonNestedLogEntries(hunt_obj)
+
     hunt_log_entries = self.db.ReadHuntLogEntries(hunt_obj.hunt_id, 0, 10)
     self.assertLen(hunt_log_entries, 1)
     self.assertEqual(hunt_log_entries[0].message, "blah")
+
+  def testCountHuntLogEntriesIgnoresNestedFlows(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    self._WriteNestedAndNonNestedLogEntries(hunt_obj)
+
+    num_hunt_log_entries = self.db.CountHuntLogEntries(hunt_obj.hunt_id)
+    self.assertEqual(num_hunt_log_entries, 1)
 
   def _WriteHuntLogEntries(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -799,7 +819,8 @@ class DatabaseTestHuntMixin(object):
         flow_state=rdf_flow_objects.Flow.FlowState.ERROR,
         hunt_id=hunt_obj.hunt_id)
     _, crashed_flow_id = self._SetupHuntClientAndFlow(
-        client_crash_info=rdf_client.ClientCrash(), hunt_id=hunt_obj.hunt_id)
+        flow_state=rdf_flow_objects.Flow.FlowState.CRASHED,
+        hunt_id=hunt_obj.hunt_id)
     client_id, flow_with_results_id = self._SetupHuntClientAndFlow(
         hunt_id=hunt_obj.hunt_id)
     sample_results = self._SampleSingleTypeHuntResults(
@@ -833,8 +854,8 @@ class DatabaseTestHuntMixin(object):
       results_ids = [r.flow_id for r in results]
       self.assertCountEqual(
           results_ids, expected, "Result items do not match for "
-          "(filter_condition=%d): %s vs %s" % (filter_condition, expected,
-                                               results_ids))
+          "(filter_condition=%d): %s vs %s" %
+          (filter_condition, expected, results_ids))
 
   def testReadHuntFlowsCorrectlyAppliesOffsetAndCountFilters(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -867,14 +888,17 @@ class DatabaseTestHuntMixin(object):
     # Whatever state the subflow is in, it should be ignored.
     self._SetupHuntClientAndFlow(
         hunt_id=hunt_id,
+        flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.ERROR)
     self._SetupHuntClientAndFlow(
         hunt_id=hunt_id,
+        flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.FINISHED)
     self._SetupHuntClientAndFlow(
         hunt_id=hunt_id,
+        flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.RUNNING)
 
@@ -897,14 +921,17 @@ class DatabaseTestHuntMixin(object):
     # Whatever state the subflow is in, it should be ignored.
     self._SetupHuntClientAndFlow(
         hunt_id=hunt_id,
+        flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.ERROR)
     self._SetupHuntClientAndFlow(
         hunt_id=hunt_id,
+        flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.FINISHED)
     self._SetupHuntClientAndFlow(
         hunt_id=hunt_id,
+        flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.RUNNING)
 
@@ -935,8 +962,8 @@ class DatabaseTestHuntMixin(object):
           hunt_obj.hunt_id, filter_condition=filter_condition)
       self.assertEqual(
           result, len(expected), "Result count does not match for "
-          "(filter_condition=%d): %d vs %d" % (filter_condition, len(expected),
-                                               result))
+          "(filter_condition=%d): %d vs %d" %
+          (filter_condition, len(expected), result))
 
   def testReadHuntCountersCorrectlyAggregatesResultsAmongDifferentFlows(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -1129,7 +1156,7 @@ class DatabaseTestHuntMixin(object):
         0,
         10,
         filter_condition=db.HuntFlowsCondition.COMPLETED_FLOWS_ONLY)
-    self.assertLen(results, 0)
+    self.assertEmpty(results)
 
     rdf_flow = self.db.ReadFlowObject(client_id, flow_id)
     rdf_flow.flow_state = rdf_flow_objects.Flow.FlowState.FINISHED
@@ -1140,7 +1167,7 @@ class DatabaseTestHuntMixin(object):
         0,
         10,
         filter_condition=db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY)
-    self.assertLen(results, 0)
+    self.assertEmpty(results)
 
     results = self.db.ReadHuntFlows(
         hunt_id,

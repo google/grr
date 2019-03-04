@@ -152,5 +152,97 @@ class StartsWithTest(absltest.TestCase):
     self.assertTrue(collection.StartsWith((5, 4, 3), (5, 4)))
 
 
+class UnzipTest(absltest.TestCase):
+
+  def testEmpty(self):
+    left, right = collection.Unzip([])
+    self.assertEmpty(left)
+    self.assertEmpty(right)
+
+  def testList(self):
+    left, right = collection.Unzip([(1, 2), (3, 4), (5, 6)])
+    self.assertSequenceEqual(left, [1, 3, 5])
+    self.assertSequenceEqual(right, [2, 4, 6])
+
+  def testGenerator(self):
+
+    def Foo():
+      yield 1, "foo"
+      yield 2, "bar"
+      yield 3, "baz"
+
+    left, right = collection.Unzip(Foo())
+    self.assertSequenceEqual(left, [1, 2, 3])
+    self.assertSequenceEqual(right, ["foo", "bar", "baz"])
+
+  def testStrings(self):
+    left, right = collection.Unzip(zip("fooquux", "barnorf"))
+    self.assertSequenceEqual(left, "fooquux")
+    self.assertSequenceEqual(right, "barnorf")
+
+
+class DictProductTest(absltest.TestCase):
+
+  def testEmptyDict(self):
+    in_dict = {}
+    self.assertEqual(list(collection.DictProduct(in_dict)), [{}])
+
+  def testEmptyValues(self):
+    in_dict = {"a": [1, 2], "b": [], "c": [5, 6]}
+    self.assertEqual(list(collection.DictProduct(in_dict)), [])
+
+  def testSingleKeys(self):
+    in_dict = {"a": [1], "b": [2], "c": [3]}
+    out_dicts = [{"a": 1, "b": 2, "c": 3}]
+    self.assertEqual(list(collection.DictProduct(in_dict)), out_dicts)
+
+  def testMultipleKeys(self):
+    in_dicts = {"a": [1, 2], "b": [3, 4], "c": [5, 6]}
+    out_dicts = [
+        {
+            "a": 1,
+            "b": 3,
+            "c": 5
+        },
+        {
+            "a": 1,
+            "b": 3,
+            "c": 6
+        },
+        {
+            "a": 1,
+            "b": 4,
+            "c": 5
+        },
+        {
+            "a": 1,
+            "b": 4,
+            "c": 6
+        },
+        {
+            "a": 2,
+            "b": 3,
+            "c": 5
+        },
+        {
+            "a": 2,
+            "b": 3,
+            "c": 6
+        },
+        {
+            "a": 2,
+            "b": 4,
+            "c": 5
+        },
+        {
+            "a": 2,
+            "b": 4,
+            "c": 6
+        },
+    ]
+
+    self.assertCountEqual(list(collection.DictProduct(in_dicts)), out_dicts)
+
+
 if __name__ == "__main__":
   absltest.main()

@@ -5,9 +5,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 from future.utils import iteritems
 from future.utils import iterkeys
+import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -52,6 +53,10 @@ EaQA1dggxMyZGyZpYmEbrWCiEjKqfIXXnpyw5pxL5Rvoe4kYrQBvbJ1aaWJ87Pcz
 gXJvjIkzp4x/MMAgdBOqJm5tJ4nhCHTbXWuIbYymPLn7hqXhyrDZwqnH7kQKPF2/
 z5KjO8gWio6YOhsDwrketcBcIANMDYws2+TzrLs9ttuHNS0=
 -----END CERTIFICATE-----""")
+
+
+def _DaysSinceEpoch(days):
+  return rdfvalue.RDFDatetime(rdfvalue.Duration.FromDays(days).microseconds)
 
 
 class DatabaseTestClientsMixin(object):
@@ -1366,3 +1371,156 @@ class DatabaseTestClientsMixin(object):
   def testDeleteOldClientStatsYieldsUnexactMatch(self):
     self._TestDeleteOldClientStatsYields(
         total=10, yield_after_count=4, yields_expected=[4, 4, 2])
+
+  def _WriteTestClientsWithData(self,
+                                client_indices,
+                                last_ping=None,
+                                client_name=None,
+                                client_version=None,
+                                os=None,
+                                os_release=None,
+                                os_version=None,
+                                labels_dict=None):
+    for index in client_indices:
+      client_id = "C.1%015x" % index
+      self.db.WriteClientMetadata(
+          client_id, last_ping=last_ping, fleetspeak_enabled=False)
+      self.db.WriteClientSnapshot(
+          rdf_objects.ClientSnapshot(
+              client_id=client_id,
+              startup_info=rdf_client.StartupInfo(
+                  client_info=rdf_client.ClientInformation(
+                      client_name=client_name, client_version=client_version)),
+              knowledge_base=rdf_client.KnowledgeBase(os=os),
+              os_release=os_release,
+              os_version=os_version))
+      for owner, labels in iteritems(labels_dict):
+        self.db.AddClientLabels(client_id, owner=owner, labels=labels)
+
+  def _WriteTestDataForFleetStatsTesting(self):
+    self._WriteTestClientsWithData(
+        range(0, 5),
+        last_ping=_DaysSinceEpoch(2),
+        client_name="GRR",
+        client_version=1111,
+        os="Linux",
+        os_release="Ubuntu",
+        os_version="16.04",
+        labels_dict={
+            "GRR": ["grr-foo", "grr-bar"],
+            "tester": ["tester-foo", "tester-bar"]
+        })
+    self._WriteTestClientsWithData(
+        range(5, 7),
+        last_ping=None,
+        client_name="GRR",
+        client_version=1111,
+        os="Linux",
+        os_release="Ubuntu",
+        os_version="16.04",
+        labels_dict={"GRR": ["grr-foo", "grr-bar"]})
+    self._WriteTestClientsWithData(
+        range(7, 10),
+        last_ping=_DaysSinceEpoch(8),
+        client_name="GRR",
+        client_version=2222,
+        os="Linux",
+        os_release="Ubuntu",
+        os_version="18.04",
+        labels_dict={"GRR": ["grr-foo", "grr-bar"]})
+    self._WriteTestClientsWithData(
+        range(10, 13),
+        last_ping=_DaysSinceEpoch(13),
+        client_name="GRR",
+        client_version=1111,
+        os="Darwin",
+        os_release="OSX",
+        os_version="10.12.2",
+        labels_dict={"GRR": ["grr-foo", "grr-bar", "grr-baz"]})
+
+  def testCountClientVersionStringsByLabel(self):
+    self._WriteTestDataForFleetStatsTesting()
+    with test_lib.FakeTime(_DaysSinceEpoch(14)):
+      counts = self.db.CountClientVersionStringsByLabel({1, 2, 8, 30})
+      expected_counts = {
+          ("GRR 1111", "grr-foo", 2): 3,
+          ("GRR 1111", "grr-bar", 2): 3,
+          ("GRR 1111", "grr-baz", 2): 3,
+          ("GRR 1111", "grr-foo", 8): 3,
+          ("GRR 1111", "grr-bar", 8): 3,
+          ("GRR 1111", "grr-baz", 8): 3,
+          ("GRR 2222", "grr-foo", 8): 3,
+          ("GRR 2222", "grr-bar", 8): 3,
+          ("GRR 1111", "grr-foo", 30): 8,
+          ("GRR 1111", "grr-bar", 30): 8,
+          ("GRR 1111", "grr-baz", 30): 3,
+          ("GRR 2222", "grr-foo", 30): 3,
+          ("GRR 2222", "grr-bar", 30): 3,
+      }
+      self.assertDictEqual(counts, expected_counts)
+
+  def testCountClientPlatformsByLabel(self):
+    self._WriteTestDataForFleetStatsTesting()
+    with test_lib.FakeTime(_DaysSinceEpoch(14)):
+      counts = self.db.CountClientPlatformsByLabel({1, 2, 8, 30})
+      expected_counts = {
+          ("Darwin", "grr-foo", 2): 3,
+          ("Darwin", "grr-bar", 2): 3,
+          ("Darwin", "grr-baz", 2): 3,
+          ("Darwin", "grr-foo", 8): 3,
+          ("Darwin", "grr-bar", 8): 3,
+          ("Darwin", "grr-baz", 8): 3,
+          ("Linux", "grr-foo", 8): 3,
+          ("Linux", "grr-bar", 8): 3,
+          ("Darwin", "grr-foo", 30): 3,
+          ("Darwin", "grr-bar", 30): 3,
+          ("Darwin", "grr-baz", 30): 3,
+          ("Linux", "grr-foo", 30): 8,
+          ("Linux", "grr-bar", 30): 8,
+      }
+      self.assertDictEqual(counts, expected_counts)
+
+  def testCountClientPlatformReleasesByLabel(self):
+    self._WriteTestDataForFleetStatsTesting()
+    with test_lib.FakeTime(_DaysSinceEpoch(14)):
+      counts = self.db.CountClientPlatformReleasesByLabel({1, 2, 8, 30})
+      expected_counts = {
+          ("Darwin-OSX-10.12.2", "grr-foo", 2): 3,
+          ("Darwin-OSX-10.12.2", "grr-bar", 2): 3,
+          ("Darwin-OSX-10.12.2", "grr-baz", 2): 3,
+          ("Darwin-OSX-10.12.2", "grr-foo", 8): 3,
+          ("Darwin-OSX-10.12.2", "grr-bar", 8): 3,
+          ("Darwin-OSX-10.12.2", "grr-baz", 8): 3,
+          ("Linux-Ubuntu-18.04", "grr-foo", 8): 3,
+          ("Linux-Ubuntu-18.04", "grr-bar", 8): 3,
+          ("Darwin-OSX-10.12.2", "grr-foo", 30): 3,
+          ("Darwin-OSX-10.12.2", "grr-bar", 30): 3,
+          ("Darwin-OSX-10.12.2", "grr-baz", 30): 3,
+          ("Linux-Ubuntu-18.04", "grr-foo", 30): 3,
+          ("Linux-Ubuntu-18.04", "grr-bar", 30): 3,
+          ("Linux-Ubuntu-16.04", "grr-foo", 30): 5,
+          ("Linux-Ubuntu-16.04", "grr-bar", 30): 5,
+      }
+      self.assertDictEqual(counts, expected_counts)
+
+  @mock.patch.object(db, "_MAX_GRR_VERSION_LENGTH", 10)
+  def testWriteClientSnapshotLongGRRVersion(self):
+    snapshot = rdf_objects.ClientSnapshot(client_id="C.0000000000000001")
+    snapshot.startup_info.client_info.client_description = "🚀" * 12
+    snapshot.startup_info.client_info.client_version = 1234
+    with self.assertRaises(db.StringTooLongError):
+      self.db.WriteClientSnapshot(snapshot)
+
+  @mock.patch.object(db, "_MAX_CLIENT_PLATFORM_LENGTH", 10)
+  def testWriteClientSnapshotLongPlatform(self):
+    snapshot = rdf_objects.ClientSnapshot(client_id="C.0000000000000001")
+    snapshot.knowledge_base.os = "🚀" * 12
+    with self.assertRaises(db.StringTooLongError):
+      self.db.WriteClientSnapshot(snapshot)
+
+  @mock.patch.object(db, "_MAX_CLIENT_PLATFORM_RELEASE_LENGTH", 10)
+  def testWriteClientSnapshotLongPlatformRelease(self):
+    snapshot = rdf_objects.ClientSnapshot(client_id="C.0000000000000001")
+    snapshot.knowledge_base.os = "🚀" * 12
+    with self.assertRaises(db.StringTooLongError):
+      self.db.WriteClientSnapshot(snapshot)

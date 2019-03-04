@@ -4,10 +4,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import os
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
+import mock
 import psutil
 import requests
 
@@ -15,7 +18,6 @@ from grr_response_client import client_stats
 from grr_response_client import comms
 from grr_response_client.client_actions import admin
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -59,7 +61,9 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
     self.assertEqual(config.CONFIG["Client.foreman_check_frequency"], 3600)
 
     # Test the config file got written.
-    data = open(self.config_file, "rb").read()
+    with io.open(self.config_file, "r") as filedesc:
+      data = filedesc.read()
+
     server_urls = """
 Client.server_urls:
 - http://www.example1.com/
@@ -178,12 +182,9 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
 
   def setUp(self):
     super(GetClientStatsActionTest, self).setUp()
-    self.old_boot_time = psutil.boot_time
-    psutil.boot_time = lambda: 100
-
-  def tearDown(self):
-    super(GetClientStatsActionTest, self).tearDown()
-    psutil.boot_time = self.old_boot_time
+    stubber = mock.patch.object(psutil, "boot_time", return_value=100)
+    stubber.start()
+    self.addCleanup(stubber.stop)
 
   def testReturnsAllDataByDefault(self):
     """Checks that stats collection works."""
@@ -274,4 +275,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

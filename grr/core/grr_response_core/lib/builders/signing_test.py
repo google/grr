@@ -11,10 +11,10 @@ import tempfile
 import unittest
 
 
+from absl import app
 import mock
 import pexpect
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.builders import signing
 from grr.test_lib import test_lib
 
@@ -54,4 +54,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

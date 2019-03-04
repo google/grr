@@ -11,6 +11,7 @@ import socket
 import threading
 
 
+from absl import app
 from cryptography import x509
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes
@@ -22,7 +23,6 @@ import requests
 import socketserver
 
 from grr_api_client import api as grr_api
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_auth_manager
@@ -143,15 +143,16 @@ class ApiSslWithConfigurationInEnvVarsE2ETest(ApiSslServerTestBase,
   def setUp(self):
     super(ApiSslWithConfigurationInEnvVarsE2ETest, self).setUp()
 
-    self.prev_environ = dict(os.environ)
+    prev_environ = dict(os.environ)
+
+    def _CleanUpEnviron():
+      os.environ.clear()
+      os.environ.update(prev_environ)
+
+    self.addCleanup(_CleanUpEnviron)
+
     os.environ["REQUESTS_CA_BUNDLE"] = self.cert_path
     self.api = grr_api.InitHttp(api_endpoint=self.endpoint)
-
-  def tearDown(self):
-    super(ApiSslWithConfigurationInEnvVarsE2ETest, self).tearDown()
-
-    os.environ.clear()
-    os.environ.update(self.prev_environ)
 
 
 class ApiSslWithWithVerifyFalseE2ETest(ApiSslServerTestBase,
@@ -223,4 +224,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

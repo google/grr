@@ -9,7 +9,7 @@ import re
 import stat
 
 
-from builtins import map  # pylint: disable=redefined-builtin
+from future.builtins import map
 from future.utils import iteritems
 from future.utils import iterkeys
 

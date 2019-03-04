@@ -7,10 +7,10 @@ from __future__ import unicode_literals
 import os
 import tempfile
 
+from absl import app
 from absl.testing import absltest
 
 from google.protobuf import text_format
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -110,6 +110,26 @@ class ObjectTest(absltest.TestCase):
     client.timestamp = rdfvalue.RDFDatetime.Now()
     summary = client.GetSummary()
     self.assertEqual(client.timestamp, summary.timestamp)
+
+  def testGetGRRVersionString(self):
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.startup_info.client_info.client_description = "GRR windows amd64"
+    snapshot.startup_info.client_info.client_name = "Foo"
+    snapshot.startup_info.client_info.client_version = 1234
+    self.assertEqual(snapshot.GetGRRVersionString(), "GRR windows amd64 1234")
+
+  def testGetGRRVersionString_NoDescription(self):
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.startup_info.client_info.client_name = "GRR"
+    snapshot.startup_info.client_info.client_version = 1234
+    self.assertEqual(snapshot.GetGRRVersionString(), "GRR 1234")
+
+  def testGetGRRVersionString_NoVersion(self):
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.startup_info.client_info.client_description = "GRR windows amd64"
+    snapshot.startup_info.client_info.client_name = "Foo"
+    self.assertEqual(snapshot.GetGRRVersionString(),
+                     "GRR windows amd64 %s" % rdf_objects._UNKNOWN_GRR_VERSION)
 
 
 class PathIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -589,4 +609,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

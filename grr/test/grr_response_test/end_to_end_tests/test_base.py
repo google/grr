@@ -2,6 +2,7 @@
 """Base classes and routines used by all end to end tests."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import abc
 import io
@@ -240,10 +241,7 @@ class AbstractFileTransferTest(EndToEndTest):
 
     magic_values = ["cafebabe", "cefaedfe", "cffaedfe"]
     magic_values = [x.decode("hex") for x in magic_values]
-    self.assertIn(
-        data[:4],
-        magic_values,
-        msg="Data %s not one of %s" % (data[:4], magic_values))
+    self.assertIn(data[:4], magic_values)
 
   def CheckELFMagic(self, path):
     data = self.ReadFromFile(path, 10)

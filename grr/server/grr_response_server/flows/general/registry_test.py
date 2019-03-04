@@ -7,10 +7,11 @@ from __future__ import unicode_literals
 
 import os
 
+from absl import app
+
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -33,14 +34,11 @@ class RegistryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(RegistryFlowTest, self).setUp()
-    self.vfs_overrider = vfs_test_lib.VFSOverrider(
+    vfs_overrider = vfs_test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.REGISTRY,
         vfs_test_lib.FakeRegistryVFSHandler)
-    self.vfs_overrider.Start()
-
-  def tearDown(self):
-    super(RegistryFlowTest, self).tearDown()
-    self.vfs_overrider.Stop()
+    vfs_overrider.Start()
+    self.addCleanup(vfs_overrider.Stop)
 
 
 @db_test_lib.DualDBTest
@@ -367,4 +365,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

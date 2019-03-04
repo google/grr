@@ -9,11 +9,11 @@ import socket
 import threading
 import time
 
+from absl import app
 from future.builtins import range
 import portpicker
 
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_server import data_store
 from grr_response_server import data_store_test
 from grr_response_test.lib import shared_fake_data_store
@@ -80,4 +80,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

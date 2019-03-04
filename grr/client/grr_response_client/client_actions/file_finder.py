@@ -2,17 +2,20 @@
 """The file finder client action."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
+import io
 from future.builtins import str
 import psutil
+from typing import Text, Generator, List
 
 from grr_response_client import actions
 from grr_response_client import client_utils
-from grr_response_client import vfs
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_client.client_actions.file_finder_utils import subactions
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import filesystem
@@ -20,22 +23,6 @@ from grr_response_core.lib.util import filesystem
 
 class _SkipFileException(Exception):
   pass
-
-
-def RegistryKeyFromClient(args):
-  """This function expands paths from the args and returns registry keys.
-
-  Args:
-    args: An `rdf_file_finder.FileFinderArgs` object.
-
-  Yields:
-    `rdf_client_fs.StatEntry` instances.
-  """
-  for path in GetExpandedPaths(args):
-    pathspec = rdf_paths.PathSpec(
-        path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
-    with vfs.VFSOpen(pathspec) as file_obj:
-      yield file_obj.Stat()
 
 
 def FileFinderOSFromClient(args):
@@ -54,7 +41,8 @@ def FileFinderOSFromClient(args):
   for path in GetExpandedPaths(args):
     try:
       for content_condition in _ParseContentConditions(args):
-        result = list(content_condition.Search(path))
+        with io.open(path, "rb") as fd:
+          result = list(content_condition.Search(fd))
         if not result:
           raise _SkipFileException()
       # TODO: `opts.resolve_links` has type `RDFBool`, not `bool`.
@@ -73,6 +61,11 @@ class FileFinderOS(actions.ActionPlugin):
   out_rdfvalues = [rdf_file_finder.FileFinderResult]
 
   def Run(self, args):
+    if args.pathtype != rdf_paths.PathSpec.PathType.OS:
+      raise ValueError(
+          "FileFinderOS can only be used with OS paths, got {}".format(
+              args.pathspec))
+
     self.stat_cache = filesystem.StatCache()
 
     action = self._ParseAction(args)
@@ -87,7 +80,8 @@ class FileFinderOS(actions.ActionPlugin):
       except _SkipFileException:
         pass
 
-  def _ParseAction(self, args):
+  def _ParseAction(self,
+                   args):
     action_type = args.action.action_type
     if action_type == rdf_file_finder.FileFinderAction.Action.STAT:
       return subactions.StatAction(self, args.action.stat)
@@ -103,7 +97,8 @@ class FileFinderOS(actions.ActionPlugin):
     except OSError:
       raise _SkipFileException()
 
-  def _Validate(self, args, filepath):
+  def _Validate(self, args,
+                filepath):
     matches = []
     self._ValidateRegularity(args, filepath)
     self._ValidateMetadata(args, filepath)
@@ -126,7 +121,8 @@ class FileFinderOS(actions.ActionPlugin):
 
   def _ValidateContent(self, args, filepath, matches):
     for content_condition in _ParseContentConditions(args):
-      result = list(content_condition.Search(filepath))
+      with io.open(filepath, "rb") as fd:
+        result = list(content_condition.Search(fd))
       if not result:
         raise _SkipFileException()
       matches.extend(result)
@@ -140,12 +136,13 @@ def _ParseContentConditions(args):
   return conditions.ContentCondition.Parse(args.conditions)
 
 
-def GetExpandedPaths(args):
+def GetExpandedPaths(
+    args):
   """Expands given path patterns.
 
   Args:
     args: A `FileFinderArgs` instance that dictates the behaviour of the path
-        expansion.
+      expansion.
 
   Yields:
     Absolute paths (as string objects) derived from input patterns.
@@ -153,9 +150,7 @@ def GetExpandedPaths(args):
   Raises:
     ValueError: For unsupported path types.
   """
-  if args.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
-    pathtype = rdf_paths.PathSpec.PathType.REGISTRY
-  elif args.pathtype == rdf_paths.PathSpec.PathType.OS:
+  if args.pathtype == rdf_paths.PathSpec.PathType.OS:
     pathtype = rdf_paths.PathSpec.PathType.OS
   else:
     raise ValueError("Unsupported path type: ", args.pathtype)
@@ -175,8 +170,8 @@ def _GetMountpoints(only_physical=True):
 
   Args:
     only_physical: Determines whether only mountpoints for physical devices
-        (e.g. hard disks) should be listed. If false, mountpoints for things
-        such as memory partitions or `/dev/shm` will be returned as well.
+      (e.g. hard disks) should be listed. If false, mountpoints for things such
+      as memory partitions or `/dev/shm` will be returned as well.
 
   Returns:
     A set of mountpoints.

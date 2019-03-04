@@ -13,7 +13,8 @@ import stat
 import sys
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 from future.utils import iteritems
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -72,13 +73,12 @@ flags.DEFINE_bool(
     " refresh_policy.")
 
 flags.DEFINE_enum(
-    "refresh_policy",
-    "if_older_than_max_age", ["if_older_than_max_age", "always", "never"],
+    "refresh_policy", "if_older_than_max_age",
+    ["if_older_than_max_age", "always", "never"],
     "How to refresh the cache. Options are: always (on every"
     " client-side access), never, or, by default,"
     " if_older_than_max_age (if last accessed > max_age seconds"
-    " ago).",
-    type=str)
+    " ago).")
 
 flags.DEFINE_bool(
     "force_sparse_image", False,
@@ -638,4 +638,4 @@ inside your virtualenv.
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

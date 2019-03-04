@@ -288,7 +288,7 @@ class ClientRepacker(BuilderBase):
   """
 
   CONFIG_SECTIONS = [
-      "CA", "Client", "ClientRepacker", "Logging", "Config", "Nanny",
+      "CA", "Client", "ClientRepacker", "Logging", "Config", "Nanny", "Osquery",
       "Installer", "Template"
   ]
 

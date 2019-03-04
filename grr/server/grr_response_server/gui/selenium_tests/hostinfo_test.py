@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from grr_response_core.lib import flags
+from absl import app
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import config as rdf_config
@@ -178,4 +178,4 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

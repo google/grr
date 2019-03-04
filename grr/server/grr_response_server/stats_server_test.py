@@ -7,11 +7,11 @@ from __future__ import unicode_literals
 import io
 
 
+from absl import app
 import mock
 import prometheus_client
 import prometheus_client.parser as prometheus_parser
 
-from grr_response_core.lib import flags
 from grr_response_core.stats import stats_utils
 from grr_response_server import base_stats_server_test
 from grr_response_server import prometheus_stats_collector
@@ -55,4 +55,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

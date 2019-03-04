@@ -7,7 +7,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import test_lib
@@ -147,4 +148,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

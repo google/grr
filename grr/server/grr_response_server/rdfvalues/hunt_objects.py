@@ -108,6 +108,9 @@ class Hunt(rdf_structs.RDFProtoStruct):
       self.avg_network_bytes_per_client_limit = config.CONFIG[
           "Hunt.default_avg_network_bytes_per_client_limit"]
 
+    if not self.HasField("num_clients_at_start_time"):
+      self.num_clients_at_start_time = 0
+
 
 def IsHuntSuitableForFlowProcessing(hunt_state):
   return hunt_state in [Hunt.HuntState.PAUSED, Hunt.HuntState.STARTED]

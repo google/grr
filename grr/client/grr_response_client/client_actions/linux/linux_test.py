@@ -8,8 +8,9 @@ from __future__ import unicode_literals
 import glob
 import os
 
+from absl import app
+
 from grr_response_client.client_actions.linux import linux
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.util import compatibility
@@ -80,4 +81,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -87,14 +87,11 @@ class RootApiE2ETest(ApiE2ETest):
   def setUp(self):
     super(RootApiE2ETest, self).setUp()
 
-    self.root_api_config_overrider = test_lib.ConfigOverrider(
+    root_api_config_overrider = test_lib.ConfigOverrider(
         {"API.DefaultRouter": RootApiBinaryManagementTestRouter.__name__})
-    self.root_api_config_overrider.Start()
+    root_api_config_overrider.Start()
+    self.addCleanup(root_api_config_overrider.Stop)
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.
     api_auth_manager.APIACLInit.InitApiAuthManager()
-
-  def tearDown(self):
-    super(RootApiE2ETest, self).tearDown()
-    self.root_api_config_overrider.Stop()

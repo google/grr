@@ -24,10 +24,7 @@ class StatsServerTestMixin(with_metaclass(abc.ABCMeta, object)):
     super(StatsServerTestMixin, self).setUp()
     self.server = self.setUpStatsServer(portpicker.pick_unused_port())
     self.server.Start()
-
-  def tearDown(self):
-    self.server.Stop()
-    super(StatsServerTestMixin, self).tearDown()
+    self.addCleanup(self.server.Stop)
 
   @abc.abstractmethod
   def setUpStatsServer(self, port):

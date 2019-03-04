@@ -4,12 +4,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from absl import app
 from absl.testing import absltest
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 import mock
 import MySQLdb
 
-from grr_response_core.lib import flags
 from grr_response_server.databases import mysql_pool
 from grr.test_lib import test_lib
 
@@ -139,4 +139,4 @@ class TestPool(absltest.TestCase):
 
 
 if __name__ == '__main__':
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

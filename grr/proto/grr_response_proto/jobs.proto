@@ -819,12 +819,12 @@ message StatEntry {
   }
 
   optional RegistryType registry_type = 16 [(sem_type) = {
-      description: "If this is a stat of a registry value, this field "
-      "contains the type of this value. The content will also be encoded "
-      "in residet."
-    }];
+    description: "If this is a stat of a registry value, this field contains "
+                 "the type of this value. The content will also be encoded "
+                 "in resident."
+  }];
 
- // For very small files their data is stored in this record.
+  // For very small files their data is stored in this record.
   optional bytes resident = 17;
 
   // The pathspec which the client can use to re-reach this file.

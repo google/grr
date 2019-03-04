@@ -10,6 +10,8 @@ import threading
 import time
 
 
+from absl import app
+
 # pylint: disable=unused-import
 # Make sure we load the client plugins
 from grr_response_client import client_plugins
@@ -205,4 +207,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

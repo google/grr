@@ -8,9 +8,9 @@ import logging
 
 import time
 
+from absl import app
 from werkzeug import wrappers as werkzeug_wrappers
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_proto import jobs_pb2
 from grr_response_server import server_logging
@@ -33,13 +33,9 @@ class ApplicationLoggerTests(test_lib.GRRBaseTest):
     self.l = server_logging.GrrApplicationLogger()
 
     self.log = ""
-    self.log_stubber = utils.Stubber(logging, "info", self.Log)
-    self.log_stubber.Start()
-
-  def tearDown(self):
-    super(ApplicationLoggerTests, self).tearDown()
-
-    self.log_stubber.Stop()
+    log_stubber = utils.Stubber(logging, "info", self.Log)
+    log_stubber.Start()
+    self.addCleanup(log_stubber.Stop)
 
   def testGetEventId(self):
     self.assertGreater(
@@ -90,4 +86,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

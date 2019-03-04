@@ -21,6 +21,8 @@ import sys
 import time
 
 
+from absl import app
+
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order
@@ -146,4 +148,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

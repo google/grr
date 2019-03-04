@@ -9,12 +9,13 @@ import platform
 import subprocess
 import unittest
 
+
+from absl import app
 import mock
 import requests
 
 from grr_response_client.client_actions import cloud
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
@@ -174,4 +175,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

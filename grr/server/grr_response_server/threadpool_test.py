@@ -9,10 +9,10 @@ import threading
 import time
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 import queue
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import threadpool
@@ -34,10 +34,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     self.test_pool = threadpool.ThreadPool.Factory(
         prefix, self.NUMBER_OF_THREADS, max_threads=self.MAXIMUM_THREADS)
     self.test_pool.Start()
-
-  def tearDown(self):
-    self.test_pool.Stop()
-    super(ThreadPoolTest, self).tearDown()
+    self.addCleanup(self.test_pool.Stop)
 
   def WaitUntil(self, condition_cb, timeout=5):
     """Wait a fixed time until the condition is true."""
@@ -429,4 +426,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

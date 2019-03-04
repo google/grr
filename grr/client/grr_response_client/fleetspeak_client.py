@@ -96,7 +96,7 @@ class GRRFleetspeakClient(object):
         loop_op()
       except Exception as e:
         logging.critical("Fatal error occurred:", exc_info=True)
-        if flags.FLAGS.debug:
+        if flags.FLAGS.pdb_post_mortem:
           pdb.post_mortem()
         # This will terminate execution in the current thread.
         raise e

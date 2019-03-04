@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import os
 import sys
 import unittest
 
 
+from absl import app
 from future.utils import itervalues
 import mock
 import requests
@@ -17,7 +19,6 @@ from grr_api_client import config as api_config
 from grr_api_client import context
 from grr_api_client import types
 from grr_api_client import utils as api_utils
-from grr_response_core.lib import flags
 from grr_response_server.gui.api_plugins import client as plugin_client
 from grr_response_test.end_to_end_tests import fake_tests
 from grr_response_test.end_to_end_tests import runner
@@ -332,4 +333,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

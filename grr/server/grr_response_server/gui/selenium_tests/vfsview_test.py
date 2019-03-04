@@ -6,9 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 import mock
 
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import gui_test_lib
@@ -162,4 +162,4 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

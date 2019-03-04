@@ -12,7 +12,7 @@ from __future__ import unicode_literals
 import binascii
 import ctypes
 import logging
-import _winreg
+from future.moves import winreg
 
 import pythoncom
 import win32api
@@ -60,11 +60,11 @@ class GetInstallDate(actions.ActionPlugin):
 
   def Run(self, unused_args):
     """Estimate the install date of this system."""
-    # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-    subkey = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
-                             "Software\\Microsoft\\Windows NT\\CurrentVersion",
-                             0, _winreg.KEY_READ)
-    install_date = _winreg.QueryValueEx(subkey, "InstallDate")
+    # Don't use winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
+    subkey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                            "Software\\Microsoft\\Windows NT\\CurrentVersion",
+                            0, winreg.KEY_READ)
+    install_date = winreg.QueryValueEx(subkey, "InstallDate")
     self.SendReply(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(install_date[0]))
 
 

@@ -9,7 +9,7 @@ import logging
 import time
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 import pytest
 
 from grr.test_lib import test_lib

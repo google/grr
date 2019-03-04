@@ -9,13 +9,13 @@ import io
 import os
 
 
+from absl import app
 from future.builtins import str
 import mock
 
 from grr_response_core import config
 from grr_response_core.lib import build
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util import yaml
 from grr.test_lib import test_lib
@@ -113,4 +113,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

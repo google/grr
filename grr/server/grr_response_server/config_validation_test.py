@@ -8,9 +8,10 @@ import glob
 import logging
 import os
 
+from absl import app
+
 from grr_response_core import config
 from grr_response_core.lib import config_testing_lib
-from grr_response_core.lib import flags
 from grr.test_lib import test_lib
 
 
@@ -38,4 +39,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

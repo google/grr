@@ -257,10 +257,11 @@ class MySQLDBFlowMixin(object):
 
     query = ("INSERT INTO flows "
              "(client_id, flow_id, long_flow_id, parent_flow_id, flow, "
-             "next_request_to_process, timestamp, last_update) VALUES "
-             "(%s, %s, %s, %s, %s, %s, %s, %s) "
+             "flow_state, next_request_to_process, timestamp, "
+             "last_update) VALUES "
+             "(%s, %s, %s, %s, %s, %s, %s, %s, %s) "
              "ON DUPLICATE KEY UPDATE "
-             "flow=VALUES(flow), "
+             "flow=VALUES(flow), flow_state=VALUES(flow_state), "
              "next_request_to_process=VALUES(next_request_to_process),"
              "last_update=VALUES(last_update)")
 
@@ -275,7 +276,8 @@ class MySQLDBFlowMixin(object):
     args = [
         mysql_utils.ClientIDToInt(flow_obj.client_id),
         mysql_utils.FlowIDToInt(flow_obj.flow_id), flow_obj.long_flow_id, pfi,
-        flow_obj.SerializeToString(), flow_obj.next_request_to_process,
+        flow_obj.SerializeToString(),
+        int(flow_obj.flow_state), flow_obj.next_request_to_process,
         timestamp_str, now_str
     ]
     try:
@@ -286,9 +288,11 @@ class MySQLDBFlowMixin(object):
   def _FlowObjectFromRow(self, row):
     """Generates a flow object from a database row."""
 
-    flow, cci, pt, nr, pd, po, ps, ts, lut = row
+    flow, fs, cci, pt, nr, pd, po, ps, ts, lut = row
 
     flow_obj = rdf_flow_objects.Flow.FromSerializedString(flow)
+    if fs not in [None, rdf_flow_objects.Flow.FlowState.UNSET]:
+      flow_obj.flow_state = fs
     if cci is not None:
       cc_cls = rdf_client.ClientCrash
       flow_obj.client_crash_info = cc_cls.FromSerializedString(cci)
@@ -308,7 +312,7 @@ class MySQLDBFlowMixin(object):
 
     return flow_obj
 
-  FLOW_DB_FIELDS = ("flow, client_crash_info, pending_termination, "
+  FLOW_DB_FIELDS = ("flow, flow_state, client_crash_info, pending_termination, "
                     "next_request_to_process, processing_deadline, "
                     "processing_on, processing_since, timestamp, last_update ")
 
@@ -421,6 +425,7 @@ class MySQLDBFlowMixin(object):
                  client_id,
                  flow_id,
                  flow_obj=db.Database.unchanged,
+                 flow_state=db.Database.unchanged,
                  client_crash_info=db.Database.unchanged,
                  pending_termination=db.Database.unchanged,
                  processing_on=db.Database.unchanged,
@@ -433,6 +438,12 @@ class MySQLDBFlowMixin(object):
     if flow_obj != db.Database.unchanged:
       updates.append("flow=%s")
       args.append(flow_obj.SerializeToString())
+
+      updates.append("flow_state=%s")
+      args.append(int(flow_obj.flow_state))
+    if flow_state != db.Database.unchanged:
+      updates.append("flow_state=%s")
+      args.append(int(flow_state))
     if client_crash_info != db.Database.unchanged:
       updates.append("client_crash_info=%s")
       args.append(client_crash_info.SerializeToString())

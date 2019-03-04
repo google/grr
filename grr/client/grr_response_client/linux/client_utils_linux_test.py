@@ -9,13 +9,13 @@ import platform
 import tempfile
 import unittest
 
+from absl import app
 from absl.testing import absltest
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 import mock
 
 from grr_response_client import client_utils_linux
 from grr_response_client import client_utils_osx_linux
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -158,4 +158,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -7,12 +7,12 @@ from __future__ import unicode_literals
 
 import socket
 
+from absl import app
 from absl.testing import absltest
 from future.builtins import int
 from future.builtins import str
 import psutil
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -404,4 +404,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -13,7 +13,8 @@ import socket
 import threading
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 from future.utils import iteritems
 from http import server as http_server
 import ipaddr
@@ -37,6 +38,7 @@ from grr_response_server import frontend_lib
 from grr_response_server import master
 from grr_response_server import server_logging
 from grr_response_server import server_startup
+
 
 
 class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
@@ -199,7 +201,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
         self.Control()
 
     except Exception as e:  # pylint: disable=broad-except
-      if flags.FLAGS.debug:
+      if flags.FLAGS.pdb_post_mortem:
         pdb.post_mortem()
 
       logging.exception("Had to respond with status 500.")
@@ -354,4 +356,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

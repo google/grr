@@ -3,13 +3,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from absl import app
 from absl.testing import absltest
 from future.builtins import map
 
 import mock
 
 from grr_response_core.lib import factory
-from grr_response_core.lib import flags
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr.test_lib import test_lib
@@ -143,4 +143,4 @@ class ArtifactParserFactoryTest(absltest.TestCase):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

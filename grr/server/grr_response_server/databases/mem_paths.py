@@ -5,7 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import filter  # pylint: disable=redefined-builtin
+from future.builtins import filter
 from future.utils import iteritems
 from future.utils import iterkeys
 

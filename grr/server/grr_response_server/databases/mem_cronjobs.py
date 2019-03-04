@@ -82,7 +82,7 @@ class InMemoryDBCronJobMixin(object):
 
   @utils.Synchronized
   def DeleteCronJob(self, cronjob_id):
-    """Deletes a cronjob."""
+    """Deletes a cronjob along with all its runs."""
     if cronjob_id not in self.cronjobs:
       raise db.UnknownCronJobError("Cron job %s not known." % cronjob_id)
     del self.cronjobs[cronjob_id]
@@ -90,6 +90,8 @@ class InMemoryDBCronJobMixin(object):
       del self.cronjob_leases[cronjob_id]
     except KeyError:
       pass
+    for job_run in self.ReadCronJobRuns(cronjob_id):
+      del self.cronjob_runs[(cronjob_id, job_run.run_id)]
 
   @utils.Synchronized
   def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):

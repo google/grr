@@ -6,12 +6,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
+from absl import app
 import ipaddr
 import mock
 
 from google.protobuf import timestamp_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import events as rdf_events
@@ -676,4 +676,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

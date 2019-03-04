@@ -3,15 +3,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import os
 import platform
 import subprocess
 import unittest
 
+from absl import app
 from absl.testing import absltest
 
 from grr_response_client.client_actions.file_finder_utils import conditions
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
@@ -31,12 +32,12 @@ class RegexMatcherTest(absltest.TestCase):
   def testMatchLiteral(self):
     matcher = self._RegexMatcher("foo")
 
-    span = matcher.Match("foobar", 0)
+    span = matcher.Match(b"foobar", 0)
     self.assertTrue(span)
     self.assertEqual(span.begin, 0)
     self.assertEqual(span.end, 3)
 
-    span = matcher.Match("foobarfoobar", 2)
+    span = matcher.Match(b"foobarfoobar", 2)
     self.assertTrue(span)
     self.assertEqual(span.begin, 6)
     self.assertEqual(span.end, 9)
@@ -44,21 +45,21 @@ class RegexMatcherTest(absltest.TestCase):
   def testNoMatchLiteral(self):
     matcher = self._RegexMatcher("baz")
 
-    span = matcher.Match("foobar", 0)
+    span = matcher.Match(b"foobar", 0)
     self.assertFalse(span)
 
-    span = matcher.Match("foobazbar", 5)
+    span = matcher.Match(b"foobazbar", 5)
     self.assertFalse(span)
 
   def testMatchWildcard(self):
     matcher = self._RegexMatcher("foo.*bar")
 
-    span = matcher.Match("foobar", 0)
+    span = matcher.Match(b"foobar", 0)
     self.assertTrue(span)
     self.assertEqual(span.begin, 0)
     self.assertEqual(span.end, 6)
 
-    span = matcher.Match("quuxfoobazbarnorf", 2)
+    span = matcher.Match(b"quuxfoobazbarnorf", 2)
     self.assertTrue(span)
     self.assertEqual(span.begin, 4)
     self.assertEqual(span.end, 13)
@@ -66,48 +67,48 @@ class RegexMatcherTest(absltest.TestCase):
   def testMatchRepeated(self):
     matcher = self._RegexMatcher("qu+x")
 
-    span = matcher.Match("quuuux", 0)
+    span = matcher.Match(b"quuuux", 0)
     self.assertTrue(span)
     self.assertEqual(span.begin, 0)
     self.assertEqual(span.end, 6)
 
-    span = matcher.Match("qx", 0)
+    span = matcher.Match(b"qx", 0)
     self.assertFalse(span)
 
-    span = matcher.Match("qvvvvx", 0)
+    span = matcher.Match(b"qvvvvx", 0)
     self.assertFalse(span)
 
 
 class LiteralMatcherTest(absltest.TestCase):
 
   def testMatchLiteral(self):
-    matcher = conditions.LiteralMatcher("bar")
+    matcher = conditions.LiteralMatcher(b"bar")
 
-    span = matcher.Match("foobarbaz", 0)
+    span = matcher.Match(b"foobarbaz", 0)
     self.assertTrue(span)
     self.assertEqual(span.begin, 3)
     self.assertEqual(span.end, 6)
 
-    span = matcher.Match("barbarbar", 0)
+    span = matcher.Match(b"barbarbar", 0)
     self.assertTrue(span)
     self.assertEqual(span.begin, 0)
     self.assertEqual(span.end, 3)
 
-    span = matcher.Match("barbarbar", 4)
+    span = matcher.Match(b"barbarbar", 4)
     self.assertTrue(span)
     self.assertEqual(span.begin, 6)
     self.assertEqual(span.end, 9)
 
   def testNoMatchLiteral(self):
-    matcher = conditions.LiteralMatcher("norf")
+    matcher = conditions.LiteralMatcher(b"norf")
 
-    span = matcher.Match("quux", 0)
+    span = matcher.Match(b"quux", 0)
     self.assertFalse(span)
 
-    span = matcher.Match("norf", 2)
+    span = matcher.Match(b"norf", 2)
     self.assertFalse(span)
 
-    span = matcher.Match("quuxnorf", 5)
+    span = matcher.Match(b"quuxnorf", 5)
     self.assertFalse(span)
 
 
@@ -116,17 +117,14 @@ class ConditionTestMixin(object):
   def setUp(self):
     super(ConditionTestMixin, self).setUp()
     self.temp_filepath = temp.TempFilePath()
-
-  def tearDown(self):
-    super(ConditionTestMixin, self).tearDown()
-    os.remove(self.temp_filepath)
+    self.addCleanup(lambda: os.remove(self.temp_filepath))
 
 
 @unittest.skipIf(platform.system() == "Windows", "requires Unix-like system")
 class MetadataConditionTestMixin(ConditionTestMixin):
 
   def Stat(self):
-    return filesystem.Stat(self.temp_filepath, follow_symlink=False)
+    return filesystem.Stat.FromPath(self.temp_filepath, follow_symlink=False)
 
   def Touch(self, mode, date):
     self.assertIn(mode, ["-m", "-a"])
@@ -212,12 +210,12 @@ class SizeConditionTest(MetadataConditionTestMixin, absltest.TestCase):
     params = rdf_file_finder.FileFinderCondition()
     condition = conditions.SizeCondition(params)
 
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("1234567")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"1234567")
     self.assertTrue(condition.Check(self.Stat()))
 
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"")
     self.assertTrue(condition.Check(self.Stat()))
 
   def testRange(self):
@@ -226,24 +224,24 @@ class SizeConditionTest(MetadataConditionTestMixin, absltest.TestCase):
     params.size.max_file_size = 6
     condition = conditions.SizeCondition(params)
 
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("1")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"1")
     self.assertFalse(condition.Check(self.Stat()))
 
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("12")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"12")
     self.assertTrue(condition.Check(self.Stat()))
 
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("1234")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"1234")
     self.assertTrue(condition.Check(self.Stat()))
 
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("123456")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"123456")
     self.assertTrue(condition.Check(self.Stat()))
 
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("1234567")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"1234567")
     self.assertFalse(condition.Check(self.Stat()))
 
 
@@ -382,53 +380,56 @@ class ExtFlagsConditionTest(MetadataConditionTestMixin, absltest.TestCase):
 class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
 
   def testNoHits(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("foo bar quux")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"foo bar quux")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_literal_match.literal = b"baz"
     params.contents_literal_match.mode = "ALL_HITS"
     condition = conditions.LiteralMatchCondition(params)
 
-    results = list(condition.Search(self.temp_filepath))
+    with io.open(self.temp_filepath, "rb") as fd:
+      results = list(condition.Search(fd))
     self.assertFalse(results)
 
   def testSomeHits(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("foo bar foo")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"foo bar foo")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_literal_match.literal = b"foo"
     params.contents_literal_match.mode = "ALL_HITS"
     condition = conditions.LiteralMatchCondition(params)
 
-    results = list(condition.Search(self.temp_filepath))
+    with io.open(self.temp_filepath, "rb") as fd:
+      results = list(condition.Search(fd))
     self.assertLen(results, 2)
-    self.assertEqual(results[0].data, "foo")
+    self.assertEqual(results[0].data, b"foo")
     self.assertEqual(results[0].offset, 0)
     self.assertEqual(results[0].length, 3)
-    self.assertEqual(results[1].data, "foo")
+    self.assertEqual(results[1].data, b"foo")
     self.assertEqual(results[1].offset, 8)
     self.assertEqual(results[1].length, 3)
 
   def testFirstHit(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("bar foo baz foo")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"bar foo baz foo")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_literal_match.literal = b"foo"
     params.contents_literal_match.mode = "FIRST_HIT"
     condition = conditions.LiteralMatchCondition(params)
 
-    results = list(condition.Search(self.temp_filepath))
+    with io.open(self.temp_filepath, "rb") as fd:
+      results = list(condition.Search(fd))
     self.assertLen(results, 1)
-    self.assertEqual(results[0].data, "foo")
+    self.assertEqual(results[0].data, b"foo")
     self.assertEqual(results[0].offset, 4)
     self.assertEqual(results[0].length, 3)
 
   def testContext(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("foo foo foo")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"foo foo foo")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_literal_match.literal = b"foo"
@@ -437,21 +438,22 @@ class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
     params.contents_literal_match.bytes_after = 2
     condition = conditions.LiteralMatchCondition(params)
 
-    results = list(condition.Search(self.temp_filepath))
+    with io.open(self.temp_filepath, "rb") as fd:
+      results = list(condition.Search(fd))
     self.assertLen(results, 3)
-    self.assertEqual(results[0].data, "foo f")
+    self.assertEqual(results[0].data, b"foo f")
     self.assertEqual(results[0].offset, 0)
     self.assertEqual(results[0].length, 5)
-    self.assertEqual(results[1].data, "oo foo f")
+    self.assertEqual(results[1].data, b"oo foo f")
     self.assertEqual(results[1].offset, 1)
     self.assertEqual(results[1].length, 8)
-    self.assertEqual(results[2].data, "oo foo")
+    self.assertEqual(results[2].data, b"oo foo")
     self.assertEqual(results[2].offset, 5)
     self.assertEqual(results[2].length, 6)
 
   def testStartOffset(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("oooooooo")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"oooooooo")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_literal_match.literal = b"ooo"
@@ -459,7 +461,8 @@ class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
     params.contents_literal_match.start_offset = 2
     condition = conditions.LiteralMatchCondition(params)
 
-    results = list(condition.Search(self.temp_filepath))
+    with io.open(self.temp_filepath, "rb") as fd:
+      results = list(condition.Search(fd))
     self.assertLen(results, 2)
     self.assertEqual(results[0].data, "ooo")
     self.assertEqual(results[0].offset, 2)
@@ -472,56 +475,59 @@ class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
 class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
 
   def testNoHits(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("foo bar quux")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"foo bar quux")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_regex_match.regex = "\\d+"
     params.contents_regex_match.mode = "FIRST_HIT"
     condition = conditions.RegexMatchCondition(params)
 
-    results = list(condition.Search(self.temp_filepath))
+    with io.open(self.temp_filepath, "rb") as fd:
+      results = list(condition.Search(fd))
     self.assertFalse(results)
 
   def testSomeHits(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("foo 7 bar 49 baz343")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"foo 7 bar 49 baz343")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_regex_match.regex = "\\d+"
     params.contents_regex_match.mode = "ALL_HITS"
     condition = conditions.RegexMatchCondition(params)
 
-    results = list(condition.Search(self.temp_filepath))
+    with io.open(self.temp_filepath, "rb") as fd:
+      results = list(condition.Search(fd))
     self.assertLen(results, 3)
-    self.assertEqual(results[0].data, "7")
+    self.assertEqual(results[0].data, b"7")
     self.assertEqual(results[0].offset, 4)
     self.assertEqual(results[0].length, 1)
-    self.assertEqual(results[1].data, "49")
+    self.assertEqual(results[1].data, b"49")
     self.assertEqual(results[1].offset, 10)
     self.assertEqual(results[1].length, 2)
-    self.assertEqual(results[2].data, "343")
+    self.assertEqual(results[2].data, b"343")
     self.assertEqual(results[2].offset, 16)
     self.assertEqual(results[2].length, 3)
 
   def testFirstHit(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("4 8 15 16 23 42 foo 108 bar")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"4 8 15 16 23 42 foo 108 bar")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_regex_match.regex = "[a-z]+"
     params.contents_regex_match.mode = "FIRST_HIT"
     condition = conditions.RegexMatchCondition(params)
 
-    results = list(condition.Search(self.temp_filepath))
+    with io.open(self.temp_filepath, "rb") as fd:
+      results = list(condition.Search(fd))
     self.assertLen(results, 1)
     self.assertEqual(results[0].data, "foo")
     self.assertEqual(results[0].offset, 16)
     self.assertEqual(results[0].length, 3)
 
   def testContext(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("foobarbazbaaarquux")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"foobarbazbaaarquux")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_regex_match.regex = "ba+r"
@@ -530,28 +536,30 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
     params.contents_regex_match.bytes_after = 4
     condition = conditions.RegexMatchCondition(params)
 
-    results = list(condition.Search(self.temp_filepath))
+    with io.open(self.temp_filepath, "rb") as fd:
+      results = list(condition.Search(fd))
     self.assertLen(results, 2)
-    self.assertEqual(results[0].data, "foobarbazb")
+    self.assertEqual(results[0].data, b"foobarbazb")
     self.assertEqual(results[0].offset, 0)
     self.assertEqual(results[0].length, 10)
-    self.assertEqual(results[1].data, "bazbaaarquux")
+    self.assertEqual(results[1].data, b"bazbaaarquux")
     self.assertEqual(results[1].offset, 6)
     self.assertEqual(results[1].length, 12)
 
   def testStartOffset(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("ooooooo")
+    with io.open(self.temp_filepath, "wb") as fd:
+      fd.write(b"ooooooo")
 
     params = rdf_file_finder.FileFinderCondition()
-    params.contents_regex_match.regex = "o+"
+    params.contents_regex_match.regex = b"o+"
     params.contents_regex_match.mode = "FIRST_HIT"
     params.contents_regex_match.start_offset = 3
     condition = conditions.RegexMatchCondition(params)
 
-    results = list(condition.Search(self.temp_filepath))
+    with io.open(self.temp_filepath, "rb") as fd:
+      results = list(condition.Search(fd))
     self.assertLen(results, 1)
-    self.assertEqual(results[0].data, "oooo")
+    self.assertEqual(results[0].data, b"oooo")
     self.assertEqual(results[0].offset, 3)
     self.assertEqual(results[0].length, 4)
 
@@ -561,4 +569,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

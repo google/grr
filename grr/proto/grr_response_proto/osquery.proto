@@ -12,9 +12,10 @@ enum OsqueryType {
   BLOB = 6;
 }
 
-// Next field id: 2.
+// Next field id: 3.
 message OsqueryArgs {
-  repeated string queries = 1;
+  optional string query = 1;
+  optional uint64 timeout_millis = 2;
 }
 
 // Next field id: 3.
@@ -42,5 +43,5 @@ message OsqueryTable {
 
 // Next field id: 2.
 message OsqueryResult {
-  repeated OsqueryTable tables = 1;
+  optional OsqueryTable table = 1;
 }

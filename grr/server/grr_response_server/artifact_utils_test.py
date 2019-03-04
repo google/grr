@@ -6,11 +6,11 @@ from __future__ import unicode_literals
 
 import os
 
+from absl import app
 from future.builtins import str
 from future.utils import itervalues
 
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import flags
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -547,4 +547,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

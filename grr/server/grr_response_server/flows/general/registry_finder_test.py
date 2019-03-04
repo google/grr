@@ -5,7 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib import utils
 from grr_response_server import flow
 from grr_response_server.flows.general import registry as flow_registry
@@ -109,4 +110,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

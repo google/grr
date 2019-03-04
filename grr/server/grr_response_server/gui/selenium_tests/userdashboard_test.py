@@ -5,9 +5,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_server import access_control
 from grr_response_server.gui import gui_test_lib
@@ -183,4 +183,4 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  app.run(test_lib.main)

@@ -8,14 +8,14 @@ import glob
 import io
 import os
 
-from builtins import filter  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import filter
 import mock
 import psutil
 
 from grr_response_client.client_actions import artifact_collector
 from grr_response_core import config
 from grr_response_core.lib import factory
-from grr_response_core.lib import flags
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
@@ -114,7 +114,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
 
     collected_artifact = self.RunArtifactCollector(request)
 
-    self.assertGreater(len(collected_artifact.action_results), 0)
+    self.assertNotEmpty(collected_artifact.action_results)
     for action_result in collected_artifact.action_results:
       value = action_result.value
       self.assertIsInstance(value, rdf_client_network.Interface)
@@ -276,7 +276,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
     request = GetRequest(source, "TestDirectory", knowledge_base)
 
     collected_artifact = self.RunArtifactCollector(request)
-    self.assertGreater(len(collected_artifact.action_results), 0)
+    self.assertNotEmpty(collected_artifact.action_results)
 
     for file_stat in collected_artifact.action_results:
       self.assertIsInstance(file_stat.value, rdf_client_fs.StatEntry)
@@ -748,4 +748,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

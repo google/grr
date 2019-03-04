@@ -5,11 +5,11 @@ from __future__ import unicode_literals
 
 import os
 
+from absl import app
 from absl.testing import absltest
 import mock
 
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
@@ -70,4 +70,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

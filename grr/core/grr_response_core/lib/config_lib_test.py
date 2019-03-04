@@ -11,12 +11,13 @@ import os
 import stat
 
 
+from absl import app
+from absl.testing import flagsaver
 from future.builtins import str
 from past.builtins import long
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import flags
 from grr_response_core.lib import package
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -29,7 +30,7 @@ from grr.test_lib import test_lib
 class YamlConfigTest(test_lib.GRRBaseTest):
   """Test the Yaml config file support."""
 
-  @flags.FlagOverrider(disallow_missing_config_definitions=True)
+  @flagsaver.flagsaver(disallow_missing_config_definitions=True)
   def testParsing(self):
     conf = config_lib.GrrConfigManager()
 
@@ -582,7 +583,7 @@ const = New string
     self.assertRaises(config_lib.ConstModificationError, conf.SetRaw,
                       "Section1.const", "New string")
 
-  @flags.FlagOverrider(disallow_missing_config_definitions=True)
+  @flagsaver.flagsaver(disallow_missing_config_definitions=True)
   def testBadConfigRaises(self):
     conf = config_lib.GrrConfigManager()
     conf.initialized = False
@@ -607,7 +608,7 @@ Section1.test: 2
     # Make sure the stringified exception explains the full interpolation chain.
     self.assertIn("%(Section1.foo6)/bar", str(context.exception))
 
-  @flags.FlagOverrider(disallow_missing_config_definitions=True)
+  @flagsaver.flagsaver(disallow_missing_config_definitions=True)
   def testConfigOptionsDefined(self):
     """Test that all config options in use are defined."""
     # We need to use the actual config.CONFIG variable since that is where
@@ -1028,4 +1029,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -3,13 +3,14 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import argparse
 import logging
 import sys
 
 
-from builtins import str  # pylint: disable=redefined-builtin
+from future.builtins import str
 
 from grr_api_client import api
 from grr_api_client import api_shell_lib

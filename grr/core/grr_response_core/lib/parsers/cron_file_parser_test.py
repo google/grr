@@ -8,7 +8,8 @@ from __future__ import unicode_literals
 import os
 
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib.parsers import cron_file_parser
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -47,4 +48,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

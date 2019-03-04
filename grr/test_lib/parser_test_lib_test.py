@@ -6,12 +6,10 @@ from __future__ import unicode_literals
 from absl.testing import absltest
 import mock
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import all as all_parsers
 from grr.test_lib import parser_test_lib
-from grr.test_lib import test_lib
 
 
 class FooParser(parser.SingleResponseParser):
@@ -110,4 +108,4 @@ class WithAllParsersTest(WithAnnotationTestMixin, absltest.TestCase):
 
 
 if __name__ == "__main__":
-  flags.StartMain(test_lib.main)
+  absltest.main()

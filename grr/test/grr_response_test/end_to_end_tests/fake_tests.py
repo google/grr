@@ -2,6 +2,7 @@
 """Dummy end-to-end test classes for testing the E2ETestRunner."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import abc
 

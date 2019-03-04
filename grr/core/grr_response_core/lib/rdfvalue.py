@@ -816,6 +816,14 @@ class Duration(RDFInteger):
           "Unknown initializer for Duration: %s." % type(initializer))
 
   @classmethod
+  def FromDays(cls, days):
+    return cls.FromHours(24 * days)
+
+  @classmethod
+  def FromHours(cls, hours):
+    return cls.FromSeconds(3600 * hours)
+
+  @classmethod
   def FromSeconds(cls, seconds):
     return cls(seconds)
 

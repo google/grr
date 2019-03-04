@@ -8,11 +8,11 @@ from __future__ import unicode_literals
 import os
 
 
+from absl import app
 from future.builtins import str
 from future.utils import iterkeys
 
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib.parsers import config_file as config_file_parsers
 from grr_response_core.lib.parsers import linux_cmd_parser
 from grr_response_core.lib.parsers import wmi_parser
@@ -601,4 +601,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

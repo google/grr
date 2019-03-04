@@ -6,15 +6,15 @@ from __future__ import unicode_literals
 import collections
 import itertools
 
+from absl import app
 from absl.testing import absltest
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 import mock
 import psutil
 
 from grr_response_client import client_stats
 from grr_response_client.client_actions import admin
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr.test_lib import test_lib
 
@@ -300,4 +300,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

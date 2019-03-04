@@ -8,8 +8,9 @@ from __future__ import unicode_literals
 import os
 
 
+from absl import app
+
 from grr_response_client.client_actions import plist
-from grr_response_core.lib import flags
 from grr_response_core.lib import plist as plist_lib
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
@@ -134,4 +135,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

@@ -6,10 +6,10 @@ from __future__ import unicode_literals
 
 import os
 
+from absl import app
 from future.builtins import str
 
 from grr_response_client import client_utils
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import chrome_history
 from grr_response_core.lib.parsers import firefox3_history
@@ -236,4 +236,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

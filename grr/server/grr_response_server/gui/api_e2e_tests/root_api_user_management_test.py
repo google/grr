@@ -5,11 +5,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from absl import app
+from future.builtins import range
 
 from grr_api_client import errors as grr_api_errors
 from grr_api_client import root as grr_api_root
-from grr_response_core.lib import flags
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.gui import api_e2e_test_lib
@@ -116,4 +116,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

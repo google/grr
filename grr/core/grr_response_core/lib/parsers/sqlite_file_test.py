@@ -8,7 +8,8 @@ from __future__ import unicode_literals
 import io
 import os
 
-from grr_response_core.lib import flags
+from absl import app
+
 from grr_response_core.lib.parsers import sqlite_file
 from grr.test_lib import test_lib
 
@@ -47,4 +48,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)

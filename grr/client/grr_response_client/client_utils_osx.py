@@ -11,7 +11,7 @@ import os
 import platform
 
 
-from builtins import range  # pylint: disable=redefined-builtin
+from future.builtins import range
 
 from grr_response_client import client_utils_osx_linux
 from grr_response_client.osx import objc

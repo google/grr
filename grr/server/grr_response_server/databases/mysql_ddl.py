@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 SCHEMA_SETUP = [
     """
@@ -31,7 +32,10 @@ CREATE TABLE IF NOT EXISTS clients(
     last_clock DATETIME(6),
     last_ip VARCHAR(45),
     last_foreman DATETIME(6),
-    first_seen DATETIME(6)
+    first_seen DATETIME(6),
+    last_version_string VARCHAR(128),
+    last_platform VARCHAR(128),
+    last_platform_release VARCHAR(256)
 )""", """
 CREATE TABLE IF NOT EXISTS client_labels(
     client_id BIGINT UNSIGNED,
@@ -206,7 +210,7 @@ CREATE TABLE IF NOT EXISTS cron_job_runs(
     write_time DATETIME(6),
     run MEDIUMBLOB,
     PRIMARY KEY (job_id, run_id),
-    FOREIGN KEY (job_id) REFERENCES cron_jobs (job_id)
+    FOREIGN KEY (job_id) REFERENCES cron_jobs (job_id) ON DELETE CASCADE
 )""", """
 CREATE TABLE IF NOT EXISTS client_messages(
     client_id BIGINT UNSIGNED,
@@ -227,6 +231,7 @@ CREATE TABLE IF NOT EXISTS flows(
     long_flow_id VARCHAR(255),
     parent_flow_id BIGINT UNSIGNED,
     flow BLOB,
+    flow_state INT UNSIGNED,
     client_crash_info MEDIUMBLOB,
     next_request_to_process INT UNSIGNED,
     pending_termination MEDIUMBLOB,

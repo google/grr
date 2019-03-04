@@ -2,10 +2,13 @@
 """Helper script for running end-to-end tests."""
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import getpass
 import logging
 import sys
+
+from absl import app
 
 # We need to import the server_plugins module before other server init modules.
 # pylint: disable=unused-import,g-bad-import-order
@@ -87,4 +90,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  flags.StartMain(main)
+  app.run(main)
