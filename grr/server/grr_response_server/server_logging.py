@@ -10,8 +10,9 @@ import os
 import socket
 import time
 
+from absl import flags
+
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_server import data_store
 from grr_response_server.rdfvalues import objects as rdf_objects
 

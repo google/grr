@@ -14,13 +14,13 @@ import socket
 import sys
 
 
+from absl import flags
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 import psutil
 import pytest
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility

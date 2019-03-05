@@ -1633,11 +1633,9 @@ class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
     return ApiGetHuntStatsResult(stats=stats)
 
   def _HandleRelational(self, args, token=None):
-    # TODO(user): implement proper hunt client resources starts support
-    # for REL_DB hunts.
-    # h = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
-    del args, token
-    return ApiGetHuntStatsResult(stats=rdf_stats.ClientResourcesStats())
+    del token  # Unused.
+    stats = data_store.REL_DB.ReadHuntClientResourcesStats(str(args.hunt_id))
+    return ApiGetHuntStatsResult(stats=stats)
 
   def Handle(self, args, token=None):
     if data_store.RelationalDBReadEnabled("hunts"):

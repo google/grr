@@ -14,6 +14,7 @@ import sys
 
 
 from absl import app
+from absl import flags
 from future.builtins import range
 from future.utils import iteritems
 
@@ -25,7 +26,6 @@ from grr_response_server import server_plugins
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
@@ -96,6 +96,12 @@ flags.DEFINE_string("username", None,
 flags.DEFINE_string(
     "reason", None, "Reason to use for client authorization check. This "
     "needs to match the string in your approval request.")
+
+flags.DEFINE_bool(
+    "version",
+    default=False,
+    allow_override=True,
+    help="Print the FUSE mount version number and exit immediately.")
 
 # The modes we'll use for aff4 objects that aren't really files.
 # Taken from /etc

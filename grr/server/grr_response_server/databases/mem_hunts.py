@@ -8,6 +8,8 @@ import sys
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import compatibility
 from grr_response_server import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -261,6 +263,24 @@ class InMemoryDBHuntMixin(object):
         num_results=num_results,
         total_cpu_seconds=total_cpu_seconds,
         total_network_bytes_sent=total_network_bytes_sent)
+
+  @utils.Synchronized
+  def ReadHuntClientResourcesStats(self, hunt_id):
+    """Read/calculate hunt client resources stats."""
+
+    result = rdf_stats.ClientResourcesStats()
+    for f in self._GetHuntFlows(hunt_id):
+      cr = rdf_client_stats.ClientResources(
+          session_id="%s/%s" % (f.client_id, f.flow_id),
+          client_id=f.client_id,
+          cpu_usage=f.cpu_time_used,
+          network_bytes_sent=f.network_bytes_sent)
+      result.RegisterResources(cr)
+
+    # TODO(user): remove this hack when compatibility with AFF4 is not
+    # important.
+    return rdf_stats.ClientResourcesStats.FromSerializedString(
+        result.SerializeToString())
 
   @utils.Synchronized
   def ReadHuntOutputPluginLogEntries(self,

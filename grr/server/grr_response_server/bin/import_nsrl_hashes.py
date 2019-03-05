@@ -9,12 +9,12 @@ import io
 import os
 
 from absl import app
+from absl import flags
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import csv
 from grr_response_server import aff4

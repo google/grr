@@ -6,6 +6,8 @@ from __future__ import unicode_literals
 
 import os
 
+from absl import flags
+
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
@@ -15,7 +17,6 @@ from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.lib import communicator
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import flags
 from grr_response_core.lib import package
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils

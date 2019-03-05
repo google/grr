@@ -10,13 +10,20 @@ from __future__ import unicode_literals
 
 
 from absl import app
+from absl import flags
 
 from grr_response_core.config import server as config_server
 
-from grr_response_core.lib import flags
 from grr_response_server.bin import frontend
 from grr_response_server.bin import worker
 from grr_response_server.gui import admin_ui
+
+
+flags.DEFINE_bool(
+    "version",
+    default=False,
+    allow_override=True,
+    help="Print the GRR server version number and exit immediately.")
 
 flags.DEFINE_string("component", None,
                     "Component to start: [frontend|admin_ui|worker].")

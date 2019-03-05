@@ -83,6 +83,7 @@ import time
 import traceback
 
 
+from absl import flags
 from future.builtins import range
 import psutil
 import queue
@@ -94,7 +95,6 @@ from grr_response_client import client_utils
 from grr_response_client.client_actions import admin
 from grr_response_core import config
 from grr_response_core.lib import communicator
-from grr_response_core.lib import flags
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info

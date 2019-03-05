@@ -14,6 +14,7 @@ import threading
 
 
 from absl import app
+from absl import flags
 from future.builtins import range
 from future.utils import iteritems
 from http import server as http_server
@@ -27,7 +28,6 @@ from grr_response_server import server_plugins
 from grr_response_core import config
 from grr_response_core.config import server as config_server
 from grr_response_core.lib import communicator
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -39,6 +39,13 @@ from grr_response_server import master
 from grr_response_server import server_logging
 from grr_response_server import server_startup
 
+
+
+flags.DEFINE_bool(
+    "version",
+    default=False,
+    allow_override=True,
+    help="Print the GRR frontend version number and exit immediately.")
 
 
 class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):

@@ -9,8 +9,9 @@ from logging import handlers
 import os
 import socket
 
+from absl import flags
+
 from grr_response_core import config
-from grr_response_core.lib import flags
 
 
 flags.DEFINE_bool(

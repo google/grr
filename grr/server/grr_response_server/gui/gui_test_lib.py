@@ -12,6 +12,7 @@ import threading
 import time
 
 
+from absl import flags
 from future.builtins import range
 from future.moves.urllib import parse as urlparse
 import portpicker
@@ -21,7 +22,6 @@ from selenium.webdriver.common import action_chains
 from selenium.webdriver.common import keys
 from selenium.webdriver.support import select
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs

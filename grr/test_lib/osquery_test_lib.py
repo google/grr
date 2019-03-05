@@ -20,25 +20,19 @@ from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
 
-def FakeOsqueryiOutput(output):
+def FakeOsqueryiOutput(stdout, stderr):
   """A context manager with osqueryi executable providing fake output."""
-  script = """\
-#!/usr/bin/env bash
-cat << $EOF$
-{output}
-$EOF$
-""".format(output=output)
-  return _FakeOsqueryiScript(script)
-
-
-def FakeOsqueryiError(error):
-  """A context manager with osqueryi executable providing fake error output."""
+  # TODO: Ugly formatting.
   script = """\
 #!/usr/bin/env bash
 >&2 cat << $EOF$
-{error}
+{stderr}
 $EOF$
-""".format(error=error)
+cat << $EOF$
+{stdout}
+$EOF$
+""".format(
+    stdout=stdout, stderr=stderr)
   return _FakeOsqueryiScript(script)
 
 

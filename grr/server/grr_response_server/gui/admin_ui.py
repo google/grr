@@ -30,6 +30,13 @@ from grr_response_server import server_startup
 from grr_response_server.gui import wsgiapp
 
 
+flags.DEFINE_bool(
+    "version",
+    default=False,
+    allow_override=True,
+    help="Print the GRR admin UI version number and exit immediately.")
+
+
 class ThreadedServer(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
   address_family = socket.AF_INET6
 

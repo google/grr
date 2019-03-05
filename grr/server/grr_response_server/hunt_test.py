@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import glob
 import os
 import sys
-import unittest
 
 from absl import app
 
@@ -853,10 +852,6 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
     self.assertEqual(hunt_counters.num_clients, 2)
 
-  # TODO(user): uncomment as soon as clientresources support in hunts
-  # is back.
-  @unittest.skip("Support for client resource in hunt object is temporarily "
-                 "disabled.")
   def testResourceUsageStatsAreReportedCorrectly(self):
     hunt_id, _ = self._CreateAndRunHunt(
         num_clients=10,
@@ -865,8 +860,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
         client_rate=0,
         args=self.GetFileHuntArgs())
 
-    hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    usage_stats = hunt_obj.client_resources_stats
+    usage_stats = data_store.REL_DB.ReadHuntClientResourcesStats(hunt_id)
 
     # Values below are calculated based on SampleHuntMock's behavior.
     self.assertEqual(usage_stats.user_cpu_stats.num, 10)

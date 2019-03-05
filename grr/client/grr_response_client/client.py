@@ -11,6 +11,7 @@ import sys
 
 
 from absl import app
+from absl import flags
 from future.utils import iterkeys
 
 # pylint: disable=unused-import
@@ -22,7 +23,6 @@ from grr_response_client import installer
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import flags
 
 flags.DEFINE_bool("install", False, "Specify this to install the client.")
 

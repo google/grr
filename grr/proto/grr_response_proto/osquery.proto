@@ -12,36 +12,32 @@ enum OsqueryType {
   BLOB = 6;
 }
 
-// Next field id: 3.
 message OsqueryArgs {
   optional string query = 1;
   optional uint64 timeout_millis = 2;
+  optional bool ignore_stderr_errors = 3;
 }
 
-// Next field id: 3.
 message OsqueryColumn {
   optional string name = 1;
   optional OsqueryType type = 2;
 }
 
-// Next field id: 2.
 message OsqueryHeader {
   repeated OsqueryColumn columns = 1;
 }
 
-// Next field id: 2.
 message OsqueryRow {
   repeated string values = 1;
 }
 
-// Next field id: 4.
 message OsqueryTable {
   optional string query = 1;
   optional OsqueryHeader header = 2;
   repeated OsqueryRow rows = 3;
 }
 
-// Next field id: 2.
 message OsqueryResult {
   optional OsqueryTable table = 1;
+  optional string stderr = 2;
 }

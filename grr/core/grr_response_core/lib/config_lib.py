@@ -21,6 +21,7 @@ import sys
 import traceback
 
 
+from absl import flags
 import configparser
 from future.builtins import str
 from future.utils import iteritems
@@ -30,7 +31,6 @@ from future.utils import with_metaclass
 from typing import cast
 from typing import Text
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import lexer
 from grr_response_core.lib import package
 from grr_response_core.lib import registry

@@ -17,11 +17,11 @@ import os
 import sys
 
 
+from absl import flags
 from future.utils import with_metaclass
 
 from grr_response_core import config
 from grr_response_core.config import contexts
-from grr_response_core.lib import flags
 from grr_response_core.lib import registry
 
 

@@ -2520,6 +2520,17 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def ReadHuntClientResourcesStats(self, hunt_id):
+    """Read hunt client resources stats.
+
+    Args:
+      hunt_id: The id of the hunt to read counters for.
+
+    Returns:
+      rdf_stats.ClientResourcesStats object.
+    """
+
+  @abc.abstractmethod
   def WriteSignedBinaryReferences(self, binary_id, references):
     """Writes blob references for a signed binary to the DB.
 
@@ -3710,6 +3721,10 @@ class DatabaseValidationWrapper(Database):
   def ReadHuntCounters(self, hunt_id):
     _ValidateHuntId(hunt_id)
     return self.delegate.ReadHuntCounters(hunt_id)
+
+  def ReadHuntClientResourcesStats(self, hunt_id):
+    _ValidateHuntId(hunt_id)
+    return self.delegate.ReadHuntClientResourcesStats(hunt_id)
 
   def WriteSignedBinaryReferences(self, binary_id, references):
     precondition.AssertType(binary_id, rdf_objects.SignedBinaryID)

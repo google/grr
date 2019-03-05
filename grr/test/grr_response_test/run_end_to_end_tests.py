@@ -9,6 +9,7 @@ import logging
 import sys
 
 from absl import app
+from absl import flags
 
 # We need to import the server_plugins module before other server init modules.
 # pylint: disable=unused-import,g-bad-import-order
@@ -17,7 +18,6 @@ from grr_response_server import server_plugins
 
 from grr_response_core import config
 from grr_response_core.config import contexts
-from grr_response_core.lib import flags
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import server_startup

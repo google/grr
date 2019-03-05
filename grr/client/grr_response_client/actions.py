@@ -11,13 +11,13 @@ import time
 import traceback
 
 
+from absl import flags
 from future.utils import with_metaclass
 
 import psutil
 
 from grr_response_client import client_utils
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils

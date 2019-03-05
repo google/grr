@@ -5,12 +5,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import pdb
-import unittest
 
 from absl import app
+from absl import flags
 from future.builtins import range
-
-from grr_response_core.lib import flags
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -643,10 +641,6 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
         replace={hunt_id: "H:123456"})
 
 
-# TODO(user): remove skipping directive as soon as REL_DB has
-# proper support for client resources stats.
-@unittest.skip("Temporarily skipping until REL_DB client resources "
-               "support is there.")
 class ApiGetHuntStatsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin):
@@ -673,8 +667,8 @@ class ApiGetHuntStatsHandlerRegressionTest(
     # Create replace dictionary.
     replace = {hunt_id: "H:123456"}
     if data_store.RelationalDBReadEnabled("hunts"):
-      h = data_store.REL_DB.ReadHuntObject(hunt_id)
-      for performance in h.client_resources_stats.worst_performers:
+      stats = data_store.REL_DB.ReadHuntClientResourcesStats(hunt_id)
+      for performance in stats.worst_performers:
         session_id = unicode(performance.session_id)
         replace[session_id] = "<replaced session value>"
     else:

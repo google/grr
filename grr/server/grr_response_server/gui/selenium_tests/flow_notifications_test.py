@@ -60,9 +60,6 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
                         self.GetCurrentUrlPath)
     self.WaitUntil(self.IsTextPresent, session_id)
 
-  # TODO(user): remove decorator below as soon as flow archive generation
-  # is implemented via REL_DB.
-  @db_test_lib.LegacyDataStoreOnly
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
@@ -97,9 +94,6 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
       self.WaitUntilNot(self.IsTextPresent,
                         "Can't generate archive: Unknown error")
 
-  # TODO(user): remove decorator below as soon as flow archive generation
-  # is implemented via REL_DB.
-  @db_test_lib.LegacyDataStoreOnly
   def testShowsNotificationWhenArchiveGenerationIsDone(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),

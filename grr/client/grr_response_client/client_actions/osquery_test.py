@@ -32,9 +32,8 @@ from grr.test_lib import test_lib
 FLAGS = flags.FLAGS
 
 
-def _Query(query,
-           timeout_millis = None):
-  args = rdf_osquery.OsqueryArgs(query=query, timeout_millis=timeout_millis)
+def _Query(query, **kwargs):
+  args = rdf_osquery.OsqueryArgs(query=query, **kwargs)
   return list(osquery.Osquery().Process(args))
 
 
@@ -204,13 +203,13 @@ class FakeOsqueryTest(absltest.TestCase):
       config.CONFIG.Initialize(FLAGS.config)
 
   def testOutput(self):
-    output = """
+    stdout = """
     [
       { "foo": "bar", "quux": "norf" },
       { "foo": "baz", "quux": "thud" }
     ]
     """
-    with osquery_test_lib.FakeOsqueryiOutput(output):
+    with osquery_test_lib.FakeOsqueryiOutput(stdout=stdout, stderr=""):
       results = _Query("SELECT foo, quux FROM blargh;")
 
     self.assertLen(results, 1)
@@ -223,8 +222,8 @@ class FakeOsqueryTest(absltest.TestCase):
     self.assertEqual(list(table.Column("quux")), ["norf", "thud"])
 
   def testError(self):
-    error = "Error: near 'FROM': syntax error"
-    with osquery_test_lib.FakeOsqueryiError(error):
+    stderr = "Error: near 'FROM': syntax error"
+    with osquery_test_lib.FakeOsqueryiOutput(stdout="", stderr=stderr):
       with self.assertRaises(osquery.QueryError):
         _Query("FROM bar SELECT foo;")
 
@@ -232,6 +231,29 @@ class FakeOsqueryTest(absltest.TestCase):
     with osquery_test_lib.FakeOsqueryiSleep(1.0):
       with self.assertRaises(osquery.TimeoutError):
         _Query("SELECT * FROM processes;", timeout_millis=0)
+
+  def testIgnoreStderrErrors(self):
+    query = "SELECT foo, bar, baz FROM blargh;"
+    stdout = """
+    [
+      { "foo": "quux", "bar": "norf", "baz": "thud" }
+    ]
+    """
+    stderr = "Warning: near 'FROM': table 'blargh' might be very large"
+    with osquery_test_lib.FakeOsqueryiOutput(stdout=stdout, stderr=stderr):
+      results = _Query(query, ignore_stderr_errors=True)
+
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].stderr, stderr)
+
+    table = results[0].table
+    self.assertLen(table.header.columns, 3)
+    self.assertEqual(table.header.columns[0].name, "foo")
+    self.assertEqual(table.header.columns[1].name, "bar")
+    self.assertEqual(table.header.columns[2].name, "baz")
+    self.assertEqual(list(table.Column("foo")), ["quux"])
+    self.assertEqual(list(table.Column("bar")), ["norf"])
+    self.assertEqual(list(table.Column("baz")), ["thud"])
 
 
 class ChunkTableTest(absltest.TestCase):

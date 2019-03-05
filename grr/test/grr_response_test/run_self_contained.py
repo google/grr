@@ -16,6 +16,7 @@ import time
 import traceback
 
 from absl import app
+from absl import flags
 import portpicker
 import psutil
 import requests
@@ -23,7 +24,6 @@ import requests
 from grr_api_client import api
 from grr_response_core import config
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import flags
 from grr_response_core.lib import package
 
 

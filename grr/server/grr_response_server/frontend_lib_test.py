@@ -10,6 +10,7 @@ import pdb
 import time
 
 from absl import app
+from absl import flags
 from future.builtins import chr
 from future.builtins import map
 from future.builtins import range
@@ -22,7 +23,6 @@ from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import communicator
-from grr_response_core.lib import flags
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils

@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import pdb
 
 from absl import app
+from absl import flags
 
 # pylint: disable=unused-import
 from grr_response_client import client_plugins
@@ -18,7 +19,6 @@ from grr_response_client import fleetspeak_client
 from grr_response_client import installer
 from grr_response_core import config
 from grr_response_core.config import contexts
-from grr_response_core.lib import flags
 
 flags.DEFINE_bool("install", False, "Specify this to install the client.")
 

@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import os
 import traceback
-import unittest
 
 from absl import app
 
@@ -248,8 +247,6 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "1h 40m")
     self.WaitUntil(self.IsTextPresent, "10.5MiB")
 
-  # TODO(user): remove annotation when REL_DB hunt support is back.
-  @unittest.skip("Skip until REL_DB has a proper hunt stats support.")
   def testHuntStatsView(self):
     self.SetupTestHuntView()
 
@@ -309,8 +306,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     for client_id in self.client_ids:
       self.WaitUntil(self.IsTextPresent, client_id.Basename())
       self.WaitUntil(
-          self.IsTextPresent, "File %s transferred successfully." % str(
-              client_id.Add("fs/os/tmp/evil.txt")))
+          self.IsTextPresent, "File %s transferred successfully." %
+          str(client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabGetsAutoRefreshed(self):
     h = self.CreateSampleHunt()
@@ -348,14 +345,14 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.WaitUntil(self.IsTextPresent, self.client_ids[-1].Basename())
     self.WaitUntil(
-        self.IsTextPresent, "File %s transferred successfully." % str(
-            self.client_ids[-1].Add("fs/os/tmp/evil.txt")))
+        self.IsTextPresent, "File %s transferred successfully." %
+        str(self.client_ids[-1].Add("fs/os/tmp/evil.txt")))
 
     for client_id in self.client_ids[:-1]:
       self.WaitUntilNot(self.IsTextPresent, client_id.Basename())
       self.WaitUntilNot(
-          self.IsTextPresent, "File %s transferred successfully." % str(
-              client_id.Add("fs/os/tmp/evil.txt")))
+          self.IsTextPresent, "File %s transferred successfully." %
+          str(client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabShowsDatesInUTC(self):
     hunt_urn = self.CreateSampleHunt()

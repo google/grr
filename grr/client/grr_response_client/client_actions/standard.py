@@ -19,8 +19,8 @@ import time
 import zlib
 
 
+from absl import flags
 import psutil
-
 from typing import Text
 
 from grr_response_client import actions
@@ -29,7 +29,6 @@ from grr_response_client import vfs
 from grr_response_client.client_actions import tempfiles
 from grr_response_core import config
 from grr_response_core.lib import constants
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client

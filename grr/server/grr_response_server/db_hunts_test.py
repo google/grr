@@ -12,6 +12,7 @@ from future.utils import text_type
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import compatibility
 from grr_response_server import db
 from grr_response_server import flow
@@ -1003,6 +1004,83 @@ class DatabaseTestHuntMixin(object):
     hunt_counters = self.db.ReadHuntCounters(hunt_obj.hunt_id)
     self.assertAlmostEqual(hunt_counters.total_cpu_seconds, 14.5)
     self.assertEqual(hunt_counters.total_network_bytes_sent, 42)
+
+  def testReadHuntClientResourcesStatsCorrectlyAggregatesData(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    flow_data = []
+    expected_user_cpu_histogram = rdf_stats.StatsHistogram.FromBins(
+        rdf_stats.ClientResourcesStats.CPU_STATS_BINS)
+    expected_system_cpu_histogram = rdf_stats.StatsHistogram.FromBins(
+        rdf_stats.ClientResourcesStats.CPU_STATS_BINS)
+    expected_network_histogram = rdf_stats.StatsHistogram.FromBins(
+        rdf_stats.ClientResourcesStats.NETWORK_STATS_BINS)
+    for i in range(10):
+      user_cpu_time = 4.5 + i
+      system_cpu_time = 10 + i * 2
+      network_bytes_sent = 42 + i * 3
+
+      client_id, flow_id = self._SetupHuntClientAndFlow(
+          flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+          cpu_time_used=rdf_client_stats.CpuSeconds(
+              user_cpu_time=user_cpu_time, system_cpu_time=system_cpu_time),
+          network_bytes_sent=network_bytes_sent,
+          hunt_id=hunt_obj.hunt_id)
+
+      expected_user_cpu_histogram.RegisterValue(user_cpu_time)
+      expected_system_cpu_histogram.RegisterValue(system_cpu_time)
+      expected_network_histogram.RegisterValue(network_bytes_sent)
+
+      flow_data.append((client_id, flow_id, (user_cpu_time, system_cpu_time,
+                                             network_bytes_sent)))
+
+    usage_stats = self.db.ReadHuntClientResourcesStats(hunt_obj.hunt_id)
+
+    self.assertEqual(usage_stats.user_cpu_stats.num, 10)
+    self.assertAlmostEqual(usage_stats.user_cpu_stats.mean, 9)
+    self.assertAlmostEqual(usage_stats.user_cpu_stats.std, 2.8722813232690143)
+    self.assertLen(usage_stats.user_cpu_stats.histogram.bins,
+                   len(expected_user_cpu_histogram.bins))
+    for b, model_b in zip(usage_stats.user_cpu_stats.histogram.bins,
+                          expected_user_cpu_histogram.bins):
+      self.assertAlmostEqual(b.range_max_value, model_b.range_max_value)
+      self.assertEqual(b.num, model_b.num)
+
+    self.assertEqual(usage_stats.system_cpu_stats.num, 10)
+    self.assertAlmostEqual(usage_stats.system_cpu_stats.mean, 19)
+    self.assertAlmostEqual(usage_stats.system_cpu_stats.std, 5.744562646538029)
+    self.assertLen(usage_stats.system_cpu_stats.histogram.bins,
+                   len(expected_system_cpu_histogram.bins))
+    for b, model_b in zip(usage_stats.system_cpu_stats.histogram.bins,
+                          expected_system_cpu_histogram.bins):
+      self.assertAlmostEqual(b.range_max_value, model_b.range_max_value)
+      self.assertEqual(b.num, model_b.num)
+
+    self.assertEqual(usage_stats.network_bytes_sent_stats.num, 10)
+    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.mean, 55.5)
+    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.std,
+                           8.616843969807043)
+    self.assertLen(usage_stats.network_bytes_sent_stats.histogram.bins,
+                   len(expected_network_histogram.bins))
+    for b, model_b in zip(usage_stats.network_bytes_sent_stats.histogram.bins,
+                          expected_network_histogram.bins):
+      self.assertAlmostEqual(b.range_max_value, model_b.range_max_value)
+      self.assertEqual(b.num, model_b.num)
+
+    self.assertLen(usage_stats.worst_performers, 10)
+    for worst_performer, flow_d in zip(usage_stats.worst_performers,
+                                       reversed(flow_data)):
+      client_id, flow_id, (user_cpu_time, system_cpu_time,
+                           network_bytes_sent) = flow_d
+      self.assertEqual(worst_performer.client_id.Basename(), client_id)
+      self.assertAlmostEqual(worst_performer.cpu_usage.user_cpu_time,
+                             user_cpu_time)
+      self.assertAlmostEqual(worst_performer.cpu_usage.system_cpu_time,
+                             system_cpu_time)
+      self.assertEqual(worst_performer.network_bytes_sent, network_bytes_sent)
+      self.assertEqual(worst_performer.session_id.Path(),
+                       "/%s/%s" % (client_id, flow_id))
 
   def testReadHuntOutputPluginLogEntriesReturnsEntryFromSingleHuntFlow(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")

@@ -22,6 +22,7 @@ import time
 
 
 from absl import app
+from absl import flags
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
@@ -31,7 +32,6 @@ from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import flags
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_server import access_control
@@ -80,6 +80,12 @@ flags.DEFINE_bool(
     "exit_on_complete", True,
     "If set to False and command_file or code_to_execute is "
     "set we keep the console alive after the code completes.")
+
+flags.DEFINE_bool(
+    "version",
+    default=False,
+    allow_override=True,
+    help="Print the GRR console version number and exit immediately.")
 
 
 def Lister(arg):

@@ -10,10 +10,10 @@ import time
 import traceback
 
 
+from absl import flags
 from future.utils import iteritems
 
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import queues as queues_config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry

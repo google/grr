@@ -14,13 +14,13 @@ from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order
 
 from absl import app
+from absl import flags
 
 from grr_api_client import api
 from grr_api_client import api_shell_lib
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
-from grr_response_core.lib import flags
 from grr_response_server import access_control
 from grr_response_server import fleetspeak_connector
 from grr_response_server import server_startup
@@ -47,6 +47,12 @@ flags.DEFINE_string(
     "command file is supplied as input instead. The code "
     "will be able to use a predefined global 'grrapi' "
     "object.")
+
+flags.DEFINE_bool(
+    "version",
+    default=False,
+    allow_override=True,
+    help="Print the API shell version number and exit immediately.")
 
 
 def main(argv=None):

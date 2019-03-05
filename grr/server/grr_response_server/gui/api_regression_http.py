@@ -11,13 +11,14 @@ import logging
 import os
 import threading
 
+
+from absl import flags
 import portpicker
 import requests
 
 from google.protobuf import json_format
 
 from grr_api_client.connectors import http_connector
-from grr_response_core.lib import flags
 from grr_response_core.lib import utils
 from grr_response_server import data_store
 from grr_response_server import gui

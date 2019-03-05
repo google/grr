@@ -13,6 +13,7 @@ from future.utils import iterkeys
 from typing import Any
 from typing import Iterator
 from typing import List
+from typing import NamedTuple
 from typing import Text
 
 from grr_response_client import actions
@@ -77,11 +78,20 @@ class Osquery(actions.ActionPlugin):
     if not args.query:
       raise ValueError("The `Osquery` was invoked with an empty query.")
 
-    table = ParseTable(Query(args))
+    output = Query(args)
+
+    # For syntax errors, osquery does not fail (exits with 0) but prints stuff
+    # to the standard error.
+    if output.stderr and not args.ignore_stderr_errors:
+      raise QueryError(output.stderr)
+
+    json_decoder = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
+
+    table = ParseTable(json_decoder.decode(output.stdout))
     table.query = args.query
 
     for chunk in ChunkTable(table, config.CONFIG["Osquery.max_chunk_size"]):
-      yield rdf_osquery.OsqueryResult(table=chunk)
+      yield rdf_osquery.OsqueryResult(table=chunk, stderr=output.stderr)
 
 
 def ChunkTable(table,
@@ -204,6 +214,10 @@ def ParseRow(header,
   return result
 
 
+# TODO(hanuszczak): https://github.com/python/typeshed/issues/2761
+ProcOutput = NamedTuple("ProcOutput", [("stdout", Text), ("stderr", Text)])  # pytype: disable=wrong-arg-types
+
+
 def Query(args):
   """Calls osquery with given query and returns its output.
 
@@ -245,10 +259,6 @@ def Query(args):
     raise Error("osquery invocation error", cause=error)
   # pytype: enable=module-attr
 
-  # For syntax errors, osquery does not fail (exits with 0) but prints stuff to
-  # the standard error.
-  if proc.stderr:
-    raise QueryError(proc.stderr.decode("utf-8"))
-
-  json_decoder = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
-  return json_decoder.decode(proc.stdout)
+  stdout = proc.stdout.decode("utf-8")
+  stderr = proc.stderr.decode("utf-8").strip()
+  return ProcOutput(stdout=stdout, stderr=stderr)

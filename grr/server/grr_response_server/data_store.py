@@ -48,6 +48,7 @@ import sys
 import time
 
 
+from absl import flags
 from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
@@ -56,7 +57,6 @@ from typing import Optional
 from typing import Text
 
 from grr_response_core import config
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils

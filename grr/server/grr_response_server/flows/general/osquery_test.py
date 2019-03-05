@@ -171,13 +171,13 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
   def testSuccess(self):
-    output = """
+    stdout = """
     [
       { "foo": "quux", "bar": "norf", "baz": "thud" },
       { "foo": "blargh", "bar": "plugh", "baz": "ztesch" }
     ]
     """
-    with osquery_test_lib.FakeOsqueryiOutput(output):
+    with osquery_test_lib.FakeOsqueryiOutput(stdout=stdout, stderr=""):
       results = self._RunQuery("SELECT foo, bar, baz FROM foobarbaz;")
 
     self.assertLen(results, 1)
@@ -192,8 +192,8 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(list(table.Column("baz")), ["thud", "ztesch"])
 
   def testFailure(self):
-    error = "Error: near '*': syntax error"
-    with osquery_test_lib.FakeOsqueryiError(error):
+    stderr = "Error: near '*': syntax error"
+    with osquery_test_lib.FakeOsqueryiOutput(stdout="", stderr=stderr):
       with self.assertRaises(RuntimeError):
         self._RunQuery("SELECT * FROM *;")
 

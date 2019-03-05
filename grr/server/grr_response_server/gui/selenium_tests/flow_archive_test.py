@@ -13,7 +13,6 @@ import mock
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import data_store
-from grr_response_server import flow
 
 from grr_response_server.flows.general import transfer as flows_transfer
 from grr_response_server.gui import api_call_router_with_approval_checks
@@ -90,9 +89,6 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent,
                    "Files referenced in this collection can be downloaded")
 
-  # TODO(user): remove decorator below as soon as flow archive generation
-  # is implemented via REL_DB.
-  @db_test_lib.LegacyDataStoreOnly
   def testGenerateArchiveButtonGetsDisabledAfterClick(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
@@ -113,21 +109,20 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=button.DownloadButton[disabled]")
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
-  # TODO(user): remove decorator below as soon as flow archive generation
-  # is implemented via REL_DB.
-  @db_test_lib.LegacyDataStoreOnly
   def testShowsErrorMessageIfArchiveStreamingFailsBeforeFirstChunkIsSent(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=flows_transfer.GetFile.__name__,
+    flow_id = flow_test_lib.TestFlowHelper(
+        flows_transfer.GetFile.__name__,
+        self.action_mock,
         client_id=self.client_id,
+        check_flow_errors=False,
         pathspec=pathspec,
         token=self.token)
 
-    flow_test_lib.TestFlowHelper(
-        flow_urn, self.action_mock, client_id=self.client_id, token=self.token)
+    if not data_store.RelationalDBFlowsEnabled():
+      flow_id = flow_id.Basename()
 
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
@@ -142,9 +137,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
       self.Click("css=button.DownloadButton")
       self.WaitUntil(self.IsTextPresent,
                      "Can't generate archive: Unknown error")
-      self.WaitUntil(
-          self.IsUserNotificationPresent,
-          "Archive generation failed for flow %s" % flow_urn.Basename())
+      self.WaitUntil(self.IsUserNotificationPresent,
+                     "Archive generation failed for flow %s" % flow_id)
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,

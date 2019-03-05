@@ -10,11 +10,11 @@ import logging
 import time
 
 
+from absl import flags
 from absl.testing import absltest
 from future.utils import with_metaclass
 
 from grr_api_client import errors
-from grr_response_core.lib import flags
 
 flags.DEFINE_integer("flow_timeout_secs", 650,
                      "How long to wait for flows to finish.")

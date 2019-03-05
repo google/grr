@@ -8,12 +8,12 @@ from __future__ import unicode_literals
 import io
 
 from absl import app
+from absl import flags
 import portpicker
 
 from grr_response_core import config
 from grr_response_core.lib import build
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import flags
 from grr_response_core.lib import package
 from grr_response_server.bin import config_updater_keys_util
 

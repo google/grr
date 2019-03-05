@@ -9,13 +9,13 @@ import pdb
 import sys
 
 
+from absl import flags
 from future.builtins import range
 from future.utils import iteritems
 from typing import Text
 
 from grr_response_client.client_actions import standard
 
-from grr_response_core.lib import flags
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client

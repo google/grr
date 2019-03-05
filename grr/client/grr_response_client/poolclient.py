@@ -11,6 +11,7 @@ import time
 
 
 from absl import app
+from absl import flags
 
 # pylint: disable=unused-import
 # Make sure we load the client plugins
@@ -22,7 +23,6 @@ from grr_response_client import comms
 from grr_response_client import vfs
 from grr_response_core import config
 from grr_response_core.config import contexts
-from grr_response_core.lib import flags
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 

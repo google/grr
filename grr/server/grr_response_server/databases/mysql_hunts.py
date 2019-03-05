@@ -70,6 +70,9 @@ class MySQLDBHuntMixin(object):
   def ReadHuntCounters(self, hunt_id):
     raise NotImplementedError()
 
+  def ReadHuntClientResourcesStats(self, hunt_id):
+    raise NotImplementedError()
+
   def ReadHuntOutputPluginLogEntries(self,
                                      hunt_id,
                                      output_plugin_id,

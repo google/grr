@@ -717,6 +717,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testFlowRequestsWithStartTimeAreCorrectlyDelayed(self):
     pass
 
+  def testReadHuntClientResourcesStatsCorrectlyAggregatesData(self):
+    pass
+
 
 if __name__ == "__main__":
   app.run(test_lib.main)
