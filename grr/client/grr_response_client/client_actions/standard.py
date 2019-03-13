@@ -443,7 +443,7 @@ class ExecutePython(actions.ActionPlugin):
     # We have to return microseconds.
     self.SendReply(
         rdf_client_action.ExecutePythonResponse(
-            time_used=int(1e6 * time_used), return_val=utils.SmartStr(output)))
+            time_used=int(1e6 * time_used), return_val=output))
 
 
 # TODO(hanuszczak): This class has been moved out of `ExecutePython::Run`. The

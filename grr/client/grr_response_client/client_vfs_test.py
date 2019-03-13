@@ -39,9 +39,9 @@ class VFSTest(test_lib.GRRBaseTest):
 
   def GetNumbers(self):
     """Generate a test string."""
-    result = ""
+    result = b""
     for i in range(1, 1001):
-      result += "%s\n" % i
+      result += "{}\n".format(i).encode("ascii")
 
     return result
 
@@ -61,7 +61,7 @@ class VFSTest(test_lib.GRRBaseTest):
 
     fd.Seek(0, 2)
     self.assertEqual(fd.Tell(), len(original_string))
-    self.assertEqual(fd.Read(10), "")
+    self.assertEqual(fd.Read(10), b"")
     self.assertEqual(fd.Tell(), len(original_string))
 
     # Raise if we try to list the contents of a file object.
@@ -88,12 +88,21 @@ class VFSTest(test_lib.GRRBaseTest):
       fd = vfs.VFSOpen(
           rdf_paths.PathSpec(
               path=path, pathtype=rdf_paths.PathSpec.PathType.OS))
-      self.assertEqual(fd.read(20), "1\n2\n3\n4\n5\n6\n7\n8\n9\n10")
+      self.assertEqual(fd.read(20), b"1\n2\n3\n4\n5\n6\n7\n8\n9\n10")
       fds.append(fd)
 
     # This should not create any new file handles.
     self.assertLess(len(current_process.open_files()) - num_open_files, 5)
 
+  # TODO(hanuszczak): This test is fundamentally broken on so many levels:
+  # * it calls 'ListNames' on a text file
+  # * it repeatedly reads from the root file (instead of child files I presume)
+  # * it compares whether a list of numbers is greater (not longer, greater!)
+  #   than some number
+  # * it overrides a constant of public module and does not restore original
+  #   value at the end of the test
+  #
+  # Consult with somebody what it actually should do and write it properly.
   def testOpenFilehandlesExpire(self):
     """Test that file handles expire from cache."""
     files.FILE_HANDLE_CACHE = utils.FastStore(max_size=10)
@@ -118,7 +127,7 @@ class VFSTest(test_lib.GRRBaseTest):
     self.assertLess(len(current_process.open_files()) - num_open_files, 5)
 
     # Make sure we exceeded the size of the cache.
-    self.assertGreater(fds, 20)
+    # self.assertGreater(len(fds), 20)
 
   def testFileCasing(self):
     """Test our ability to read the correct casing from filesystem."""
@@ -247,7 +256,7 @@ class VFSTest(test_lib.GRRBaseTest):
     ps.Append(ps2)
     fd = vfs.VFSOpen(ps)
 
-    self.assertEqual(fd.Read(100), "Hello world\n")
+    self.assertEqual(fd.Read(100), b"Hello world\n")
 
     ps2 = rdf_paths.PathSpec(
         inode=65,
@@ -259,10 +268,10 @@ class VFSTest(test_lib.GRRBaseTest):
     ps.Append(ps2)
     fd = vfs.VFSOpen(ps)
 
-    self.assertEqual(fd.read(100), "I am a real ADS\n")
+    self.assertEqual(fd.read(100), b"I am a real ADS\n")
 
     # Make sure the size is correct:
-    self.assertEqual(fd.Stat().st_size, len("I am a real ADS\n"))
+    self.assertEqual(fd.Stat().st_size, len(b"I am a real ADS\n"))
 
   def testTSKNTFSHandling(self):
     """Test that TSK can correctly encode NTFS features."""
@@ -307,7 +316,7 @@ class VFSTest(test_lib.GRRBaseTest):
     # Try to read the main file
     self.assertEqual(pathspecs[0].nested_path.path, "/Test Directory/notes.txt")
     fd = vfs.VFSOpen(pathspecs[0])
-    self.assertEqual(fd.read(1000), "Hello world\n")
+    self.assertEqual(fd.read(1000), b"Hello world\n")
 
     s = fd.Stat()
     self.assertEqual(s.pathspec.nested_path.inode, 65)
@@ -324,7 +333,7 @@ class VFSTest(test_lib.GRRBaseTest):
     self.assertEqual(aff4_urn.Basename(), "notes.txt:ads")
 
     fd = vfs.VFSOpen(pathspecs[1])
-    self.assertEqual(fd.read(1000), "I am a real ADS\n")
+    self.assertEqual(fd.read(1000), b"I am a real ADS\n")
 
     # Test that the stat contains the inode:
     s = fd.Stat()
@@ -397,7 +406,7 @@ class VFSTest(test_lib.GRRBaseTest):
     p1.Append(p2)
     f = vfs.VFSOpen(p1)
 
-    self.assertEqual(f.read(3), "yay")
+    self.assertEqual(f.read(3), b"yay")
 
   def testGuessPathSpec(self):
     """Test that we can guess a pathspec from a path."""
@@ -408,7 +417,7 @@ class VFSTest(test_lib.GRRBaseTest):
         path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
 
     fd = vfs.VFSOpen(pathspec)
-    self.assertEqual(fd.read(3), "yay")
+    self.assertEqual(fd.read(3), b"yay")
 
   def testFileNotFound(self):
     """Test that we raise an IOError for file not found."""
@@ -428,7 +437,7 @@ class VFSTest(test_lib.GRRBaseTest):
     pathspec.nested_path.pathtype = rdf_paths.PathSpec.PathType.TSK
 
     fd = vfs.VFSOpen(pathspec)
-    self.assertEqual(fd.read(3), "yay")
+    self.assertEqual(fd.read(3), b"yay")
 
     # Open as a directory
     pathspec.nested_path.path = "/home/image2.img/home/"
@@ -483,7 +492,7 @@ class VFSTest(test_lib.GRRBaseTest):
       if path == test_file:
         found = True
         # Make sure its a regular file with the right size
-        self.assertTrue(stat.S_ISREG(f.st_mode))
+        self.assertTrue(stat.S_ISREG(int(f.st_mode)))
         self.assertEqual(f.st_size, 3893)
 
     self.assertEqual(found, True)
@@ -503,7 +512,7 @@ class VFSTest(test_lib.GRRBaseTest):
           rdf_paths.PathSpec(
               path="/morenumbers.txt", pathtype=rdf_paths.PathSpec.PathType.OS))
       data = fd.read(10)
-      self.assertEqual(data, "1\n2\n3\n4\n5\n")
+      self.assertEqual(data, b"1\n2\n3\n4\n5\n")
 
     # This should also work with TSK.
     tsk_root = "tsk:%s" % os.path.join(self.base_path, "test_img.dd")
@@ -517,7 +526,7 @@ class VFSTest(test_lib.GRRBaseTest):
       fd = vfs.VFSOpen(image_file_ps)
 
       data = fd.read(10)
-      self.assertEqual(data, "1\n2\n3\n4\n5\n")
+      self.assertEqual(data, b"1\n2\n3\n4\n5\n")
 
       # This should not influence vfs handlers other than OS and TSK.
       reg_type = rdf_paths.PathSpec.PathType.REGISTRY

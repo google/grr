@@ -15,7 +15,7 @@ from wsgiref import simple_server
 from absl import app
 from absl import flags
 from future.builtins import range
-import ipaddr
+import ipaddress
 
 from grr_response_core import config
 from grr_response_core.config import contexts
@@ -64,7 +64,7 @@ def main(_):
 
   # Start up a server in another thread
   bind_address = config.CONFIG["AdminUI.bind"]
-  ip = ipaddr.IPAddress(bind_address)
+  ip = ipaddress.ip_address(bind_address)
   if ip.version == 4:
     # Address looks like an IPv4 address.
     ThreadedServer.address_family = socket.AF_INET

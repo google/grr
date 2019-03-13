@@ -25,6 +25,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import precondition
 from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
@@ -236,10 +237,8 @@ class GetClientStatsProcessResponseMixin(object):
 
   def ProcessResponse(self, client_id, response):
     """Actually processes the contents of the response."""
-
+    precondition.AssertType(client_id, Text)
     downsampled = rdf_client_stats.ClientStats.Downsampled(response)
-    if isinstance(client_id, rdfvalue.RDFURN):
-      client_id = client_id.Basename()
 
     if data_store.AFF4Enabled():
       urn = rdf_client.ClientURN(client_id).Add("stats")
@@ -272,7 +271,7 @@ class GetClientStatsMixin(GetClientStatsProcessResponseMixin):
       return
 
     for response in responses:
-      downsampled = self.ProcessResponse(self.client_urn, response)
+      downsampled = self.ProcessResponse(self.client_urn.Basename(), response)
       self.SendReply(downsampled)
 
 

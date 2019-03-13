@@ -41,3 +41,9 @@ class FakeE2ETestLinux(AbstractFakeE2ETest):
 
 class FakeE2ETestDarwin(AbstractFakeE2ETest):
   platforms = [test_base.EndToEndTest.Platform.DARWIN]
+
+
+class FakeE2ETestManual(AbstractFakeE2ETest):
+
+  platforms = test_base.EndToEndTest.Platform.ALL
+  MANUAL = True

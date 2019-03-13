@@ -45,7 +45,6 @@ class UnauthorizedAccess(Error):
   def __init__(self, message, subject=None, requested_access="?"):
     self.subject = subject
     self.requested_access = requested_access
-    logging.warning(message)
     super(UnauthorizedAccess, self).__init__(message)
 
 

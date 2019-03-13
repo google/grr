@@ -36,7 +36,7 @@ from future.utils import python_2_unicode_compatible
 import psutil
 import queue
 
-from typing import Any, Optional, Text
+from typing import Any, Iterable, Optional, Text
 
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
@@ -1255,13 +1255,20 @@ def EnsureDirExists(path):
 
 
 def ResolveHostnameToIP(host, port):
+  """Resolves a hostname to an IP address."""
   ip_addrs = socket.getaddrinfo(host, port, socket.AF_UNSPEC, 0,
                                 socket.IPPROTO_TCP)
   # getaddrinfo returns tuples (family, socktype, proto, canonname, sockaddr).
   # We are interested in sockaddr which is in turn a tuple
   # (address, port) for IPv4 or (address, port, flow info, scope id)
   # for IPv6. In both cases, we want the first element, the address.
-  return ip_addrs[0][4][0]
+  result = ip_addrs[0][4][0]
+  # TODO: In Python 2, this value is a byte string instead of UTF-8
+  # string. To ensure type correctness until support for Python 2 is dropped,
+  # we always decode this value.
+  if compatibility.PY2:
+    result = result.decode("ascii")
+  return result
 
 
 # TODO: This module is way too big right now. It should be split
@@ -1274,7 +1281,8 @@ def ProcessIdString():
 
 
 def RegexListDisjunction(regex_list):
-  return "(" + ")|(".join(regex_list) + ")"
+  precondition.AssertIterableType(regex_list, bytes)
+  return b"(" + b")|(".join(regex_list) + b")"
 
 
 def ReadFileBytesAsUnicode(file_obj):

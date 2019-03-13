@@ -843,68 +843,67 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             stack_chart=rdf_report_plugins.ApiStackChartReportData(x_ticks=[])))
 
   def testUserActivityReportPlugin(self):
-    with test_lib.FakeTime(
-        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
-      AddFakeAuditLog(user="User123", token=self.token)
+    entries = {
+        "2012/12/02": ["User123"],
+        "2012/12/07": ["User123"],
+        "2012/12/15": ["User123"] * 2 + ["User456"],
+        "2012/12/23": ["User123"] * 10,
+        "2012/12/28": ["User123"],
+    }
 
-    with test_lib.FakeTime(
-        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
-      for _ in range(10):
-        AddFakeAuditLog(user="User123", token=self.token)
-
-      AddFakeAuditLog(user="User456", token=self.token)
+    for date_string, usernames in entries.items():
+      with test_lib.FakeTime(
+          rdfvalue.RDFDatetime.FromHumanReadable(date_string)):
+        for username in usernames:
+          AddFakeAuditLog(user=username, token=self.token)
 
     report = report_plugins.GetReportByName(
         server_report_plugins.UserActivityReportPlugin.__name__)
 
-    with test_lib.FakeTime(
-        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/31")):
+    # Use 15 days which will be rounded up to 3 full weeks.
+    duration = rdfvalue.Duration.FromDays(15)
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/07")
 
-      api_report_data = report.GetReportData(
-          stats_api.ApiGetReportArgs(name=report.__class__.__name__),
-          token=self.token)
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=start_time,
+            duration=duration),
+        token=self.token)
 
-      self.assertEqual(
-          api_report_data,
-          rdf_report_plugins.ApiReportData(
-              representation_type=RepresentationType.STACK_CHART,
-              stack_chart=rdf_report_plugins.ApiStackChartReportData(data=[
-                  rdf_report_plugins.ApiReportDataSeries2D(
-                      label=u"User123",
-                      points=[
-                          ApiReportDataPoint2D(x=-10, y=0),
-                          ApiReportDataPoint2D(x=-9, y=0),
-                          ApiReportDataPoint2D(x=-8, y=0),
-                          ApiReportDataPoint2D(x=-7, y=0),
-                          ApiReportDataPoint2D(x=-6, y=0),
-                          ApiReportDataPoint2D(x=-5, y=0),
-                          ApiReportDataPoint2D(x=-4, y=0),
-                          ApiReportDataPoint2D(x=-3, y=1),
-                          ApiReportDataPoint2D(x=-2, y=10),
-                          ApiReportDataPoint2D(x=-1, y=0)
-                      ]),
-                  rdf_report_plugins.ApiReportDataSeries2D(
-                      label=u"User456",
-                      points=[
-                          ApiReportDataPoint2D(x=-10, y=0),
-                          ApiReportDataPoint2D(x=-9, y=0),
-                          ApiReportDataPoint2D(x=-8, y=0),
-                          ApiReportDataPoint2D(x=-7, y=0),
-                          ApiReportDataPoint2D(x=-6, y=0),
-                          ApiReportDataPoint2D(x=-5, y=0),
-                          ApiReportDataPoint2D(x=-4, y=0),
-                          ApiReportDataPoint2D(x=-3, y=0),
-                          ApiReportDataPoint2D(x=-2, y=1),
-                          ApiReportDataPoint2D(x=-1, y=0)
-                      ])
-              ])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=RepresentationType.STACK_CHART,
+            stack_chart=rdf_report_plugins.ApiStackChartReportData(data=[
+                rdf_report_plugins.ApiReportDataSeries2D(
+                    label=u"User123",
+                    points=[
+                        ApiReportDataPoint2D(x=0, y=1),
+                        ApiReportDataPoint2D(x=1, y=2),
+                        ApiReportDataPoint2D(x=2, y=10),
+                    ]),
+                rdf_report_plugins.ApiReportDataSeries2D(
+                    label=u"User456",
+                    points=[
+                        ApiReportDataPoint2D(x=0, y=0),
+                        ApiReportDataPoint2D(x=1, y=1),
+                        ApiReportDataPoint2D(x=2, y=0),
+                    ])
+            ])))
 
   def testUserActivityReportPluginWithNoActivityToReport(self):
     report = report_plugins.GetReportByName(
         server_report_plugins.UserActivityReportPlugin.__name__)
 
+    duration = rdfvalue.Duration.FromDays(14)
+    start_time = rdfvalue.RDFDatetime.Now() - duration
+
     api_report_data = report.GetReportData(
-        stats_api.ApiGetReportArgs(name=report.__class__.__name__),
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=start_time,
+            duration=duration),
         token=self.token)
 
     self.assertEqual(

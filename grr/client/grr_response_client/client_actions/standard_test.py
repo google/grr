@@ -7,7 +7,9 @@ from __future__ import unicode_literals
 
 import gzip
 import hashlib
+import io
 import os
+import sys
 import time
 
 
@@ -57,6 +59,7 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
     python_code = """
 import io
 import uu
+import binascii
 
 def decode(encoded):
   # Use the import (uu) inside a function. This will fail if the environment
@@ -67,7 +70,7 @@ def decode(encoded):
   return o.getvalue()
 
 s = "626567696e20363636202d0a2c3226354c3b265c4035565d523b2630410a200a656e640a"
-s = s.decode("hex")
+s = binascii.unhexlify(s.encode("ascii"))
 
 magic_return_str = decode(s)
 """
@@ -157,13 +160,15 @@ print("Done.")
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(open("/bin/ls", "rb").read(), self.signing_key)
 
+    filepath = __file__.encode(sys.getfilesystemencoding())
+
     request = rdf_client_action.ExecuteBinaryRequest(
-        executable=signed_blob, args=[__file__], write_path="ablob")
+        executable=signed_blob, args=[filepath], write_path="ablob")
 
     result = self.RunAction(standard.ExecuteBinaryCommand, request)[0]
 
     self.assertGreater(result.time_used, 0)
-    self.assertIn(__file__, result.stdout)
+    self.assertIn(filepath, result.stdout)
 
   def testReturnVals(self):
     """Test return values."""
@@ -269,8 +274,8 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
 
   def testStatSize(self):
     with temp.AutoTempFilePath() as temp_filepath:
-      with open(temp_filepath, "wb") as temp_file:
-        temp_file.write("123456")
+      with io.open(temp_filepath, "wb") as temp_file:
+        temp_file.write(b"123456")
 
       pathspec = rdf_paths.PathSpec(
           path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -295,8 +300,8 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
 
       self.assertLen(results, 1)
       self.assertLen(results[0].ext_attrs, 1)
-      self.assertEqual(results[0].ext_attrs[0].name, "user.foo")
-      self.assertEqual(results[0].ext_attrs[0].value, "bar")
+      self.assertEqual(results[0].ext_attrs[0].name, b"user.foo")
+      self.assertEqual(results[0].ext_attrs[0].value, b"bar")
 
   def testStatExtAttrsDisabled(self):
     with temp.AutoTempFilePath() as temp_filepath:
@@ -322,7 +327,7 @@ class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
     pathspec = rdf_paths.PathSpec(
         path="/nothing", pathtype=rdf_paths.PathSpec.PathType.OS)
     self.buffer_ref = rdf_client.BufferReference(pathspec=pathspec, length=5000)
-    self.data = "X" * 500
+    self.data = b"X" * 500
 
     stubber = mock.patch.object(standard.vfs, "ReadVFS", return_value=self.data)
     stubber.start()

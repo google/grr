@@ -337,8 +337,7 @@ class MySQLDBFlowMixin(object):
                          min_create_time = None,
                          max_create_time = None,
                          include_child_flows = True,
-                         cursor = None
-                        ):
+                         cursor=None):
     """Returns all flow objects."""
     conditions = []
     args = []

@@ -168,6 +168,12 @@ class EndToEndTest(with_metaclass(EndToEndTestMetaclass, absltest.TestCase)):
 
   platforms = []
 
+  # Indicates whether this class is an extra test case. Extra test cases are not
+  # run by default and have to be manually specified in order to be executed. It
+  # is useful in cases where the test requires some extra features on the client
+  # and only a small subset of clients is expected to have it.
+  MANUAL = False
+
   def __init__(self, *args, **kwargs):
     super(EndToEndTest, self).__init__(*args, **kwargs)
     self.grr_api, self.client = init_fn()

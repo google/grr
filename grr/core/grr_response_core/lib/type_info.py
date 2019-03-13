@@ -29,6 +29,8 @@ class Error(Exception):
   """Base error class."""
 
 
+# TODO(hanuszczak): Consider getting rid of this class. Standard `ValueError`
+# and `TypeError` should be used instead.
 class TypeValueError(Error, ValueError):
   """Value is not valid."""
 
@@ -374,33 +376,33 @@ class String(TypeInfoObject):
 
   _type = Text
 
-  def __init__(self, **kwargs):
-    defaults = dict(default="")
-    defaults.update(kwargs)
-    super(String, self).__init__(**defaults)
+  def __init__(self, default = "", **kwargs):
+    precondition.AssertType(default, Text)
+    super(String, self).__init__(default=default, **kwargs)
 
   def Validate(self, value):
-    # TODO(hanuszczak): Accept only unicode strings here.
-    if not isinstance(value, string_types):
-      raise TypeValueError("%s: %s not a valid string" % (self.name, value))
+    if not isinstance(value, Text):
+      raise TypeValueError("'{}' is not a valid string".format(value))
 
-    # A String means a unicode String. We must be dealing with unicode strings
-    # here and the input must be encodable as a unicode object.
-    try:
-      # TODO(hanuszczak): Use `future.builtins.str` here.
-      return Text(value)
-    except UnicodeError:
-      raise TypeValueError("Not a valid unicode string")
+    return value
+
+  def FromString(self, string):
+    precondition.AssertType(string, Text)
+    return string
 
   def ToString(self, value):
     precondition.AssertType(value, Text)
     return value
 
 
-class Bytes(String):
+class Bytes(TypeInfoObject):
   """A Bytes type."""
 
   _type = bytes
+
+  def __init__(self, default = b"", **kwargs):
+    precondition.AssertType(default, bytes)
+    super(Bytes, self).__init__(default=default, **kwargs)
 
   def Validate(self, value):
     if not isinstance(value, bytes):

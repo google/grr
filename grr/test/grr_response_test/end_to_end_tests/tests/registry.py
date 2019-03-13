@@ -73,7 +73,7 @@ class TestFindWindowsRegistry(test_base.EndToEndTest):
     stat_entry = ff_result.stat_entry
 
     self.assertEqual(stat_entry.pathspec.path, "{}/SystemRoot".format(base))
-    self.assertEqual(stat_entry.registry_data.string, r"C:\Windows")
+    self.assertEqual(stat_entry.registry_data.string.lower(), r"c:\windows")
     self.assertEqual(stat_entry.st_size, 10)
 
   def testClientRegistryFinder(self):
@@ -90,5 +90,5 @@ class TestFindWindowsRegistry(test_base.EndToEndTest):
     stat_entry = ff_result.stat_entry
 
     self.assertEqual(stat_entry.pathspec.path, "{}/SystemRoot".format(base))
-    self.assertEqual(stat_entry.registry_data.string, r"C:\Windows")
+    self.assertEqual(stat_entry.registry_data.string.lower(), r"c:\windows")
     self.assertEqual(stat_entry.st_size, 10)

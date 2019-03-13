@@ -13,6 +13,7 @@ import inspect
 from typing import Text, Iterable
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.util import compatibility
 from grr_response_server import db_utils
 
 
@@ -176,7 +177,11 @@ class WithTransaction(object):
   def __call__(self, func):
     readonly = self.readonly
 
-    takes_args = inspect.getargspec(func).args
+    if compatibility.PY2:
+      takes_args = inspect.getargspec(func).args
+    else:
+      takes_args = inspect.getfullargspec(func).args
+
     takes_connection = "connection" in takes_args
     takes_cursor = "cursor" in takes_args
 

@@ -389,11 +389,6 @@ config_lib.DEFINE_string(
     help="The debian package name.")
 
 config_lib.DEFINE_string(
-    name="ClientBuilder.build_time",
-    default=time.ctime(),
-    help="Time of build to embed into binary.")
-
-config_lib.DEFINE_string(
     "ClientBuilder.vs_arch",
     default=None,
     help="Visual studio architecture string.")

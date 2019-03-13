@@ -178,7 +178,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsNothingIfRegexMatchesNothing(self):
     value_regex_match = rdf_file_finder.FileFinderContentsRegexMatchCondition(
-        bytes_before=10, bytes_after=10, regex=".*CanNotFindMe.*")
+        bytes_before=10, bytes_after=10, regex=b".*CanNotFindMe.*")
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
@@ -191,7 +191,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsKeyIfItMatchesRegexMatchCondition(self):
     value_regex_match = rdf_file_finder.FileFinderContentsRegexMatchCondition(
-        bytes_before=10, bytes_after=10, regex="Windows.+\\.exe")
+        bytes_before=10, bytes_after=10, regex=b"Windows.+\\.exe")
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(client_id, [self.runkey], [
@@ -207,7 +207,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
     self.assertEqual(results[0].matches[0].offset, 15)
     self.assertEqual(results[0].matches[0].data,
-                     "ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
+                     b"ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
 
     self.assertEqual(
         results[0].stat_entry.AFF4Path(client_id),

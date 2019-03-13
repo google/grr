@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import multiprocessing
 import os
 import platform
@@ -41,8 +42,10 @@ class MultiRepackTest(absltest.TestCase):
     config_dir = temp.TempDirPath()
     self.label1_config = os.path.join(config_dir, "label1.yaml")
     self.label2_config = os.path.join(config_dir, "label2.yaml")
-    open(self.label1_config, mode="wb").write("Client.labels: [label1]")
-    open(self.label2_config, mode="wb").write("Client.labels: [label2]")
+    with io.open(self.label1_config, mode="w") as filedesc:
+      filedesc.write("Client.labels: [label1]")
+    with io.open(self.label2_config, mode="w") as filedesc:
+      filedesc.write("Client.labels: [label2]")
     self.template_dir = temp.TempDirPath()
     self.deb_template = os.path.join(self.template_dir,
                                      "grr_3.1.0.2_amd64.deb.zip")
@@ -50,9 +53,12 @@ class MultiRepackTest(absltest.TestCase):
                                      "GRR_3.1.0.2_i386.exe.zip")
     self.xar_template = os.path.join(self.template_dir,
                                      "grr_3.1.0.2_amd64.xar.zip")
-    open(self.deb_template, mode="wb").write("linux")
-    open(self.exe_template, mode="wb").write("windows")
-    open(self.xar_template, mode="wb").write("darwin")
+    with io.open(self.deb_template, mode="w") as filedesc:
+      filedesc.write("linux")
+    with io.open(self.exe_template, mode="w") as filedesc:
+      filedesc.write("windows")
+    with io.open(self.xar_template, mode="w") as filedesc:
+      filedesc.write("darwin")
 
     self.output_dir = temp.TempDirPath()
 

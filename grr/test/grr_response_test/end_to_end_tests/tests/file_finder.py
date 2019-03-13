@@ -230,12 +230,12 @@ class TestFileFinderRegexMatching(test_base.AbstractFileTransferTest):
 
   def _testRegexMatching(self, flow):
     regexes = {
-        test_base.EndToEndTest.Platform.LINUX: "E.F",
-        test_base.EndToEndTest.Platform.DARWIN: "Ap..e",
+        test_base.EndToEndTest.Platform.LINUX: b"E.F",
+        test_base.EndToEndTest.Platform.DARWIN: b"Ap..e",
     }
     keywords = {
-        test_base.EndToEndTest.Platform.LINUX: "elf",
-        test_base.EndToEndTest.Platform.DARWIN: "apple",
+        test_base.EndToEndTest.Platform.LINUX: b"elf",
+        test_base.EndToEndTest.Platform.DARWIN: b"apple",
     }
 
     args = self.grr_api.types.CreateFlowArgs(flow)

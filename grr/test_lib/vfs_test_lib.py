@@ -154,7 +154,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
 
       if attrs:
         attrs %= args  # Remove any %% and interpolate client_id.
-        stat = rdf_client_fs.StatEntry.FromTextFormat(utils.SmartStr(attrs))
+        stat = rdf_client_fs.StatEntry.FromTextFormat(attrs)
 
       stat.pathspec = rdf_paths.PathSpec(
           pathtype=self.supported_pathtype, path=path)

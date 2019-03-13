@@ -211,10 +211,7 @@ class ArtifactCollector(actions.ActionPlugin):
     paths = artifact_utils.InterpolateListKbAttributes(
         attributes["paths"], self.knowledge_base,
         self.ignore_interpolation_errors)
-    regex_list = artifact_utils.InterpolateListKbAttributes(
-        attributes["content_regex_list"], self.knowledge_base,
-        self.ignore_interpolation_errors)
-    regex = utils.RegexListDisjunction(regex_list)
+    regex = utils.RegexListDisjunction(attributes["content_regex_list"])
     condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
         regex=regex, mode="ALL_HITS")
     file_finder_action = rdf_file_finder.FileFinderAction.Stat()

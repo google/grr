@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+import math
 import re
 
 
@@ -19,7 +20,6 @@ from grr_response_server.flows.general import audit
 from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugin_base
 from grr_response_server.gui.api_plugins.report_plugins import report_utils
-
 
 RepresentationType = rdf_report_plugins.ApiReportData.RepresentationType
 
@@ -337,16 +337,10 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
 
   TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "User Activity"
-  SUMMARY = "Number of flows ran by each user over the last few weeks."
-  # TODO: Support timerange selection.
+  SUMMARY = "Number of flows ran by each user."
+  REQUIRES_TIME_RANGE = True
 
-  WEEKS = 10
-
-  def _LoadUserActivity(self, token):
-    week_duration = rdfvalue.Duration("7d")
-    now = rdfvalue.RDFDatetime.Now()
-    start_time = now - week_duration * self.WEEKS
-
+  def _LoadUserActivity(self, start_time, end_time, token):
     if data_store.RelationalDBReadEnabled():
       for entry in data_store.REL_DB.ReadAPIAuditEntries(
           min_timestamp=start_time):
@@ -354,7 +348,7 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
     else:
       for fd in audit.LegacyAuditLogsForTimespan(
           start_time=start_time - audit.AUDIT_ROLLOVER_TIME,
-          end_time=now,
+          end_time=end_time,
           token=token):
         for event in fd.GenerateItems():
           yield event.user, event.timestamp
@@ -364,13 +358,19 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
     ret = rdf_report_plugins.ApiReportData(
         representation_type=RepresentationType.STACK_CHART)
 
-    now = rdfvalue.RDFDatetime.Now()
-    weeks = range(-self.WEEKS, 0, 1)
     week_duration = rdfvalue.Duration("7d")
+    num_weeks = math.ceil(
+        get_report_args.duration.seconds / week_duration.seconds)
+    weeks = range(0, num_weeks)
+    start_time = get_report_args.start_time
+    end_time = start_time + num_weeks * week_duration
     user_activity = collections.defaultdict(lambda: {week: 0 for week in weeks})
 
-    for username, timestamp in self._LoadUserActivity(token):
-      week = (timestamp - now).seconds // week_duration.seconds
+    entries = self._LoadUserActivity(
+        start_time=get_report_args.start_time, end_time=end_time, token=token)
+
+    for username, timestamp in entries:
+      week = (timestamp - start_time).seconds // week_duration.seconds
       if week in user_activity[username]:
         user_activity[username][week] += 1
 

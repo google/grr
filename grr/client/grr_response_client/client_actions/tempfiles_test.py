@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import os
 import shutil
 import tempfile
@@ -52,9 +53,8 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
     tempfiles.DeleteGRRTempFile(fd.name)
     self.assertFalse(os.path.exists(fd.name))
 
-    fd = open(os.path.join(self.temp_dir, "notatmpfile"), "wb")
-    fd.write("something")
-    fd.close()
+    with io.open(os.path.join(self.temp_dir, "notatmpfile"), "wb") as fd:
+      fd.write(b"something")
     self.assertTrue(os.path.exists(fd.name))
     self.assertRaises(tempfiles.ErrorNotTempFile, tempfiles.DeleteGRRTempFile,
                       fd.name)
@@ -104,7 +104,8 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
     self.addCleanup(tempdir_overrider.Stop)
 
     self.not_tempfile = os.path.join(self.temp_dir, "notatempfile")
-    open(self.not_tempfile, "wb").write("something")
+    with io.open(self.not_tempfile, "wb") as fd:
+      fd.write(b"something")
 
     self.temp_fd = tempfiles.CreateGRRTempFile(filename="file1")
     self.temp_fd2 = tempfiles.CreateGRRTempFile(filename="file2")
@@ -128,14 +129,18 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
 
     file1 = utils.JoinPath(tempdir1, "file1")
     file2 = utils.JoinPath(tempdir2, "file2")
-    open(file1, "wb").write("something")
-    open(file2, "wb").write("something")
+    with io.open(file1, "wb") as fd:
+      fd.write(b"something")
+    with io.open(file2, "wb") as fd:
+      fd.write(b"something")
 
     # Unrelated file in the tempdir_roots should be left alone.
     not_a_grr_file1 = utils.JoinPath(temproot1, "file1")
     not_a_grr_file2 = utils.JoinPath(temproot1, "file2")
-    open(not_a_grr_file1, "wb").write("something")
-    open(not_a_grr_file2, "wb").write("something")
+    with io.open(not_a_grr_file1, "wb") as fd:
+      fd.write(b"something")
+    with io.open(not_a_grr_file2, "wb") as fd:
+      fd.write(b"something")
 
     self.assertTrue(os.path.exists(file1))
     self.assertTrue(os.path.exists(file2))

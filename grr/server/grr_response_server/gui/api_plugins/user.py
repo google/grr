@@ -411,13 +411,6 @@ def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
 def _InitApiApprovalFromDatabaseObject(api_approval, db_obj):
   """Initializes Api(Client|Hunt|CronJob)Approval from the database object."""
 
-  try:
-    approval_checks.CheckApprovalRequest(db_obj)
-    api_approval.is_valid = True
-  except access_control.UnauthorizedAccess as e:
-    api_approval.is_valid = False
-    api_approval.is_valid_message = utils.SmartStr(e)
-
   api_approval.id = db_obj.approval_id
   api_approval.requestor = db_obj.requestor_username
   api_approval.reason = db_obj.reason
@@ -427,6 +420,13 @@ def _InitApiApprovalFromDatabaseObject(api_approval, db_obj):
   api_approval.email_message_id = db_obj.email_message_id
 
   api_approval.approvers = sorted([g.grantor_username for g in db_obj.grants])
+
+  try:
+    approval_checks.CheckApprovalRequest(db_obj)
+    api_approval.is_valid = True
+  except access_control.UnauthorizedAccess as e:
+    api_approval.is_valid_message = utils.SmartStr(e)
+    api_approval.is_valid = False
 
   return api_approval
 

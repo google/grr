@@ -16,6 +16,12 @@ RUN apt update -qq && \
   libssl-dev python-dev python-pip wget openjdk-8-jdk zip devscripts \
   dh-systemd libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
 
+# Dependencies and environment variables required to build CHIPSEC from source.
+ENV LINUX_HEADERS_VERSION="4.15.0-46-generic"
+RUN apt update -qq && apt install -y \
+  build-essential gcc nasm linux-headers-${LINUX_HEADERS_VERSION}
+ENV KERNEL_SRC_DIR="/lib/modules/${LINUX_HEADERS_VERSION}/build"
+
 # Install pip, virtualenv, chrome and set up locales.
 RUN pip install --upgrade pip virtualenv && \
   wget --quiet https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \

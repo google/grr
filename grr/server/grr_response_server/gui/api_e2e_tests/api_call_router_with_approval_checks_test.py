@@ -10,6 +10,7 @@ from absl import app
 from grr_api_client import errors as grr_api_errors
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server.aff4_objects import user_managers
 from grr_response_server.gui import api_auth_manager
@@ -31,9 +32,9 @@ class ApiCallRouterWithApprovalChecksE2ETest(
   def setUp(self):
     super(ApiCallRouterWithApprovalChecksE2ETest, self).setUp()
 
-    config_overrider = test_lib.ConfigOverrider({
-        "API.DefaultRouter": api_router.ApiCallRouterWithApprovalChecks.__name__
-    })
+    default_router = api_router.ApiCallRouterWithApprovalChecks
+    config_overrider = test_lib.ConfigOverrider(
+        {"API.DefaultRouter": compatibility.GetName(default_router)})
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 

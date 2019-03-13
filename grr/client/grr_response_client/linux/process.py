@@ -68,9 +68,10 @@ class Process(object):
     self.mem_file = None
 
   def Open(self):
-    path = ctypes.create_string_buffer("/proc/" + str(self.pid) + "/mem")
+    path = "/proc/{}/mem".format(self.pid)
+    cpath = ctypes.create_string_buffer(path.encode("utf-8"))
     try:
-      self.mem_file = open64(ctypes.byref(path), os.O_RDONLY)
+      self.mem_file = open64(ctypes.byref(cpath), os.O_RDONLY)
     except OSError as e:
       raise process_error.ProcessError(e)
 

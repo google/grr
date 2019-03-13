@@ -32,7 +32,7 @@ class ProcessTest(test_lib.GRRBaseTest):
 
     def MockedOpen64(requested_path, mode="rb"):
       del mode
-      if "proc/100/mem" in requested_path._obj.value:
+      if b"proc/100/mem" in requested_path._obj.value:
         return True
 
       raise OSError("Error in open64.")

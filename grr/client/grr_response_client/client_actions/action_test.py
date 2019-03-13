@@ -58,7 +58,7 @@ class ActionTest(client_test_lib.EmptyActionTest):
 
     self.assertEqual(result.offset, 100)
     self.assertEqual(result.length, 10)
-    self.assertEqual(result.data, "7\n38\n39\n40")
+    self.assertEqual(result.data, b"7\n38\n39\n40")
 
   def testListDirectory(self):
     """Tests listing directories."""
@@ -75,7 +75,7 @@ class ActionTest(client_test_lib.EmptyActionTest):
     self.assertEqual(result.__class__, rdf_client_fs.StatEntry)
     self.assertEqual(result.pathspec.Basename(), "morenumbers.txt")
     self.assertEqual(result.st_size, 3893)
-    self.assertTrue(stat.S_ISREG(result.st_mode))
+    self.assertTrue(stat.S_ISREG(int(result.st_mode)))
 
   def testProcessListing(self):
     """Tests if listing processes works."""
@@ -175,7 +175,12 @@ class ActionTest(client_test_lib.EmptyActionTest):
 
     def MockIsMount(path):
       """Only return True for the root path."""
-      return path == "/"
+      # All code should ideally deal only with unicode paths. Unfortunately,
+      # this is not always the case. While fixing path handling should be dealt
+      # with at some point, for the time being this works and is more in line
+      # with the original function (`os.path.ismount` works with bytestrings as
+      # well).
+      return path == "/" or path == b"/"
 
     with utils.MultiStubber((os, "statvfs", MockStatFS),
                             (os.path, "ismount", MockIsMount)):

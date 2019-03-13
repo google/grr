@@ -40,7 +40,7 @@ class MockSPI(mock.MagicMock):
     return (0, 0xffff, 0)
 
   def read_spi(self, unused_offset, size):
-    return b"\xff" * size
+    return [0xff] * size
 
 
 class UnsupportedChipset(mock.MagicMock):

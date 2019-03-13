@@ -174,7 +174,7 @@ def GetFileSystems():
 def ParseFileSystemsStruct(struct_class, fs_count, data):
   """Take the struct type and parse it into a list of structs."""
   results = []
-  cstr = lambda x: x.split("\x00", 1)[0]
+  cstr = lambda x: x.split(b"\x00", 1)[0]
   for count in range(0, fs_count):
     struct_size = struct_class.GetSize()
     s_data = data[count * struct_size:(count + 1) * struct_size]

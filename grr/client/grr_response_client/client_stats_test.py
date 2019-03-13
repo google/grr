@@ -88,7 +88,7 @@ class ClientStatsCollectorTest(absltest.TestCase):
 
     self.assertLen(cpu_samples, 60)
     for sample in cpu_samples:
-      self.assertLess(past + rdfvalue.Duration("10m"), sample)
+      self.assertLess(past + rdfvalue.Duration("10m"), sample.timestamp)
       self.assertGreaterEqual(past + rdfvalue.Duration("20m"), sample.timestamp)
 
     io_samples = collector.IOSamplesBetween(

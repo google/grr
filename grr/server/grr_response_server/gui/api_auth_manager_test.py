@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from absl import app
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
 from grr_response_server.authorization import groups
 from grr_response_server.gui import api_auth_manager
@@ -76,8 +77,9 @@ class APIAuthorizationManagerTest(test_lib.GRRBaseTest):
     # exercise the functionality. Each test will supply its own ACL data. We
     # also have to set up a default API router that will be used when none of
     # the rules matches.
+    name = compatibility.GetName(DummyGroupAccessManager)
     config_overrider = test_lib.ConfigOverrider(
-        {"ACL.group_access_manager_class": DummyGroupAccessManager.__name__})
+        {"ACL.group_access_manager_class": name})
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 

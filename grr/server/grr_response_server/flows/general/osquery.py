@@ -14,7 +14,7 @@ from grr_response_server import server_stubs
 class OsqueryFlowMixin(object):
   """A flow mixin wrapping the osquery client action."""
 
-  friendly_name = "osquery"
+  friendly_name = "Osquery"
   category = "/Collectors/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 

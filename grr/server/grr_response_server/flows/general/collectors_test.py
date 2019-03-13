@@ -133,12 +133,13 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
 
   def testGrepRegexCombination(self):
     collect_flow = aff4_flows.ArtifactCollectorFlow(None, token=self.token)
-    self.assertEqual(collect_flow._CombineRegex([r"simple"]), "simple")
-    self.assertEqual(collect_flow._CombineRegex(["a", "b"]), "(a)|(b)")
-    self.assertEqual(collect_flow._CombineRegex(["a", "b", "c"]), "(a)|(b)|(c)")
+    self.assertEqual(collect_flow._CombineRegex([b"simple"]), b"simple")
+    self.assertEqual(collect_flow._CombineRegex([b"a", b"b"]), b"(a)|(b)")
     self.assertEqual(
-        collect_flow._CombineRegex(["a|b", "[^_]b", "c|d"]),
-        "(a|b)|([^_]b)|(c|d)")
+        collect_flow._CombineRegex([b"a", b"b", b"c"]), b"(a)|(b)|(c)")
+    self.assertEqual(
+        collect_flow._CombineRegex([b"a|b", b"[^_]b", b"c|d"]),
+        b"(a|b)|([^_]b)|(c|d)")
 
   def testGrep(self):
 
@@ -165,14 +166,14 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
           type=rdf_artifacts.ArtifactSource.SourceType.GREP,
           attributes={
               "paths": ["/etc/passwd"],
-              "content_regex_list": [r"^a%%users.username%%b$"]
+              "content_regex_list": [b"^a%%users.username%%b$"]
           })
       collect_flow.Grep(collector, rdf_paths.PathSpec.PathType.TSK)
 
     conditions = mock_call_flow.kwargs["conditions"]
     self.assertLen(conditions, 1)
-    regexes = conditions[0].contents_regex_match.regex.SerializeToString()
-    self.assertCountEqual(regexes.split("|"), ["(^atest1b$)", "(^atest2b$)"])
+    regexes = conditions[0].contents_regex_match.regex.AsBytes()
+    self.assertCountEqual(regexes.split(b"|"), [b"(^atest1b$)", b"(^atest2b$)"])
     self.assertEqual(mock_call_flow.kwargs["paths"], ["/etc/passwd"])
 
   def testGetArtifact(self):

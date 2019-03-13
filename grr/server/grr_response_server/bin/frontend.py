@@ -18,7 +18,7 @@ from absl import flags
 from future.builtins import range
 from future.utils import iteritems
 from http import server as http_server
-import ipaddr
+import ipaddress
 import socketserver
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -31,6 +31,7 @@ from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_utils
 from grr_response_server import aff4
@@ -254,7 +255,16 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
       responses_comms = rdf_flows.ClientCommunication(
           api_version=request_comms.api_version)
 
-      source_ip = ipaddr.IPAddress(self.client_address[0])
+      # TODO: Python's documentation is just plain terrible and
+      # does not explain what `client_address` exactly is or what type does it
+      # have (because its Python, why would they bother) so just to be on the
+      # safe side, we anticipate byte-string addresses in Python 2 and convert
+      # that if needed. On Python 3 these should be always unicode strings, so
+      # once support for Python 2 is dropped this branch can be removed.
+      address = self.client_address[0]
+      if compatibility.PY2 and isinstance(self.client_address[0], bytes):
+        address = address.decode("ascii")
+      source_ip = ipaddress.ip_address(address)
 
       if source_ip.version == 6:
         source_ip = source_ip.ipv4_mapped or source_ip
@@ -304,7 +314,7 @@ class GRRHTTPServer(socketserver.ThreadingMixIn, http_server.HTTPServer):
     self.server_cert = config.CONFIG["Frontend.certificate"]
 
     (address, _) = server_address
-    version = ipaddr.IPAddress(address).version
+    version = ipaddress.ip_address(address).version
     if version == 4:
       self.address_family = socket.AF_INET
     elif version == 6:

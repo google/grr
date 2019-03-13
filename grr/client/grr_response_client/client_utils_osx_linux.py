@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import logging
 import os
 import threading
@@ -234,14 +235,14 @@ class TransactionLog(object):
     grr_message = grr_message.SerializeToString()
 
     try:
-      with open(self.logfile, "wb") as fd:
+      with io.open(self.logfile, "wb") as fd:
         fd.write(grr_message)
     except (IOError, OSError):
       # Check if we're missing directories and try to create them.
       if not os.path.isdir(os.path.dirname(self.logfile)):
         try:
           os.makedirs(os.path.dirname(self.logfile))
-          with open(self.logfile, "wb") as fd:
+          with io.open(self.logfile, "wb") as fd:
             fd.write(grr_message)
         except (IOError, OSError):
           logging.exception("Couldn't write nanny transaction log to %s",
@@ -254,15 +255,15 @@ class TransactionLog(object):
   def Clear(self):
     """Wipes the transaction log."""
     try:
-      with open(self.logfile, "wb") as fd:
-        fd.write("")
+      with io.open(self.logfile, "wb") as fd:
+        fd.write(b"")
     except (IOError, OSError):
       pass
 
   def Get(self):
     """Return a GrrMessage instance from the transaction log or None."""
     try:
-      with open(self.logfile, "rb") as fd:
+      with io.open(self.logfile, "rb") as fd:
         data = fd.read(self.max_log_size)
     except (IOError, OSError):
       return

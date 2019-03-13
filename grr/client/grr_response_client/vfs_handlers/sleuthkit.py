@@ -15,6 +15,7 @@ from grr_response_client import vfs
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
@@ -163,8 +164,16 @@ class TSKFile(vfs.VFSHandler):
         self.size = self.fd.info.meta.size
 
     else:
+      # TODO: In Python 2 TSK expects bytestring paths whereas in
+      # Python 3 it expects unicode paths. Once support for Python 2 is dropped,
+      # this branching can be removed.
+      if compatibility.PY2:
+        path = self.pathspec.last.path.encode("utf-8")
+      else:
+        path = self.pathspec.last.path
+
       # Does the filename exist in the image?
-      self.fd = self.fs.open(utils.SmartStr(self.pathspec.last.path))
+      self.fd = self.fs.open(path)
       self.size = self.fd.info.meta.size
       self.pathspec.last.inode = self.fd.info.meta.addr
 
@@ -285,7 +294,7 @@ class TSKFile(vfs.VFSHandler):
       self.offset += len(data)
 
       return data
-    return ""
+    return b""
 
   def Stat(self, ext_attrs=None):
     """Return a stat of the file."""

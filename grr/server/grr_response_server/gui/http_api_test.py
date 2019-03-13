@@ -13,6 +13,7 @@ from future.moves.urllib import parse as urlparse
 import mock
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
 
@@ -156,7 +157,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(RouterMatcherTest, self).setUp()
     config_overrider = test_lib.ConfigOverrider({
-        "API.DefaultRouter": TestHttpApiRouter.__name__,
+        "API.DefaultRouter": compatibility.GetName(TestHttpApiRouter),
     })
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
@@ -224,7 +225,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     super(HttpRequestHandlerTest, self).setUp()
 
     config_overrider = test_lib.ConfigOverrider({
-        "API.DefaultRouter": TestHttpApiRouter.__name__,
+        "API.DefaultRouter": compatibility.GetName(TestHttpApiRouter),
     })
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)

@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import collections
 import glob
 import hashlib
+import io
 import os
 import shutil
 import stat
@@ -177,8 +178,8 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       os.mkdir(contains_lnk)
       os.mkdir(lnk_target)
       os.symlink(lnk_target, lnk)
-      with open(lnk_target_contents, "wb") as fd:
-        fd.write("sometext")
+      with io.open(lnk_target_contents, "wb") as fd:
+        fd.write(b"sometext")
 
       paths = [contains_lnk + "/**"]
       results = self._RunFileFinder(paths, self.stat_action)
@@ -249,7 +250,9 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertIn("auth.log", relative_results)
     self.assertLen(raw_results[0].matches, 1)
     buffer_ref = raw_results[0].matches[0]
-    orig_data = open(os.path.join(searching_path, "auth.log")).read()
+
+    with io.open(os.path.join(searching_path, "auth.log"), "rb") as filedesc:
+      orig_data = filedesc.read()
 
     self.assertLen(buffer_ref.data, bytes_before + len(literal) + bytes_after)
     self.assertEqual(
@@ -306,7 +309,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
-    regex = r"pa[nm]_o?unix\(s{2}h"
+    regex = br"pa[nm]_o?unix\(s{2}h"
     bytes_before = 10
     bytes_after = 20
 
@@ -321,7 +324,10 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertIn("auth.log", relative_results)
     self.assertLen(raw_results[0].matches, 1)
     buffer_ref = raw_results[0].matches[0]
-    orig_data = open(os.path.join(searching_path, "auth.log")).read()
+
+    with io.open(os.path.join(searching_path, "auth.log"), "rb") as filedesc:
+      orig_data = filedesc.read()
+
     self.assertEqual(
         orig_data[buffer_ref.offset:buffer_ref.offset + buffer_ref.length],
         buffer_ref.data)
@@ -330,7 +336,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
-    regex = r"mydo....\.com"
+    regex = br"mydo....\.com"
     bytes_before = 10
     bytes_after = 20
 
@@ -345,7 +351,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertLen(raw_results, 1)
     self.assertLen(raw_results[0].matches, 6)
     for buffer_ref in raw_results[0].matches:
-      needle = "mydomain.com"
+      needle = b"mydomain.com"
       self.assertEqual(buffer_ref.data[bytes_before:bytes_before + len(needle)],
                        needle)
 
@@ -395,7 +401,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     results = self._RunFileFinder([path], action)
     self.assertLen(results, 1)
     self.assertTrue(results[0].HasField("stat_entry"))
-    self.assertTrue(stat.S_ISDIR(results[0].stat_entry.st_mode))
+    self.assertTrue(stat.S_ISDIR(int(results[0].stat_entry.st_mode)))
     self.assertFalse(results[0].HasField("hash_entry"))
 
   def testDownloadDirectory(self):
@@ -405,7 +411,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     results = self._RunFileFinder([path], action)
     self.assertLen(results, 1)
     self.assertTrue(results[0].HasField("stat_entry"))
-    self.assertTrue(stat.S_ISDIR(results[0].stat_entry.st_mode))
+    self.assertTrue(stat.S_ISDIR(int(results[0].stat_entry.st_mode)))
     self.assertFalse(results[0].HasField("uploaded_file"))
 
   def testDownloadActionDefault(self):
@@ -584,8 +590,8 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     lnk_target = os.path.join(test_dir, "lnk_target")
 
     os.mkdir(test_dir)
-    with open(lnk_target, "wb") as fd:
-      fd.write("sometext")
+    with io.open(lnk_target, "wb") as fd:
+      fd.write(b"somebytes")
     os.symlink(lnk_target, lnk)
 
     paths = [lnk]
@@ -727,10 +733,10 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
     local_file = os.path.join(local_dev_dir, "local_file")
     net_file = os.path.join(net_dev_dir, "net_file")
-    with open(local_file, "wb") as fd:
-      fd.write("local_data")
-    with open(net_file, "wb") as fd:
-      fd.write("net_data")
+    with io.open(local_file, "wb") as fd:
+      fd.write(b"local_data")
+    with io.open(net_file, "wb") as fd:
+      fd.write(b"net_data")
 
     all_mountpoints = [local_dev_dir, net_dev_dir, "/some/other/dir"]
     local_mountpoints = [local_dev_dir]

@@ -14,7 +14,7 @@ import time
 from absl import app
 from future.builtins import range
 from future.utils import iteritems
-import ipaddr
+import ipaddress
 import portpicker
 import requests
 
@@ -51,7 +51,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     cls.httpd = frontend.GRRHTTPServer((ip, port),
                                        frontend.GRRHTTPServerHandler)
 
-    if ipaddr.IPAddress(ip).version == 6:
+    if ipaddress.ip_address(ip).version == 6:
       cls.address_family = socket.AF_INET6
       cls.base_url = "http://[%s]:%d/" % (ip, port)
     else:

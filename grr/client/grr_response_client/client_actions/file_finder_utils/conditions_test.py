@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import io
 import os
 import platform
+import re
 import subprocess
 import unittest
 
@@ -15,7 +17,6 @@ from absl.testing import absltest
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.util import filesystem
 from grr_response_core.lib.util import temp
 from grr.test_lib import filesystem_test_lib
@@ -25,12 +26,11 @@ from grr.test_lib import test_lib
 class RegexMatcherTest(absltest.TestCase):
 
   @staticmethod
-  def _RegexMatcher(string):
-    regex = rdf_standard.RegularExpression(string)
-    return conditions.RegexMatcher(regex)
+  def _RegexMatcher(regex):
+    return conditions.RegexMatcher(re.compile(regex))
 
   def testMatchLiteral(self):
-    matcher = self._RegexMatcher("foo")
+    matcher = self._RegexMatcher(b"foo")
 
     span = matcher.Match(b"foobar", 0)
     self.assertTrue(span)
@@ -43,7 +43,7 @@ class RegexMatcherTest(absltest.TestCase):
     self.assertEqual(span.end, 9)
 
   def testNoMatchLiteral(self):
-    matcher = self._RegexMatcher("baz")
+    matcher = self._RegexMatcher(b"baz")
 
     span = matcher.Match(b"foobar", 0)
     self.assertFalse(span)
@@ -52,7 +52,7 @@ class RegexMatcherTest(absltest.TestCase):
     self.assertFalse(span)
 
   def testMatchWildcard(self):
-    matcher = self._RegexMatcher("foo.*bar")
+    matcher = self._RegexMatcher(b"foo.*bar")
 
     span = matcher.Match(b"foobar", 0)
     self.assertTrue(span)
@@ -65,7 +65,7 @@ class RegexMatcherTest(absltest.TestCase):
     self.assertEqual(span.end, 13)
 
   def testMatchRepeated(self):
-    matcher = self._RegexMatcher("qu+x")
+    matcher = self._RegexMatcher(b"qu+x")
 
     span = matcher.Match(b"quuuux", 0)
     self.assertTrue(span)
@@ -464,10 +464,10 @@ class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
     with io.open(self.temp_filepath, "rb") as fd:
       results = list(condition.Search(fd))
     self.assertLen(results, 2)
-    self.assertEqual(results[0].data, "ooo")
+    self.assertEqual(results[0].data, b"ooo")
     self.assertEqual(results[0].offset, 2)
     self.assertEqual(results[0].length, 3)
-    self.assertEqual(results[1].data, "ooo")
+    self.assertEqual(results[1].data, b"ooo")
     self.assertEqual(results[1].offset, 5)
     self.assertEqual(results[1].length, 3)
 
@@ -479,7 +479,7 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
       fd.write(b"foo bar quux")
 
     params = rdf_file_finder.FileFinderCondition()
-    params.contents_regex_match.regex = "\\d+"
+    params.contents_regex_match.regex = b"\\d+"
     params.contents_regex_match.mode = "FIRST_HIT"
     condition = conditions.RegexMatchCondition(params)
 
@@ -492,7 +492,7 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
       fd.write(b"foo 7 bar 49 baz343")
 
     params = rdf_file_finder.FileFinderCondition()
-    params.contents_regex_match.regex = "\\d+"
+    params.contents_regex_match.regex = b"\\d+"
     params.contents_regex_match.mode = "ALL_HITS"
     condition = conditions.RegexMatchCondition(params)
 
@@ -514,14 +514,14 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
       fd.write(b"4 8 15 16 23 42 foo 108 bar")
 
     params = rdf_file_finder.FileFinderCondition()
-    params.contents_regex_match.regex = "[a-z]+"
+    params.contents_regex_match.regex = b"[a-z]+"
     params.contents_regex_match.mode = "FIRST_HIT"
     condition = conditions.RegexMatchCondition(params)
 
     with io.open(self.temp_filepath, "rb") as fd:
       results = list(condition.Search(fd))
     self.assertLen(results, 1)
-    self.assertEqual(results[0].data, "foo")
+    self.assertEqual(results[0].data, b"foo")
     self.assertEqual(results[0].offset, 16)
     self.assertEqual(results[0].length, 3)
 
@@ -530,7 +530,7 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
       fd.write(b"foobarbazbaaarquux")
 
     params = rdf_file_finder.FileFinderCondition()
-    params.contents_regex_match.regex = "ba+r"
+    params.contents_regex_match.regex = b"ba+r"
     params.contents_regex_match.mode = "ALL_HITS"
     params.contents_regex_match.bytes_before = 3
     params.contents_regex_match.bytes_after = 4

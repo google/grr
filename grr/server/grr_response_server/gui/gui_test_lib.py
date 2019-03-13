@@ -265,7 +265,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # Clear the cache of the approvals-based router.
     acrwac.ApiCallRouterWithApprovalChecks.ClearCache()
 
-    name = acrwac.ApiCallRouterWithApprovalChecks.__name__
+    name = compatibility.GetName(acrwac.ApiCallRouterWithApprovalChecks)
     config_overrider = test_lib.ConfigOverrider({"API.DefaultRouter": name})
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)

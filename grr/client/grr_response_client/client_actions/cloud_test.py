@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import os
 import platform
 import subprocess
@@ -61,9 +62,12 @@ class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
                    ("OS X cloud machines unsupported."))
   def testWindowsServiceQuery(self):
     project = mock.Mock(text="myproject")
-    sc_query_output = open(
-        os.path.join(config.CONFIG["Test.data_dir"],
-                     "scquery_output.txt")).read()
+
+    scquery_output_path = os.path.join(config.CONFIG["Test.data_dir"],
+                                       "scquery_output.txt")
+    with io.open(scquery_output_path, "rb") as filedesc:
+      sc_query_output = filedesc.read()
+
     arg = rdf_cloud.CloudMetadataRequests(requests=[
         rdf_cloud.CloudMetadataRequest(
             bios_version_regex=".*amazon",

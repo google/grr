@@ -222,7 +222,8 @@ def EnumerateUsersFromClient(args):
   for user, last_login in iteritems(users):
 
     # Lose the null termination
-    username = user.split("\x00", 1)[0]
+    username, _ = user.split(b"\x00", 1)
+    username = username.decode("utf-8")
 
     if username:
       # Somehow the last login time can be < 0. There is no documentation
@@ -232,8 +233,7 @@ def EnumerateUsersFromClient(args):
         last_login = 0
 
       result = rdf_client.User(
-          username=utils.SmartUnicode(username),
-          last_logon=last_login * 1000000)
+          username=username, last_logon=last_login * 1000000)
 
       try:
         pwdict = pwd.getpwnam(username)

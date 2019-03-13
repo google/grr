@@ -847,10 +847,7 @@ message CacheGrepArgs {
       description: "Type of path access to use."
     }, default=OS];
 
-  optional string data_regex = 3 [(sem_type) = {
-      type: "RegularExpression",
-      description: "A regular expression to search for.",
-    }];
+  optional bytes data_regex = 3;
 
   optional bool check_chrome = 5 [(sem_type) = {
       description: "Check Chrome",
@@ -1385,10 +1382,8 @@ message FileFinderContentsRegexMatchCondition {
     FIRST_HIT = 1;  // Stop after one hit.
   }
 
-  optional string regex = 4 [(sem_type) = {
-      type: "RegularExpression",
-      description: "The regular expression which will be used to search."
-    }];
+  // TODO: Remove reduntant semantic type here.
+  optional bytes regex = 4 [(sem_type) = { type: "RDFBytes" }];
 
   optional Mode mode = 6 [(sem_type) = {
       description: "When should searching stop? Stop after one hit "
@@ -1423,10 +1418,8 @@ message FileFinderContentsLiteralMatchCondition {
     FIRST_HIT = 1;  // Stop after one hit.
   }
 
-  optional bytes literal = 5 [(sem_type) = {
-      type: "LiteralExpression",
-      description: "Search for this literal string.",
-    }];
+  // TODO: Remove reduntant semantic type here.
+  optional bytes literal = 5 [(sem_type) = { type: "RDFBytes" }];
 
   optional Mode mode = 6 [(sem_type) = {
       description: "When should searching stop? Stop after one hit "

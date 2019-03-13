@@ -95,8 +95,11 @@ class FakeUnittestRunner(object):
 
 
 FAKE_E2E_TESTS = [
-    fake_tests.FakeE2ETestAll, fake_tests.FakeE2ETestDarwinLinux,
-    fake_tests.FakeE2ETestLinux, fake_tests.FakeE2ETestDarwin
+    fake_tests.FakeE2ETestAll,
+    fake_tests.FakeE2ETestDarwinLinux,
+    fake_tests.FakeE2ETestLinux,
+    fake_tests.FakeE2ETestDarwin,
+    fake_tests.FakeE2ETestManual,
 ]
 
 
@@ -263,6 +266,23 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
     self.assertEmpty(actual_results["FakeE2ETestLinux.testLinux"].errors)
 
     self.assertLen(self.requests_post.call_args_list, 3)
+
+  @mock.patch.dict(
+      test_base.REGISTRY, {tc.__name__: tc for tc in FAKE_E2E_TESTS},
+      clear=True)
+  def testManual(self):
+    api_client = self._CreateApiClient("Linux")
+    grr_api = FakeApi(client_data=api_client)
+    self.api_init_http.return_value = grr_api
+    self.unittest_runner.return_value = FakeUnittestRunner()
+
+    client_id = api_client.client_id
+
+    e2e_runner = self._CreateE2ETestRunner(manual_tests=["FakeE2ETestManual"])
+    e2e_runner.Initialize()
+
+    results, _ = e2e_runner.RunTestsAgainstClient(client_id)
+    self.assertIn("FakeE2ETestManual.testCommon", results)
 
   @mock.patch.dict(
       test_base.REGISTRY, {"FakeE2ETestAll": fake_tests.FakeE2ETestAll},

@@ -149,7 +149,7 @@ class DummyOutValue2(rdfvalue.RDFString):
 
 
 class TestConverter1(export.ExportConverter):
-  input_rdf_type = "DummySrcValue1"
+  input_rdf_type = DummySrcValue1
 
   def Convert(self, metadata, value, token=None):
     _ = token
@@ -157,7 +157,7 @@ class TestConverter1(export.ExportConverter):
 
 
 class TestConverter2(export.ExportConverter):
-  input_rdf_type = "DummySrcValue2"
+  input_rdf_type = DummySrcValue2
 
   def Convert(self, metadata, value, token=None):
     _ = metadata

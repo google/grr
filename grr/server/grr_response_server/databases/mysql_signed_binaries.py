@@ -5,8 +5,6 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-import MySQLdb
-
 from typing import Sequence, Tuple
 
 from grr_response_core.lib import rdfvalue
@@ -19,9 +17,10 @@ class MySQLDBSignedBinariesMixin(object):
   """Mixin providing a MySQL implementation of signed binaries DB logic."""
 
   @mysql_utils.WithTransaction()
-  def WriteSignedBinaryReferences(self, binary_id,
+  def WriteSignedBinaryReferences(self,
+                                  binary_id,
                                   references,
-                                  cursor):
+                                  cursor=None):
     """Writes blob references for a signed binary to the DB."""
     args = {
         "binary_type":
@@ -49,8 +48,7 @@ class MySQLDBSignedBinariesMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadSignedBinaryReferences(
       self, binary_id,
-      cursor
-  ):
+      cursor=None):
     """Reads blob references for the signed binary with the given id."""
     cursor.execute(
         """
@@ -71,8 +69,8 @@ class MySQLDBSignedBinariesMixin(object):
     return references, mysql_utils.MysqlToRDFDatetime(timestamp)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadIDsForAllSignedBinaries(self, cursor
-                                 ):
+  def ReadIDsForAllSignedBinaries(
+      self, cursor=None):
     """Returns ids for all signed binaries in the DB."""
     cursor.execute(
         "SELECT binary_type, binary_path FROM signed_binary_references")
@@ -82,8 +80,9 @@ class MySQLDBSignedBinariesMixin(object):
     ]
 
   @mysql_utils.WithTransaction()
-  def DeleteSignedBinaryReferences(self, binary_id,
-                                   cursor):
+  def DeleteSignedBinaryReferences(self,
+                                   binary_id,
+                                   cursor=None):
     """Deletes blob references for the given signed binary from the DB."""
     cursor.execute(
         """

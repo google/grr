@@ -65,7 +65,7 @@ class DummyRDFValue5(rdfvalue.RDFString):
 
 
 class DummyRDFValueConverter(export.ExportConverter):
-  input_rdf_type = "DummyRDFValue"
+  input_rdf_type = DummyRDFValue
 
   def Convert(self, metadata, value, token=None):
     _ = metadata
@@ -74,7 +74,7 @@ class DummyRDFValueConverter(export.ExportConverter):
 
 
 class DummyRDFValue3ConverterA(export.ExportConverter):
-  input_rdf_type = "DummyRDFValue3"
+  input_rdf_type = DummyRDFValue3
 
   def Convert(self, metadata, value, token=None):
     _ = metadata
@@ -83,7 +83,7 @@ class DummyRDFValue3ConverterA(export.ExportConverter):
 
 
 class DummyRDFValue3ConverterB(export.ExportConverter):
-  input_rdf_type = "DummyRDFValue3"
+  input_rdf_type = DummyRDFValue3
 
   def Convert(self, metadata, value, token=None):
     _ = metadata
@@ -94,7 +94,7 @@ class DummyRDFValue3ConverterB(export.ExportConverter):
 
 
 class DummyRDFValue4ToMetadataConverter(export.ExportConverter):
-  input_rdf_type = "DummyRDFValue4"
+  input_rdf_type = DummyRDFValue4
 
   def Convert(self, metadata, value, token=None):
     _ = value
@@ -103,7 +103,7 @@ class DummyRDFValue4ToMetadataConverter(export.ExportConverter):
 
 
 class DummyRDFValue5Converter(export.ExportConverter):
-  input_rdf_type = "DummyRDFValue5"
+  input_rdf_type = DummyRDFValue5
 
   def Convert(self, metadata, value, token=None):
     _ = metadata

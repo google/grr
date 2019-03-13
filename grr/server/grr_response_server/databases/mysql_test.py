@@ -720,6 +720,12 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testReadHuntClientResourcesStatsCorrectlyAggregatesData(self):
     pass
 
+  def testReadHuntFlowsStatesAndTimestampsWorksCorrectlyForMultipleFlows(self):
+    pass
+
+  def testReadHuntFlowsStatesAndTimestampsIgnoresNestedFlows(self):
+    pass
+
 
 if __name__ == "__main__":
   app.run(test_lib.main)

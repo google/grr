@@ -57,7 +57,7 @@ const TimerangeFormController =
 
     // Ensure onParamsChange_ gets called first so the default values don't
     // override the given scope values.
-    this.onParamsChange_();
+    this.onParamsChange_([this.startTimeSecs, this.durationSecs]);
   }.bind(this));
 
 };
@@ -68,15 +68,16 @@ const TimerangeFormController =
  *
  * @private
  */
-TimerangeFormController.prototype.onParamsChange_ = function() {
-  if(angular.isDefined(this.startTimeSecs)) {
+TimerangeFormController.prototype.onParamsChange_ = function(
+    [startTimeSecs, durationSecs]) {
+  if (startTimeSecs !== null) {
     // Conversion to μs.
-    this.formStartTime['value'] = this.startTimeSecs * 1e6;
+    this.formStartTime['value'] = startTimeSecs * 1e6;
   }
 
-  if(angular.isDefined(this.durationSecs)) {
+  if (durationSecs !== null) {
     // No conversion to μs, intentionally.
-    this.formDuration['value'] = this.durationSecs;
+    this.formDuration['value'] = durationSecs;
   }
 };
 
@@ -86,12 +87,15 @@ TimerangeFormController.prototype.onParamsChange_ = function() {
  *
  * @private
  */
-TimerangeFormController.prototype.onSubformsChange_ = function() {
-  // Conversion to s.
-  this.startTimeSecs = this.formStartTime['value'] / 1e6;
+TimerangeFormController.prototype.onSubformsChange_ = function(
+    [formStartTime, formDuration]) {
+  if (formStartTime !== null) {
+    // Conversion to s.
+    this.startTimeSecs = formStartTime / 1e6;
+  }
 
   // No conversion necessary, both variables are in s.
-  this.durationSecs = this.formDuration['value'];
+  this.durationSecs = formDuration;
 };
 
 

@@ -888,6 +888,29 @@ class DatabaseTestFlowMixin(object):
     # This one generates a request.
     self.assertEqual(requests_triggered, 1)
 
+  def testRewritingResponsesForRequestDoesNotTriggerAdditionalProcessing(self):
+    # Write a flow that is waiting for request #2.
+    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+
+    request = rdf_flow_objects.FlowRequest(
+        client_id=client_id, flow_id=flow_id, request_id=2)
+    self.db.WriteFlowRequests([request])
+
+    # Generate responses together with a status message.
+    responses = self._ResponsesAndStatus(client_id, flow_id, 2, 4)
+
+    with mock.patch.object(self.db.delegate,
+                           self.flow_processing_req_func) as req_func:
+      self.assertEqual(req_func.call_count, 0)
+
+      # Write responses. This should trigger flow request processing.
+      self.db.WriteFlowResponses(responses)
+      self.assertEqual(req_func.call_count, 1)
+
+      # Write responses again. No further processing should be triggered.
+      self.db.WriteFlowResponses(responses)
+      self.assertEqual(req_func.call_count, 1)
+
   def testResponsesAnyRequestTriggerClientMessageDeletion(self):
     # Write a flow that is waiting for request #2.
     client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)

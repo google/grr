@@ -60,16 +60,20 @@ class E2ETestRunner(object):
                api_password="",
                whitelisted_tests=None,
                blacklisted_tests=None,
+               manual_tests=None,
                upload_test_binaries=True,
                api_retry_period_secs=30.0,
                api_retry_deadline_secs=500.0,
                max_test_attempts=3):
+    # TODO(hanuszczak): Use the `precondition` module for validation here.
     if not api_endpoint:
       raise ValueError("GRR api_endpoint is required.")
     if isinstance(whitelisted_tests, string_types):
       raise ValueError("whitelisted_tests should be a list.")
     if isinstance(blacklisted_tests, string_types):
       raise ValueError("blacklisted_tests should be a list.")
+    if isinstance(manual_tests, string_types):
+      raise ValueError("manual_tests should be a list.")
     if max_test_attempts < 1:
       raise ValueError(
           "max_test_attempts (%d) must be at least 1." % max_test_attempts)
@@ -78,6 +82,7 @@ class E2ETestRunner(object):
     self._api_password = api_password
     self._whitelisted_tests = set(whitelisted_tests or set())
     self._blacklisted_tests = set(blacklisted_tests or set())
+    self._manual_tests = set(manual_tests or [])
     self._upload_test_binaries = upload_test_binaries
     self._api_retry_period_secs = api_retry_period_secs
     self._api_retry_deadline_secs = api_retry_deadline_secs
@@ -251,6 +256,11 @@ class E2ETestRunner(object):
     for test_class in itervalues(test_base.REGISTRY):
       if client.data.os_info.system not in test_class.platforms:
         continue
+
+      if test_class.MANUAL and test_class.__name__ not in self._manual_tests:
+        logging.info("Skipping manual test '%s'.", test_class.__name__)
+        continue
+
       test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
       for test in test_suite:
         test_name = "%s.%s" % (test_class.__name__, test._testMethodName)

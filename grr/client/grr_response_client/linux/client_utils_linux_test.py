@@ -122,35 +122,35 @@ class GetExtAttrsText(absltest.TestCase):
   def testMany(self):
     with temp.AutoTempFilePath() as temp_filepath:
       filesystem_test_lib.SetExtAttr(
-          temp_filepath, name="user.foo", value="bar")
+          temp_filepath, name=b"user.foo", value=b"bar")
       filesystem_test_lib.SetExtAttr(
-          temp_filepath, name="user.quux", value="norf")
+          temp_filepath, name=b"user.quux", value=b"norf")
 
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 
       self.assertLen(attrs, 2)
-      self.assertEqual(attrs[0].name, "user.foo")
-      self.assertEqual(attrs[0].value, "bar")
-      self.assertEqual(attrs[1].name, "user.quux")
-      self.assertEqual(attrs[1].value, "norf")
+      self.assertEqual(attrs[0].name, b"user.foo")
+      self.assertEqual(attrs[0].value, b"bar")
+      self.assertEqual(attrs[1].name, b"user.quux")
+      self.assertEqual(attrs[1].value, b"norf")
 
   def testIncorrectFilePath(self):
     attrs = list(client_utils_linux.GetExtAttrs("/foo/bar/baz/quux"))
 
     self.assertEmpty(attrs)
 
-  @mock.patch("xattr.listxattr", return_value=["user.foo", "user.bar"])
+  @mock.patch("xattr.listxattr", return_value=[b"user.foo", b"user.bar"])
   def testAttrChangeAfterListing(self, listxattr):
     with temp.AutoTempFilePath() as temp_filepath:
       filesystem_test_lib.SetExtAttr(
-          temp_filepath, name="user.bar", value="baz")
+          temp_filepath, name=b"user.bar", value=b"baz")
 
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 
       self.assertTrue(listxattr.called)
       self.assertLen(attrs, 1)
-      self.assertEqual(attrs[0].name, "user.bar")
-      self.assertEqual(attrs[0].value, "baz")
+      self.assertEqual(attrs[0].name, b"user.bar")
+      self.assertEqual(attrs[0].value, b"baz")
 
 
 def main(argv):

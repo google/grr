@@ -29,9 +29,12 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import rdf_yara
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
@@ -42,8 +45,13 @@ from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server import db
 from grr_response_server import file_store
+from grr_response_server import flow
+from grr_response_server import sequential_collection
+from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore
+from grr_response_server.check_lib import checks
 from grr_response_server.flows.general import collectors as flow_collectors
+from grr_response_server.hunts import results as hunt_results
 
 try:
   # pylint: disable=g-import-not-at-top
@@ -301,16 +309,16 @@ class ExportConverter(with_metaclass(registry.MetaclassRegistry, object)):
   def GetConvertersByClass(value_cls):
     """Returns all converters that take given value as an input value."""
     try:
-      return ExportConverter.converters_cache[value_cls.__name__]
+      return ExportConverter.converters_cache[value_cls]
     except KeyError:
       results = [
           cls for cls in itervalues(ExportConverter.classes)
-          if cls.input_rdf_type == value_cls.__name__
+          if cls.input_rdf_type == value_cls
       ]
       if not results:
         results = [DataAgnosticExportConverter]
 
-      ExportConverter.converters_cache[value_cls.__name__] = results
+      ExportConverter.converters_cache[value_cls] = results
       return results
 
   @staticmethod
@@ -413,7 +421,7 @@ class DataAgnosticExportConverter(ExportConverter):
 class StatEntryToExportedFileConverter(ExportConverter):
   """Converts StatEntry to ExportedFile."""
 
-  input_rdf_type = "StatEntry"
+  input_rdf_type = rdf_client_fs.StatEntry
 
   MAX_CONTENT_SIZE = 1024 * 64
 
@@ -646,7 +654,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
 class StatEntryToExportedRegistryKeyConverter(ExportConverter):
   """Converts StatEntry to ExportedRegistryKey."""
 
-  input_rdf_type = "StatEntry"
+  input_rdf_type = rdf_client_fs.StatEntry
 
   def Convert(self, metadata, stat_entry, token=None):
     """Converts StatEntry to ExportedRegistryKey.
@@ -690,7 +698,7 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
 class NetworkConnectionToExportedNetworkConnectionConverter(ExportConverter):
   """Converts NetworkConnection to ExportedNetworkConnection."""
 
-  input_rdf_type = "NetworkConnection"
+  input_rdf_type = rdf_client_network.NetworkConnection
 
   def Convert(self, metadata, conn, token=None):
     """Converts NetworkConnection to ExportedNetworkConnection."""
@@ -710,7 +718,7 @@ class NetworkConnectionToExportedNetworkConnectionConverter(ExportConverter):
 class ProcessToExportedProcessConverter(ExportConverter):
   """Converts Process to ExportedProcess."""
 
-  input_rdf_type = "Process"
+  input_rdf_type = rdf_client.Process
 
   def Convert(self, metadata, process, token=None):
     """Converts Process to ExportedProcess."""
@@ -747,7 +755,7 @@ class ProcessToExportedProcessConverter(ExportConverter):
 class ProcessToExportedNetworkConnectionConverter(ExportConverter):
   """Converts Process to ExportedNetworkConnection."""
 
-  input_rdf_type = "Process"
+  input_rdf_type = rdf_client.Process
 
   def Convert(self, metadata, process, token=None):
     """Converts Process to ExportedNetworkConnection."""
@@ -761,7 +769,7 @@ class ProcessToExportedNetworkConnectionConverter(ExportConverter):
 class ProcessToExportedOpenFileConverter(ExportConverter):
   """Converts Process to ExportedOpenFile."""
 
-  input_rdf_type = "Process"
+  input_rdf_type = rdf_client.Process
 
   def Convert(self, metadata, process, token=None):
     """Converts Process to ExportedOpenFile."""
@@ -771,7 +779,7 @@ class ProcessToExportedOpenFileConverter(ExportConverter):
 
 
 class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):
-  input_rdf_type = "Interface"
+  input_rdf_type = rdf_client_network.Interface
 
   def Convert(self, metadata, interface, token=None):
     """Converts Interface to ExportedNetworkInterfaces."""
@@ -798,7 +806,7 @@ class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):
 
 
 class DNSClientConfigurationToExportedDNSClientConfiguration(ExportConverter):
-  input_rdf_type = "DNSClientConfiguration"
+  input_rdf_type = rdf_client_network.DNSClientConfiguration
 
   def Convert(self, metadata, config, token=None):
     """Converts DNSClientConfiguration to ExportedDNSClientConfiguration."""
@@ -811,7 +819,7 @@ class DNSClientConfigurationToExportedDNSClientConfiguration(ExportConverter):
 
 class ClientSummaryToExportedNetworkInterfaceConverter(
     InterfaceToExportedNetworkInterfaceConverter):
-  input_rdf_type = "ClientSummary"
+  input_rdf_type = rdf_client.ClientSummary
 
   def Convert(self, metadata, client_summary, token=None):
     """Converts ClientSummary to ExportedNetworkInterfaces."""
@@ -822,7 +830,7 @@ class ClientSummaryToExportedNetworkInterfaceConverter(
 
 
 class ClientSummaryToExportedClientConverter(ExportConverter):
-  input_rdf_type = "ClientSummary"
+  input_rdf_type = rdf_client.ClientSummary
 
   def Convert(self, metadata, unused_client_summary, token=None):
     return [ExportedClient(metadata=metadata)]
@@ -831,7 +839,7 @@ class ClientSummaryToExportedClientConverter(ExportConverter):
 class BufferReferenceToExportedMatchConverter(ExportConverter):
   """Export converter for BufferReference instances."""
 
-  input_rdf_type = "BufferReference"
+  input_rdf_type = rdf_client.BufferReference
 
   def Convert(self, metadata, buffer_reference, token=None):
     yield ExportedMatch(
@@ -845,7 +853,7 @@ class BufferReferenceToExportedMatchConverter(ExportConverter):
 class FileFinderResultConverter(StatEntryToExportedFileConverter):
   """Export converter for FileFinderResult instances."""
 
-  input_rdf_type = "FileFinderResult"
+  input_rdf_type = rdf_file_finder.FileFinderResult
 
   def __init__(self, *args, **kwargs):
     super(FileFinderResultConverter, self).__init__(*args, **kwargs)
@@ -934,7 +942,7 @@ class RDFURNConverter(ExportConverter):
   and URNs are gone.
   """
 
-  input_rdf_type = "RDFURN"
+  input_rdf_type = rdfvalue.RDFURN
 
   def Convert(self, metadata, stat_entry, token=None):
     return self.BatchConvert([(metadata, stat_entry)], token=token)
@@ -978,20 +986,20 @@ class CollectionConverterBase(ExportConverter):
 
 
 class GrrMessageCollectionConverter(CollectionConverterBase):
-  input_rdf_type = "GrrMessageCollection"
+  input_rdf_type = sequential_collection.GrrMessageCollection
 
 
 class HuntResultCollectionConverter(CollectionConverterBase):
-  input_rdf_type = "HuntResultCollection"
+  input_rdf_type = hunt_results.HuntResultCollection
 
 
 class FlowResultCollectionConverter(CollectionConverterBase):
-  input_rdf_type = "FlowResultCollection"
+  input_rdf_type = flow.FlowResultCollection
 
 
 class VFSFileToExportedFileConverter(ExportConverter):
 
-  input_rdf_type = "VFSFile"
+  input_rdf_type = aff4_grr.VFSFile
 
   def Convert(self, metadata, vfs_file, token=None):
     stat_entry = vfs_file.Get(vfs_file.Schema.STAT)
@@ -1026,7 +1034,7 @@ class VFSFileToExportedFileConverter(ExportConverter):
 
 class RDFBytesToExportedBytesConverter(ExportConverter):
 
-  input_rdf_type = "RDFBytes"
+  input_rdf_type = rdfvalue.RDFBytes
 
   def Convert(self, metadata, data, token=None):
     result = ExportedBytes(
@@ -1036,7 +1044,7 @@ class RDFBytesToExportedBytesConverter(ExportConverter):
 
 class RDFStringToExportedStringConverter(ExportConverter):
 
-  input_rdf_type = "RDFString"
+  input_rdf_type = rdfvalue.RDFString
 
   def Convert(self, metadata, data, token=None):
     return [ExportedString(metadata=metadata, data=data.SerializeToString())]
@@ -1045,7 +1053,7 @@ class RDFStringToExportedStringConverter(ExportConverter):
 class DictToExportedDictItemsConverter(ExportConverter):
   """Export converter that converts Dict to ExportedDictItems."""
 
-  input_rdf_type = "Dict"
+  input_rdf_type = rdf_protodict.Dict
 
   def _IterateDict(self, d, key=""):
     if isinstance(d, (list, tuple)):
@@ -1102,7 +1110,7 @@ class GrrMessageConverter(ExportConverter):
   fetched from the client object pointed to by GrrMessage.source.
   """
 
-  input_rdf_type = "GrrMessage"
+  input_rdf_type = rdf_flows.GrrMessage
 
   def __init__(self, *args, **kw):
     super(GrrMessageConverter, self).__init__(*args, **kw)
@@ -1210,7 +1218,7 @@ class GrrMessageConverter(ExportConverter):
 
 
 class FileStoreHashConverter(ExportConverter):
-  input_rdf_type = "FileStoreHash"
+  input_rdf_type = filestore.FileStoreHash
 
   def Convert(self, metadata, stat_entry, token=None):
     """Convert a single FileStoreHash."""
@@ -1243,7 +1251,7 @@ class FileStoreHashConverter(ExportConverter):
 
 
 class CheckResultConverter(ExportConverter):
-  input_rdf_type = "CheckResult"
+  input_rdf_type = checks.CheckResult
 
   def Convert(self, metadata, checkresult, token=None):
     """Converts a single CheckResult.
@@ -1286,7 +1294,7 @@ class CheckResultConverter(ExportConverter):
 class ArtifactFilesDownloaderResultConverter(ExportConverter):
   """Converts ArtifactFilesDownloaderResult to its exported version."""
 
-  input_rdf_type = flow_collectors.ArtifactFilesDownloaderResult.__name__
+  input_rdf_type = flow_collectors.ArtifactFilesDownloaderResult
 
   def GetExportedResult(self,
                         original_result,
@@ -1399,7 +1407,7 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
 
 
 class YaraProcessScanResponseConverter(ExportConverter):
-  input_rdf_type = "YaraProcessScanMatch"
+  input_rdf_type = rdf_yara.YaraProcessScanMatch
 
   def Convert(self, metadata, yara_match, token=None):
     """Convert a single YaraProcessScanMatch."""
@@ -1424,8 +1432,7 @@ class YaraProcessScanResponseConverter(ExportConverter):
 class OsqueryExportConverter(ExportConverter):
   """An export converted class for transforming osquery table values."""
 
-  # TODO: RDF types should not be specified with a string.
-  input_rdf_type = "OsqueryTable"
+  input_rdf_type = rdf_osquery.OsqueryTable
 
   _rdf_cls_cache = {}
 

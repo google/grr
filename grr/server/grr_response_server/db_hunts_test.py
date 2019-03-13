@@ -1082,6 +1082,50 @@ class DatabaseTestHuntMixin(object):
       self.assertEqual(worst_performer.session_id.Path(),
                        "/%s/%s" % (client_id, flow_id))
 
+  def testReadHuntFlowsStatesAndTimestampsWorksCorrectlyForMultipleFlows(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    expected = []
+    for i in range(10):
+      client_id, flow_id = self._SetupHuntClientAndFlow(
+          hunt_id=hunt_obj.hunt_id)
+
+      if i % 2 == 0:
+        flow_state = rdf_flow_objects.Flow.FlowState.RUNNING
+      else:
+        flow_state = rdf_flow_objects.Flow.FlowState.FINISHED
+      self.db.UpdateFlow(client_id, flow_id, flow_state=flow_state)
+
+      flow_obj = self.db.ReadFlowObject(client_id, flow_id)
+      expected.append(
+          db.FlowStateAndTimestamps(
+              flow_state=flow_obj.flow_state,
+              create_time=flow_obj.create_time,
+              last_update_time=flow_obj.last_update_time))
+
+    state_and_times = self.db.ReadHuntFlowsStatesAndTimestamps(hunt_obj.hunt_id)
+    self.assertCountEqual(state_and_times, expected)
+
+  def testReadHuntFlowsStatesAndTimestampsIgnoresNestedFlows(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_obj.hunt_id)
+    self._SetupHuntClientAndFlow(
+        hunt_id=hunt_obj.hunt_id, parent_flow_id=flow_id)
+
+    state_and_times = self.db.ReadHuntFlowsStatesAndTimestamps(hunt_obj.hunt_id)
+    self.assertLen(state_and_times, 1)
+
+    flow_obj = self.db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(
+        state_and_times[0],
+        db.FlowStateAndTimestamps(
+            flow_state=flow_obj.flow_state,
+            create_time=flow_obj.create_time,
+            last_update_time=flow_obj.last_update_time))
+
   def testReadHuntOutputPluginLogEntriesReturnsEntryFromSingleHuntFlow(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
     self.db.WriteHuntObject(hunt_obj)

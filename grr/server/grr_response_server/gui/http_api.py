@@ -172,8 +172,9 @@ class RouterMatcher(object):
     router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(request.user)
     routing_map = self._GetRoutingMap(router)
 
-    matcher = routing_map.bind("%s:%s" % (request.environ["SERVER_NAME"],
-                                          request.environ["SERVER_PORT"]))
+    matcher = routing_map.bind(
+        "%s:%s" %
+        (request.environ["SERVER_NAME"], request.environ["SERVER_PORT"]))
     try:
       match = matcher.match(request.path, request.method)
     except werkzeug_exceptions.NotFound:
@@ -303,8 +304,8 @@ class HttpRequestHandler(object):
 
     if result.__class__ != expected_type:
       raise UnexpectedResultTypeError(
-          "Expected %s, but got %s." % (expected_type.__name__,
-                                        result.__class__.__name__))
+          "Expected %s, but got %s." %
+          (expected_type.__name__, result.__class__.__name__))
 
     return result
 
@@ -519,8 +520,9 @@ class HttpRequestHandler(object):
             token=token)
     except access_control.UnauthorizedAccess as e:
       error_message = str(e)
-      logging.exception("Access denied to %s (%s) with %s: %s", request.path,
-                        request.method, method_metadata.name, e)
+      logging.warning("Access denied for %s (HTTP %s %s): %s",
+                      method_metadata.name, request.method, request.path,
+                      error_message)
 
       additional_headers = {
           "X-GRR-Unauthorized-Access-Reason": error_message.replace("\n", ""),

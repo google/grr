@@ -6,12 +6,14 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
+import re
 
 
 from future.utils import with_metaclass
 from typing import Iterator
 from typing import NamedTuple
 from typing import Optional
+from typing import Pattern
 
 from grr_response_client import streaming
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -231,7 +233,9 @@ class RegexMatchCondition(ContentCondition):
     self.params = params.contents_regex_match
 
   def Search(self, fd):
-    matcher = RegexMatcher(self.params.regex)
+    regex = re.compile(self.params.regex.AsBytes(), flags=re.I | re.S | re.M)
+
+    matcher = RegexMatcher(regex)
     for match in self.Scan(fd, matcher):
       yield match
 
@@ -262,18 +266,17 @@ class RegexMatcher(Matcher):
     regex: An RDF regular expression that the matcher represents.
   """
 
-  # TODO(hanuszczak): This class should operate on normal Python regexes, not on
-  # RDF values.
-
   def __init__(self, regex):
+    precondition.AssertType(regex, Pattern)
+
     super(RegexMatcher, self).__init__()
-    self.regex = regex
+    self._regex = regex
 
   def Match(self, data, position):
     precondition.AssertType(data, bytes)
     precondition.AssertType(position, int)
 
-    match = self.regex.Search(data[position:])
+    match = self._regex.search(data[position:])
     if not match:
       return None
 
@@ -289,15 +292,17 @@ class LiteralMatcher(Matcher):
   """
 
   def __init__(self, literal):
+    precondition.AssertType(literal, bytes)
+
     super(LiteralMatcher, self).__init__()
-    self.literal = literal
+    self._literal = literal
 
   def Match(self, data, position):
     precondition.AssertType(data, bytes)
     precondition.AssertType(position, int)
 
-    offset = data.find(self.literal, position)
+    offset = data.find(self._literal, position)
     if offset == -1:
       return None
 
-    return Matcher.Span(begin=offset, end=offset + len(self.literal))
+    return Matcher.Span(begin=offset, end=offset + len(self._literal))

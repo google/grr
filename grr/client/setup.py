@@ -108,7 +108,11 @@ setup_args = dict(
 )
 
 if platform.system() == "Linux":
-  setup_args["install_requires"].append("chipsec==1.2.4")
+  # TODO: 1.3.6 is a beta branch that has to be installed from
+  # source. For now we only care about it for Python 3 compatibility, so it is
+  # fine to use older one in normal circumstances.
+  chipsec_version = "1.2.4" if sys.version_info < (3, 0) else "1.3.6"
+  setup_args["install_requires"].append("chipsec=={}".format(chipsec_version))
 
 if platform.system() != "Windows":
   setup_args["install_requires"].append("xattr==0.9.2")

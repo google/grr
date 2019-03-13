@@ -95,6 +95,10 @@ def StopHuntIfCrashLimitExceeded(hunt_id):
   """Stops the hunt if number of crashes exceeds the limit."""
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
 
+  # Do nothing if the hunt is already stopped.
+  if hunt_obj.hunt_state == rdf_hunt_objects.Hunt.HuntState.STOPPED:
+    return hunt_obj
+
   if hunt_obj.crash_limit:
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
     if hunt_counters.num_crashed_clients >= hunt_obj.crash_limit:

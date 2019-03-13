@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import hashlib
 import imp
+import io
 import os
 import platform
 import sys
@@ -90,22 +91,22 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
     # ls is not allowed
     (stdout, stderr, status, _) = client_utils_common.Execute("ls", ["."])
     self.assertEqual(status, -1)
-    self.assertEqual(stdout, "")
-    self.assertEqual(stderr, "Execution disallowed by whitelist.")
+    self.assertEqual(stdout, b"")
+    self.assertEqual(stderr, b"Execution disallowed by whitelist.")
 
     # "echo 1" is
     (stdout, stderr, status, _) = client_utils_common.Execute(
         "/bin/echo", ["1"])
     self.assertEqual(status, 0)
-    self.assertEqual(stdout, "1\n")
-    self.assertEqual(stderr, "")
+    self.assertEqual(stdout, b"1\n")
+    self.assertEqual(stderr, b"")
 
     # but not "echo 11"
     (stdout, stderr, status, _) = client_utils_common.Execute(
         "/bin/echo", ["11"])
     self.assertEqual(status, -1)
-    self.assertEqual(stdout, "")
-    self.assertEqual(stderr, "Execution disallowed by whitelist.")
+    self.assertEqual(stdout, b"")
+    self.assertEqual(stderr, b"Execution disallowed by whitelist.")
 
   def AppendTo(self, list_obj, element):
     list_obj.append(element)
@@ -147,51 +148,51 @@ class MultiHasherTest(absltest.TestCase):
 
   def testHashBufferSingleInput(self):
     hasher = client_utils_common.MultiHasher()
-    hasher.HashBuffer("foo")
+    hasher.HashBuffer(b"foo")
 
     hash_object = hasher.GetHashObject()
-    self.assertEqual(hash_object.num_bytes, len("foo"))
-    self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foo"))
-    self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foo"))
-    self.assertEqual(hash_object.sha256, self._GetHash(hashlib.sha256, "foo"))
+    self.assertEqual(hash_object.num_bytes, len(b"foo"))  # pylint: disable=g-generic-assert
+    self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, b"foo"))
+    self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, b"foo"))
+    self.assertEqual(hash_object.sha256, self._GetHash(hashlib.sha256, b"foo"))
 
   def testHashBufferMultiInput(self):
     hasher = client_utils_common.MultiHasher(["md5", "sha1"])
-    hasher.HashBuffer("foo")
-    hasher.HashBuffer("bar")
+    hasher.HashBuffer(b"foo")
+    hasher.HashBuffer(b"bar")
 
     hash_object = hasher.GetHashObject()
-    self.assertEqual(hash_object.num_bytes, len("foobar"))
-    self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foobar"))
-    self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foobar"))
+    self.assertEqual(hash_object.num_bytes, len(b"foobar"))  # pylint: disable=g-generic-assert
+    self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, b"foobar"))
+    self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, b"foobar"))
     self.assertFalse(hash_object.sha256)
 
   def testHashFileWhole(self):
     with temp.AutoTempFilePath() as tmp_path:
-      with open(tmp_path, "wb") as tmp_file:
-        tmp_file.write("foobar")
+      with io.open(tmp_path, "wb") as tmp_file:
+        tmp_file.write(b"foobar")
 
       hasher = client_utils_common.MultiHasher(["md5", "sha1"])
-      hasher.HashFilePath(tmp_path, len("foobar"))
+      hasher.HashFilePath(tmp_path, len(b"foobar"))
 
       hash_object = hasher.GetHashObject()
-      self.assertEqual(hash_object.num_bytes, len("foobar"))
-      self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foobar"))
-      self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foobar"))
+      self.assertEqual(hash_object.num_bytes, len(b"foobar"))  # pylint: disable=g-generic-assert
+      self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, b"foobar"))
+      self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, b"foobar"))
       self.assertFalse(hash_object.sha256)
 
   def testHashFilePart(self):
     with temp.AutoTempFilePath() as tmp_path:
-      with open(tmp_path, "wb") as tmp_file:
-        tmp_file.write("foobar")
+      with io.open(tmp_path, "wb") as tmp_file:
+        tmp_file.write(b"foobar")
 
       hasher = client_utils_common.MultiHasher(["md5", "sha1"])
-      hasher.HashFilePath(tmp_path, len("foo"))
+      hasher.HashFilePath(tmp_path, len(b"foo"))
 
       hash_object = hasher.GetHashObject()
-      self.assertEqual(hash_object.num_bytes, len("foo"))
-      self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foo"))
-      self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foo"))
+      self.assertEqual(hash_object.num_bytes, len(b"foo"))  # pylint: disable=g-generic-assert
+      self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, b"foo"))
+      self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, b"foo"))
       self.assertFalse(hash_object.sha256)
 
   def testHashBufferProgress(self):

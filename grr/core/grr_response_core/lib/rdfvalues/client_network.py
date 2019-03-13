@@ -5,6 +5,8 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
+import binascii
+
 from future.builtins import str
 
 import ipaddress
@@ -103,11 +105,12 @@ class MacAddress(rdfvalue.RDFBytes):
 
   @property
   def human_readable_address(self):
-    return self._value.encode("hex")
+    return binascii.hexlify(self._value).decode("ascii")
 
   @human_readable_address.setter
   def human_readable_address(self, value):
-    self._value = value.decode("hex")
+    precondition.AssertType(value, Text)
+    self._value = binascii.unhexlify(value.encode("ascii"))
 
 
 class Interface(rdf_structs.RDFProtoStruct):

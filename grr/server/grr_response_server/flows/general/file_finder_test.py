@@ -433,7 +433,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
                 mode="ALL_HITS",
                 bytes_before=10,
                 bytes_after=10,
-                regex="session opened for user .*?john")))
+                regex=b"session opened for user .*?john")))
 
     for action in self.CONDITION_TESTS_ACTIONS:
       results = self.RunFlowAndCheckResults(
@@ -460,7 +460,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
                 mode="ALL_HITS",
                 bytes_before=10,
                 bytes_after=10,
-                regex="session opened for user .*?john")))
+                regex=b"session opened for user .*?john")))
     regex_condition2 = rdf_file_finder.FileFinderCondition(
         condition_type=(
             rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
@@ -469,7 +469,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
                 mode="ALL_HITS",
                 bytes_before=10,
                 bytes_after=10,
-                regex="format.*should")))
+                regex=b"format.*should")))
 
     for action in self.CONDITION_TESTS_ACTIONS:
       results = self.RunFlowAndCheckResults(
@@ -499,13 +499,14 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
                 mode="ALL_HITS",
                 bytes_before=10,
                 bytes_after=10,
-                regex="session opened for user .*?john")))
+                regex=b"session opened for user .*?john")))
     regex_condition2 = rdf_file_finder.FileFinderCondition(
         condition_type=(
             rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
         contents_regex_match=(
             rdf_file_finder.FileFinderContentsRegexMatchCondition(
-                mode="FIRST_HIT", bytes_before=10, bytes_after=10, regex=".*")))
+                mode="FIRST_HIT", bytes_before=10, bytes_after=10,
+                regex=b".*")))
 
     for action in self.CONDITION_TESTS_ACTIONS:
       results = self.RunFlowAndCheckResults(
@@ -671,7 +672,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
                   .ALL_HITS),
             bytes_before=10,
             bytes_after=10,
-            regex="session opened for user .*?john"))
+            regex=b"session opened for user .*?john"))
 
     for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(

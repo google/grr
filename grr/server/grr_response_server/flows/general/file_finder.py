@@ -181,7 +181,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
     options = condition_options.contents_regex_match
     grep_spec = rdf_client_fs.GrepSpec(
         target=response.stat_entry.pathspec,
-        regex=options.regex,
+        regex=options.regex.AsBytes(),
         mode=options.mode,
         start_offset=options.start_offset,
         length=options.length,
@@ -205,7 +205,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
     options = condition_options.contents_literal_match
     grep_spec = rdf_client_fs.GrepSpec(
         target=response.stat_entry.pathspec,
-        literal=options.literal,
+        literal=options.literal.AsBytes(),
         mode=options.mode,
         start_offset=options.start_offset,
         length=options.length,

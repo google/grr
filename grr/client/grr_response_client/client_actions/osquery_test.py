@@ -62,8 +62,12 @@ class OsqueryTest(absltest.TestCase):
   def testHash(self):
     with temp.AutoTempFilePath() as filepath:
       content = b"foobarbaz"
-      md5 = binascii.hexlify(hashlib.md5(content).digest())
-      sha256 = binascii.hexlify(hashlib.sha256(content).digest())
+
+      md5_digest = hashlib.md5(content).digest()
+      sha256_digest = hashlib.sha256(content).digest()
+
+      md5 = binascii.hexlify(md5_digest).decode("ascii")
+      sha256 = binascii.hexlify(sha256_digest).decode("ascii")
 
       with io.open(filepath, "wb") as filedesc:
         filedesc.write(content)

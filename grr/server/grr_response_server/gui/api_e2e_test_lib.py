@@ -18,6 +18,7 @@ import portpicker
 from grr_api_client import api as grr_api
 from grr_api_client import utils as grr_api_utils
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import compatibility
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import webauth
@@ -87,8 +88,9 @@ class RootApiE2ETest(ApiE2ETest):
   def setUp(self):
     super(RootApiE2ETest, self).setUp()
 
+    default_router = RootApiBinaryManagementTestRouter
     root_api_config_overrider = test_lib.ConfigOverrider(
-        {"API.DefaultRouter": RootApiBinaryManagementTestRouter.__name__})
+        {"API.DefaultRouter": compatibility.GetName(default_router)})
     root_api_config_overrider.Start()
     self.addCleanup(root_api_config_overrider.Stop)
 

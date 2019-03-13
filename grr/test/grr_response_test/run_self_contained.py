@@ -45,6 +45,11 @@ flags.DEFINE_list(
     "If this flag is not specified, all tests available for the platform "
     "will run.")
 
+flags.DEFINE_list(
+    "manual_tests", [],
+    "A comma-separated list of extra tests to run (such tests are not run by "
+    "default and have to be manually enabled with this flag).")
+
 
 def GetServerComponentArgs(config_path):
   """Returns a set of command line arguments for server components.
@@ -358,6 +363,8 @@ def GetRunEndToEndTestsArgs(client_id, server_config):
   ]
   if flags.FLAGS.tests:
     args += ["--whitelisted_tests", ",".join(flags.FLAGS.tests)]
+  if flags.FLAGS.manual_tests:
+    args += ["--manual_tests", ",".join(flags.FLAGS.manual_tests)]
 
   return args
 

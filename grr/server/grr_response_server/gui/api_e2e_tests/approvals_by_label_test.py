@@ -12,6 +12,7 @@ from absl import app
 from grr_api_client import errors as grr_api_errors
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.util import compatibility
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.aff4_objects import aff4_grr
@@ -75,7 +76,7 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
     cls.ClearCache()
     approver = test_lib.ConfigOverrider({
         "API.DefaultRouter":
-            cls.__name__,
+            compatibility.GetName(cls),
         "ACL.approvers_config_file":
             os.path.join(self.base_path, "approvers.yaml")
     })

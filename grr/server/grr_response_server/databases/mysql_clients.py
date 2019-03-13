@@ -15,7 +15,7 @@ from future.utils import itervalues
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
 
-from typing import Generator, List, Optional, Text
+from typing import Generator, List, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -617,7 +617,7 @@ class MySQLDBClientMixin(object):
   def WriteClientStats(self,
                        client_id,
                        stats,
-                       cursor = None):
+                       cursor=None):
     """Stores a ClientStats instance."""
 
     try:
@@ -642,8 +642,7 @@ class MySQLDBClientMixin(object):
                       client_id,
                       min_timestamp,
                       max_timestamp,
-                      cursor = None
-                     ):
+                      cursor=None):
     """Reads ClientStats for a given client and time range."""
 
     cursor.execute(
@@ -687,11 +686,10 @@ class MySQLDBClientMixin(object):
         return
 
   @mysql_utils.WithTransaction()
-  def _DeleteClientStats(
-      self,
-      limit,
-      retention_time,
-      cursor = None):
+  def _DeleteClientStats(self,
+                         limit,
+                         retention_time,
+                         cursor=None):
     """Deletes up to `limit` ClientStats older than `retention_time`."""
     cursor.execute(
         "DELETE FROM client_stats WHERE timestamp < %s LIMIT %s",

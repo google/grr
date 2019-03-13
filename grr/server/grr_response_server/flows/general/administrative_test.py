@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import os
 import subprocess
 import sys
-import time
 
 
 from absl import app
@@ -27,6 +26,7 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -425,7 +425,8 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
         self.assertNotEqual(new_si.boot_time, si.boot_time)
 
         # Now set a new client build time.
-        with test_lib.ConfigOverrider({"Client.build_time": time.ctime()}):
+        build_time = compatibility.FormatTime("%a %b %d %H:%M:%S %Y")
+        with test_lib.ConfigOverrider({"Client.build_time": build_time}):
 
           # Run it again - this should now update the client info.
           self._RunSendStartupInfo(client_id)
@@ -767,7 +768,8 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
         self.assertNotEqual(new_si.boot_time, si.boot_time)
 
         # Now set a new client build time.
-        with test_lib.ConfigOverrider({"Client.build_time": time.ctime()}):
+        build_time = compatibility.FormatTime("%a %b %d %H:%M:%S %Y")
+        with test_lib.ConfigOverrider({"Client.build_time": build_time}):
 
           # Run it again - this should now update the client info.
           self._RunSendStartupInfo(client_id)

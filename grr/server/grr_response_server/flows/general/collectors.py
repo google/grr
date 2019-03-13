@@ -11,6 +11,7 @@ from future.builtins import map
 from future.builtins import str
 from future.utils import iteritems
 from future.utils import string_types
+from typing import Text
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
@@ -282,12 +283,12 @@ class ArtifactCollectorFlowMixin(object):
     if len(regex_list) == 1:
       return regex_list[0]
 
-    regex_combined = ""
+    regex_combined = b""
     for regex in regex_list:
       if regex_combined:
-        regex_combined = "%s|(%s)" % (regex_combined, regex)
+        regex_combined = b"%s|(%s)" % (regex_combined, regex)
       else:
-        regex_combined = "(%s)" % regex
+        regex_combined = b"(%s)" % regex
     return regex_combined
 
   def Grep(self, source, pathtype):
@@ -300,8 +301,18 @@ class ArtifactCollectorFlowMixin(object):
         once.
     """
     path_list = self.InterpolateList(source.attributes.get("paths", []))
-    content_regex_list = self.InterpolateList(
-        source.attributes.get("content_regex_list", []))
+
+    # `content_regex_list` elements should be binary strings, but forcing
+    # artifact creators to use verbose YAML syntax for binary literals would
+    # be cruel. Therefore, we allow both kind of strings and we convert to bytes
+    # if required.
+    content_regex_list = []
+    for content_regex in source.attributes.get("content_regex_list", []):
+      if isinstance(content_regex, Text):
+        content_regex = content_regex.encode("utf-8")
+      content_regex_list.append(content_regex)
+
+    content_regex_list = self.InterpolateList(content_regex_list)
 
     regex_condition = rdf_file_finder.FileFinderContentsRegexMatchCondition(
         regex=self._CombineRegex(content_regex_list),

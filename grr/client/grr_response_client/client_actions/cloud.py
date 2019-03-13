@@ -77,12 +77,13 @@ class GetCloudVMMetadata(actions.ActionPlugin):
     services = None
     if platform.system() == "Linux":
       bios_version = subprocess.check_output(self.BIOS_VERSION_COMMAND)
+      bios_version = bios_version.decode("utf-8")
     elif platform.system() == "Windows":
       cmd = [
           "%s\\System32\\sc.exe" % os.environ.get("SYSTEMROOT", r"C:\Windows"),
           "query"
       ]
-      services = subprocess.check_output(cmd)
+      services = subprocess.check_output(cmd).decode("utf-8")
     else:
       # Interrogate shouldn't call this client action on OS X machines at all,
       # so raise.

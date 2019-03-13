@@ -117,8 +117,9 @@ class BasicWebAuthManager(BaseWebAuthManager):
 
           # The password is ok - update the user
           request.user = user
-
-    except (IndexError, KeyError, IOError, access_control.UnauthorizedAccess):
+    except access_control.UnauthorizedAccess as e:
+      logging.warning("UnauthorizedAccess: %s for %s", e, request)
+    except (IndexError, KeyError, IOError):
       pass
 
     if not authorized:

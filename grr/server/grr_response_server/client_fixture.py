@@ -3957,8 +3957,10 @@ registry_data {
 }
 """
     })),
-    (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
-     r"NT/CurrentVersion/ProfileList/ProfilesDirectory", (aff4_grr.VFSFile, {
+    # TODO: Raw unicode strings are problematic because of the
+    # differences in handling `\u` escape sequence in Python 2 and Python 3.
+    ("/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
+     "NT/CurrentVersion/ProfileList/ProfilesDirectory", (aff4_grr.VFSFile, {
         "aff4:stat":
             """
 st_mode: 32768
@@ -3970,7 +3972,7 @@ pathspec {
   path: "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/ProfilesDirectory"
 }
 registry_data {
-  string: "%%SystemDrive%%\\Users"
+  string: "%%SystemDrive%%\\\\Users"
 }
 """
     })),
@@ -3992,9 +3994,11 @@ registry_data {
 """
     })),
 
+    # TODO: Raw unicode strings are problematic because of the
+    # differences in handling `\u` escape sequence in Python 2 and Python 3.
     (
-     r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
-     r"NT/CurrentVersion/ProfileList/S-1-5-21-702227068-2140022151-3110739409-1000/ProfileImagePath", (aff4_grr.VFSFile, {
+     "/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
+     "NT/CurrentVersion/ProfileList/S-1-5-21-702227068-2140022151-3110739409-1000/ProfileImagePath", (aff4_grr.VFSFile, {
         "aff4:stat":
             """
 st_mode: 32768
@@ -4006,14 +4010,16 @@ pathspec {
   path: "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/S-1-5-21-702227068-2140022151-3110739409-1000/ProfileImagePath"
 }
 registry_data {
-  string: "C:\\Users\\jim"
+  string: "C:\\\\Users\\\\jim"
 }
 """
     })),
 
+    # TODO: Raw unicode strings are problematic because of the
+    # differences in handling `\u` escape sequence in Python 2 and Python 3.
     (
-     r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
-     r"NT/CurrentVersion/ProfileList/S-1-5-21-702227000-2140022111-3110739999-1990/ProfileImagePath", (aff4_grr.VFSFile, {
+     "/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
+     "NT/CurrentVersion/ProfileList/S-1-5-21-702227000-2140022111-3110739999-1990/ProfileImagePath", (aff4_grr.VFSFile, {
         "aff4:stat":
             """
 st_mode: 32768
@@ -4025,7 +4031,7 @@ pathspec {
   path: "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/S-1-5-21-702227000-2140022111-3110739999-1990/ProfileImagePath"
 }
 registry_data {
-  string: "C:\\Users\\kovacs"
+  string: "C:\\\\Users\\\\kovacs"
 }
 """
     })),

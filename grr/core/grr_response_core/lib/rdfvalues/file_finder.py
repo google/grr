@@ -10,7 +10,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 
@@ -54,16 +53,14 @@ class FileFinderExtFlagsCondition(rdf_structs.RDFProtoStruct):
 
 class FileFinderContentsRegexMatchCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderContentsRegexMatchCondition
-  rdf_deps = [
-      rdf_standard.RegularExpression,
-  ]
+
+  rdf_deps = [rdfvalue.RDFBytes]
 
 
 class FileFinderContentsLiteralMatchCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderContentsLiteralMatchCondition
-  rdf_deps = [
-      rdf_standard.LiteralExpression,
-  ]
+
+  rdf_deps = [rdfvalue.RDFBytes]
 
 
 class FileFinderCondition(rdf_structs.RDFProtoStruct):

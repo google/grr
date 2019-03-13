@@ -290,7 +290,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
         os.path.join(self.base_path, "searching", "dpkg_false.log"),
         os.path.join(self.base_path, "searching", "auth.log")
     ]
-    content_regex_list = [r"mydo....\.com"]
+    content_regex_list = [br"mydo....\.com"]
     source = rdf_artifact.ArtifactSource(
         type=self.source_type.GREP,
         attributes={

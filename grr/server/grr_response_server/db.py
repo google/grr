@@ -338,6 +338,12 @@ HuntCounters = collections.namedtuple("HuntCounters", [
     "total_network_bytes_sent",
 ])
 
+FlowStateAndTimestamps = collections.namedtuple("FlowStateAndTimestamps", [
+    "flow_state",
+    "create_time",
+    "last_update_time",
+])
+
 
 class ClientPath(object):
   """An immutable class representing certain path on a given client.
@@ -2531,6 +2537,18 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def ReadHuntFlowsStatesAndTimestamps(self, hunt_id):
+    """Reads hunt flows states and timestamps.
+
+    Args:
+      hunt_id: The id of the hunt to read counters for.
+
+    Returns:
+      An iterable of FlowStateAndTimestamps objects (in no particular
+      sorting order).
+    """
+
+  @abc.abstractmethod
   def WriteSignedBinaryReferences(self, binary_id, references):
     """Writes blob references for a signed binary to the DB.
 
@@ -3725,6 +3743,10 @@ class DatabaseValidationWrapper(Database):
   def ReadHuntClientResourcesStats(self, hunt_id):
     _ValidateHuntId(hunt_id)
     return self.delegate.ReadHuntClientResourcesStats(hunt_id)
+
+  def ReadHuntFlowsStatesAndTimestamps(self, hunt_id):
+    _ValidateHuntId(hunt_id)
+    return self.delegate.ReadHuntFlowsStatesAndTimestamps(hunt_id)
 
   def WriteSignedBinaryReferences(self, binary_id, references):
     precondition.AssertType(binary_id, rdf_objects.SignedBinaryID)

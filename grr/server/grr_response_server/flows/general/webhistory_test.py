@@ -149,7 +149,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
           check_flow_errors=False,
           client_id=self.client_id,
           grep_users=["test"],
-          data_regex="ENIAC",
+          data_regex=b"ENIAC",
           pathtype=rdf_paths.PathSpec.PathType.TSK,
           token=self.token)
 

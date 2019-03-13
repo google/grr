@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 
 from absl import app
+from selenium.webdriver.common import keys
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
@@ -122,6 +123,27 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(lambda: "bar" in self.GetCurrentUrlPath())
     self.assertNotIn("start_time", self.GetCurrentUrlPath())
     self.assertNotIn("duration", self.GetCurrentUrlPath())
+
+
+class TestDateTimeInput(gui_test_lib.GRRSeleniumTest):
+  """Tests datetime-form-directive."""
+
+  def testInputAllowsInvalidText(self):
+    # Make "test" user an admin.
+    self.CreateAdminUser(u"test")
+
+    # Open any page that shows the datetime-form-directive.
+    self.Open("/#/stats/HuntApprovalsReportPlugin")
+
+    datetime_input = self.WaitUntil(self.GetVisibleElement,
+                                    "css=grr-form-datetime input")
+    value = datetime_input.get_attribute("value")
+    self.assertRegexpMatches(value, r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}")
+    self.assertStartsWith(value, "20")
+
+    datetime_input.send_keys(keys.Keys.BACKSPACE)
+    self.WaitUntilNot(self.IsTextPresent, value)
+    self.assertEqual(value[:-1], datetime_input.get_attribute("value"))
 
 
 if __name__ == "__main__":

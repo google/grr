@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import functools
 import logging
+import re
 import stat
 
 from grr_response_client import actions
@@ -61,7 +62,7 @@ class Find(actions.IteratedAction):
       if i < start:
         continue
 
-      if stat.S_ISDIR(file_stat.st_mode):
+      if stat.S_ISDIR(int(file_stat.st_mode)):
         # Do not traverse directories in a different filesystem.
         if self.request.cross_devs or self.filesystem_id == file_stat.st_dev:
           for child_stat in self.ListDirectory(file_stat.pathspec, state,
@@ -82,7 +83,7 @@ class Find(actions.IteratedAction):
     # Content regex check
     try:
 
-      data = ""
+      data = b""
       with vfs.VFSOpen(
           file_stat.pathspec, progress_callback=self.Progress) as fd:
         # Only read this much data from the file.
@@ -93,7 +94,8 @@ class Find(actions.IteratedAction):
           data += data_read
 
           # Got it.
-          if self.request.data_regex.Search(data):
+          regex = self.request.data_regex
+          if re.search(regex.AsBytes(), data, flags=re.I | re.S | re.M):
             return True
 
           # Keep a bit of context from the last buffer to ensure we dont miss a
@@ -210,7 +212,7 @@ class Grep(actions.ActionPlugin):
 
   def FindRegex(self, regex, data):
     """Search the data for a hit."""
-    for match in regex.FindIter(data):
+    for match in re.finditer(regex, data, flags=re.I | re.S | re.M):
       yield (match.start(), match.end())
 
   def FindLiteral(self, pattern, data):
@@ -297,7 +299,7 @@ class Grep(actions.ActionPlugin):
     self.xor_out_key = args.xor_out_key
 
     if args.regex:
-      find_func = functools.partial(self.FindRegex, args.regex)
+      find_func = functools.partial(self.FindRegex, args.regex.AsBytes())
     elif args.literal:
       find_func = functools.partial(self.FindLiteral, args.literal.AsBytes())
     else:

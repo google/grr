@@ -1177,7 +1177,7 @@ message ExecutePythonRequest {
 
 // Message containing response from ExecutePythonRequest.
 message ExecutePythonResponse {
-  optional bytes return_val = 1;
+  optional string return_val = 1;
   optional int32 time_used = 2;
 }
 
@@ -1261,10 +1261,8 @@ message GrepSpec {
       description: "How far (in bytes) into the file to search.",
     }, default = 10737418240];
 
-  optional string regex = 4 [(sem_type) = {
-      type: "RegularExpression",
-      description: "The regular expression which will be used to search."
-    }];
+  // TODO: Semantic type here should be unnecessary.
+  optional bytes regex = 4 [(sem_type) = { type: "RDFBytes" }];
 
   // A literal search.
   optional bytes literal = 5 [(sem_type) = {
@@ -1331,10 +1329,8 @@ message FindSpec {
       label: ADVANCED
     }];
 
-  optional string data_regex = 4 [(sem_type) = {
-      type: "RegularExpression",
-      description: "This matches the content of the file."
-    }];
+  // TODO: Semantic type here should be unnecessary.
+  optional bytes data_regex = 4 [(sem_type) = { type: "RDFBytes" }];
 
   optional uint64 start_time = 5 [(sem_type) = {
       type: "RDFDatetime",

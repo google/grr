@@ -833,8 +833,8 @@ class ProtoEnum(ProtoSignedInteger):
         checked_value = int(value)
       if checked_value is None:
         raise type_info.TypeValueError(
-            "Value %s is not a valid enum value for field %s" % (value,
-                                                                 self.name))
+            "Value %s is not a valid enum value for field %s" %
+            (value, self.name))
 
     return EnumNamedValue(checked_value, name=self.reverse_enum.get(value))
 
@@ -1145,8 +1145,8 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
       wrapped_data = wrapper_cls()
       wrapped_data.value = value.SerializeToDataStore()
 
-      type_name = (
-          "type.googleapis.com/google.protobuf.%s" % wrapper_cls.__name__)
+      type_name = ("type.googleapis.com/google.protobuf.%s" %
+                   wrapper_cls.__name__)
       data = wrapped_data.SerializeToString()
     else:
       raise ValueError(
@@ -1234,8 +1234,8 @@ class RepeatedFieldHelper(collections.Sequence, object):
       except (TypeError, ValueError) as e:
         raise type_info.TypeValueError(
             "Assignment value must be %s, but %s can not "
-            "be coerced. Error: %s" % (self.type_descriptor.proto_type_name,
-                                       type(rdf_value), e))
+            "be coerced. Error: %s" %
+            (self.type_descriptor.proto_type_name, type(rdf_value), e))
 
     self.wrapped_list.append((rdf_value, wire_format))
 
@@ -1939,8 +1939,9 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   @classmethod
   def AddDescriptor(cls, field_desc):
     if not isinstance(field_desc, ProtoType):
-      raise type_info.TypeValueError("%s field '%s' should be of type ProtoType"
-                                     % (cls.__name__, field_desc.name))
+      raise type_info.TypeValueError(
+          "%s field '%s' should be of type ProtoType" %
+          (cls.__name__, field_desc.name))
 
     cls.type_infos_by_field_number[field_desc.field_number] = field_desc
     cls.type_infos.Append(field_desc)
@@ -1971,6 +1972,9 @@ class EnumContainer(object):
       self.enum_dict[k] = v
       self.reverse_enum[v] = k
       setattr(self, k, v)
+
+  def FromInt(self, v):
+    return getattr(self, self.reverse_enum[v])
 
 
 class RDFProtoStruct(RDFStruct):
@@ -2130,8 +2134,9 @@ class RDFProtoStruct(RDFStruct):
   def AddDescriptor(cls, field_desc):
     """Register this descriptor with the Proto Struct."""
     if not isinstance(field_desc, ProtoType):
-      raise type_info.TypeValueError("%s field '%s' should be of type ProtoType"
-                                     % (cls.__name__, field_desc.name))
+      raise type_info.TypeValueError(
+          "%s field '%s' should be of type ProtoType" %
+          (cls.__name__, field_desc.name))
 
     # Ensure the field descriptor knows the class that owns it.
     field_desc.SetOwner(cls)

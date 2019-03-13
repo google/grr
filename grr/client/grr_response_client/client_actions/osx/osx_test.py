@@ -46,12 +46,12 @@ class OSXFilesystemTests(OSXClientTests):
         self.osx.client_utils_osx.StatFS64Struct, 7,
         open(path, "rb").read())
     self.assertLen(results, 7)
-    self.assertEqual(results[0].f_fstypename, "hfs")
-    self.assertEqual(results[0].f_mntonname, "/")
-    self.assertEqual(results[0].f_mntfromname, "/dev/disk0s2")
-    self.assertEqual(results[2].f_fstypename, "autofs")
-    self.assertEqual(results[2].f_mntonname, "/auto")
-    self.assertEqual(results[2].f_mntfromname, "map auto.auto")
+    self.assertEqual(results[0].f_fstypename, b"hfs")
+    self.assertEqual(results[0].f_mntonname, b"/")
+    self.assertEqual(results[0].f_mntfromname, b"/dev/disk0s2")
+    self.assertEqual(results[2].f_fstypename, b"autofs")
+    self.assertEqual(results[2].f_mntonname, b"/auto")
+    self.assertEqual(results[2].f_mntfromname, b"map auto.auto")
 
 
 class OSXEnumerateRunningServicesTest(OSXClientTests):
@@ -222,7 +222,7 @@ class ParseIfaddrsTest(OSXClientTests):
 
     results = list(self.osx.ParseIfaddrs(ctypes.pointer(ifaddr)))
     self.assertLen(results, 1)
-    self.assertEqual(results[0].ifname, name)
+    self.assertEqual(results[0].ifname, name.decode("utf-8"))
     self.assertEqual(results[0].mac_address, mac)
 
   def testMultiple(self):
@@ -254,28 +254,28 @@ class ParseIfaddrsTest(OSXClientTests):
 
     ifaddr = self.osx.Ifaddrs()
     ifaddr.ifa_next = None
-    ifaddr.ifa_name = ctypes.create_string_buffer("foo")
+    ifaddr.ifa_name = ctypes.create_string_buffer(b"foo")
     ifaddr.ifa_addr = ctypes.cast(
         ctypes.pointer(foo_sockaddrin), ctypes.POINTER(self.osx.Sockaddr))
 
     ifnext = ifaddr
     ifaddr = self.osx.Ifaddrs()
     ifaddr.ifa_next = ctypes.pointer(ifnext)
-    ifaddr.ifa_name = ctypes.create_string_buffer("foo")
+    ifaddr.ifa_name = ctypes.create_string_buffer(b"foo")
     ifaddr.ifa_addr = ctypes.cast(
         ctypes.pointer(foo_sockaddrdl), ctypes.POINTER(self.osx.Sockaddr))
 
     ifnext = ifaddr
     ifaddr = self.osx.Ifaddrs()
     ifaddr.ifa_next = ctypes.pointer(ifnext)
-    ifaddr.ifa_name = ctypes.create_string_buffer("bar")
+    ifaddr.ifa_name = ctypes.create_string_buffer(b"bar")
     ifaddr.ifa_addr = ctypes.cast(
         ctypes.pointer(bar_sockaddrdl), ctypes.POINTER(self.osx.Sockaddr))
 
     ifnext = ifaddr
     ifaddr = self.osx.Ifaddrs()
     ifaddr.ifa_next = ctypes.pointer(ifnext)
-    ifaddr.ifa_name = ctypes.create_string_buffer("bar")
+    ifaddr.ifa_name = ctypes.create_string_buffer(b"bar")
     ifaddr.ifa_addr = ctypes.cast(
         ctypes.pointer(bar_sockaddrin), ctypes.POINTER(self.osx.Sockaddr))
 
@@ -302,7 +302,7 @@ class ParseIfaddrsTest(OSXClientTests):
 
   def testNoAddr(self):
     ifaddr = self.osx.Ifaddrs()
-    ifaddr.ifa_name = ctypes.create_string_buffer("foo")
+    ifaddr.ifa_name = ctypes.create_string_buffer(b"foo")
 
     results = list(self.osx.ParseIfaddrs(ctypes.pointer(ifaddr)))
     self.assertLen(results, 1)

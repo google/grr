@@ -8,6 +8,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import platform
 import shutil
 import stat
 import sys
@@ -16,6 +17,7 @@ import threading
 
 
 import psutil
+from typing import Text
 
 from grr_response_client import actions
 from grr_response_client import client_utils
@@ -25,6 +27,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import precondition
 
 
 class Error(Exception):
@@ -207,6 +210,10 @@ def CreateGRRTempFileVFS(filename=None, lifetime=0, mode="w+b", suffix=""):
 
 
 def _CheckIfPathIsValidForDeletion(path, prefix=None, directories=None):
+  """Checks if given path is valid for deletion."""
+  precondition.AssertType(path, Text)
+  precondition.AssertType(prefix, Text)
+
   if prefix and os.path.basename(path).startswith(prefix):
     return True
 
@@ -234,6 +241,7 @@ def DeleteGRRTempFile(path):
     ErrorNotTempFile: Filename must start with Client.tempfile_prefix.
     ErrorNotAFile: File to delete does not exist.
   """
+  precondition.AssertType(path, Text)
 
   if not os.path.isabs(path):
     raise ErrorBadPath("Path must be absolute")
@@ -286,9 +294,17 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
     if args.path:
       # Normalize the path, so DeleteGRRTempFile can correctly check if
       # it is within Client.tempdir.
-      paths = [
-          client_utils.CanonicalPathToLocalPath(utils.NormalizePath(args.path))
-      ]
+      path = utils.NormalizePath(args.path)
+      if platform.system() == "Windows":
+        # TODO: On non-Windows systems `CanonicalPathToLocalPath`
+        # is equivalent to `SmartStr`, so it does nothing except for breaking
+        # the types. However, a lot of code actually depends on this behaviour
+        # so we cannot easily change it. As a workaround for now we simply do
+        # not call it on Linux and macOS but ideally we should get rid of this
+        # `SmartStr` call and not branch here.
+        path = client_utils.CanonicalPathToLocalPath(path)
+
+      paths = [path]
     else:
       paths = allowed_temp_dirs
 

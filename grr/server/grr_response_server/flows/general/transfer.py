@@ -750,7 +750,7 @@ class MultiGetFileLogic(object):
     hash_response = responses.First()
     if not responses.success or not hash_response:
       urn = file_tracker["stat_entry"].pathspec.AFF4Path(self.client_urn)
-      self.Log("Failed to read %s: %s" % (urn, responses.status))
+      self.Log("Failed to read %s: %s", urn, responses.status)
       self._FileFetchFailed(index, responses.request.request.name)
       return
 

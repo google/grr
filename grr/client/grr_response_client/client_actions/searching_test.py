@@ -216,7 +216,7 @@ class FindTest(client_test_lib.EmptyActionTest):
     pathspec = rdf_paths.PathSpec(
         path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, data_regex="Secret", cross_devs=True)
+        pathspec=pathspec, data_regex=b"Secret", cross_devs=True)
     request.iterator.number = 200
     result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client_fs.FindSpec)]
@@ -496,7 +496,7 @@ class FindExtAttrsTest(client_test_lib.EmptyActionTest):
         self.assertLen(hit.ext_attrs, 1)
         values.append(hit.ext_attrs[0].value)
 
-      self.assertCountEqual(values, ["foo", "bar", "baz"])
+      self.assertCountEqual(values, [b"foo", b"bar", b"baz"])
 
 
 class GrepTest(client_test_lib.EmptyActionTest):
@@ -542,7 +542,7 @@ class GrepTest(client_test_lib.EmptyActionTest):
     vfs.VFSInit().Run()
 
     request = rdf_client_fs.GrepSpec(
-        regex="1[0]",
+        regex=b"1[0]",
         xor_out_key=self.XOR_OUT_KEY,
         start_offset=0,
         target=rdf_paths.PathSpec(

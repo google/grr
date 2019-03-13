@@ -219,12 +219,10 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
 
   def __repr__(self):
     content = str(self)
-    if len(content) > 100:
-      content = content[:100] + "..."
 
     # Note %r, which prevents nasty nonascii characters from being printed,
     # including dangerous terminal escape sequences.
-    return "<%s(%r)>" % (self.__class__.__name__, content)
+    return "<%s(%r)>" % (compatibility.GetName(self.__class__), content)
 
 
 class RDFPrimitive(RDFValue):

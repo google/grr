@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 
 from absl import app
-import ipaddr
+import ipaddress
 import mock
 
 from google.protobuf import timestamp_pb2
@@ -544,7 +544,7 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
       ip_str, ipaddr_obj = client_plugin._GetAddrFromFleetspeak(client_id)
       self.assertEqual(ip_str, "100.1.1.100")
-      self.assertEqual(ipaddr_obj, ipaddr.IPAddress("100.1.1.100"))
+      self.assertEqual(ipaddr_obj, ipaddress.ip_address("100.1.1.100"))
 
   def testGetAddrFromFleetspeakIpV6(self):
     client_id = client_plugin.ApiClientId("C." + "1" * 16)
@@ -562,7 +562,7 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
       self.assertEqual(ip_str, "2001:0db8:85a3::8a2e:0370:7334")
       self.assertEqual(
           ipaddr_obj,
-          ipaddr.IPAddress("2001:0db8:85a3:0000:0000:8a2e:0370:7334"))
+          ipaddress.ip_address("2001:0db8:85a3:0000:0000:8a2e:0370:7334"))
 
   def testGetAddrFromFleetspeakMissing(self):
     client_id = client_plugin.ApiClientId("C." + "1" * 16)

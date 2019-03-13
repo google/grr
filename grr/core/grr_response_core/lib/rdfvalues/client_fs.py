@@ -200,6 +200,7 @@ class FindSpec(rdf_structs.RDFProtoStruct):
   """A find specification."""
   protobuf = jobs_pb2.FindSpec
   rdf_deps = [
+      rdfvalue.RDFBytes,
       rdf_paths.GlobExpression,
       rdf_client_action.Iterator,
       rdf_paths.PathSpec,
@@ -234,9 +235,9 @@ class BareGrepSpec(rdf_structs.RDFProtoStruct):
 class GrepSpec(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.GrepSpec
   rdf_deps = [
+      rdfvalue.RDFBytes,
       rdf_standard.LiteralExpression,
       rdf_paths.PathSpec,
-      rdf_standard.RegularExpression,
   ]
 
   def Validate(self):

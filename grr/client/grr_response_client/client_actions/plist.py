@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import io
-import types
 
 
 import biplist
@@ -66,7 +65,7 @@ class PlistQuery(actions.ActionPlugin):
       reply = rdf_protodict.RDFValueArray()
       for item in iterator:
         # As we're setting the context manually, we need to account for types
-        if isinstance(item, types.ListType):
+        if isinstance(item, list):
           for sub_item in item:
             partial_plist = plist_lib.PlistValueToPlainValue(sub_item)
             if matcher.Matches(partial_plist):

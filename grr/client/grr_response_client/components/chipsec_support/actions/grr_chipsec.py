@@ -11,6 +11,7 @@ import os
 import platform
 
 
+from future.builtins import bytes
 from future.builtins import range
 
 # pylint: disable=g-bad-import-order, g-import-not-at-top
@@ -95,7 +96,8 @@ class DumpFlashImage(actions.ActionPlugin):
         for i in range(0, spi_size, args.chunk_size):
           bios.extend(s.read_spi(i, args.chunk_size))
           self.Progress()
-        dest_fd.write(b"".join(bios))
+
+        dest_fd.write(bytes(bios))
 
     except (chipset.UnknownChipsetError, oshelper.OsHelperError) as err:
       # If the chipset is not recognised or if the helper threw an error,

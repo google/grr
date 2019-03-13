@@ -1244,19 +1244,20 @@ class ApiGetHuntClientCompletionStatsHandler(
     if target_size <= 0:
       target_size = 1000
 
-    # TODO: either use a dedicated API call or extend ReadHuntFlows
-    # to limit the amount of information to be processed/read.
-    flows = data_store.REL_DB.ReadHuntFlows(
-        str(args.hunt_id), offset=0, count=db.MAX_COUNT)
+    states_and_timestamps = data_store.REL_DB.ReadHuntFlowsStatesAndTimestamps(
+        str(args.hunt_id))
 
     started_clients = []
     completed_clients = []
 
-    for f in flows:
-      started_clients.append(rdfvalue.RDFURN(f.client_id, age=f.create_time))
-      if f.flow_state != f.FlowState.RUNNING:
+    # TODO(user): keeping using RDFURNs only to share _SampleClients and
+    # _Resample code between legacy and relational implementations.
+    # Get rid of RDFURNs as soon as AFF4 is gone.
+    for i, sat in enumerate(states_and_timestamps):
+      started_clients.append(rdfvalue.RDFURN(str(i), age=sat.create_time))
+      if sat.flow_state != rdf_flow_objects.Flow.FlowState.RUNNING:
         completed_clients.append(
-            rdfvalue.RDFURN(f.client_id, age=f.last_update_time))
+            rdfvalue.RDFURN(str(i), age=sat.last_update_time))
 
     (start_stats, complete_stats) = self._SampleClients(started_clients,
                                                         completed_clients)
