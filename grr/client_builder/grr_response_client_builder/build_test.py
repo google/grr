@@ -13,8 +13,8 @@ from absl import app
 from future.builtins import str
 import mock
 
+from grr_response_client_builder import build
 from grr_response_core import config
-from grr_response_core.lib import build
 from grr_response_core.lib import config_lib
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util import yaml

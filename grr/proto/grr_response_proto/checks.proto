@@ -25,28 +25,25 @@ enum Match {
 }
 
 message Check {
-  optional string check_id = 1 [(sem_type) = {
-    description: "A distinguishing identifier for an advisory."
-  }];
-  repeated Method method = 2 [(sem_type) = {
-    description: "A way to analyse the host."
-  }];
+  optional string check_id = 1 [
+    (sem_type) = { description: "A distinguishing identifier for an advisory." }
+  ];
+  repeated Method method = 2
+      [(sem_type) = { description: "A way to analyse the host." }];
   repeated Match match = 3 [(sem_type) = {
     description: "The condition is detected if the specified number of host "
                  "results exist after processing. Set to ANY, by default."
   }];
-  optional Target target = 4 [(sem_type) = {
-    description: "Limit this check to specific targets."
-  }];
+  optional Target target = 4
+      [(sem_type) = { description: "Limit this check to specific targets." }];
   optional Hint hint = 5 [(sem_type) = {
     description: "Textual descriptions of a problem, fix and/or findings."
   }];
 }
 
 message Method {
-  repeated Probe probe = 1 [(sem_type) = {
-    description: "A way to process some host data."
-  }];
+  repeated Probe probe = 1
+      [(sem_type) = { description: "A way to process some host data." }];
   repeated Match match = 2 [(sem_type) = {
     description: "The condition is detected if the specified number of host "
                  "results exist after processing. Set to ANY, by default."
@@ -54,9 +51,8 @@ message Method {
   repeated Dict resource = 3 [(sem_type) = {
     description: "Extra data (e.g. hint text, comparison data)."
   }];
-  optional Target target = 4 [(sem_type) = {
-    description: "Limit this method to specific targets."
-  }];
+  optional Target target = 4
+      [(sem_type) = { description: "Limit this method to specific targets." }];
   optional Hint hint = 5 [(sem_type) = {
     description: "Textual descriptions of a problem, fix and/or findings."
   }];
@@ -73,16 +69,18 @@ message Probe {
     ANOMALY = 2;
     RAW = 3;
   }
-  optional string artifact = 1 [(sem_type) = {
-    description: "The artifact that provides the host data."
-  }];
-  repeated string parser = 2 [(sem_type) = {
-    description: "Which parsers should process host data."
-  }];
-  optional Mode mode = 3 [default = SERIAL, (sem_type) = {
-    description: "How to apply filters. Serial runs data through each filter"
-                 "sequentially. Parallel applies each filter individually."
-  }];
+  optional string artifact = 1 [
+    (sem_type) = { description: "The artifact that provides the host data." }
+  ];
+  repeated string parser = 2
+      [(sem_type) = { description: "Which parsers should process host data." }];
+  optional Mode mode = 3 [
+    default = SERIAL,
+    (sem_type) = {
+      description: "How to apply filters. Serial runs data through each filter"
+                   "sequentially. Parallel applies each filter individually."
+    }
+  ];
   repeated Filter baseline = 4 [(sem_type) = {
     description: "One or more filters used to extract baseline data (e.g. "
                  "all the apt repos on a system). If defined, baseline data "
@@ -95,22 +93,23 @@ message Probe {
     description: "The condition is detected if the specified number of host "
                  "results exist after processing. Set to ANY, by default."
   }];
-  optional Target target = 7 [(sem_type) = {
-    description: "Limit this Probe to specific targets."
-  }];
+  optional Target target = 7
+      [(sem_type) = { description: "Limit this Probe to specific targets." }];
   optional Hint hint = 8 [(sem_type) = {
     description: "Textual descriptions of a problem, fix and/or findings."
   }];
-  optional ResultContext result_context = 9 [default = PARSER, (sem_type) = {
-    description: "Which stage of results in the artifact collection to use for "
-                 "the checks. Defaults to the registered artifact parsers."
-  }];
+  optional ResultContext result_context = 9 [
+    default = PARSER,
+    (sem_type) = {
+      description: "Which stage of results in the artifact collection to use for "
+                   "the checks. Defaults to the registered artifact parsers."
+    }
+  ];
 }
 
 message Filter {
-  optional string type = 1 [(sem_type) = {
-    description: "The type of filter to hand data to."
-  }];
+  optional string type = 1
+      [(sem_type) = { description: "The type of filter to hand data to." }];
   optional string expression = 2 [(sem_type) = {
     description: "A rule definition or match term used to pass runtime "
                  "parameters to a filter."
@@ -139,24 +138,20 @@ message CheckResult {
 // - update existing issues, if the check results vary from previous state.
 // - close existing issues, if the check indicates issues weren't found.
 message CheckResults {
-  optional KnowledgeBase kb = 1 [(sem_type) = {
-    description: "Details about the host."
-  }];
-  repeated CheckResult result = 2 [(sem_type) = {
-    description: "The check results for a host"
-  }];
+  optional KnowledgeBase kb = 1
+      [(sem_type) = { description: "Details about the host." }];
+  repeated CheckResult result = 2
+      [(sem_type) = { description: "The check results for a host" }];
 }
 
 // Information about what checks are looking for, what actions can be taken to
 // address an issue, and template text to present finding data in a usable,
 // condensed form when reporting problems.
 message Hint {
-  optional string problem = 1 [(sem_type) = {
-    description: "A description of the issue."
-  }];
-  optional string fix = 2 [(sem_type) = {
-    description: "A description of how to fix the issue."
-  }];
+  optional string problem = 1
+      [(sem_type) = { description: "A description of the issue." }];
+  optional string fix = 2
+      [(sem_type) = { description: "A description of how to fix the issue." }];
   optional string format = 3 [(sem_type) = {
     description: "A template expression to format finding for an issue."
   }];

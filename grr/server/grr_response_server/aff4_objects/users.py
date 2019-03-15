@@ -77,7 +77,7 @@ class GRRUser(aff4.AFF4Object):
   SYSTEM_USERS = set([
       "GRRWorker", "GRRCron", "GRRSystem", "GRRFrontEnd", "GRRConsole",
       "GRRArtifactRegistry", "GRRStatsStore", "GRREndToEndTest", "GRR",
-      "GRRBenchmarkTest"
+      "GRRBenchmarkTest", "Cron"
   ])
 
   _SYSTEM_USERS_LOWERCASE = set(username.lower() for username in SYSTEM_USERS)

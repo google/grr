@@ -90,6 +90,7 @@ class WindowsOsslsigncodeCodeSigner(CodeSigner):
 
     Args:
       in_buffer: data to sign
+
     Returns:
       signed data
     """
@@ -107,7 +108,8 @@ class WindowsOsslsigncodeCodeSigner(CodeSigner):
     Args:
       in_filename: file to read from
       out_filename: file to output to, if none we output to the same filename as
-                    the input with a .signed suffix.
+        the input with a .signed suffix.
+
     Returns:
       output filename string
     Raises:

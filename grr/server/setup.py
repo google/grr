@@ -163,6 +163,8 @@ setup_args = dict(
         "google-auth==1.2.1",
         "google-cloud-bigquery==0.22.1",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
+        "grr-response-client-builder==%s" %
+        VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "Jinja2==2.9.5",
         "pexpect==4.6.0",

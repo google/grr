@@ -15,7 +15,7 @@ from absl import app
 import mock
 import pexpect
 
-from grr_response_core.lib.builders import signing
+from grr_response_client_builder.builders import signing
 from grr.test_lib import test_lib
 
 

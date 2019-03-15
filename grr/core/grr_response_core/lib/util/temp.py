@@ -100,7 +100,11 @@ def TempFilePath(suffix = "", prefix = "tmp",
   elif root and not os.path.commonprefix([dir, root]):
     raise ValueError("path '%s' must start with '%s'" % (dir, root))
 
-  _, path = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=dir)
+  # `mkstemp` returns an open descriptor for the file. We don't care about it as
+  # we are only concerned with the path, but we need to close it first or else
+  # the file will remain open until the garbage collectors steps in.
+  desc, path = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=dir)
+  os.close(desc)
   return path
 
 

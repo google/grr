@@ -1,11 +1,12 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 readonly GRR_PKGS=(\
   'grr-response-proto' \
   'grr-response-core' \
   'grr-response-client' \
+  'grr-response-client-builder' \
   'grr-api-client' \
   'grr-response-server' \
   'grr-response-test' \
@@ -38,6 +39,8 @@ function build_sdists() {
       --dist-dir="${PWD}/sdists" --no-sync-artifacts
   python grr/client/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
+  python grr/client_builder/setup.py --quiet sdist \
+      --formats=zip --dist-dir="${PWD}/sdists"
   python api_client/python/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
   python grr/server/setup.py --quiet sdist \
@@ -54,9 +57,15 @@ function download_packages() {
     rm -rf local_pypi
   fi
 
+  # Get the name of a file in the sdists directory.
+  first_sdist="$(ls sdists | sort | head -1)"
+  # Truncate the name of the package from the filename; for instance,
+  # 'grr-api-client-3.2.4.post9.zip' becomes '3.2.4.post9.zip'.
+  version_extension="${first_sdist##*-}"
+
   for pkg in "${GRR_PKGS[@]}"; do
     # shellcheck disable=SC2086
-    pip download --find-links=sdists --dest=local_pypi "$(ls sdists/${pkg}-*.zip)"
+    pip download --find-links=sdists --dest=local_pypi "$(ls sdists/${pkg}-${version_extension})"
   done
 
   # Installation of the grr-response-test sdist from local_pypi will fail
@@ -67,8 +76,9 @@ function download_packages() {
 
 function verify_packages() {
   for pkg in "${GRR_PKGS[@]}"; do
+    pkg_regex="^${pkg}-[^\-]+\.zip$"
     # shellcheck disable=SC2086
-    pkg_count="$(ls local_pypi/${pkg}-* 2>/dev/null | wc -l)"
+    pkg_count="$(ls local_pypi | grep -P ${pkg_regex} 2>/dev/null | wc -l)"
     if [[ "${pkg_count}" -eq 0 ]]; then
       fatal "Failed to find sdist for ${pkg} in local_pypi."
     elif [[ "${pkg_count}" -gt 1 ]]; then

@@ -9,11 +9,6 @@ from absl import app
 # pylint: disable=g-import-not-at-top
 
 
-def ClientBuild():
-  from grr_response_client import client_build
-  client_build.Run()
-
-
 def Client():
   from grr_response_client import client
   app.run(client.main)

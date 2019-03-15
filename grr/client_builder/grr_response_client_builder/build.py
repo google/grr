@@ -47,10 +47,8 @@ from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 from grr_response_core import config
 from grr_response_core import version
 from grr_response_core.config import contexts
-from grr_response_core.lib import config_lib
 from grr_response_core.lib import config_validator_base
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 # Pull in local config validators.
 from grr_response_core.lib.local import plugins
@@ -246,20 +244,17 @@ class ClientBuilder(BuilderBase):
   def MakeExecutableTemplate(self, output_file=None):
     """Create the executable template.
 
-    Args:
-      output_file: string filename where we will write the template.
-
-    The client is build in two phases. First an executable template is created
+    The client is built in two phases. First an executable template is created
     with the client binaries contained inside a zip file. Then the installation
     package is created by appending the SFX extractor to this template and
-    writing a config file into the zip file.
+    writing a config file into the zip file.  This technique allows the
+    client build to be carried out once on the supported platform (e.g.
+    windows with MSVS), but the deployable installer can be build on any
+    platform which supports python.  Subclasses for each OS do the actual
+    work, we just make sure the output directory is set up correctly here.
 
-    This technique allows the client build to be carried out once on the
-    supported platform (e.g. windows with MSVS), but the deployable installer
-    can be build on any platform which supports python.
-
-    Subclasses for each OS do the actual work, we just make sure the output
-    directory is set up correctly here.
+    Args:
+      output_file: string filename where we will write the template.
     """
     self.template_file = output_file or config.CONFIG.Get(
         "ClientBuilder.template_path", context=self.context)
@@ -564,6 +559,7 @@ class WindowsClientRepacker(ClientRepacker):
     Args:
       payload_data: data payload for zip file
       output_path: filename for the zip output
+
     Raises:
       RuntimeError: if the ClientBuilder.unzipsfx_stub doesn't require admin.
     Returns:

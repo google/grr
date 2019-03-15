@@ -13,13 +13,13 @@ message Sample {
   optional string label = 1;
   optional uint64 x_value = 2;
   optional uint64 y_value = 3;
-};
+}
 
 message SampleFloat {
   optional string label = 1;
   optional float x_value = 2;
   optional float y_value = 3;
-};
+}
 
 message Graph {
   optional string title = 1;
@@ -28,7 +28,7 @@ message Graph {
   repeated Sample data = 4;
   optional uint32 x_scale = 5 [default = 1];
   optional uint32 y_scale = 6 [default = 1];
-};
+}
 
 message GraphFloat {
   optional string title = 1;
@@ -37,19 +37,18 @@ message GraphFloat {
   repeated SampleFloat data = 4;
   optional uint32 x_scale = 5 [default = 1];
   optional uint32 y_scale = 6 [default = 1];
-};
+}
 
 // The following relate to the timelining functionality.
 message Event {
-  optional uint64 timestamp = 1 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The event timestamp."
-    }];
+  optional uint64 timestamp = 1 [
+    (sem_type) = { type: "RDFDatetime", description: "The event timestamp." }
+  ];
 
   optional string source = 2 [(sem_type) = {
-      type: "RDFURN",
-      description: "The urn of the originating object for this event.",
-    }];
+    type: "RDFURN",
+    description: "The urn of the originating object for this event.",
+  }];
 
   // The name of the object which this event is talking about.
   optional string subject = 3;
@@ -60,7 +59,7 @@ message Event {
 
   // The sequential number of this event as stored in the time series.
   optional uint32 id = 6;
-};
+}
 
 // Container for graphs containing client stats for a particular report type.
 message ClientGraphSeries {

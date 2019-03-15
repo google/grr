@@ -1,6 +1,7 @@
 #!/bin/bash
-
-# Install grr into a virtualenv
+#
+# Installs the grr-response-client-builder package from source into a
+# virtualenv.
 
 set -e
 
@@ -43,3 +44,11 @@ python setup.py sdist
 pip install ./dist/grr-response-client-*.tar.gz
 cd -
 
+# Depends on grr-response-client.
+# Note that we can't do "python setup.py install" since setup.py
+# is configured to include version.ini as data and version.ini
+# only gets copied during sdist step.
+cd grr/client_builder
+python setup.py sdist
+pip install ./dist/grr-response-client-builder-*.tar.gz
+cd -

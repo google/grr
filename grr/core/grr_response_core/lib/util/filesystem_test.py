@@ -154,6 +154,20 @@ class StatTest(absltest.TestCase):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       temp_socketpath = os.path.join(temp_dirpath, "foo")
 
+      # There is a limit on maximum length for a socket path [1]. Most of the
+      # time, this should not be an issue (since generated paths are something
+      # like `/tmp/tmppqnrQsZ/foo`, way below this limit). However, on strange
+      # setups this might not always be the case. Since we don't want to fail
+      # the test on such configurations, we simply skip it.
+      #
+      # pylint: disable=line-too-long
+      # [1]: https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars
+      # pylint: enable=ling-too-long
+      if ((platform.system() == "Linux" and len(temp_socketpath) > 108) or
+          (platform.system() == "Darwin" and len(temp_socketpath) > 104)):
+        message = "Generated path '{}' is too long for a socket path"
+        self.skipTest(message.format(temp_socketpath))
+
       sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
       try:
         sock.bind(temp_socketpath)

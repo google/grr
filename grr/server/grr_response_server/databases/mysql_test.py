@@ -726,6 +726,12 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testReadHuntFlowsStatesAndTimestampsIgnoresNestedFlows(self):
     pass
 
+  def test40000ResponsesCanBeWrittenAndRead(self):
+    pass
+
+  def testWritesAndCounts40001FlowResults(self):
+    pass
+
 
 if __name__ == "__main__":
   app.run(test_lib.main)

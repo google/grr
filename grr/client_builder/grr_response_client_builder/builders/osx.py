@@ -12,8 +12,8 @@ import shutil
 import subprocess
 import zipfile
 
+from grr_response_client_builder import build
 from grr_response_core import config
-from grr_response_core.lib import build
 from grr_response_core.lib import package
 from grr_response_core.lib import utils
 

@@ -27,25 +27,6 @@ parser.add_argument(
     help="Destination directory for the templates.")
 
 parser.add_argument(
-    "--cloud_storage_sdist_bucket",
-    default=None,
-    help="If defined, copy sdists from this bucket rather than"
-    " building them.")
-
-parser.add_argument(
-    "--cloud_storage_output_bucket",
-    default=None,
-    help="If defined, build products will be copied to this "
-    "cloud storage bucket.")
-
-parser.add_argument(
-    "--gsutil",
-    default=(r"C:\Program Files (x86)\Google\Cloud "
-             r"SDK\google-cloud-sdk\bin\gsutil.cmd"),
-    help="gsutil binary. The default is the SDK install location since that's "
-    "likely the one the user has authorized their creds for")
-
-parser.add_argument(
     "--test_repack_install",
     action="store_true",
     default=False,
@@ -203,32 +184,15 @@ class WindowsTemplateBuilder(object):
     return glob.glob(os.path.join(args.build_dir,
                                   "grr-response-client-*.zip")).pop()
 
-  def CopySdistsFromCloudStorage(self):
-    """Use gsutil to copy sdists from cloud storage."""
+  def MakeClientBuilderSdist(self):
+    os.chdir(os.path.join(args.grr_src, "grr/client_builder/"))
     subprocess.check_call([
-        args.gsutil, "cp",
-        "gs://%s/grr-response-proto-*.zip" % args.cloud_storage_sdist_bucket,
-        args.build_dir
+        self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
+        "--dist-dir=%s" % args.build_dir
     ])
-    proto = glob.glob(os.path.join(args.build_dir,
-                                   "grr-response-proto-*.zip")).pop()
-
-    subprocess.check_call([
-        args.gsutil, "cp",
-        "gs://%s/grr-response-core-*.zip" % args.cloud_storage_sdist_bucket,
-        args.build_dir
-    ])
-    core = glob.glob(os.path.join(args.build_dir,
-                                  "grr-response-core-*.zip")).pop()
-
-    subprocess.check_call([
-        args.gsutil, "cp",
-        "gs://%s/grr-response-client-*.zip" % args.cloud_storage_sdist_bucket,
-        args.build_dir
-    ])
-    client = glob.glob(
-        os.path.join(args.build_dir, "grr-response-client-*.zip")).pop()
-    return proto, core, client
+    return glob.glob(
+        os.path.join(args.build_dir,
+                     "grr-response-client-builder-*.zip")).pop()
 
   def InstallGRR(self, path):
     """Installs GRR."""
@@ -346,33 +310,26 @@ class WindowsTemplateBuilder(object):
     subprocess.check_call([installer_amd64])
     self._CheckInstallSuccess()
 
-  def CopyResultsToCloudStorage(self):
-    paths = glob.glob("%s\\*" % args.output_dir)
-    subprocess.check_call([args.gsutil, "-m", "cp"] + paths +
-                          ["gs://%s/" % args.cloud_storage_output_bucket])
-
   def Build(self):
     """Build templates."""
     self.SetupVars()
     self.Clean()
-    if args.cloud_storage_sdist_bucket:
-      proto_sdist, core_sdist, client_sdist = self.CopySdistsFromCloudStorage()
-    else:
-      if not os.path.exists(args.grr_src):
-        self.GitCheckoutGRR()
-      proto_sdist = self.MakeProtoSdist()
-      core_sdist = self.MakeCoreSdist()
-      client_sdist = self.MakeClientSdist()
+
+    if not os.path.exists(args.grr_src):
+      self.GitCheckoutGRR()
+    proto_sdist = self.MakeProtoSdist()
+    core_sdist = self.MakeCoreSdist()
+    client_sdist = self.MakeClientSdist()
+    client_builder_sdist = self.MakeClientBuilderSdist()
 
     self.InstallGRR(proto_sdist)
     self.InstallGRR(core_sdist)
     self.InstallGRR(client_sdist)
+    self.InstallGRR(client_builder_sdist)
     self.BuildTemplates()
     if args.test_repack_install:
       self._RepackTemplates()
       self._InstallInstallers()
-    if args.cloud_storage_output_bucket:
-      self.CopyResultsToCloudStorage()
 
 
 def main():

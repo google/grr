@@ -14,8 +14,8 @@ import unittest
 from absl.testing import absltest
 import mock
 
-from grr_response_client import client_build
-from grr_response_core.lib import builders
+from grr_response_client_builder import builders
+from grr_response_client_builder import client_build
 from grr_response_core.lib.util import temp
 
 

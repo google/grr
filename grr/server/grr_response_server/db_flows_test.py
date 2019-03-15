@@ -48,7 +48,6 @@ class DatabaseTestFlowMixin(object):
     return client_id, flow_id
 
   def testClientMessageStorage(self):
-
     client_id = self.InitializeClient()
     msg = rdf_flows.GrrMessage(
         queue=client_id,
@@ -925,6 +924,65 @@ class DatabaseTestFlowMixin(object):
 
     self.assertFalse(self.db.ReadClientMessages(client_id))
 
+  def _WriteResponses(self, num):
+    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+
+    request = rdf_flow_objects.FlowRequest(
+        client_id=client_id, flow_id=flow_id, request_id=2)
+    self.db.WriteFlowRequests([request])
+
+    # Generate responses together with a status message.
+    responses = self._ResponsesAndStatus(client_id, flow_id, 2, num)
+
+    # Write responses. This should trigger flow request processing.
+    self.db.WriteFlowResponses(responses)
+
+    return request, responses
+
+  def test40000ResponsesCanBeWrittenAndRead(self):
+    request, responses = self._WriteResponses(40000)
+
+    expected_request = rdf_flow_objects.FlowRequest(
+        client_id=request.client_id,
+        flow_id=request.flow_id,
+        request_id=request.request_id,
+        needs_processing=True,
+        nr_responses_expected=40001)
+
+    rrp = self.db.ReadFlowRequestsReadyForProcessing(
+        request.client_id,
+        request.flow_id,
+        next_needed_request=request.request_id)
+    self.assertLen(rrp, 1)
+    fetched_request, fetched_responses = rrp[request.request_id]
+    self.assertEqual(fetched_request, expected_request)
+    self.assertEqual(fetched_responses, responses)
+
+    arrp = self.db.ReadAllFlowRequestsAndResponses(request.client_id,
+                                                   request.flow_id)
+    self.assertLen(arrp, 1)
+    fetched_request, fetched_responses = arrp[0]
+    self.assertEqual(fetched_request, expected_request)
+    self.assertEqual([r for _, r in sorted(fetched_responses.items())],
+                     responses)
+
+  def testDeleteAllFlowRequestsAndResponsesHandles11000Responses(self):
+    request, _ = self._WriteResponses(11000)
+
+    self.db.DeleteAllFlowRequestsAndResponses(request.client_id,
+                                              request.flow_id)
+    arrp = self.db.ReadAllFlowRequestsAndResponses(request.client_id,
+                                                   request.flow_id)
+    self.assertEmpty(arrp)
+
+  def testDeleteFlowRequestsHandles11000Responses(self):
+    request, _ = self._WriteResponses(11000)
+
+    self.db.DeleteFlowRequests([request])
+    arrp = self.db.ReadAllFlowRequestsAndResponses(request.client_id,
+                                                   request.flow_id)
+    self.assertEmpty(arrp)
+
   def testReadFlowForProcessingRaisesIfParentHuntIsStoppedOrCompleted(self):
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_state = hunt_obj.HuntState.STOPPED
@@ -1371,6 +1429,20 @@ class DatabaseTestFlowMixin(object):
       self.db.WriteFlowResults(sample_results)
 
     return sample_results
+
+  def testWritesAndCounts40001FlowResults(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_results = [
+        rdf_flow_objects.FlowResult(
+            client_id=client_id,
+            flow_id=flow_id,
+            payload=rdf_client.ClientSummary(client_id=client_id))
+    ] * 40001
+
+    self.db.WriteFlowResults(sample_results)
+
+    result_count = self.db.CountFlowResults(client_id, flow_id)
+    self.assertEqual(result_count, 40001)
 
   def testWritesAndReadsSingleFlowResultOfSingleType(self):
     client_id, flow_id = self._SetupClientAndFlow()

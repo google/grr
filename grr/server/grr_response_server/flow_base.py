@@ -244,14 +244,16 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
           cpu_usage.system_cpu_time, 0)
 
       if msg.cpu_limit == 0:
-        raise flow.FlowError("CPU limit exceeded.")
+        raise flow.FlowError("CPU limit exceeded for {} {}.".format(
+            self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
     if self.rdf_flow.network_bytes_limit:
       msg.network_bytes_limit = max(
           self.rdf_flow.network_bytes_limit - self.rdf_flow.network_bytes_sent,
           0)
       if msg.network_bytes_limit == 0:
-        raise flow.FlowError("Network limit exceeded.")
+        raise flow.FlowError("Network limit exceeded for {} {}.".format(
+            self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
     self.flow_requests.append(flow_request)
     self.client_messages.append(msg)
@@ -361,12 +363,14 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       system_cpu_total = self.rdf_flow.cpu_time_used.system_cpu_time
       if self.rdf_flow.cpu_limit < (user_cpu_total + system_cpu_total):
         # We have exceeded our limit, stop this flow.
-        raise flow.FlowError("CPU limit exceeded.")
+        raise flow.FlowError("CPU limit exceeded for {} {}.".format(
+            self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
     if (self.rdf_flow.network_bytes_limit and
         self.rdf_flow.network_bytes_limit < self.rdf_flow.network_bytes_sent):
       # We have exceeded our byte limit, stop this flow.
-      raise flow.FlowError("Network bytes limit exceeded.")
+      raise flow.FlowError("Network bytes limit exceeded {} {}.".format(
+          self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
   def Error(self, error_message=None, backtrace=None, status=None):
     """Terminates this flow with an error."""

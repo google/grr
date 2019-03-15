@@ -199,6 +199,10 @@ def _NotifyLegacy(username, notification_type, message, object_reference):
 def _Notify(username, notification_type, message, object_reference):
   """Schedules a new-style REL_DB user notification."""
 
+  # Do not try to notify system users (e.g. Cron).
+  if username in aff4_users.GRRUser.SYSTEM_USERS:
+    return
+
   if object_reference:
     uc = object_reference.UnionCast()
     if hasattr(uc, "client_id"):

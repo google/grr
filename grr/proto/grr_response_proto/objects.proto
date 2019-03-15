@@ -10,8 +10,8 @@ import "grr_response_proto/user.proto";
 message ClientLabel {
   optional string name = 1;
   optional string owner = 2 [(sem_type) = {
-      description: "Username of the user who added the label.",
-    }];
+    description: "Username of the user who added the label.",
+  }];
 }
 
 message StringMapEntry {
@@ -22,90 +22,89 @@ message StringMapEntry {
 // Next field: 17
 message ClientSnapshot {
   optional string client_id = 1 [(sem_type) = {
-      description: "The client id of this client.",
-    }];
+    description: "The client id of this client.",
+  }];
   repeated Filesystem filesystems = 2 [(sem_type) = {
-      description: "Mounted Filesystems",
-    }];
+    description: "Mounted Filesystems",
+  }];
   optional string os_release = 3 [(sem_type) = {
-      description: "OS Distribution or release.",
-    }];
+    description: "OS Distribution or release.",
+  }];
   optional string os_version = 4 [(sem_type) = {
-      description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
-    }];
+    description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
+  }];
   optional string arch = 5 [(sem_type) = {
-      description: "Architecture",
-    }];
+    description: "Architecture",
+  }];
   optional uint64 install_time = 6 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When system was installed.",
-    }]; // Called install_date in some legacy code.
+    type: "RDFDatetime",
+    description: "When system was installed.",
+  }];  // Called install_date in some legacy code.
   optional KnowledgeBase knowledge_base = 7 [(sem_type) = {
-      description: "Knowledge Base",
-    }];
+    description: "Knowledge Base",
+  }];
   repeated StringMapEntry grr_configuration = 8 [(sem_type) = {
-      description: "Running configuration for the GRR client.",
-    }];
+    description: "Running configuration for the GRR client.",
+  }];
   repeated StringMapEntry library_versions = 9 [(sem_type) = {
-      description: "Running library versions for the client.",
-    }];
+    description: "Running library versions for the client.",
+  }];
   optional string kernel = 10 [(sem_type) = {
-      description: "Kernel version string.",
-    }];
+    description: "Kernel version string.",
+  }];
   repeated Volume volumes = 11 [(sem_type) = {
-      description: "Client disk volumes.",
-    }];
+    description: "Client disk volumes.",
+  }];
   repeated Interface interfaces = 12 [(sem_type) = {
-      description: "Network interfaces.",
-    }];
+    description: "Network interfaces.",
+  }];
   optional HardwareInfo hardware_info = 13 [(sem_type) = {
-      description: "Various hardware information.",
-    }];
+    description: "Various hardware information.",
+  }];
   optional uint64 memory_size = 14 [(sem_type) = {
-      type: "ByteSize",
-      description: "Amount of memory this client's machine has.",
-    }];
+    type: "ByteSize",
+    description: "Amount of memory this client's machine has.",
+  }];
   optional CloudInstance cloud_instance = 15 [(sem_type) = {
-      description: "Information about cloud machines.",
-    }];
+    description: "Information about cloud machines.",
+  }];
   optional StartupInfo startup_info = 16 [(sem_type) = {
-      description: "Information about the GRR client.",
-    }];
+    description: "Information about the GRR client.",
+  }];
 }
-
 
 message ClientMetadata {
   optional bytes certificate = 1 [(sem_type) = {
-      type: "RDFX509Cert",
-    }];
+    type: "RDFX509Cert",
+  }];
   optional bool fleetspeak_enabled = 2;
   optional uint64 ping = 3 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The last time the server heard from this client.",
-    }];
+    type: "RDFDatetime",
+    description: "The last time the server heard from this client.",
+  }];
   optional uint64 clock = 4 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The last clock read on the client. "
-                   "(Can be used to estimate client clock skew).",
-    }];
+    type: "RDFDatetime",
+    description: "The last clock read on the client. "
+                 "(Can be used to estimate client clock skew).",
+  }];
   optional NetworkAddress ip = 5;
   optional uint64 last_foreman_time = 6 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The last time the foreman checked us.",
-    }];
+    type: "RDFDatetime",
+    description: "The last time the foreman checked us.",
+  }];
   optional uint64 first_seen = 7 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "First time the client registered with us",
-    }];
+    type: "RDFDatetime",
+    description: "First time the client registered with us",
+  }];
   optional uint64 last_crash_timestamp = 8 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Last time this client reported a crash.",
-    }];
+    type: "RDFDatetime",
+    description: "Last time this client reported a crash.",
+  }];
   optional uint64 startup_info_timestamp = 9 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Timestamp for the latest change of startup information for "
-                   "this client.",
-    }];
+    type: "RDFDatetime",
+    description: "Timestamp for the latest change of startup information for "
+                 "this client.",
+  }];
 }
 
 message ClientFullInfo {
@@ -143,12 +142,8 @@ message ApprovalRequest {
   optional string subject_id = 3;
   optional string requestor_username = 4;
   optional string reason = 5;
-  optional uint64 timestamp = 6 [(sem_type) = {
-      type: "RDFDatetime"
-    }];
-  optional uint64 expiration_time = 7 [(sem_type) = {
-      type: "RDFDatetime"
-    }];
+  optional uint64 timestamp = 6 [(sem_type) = { type: "RDFDatetime" }];
+  optional uint64 expiration_time = 7 [(sem_type) = { type: "RDFDatetime" }];
 
   optional string email_message_id = 11;
 
@@ -161,8 +156,8 @@ message ApprovalRequest {
 message ApprovalGrant {
   optional string grantor_username = 1;
   optional uint64 timestamp = 6 [(sem_type) = {
-      type: "RDFDatetime",
-    }];
+    type: "RDFDatetime",
+  }];
 }
 
 // Next field id: 9.
@@ -240,12 +235,11 @@ message CronJobReference {
 }
 
 message FlowReference {
-  optional string flow_id = 1 [(sem_type) = {
-      description: "The session id of the referenced flow."
-    }];
-  optional string client_id = 2 [(sem_type) = {
-      description: "The client id the referenced flow ran on."
-    }];
+  optional string flow_id = 1
+      [(sem_type) = { description: "The session id of the referenced flow." }];
+  optional string client_id = 2 [
+    (sem_type) = { description: "The client id the referenced flow ran on." }
+  ];
 }
 
 // Next field id: 4
@@ -292,9 +286,7 @@ message UserNotification {
   optional string username = 1;
   optional Type notification_type = 2;
   optional State state = 3;
-  optional uint64 timestamp = 4 [(sem_type) = {
-      type: "RDFDatetime"
-    }];
+  optional uint64 timestamp = 4 [(sem_type) = { type: "RDFDatetime" }];
 
   optional string message = 5;
   optional ObjectReference reference = 6;
@@ -303,13 +295,9 @@ message UserNotification {
 message MessageHandlerRequest {
   optional string client_id = 1;
   optional string handler_name = 2;
-  optional uint64 timestamp = 3 [(sem_type) = {
-      type: "RDFDatetime"
-    }];
+  optional uint64 timestamp = 3 [(sem_type) = { type: "RDFDatetime" }];
   optional uint64 request_id = 4;
-  optional uint64 leased_until = 5 [(sem_type) = {
-      type: "RDFDatetime"
-    }];
+  optional uint64 leased_until = 5 [(sem_type) = { type: "RDFDatetime" }];
   optional string leased_by = 6;
   optional EmbeddedRDFValue request = 7;
 }

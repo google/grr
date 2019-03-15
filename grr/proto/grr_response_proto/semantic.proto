@@ -1,7 +1,6 @@
 syntax = "proto2";
 
-import "google/protobuf/descriptor.proto";  // for FieldOptions
-
+import "google/protobuf/descriptor.proto"; // for FieldOptions
 
 
 message SemanticDescriptor {
@@ -19,14 +18,13 @@ message SemanticDescriptor {
                    // only.
     HIDDEN = 2;    // Field should be hidden from UIs - typically for internally
                    // generated and used fields.
-  };
+  }
 
   repeated Labels label = 3;
 
   // A friendly name for this field - to be used in GUIs etc.
   optional string friendly_name = 4;
 }
-
 
 message SemanticMessageDescriptor {
   // Describe the purpose of this protobuf.

@@ -18,11 +18,11 @@ from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
+from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import repacking
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import maintenance_utils

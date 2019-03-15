@@ -31,7 +31,7 @@ matrix:
         - pip install --upgrade virtualenv
         - virtualenv "${HOME}/INSTALL"
       install:
-        - travis/install_client_only.sh
+        - travis/install_client_builder.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
         - travis/build_templates.sh
@@ -55,7 +55,7 @@ matrix:
         - pip install --upgrade virtualenv
         - virtualenv "${HOME}/INSTALL"
       install:
-        - travis/install_client_only.sh
+        - travis/install_client_builder.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
         - travis/build_templates.sh
@@ -96,7 +96,7 @@ matrix:
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          travis/install_client_only.sh
+          travis/install_client_builder.sh
       script:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
@@ -141,7 +141,7 @@ matrix:
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          travis/install_client_only.sh
+          travis/install_client_builder.sh
       script:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
@@ -185,7 +185,7 @@ matrix:
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          linux32 travis/install_client_only.sh
+          linux32 travis/install_client_builder.sh
       script:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
@@ -229,7 +229,7 @@ matrix:
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          linux32 travis/install_client_only.sh
+          linux32 travis/install_client_builder.sh
       script:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"

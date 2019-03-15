@@ -11,7 +11,6 @@ from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -313,17 +312,12 @@ class KnowledgeBaseInitializationFlowMixin(object):
                              "without this being set in the artifact "
                              "provides setting: %s" % (provides, artifact_obj))
 
-          if isinstance(value, rdfvalue.RDFString):
-            value = utils.SmartStr(value)
-          elif hasattr(value, "registry_data"):
+          if hasattr(value, "registry_data"):
             value = value.registry_data.GetValue()
 
           if value:
-            logging.debug("Set KB %s to %s", provides, value)
             self.state.knowledge_base.Set(provides, value)
             provided.add(provides)
-          else:
-            logging.debug("Empty KB return value for %s", provides)
 
     return provided
 

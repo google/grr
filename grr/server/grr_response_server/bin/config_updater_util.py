@@ -35,8 +35,8 @@ from grr_response_server import server_plugins
 
 from grr_api_client import api
 from grr_api_client import errors as api_errors
+from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
-from grr_response_core.lib import repacking
 from grr_response_server import access_control
 from grr_response_server import maintenance_utils
 from grr_response_server import server_startup

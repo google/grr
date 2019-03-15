@@ -10,8 +10,8 @@ import "grr_response_proto/semantic.proto";
 
 message ClientActionRunnerArgs {
   optional string action = 1 [(sem_type) = {
-      description: "Action to run.",
-    }];
+    description: "Action to run.",
+  }];
 }
 
 message BadArgsFlow1Args {
@@ -32,9 +32,12 @@ message RecursiveTestFlowArgs {
 }
 
 message MultiGetFileTestFlowArgs {
-  optional uint64 file_limit = 1 [(sem_type) = {
+  optional uint64 file_limit = 1 [
+    (sem_type) = {
       description: "The number of files to retrieve.",
-    }, default=3];
+    },
+    default = 3
+  ];
 }
 
 // Used for DataAgnosticConverter tests.
@@ -54,11 +57,11 @@ message DataAgnosticConverterTestValue {
   optional EnumOption another_enum_value = 7 [default = OPTION_2];
 
   optional string urn_value = 8 [(sem_type) = {
-      type: "RDFURN",
-    }];
+    type: "RDFURN",
+  }];
   optional uint64 datetime_value = 9 [(sem_type) = {
-      type: "RDFDatetime",
-    }];
+    type: "RDFDatetime",
+  }];
 }
 
 // Used for DataAgnosticConverter tests.
@@ -98,12 +101,8 @@ message SampleGetHandlerResult {
 }
 
 message ApiRDFProtoStructRendererSample {
-  optional uint64 index = 1 [(sem_type) = {
-      description: "Sample index."
-    }];
-  repeated string values = 2 [(sem_type) = {
-      description: "Sample values."
-    }];
+  optional uint64 index = 1 [(sem_type) = { description: "Sample index." }];
+  repeated string values = 2 [(sem_type) = { description: "Sample values." }];
 }
 
 message SampleDeleteHandlerArgs {

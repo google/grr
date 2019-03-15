@@ -11,8 +11,8 @@ import shutil
 import subprocess
 import zipfile
 
+from grr_response_client_builder import build
 from grr_response_core import config
-from grr_response_core.lib import build
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import package
 from grr_response_core.lib import utils
@@ -44,8 +44,8 @@ class LinuxClientBuilder(build.ClientBuilder):
     self.StripLibraries(self.output_dir)
 
   def MakeExecutableTemplate(self, output_file=None):
-    super(LinuxClientBuilder, self).MakeExecutableTemplate(
-        output_file=output_file)
+    super(LinuxClientBuilder,
+          self).MakeExecutableTemplate(output_file=output_file)
     self.MakeBuildDirectory()
     self.CleanDirectory(
         config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context))
@@ -74,20 +74,23 @@ class LinuxClientBuilder(build.ClientBuilder):
     # Copy upstart files
     outdir = os.path.join(dpkg_dir, "debian/upstart.in")
     utils.EnsureDirExists(outdir)
-    shutil.copy(config_lib.Resource().Filter(
-        "install_data/debian/dpkg_client/upstart/grr-client.conf"), outdir)
+    shutil.copy(
+        config_lib.Resource().Filter(
+            "install_data/debian/dpkg_client/upstart/grr-client.conf"), outdir)
 
     # Copy init files
     outdir = os.path.join(dpkg_dir, "debian/initd.in")
     utils.EnsureDirExists(outdir)
-    shutil.copy(config_lib.Resource().Filter(
-        "install_data/debian/dpkg_client/initd/grr-client"), outdir)
+    shutil.copy(
+        config_lib.Resource().Filter(
+            "install_data/debian/dpkg_client/initd/grr-client"), outdir)
 
     # Copy systemd unit file
     outdir = os.path.join(dpkg_dir, "debian/systemd.in")
     utils.EnsureDirExists(outdir)
-    shutil.copy(config_lib.Resource().Filter(
-        "install_data/systemd/client/grr-client.service"), outdir)
+    shutil.copy(
+        config_lib.Resource().Filter(
+            "install_data/systemd/client/grr-client.service"), outdir)
 
   def MakeZip(self, input_dir, output_file):
     """Creates a ZIP archive of the files in the input directory.
@@ -126,11 +129,13 @@ class CentosClientBuilder(LinuxClientBuilder):
         os.path.join(build_dir, "rpmbuild/grr-client.initd.in"))
 
     # Copy systemd unit file
-    shutil.copy(config_lib.Resource().Filter(
-        "install_data/systemd/client/grr-client.service"),
-                os.path.join(build_dir, "rpmbuild/grr-client.service.in"))
+    shutil.copy(
+        config_lib.Resource().Filter(
+            "install_data/systemd/client/grr-client.service"),
+        os.path.join(build_dir, "rpmbuild/grr-client.service.in"))
 
     # Copy prelink blacklist file
-    shutil.copy(config_lib.Resource().Filter(
-        "install_data/centos/prelink_blacklist.conf.in"),
-                os.path.join(build_dir, "rpmbuild/prelink_blacklist.conf.in"))
+    shutil.copy(
+        config_lib.Resource().Filter(
+            "install_data/centos/prelink_blacklist.conf.in"),
+        os.path.join(build_dir, "rpmbuild/prelink_blacklist.conf.in"))

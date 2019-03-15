@@ -16,11 +16,11 @@ import zipfile
 
 from future.utils import iterkeys
 
+from grr_response_client_builder import build
+from grr_response_client_builder.builders import signing
 from grr_response_core import config
-from grr_response_core.lib import build
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.builders import signing
 
 
 class RepackConfig(object):
@@ -157,8 +157,8 @@ class TemplateRepacker(object):
       sign: If true, we want to digitally sign the installer.
       context: Array of context strings
       signed_template: If true, the libraries in the template are already
-      signed. This is only used for windows when repacking the template multiple
-      times.
+        signed. This is only used for windows when repacking the template
+        multiple times.
 
     Returns:
       A list of output installers generated.
@@ -174,10 +174,10 @@ class TemplateRepacker(object):
       if context:
         repack_context.extend(context)
 
-      output_path = os.path.join(output_dir,
-                                 config.CONFIG.Get(
-                                     "ClientRepacker.output_filename",
-                                     context=repack_context))
+      output_path = os.path.join(
+          output_dir,
+          config.CONFIG.Get(
+              "ClientRepacker.output_filename", context=repack_context))
 
       print("Using context: %s and labels: %s" %
             (repack_context,

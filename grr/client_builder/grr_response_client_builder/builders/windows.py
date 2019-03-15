@@ -15,8 +15,8 @@ import sys
 
 import win32process
 
+from grr_response_client_builder import build
 from grr_response_core import config
-from grr_response_core.lib import build
 
 MODULE_PATTERNS = [
     # Visual Studio runtime libs.
@@ -50,9 +50,9 @@ def EnumMissingModules():
   """
   module_handle = ctypes.c_ulong()
   count = ctypes.c_ulong()
-  process_handle = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_INFORMATION
-                                                      | PROCESS_VM_READ, 0,
-                                                      os.getpid())
+  process_handle = ctypes.windll.kernel32.OpenProcess(
+      PROCESS_QUERY_INFORMATION
+      | PROCESS_VM_READ, 0, os.getpid())
   ctypes.windll.psapi.EnumProcessModules(process_handle,
                                          ctypes.byref(module_handle),
                                          ctypes.sizeof(module_handle),

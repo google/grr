@@ -4,114 +4,109 @@ syntax = "proto2";
 
 import "grr_response_proto/anomaly.proto";
 import "grr_response_proto/jobs.proto";
-import "grr_response_proto/sysinfo.proto";
 import "grr_response_proto/semantic.proto";
+import "grr_response_proto/sysinfo.proto";
 
 
 message ExportOptions {
-  optional bool export_files_contents = 1 [ default = false, (sem_type) = {
+  optional bool export_files_contents = 1 [
+    default = false,
+    (sem_type) = {
       description: "If this is true, open files and export their full or "
-      "partial contents. Note: this may require additional datastore "
-      "roundtrips and slow down the export process, also exporting file "
-      "contents may significantly increase size of the exported data."
-    }];
-  optional bool follow_urns = 2 [ default = false, (sem_type) = {
+                   "partial contents. Note: this may require additional datastore "
+                   "roundtrips and slow down the export process, also exporting file "
+                   "contents may significantly increase size of the exported data."
+    }
+  ];
+  optional bool follow_urns = 2 [
+    default = false,
+    (sem_type) = {
       description: "If this is true, follow urns and try to export not only "
-      "the urns themselves, but also the data they are pointing to. Note: "
-      "this may require additional datastore roundtrips and slow down the "
-      "export process."
-    }];
+                   "the urns themselves, but also the data they are pointing to. Note: "
+                   "this may require additional datastore roundtrips and slow down the "
+                   "export process."
+    }
+  ];
   reserved 3;
   repeated string annotations = 4 [(sem_type) = {
-      description: "Annotations to add to exported data. This field can be "
-                   "used to differentiate sets of exported data inside a "
-                   "particular exported type. e.g. data collected by users "
-                   "vs. data collected by cronjob."
-    }];
-
+    description: "Annotations to add to exported data. This field can be "
+                 "used to differentiate sets of exported data inside a "
+                 "particular exported type. e.g. data collected by users "
+                 "vs. data collected by cronjob."
+  }];
 }
 
 message ExportedMetadata {
   // Next field ID: 20
 
   optional string client_urn = 1 [(sem_type) = {
-      type: "ClientURN",
-      description: "Client ID of a client that contains this entry."
-    }];
-  optional string hostname = 2 [(sem_type) = {
-      description: "Client hostname."
-    }];
+    type: "ClientURN",
+    description: "Client ID of a client that contains this entry."
+  }];
+  optional string hostname = 2
+      [(sem_type) = { description: "Client hostname." }];
   optional string os = 3 [(sem_type) = {
-      description: "Client Operating System class (Windows|Darwin|Linux)."
-    }];
-  optional uint64 client_age = 4 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Age of the client."
-    }];
-  optional string uname = 5 [(sem_type) = {
-      description: "Uname string."
-    }];
+    description: "Client Operating System class (Windows|Darwin|Linux)."
+  }];
+  optional uint64 client_age = 4
+      [(sem_type) = { type: "RDFDatetime", description: "Age of the client." }];
+  optional string uname = 5 [(sem_type) = { description: "Uname string." }];
   optional string os_release = 6 [(sem_type) = {
-      description: "The OS release identifier e.g. 7, OSX, debian."
-    }];
+    description: "The OS release identifier e.g. 7, OSX, debian."
+  }];
   optional string os_version = 7 [(sem_type) = {
-      description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04."
-    }];
-  optional string usernames = 8 [(sem_type) = {
-      description: "Username."
-    }];
-  optional string mac_address = 9 [(sem_type) = {
-      description: "MAC address."
-    }];
-  optional uint64 timestamp = 10 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When data was exported."
-    }];
+    description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04."
+  }];
+  optional string usernames = 8 [(sem_type) = { description: "Username." }];
+  optional string mac_address = 9
+      [(sem_type) = { description: "MAC address." }];
+  optional uint64 timestamp = 10 [
+    (sem_type) = { type: "RDFDatetime", description: "When data was exported." }
+  ];
 
   optional uint64 original_timestamp = 15 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When original data was generated."
-    }];
+    type: "RDFDatetime",
+    description: "When original data was generated."
+  }];
 
   // BEGIN DEPRECATED
-  optional string deprecated_session_id = 11 [(sem_type) = {
+  optional string deprecated_session_id = 11 [
+    (sem_type) = {
       type: "SessionID",
       description: "Deprecated session id of a hunt that collected the data."
-    }, deprecated=true];
+    },
+    deprecated = true
+  ];
   // END_DEPRECATED
 
-  optional string labels = 12 [(sem_type) = {
-      description: "CSV list of client labels."
-    }];
+  optional string labels = 12
+      [(sem_type) = { description: "CSV list of client labels." }];
 
-  optional string system_labels = 18 [(sem_type) = {
-      description: "Labels hardcoded into GRR clients configs."
-    }];
+  optional string system_labels = 18 [
+    (sem_type) = { description: "Labels hardcoded into GRR clients configs." }
+  ];
 
-  optional string user_labels = 19 [(sem_type) = {
-      description: "Labels assigned by GRR uses via the UI/API."
-    }];
+  optional string user_labels = 19 [
+    (sem_type) = { description: "Labels assigned by GRR uses via the UI/API." }
+  ];
 
   optional string source_urn = 13 [(sem_type) = {
-      type: "RDFURN",
-      description: "URN of a source of exported data."
-    }];
+    type: "RDFURN",
+    description: "URN of a source of exported data."
+  }];
 
   optional string annotations = 14 [(sem_type) = {
-      description: "CSV list of annotations for this data. This field can be "
-                   "used to differentiate sets of exported data inside a "
-                   "particular exported type. e.g. data collected by users "
-                   "vs. data collected by cronjob."
-    }];
+    description: "CSV list of annotations for this data. This field can be "
+                 "used to differentiate sets of exported data inside a "
+                 "particular exported type. e.g. data collected by users "
+                 "vs. data collected by cronjob."
+  }];
 
-  optional HardwareInfo hardware_info = 16 [(sem_type) = {
-      description: "Hardware information of the client."
-    }];
+  optional HardwareInfo hardware_info = 16
+      [(sem_type) = { description: "Hardware information of the client." }];
 
-  optional string kernel_version = 17 [(sem_type) = {
-      description: "Client kernel version."
-    }];
-
+  optional string kernel_version = 17
+      [(sem_type) = { description: "Client kernel version." }];
 }
 
 message ExportedClient {
@@ -138,18 +133,17 @@ message ExportedFile {
   optional ExportedMetadata metadata = 1;
 
   optional string urn = 2 [(sem_type) = {
-      type: "RDFURN",
-      description: "The location of this file in the AFF4 space."
-    }];
+    type: "RDFURN",
+    description: "The location of this file in the AFF4 space."
+  }];
 
-  optional string basename = 3 [(sem_type) = {
-      description: "Basename of the file."
-    }];
+  optional string basename = 3
+      [(sem_type) = { description: "Basename of the file." }];
 
   optional uint64 st_mode = 4 [(sem_type) = {
-      type: "StatMode",
-      description: "A unix file permission mode."
-    }];
+    type: "StatMode",
+    description: "A unix file permission mode."
+  }];
 
   optional uint32 st_ino = 5;
   optional uint32 st_dev = 6;
@@ -158,31 +152,30 @@ message ExportedFile {
   optional uint32 st_gid = 9;
   optional uint64 st_size = 10;
   optional uint64 st_atime = 11 [(sem_type) = {
-      type: "RDFDatetimeSeconds",
-      description: "Last access time."
-    }];
+    type: "RDFDatetimeSeconds",
+    description: "Last access time."
+  }];
 
   optional uint64 st_mtime = 12 [(sem_type) = {
-      type: "RDFDatetimeSeconds",
-      description: "Last modified time."
-    }];
+    type: "RDFDatetimeSeconds",
+    description: "Last modified time."
+  }];
 
   optional uint64 st_ctime = 13 [(sem_type) = {
-      type: "RDFDatetimeSeconds",
-      description: "Last inode change time."
-    }];
+    type: "RDFDatetimeSeconds",
+    description: "Last inode change time."
+  }];
 
   optional uint32 st_blocks = 14;
   optional uint32 st_blksize = 15;
   optional uint32 st_rdev = 16;
   optional string symlink = 17;
 
-  optional bytes content = 18 [(sem_type) = {
-      description: "Actual content of the file if available."
-    }];
-  optional string content_sha256 = 19 [(sem_type) = {
-      description: "SHA256 of content"
-    }];
+  optional bytes content = 18 [
+    (sem_type) = { description: "Actual content of the file if available." }
+  ];
+  optional string content_sha256 = 19
+      [(sem_type) = { description: "SHA256 of content" }];
 
   // client reported values for the hashes
   optional string hash_md5 = 20;
@@ -206,14 +199,13 @@ message ExportedFile {
 message ExportedRegistryKey {
   optional ExportedMetadata metadata = 1;
 
-  optional string urn = 2 [(sem_type) = {
-      type: "RDFURN",
-      description: "URN of the registry key."
-    }];
+  optional string urn = 2 [
+    (sem_type) = { type: "RDFURN", description: "URN of the registry key." }
+  ];
   optional uint64 last_modified = 3 [(sem_type) = {
-      type: "RDFDatetimeSeconds",
-      description: "Last modified timestamp."
-    }];
+    type: "RDFDatetimeSeconds",
+    description: "Last modified timestamp."
+  }];
   optional StatEntry.RegistryType type = 4;
   optional bytes data = 5;
 }
@@ -261,41 +253,41 @@ message ExportedNetworkConnection {
 
 message ExportedAnomaly {
   optional Anomaly.AnomalyType type = 1 [(sem_type) = {
-      description: "Type of anomaly this represents.",
-    }];
+    description: "Type of anomaly this represents.",
+  }];
 
   optional Anomaly.AnomalyLevel severity = 2 [(sem_type) = {
-      description: "Severity of the anomaly if it is a true positive.",
-    }];
+    description: "Severity of the anomaly if it is a true positive.",
+  }];
 
   optional Anomaly.AnomalyLevel confidence = 3 [(sem_type) = {
-      description: "Confidence that the anomaly is a true positive.",
-    }];
+    description: "Confidence that the anomaly is a true positive.",
+  }];
 
   optional string symptom = 4 [(sem_type) = {
-      description: "A description of what is anomalous.",
-    }];
+    description: "A description of what is anomalous.",
+  }];
 
   optional string explanation = 5 [(sem_type) = {
-      description: "A description of possible explanations for the anomaly if "
-      "additional information is available.",
-    }];
+    description: "A description of possible explanations for the anomaly if "
+                 "additional information is available.",
+  }];
 
   optional string generated_by = 6 [(sem_type) = {
-      description: "String describing what generated the anomaly, this is "
-        "normally the name of a parser or artifact.",
-    }];
+    description: "String describing what generated the anomaly, this is "
+                 "normally the name of a parser or artifact.",
+  }];
 
   // Not exporting PathSpec due to its recursive nature.
 
   optional string anomaly_reference_id = 8 [(sem_type) = {
-      description: "A string used to reference the anomaly in the Anomaly "
-        "database."
-    }];
+    description: "A string used to reference the anomaly in the Anomaly "
+                 "database."
+  }];
 
   optional string finding = 9 [(sem_type) = {
-      description: "String descriptions of data that triggered the Anomaly."
-    }];
+    description: "String descriptions of data that triggered the Anomaly."
+  }];
 }
 
 message ExportedCheckResult {
@@ -304,9 +296,9 @@ message ExportedCheckResult {
   optional string check_id = 2 [(sem_type) = {
     description: "The check id, identifies what check is being reported."
   }];
-  optional ExportedAnomaly anomaly = 3 [(sem_type) = {
-    description: "Specific finding indicating an issue exists."
-  }];
+  optional ExportedAnomaly anomaly = 3 [
+    (sem_type) = { description: "Specific finding indicating an issue exists." }
+  ];
 }
 
 message ExportedOpenFile {
@@ -323,8 +315,8 @@ message ExportedFileStoreHash {
   optional string hash_type = 3;
   optional string fingerprint_type = 4;
   optional string target_urn = 5 [(sem_type) = {
-      type: "RDFURN",
-    }];
+    type: "RDFURN",
+  }];
 }
 
 message ExportedMatch {
@@ -333,9 +325,9 @@ message ExportedMatch {
   optional uint64 length = 3;
   optional bytes data = 4;
   optional string urn = 5 [(sem_type) = {
-      type: "RDFURN",
-      description: "The location of this file in the AFF4 space."
-    }];
+    type: "RDFURN",
+    description: "The location of this file in the AFF4 space."
+  }];
 }
 
 message ExportedBytes {
@@ -369,20 +361,18 @@ message ExportedArtifactFilesDownloaderResult {
   optional ExportedFile downloaded_file = 4;
 }
 
-
 // Protobuf for YaraProcessScan flow results export.
 message ExportedYaraProcessScanMatch {
   optional ExportedMetadata metadata = 1;
 
-  optional ExportedProcess process = 2 [(sem_type) = {
-      description: "Matching process details."
-    }];
+  optional ExportedProcess process = 2
+      [(sem_type) = { description: "Matching process details." }];
 
   optional string rule_name = 3 [(sem_type) = {
-      description: "The name of the rule that triggered.",
-    }];
+    description: "The name of the rule that triggered.",
+  }];
 
   optional uint64 scan_time_us = 4 [(sem_type) = {
-      description: "Time in microseconds taken to perform the scan.",
-    }];
+    description: "Time in microseconds taken to perform the scan.",
+  }];
 }

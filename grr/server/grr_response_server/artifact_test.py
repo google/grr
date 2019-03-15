@@ -13,6 +13,7 @@ import subprocess
 from absl import app
 from future.builtins import str
 
+from grr_response_client import actions
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_core import config
@@ -34,6 +35,7 @@ from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import db
 from grr_response_server import file_store
+from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import filesystem
@@ -132,6 +134,31 @@ class MultiProvideParser(parser.RegistryValueParser):
         "environ_path": rdfvalue.RDFString("pathvalue")
     }
     yield rdf_protodict.Dict(test_dict)
+
+
+# TODO: These should be defined next to the test they are used in
+# once the metaclass registry madness is resolved.
+
+# pylint: disable=function-redefined
+
+
+class FooAction(server_stubs.ClientActionStub):
+
+  in_rdfvalue = None
+  out_rdfvalues = [rdfvalue.RDFString]
+
+
+class FooAction(actions.ActionPlugin):
+
+  in_rdfvalue = None
+  out_rdfvalues = [rdfvalue.RDFString]
+
+  def Run(self, args):
+    del args  # Unused.
+    self.SendReply(rdfvalue.RDFString("zażółć gęślą jaźń 🎮"))
+
+
+# pylint: enable=function-redefined
 
 
 @db_test_lib.DualDBTest
@@ -718,6 +745,34 @@ class GrrKbLinuxTest(GrrKbTest):
     self.assertEqual(kb.os_major_version, 14)
     self.assertEqual(kb.os_minor_version, 4)
     self.assertCountEqual([x.username for x in kb.users], [])
+
+  def testUnicodeValues(self):
+
+    foo_artifact_source = rdf_artifacts.ArtifactSource(
+        type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+        attributes={"client_action": "FooAction"})
+
+    foo_artifact = rdf_artifacts.Artifact(
+        name="Foo",
+        doc="Foo bar baz.",
+        sources=[foo_artifact_source],
+        provides=["os"],
+        labels=["System"],
+        supported_os=["Linux"])
+
+    with artifact_test_lib.PatchCleanArtifactRegistry():
+      artifact_registry.REGISTRY.RegisterArtifact(foo_artifact)
+
+      with test_lib.ConfigOverrider({"Artifacts.knowledge_base": ["Foo"]}):
+        session_id = flow_test_lib.TestFlowHelper(
+            artifact.KnowledgeBaseInitializationFlow.__name__,
+            client_mock=action_mocks.ActionMock(FooAction),
+            client_id=test_lib.TEST_CLIENT_ID,
+            token=self.token)
+
+    results = flow_test_lib.GetFlowResults(test_lib.TEST_CLIENT_ID, session_id)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].os, "zażółć gęślą jaźń 🎮")
 
 
 @db_test_lib.DualDBTest

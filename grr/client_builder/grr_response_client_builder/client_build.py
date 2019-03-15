@@ -19,13 +19,13 @@ from absl import app
 from absl import flags
 from absl.flags import argparse_flags
 
-from grr_response_client import client_startup
+from grr_response_client_builder import build
+from grr_response_client_builder import builders
+from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
 from grr_response_core.config import contexts
-from grr_response_core.lib import build
-from grr_response_core.lib import builders
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import repacking
+
 # pylint: disable=unused-import
 # Required for google_config_validator
 from grr_response_core.lib.local import plugins
@@ -42,6 +42,13 @@ class Error(Exception):
 class ErrorDuringRepacking(Error):
   pass
 
+
+# This is an absl flag, and not an argparse flag, for backwards compatibility.
+flags.DEFINE_bool(
+    "verbose",
+    default=False,
+    help="Turn on verbose logging.",
+    allow_override=True)
 
 parser = argparse_flags.ArgumentParser(
     description="A tool for building client binaries.")
@@ -337,8 +344,8 @@ class MultiTemplateRepacker(object):
           debug_args.append("--debug_build")
           print("Calling %s" % " ".join(debug_args))
           results.append(
-              pool.apply_async(
-                  SpawnProcess, (debug_args,), dict(passwd=passwd)))
+              pool.apply_async(SpawnProcess, (debug_args,),
+                               dict(passwd=passwd)))
 
     try:
       pool.close()
@@ -403,16 +410,18 @@ def main(args):
     GetClientConfig(args.client_config_output)
     return
 
-  # We deliberately use args.context because client_startup.py pollutes
-  # grr_config.CONFIG.context with the running system context.
+  # TODO(user): Find out if adding the client-builder context is still
+  # necessary.
   context = FLAGS.context
   context.append(contexts.CLIENT_BUILD_CONTEXT)
-  client_startup.ClientInit()
+
+  config_lib.SetPlatformArchContext()
+  config_lib.ParseConfigCommandLine()
 
   # Use basic console output logging so we can see what is happening.
   logger = logging.getLogger()
   handler = logging.StreamHandler()
-  handler.setLevel(logging.INFO)
+  handler.setLevel(logging.DEBUG if FLAGS.verbose else logging.INFO)
   logger.handlers = [handler]
 
   if args.subparser_name == "build":

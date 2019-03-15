@@ -34,7 +34,7 @@ unset JAVA_TOOL_OPTIONS
 # Proto package.
 pip install -e grr/proto --progress-bar off
 
-# Base package, grr-response-core, depends on grr-response-proto.
+# Depends on grr-response-proto
 pip install -e grr/core --progress-bar off
 
 # Depends on grr-response-core
@@ -44,9 +44,12 @@ pip install -e grr/client --progress-bar off
 pip install -e api_client/python --progress-bar off
 
 # Depends on grr-response-client
+pip install -e grr/client_builder --progress-bar off
+
+# Depends on grr-response-client-builder
 pip install -e grr/server/[mysqldatastore] --progress-bar off
 
-# Depends on grr-response-server and grr-api-client
+# Depends on all other packages
 pip install -e grr/test --progress-bar off
 
 cd grr/proto && python makefile.py && cd -

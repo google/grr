@@ -15,49 +15,38 @@ import "grr_response_proto/semantic.proto";
 
 message CollectArtifactDependenciesArgs {
   repeated string artifact_list = 1 [(sem_type) = {
-      description: "A list of Artifact names to collect dependencies for.",
-      type: "ArtifactName",
-    }];
+    description: "A list of Artifact names to collect dependencies for.",
+    type: "ArtifactName",
+  }];
 }
 
 message ApiNotificationDiscoveryReference {
   optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "The client this notification is about."
-    }];
+    type: "ApiClientId",
+    description: "The client this notification is about."
+  }];
 }
-
 
 message ApiNotificationFileDownloadReference {
   optional string path = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The download path for the file."
-    }];
+    type: "RDFURN",
+    description: "The download path for the file."
+  }];
 }
 
-
 message ApiListCronJobFlowsArgs {
-  optional string cron_job_id = 1 [(sem_type) = {
-      type: "ApiCronJobId",
-      description: "Cron job id."
-    }];
-  optional int64 offset = 2 [(sem_type) = {
-      description: "Starting offset."
-    }];
-  optional int64 count = 3 [(sem_type) = {
-      description: "Max number of flows to fetch."
-    }];
-};
+  optional string cron_job_id = 1
+      [(sem_type) = { type: "ApiCronJobId", description: "Cron job id." }];
+  optional int64 offset = 2 [(sem_type) = { description: "Starting offset." }];
+  optional int64 count = 3
+      [(sem_type) = { description: "Max number of flows to fetch." }];
+}
 
 message ApiGetCronJobFlowArgs {
-  optional string cron_job_id = 1 [(sem_type) = {
-      type: "ApiCronJobId",
-      description: "Cron job id."
-    }];
-  optional string flow_id = 2 [(sem_type) = {
-      type: "ApiFlowId",
-      description: "Flow id."
-    }];
+  optional string cron_job_id = 1
+      [(sem_type) = { type: "ApiCronJobId", description: "Cron job id." }];
+  optional string flow_id = 2
+      [(sem_type) = { type: "ApiFlowId", description: "Flow id." }];
 }
 
 message GlobalNotification {
@@ -100,31 +89,29 @@ message ApiDeletePendingGlobalNotificationArgs {
 
 message OutputPluginVerificationResult {
   optional string plugin_id = 1 [(sem_type) = {
-      description: "String identifying the output plugin being checked."
-    }];
+    description: "String identifying the output plugin being checked."
+  }];
   optional OutputPluginDescriptor plugin_descriptor = 2 [(sem_type) = {
-      description: "Descriptor of the plugin that's being checked."
-    }];
+    description: "Descriptor of the plugin that's being checked."
+  }];
 
   enum Status {
     N_A = 0;
     SUCCESS = 1;
     WARNING = 2;
     FAILURE = 3;
-  };
+  }
   optional Status status = 3;
   optional string status_message = 4;
 
-  optional uint64 timestamp = 5 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Timestamp of the check."
-    }];
+  optional uint64 timestamp = 5 [
+    (sem_type) = { type: "RDFDatetime", description: "Timestamp of the check." }
+  ];
 }
 
 message OutputPluginVerificationResultsList {
   repeated OutputPluginVerificationResult results = 1;
 }
-
 
 message MemoryInformation {
   option (semantic) = {
@@ -138,112 +125,121 @@ message MemoryInformation {
 
 message PluginRequest {
   optional string plugin = 2 [(sem_type) = {
-      description: "The plugin name to run.",
-    }];
+    description: "The plugin name to run.",
+  }];
 
   optional Dict args = 3 [(sem_type) = {
-      description: "The args to the plugin.",
-    }];
+    description: "The args to the plugin.",
+  }];
 }
 
 message RekallRequest {
-  optional Iterator iterator = 1 [(sem_type) = {
-      label: HIDDEN
-    }];
+  optional Iterator iterator = 1 [(sem_type) = { label: HIDDEN }];
 
   repeated PluginRequest plugins = 2 [(sem_type) = {
-      description: "We can execute multiple plugins in the same session. "
-      "This can take advantage of caching in the session to be more efficient."
-    }];
+    description: "We can execute multiple plugins in the same session. "
+                 "This can take advantage of caching in the session to be more efficient."
+  }];
 
   optional PathSpec device = 4 [(sem_type) = {
-      description: "The raw device to use.",
-    }];
+    description: "The raw device to use.",
+  }];
 
   optional Dict session = 6 [(sem_type) = {
-      description: "These parameters are used to initialize the session.",
-    }];
+    description: "These parameters are used to initialize the session.",
+  }];
 
   repeated RekallProfile profiles = 9 [(sem_type) = {
-      description: "Profiles sent by the server to store on the client.",
-      label: HIDDEN
-    }];
+    description: "Profiles sent by the server to store on the client.",
+    label: HIDDEN
+  }];
 }
 
 message RekallResponse {
   // Deprecated. Anything written in this field will be compressed and placed
   // into the compressed_json_messages field upon serialization.
   optional string json_messages = 1;
-  optional bytes compressed_json_messages = 7 [(sem_type) = {
-      type: "ZippedJSONBytes"
-    }];
+  optional bytes compressed_json_messages = 7
+      [(sem_type) = { type: "ZippedJSONBytes" }];
 
   optional string json_context_messages = 5;
 
   optional string plugin = 2;
 
   optional string client_urn = 3 [(sem_type) = {
-      type: "ClientURN",
-      description: "The client this response comes from."
-    }];
+    type: "ClientURN",
+    description: "The client this response comes from."
+  }];
 
   optional string missing_profile = 4 [(sem_type) = {
-      description: "Missing profiles that should be retrieved from "
-      "the server."
-    }];
+    description: "Missing profiles that should be retrieved from "
+                 "the server."
+  }];
 
-  optional string repository_version = 6 [(sem_type) = {
+  optional string repository_version = 6 [
+    (sem_type) = {
       description: "The version of the repository we want to use."
-    }, default="v1.0"];
+    },
+    default = "v1.0"
+  ];
 
   repeated string downloaded_files = 8 [(sem_type) = {
-      description: "A list of downloaded files.",
-      type: "RDFURN",
-    }];
+    description: "A list of downloaded files.",
+    type: "RDFURN",
+  }];
 }
 
 message RekallProfile {
-  optional string name = 1 [(sem_type) = {
-      description: "The name of this profile."
-    }];
+  optional string name = 1
+      [(sem_type) = { description: "The name of this profile." }];
 
-  optional bytes data = 2 [(sem_type) = {
-      description: "A Rekall profile as a data blob."
-    }];
+  optional bytes data = 2
+      [(sem_type) = { description: "A Rekall profile as a data blob." }];
 
-  optional string version = 3 [(sem_type) = {
-      description: "The version of this profile."
-    }];
+  optional string version = 3
+      [(sem_type) = { description: "The version of this profile." }];
 
   enum Compression {
     NONE = 0;
     GZIP = 1;
   }
 
-  optional Compression compression = 4 [(sem_type) = {
+  optional Compression compression = 4 [
+    (sem_type) = {
       description: "Type of compression carried in the data field."
-    }, default=GZIP];
+    },
+    default = GZIP
+  ];
 }
 
 message AnalyzeClientMemoryArgs {
   optional RekallRequest request = 2 [(sem_type) = {
-      description: "A request for the client's Rekall subsystem.",
-    }];
+    description: "A request for the client's Rekall subsystem.",
+  }];
 
-  optional bool debug_logging = 4 [(sem_type) = {
+  optional bool debug_logging = 4 [
+    (sem_type) = {
       description: "Use DEBUG level logging.",
       friendly_name: "DEBUG logging."
-    }, default=false];
+    },
+    default = false
+  ];
 
-  optional uint64 max_file_size_download = 5 [(sem_type) = {
+  optional uint64 max_file_size_download = 5 [
+    (sem_type) = {
       description: "Obtain at most max_file_size_download bytes of each file "
-      "outputted by Rekall."
-    }, default=35433480192];  // 33 Gb
+                   "outputted by Rekall."
+    },
+    default = 35433480192
+  ];  // 33 Gb
 
-  optional string component_version = 6 [(sem_type) = {
+  optional string component_version = 6 [
+    (sem_type) = {
       description: "The version of component to use.",
       label: ADVANCED,
-    }, default="1.6.0"];
+    },
+    default = "1.6.0"
+  ];
 }
 
 message ApiListStatsStoreMetricsMetadataArgs {
@@ -291,7 +287,7 @@ message ApiGetStatsStoreMetricArgs {
     DH_COUNT = 1
         [(description) = "Number of all values recorded in a distribution "
                          "will be fetched."];
-  };
+  }
   optional DistributionHandlingMode distribution_handling_mode = 5 [(sem_type) = {
     description: "Determines which values to fetch when dealing with distributions."
   }];
@@ -300,7 +296,7 @@ message ApiGetStatsStoreMetricArgs {
     AGG_SUM = 0 [(description) = "Values will be summed."];
     AGG_MEAN = 1 [(description) = "Mean value will be calculated."];
     AGG_NONE = 2 [(description) = "No aggregation will be performed."];
-  };
+  }
   optional AggregationMode aggregation_mode = 6 [(sem_type) = {
     description: "Aggregation method. As metrics are usually collected across "
                  "multiple processes, most of the time they have to be aggregated."

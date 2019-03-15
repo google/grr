@@ -3,7 +3,6 @@ syntax = "proto2";
 import "grr_response_proto/semantic.proto";
 
 
-
 // Next field: 4
 message GUISettings {
   option (semantic) = {
@@ -16,11 +15,14 @@ message GUISettings {
     DEBUG = 2;
   }
 
-  optional UIMode mode = 1 [(sem_type) = {
+  optional UIMode mode = 1 [
+    (sem_type) = {
       description: "User interface mode.",
-    }, default=BASIC];
+    },
+    default = BASIC
+  ];
 
   optional bool canary_mode = 3 [(sem_type) = {
-      description: "If true, show features that are being canaried."
-    }];
+    description: "If true, show features that are being canaried."
+  }];
 }

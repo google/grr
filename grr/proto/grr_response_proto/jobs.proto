@@ -4,9 +4,8 @@
 // These are the messages used in GRR
 syntax = "proto2";
 
-import "grr_response_proto/semantic.proto";
 import "grr_response_proto/knowledge_base.proto";
-
+import "grr_response_proto/semantic.proto";
 
 
 message HttpRequest {
@@ -16,37 +15,37 @@ message HttpRequest {
   optional string url = 4;
   optional string user = 5 [default = "anonymous"];
   optional uint64 timestamp = 6 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Timestamp: unique identifier for the request",
-    }];
+    type: "RDFDatetime",
+    description: "Timestamp: unique identifier for the request",
+  }];
   optional string method = 7 [default = "GET"];  // Method e.g. GET/POST/PUT
   optional string referrer = 8;
   optional uint64 size = 9 [(sem_type) = {
-      description: "Size of the request in bytes",
-    }];
+    description: "Size of the request in bytes",
+  }];
 }
 
 // This message is sent between the client and the server.
 // Next field: 23
 message GrrMessage {
   optional string session_id = 1 [(sem_type) = {
-      type: "FlowSessionID",
-      description: "The session id of the flow that this message belongs to."
-    }];
+    type: "FlowSessionID",
+    description: "The session id of the flow that this message belongs to."
+  }];
 
   optional uint64 request_id = 2 [(sem_type) = {
-      description: "The message is in response to this request number "
-      "(requests increment from 1)."
-    }];
+    description: "The message is in response to this request number "
+                 "(requests increment from 1)."
+  }];
 
   optional uint64 response_id = 3 [(sem_type) = {
-      description: "Responses for each request are also numbered from 1."
-    }];
+    description: "Responses for each request are also numbered from 1."
+  }];
 
   optional string name = 4 [(sem_type) = {
-      description: "This is the name of the client action that will be "
-      "executed. It is set by the flow and is executed by the client."
-    }];
+    description: "This is the name of the client action that will be "
+                 "executed. It is set by the flow and is executed by the client."
+  }];
 
   // This field contains an encoded rdfvalue.
   optional bytes args = 5;
@@ -55,11 +54,11 @@ message GrrMessage {
   // argument to the client action, or the response from the client action.
   optional EmbeddedRDFValue arg = 20;
 
-  optional string source = 6  [(sem_type) = {
-      type: "RDFURN",
-      description: "Client name where the message came from "
-      "(Filled in by the frontend)."
-    }];
+  optional string source = 6 [(sem_type) = {
+    type: "RDFURN",
+    description: "Client name where the message came from "
+                 "(Filled in by the frontend)."
+  }];
 
   // A Flag to indicate if the message is authenticated. Note that the client
   // does not get to decide this - the_server will verify the message and tag it
@@ -76,41 +75,50 @@ message GrrMessage {
     // This indicates that clocks are out of sync and this message may be a
     // replay.
     DESYNCHRONIZED = 2;
-  };
+  }
 
-  optional AuthorizationState auth_state = 7 [ default = UNAUTHENTICATED ];
+  optional AuthorizationState auth_state = 7 [default = UNAUTHENTICATED];
 
   enum Type {
     MESSAGE = 0;
     STATUS = 1;
     ITERATOR = 2;
-  };
+  }
 
   // The final response to a request carries this type which indicates it is a
   // status message.
-  optional Type type = 8 [ default = MESSAGE ];
+  optional Type type = 8 [default = MESSAGE];
 
   // DEPRECATED
   // optional Priority priority = 9;
 
-  optional uint32 ttl = 10 [default = 10, (sem_type) = {
+  optional uint32 ttl = 10 [
+    default = 10,
+    (sem_type) = {
       description: "Time to live - each time a request is retransmitted this "
-      "decrement until it expires."
-    }];
+                   "decrement until it expires."
+    }
+  ];
 
-  optional bool require_fastpoll = 11 [ default = true, (sem_type) = {
+  optional bool require_fastpoll = 11 [
+    default = true,
+    (sem_type) = {
       description: "If this is true, the client will enter fast poll mode "
-      "after processing."
-    }];
+                   "after processing."
+    }
+  ];
 
-  optional float cpu_limit = 12 [ default = 3600, (sem_type) = {
+  optional float cpu_limit = 12 [
+    default = 3600,
+    (sem_type) = {
       description: "Maximum number of CPU seconds to be used by this action."
-    }];
+    }
+  ];
 
   optional uint64 args_age = 13 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The age of the args rdfvalue.",
-    }];
+    type: "RDFDatetime",
+    description: "The age of the args rdfvalue.",
+  }];
 
   // The rdfvalue class of the args.
   optional string args_rdf_name = 14;
@@ -119,39 +127,41 @@ message GrrMessage {
   optional uint64 task_id = 15;
 
   // The ttl used in the task scheduler.
-  optional int32 task_ttl = 16 [ default = 7 ];
-  optional string queue = 17  [(sem_type) = {
-      type: "RDFURN",
-      description: "The scheduler queue this message is in."
-    }];
+  optional int32 task_ttl = 16 [default = 7];
+  optional string queue = 17 [(sem_type) = {
+    type: "RDFURN",
+    description: "The scheduler queue this message is in."
+  }];
 
   optional uint64 leased_until = 18 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The time indicating when this message will become "
-      "available for leasing.",
-    }];
+    type: "RDFDatetime",
+    description: "The time indicating when this message will become "
+                 "available for leasing.",
+  }];
 
   // Human readable info about the last process leasing this message.
   optional string leased_by = 19;
 
-  optional uint64 network_bytes_limit = 21 [ default = 10737418240,
-      (sem_type) = {
+  optional uint64 network_bytes_limit = 21 [
+    default = 10737418240,
+    (sem_type) = {
       description: "Maximum number of network bytes to be sent, 10G default. "
                    "All bytes charged against the flow session ID count "
                    "towards the limit but only during TransferBuffer is the "
                    "limit enforced. This means we can blockfile transfers but "
                    "still communicate after the limit is reached."
-    }];
+    }
+  ];
   optional uint64 timestamp = 22 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "An optional timestamp when this message was stored.",
-    }];
-};
+    type: "RDFDatetime",
+    description: "An optional timestamp when this message was stored.",
+  }];
+}
 
 // This is a list of messages
 message MessageList {
   repeated GrrMessage job = 1;
-};
+}
 
 // This is the protobuf which is transmitted on the wire
 message PackedMessageList {
@@ -159,42 +169,42 @@ message PackedMessageList {
     UNCOMPRESSED = 0;
     // Compressed using the zlib.compress() function.
     ZCOMPRESSION = 1;
-  };
+  }
 
   // This is a serialized MessageList for signing
   optional bytes message_list = 1;
 
   optional string source = 3 [(sem_type) = {
-      type: "RDFURN",
-      description: "The source where this message came from."
-    }];
+    type: "RDFURN",
+    description: "The source where this message came from."
+  }];
 
   // How the message_list element is compressed
-  optional CompressionType compression = 4 [ default = UNCOMPRESSED ];
+  optional CompressionType compression = 4 [default = UNCOMPRESSED];
   optional uint64 timestamp = 6 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The client sends its timestamp to prevent replay attacks."
-    }];
-};
+    type: "RDFDatetime",
+    description: "The client sends its timestamp to prevent replay attacks."
+  }];
+}
 
 message CipherProperties {
   optional string name = 1;
 
   optional bytes key = 2 [(sem_type) = {
-      type: "EncryptionKey",
-    }];
+    type: "EncryptionKey",
+  }];
 
   // This IV is used to encrypt the cipher metadata block. Note: Both the
   // CipherProperties() and the CipherMetadata() protobufs do not change for all
   // messages in this session.
   optional bytes metadata_iv = 3 [(sem_type) = {
-      type: "EncryptionKey",
-    }];
+    type: "EncryptionKey",
+  }];
 
   // The key used for the hmac.
   optional bytes hmac_key = 5 [(sem_type) = {
-      type: "EncryptionKey",
-    }];
+    type: "EncryptionKey",
+  }];
 
   enum HMACType {
     // Older clients use a HMAC only on the encrypted message.
@@ -203,22 +213,21 @@ message CipherProperties {
     // Newer clients also include the encrypted cipher and API version in the
     // hmac.
     FULL_HMAC = 1;
-  };
+  }
 
   // The API version of the cipher.
-  optional HMACType hmac_type = 6 [default=SIMPLE_HMAC];
-
-};
+  optional HMACType hmac_type = 6 [default = SIMPLE_HMAC];
+}
 
 message CipherMetadata {
   optional string source = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The common name this cipher should be used to communicate with."
-    }];
+    type: "RDFURN",
+    description: "The common name this cipher should be used to communicate with."
+  }];
 
   // The signature of the encrypted cipher block.
   optional bytes signature = 2;
-};
+}
 
 // Next field: 11
 message ClientCommunication {
@@ -240,8 +249,8 @@ message ClientCommunication {
   // This iv is used to encrypt the encrypted field (No. 1). This IV changes for
   // each packet.
   optional bytes packet_iv = 8 [(sem_type) = {
-      type: "EncryptionKey",
-    }];;
+    type: "EncryptionKey",
+  }];
 
   optional HttpRequest orig_request = 3;
 
@@ -255,7 +264,7 @@ message ClientCommunication {
     OK = 200;
     BAD_REQUEST = 400;
     CIPHER_ERROR = 406;
-  };
+  }
   optional Status status = 5 [default = OK];
 
   optional uint32 api_version = 6;
@@ -274,7 +283,7 @@ message ClientCommunication {
   // 4) The packet iv
   // 5) the api_version.
   optional bytes full_hmac = 10;
-};
+}
 
 // This is a status response that is sent for each complete
 // transaction. It is always the last message in the transaction.
@@ -288,7 +297,7 @@ message GrrStatus {
 
     WORKER_STUCK = 9;
     GENERIC_ERROR = 10;
-  };
+  }
 
   optional ReturnedStatus status = 1 [default = OK];
 
@@ -299,62 +308,60 @@ message GrrStatus {
   optional CpuSeconds cpu_time_used = 4;
 
   optional string child_session_id = 5 [(sem_type) = {
-      type: "SessionID",
-      description: "The URN of a subflow.",
-    }];
+    type: "SessionID",
+    description: "The URN of a subflow.",
+  }];
 
   optional uint64 network_bytes_sent = 6;
 
   optional string nanny_status = 7;
-};
+}
 
 message GrrNotification {
+  optional string session_id = 1 [(sem_type) = { type: "SessionID" }];
 
-  optional string session_id = 1 [(sem_type) = {
-      type: "SessionID"
-    }];
-
-  //DEPRECATED
+  // DEPRECATED
   // optional GrrMessage.Priority priority = 2;
 
   optional uint64 first_queued = 3 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The first time this notification was queued.",
-    }];
+    type: "RDFDatetime",
+    description: "The first time this notification was queued.",
+  }];
 
   optional uint64 last_status = 4 [(sem_type) = {
-      description: "If this is for a status based event (flows), the request number of the last status we received.",
-    }];
+    description: "If this is for a status based event (flows), the request number of the last status we received.",
+  }];
 
-  optional bool in_progress = 5 [ default = false, (sem_type) = {
+  optional bool in_progress = 5 [
+    default = false,
+    (sem_type) = {
       description: "This indicates that the flow is currently being processed by the worker.",
-    }];
+    }
+  ];
 
   optional uint64 timestamp = 6 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The time the notification was scheduled for.",
-    }];
+    type: "RDFDatetime",
+    description: "The time the notification was scheduled for.",
+  }];
 
-  optional uint32 ttl = 7 [default = 10, (sem_type) = {
+  optional uint32 ttl = 7 [
+    default = 10,
+    (sem_type) = {
       description: "Time to live - each time a notification is rescheduled, "
-      "this is decremented until the notification expires."
-    }];
-
+                   "this is decremented until the notification expires."
+    }
+  ];
 }
 
 message ClientCrash {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN"
-    }];
-  optional string session_id = 2 [(sem_type) = {
-      type: "SessionID"
-    }];
+  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+  optional string session_id = 2 [(sem_type) = { type: "SessionID" }];
   optional ClientInformation client_info = 3;
 
   optional uint64 timestamp = 4 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When the client crashed."
-    }];
+    type: "RDFDatetime",
+    description: "When the client crashed."
+  }];
   optional string crash_type = 5;
   optional string crash_message = 6;
   optional string backtrace = 7;
@@ -362,12 +369,8 @@ message ClientCrash {
 }
 
 message HuntNotification {
-  optional string session_id = 1 [(sem_type) = {
-      type: "SessionID"
-    }];
-  optional string client_id = 2 [(sem_type) = {
-      type: "ClientURN"
-    }];
+  optional string session_id = 1 [(sem_type) = { type: "SessionID" }];
+  optional string client_id = 2 [(sem_type) = { type: "ClientURN" }];
 
   enum Status {
     UNKNOWN = 0;
@@ -380,26 +383,22 @@ message HuntNotification {
 
 message HuntResultNotification {
   optional string result_collection_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The URN of the result collection containing this result."
-    }];
+    type: "RDFURN",
+    description: "The URN of the result collection containing this result."
+  }];
   optional uint64 timestamp = 2 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The timestamp identifying the result within the result collection."
-    }];
+    type: "RDFDatetime",
+    description: "The timestamp identifying the result within the result collection."
+  }];
   optional uint64 suffix = 3 [(sem_type) = {
-      description: "The suffix identifying the result within the result collection."
-    }];
+    description: "The suffix identifying the result within the result collection."
+  }];
 }
 
 message FlowNotification {
-  optional string session_id = 1 [(sem_type) = {
-      type: "SessionID"
-    }];
+  optional string session_id = 1 [(sem_type) = { type: "SessionID" }];
   optional string flow_name = 2;
-  optional string client_id = 3 [(sem_type) = {
-      type: "ClientURN"
-    }];
+  optional string client_id = 3 [(sem_type) = { type: "ClientURN" }];
   enum Status {
     UNKNOWN = 0;
     OK = 1;
@@ -425,14 +424,13 @@ message DataBlob {
   optional int64 integer = 1;
   optional bytes data = 2;
   optional string string = 3;
-  optional string proto_name = 4;   // If set data contains proto
-  optional string none = 5; // If set data contains None
-  optional bool boolean = 6; // If set data contains a boolean value
-  optional BlobArray list = 8;  // For storing lists.
-  optional Dict dict = 9; // Stores a dictionary
-  optional EmbeddedRDFValue rdf_value = 10 [(sem_type) = {
-      description: "Store an embedded arbitrary RDFValue."
-    }];
+  optional string proto_name = 4;  // If set data contains proto
+  optional string none = 5;        // If set data contains None
+  optional bool boolean = 6;       // If set data contains a boolean value
+  optional BlobArray list = 8;     // For storing lists.
+  optional Dict dict = 9;          // Stores a dictionary
+  optional EmbeddedRDFValue rdf_value = 10
+      [(sem_type) = { description: "Store an embedded arbitrary RDFValue." }];
   optional float float = 11;
   optional BlobArray set = 12;  // For storing sets.
 
@@ -440,32 +438,30 @@ message DataBlob {
     UNCOMPRESSED = 0;
     // Compressed using the zlib.compress() function.
     ZCOMPRESSION = 1;
-  };
+  }
 
   // How the message_list element is compressed
-  optional CompressionType compression = 7 [ default = UNCOMPRESSED ];
-};
+  optional CompressionType compression = 7 [default = UNCOMPRESSED];
+}
 
 // A generic collection of blobs
 message BlobArray {
   repeated DataBlob content = 1;
-};
+}
 
 // This is a log message sent from the client to the server logging subsystem.
 message LogMessage {
   // LogMessage was historically a PrintStr and had an unused "level" field.
   reserved 1;
   optional string data = 2;
-};
-
+}
 
 // Echo request used by SendMessage client action.
 message EchoRequest {
   // EchoRequest was historically a PrintStr and had an unused "level" field.
   reserved 1;
   optional string data = 2;
-};
-
+}
 
 // CopyPathToFile request and response.
 // Request:
@@ -489,15 +485,15 @@ message EchoRequest {
 //  - lifetime: unused
 //
 message CopyPathToFile {
-  optional uint64 offset = 1 [ default = 0 ];
-  optional uint64 length = 2 [ default = 0 ];
+  optional uint64 offset = 1 [default = 0];
+  optional uint64 length = 2 [default = 0];
   optional PathSpec src_path = 3;
   // DEPRECATED, goes to the GRR temp dir by default.
   // optional string dest_dir = 4;
   optional PathSpec dest_path = 5;
-  optional bool gzip_output = 6 [ default = true ];
-  optional float lifetime = 7 [ default = 0 ];
-};
+  optional bool gzip_output = 6 [default = true];
+  optional float lifetime = 7 [default = 0];
+}
 
 // Pass a buffer back.
 
@@ -515,12 +511,12 @@ message CopyPathToFile {
 //       case of truncated buffers).
 
 message BufferReference {
-  optional uint64 offset = 1 [ default = 0 ];
-  optional uint64 length = 2 [ default = 0 ];
+  optional uint64 offset = 1 [default = 0];
+  optional uint64 length = 2 [default = 0];
   optional string callback = 3;
-  optional bytes  data = 4;
+  optional bytes data = 4;
   optional PathSpec pathspec = 6;
-};
+}
 
 // Information for each request. Note that we are keeping all the
 // messages in a list until we receive the final Status message - when
@@ -538,9 +534,9 @@ message RequestState {
   optional GrrStatus status = 4;
 
   optional Dict data = 5 [(sem_type) = {
-      description: "This can contain any data we want to associate with the "
-      "request.",
-    }];
+    description: "This can contain any data we want to associate with the "
+                 "request.",
+  }];
 
   // Responses are kept in the datastore now. This just tells us the
   // total number of responses we have for this request.
@@ -549,27 +545,27 @@ message RequestState {
   // A count of request retransmits
   optional uint32 transmission_count = 7 [default = 0];
 
-  optional string client_id = 8  [(sem_type) = {
-      type: "ClientURN",
-      description: "The client id where the request was heading - we only receive"
-      "responses from this client."
-    }];
+  optional string client_id = 8 [(sem_type) = {
+    type: "ClientURN",
+    description: "The client id where the request was heading - we only receive"
+                 "responses from this client."
+  }];
   optional string session_id = 9 [(sem_type) = {
-      type: "SessionID",
-      description: "This is the session_id of the flow this request belongs to."
-    }];
+    type: "SessionID",
+    description: "This is the session_id of the flow this request belongs to."
+  }];
 
   // The original message request.
   optional GrrMessage request = 10;
-};
+}
 
 message CpuSeconds {
   optional float user_cpu_time = 1 [(sem_type) = {
-      friendly_name: "User cpu seconds used",
-    }];
+    friendly_name: "User cpu seconds used",
+  }];
   optional float system_cpu_time = 2 [(sem_type) = {
-      friendly_name: "System cpu seconds used",
-    }];
+    friendly_name: "System cpu seconds used",
+  }];
 }
 
 message CpuSample {
@@ -577,9 +573,9 @@ message CpuSample {
   optional float system_cpu_time = 2;
   optional float cpu_percent = 3;
   optional uint64 timestamp = 4 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The time of this sample."
-    }];
+    type: "RDFDatetime",
+    description: "The time of this sample."
+  }];
 }
 
 message IOSample {
@@ -588,9 +584,9 @@ message IOSample {
   optional uint64 read_bytes = 3;
   optional uint64 write_bytes = 4;
   optional uint64 timestamp = 5 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The time of this sample."
-    }];
+    type: "RDFDatetime",
+    description: "The time of this sample."
+  }];
 }
 
 message ClientStats {
@@ -602,11 +598,11 @@ message ClientStats {
   optional uint64 bytes_sent = 6;
   repeated IOSample io_samples = 7;
   optional uint64 create_time = 8 [(sem_type) = {
-      type: "RDFDatetime",
-    }];
+    type: "RDFDatetime",
+  }];
   optional uint64 boot_time = 9 [(sem_type) = {
-      type: "RDFDatetime",
-    }];
+    type: "RDFDatetime",
+  }];
 }
 
 message StartupInfo {
@@ -643,25 +639,21 @@ message PathSpec {
     REGISTRY = 2;
     // DEPRECATED: MEMORY = 3 [(label) = HIDDEN];
     TMPFILE = 4 [(label) = HIDDEN];
-  };
+  }
   optional PathType pathtype = 1 [default = UNSET];
 
   optional string path = 2;
-  optional string mount_point = 3 [(sem_type) = {
-      label: ADVANCED
-    }];
+  optional string mount_point = 3 [(sem_type) = { label: ADVANCED }];
 
   optional string stream_name = 11 [(sem_type) = {
-      description: "A name for the data stream. For example, an ADS name.",
-      label: ADVANCED
-    }];
+    description: "A name for the data stream. For example, an ADS name.",
+    label: ADVANCED
+  }];
 
   optional PathSpec nested_path = 5;
 
   // Offset for split images
-  optional uint64 offset = 6 [(sem_type) = {
-      label: ADVANCED
-    }];
+  optional uint64 offset = 6 [(sem_type) = { label: ADVANCED }];
 
   enum Options {
     CASE_INSENSITIVE = 0;
@@ -672,21 +664,21 @@ message PathSpec {
 
     // Indicates that this pathspec represents any subdirectory recursively.
     RECURSIVE = 3;
-  };
-  optional Options path_options = 7 [(sem_type) = {
-      label: ADVANCED
-      }, default = CASE_INSENSITIVE];
+  }
+  optional Options path_options = 7
+      [(sem_type) = { label: ADVANCED }, default = CASE_INSENSITIVE];
 
-  optional uint64 recursion_depth = 12 [(sem_type) = {
+  optional uint64 recursion_depth = 12 [
+    (sem_type) = {
       label: HIDDEN,
       description: "Recursion depth when RECURSIVE option is specified."
-    }, default=3];
+    },
+    default = 3
+  ];
 
   // On NTFS, the sleuthkit uses the inode, type and id to uniquely identify a
   // file - instead of the path.
-  optional uint64 inode = 8  [(sem_type) = {
-      label: ADVANCED
-    }];
+  optional uint64 inode = 8 [(sem_type) = { label: ADVANCED }];
 
   enum tsk_fs_attr_type {
     option allow_alias = true;
@@ -711,56 +703,62 @@ message PathSpec {
     TSK_FS_ATTR_TYPE_NTFS_PROP = 0xF0;      // (NT)
     TSK_FS_ATTR_TYPE_NTFS_LOG = 0x100;      // (2K)
     TSK_FS_ATTR_TYPE_UNIX_INDIR = 0x1001;   // Indirect blocks for UFS and ExtX
-  };
+  }
 
-  optional tsk_fs_attr_type ntfs_type = 9  [(sem_type) = {
-      label: ADVANCED
-    }, default = TSK_FS_ATTR_TYPE_DEFAULT];
-  optional uint64 ntfs_id = 10  [(sem_type) = {
-      label: ADVANCED
-    }];
+  optional tsk_fs_attr_type ntfs_type = 9
+      [(sem_type) = { label: ADVANCED }, default = TSK_FS_ATTR_TYPE_DEFAULT];
+  optional uint64 ntfs_id = 10 [(sem_type) = { label: ADVANCED }];
 
-  optional uint64 file_size_override = 13 [(sem_type) = {
+  optional uint64 file_size_override = 13 [
+    (sem_type) = {
       type: "ByteSize",
       description: "For files which are non seekable from their end "
-      "(e.g. /proc files), this is the minimum amount of bytes read.",
-    }, default=512000];
+                   "(e.g. /proc files), this is the minimum amount of bytes read.",
+    },
+    default = 512000
+  ];
 
   optional bool is_virtualroot = 14 [(sem_type) = {
-      description: "Indicates that this pathspec already contains a "
-      "virtual root."}];
-};
+    description: "Indicates that this pathspec already contains a "
+                 "virtual root."
+  }];
+}
 
 // Ask the ListDir action to list all files in path (returns StatEntry)
 message ListDirRequest {
   optional PathSpec pathspec = 1;
   optional Iterator iterator = 2;
-};
+}
 
 message GetFileStatRequest {
   optional PathSpec pathspec = 1;
   optional bool collect_ext_attrs = 2 [default = false];
-};
+}
 
 // StatFS client action request
 message StatFSRequest {
-  repeated string path_list = 1[(sem_type) = {
-      description: "List of paths for statfs."
-    }];
-  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+  repeated string path_list = 1
+      [(sem_type) = { description: "List of paths for statfs." }];
+  optional PathSpec.PathType pathtype = 2 [
+    (sem_type) = {
       description: "Type of path to call statfs on.",
-    }, default=OS];
-};
+    },
+    default = OS
+  ];
+}
 
 // A stat() record for a given path
 // Next field id: 24.
 message StatEntry {
   // DEPRECATED
   // optional string aff4path = 1;
-  optional uint64 st_mode = 2 [(sem_type) = {
+  optional uint64 st_mode = 2 [
+    (sem_type) = {
       type: "StatMode",
       description: "A unix file permission mode."
-    }, default=0];
+    },
+    default = 0
+  ];
 
   optional uint32 st_ino = 3;
   optional uint32 st_dev = 4;
@@ -769,19 +767,19 @@ message StatEntry {
   optional uint32 st_gid = 7;
   optional uint64 st_size = 8;
   optional uint64 st_atime = 9 [(sem_type) = {
-      type: "RDFDatetimeSeconds",
-      description: "Last access time."
-    }];
+    type: "RDFDatetimeSeconds",
+    description: "Last access time."
+  }];
 
   optional uint64 st_mtime = 10 [(sem_type) = {
-      type: "RDFDatetimeSeconds",
-      description: "Last modified time."
-    }];
+    type: "RDFDatetimeSeconds",
+    description: "Last modified time."
+  }];
 
   optional uint64 st_ctime = 11 [(sem_type) = {
-      type: "RDFDatetimeSeconds",
-      description: "Last inode change time."
-    }];
+    type: "RDFDatetimeSeconds",
+    description: "Last inode change time."
+  }];
 
   optional uint32 st_blocks = 12;
   optional uint32 st_blksize = 13;
@@ -829,17 +827,16 @@ message StatEntry {
 
   // The pathspec which the client can use to re-reach this file.
   optional PathSpec pathspec = 18 [(sem_type) = {
-      description: "The path specification to this file on the client."
-    }];
+    description: "The path specification to this file on the client."
+  }];
 
   optional DataBlob registry_data = 19 [(sem_type) = {
-      description: "If this entry represents a registry value, this field will "
-      "contain that value encoded according to the correct type.";
-    }];
-  optional uint64 st_crtime = 20 [(sem_type) = {
-      type: "RDFDatetimeSeconds",
-      description: "Creation time."
-    }];
+    description: "If this entry represents a registry value, this field will "
+                 "contain that value encoded according to the correct type."
+  }];
+  optional uint64 st_crtime = 20 [
+    (sem_type) = { type: "RDFDatetimeSeconds", description: "Creation time." }
+  ];
 
   message ExtAttr {
     optional bytes name = 1;
@@ -847,55 +844,53 @@ message StatEntry {
   }
 
   repeated ExtAttr ext_attrs = 23;
-};
+}
 
 // This stores collection entries.
 message Collection {
   repeated StatEntry items = 1;
-};
-
+}
 
 // Windows WMI Request.
 message WmiRequest {
   optional string query = 1;
   optional string base_object = 2;
-};
-
+}
 
 // A Key Value pair
 message KeyValue {
   optional DataBlob k = 1;
   optional DataBlob v = 2;
-};
+}
 
 // A list of Key Value pairs
 message Dict {
   repeated KeyValue dat = 1 [(sem_type) = {
-      friendly_name: "Data",
-      description: "An arbitrary key/value"
-    }];
-};
+    friendly_name: "Data",
+    description: "An arbitrary key/value"
+  }];
+}
 
 // A Dict that allows attribute access.
 message AttributedDict {
   repeated KeyValue dat = 1 [(sem_type) = {
-      friendly_name: "Data",
-      description: "An arbitrary key/value."
-    }];
-};
+    friendly_name: "Data",
+    description: "An arbitrary key/value."
+  }];
+}
 
 // Certificates are exchanged with this.
 message Certificate {
   enum Type {
     CSR = 0;
     CRT = 1;
-    CA  = 2;
-  };
+    CA = 2;
+  }
 
   optional Type type = 1;
   optional bytes pem = 2;
   optional string cn = 3;
-};
+}
 
 message Password {
   optional bytes salt = 1;
@@ -906,47 +901,47 @@ message Password {
 // Message to carry uname information.
 message Uname {
   optional string system = 1 [(sem_type) = {
-      description: "The system platform (Windows|Darwin|Linux).",
-    }];
+    description: "The system platform (Windows|Darwin|Linux).",
+  }];
   optional string node = 2 [(sem_type) = {
-      description: "The hostname of this system.",
-    }];
+    description: "The hostname of this system.",
+  }];
   optional string release = 3 [(sem_type) = {
-      description: "The OS release identifier e.g. 7, OSX, debian.",
-    }];
+    description: "The OS release identifier e.g. 7, OSX, debian.",
+  }];
   optional string version = 4 [(sem_type) = {
-      description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
-    }];
+    description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
+  }];
   optional string machine = 5 [(sem_type) = {
-      description: "The system architecture e.g. AMD64, x86_64.",
-    }];
+    description: "The system architecture e.g. AMD64, x86_64.",
+  }];
   optional string kernel = 6 [(sem_type) = {
-      description: "The kernel version string e.g. 6.1.7601, 13.1.0, 3.15-rc2.",
-    }];
+    description: "The kernel version string e.g. 6.1.7601, 13.1.0, 3.15-rc2.",
+  }];
   optional string fqdn = 7 [(sem_type) = {
-      description: "The system's fully qualified domain name.",
-    }];
+    description: "The system's fully qualified domain name.",
+  }];
 
   optional uint64 install_date = 8 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When system was installed."
-    }];
+    type: "RDFDatetime",
+    description: "When system was installed."
+  }];
 
   optional string libc_ver = 9 [(sem_type) = {
-      description: "The C library version",
-    }];
+    description: "The C library version",
+  }];
 
   optional string architecture = 10 [(sem_type) = {
-      description: "The architecture of this binary. (Note this can be "
-      "different from the machine architecture in the case of a 32 bit binary "
-      "running on a 64 bit system)",
-    }];
+    description: "The architecture of this binary. (Note this can be "
+                 "different from the machine architecture in the case of a 32 bit binary "
+                 "running on a 64 bit system)",
+  }];
 
   optional string pep425tag = 11 [(sem_type) = {
-      description: "The unique signature of this python system (as defined by "
-      "PEP425 tags).",
-    }];
-};
+    description: "The unique signature of this python system (as defined by "
+                 "PEP425 tags).",
+  }];
+}
 
 message FolderInformation {
   optional string app_data = 1;
@@ -969,7 +964,7 @@ message FolderInformation {
   optional string start_menu = 18;
   optional string startup = 19;
   optional string templates = 20;
-};
+}
 
 message NetworkAddress {
   option (semantic) = {
@@ -982,104 +977,99 @@ message NetworkAddress {
   }
   optional Family address_type = 1;
   optional string DEPRECATED_human_readable = 2;
-  optional bytes packed_bytes = 3 [(sem_type) = {
-      type: "RDFBytes"
-    }];
+  optional bytes packed_bytes = 3 [(sem_type) = { type: "RDFBytes" }];
   // TODO(user): The whole code should be refactored so that bytes are
   // automatically created as an RDFBytes, without explicit sem_type mapping or,
   // alternatively, strings are automatically created as unicode and then "str"
   // objects can be treated as raw bytes, not strings.
-
-};
+}
 
 message Interface {
   option (semantic) = {
     description: "Information about a network interface. New fields have been"
-    "named to follow the CyBox NetworkInterfaceType:"
-    "https://cybox.mitre.org/language/version2.1/xsddocs/objects/"
-    "System_Object_xsd.html#NetworkInterfaceType"
+                 "named to follow the CyBox NetworkInterfaceType:"
+                 "https://cybox.mitre.org/language/version2.1/xsddocs/objects/"
+                 "System_Object_xsd.html#NetworkInterfaceType"
   };
 
-  //CyBOX: mac
+  // CyBOX: mac
   optional bytes mac_address = 1 [(sem_type) = {
-      type: "MacAddress",
-      description: "Interface MAC address."""
-    }];
+    type: "MacAddress",
+    description: "Interface MAC address."
+                 ""
+  }];
 
   // ip4_addresses is deprecated, use addresses.
   repeated bytes ip4_addresses = 2;
 
-  //CyBOX: adapter
+  // CyBOX: adapter
   optional string ifname = 3;
 
   // ip6_addresses is deprecated, use addresses.
   repeated bytes ip6_addresses = 4;
 
-  //CyBOX: ip_list
+  // CyBOX: ip_list
   repeated NetworkAddress addresses = 5 [(sem_type) = {
-      description: "A network address attached to an interface.",
-    }];
+    description: "A network address attached to an interface.",
+  }];
 
   optional uint64 dhcp_lease_expires = 6 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Time when DHCP lease will expire.",
-    }];
+    type: "RDFDatetime",
+    description: "Time when DHCP lease will expire.",
+  }];
 
   optional uint64 dhcp_lease_obtained = 7 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Time when DHCP lease was obtained.",
-    }];
+    type: "RDFDatetime",
+    description: "Time when DHCP lease was obtained.",
+  }];
 
   repeated NetworkAddress dhcp_server_list = 8 [(sem_type) = {
-      description: "IP addresses of DHCP servers.",
-    }];
+    description: "IP addresses of DHCP servers.",
+  }];
 
   repeated NetworkAddress ip_gateway_list = 9 [(sem_type) = {
-      description: "IP addresses of DHCP servers.",
-    }];
-
-};
+    description: "IP addresses of DHCP servers.",
+  }];
+}
 
 message Hash {
   optional bytes sha256 = 1 [(sem_type) = {
-      type: "HashDigest",
-      description: "SHA256 binary hash digest."
-      }];
-  optional bytes sha1 = 2 [(sem_type) = {
-      type: "HashDigest",
-      description: "SHA1 binary hash digest."
-      }];
-  optional bytes md5 = 3 [(sem_type) = {
-      type: "HashDigest",
-      description: "MD5 binary hash digest."
-      }];
+    type: "HashDigest",
+    description: "SHA256 binary hash digest."
+  }];
+  optional bytes sha1 = 2 [
+    (sem_type) = { type: "HashDigest", description: "SHA1 binary hash digest." }
+  ];
+  optional bytes md5 = 3 [
+    (sem_type) = { type: "HashDigest", description: "MD5 binary hash digest." }
+  ];
   optional bytes pecoff_sha1 = 4 [(sem_type) = {
-      type: "HashDigest",
-      description: "Authenticode SHA1 hash digest for signed region of PE file."
-      }];
+    type: "HashDigest",
+    description: "Authenticode SHA1 hash digest for signed region of PE file."
+  }];
 
   optional bytes pecoff_md5 = 5 [(sem_type) = {
-      type: "HashDigest",
-      description: "Authenticode MD5 hash digest for signed region of PE file."
-      }];
+    type: "HashDigest",
+    description: "Authenticode MD5 hash digest for signed region of PE file."
+  }];
 
   optional bytes pecoff_sha256 = 7 [(sem_type) = {
-      type: "HashDigest",
-      description: "Authenticode SHA256 hash digest for signed region of PE file."
-      }];
+    type: "HashDigest",
+    description: "Authenticode SHA256 hash digest for signed region of PE file."
+  }];
 
   repeated AuthenticodeSignedData signed_data = 6 [(sem_type) = {
-      description: "Signed data which may be present in PE files.",
-    }];
+    description: "Signed data which may be present in PE files.",
+  }];
 
   optional uint64 num_bytes = 8 [(sem_type) = {
-      description: "The number of bytes used to create the hashes in this message."
-    }];
+    description: "The number of bytes used to create the hashes in this message."
+  }];
   optional uint64 source_offset = 9 [(sem_type) = {
-      description: "If bytes used to create the hashes were read from its "
-      "original source (a file, for example) with an offset, a number "
-      "indicating the offset."
-    }];
+    description: "If bytes used to create the hashes were read from its "
+                 "original source (a file, for example) with an offset, a number "
+                 "indicating the offset."
+  }];
 }
 
 message AuthenticodeSignedData {
@@ -1088,33 +1078,33 @@ message AuthenticodeSignedData {
   optional bytes certificate = 3;
 }
 
-
 message FingerprintTuple {
   // The fingerprinting methods the fingerprinter can be asked to perform.
   // If none is given, all are applied.
   enum Type {
     FPT_GENERIC = 0;
     FPT_PE_COFF = 1;
-  };
+  }
   // The hash functions that a fingerprinting method may employ.
   // If none is given, all applicable ones are used.
   enum HashType {
     MD5 = 0;
     SHA1 = 1;
     SHA256 = 2;
-  };
+  }
   optional Type fp_type = 1;
   repeated HashType hashers = 2;
-};
+}
 
 // Request fingerprints for a file.
 message FingerprintRequest {
   optional PathSpec pathspec = 1;
   repeated FingerprintTuple tuples = 2;
-  optional uint64 max_filesize = 3 [(sem_type) = {
-      description: "Maximum file size to fingerprint."
-    }, default=10737418240];  // 10GiB
-};
+  optional uint64 max_filesize = 3 [
+    (sem_type) = { description: "Maximum file size to fingerprint." },
+    default = 10737418240
+  ];  // 10GiB
+}
 
 // Response data for file hashes and signature blobs.
 message FingerprintResponse {
@@ -1124,11 +1114,9 @@ message FingerprintResponse {
   repeated Dict results = 2;
   optional PathSpec pathspec = 3;
   optional Hash hash = 4;
-  optional uint64 bytes_read = 5 [(sem_type) = {
-      description: "Total number of bytes hashed."
-    }];
-};
-
+  optional uint64 bytes_read = 5
+      [(sem_type) = { description: "Total number of bytes hashed." }];
+}
 
 // Specialized binary blob for client.
 message SignedBlob {
@@ -1136,16 +1124,16 @@ message SignedBlob {
     MD5 = 0;
     SHA1 = 1;
     SHA256 = 2;
-  };
+  }
   enum SignatureType {
     RSA_PKCS1v15 = 0;
     RSA_PSS = 1;
   }
-  optional bytes data = 1;   // The blob itself.
-  optional bytes digest = 2;   // The hash of the blob.
-  optional HashType digest_type = 3;  // The type of hash used.
-  optional bytes signature = 4;     // Signature for the digest.
-  optional SignatureType signature_type = 5;  //Type of the signature.
+  optional bytes data = 1;                    // The blob itself.
+  optional bytes digest = 2;                  // The hash of the blob.
+  optional HashType digest_type = 3;          // The type of hash used.
+  optional bytes signature = 4;               // Signature for the digest.
+  optional SignatureType signature_type = 5;  // Type of the signature.
 }
 
 // Message representing a symmetric cipher. Note that users of this should only
@@ -1154,19 +1142,18 @@ message SymmetricCipher {
   enum Algorithm {
     NONE = 0;
     AES128CBC = 1;
-  };
+  }
 
-  optional Algorithm _algorithm = 1 [(sem_type) = {
-      description: "The algorithm to use."
-    }];
+  optional Algorithm _algorithm = 1
+      [(sem_type) = { description: "The algorithm to use." }];
 
   optional bytes _key = 2 [(sem_type) = {
-      type: "EncryptionKey",
-    }];
+    type: "EncryptionKey",
+  }];
 
   optional bytes _iv = 3 [(sem_type) = {
-      type: "EncryptionKey",
-    }];
+    type: "EncryptionKey",
+  }];
 }
 
 // Message containing request to execute python in the context of the client.
@@ -1185,26 +1172,29 @@ message ExecutePythonResponse {
 // This differs from ExecuteRequest as it includes sending the binary.
 message ExecuteBinaryRequest {
   optional SignedBlob executable = 1;  // The binary that will be executed.
-  optional string write_path = 2;  // Path to write the binary to.
+  optional string write_path = 2;      // Path to write the binary to.
   repeated string args = 3;
   // An execution time limit, given in seconds.
   optional int32 time_limit = 4;
 
   optional bool more_data = 5 [(sem_type) = {
-      description: "If the binary does not fit inside a single request, "
-      "the server will set this flag and send the file in chunks. The "
-      "file will not be actually executed until the more_data flags is False."
-    }];
+    description: "If the binary does not fit inside a single request, "
+                 "the server will set this flag and send the file in chunks. The "
+                 "file will not be actually executed until the more_data flags is False."
+  }];
 
   optional int64 offset = 6 [(sem_type) = {
-      description: "The position in the file where this chunk exists. "
-      "This must be the end of the file to ensure we did not lose any "
-      "requests on the way."
-    }];
-  optional bool use_client_env = 7 [default = false, (sem_type) = {
+    description: "The position in the file where this chunk exists. "
+                 "This must be the end of the file to ensure we did not lose any "
+                 "requests on the way."
+  }];
+  optional bool use_client_env = 7 [
+    default = false,
+    (sem_type) = {
       description: "Indicates if this command should be run in the context of "
-      "the installed client or the target system."
-    }];
+                   "the installed client or the target system."
+    }
+  ];
 }
 
 message ExecuteBinaryResponse {
@@ -1218,212 +1208,248 @@ message ExecuteBinaryResponse {
 // This requests the client to encrypt a file and send it to a specified server.
 message SendFileRequest {
   optional PathSpec pathspec = 1 [(sem_type) = {
-      description: "The pathspec for the file to retrieve.",
-    }];
+    description: "The pathspec for the file to retrieve.",
+  }];
 
-  optional NetworkAddress.Family address_family = 2 [(sem_type) = {
+  optional NetworkAddress.Family address_family = 2 [
+    (sem_type) = {
       description: "address family to use (AF_INET or AF_INET6).",
-    }, default=INET];
+    },
+    default = INET
+  ];
 
   optional string host = 3 [(sem_type) = {
-      description: "Hostname or IP to send the file to.",
-    }];
+    description: "Hostname or IP to send the file to.",
+  }];
 
-  optional uint64 port = 4 [(sem_type) = {
+  optional uint64 port = 4 [
+    (sem_type) = {
       description: "Port number on the listening server.",
-    }, default=12345];
+    },
+    default = 12345
+  ];
 
   optional bytes key = 5 [(sem_type) = {
-      type: "AES128Key",
-      description: "An encryption key given in hex representation.",
-    }];
+    type: "AES128Key",
+    description: "An encryption key given in hex representation.",
+  }];
 
   optional bytes iv = 6 [(sem_type) = {
-      type: "AES128Key",
-      description: "The iv for AES, also given in hex representation.",
-    }];
+    type: "AES128Key",
+    description: "The iv for AES, also given in hex representation.",
+  }];
 }
 
 // Grep searches the content of files for a hit and returns several
 // BufferReference.
 message GrepSpec {
   // The target of this search.
-  optional PathSpec target = 1 [(sem_type) = {
-      description: "This file will be searched."
-    }];
+  optional PathSpec target = 1
+      [(sem_type) = { description: "This file will be searched." }];
 
   // The search only covers this buffer.
-  optional uint64 start_offset = 2 [(sem_type) = {
+  optional uint64 start_offset = 2 [
+    (sem_type) = {
       description: "Start searching at this file offset.",
-    }, default = 0];
+    },
+    default = 0
+  ];
 
-  optional uint64 length = 3 [(sem_type) = {
+  optional uint64 length = 3 [
+    (sem_type) = {
       description: "How far (in bytes) into the file to search.",
-    }, default = 10737418240];
+    },
+    default = 10737418240
+  ];
 
   // TODO: Semantic type here should be unnecessary.
   optional bytes regex = 4 [(sem_type) = { type: "RDFBytes" }];
 
   // A literal search.
   optional bytes literal = 5 [(sem_type) = {
-      type: "LiteralExpression",
-      description: "Search for this literal string.",
-    }];
+    type: "LiteralExpression",
+    description: "Search for this literal string.",
+  }];
 
   enum Mode {
     ALL_HITS = 0;   // Report all hits.
     FIRST_HIT = 1;  // Stop after one hit.
   }
 
-  optional Mode mode = 6 [(sem_type) = {
+  optional Mode mode = 6 [
+    (sem_type) = {
       description: "When should searching stop? Stop after one hit "
                    "or search for all?",
-    }, default = ALL_HITS];
+    },
+    default = ALL_HITS
+  ];
 
-  optional uint32 bytes_before = 7 [(sem_type) = {
+  optional uint32 bytes_before = 7 [
+    (sem_type) = {
       description: "Include this many bytes before the hit.",
       label: ADVANCED,
-    }, default = 10];
+    },
+    default = 10
+  ];
 
-  optional uint32 bytes_after = 8 [(sem_type) = {
+  optional uint32 bytes_after = 8 [
+    (sem_type) = {
       description: "Include this many bytes after the hit.",
       label: ADVANCED,
-    }, default = 10];
+    },
+    default = 10
+  ];
 
   // These are used to encode the arguments / results.
-  optional uint32 xor_in_key = 9 [(sem_type) = {
+  optional uint32 xor_in_key = 9 [
+    (sem_type) = {
       description: "When searching memory we need to ensure we dont "
-      "hit on our own process. This allows us to obfuscate the search "
-      "string in memory to avoid us finding ourselves.",
+                   "hit on our own process. This allows us to obfuscate the search "
+                   "string in memory to avoid us finding ourselves.",
       label: ADVANCED
-    }, default = 0];
+    },
+    default = 0
+  ];
 
-  optional uint32 xor_out_key = 10 [(sem_type) = {
+  optional uint32 xor_out_key = 10 [
+    (sem_type) = {
       description: "When searching memory we need to ensure we dont "
-      "hit on our own process. This allows us to obfuscate the search "
-      "string in memory to avoid us finding ourselves.",
+                   "hit on our own process. This allows us to obfuscate the search "
+                   "string in memory to avoid us finding ourselves.",
       label: ADVANCED
-    }, default = 0];
+    },
+    default = 0
+  ];
 }
 
 // Requests and responses to allow a search for files that match all of these
 // conditions.
 message FindSpec {
   optional Iterator iterator = 1 [(sem_type) = {
-      label: HIDDEN,
-    }];
+    label: HIDDEN,
+  }];
 
   optional PathSpec pathspec = 2 [(sem_type) = {
-      description: "The base path to recursive search from ",
-    }];
+    description: "The base path to recursive search from ",
+  }];
 
   optional string path_glob = 13 [(sem_type) = {
-      type: "GlobExpression",
-      description: "A glob for the filename."
-    }];
+    type: "GlobExpression",
+    description: "A glob for the filename."
+  }];
 
   optional string path_regex = 3 [(sem_type) = {
-      type: "RegularExpression",
-      description: "This matches the filename. Overrides the path_glob.",
-      friendly_name: "Filename RegEx",
-      label: ADVANCED
-    }];
+    type: "RegularExpression",
+    description: "This matches the filename. Overrides the path_glob.",
+    friendly_name: "Filename RegEx",
+    label: ADVANCED
+  }];
 
   // TODO: Semantic type here should be unnecessary.
   optional bytes data_regex = 4 [(sem_type) = { type: "RDFBytes" }];
 
-  optional uint64 start_time = 5 [(sem_type) = {
+  optional uint64 start_time = 5 [
+    (sem_type) = {
       type: "RDFDatetime",
       description: "File must be modified after this time."
-    }, default=0];
+    },
+    default = 0
+  ];
 
-  optional uint64 end_time = 6 [(sem_type) = {
+  optional uint64 end_time = 6 [
+    (sem_type) = {
       type: "RDFDatetime",
       description: "File must be modified before this time (default=heat "
                    "death of the universe)."
-    }, default = 9223372036854775807];
+    },
+    default = 9223372036854775807
+  ];
 
   // Should we cross filesystems? Default is no.
-  optional bool cross_devs = 7 [(sem_type) = {
-      label: ADVANCED
-    }, default = false];
+  optional bool cross_devs = 7
+      [(sem_type) = { label: ADVANCED }, default = false];
 
   // How deep to search?
-  optional int32 max_depth = 8 [ (sem_type) = {
-      label: ADVANCED
-    }, default = 15 ];
+  optional int32 max_depth = 8 [(sem_type) = { label: ADVANCED }, default = 15];
 
-  optional StatEntry hit = 9 [(sem_type) = {
-      description: "Responses come in this field.",
-      label: HIDDEN
-    }];
+  optional StatEntry hit = 9 [
+    (sem_type) = { description: "Responses come in this field.", label: HIDDEN }
+  ];
 
   // The maximum amount of data from this file to search for data_regex.
-  optional uint64 max_data = 10 [(sem_type) = {
-      label: ADVANCED
-    }, default = 1024000];
+  optional uint64 max_data = 10
+      [(sem_type) = { label: ADVANCED }, default = 1024000];
 
-  optional uint64 min_file_size = 11 [(sem_type) = {
-      description: "Minimum file size in bytes."
-    }, default = 0];
+  optional uint64 min_file_size = 11 [
+    (sem_type) = { description: "Minimum file size in bytes." },
+    default = 0
+  ];
 
-  optional uint64 max_file_size = 12 [(sem_type) = {
+  optional uint64 max_file_size = 12 [
+    (sem_type) = {
       description: "Maximum file size in bytes "
-      "(default=sys.maxsize)."
-    }, default = 9223372036854775807];
+                   "(default=sys.maxsize)."
+    },
+    default = 9223372036854775807
+  ];
 
-  optional uint64 perm_mask = 14 [(sem_type) = {
+  optional uint64 perm_mask = 14 [
+    (sem_type) = {
       description: "Permission mask to apply to a file's permissions using "
-      "AND operation when looking for a match against perm_mode. Default "
-      "is 7777 in octal. Allows you to target only the permissions you care"
-      " about with perm_mode"
-    }, default = 07777];
+                   "AND operation when looking for a match against perm_mode. Default "
+                   "is 7777 in octal. Allows you to target only the permissions you care"
+                   " about with perm_mode"
+    },
+    default = 07777
+  ];
 
   optional uint64 perm_mode = 15 [(sem_type) = {
-      type: "StatMode",
-      description: "File permission mode to match against."
-    }];
+    type: "StatMode",
+    description: "File permission mode to match against."
+  }];
 
-  optional uint64 uid = 16 [(sem_type) = {
-      description: "User ID to match against a file's UID."
-    }];
+  optional uint64 uid = 16
+      [(sem_type) = { description: "User ID to match against a file's UID." }];
 
-  optional uint64 gid = 17 [(sem_type) = {
-      description: "Group ID to match against a file's GID."
-    }];
+  optional uint64 gid = 17
+      [(sem_type) = { description: "Group ID to match against a file's GID." }];
 
   optional bool collect_ext_attrs = 18 [default = false];
 }
 
 message PlistRequest {
   optional PathSpec pathspec = 1 [(sem_type) = {
-      description: "The pathspec for the plist file to query.",
-    }];
+    description: "The pathspec for the plist file to query.",
+  }];
 
   optional string context = 2 [(sem_type) = {
-      description: "A path into the plist to base the filter on",
-    }];
+    description: "A path into the plist to base the filter on",
+  }];
 
   optional string query = 3 [(sem_type) = {
-      type: "PlistQuery",
-      description: "A filter query to match the contents of the plist "
-      "at the base_context.",
-    }];
+    type: "PlistQuery",
+    description: "A filter query to match the contents of the plist "
+                 "at the base_context.",
+  }];
 }
 
 message GetClientStatsRequest {
-  optional uint64 start_time = 5 [(sem_type) = {
+  optional uint64 start_time = 5 [
+    (sem_type) = {
       type: "RDFDatetime",
       description: "Request stats data points with timestamp > start_time."
-    }, default=0];
+    },
+    default = 0
+  ];
 
-
-  optional uint64 end_time = 6 [(sem_type) = {
+  optional uint64 end_time = 6 [
+    (sem_type) = {
       type: "RDFDatetime",
       description: "Request stats data points with timestamp < end_time."
-    }, default = 9223372036854775807];
+    },
+    default = 9223372036854775807
+  ];
 }
-
 
 // This proto holds rules and the strategy used to evaluate them.
 message ForemanClientRuleSet {
@@ -1433,7 +1459,7 @@ message ForemanClientRuleSet {
   }
 
   // If this is MATCH_ANY then we fire when any rule matches
-  optional MatchMode match_mode = 1 [default=MATCH_ALL];
+  optional MatchMode match_mode = 1 [default = MATCH_ALL];
 
   repeated ForemanClientRule rules = 2;
 }
@@ -1475,7 +1501,7 @@ message ForemanLabelClientRule {
     MATCH_ANY = 1 [(description) = "Match any"];
     DOES_NOT_MATCH_ALL = 2 [(description) = "Doesn't match all"];
     DOES_NOT_MATCH_ANY = 3 [(description) = "Doesn't match any"];
-  };
+  }
 
   optional MatchMode match_mode = 2 [default = MATCH_ALL];
 }
@@ -1489,24 +1515,53 @@ message ForemanRegexClientRule {
   // optional string attribute_name = 2;
 
   optional string attribute_regex = 3 [(sem_type) = {
-      type: "RegularExpression",
-      description: "If these are specified we fire when the attribute's str() "
-      "representation matches the regex."
-    }];
+    type: "RegularExpression",
+    description: "If these are specified we fire when the attribute's str() "
+                 "representation matches the regex."
+  }];
   enum ForemanStringField {
     UNSET = 0 [(description) = "Unset"];
-    USERNAMES = 1 [(description) = "Space separated list of users (\"user1 user2 user3\")"];
-    UNAME = 2 [(description) = "Uname like OS information (\"Windows-10-10.0.14393SP0\" or \"Linux-debian-buster/sid\")"];
-    FQDN = 3 [(description) = "The fully qualified domain name of the machine. (\"host.example.com\")"];
-    HOST_IPS = 4 [(description) = "Space separated list of host IP addresses (\"10.240.0.12 127.0.0.1\")"];
-    CLIENT_NAME = 5 [(description) = "The name of the GRR client (\"GRR Monitor\")"];
-    CLIENT_DESCRIPTION = 6 [(description) = "The description of the GRR client (\"GRR windows amd64\")"];
-    SYSTEM = 7 [(description) = "Operating system the client machine runs (\"Windows\" or \"Linux\")"];
-    MAC_ADDRESSES = 8 [(description) = "Space separated list of mac addresses (\"42010af0000c 42010af0000d\")"];
-    KERNEL_VERSION = 9 [(description) = "Kernel version the machine is running (\"10.0.14393\" or \"4.9.0-5-amd64\")"];
-    OS_VERSION = 10 [(description) = "OS version the machine is running (\"10.0.14393SP0\" or \"buster/sid\")"];
-    OS_RELEASE = 11 [(description) = "OS release the machine is running (\"10\" or \"debian\")"];
-    CLIENT_LABELS = 12[(description) = "Space separated list of client labels (\"label1 label2\")"];
+    USERNAMES = 1 [(description) =
+                       "Space separated list of users (\"user1 user2 user3\")"];
+    UNAME = 2 [
+      (description) =
+          "Uname like OS information (\"Windows-10-10.0.14393SP0\" or \"Linux-debian-buster/sid\")"
+    ];
+    FQDN = 3 [
+      (description) =
+          "The fully qualified domain name of the machine. (\"host.example.com\")"
+    ];
+    HOST_IPS = 4 [
+      (description) =
+          "Space separated list of host IP addresses (\"10.240.0.12 127.0.0.1\")"
+    ];
+    CLIENT_NAME = 5
+        [(description) = "The name of the GRR client (\"GRR Monitor\")"];
+    CLIENT_DESCRIPTION = 6
+        [(description) =
+             "The description of the GRR client (\"GRR windows amd64\")"];
+    SYSTEM = 7 [
+      (description) =
+          "Operating system the client machine runs (\"Windows\" or \"Linux\")"
+    ];
+    MAC_ADDRESSES = 8 [
+      (description) =
+          "Space separated list of mac addresses (\"42010af0000c 42010af0000d\")"
+    ];
+    KERNEL_VERSION = 9 [
+      (description) =
+          "Kernel version the machine is running (\"10.0.14393\" or \"4.9.0-5-amd64\")"
+    ];
+    OS_VERSION = 10 [
+      (description) =
+          "OS version the machine is running (\"10.0.14393SP0\" or \"buster/sid\")"
+    ];
+    OS_RELEASE = 11
+        [(description) =
+             "OS release the machine is running (\"10\" or \"debian\")"];
+    CLIENT_LABELS = 12
+        [(description) =
+             "Space separated list of client labels (\"label1 label2\")"];
   }
   optional ForemanStringField field = 5;
 }
@@ -1528,10 +1583,15 @@ message ForemanIntegerClientRule {
   optional uint64 value = 4;
   enum ForemanIntegerField {
     UNSET = 0 [(description) = "Unset"];
-    INSTALL_TIME = 1 [(description) = "OS installation time (seconds from epoch)"];
-    CLIENT_VERSION = 2 [(description) = "Client version as an int (v3.2.1.4 => 3214)"];
-    LAST_BOOT_TIME = 3 [(description) = "Last time the client machine rebooted (seconds from epoch)"];
-    CLIENT_CLOCK = 4 [(description) = "Client reported time (seconds from epoch)"];
+    INSTALL_TIME = 1
+        [(description) = "OS installation time (seconds from epoch)"];
+    CLIENT_VERSION = 2
+        [(description) = "Client version as an int (v3.2.1.4 => 3214)"];
+    LAST_BOOT_TIME = 3
+        [(description) =
+             "Last time the client machine rebooted (seconds from epoch)"];
+    CLIENT_CLOCK = 4
+        [(description) = "Client reported time (seconds from epoch)"];
   }
   optional ForemanIntegerField field = 5;
 }
@@ -1546,11 +1606,11 @@ message ForemanRuleAction {
 
   // Hunt session id.
   optional string hunt_id = 4 [(sem_type) = {
-      type: "SessionID",
-      description: "The id of the hunt to start."
-    }];
+    type: "SessionID",
+    description: "The id of the hunt to start."
+  }];
   optional uint64 client_limit = 5;
-};
+}
 
 message ForemanRule {
   // We fire when all these rules match
@@ -1560,13 +1620,13 @@ message ForemanRule {
   repeated ForemanRuleAction actions = 3;
 
   optional uint64 created = 4 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When this rule was created."
-    }];
+    type: "RDFDatetime",
+    description: "When this rule was created."
+  }];
   optional uint64 expires = 5 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When this rule will expire."
-    }];
+    type: "RDFDatetime",
+    description: "When this rule will expire."
+  }];
 
   // A Human readable description of what this is supposed to do
   optional string description = 6;
@@ -1574,13 +1634,13 @@ message ForemanRule {
 
 message ForemanCondition {
   optional uint64 creation_time = 1 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When this rule was created."
-    }];
+    type: "RDFDatetime",
+    description: "When this rule was created."
+  }];
   optional uint64 expiration_time = 2 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When this rule will expire."
-    }];
+    type: "RDFDatetime",
+    description: "When this rule will expire."
+  }];
 
   // We fire when all these rules match
   optional ForemanClientRuleSet client_rule_set = 3;
@@ -1590,41 +1650,31 @@ message ForemanCondition {
 
   optional string hunt_name = 5;
 
-  optional string hunt_id = 6 [(sem_type) = {
-      description: "The id of the hunt to start."
-    }];
+  optional string hunt_id = 6
+      [(sem_type) = { description: "The id of the hunt to start." }];
 }
 
 message HuntError {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN"
-    }];
+  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
   optional string log_message = 2;
   optional string backtrace = 3;
 }
 
 message FlowLog {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN"
-    }];
+  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
   optional string log_message = 2;
   optional string urn = 3 [(sem_type) = {
-      type: "RDFURN",
-      description: "Session ID that generated the log."
-    }];
+    type: "RDFURN",
+    description: "Session ID that generated the log."
+  }];
 
-  optional string flow_name = 4 [(sem_type) = {
-      description: "Human readable name for the session ID."
-    }];
+  optional string flow_name = 4
+      [(sem_type) = { description: "Human readable name for the session ID." }];
 }
 
 message ClientResources {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN"
-    }];
-  optional string session_id = 2 [(sem_type) = {
-      type: "SessionID"
-    }];
+  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+  optional string session_id = 2 [(sem_type) = { type: "SessionID" }];
   optional CpuSeconds cpu_usage = 3;
   optional uint64 network_bytes_sent = 4;
 }
@@ -1669,15 +1719,15 @@ message Iterator {
   enum State {
     RUNNING = 0;
     FINISHED = 1;
-  };
-  optional State state = 4 [ default = RUNNING ];
+  }
+  optional State state = 4 [default = RUNNING];
 
   // DEPRECATED: Suspended actions are not supported at this time.
   // optional uint64 suspended_action = 5 [(sem_type) = {
   //     description: "If this is an iterator for a client action, we store "
   //     "the unique action id by which it is kept on the client."
   //   }];
-};
+}
 
 // A notification is used in the GUI to alert users that some operation is
 // completed
@@ -1687,34 +1737,32 @@ message Notification {
   // displayed when the notification is clicked on.
   optional string type = 1;
   optional string subject = 2 [(sem_type) = {
-      type: "RDFURN",
-      description: "The subject which this notification is about."
-    }];
+    type: "RDFURN",
+    description: "The subject which this notification is about."
+  }];
 
   optional string message = 3;
   optional string source = 4 [(sem_type) = {
-      type: "RDFURN",
-      description: "The user or service which generated this notification."
-    }];
+    type: "RDFURN",
+    description: "The user or service which generated this notification."
+  }];
 
   optional uint64 timestamp = 5 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Time the notification was added."
-    }];
+    type: "RDFDatetime",
+    description: "Time the notification was added."
+  }];
 }
-
 
 // This is a way to serialize an arbitrary RDFValue.
 message EmbeddedRDFValue {
   optional uint64 embedded_age = 1 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The age of this RDFValue."
-    }];
+    type: "RDFDatetime",
+    description: "The age of this RDFValue."
+  }];
   optional string name = 2;  // The type name of this RDFValue - used to
                              // retrieve the class for it.
   optional bytes data = 3;   // The serialized data of the RDFValue.
 }
-
 
 message AuditEvent {
   optional int32 id = 1;
@@ -1739,27 +1787,27 @@ message AuditEvent {
     USER_ADD = 16;
     USER_UPDATE = 17;
     USER_DELETE = 18;
-  };
+  }
 
-  optional Action action = 3 [default=UNKNOWN];
+  optional Action action = 3 [default = UNKNOWN];
   optional string flow_name = 4;
   optional bytes flow_args = 5;
 
   optional string client = 6 [(sem_type) = {
-      type: "RDFURN",
-      description: "The client, this action was applied to."
-    }];
+    type: "RDFURN",
+    description: "The client, this action was applied to."
+  }];
 
   optional uint64 timestamp = 7 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Time event was created.",
-    }];
+    type: "RDFDatetime",
+    description: "Time event was created.",
+  }];
 
   optional string description = 8;
   optional string urn = 9 [(sem_type) = {
-      type: "RDFURN",
-      description: "The relevant hunt/flow/cron urn for this event."
-    }];
+    type: "RDFURN",
+    description: "The relevant hunt/flow/cron urn for this event."
+  }];
 }
 
 // https://cloud.google.com/compute/docs/storing-retrieving-metadata
@@ -1809,7 +1857,7 @@ message CloudInstance {
     UNSET = -1;
     AMAZON = 0;
     GOOGLE = 1;
-  };
+  }
   optional InstanceType cloud_type = 1 [default = UNSET];
   optional GoogleCloudInstance google = 2;
   optional AmazonCloudInstance amazon = 3;
@@ -1823,54 +1871,52 @@ message ClientSummary {
   };
 
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
-      description: "The Client's URN.",
-    }];
+    type: "ClientURN",
+    description: "The Client's URN.",
+  }];
 
   optional uint64 timestamp = 2 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Timestamp for the creation of the record.",
-    }];
+    type: "RDFDatetime",
+    description: "Timestamp for the creation of the record.",
+  }];
 
-  optional Uname system_info = 3 [(sem_type) = {
-      description: "Client's system info."
-    }];
+  optional Uname system_info = 3
+      [(sem_type) = { description: "Client's system info." }];
 
   optional ClientInformation client_info = 4 [(sem_type) = {
-      description: "Basic information about the GRR client.",
-    }];
+    description: "Basic information about the GRR client.",
+  }];
 
   optional uint64 install_date = 5 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The date the system was installed.",
-    }];
+    type: "RDFDatetime",
+    description: "The date the system was installed.",
+  }];
 
   // 6 previously used by deprecated jobs.User proto. Migrated to
   // knowledge_base.User proto.
 
   repeated Interface interfaces = 7 [(sem_type) = {
-      description: "All interfaces on the system.",
-    }];
+    description: "All interfaces on the system.",
+  }];
 
   optional string serial_number = 8 [(sem_type) = {
-      description: "Serial Number from HW info.",
-   }];
+    description: "Serial Number from HW info.",
+  }];
 
-  optional string system_manufacturer = 9 [(sem_type) = {
-      description: "System Manufacturer from HW info."
-   }];
+  optional string system_manufacturer = 9
+      [(sem_type) = { description: "System Manufacturer from HW info." }];
 
   optional string system_uuid = 13 [(sem_type) = {
     description: "System UUID.",
   }];
 
-  repeated User users = 10 [(sem_type) = {
-      description: "User accounts on the system."
-    }];
+  repeated User users = 10
+      [(sem_type) = { description: "User accounts on the system." }];
 
-  optional CloudInstance.InstanceType cloud_type = 11
-      [(sem_type) = {description: "Cloud type: AMAZON/GOOGLE etc."},
-      default = UNSET];
+  optional CloudInstance.InstanceType cloud_type = 11 [
+    (sem_type) = { description: "Cloud type: AMAZON/GOOGLE etc." },
+    default = UNSET
+  ];
 
   optional string cloud_instance_id = 12 [(sem_type) = {
     description: "Cloud instance unique ID. For Amazon EC2 it is the "
@@ -1883,7 +1929,6 @@ message ClientSummary {
     description: "The last time the client communicated with GRR's servers.",
   }];
 }
-
 
 message CronJobRunStatus {
   enum Status {
@@ -1913,14 +1958,17 @@ message MetricFieldDefinition {
 message MetricMetadata {
   enum MetricType {
     COUNTER = 0 [(description) = "Integer metric that can only be incremented "
-                 "and never decremented."];
-    GAUGE = 1 [(description) = "Gauge metrics can be either string, integer or "
-               "float. Their value may be any value of their type and they may "
-               "change their value arbitrarily (unlike counters, which can "
-               "only be incremented."];
-    EVENT = 2 [(description) = "Event metrics are used to record events that "
-               "take certain amount of time. They're stored as latency "
-               "distributions."];
+                                 "and never decremented."];
+    GAUGE = 1
+        [(description) =
+             "Gauge metrics can be either string, integer or "
+             "float. Their value may be any value of their type and they may "
+             "change their value arbitrarily (unlike counters, which can "
+             "only be incremented."];
+    EVENT = 2 [(description) =
+                   "Event metrics are used to record events that "
+                   "take certain amount of time. They're stored as latency "
+                   "distributions."];
   }
 
   enum MetricUnits {
@@ -1945,59 +1993,53 @@ message MetricMetadata {
     DISTRIBUTION = 3;
   }
 
-  optional string varname = 1 [(sem_type) = {
-      description: "Metric name."
-    }];
-  optional MetricType metric_type = 2 [(sem_type) = {
-      description: "Metric type: counter, gauge or event."
-    }];
+  optional string varname = 1 [(sem_type) = { description: "Metric name." }];
+  optional MetricType metric_type = 2
+      [(sem_type) = { description: "Metric type: counter, gauge or event." }];
   optional ValueType value_type = 3 [(sem_type) = {
-      description: "Metric value type: int, float, str or distribution. Please "
-      "note that counter metrics always have type INT and event metrics always "
-      "have type DISTRIBUTION. Gauge metrics can be INT, FLOAT or STR."
-    }];
-  repeated MetricFieldDefinition fields_defs = 4 [(sem_type) = {
-      description: "Fields definitions for a given metric."
-    }];
-  optional string docstring = 5 [(sem_type) = {
-      description: "Description of the metric."
-    }];
+    description: "Metric value type: int, float, str or distribution. Please "
+                 "note that counter metrics always have type INT and event metrics always "
+                 "have type DISTRIBUTION. Gauge metrics can be INT, FLOAT or STR."
+  }];
+  repeated MetricFieldDefinition fields_defs = 4
+      [(sem_type) = { description: "Fields definitions for a given metric." }];
+  optional string docstring = 5
+      [(sem_type) = { description: "Description of the metric." }];
   optional MetricUnits units = 6 [(sem_type) = {
-      description: "For numerical metrics - measuring unit that is used."
-    }];
+    description: "For numerical metrics - measuring unit that is used."
+  }];
   repeated double bins = 7 [(sem_type) = {
     description: "For event metrics - consecutive bin-boundaries for the "
                  "metric's values (Distributions)."
   }];
 }
 
-
 message Distribution {
   optional float sum = 1 [(sem_type) = {
-      description: "Sum of all the values recorded in a distribution."
-    }];
+    description: "Sum of all the values recorded in a distribution."
+  }];
   optional uint64 count = 2 [(sem_type) = {
-      description: "Count of all the values recorded in a distribution."
-    }];
+    description: "Count of all the values recorded in a distribution."
+  }];
   repeated float bins = 3 [(sem_type) = {
-      description: "Values of upper range limits of all the bins in the "
-      "distribution. The first bin will have a lower range limit of -Infinity. "
-      "The last bin will accept all the values bigger than its' higher range."
-    }];
+    description: "Values of upper range limits of all the bins in the "
+                 "distribution. The first bin will have a lower range limit of -Infinity. "
+                 "The last bin will accept all the values bigger than its' higher range."
+  }];
   repeated float bins_heights = 4 [(sem_type) = {
-      description: "Heights of all the bins defined in the bins field."
-    }];
+    description: "Heights of all the bins defined in the bins field."
+  }];
 }
 
 message AFF4ObjectLabel {
   optional string name = 1;
   optional string owner = 2 [(sem_type) = {
-      description: "Username of the user who added the label.",
-    }];
+    description: "Username of the user who added the label.",
+  }];
   optional uint64 timestamp = 3 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Timestamp for when the label was added.",
-    }];
+    type: "RDFDatetime",
+    description: "Timestamp for when the label was added.",
+  }];
 }
 
 message AFF4ObjectLabelsList {
@@ -2008,28 +2050,30 @@ message AFF4ObjectLabelsList {
 // binary.
 message PersistenceFile {
   optional PathSpec pathspec = 1;
-  optional string source_urn = 2  [(sem_type) = {
+  optional string source_urn = 2 [(sem_type) = {
     type: "RDFURN",
     description: "URN for rdfvalue that used this file for "
-        " persistence. e.g. WindowsServiceInformation, StatEntry."
+                 " persistence. e.g. WindowsServiceInformation, StatEntry."
   }];
 }
 
 message EndToEndTestResult {
-  optional bool success = 1 [(sem_type) = {
+  optional bool success = 1 [
+    (sem_type) = {
       description: "Whether the test was successful.",
-    }, default = false];
+    },
+    default = false
+  ];
   optional string test_class_name = 2;
   optional uint64 timestamp = 3 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Timestamp for when the test was run.",
-    }];
+    type: "RDFDatetime",
+    description: "Timestamp for when the test was run.",
+  }];
   optional string log = 4;
 }
 
 
-message EmptyMessage {
-}
+message EmptyMessage {}
 
 message NSRLInformation {
   enum FileType {
@@ -2038,33 +2082,28 @@ message NSRLInformation {
     SPECIAL_FILE = 2;
   }
 
-  optional bytes sha1 = 1 [(sem_type) = {
-      type: "HashDigest",
-      description: "SHA1 binary hash digest."
-      }];
-  optional bytes md5 = 2 [(sem_type) = {
-      type: "HashDigest",
-      description: "MD5 binary hash digest."
-      }];
-  optional uint32 crc32 = 3 [(sem_type) = {
-      description: "32 bit Cyclic redundancy check."
-      }];
+  optional bytes sha1 = 1 [
+    (sem_type) = { type: "HashDigest", description: "SHA1 binary hash digest." }
+  ];
+  optional bytes md5 = 2 [
+    (sem_type) = { type: "HashDigest", description: "MD5 binary hash digest." }
+  ];
+  optional uint32 crc32 = 3
+      [(sem_type) = { description: "32 bit Cyclic redundancy check." }];
   optional uint64 file_size = 4 [(sem_type) = {
-      description: "Size of the file.",
-    }];
+    description: "Size of the file.",
+  }];
   optional string file_name = 5 [(sem_type) = {
-      description: "Name of the file.",
-    }];
-  repeated uint64 product_code = 6 [(sem_type) = {
-      description: "Code of the product this file is part of."
-    }];
-  repeated string op_system_code = 7 [(sem_type) = {
-      description: "Operating system this file runs on."
-    }];
-  optional FileType file_type = 8 [(sem_type) = {
-      description: "Type of file."
-    }];
-};
+    description: "Name of the file.",
+  }];
+  repeated uint64 product_code = 6 [
+    (sem_type) = { description: "Code of the product this file is part of." }
+  ];
+  repeated string op_system_code = 7
+      [(sem_type) = { description: "Operating system this file runs on." }];
+  optional FileType file_type = 8
+      [(sem_type) = { description: "Type of file." }];
+}
 
 message PendingFlowTermination {
   optional string reason = 1;
